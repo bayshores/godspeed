@@ -1,8 +1,7 @@
 /**
  * SCHEMA STAMPS (schema-versioning wave, owner 2026-10-10): LAZY v1 for
  * chats (record.version, stamped at the write choke point) and the graph
- * family (data/graph/format.json sidecar — ledgers, sources,
- * render-settings; positions deliberately unversioned, rebuildable).
+ * family (data/graph/format.json sidecar — ledgers, sources).
  * Honest refusal: records stamped NEWER than this build are refused on
  * read (the downgrade scenario) — never misparsed, never rewritten.
  *
@@ -22,8 +21,8 @@ const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-stamps-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
 const { chatStore } = await import("../src/store/chats.ts");
+const { classStore } = await import("../src/store/classes.ts");
 const { graphStore } = await import("../src/store/graph.ts");
-const { readRenderSettings, writeRenderSettings } = await import("../src/store/render-settings.ts");
 const { GRAPH_FORMAT_FILE } = await import("../config.ts");
 
 test.after(() => {
@@ -68,12 +67,26 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
+// ── classes: version 2 since exams (redesign, 2026-10-27) ──────────────────
+
+test("classes: writes stamp version 2; a version-1 record still reads; a newer one is refused", () => {
+	const r = classStore.createClass({ name: "stamp class" });
+	assert.equal(r.version, 2);
+	const file = path.join(TMP_DATA, "classes", r.id, "class.json");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 2);
+	const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }), "utf-8");
+	assert.equal(classStore.getClass(r.id)?.version, 1, "v1 reads as-is (no exams)");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 3 }), "utf-8");
+	assert.equal(classStore.getClass(r.id), null, "a newer build's record is refused");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 3, "and left untouched");
+});
+
 // ── the graph family: the lazy format.json sidecar ──────────────────────────
 
 test("graph: reads never write — no sidecar appears from reading alone", () => {
 	assert.ok(!fs.existsSync(GRAPH_FORMAT_FILE), "no sidecar before any write");
 	assert.deepEqual(graphStore.readNodes(), [], "ledger reads fine without a sidecar");
-	assert.equal(readRenderSettings(), null, "render-settings reads fine without a sidecar");
 	assert.ok(!fs.existsSync(GRAPH_FORMAT_FILE), "reads did NOT create the sidecar (lazy = write-side only)");
 });
 
@@ -96,15 +109,6 @@ test("graph: a NEWER-stamped sidecar is refused honestly", () => {
 	fs.writeFileSync(GRAPH_FORMAT_FILE, JSON.stringify({ version: 99 }), "utf-8");
 	assert.throws(() => graphStore.readNodes(), /older than its data|format version 99/);
 	assert.throws(() => graphStore.readSources(), /older than its data|format version 99/);
-	assert.throws(() => readRenderSettings(), /older than its data|format version 99/);
-});
-
-test("render-settings: its write stamps the family sidecar too", () => {
-	fs.rmSync(path.dirname(GRAPH_FORMAT_FILE), { recursive: true, force: true });
-	assert.ok(!fs.existsSync(GRAPH_FORMAT_FILE));
-	const written = writeRenderSettings({ sizeUnits: "world", nodeSize: 3 });
-	assert.equal(written.nodeSize, 3);
-	assert.equal(JSON.parse(fs.readFileSync(GRAPH_FORMAT_FILE, "utf8")).version, 1, "the render-settings write stamped the family");
 });
 
 // ── the fixtures stay the legacy pin: golden data reads unstamped ───────────

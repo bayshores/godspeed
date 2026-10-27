@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The default-order resolution, CLIENT-SIDE (chunk 2, Platform interlude
  * bd68486): the UI mirrors defaultThinkingLevel from src/agent/models.ts

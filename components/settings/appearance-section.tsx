@@ -1,4 +1,3 @@
-"use client";
 /**
  * The Appearance + Graph sections (thin settings wave).
  *
@@ -226,7 +225,7 @@ export function AppearanceSection({
 								aria-expanded={fontMenuOpen}
 								data-testid="font-trigger"
 								onClick={openFontMenu}
-								className="lh-press flex h-7 min-w-20 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
+								className="lh-press flex h-7 min-w-20 items-center gap-1 border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
 							>
 								<span className="min-w-0 flex-1 truncate">{appearance?.fontFamily || DEFAULT_READING_FONT}</span>
 								<span aria-hidden className="text-muted-foreground">
@@ -247,7 +246,7 @@ export function AppearanceSection({
 						preferredSide="down"
 						anchorTestid="font-trigger"
 						testid="font-menu"
-						menuClass="flex w-[18rem] flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+						menuClass="flex w-[18rem] flex-col gap-0.5 border border-border bg-card p-2 text-xs shadow-xl"
 					>
 						<FontMenuList
 							families={localFonts === undefined ? undefined : (localFonts ?? [...CURATED_FALLBACK_FONTS])}
@@ -365,9 +364,9 @@ export function GraphSection({
 		<>
 			{/* EXTRACTION (renamed, owner 2026-10-06): this switch is the DATA
 			    channel — the pipeline, the auditor, the prober's graph tools. It
-			    was born labeled "Graph" and that label lied once the rendering
-			    switch below arrived: off ≠ no graph, off = the graph stops
-			    growing. The testid keeps the old name's shape (row-enabled) so
+			    was born labeled "Graph": off ≠ no graph, off = the graph stops
+			    growing. (The display-only "Graph rendering" switch was removed
+			    with the old fact canvas, 2026-10-27.) The testid keeps the old name's shape (row-enabled) so
 			    this stays one rename, not a test re-pin. */}
 			<SettingsRow label="Extraction" hint="Off = the graph stops growing" testid="graph-row-enabled">
 				<Toggle
@@ -379,17 +378,6 @@ export function GraphSection({
 					// row's arrival: the old { enabled: on } wiped a stored budget).
 						onSectionChange({ ...graph, enabled: on })
 					}
-				/>
-			</SettingsRow>
-			{/* GRAPH RENDERING (owner, 2026-10-06 — the release graph-controls
-			    round): display-only. Off = the home shows the chains view
-			    instead of the canvas. The ledgers, the pipeline, everything
-			    data keeps working — that is the extraction switch above. */}
-			<SettingsRow label="Graph rendering" hint="Off = home shows the chains view" testid="graph-row-rendering">
-				<Toggle
-					checked={graph?.rendering ?? true}
-					label="graph rendering enabled"
-					onChange={(on) => onSectionChange({ ...graph, rendering: on })}
 				/>
 			</SettingsRow>
 			<SettingsRow

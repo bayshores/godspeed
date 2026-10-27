@@ -30,8 +30,8 @@ const repairedMatrix = String.raw`\begin{pmatrix}1 & 2 \\ 3 & 4\end{pmatrix}`;
 const part = (input: unknown, over: Partial<ArtifactPartProps["part"]> = {}): ArtifactPartProps["part"] => ({
 	type: "tool-problem", state: "input-available", toolCallId: "call_math", input, ...over,
 });
-const dock = (input: { statement: string }, expanded = true) => (
-	<PracticeDock problemCallId="call_math" input={input} expanded={expanded} onExpand={() => {}} onSubmit={() => {}} />
+const dock = (input: { statement: string }) => (
+	<PracticeDock problemCallId="call_math" input={input} onSubmit={() => {}} />
 );
 
 function math(html: string) {
@@ -91,7 +91,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 			for (const raw of [`$${formula}$`, `\\(${formula}\\)`, `$$\n${formula}\n$$`, `\\[\n${formula}\n\\]`]) {
 				for (const element of [
 					<MessageResponse mode="static">{raw}</MessageResponse>,
-					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} expanded onExpand={() => {}} onSubmit={() => {}} />,
+					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={() => {}} />,
 					dock({ statement: raw }),
 				]) {
 					const html = renderToStaticMarkup(element);
@@ -107,7 +107,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 	}
 	it("preserves escaped currency and code on both dock surfaces", () => {
 		const raw = "Costs \\$5 and \\$10. `" + clean + "`\n\n```text\n" + doubled + "\n```";
-		for (const element of [dock({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} expanded onExpand={() => {}} onSubmit={() => {}} />]) {
+		for (const element of [dock({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={() => {}} />]) {
 			const html = renderToStaticMarkup(element);
 			assert.deepEqual(math(html).annotations, []);
 			assert.ok(parseHTML(html).document.firstElementChild?.textContent?.includes("$5 and $10"));
@@ -172,13 +172,9 @@ describe("practice display surfaces", () => {
 		let expanded = "";
 		assert.doesNotThrow(() => { expanded = renderToStaticMarkup(dock(input)); });
 		const { document } = parseHTML(expanded);
-		assert.equal(document.querySelector(".lh-prose")!.innerHTML,
+		assert.equal(document.querySelector('[data-testid="practice-statement"]')!.innerHTML,
 			parseHTML(renderToStaticMarkup(<MessageResponse>{input.statement}</MessageResponse>)).document.firstElementChild!.outerHTML,
 			"non-string values pass through exactly as before, without string coercion or a new fallback");
-		const collapsed = renderToStaticMarkup(dock(input, false));
-		assert.match(collapsed, /data-testid="practice-dock-bar"/);
-		assert.equal(parseHTML(collapsed).document.querySelector("span.truncate")!.textContent, "17");
-		assert.deepEqual(math(collapsed).annotations, []);
 		assert.deepEqual(messages, before);
 		assert.equal(raw.statement, 17);
 	});
@@ -194,10 +190,7 @@ describe("practice display surfaces", () => {
 		}
 	});
 
-	it("does not change the collapsed preview, dismissal or global prose renderer", () => {
-		const preview = renderToStaticMarkup(dock({ statement: doubled }, false));
-		assert.ok(preview.includes(doubled));
-		assert.deepEqual(math(preview).annotations, []);
+	it("does not change the dismissal or global prose renderer", () => {
 		const dismissed = renderToStaticMarkup(<ConcludeCard part={part({ outcome: "dismissed", verdict: doubled }, { reveal: doubled })} />);
 		assert.ok(dismissed.includes("Problem dismissed."));
 		assert.deepEqual(math(dismissed).annotations, []);

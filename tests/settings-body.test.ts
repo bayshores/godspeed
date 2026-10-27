@@ -152,15 +152,10 @@ describe("parseGraphSettingsBody", () => {
 		assert.equal(parseGraphSettingsBody("nope").ok, false);
 	});
 
-	it("rendering (2026-10-06): boolean display switch — replace-whole like every sibling", () => {
-		const off = parseGraphSettingsBody({ enabled: true, rendering: false });
-		assert.ok(off.ok);
-		assert.deepEqual(off.settings, { enabled: true, rendering: false });
-		// absent = unset (factory ON at resolution)
-		const absent = parseGraphSettingsBody({ enabled: true });
-		assert.ok(absent.ok);
-		assert.deepEqual(absent.settings, { enabled: true });
-		assert.equal(parseGraphSettingsBody({ rendering: "off" }).ok, false, "rendering must be a boolean");
+	it("the removed rendering switch (2026-10-27) is no longer read from a body", () => {
+		const body = parseGraphSettingsBody({ enabled: true, rendering: false });
+		assert.ok(body.ok);
+		assert.deepEqual(body.settings, { enabled: true });
 	});
 
 	it("extractionChunkTokens: whole tokens ≥ the 500 floor (extraction-UX redesign, 2026-09-24)", () => {

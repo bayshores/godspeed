@@ -75,11 +75,11 @@ export interface GraphFiles {
 	 *  NotesSource record (contracts/graph.ts) — the file path + import time
 	 *  + the run's usage log. Read-modify-write like a chat file. */
 	sources: string;
-	/** The layout ledger (read-modify-write like sources.json): nodeId →
-	 *  {x,y} resting positions from the incremental settle (core/layout.ts). */
-	positions: string;
 	/** The graph-family FORMAT STAMP sidecar (see GRAPH_FORMAT_FILE). */
 	format: string;
+	/** The topic grouper's ledger (contracts/graph.ts TopicSnapshot):
+	 *  append-only, each line a full snapshot; readers take the last. */
+	topics: string;
 }
 
 /** Every file of one graph family rooted at `dir` (classes wave,
@@ -92,8 +92,8 @@ export function graphFilesIn(dir: string): GraphFiles {
 		sessions: path.join(dir, "sessions.jsonl"),
 		coverage: path.join(dir, "coverage.jsonl"),
 		sources: path.join(dir, "sources.json"),
-		positions: path.join(dir, "positions.json"),
 		format: path.join(dir, "format.json"),
+		topics: path.join(dir, "topics.jsonl"),
 	};
 }
 
@@ -104,22 +104,15 @@ export const LEDGER_FILES = {
 	chains: NO_CLASS_GRAPH.chains,
 	sessions: NO_CLASS_GRAPH.sessions,
 	coverage: NO_CLASS_GRAPH.coverage,
+	topics: NO_CLASS_GRAPH.topics,
 } as const;
 
 export const SOURCES_FILE = NO_CLASS_GRAPH.sources;
-export const POSITIONS_FILE = NO_CLASS_GRAPH.positions;
-
-/**
- * Graph render settings (the settings-panel controls): one small JSON blob,
- * read-modify-write. Shared shape/sanitizer: src/core/render-settings.ts.
- */
-export const RENDER_SETTINGS_FILE = path.join(PATHS.graph, "render-settings.json");
 
 /** The graph-family FORMAT STAMP sidecar (schema-versioning wave,
- *  2026-10-10): one version for the whole family — the four JSONL ledgers,
- *  sources.json, render-settings.json. LAZY v1: absent = v1; the first
- *  graph-family write creates it. positions.json is REBUILDABLE and rides
- *  along unversioned by design (owner ruling). */
+ *  2026-10-10): one version for the whole family — the JSONL ledgers and
+ *  sources.json. LAZY v1: absent = v1; the first graph-family write
+ *  creates it. */
 export const GRAPH_FORMAT_FILE = NO_CLASS_GRAPH.format;
 
 /**

@@ -41,8 +41,9 @@ describe("resolveAppearance — delta over factory", () => {
 });
 
 describe("derivedPalette — the dark curve keeps today's relationships", () => {
-	it("the factory background reproduces today's palette EXACTLY", () => {
+	it("the dark curve keeps the palette's relationships EXACTLY", () => {
 		assert.deepEqual(derivedPalette("#141414"), {
+			"--lh-tip": "#282828",
 			"--background": "#141414",
 			"--card": "#1c1c1c",
 			"--popover": "#1c1c1c",
@@ -53,6 +54,14 @@ describe("derivedPalette — the dark curve keeps today's relationships", () => 
 			"--input": "#434343",
 			"--primary-foreground": "#141414",
 		});
+	});
+
+	it("OLED black derives the redesign's panel / tone / tooltip / tone-2", () => {
+		const p = derivedPalette("#000000");
+		assert.equal(p["--card"], "#080808");
+		assert.equal(p["--accent"], "#161616");
+		assert.equal(p["--lh-tip"], "#141414");
+		assert.equal(p["--border"], "#2f2f2f");
 	});
 
 	it("an off-factory background shifts every surface with it (clamped at 255)", () => {

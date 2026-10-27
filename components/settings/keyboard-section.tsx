@@ -1,4 +1,3 @@
-"use client";
 /**
  * The Keyboard section (thin settings wave): view / rebind / reset over
  * core/keyboard.ts's registry. The overrides persist in localStorage
@@ -100,9 +99,9 @@ export function KeyboardSection() {
 				const actions = KEYBOARD_ACTIONS.filter((a) => a.scope === scope);
 				if (!actions.length) return null;
 				return (
-					<div key={scope} data-testid={`kbd-scope-${scope}`}>
-						<p className="mb-1 text-xs font-semibold text-muted-foreground/70">{label}</p>
-						<div className="flex flex-col gap-2">
+					<div key={scope} data-testid={`kbd-scope-${scope}`} className="mt-[22px] first:mt-0">
+						<p className="pb-2 text-[13px] font-bold text-ink-3">{label}</p>
+						<div className="flex flex-col gap-0.5">
 							{actions.map((def) => {
 								const effective = overrides[def.id] ?? def.binding;
 								return (
@@ -113,7 +112,7 @@ export function KeyboardSection() {
 										testid={`kbd-row-${def.id}`}
 									>
 										<span className="flex items-center gap-2">
-											<kbd className="rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
+											<kbd className="border border-tone-2 bg-black px-1.5 py-0.5 font-mono text-xs text-ink">
 												{rebinding === def.id ? "Press keys…" : formatBinding(effective)}
 											</kbd>
 											{def.displayOnly ? null : rebinding === def.id ? (
@@ -154,7 +153,7 @@ export function KeyboardSection() {
 					</div>
 				);
 			})}
-			<div className="mt-1 flex items-center justify-between">
+			<div className="mt-4 flex items-center justify-between">
 				<span className="text-xs text-muted-foreground/70">Stored on this device (lh:keymap) — overrides only.</span>
 				<button
 					type="button"

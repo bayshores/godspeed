@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Keyboard shortcuts (shortcut wave A, 2026-09-17) — the single document-level
  * keydown listener. Owns the pieces that belong to no surface in particular:
@@ -108,11 +106,11 @@ export function KeyboardShortcuts() {
 			// ride the window event for the mounted surface to catch.
 			switch (action) {
 				case "new-session":
-					handlersRef.current.router.push("/chat/new");
+					handlersRef.current.router.push("/");
 					break;
 				case "open-settings":
 					// Settings-app wave: the dialog is the surface, the URL is
-					// gone — /settings redirects to the draft shell.
+					// gone — /settings redirects to Home.
 					handlersRef.current.openSettings();
 					break;
 				case "jump-graph":
@@ -157,7 +155,7 @@ function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 			{...backdropDismiss}
 		>
 			<div
-				className="max-h-[80vh] w-full max-w-[36rem] overflow-y-auto rounded-xl border bg-card p-5 shadow-2xl"
+				className="max-h-[80vh] w-full max-w-[36rem] overflow-y-auto border bg-card p-5 shadow-2xl"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="mb-4 flex items-baseline justify-between">
@@ -176,7 +174,7 @@ function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 								{actions.map((a) => (
 									<div key={a.id} className="flex items-center justify-between gap-4 text-sm">
 										<span className="text-muted-foreground">{a.label}</span>
-										<kbd className="rounded-md border border-border bg-background px-1.5 py-0.5 font-mono text-xs text-card-foreground">
+										<kbd className=" border border-border bg-background px-1.5 py-0.5 font-mono text-xs text-card-foreground">
 											{formatBinding(bindingForAction(a.id))}
 										</kbd>
 									</div>

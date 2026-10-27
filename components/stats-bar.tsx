@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/src/core";
 import { formatTokens, formatUsd, planCostLabel, prettyModel } from "@/components/usage-format";
@@ -17,7 +15,7 @@ export function formatContextMeasurement(tokens: number | null, limit: number | 
  * LEFT-aligned: context window + session cost; RIGHT-aligned: model +
  * thinking level. Clicking the left side opens the per-turn detail popover.
  *
- *  Pre-chat views (home, /chat/new) render NO left side at all (owner,
+ *  Without a session yet there is NO left side at all (owner,
  *  wave 7 sweep: the knowledge-context budget slider that used to live
  *  there died with the injection; a "— · —" summary over an empty
  *  popover is pure noise).
@@ -131,7 +129,7 @@ export function StatsBar({
 						// Pops up out of the bar and back (motion wave, owner 2026-10-26).
 						data-side="up"
 						data-state={detail.state}
-						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 rounded-xl border bg-card p-3 text-xs shadow-xl"
+						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 border bg-card p-3 text-xs shadow-xl"
 					>
 						<div className="mb-2 text-xs font-semibold text-muted-foreground">
 							Session stats

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE CHAIN TABLE (chains overlay; owner refinements round 2, 2026-09-29):
  * every reasoning chain of the graph in one FULL-BLEED surface — the blur
@@ -260,7 +258,7 @@ export function ChainTableBody({
 						placeholder="Search nodes…"
 						aria-label="Search nodes"
 						spellCheck={false}
-						className="lh-no-drag h-8 w-56 rounded-lg border bg-background pl-8 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
+						className="lh-no-drag h-8 w-56 border bg-background pl-8 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
 					/>
 				</div>
 			<button
@@ -268,7 +266,7 @@ export function ChainTableBody({
 					data-testid="chain-table-close"
 					onClick={onClose}
 					aria-label="Close chains"
-					className="lh-press lh-no-drag flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card/80 text-muted-foreground hover:bg-accent hover:text-foreground"
+					className="lh-press lh-no-drag flex size-8 shrink-0 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground hover:bg-accent hover:text-foreground"
 				>
 					<XIcon className="size-4" />
 				</button>
@@ -433,7 +431,7 @@ export function ChainTableBody({
 																))}
 																<span
 																	data-testid={`prop-chip-${id}`}
-																	className="rounded border border-border/70 bg-muted/30 px-1.5 py-0.5"
+																	className=" border border-border/70 bg-muted/30 px-1.5 py-0.5"
 																>
 																	{nameOf(id)}
 																</span>
@@ -494,7 +492,7 @@ export function ChainTableBody({
 					<div
 						data-testid="chain-selection-bar"
 						data-state={bar.state}
-						className="lh-pop pointer-events-auto flex items-center gap-3 rounded-full border bg-card px-4 py-2 shadow-lg"
+						className="lh-pop pointer-events-auto flex items-center gap-3 border bg-card px-4 py-2 shadow-lg"
 					>
 						<span data-testid="chain-selected-summary" className="text-xs font-medium">
 							{selection.size} {selection.size === 1 ? "node" : "nodes"} →{" "}
@@ -504,7 +502,7 @@ export function ChainTableBody({
 							type="button"
 							data-testid="chain-clear"
 							onClick={onClear}
-							className="lh-press rounded-full px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+							className="lh-press px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
 						>
 							Clear
 						</button>
@@ -514,7 +512,7 @@ export function ChainTableBody({
 								data-testid="chain-practice-done"
 								onClick={onSelect}
 								aria-label={`Done picking — ${selection.size} ${selection.size === 1 ? "proposition" : "propositions"} selected`}
-								className="lh-press flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+								className="lh-press flex items-center gap-1.5 bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
 							>
 								<DumbbellIcon aria-hidden="true" className="size-3.5" />
 								Done
@@ -531,7 +529,7 @@ export function ChainTableBody({
 								data-testid="chain-delete"
 								onClick={onDelete}
 								aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "node" : "nodes"}`}
-								className="lh-press flex items-center gap-1.5 rounded-full border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
+								className="lh-press flex items-center gap-1.5 border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
 							>
 								<Trash2Icon aria-hidden="true" className="size-3.5" />
 								Delete
@@ -555,7 +553,7 @@ function Expander({ open, onClick, testid, label }: { open: boolean; onClick: ()
 			onClick={onClick}
 			aria-label={label}
 			aria-expanded={open}
-			className="lh-press flex h-5 w-3.5 shrink-0 items-center justify-center rounded text-muted-foreground/70 hover:bg-accent hover:text-foreground"
+			className="lh-press flex h-5 w-3.5 shrink-0 items-center justify-center text-muted-foreground/70 hover:bg-accent hover:text-foreground"
 		>
 			<ChevronRightIcon className={`size-3.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) ${open ? "rotate-90" : ""}`} />
 		</button>

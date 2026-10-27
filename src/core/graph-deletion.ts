@@ -209,26 +209,6 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 		checkpoints,
 	});
 
-	// 4. Positions: prune dead nodes AND dead chains (an argument's derived
-	//    implication node carries the chain's arg_ id — stale resting spots
-	//    would pin nothing; pruning keeps the ledger honest and the
-	//    revision moving for exactly the right reason).
-	const deadChainIds = new Set(
-		chainLines
-			.filter((line) => !outChains.includes(line))
-			.map((line) => line.id),
-	);
-	const positions = graphStore.readPositions();
-	const knownNodeIds = new Set(nodeLines.map((line) => line.id));
-	const prunedPositions = Object.fromEntries(
-		Object.entries(positions).filter(
-			([id]) => (live.has(id) || !knownNodeIds.has(id)) && !deadChainIds.has(id),
-		),
-	);
-	if (Object.keys(prunedPositions).length !== Object.keys(positions).length) {
-		graphStore.writePositions(prunedPositions);
-	}
-
 	return stats;
 }
 
@@ -311,11 +291,6 @@ export function deleteNodeTraces(graphStore: GraphStore, nodeId: string): NodeDe
 		const outChains = chainLines.filter((line) => line.id !== nodeId);
 		if (outChains.length === chainLines.length) return null; // unknown argument
 		graphStore.rewriteLedgers({ chains: outChains });
-		const positions = graphStore.readPositions();
-		if (positions[nodeId] !== undefined) {
-			const { [nodeId]: _dead, ...rest } = positions;
-			graphStore.writePositions(rest);
-		}
 		return { chainsRemoved: chainLines.length - outChains.length };
 	}
 
@@ -333,16 +308,6 @@ export function deleteNodeTraces(graphStore: GraphStore, nodeId: string): NodeDe
 		nodes: outNodes,
 		...(outChains.length !== chainLines.length ? { chains: outChains } : {}),
 	});
-
-	// The resting positions die with the node and every dead chain.
-	const deadChainIds = new Set(chainLines.filter((line) => !outChains.includes(line)).map((line) => line.id));
-	const positions = graphStore.readPositions();
-	const prunedPositions = Object.fromEntries(
-		Object.entries(positions).filter(([id]) => id !== nodeId && !deadChainIds.has(id)),
-	);
-	if (Object.keys(prunedPositions).length !== Object.keys(positions).length) {
-		graphStore.writePositions(prunedPositions);
-	}
 
 	return {
 		chainsRemoved: chainLines.length - outChains.length,

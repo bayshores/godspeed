@@ -1,54 +1,37 @@
-"use client";
-
 import { useRef, useState } from "react";
-import { ChevronRightIcon } from "lucide-react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
-import { Button } from "@/components/ui/button";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { cn } from "@/lib/utils";
+import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
 
 /**
- * The practice dock (practice sessions, owner design 2026-10-04): an
- * ACTIVE problem replaces the chat composer — the persistent bottom blob
- * morphs into the problem. The agent's statement above; the learner's
- * half below — "Your thinking", a labeled field with ONE Send button
- * (owner round 2, 2026-10-05): Enter sends, Shift+Enter makes a newline.
- * There are no lanes — whether a submission claims an answer is apparent
- * from the thinking itself; the agent reads it. One problem may carry
- * many submissions; each starts a turn.
+ * THE PRACTICE PANEL (redesign, practice lesson): an active problem fills
+ * the Your-turn panel — "Your turn" with "Problem 3", the statement, and
+ * "Your thinking" with one Send (Enter sends, Shift+Enter is a newline).
+ * Whether a submission claims an answer is read from the thinking by the
+ * agent; one problem may take many submissions, each starting a turn.
  *
- * Collapse (scroll-up → slim bar) is owned by the DockOverlay; this
- * component is content only, and the expanded form stays MOUNTED while
- * collapsed (hidden) so a half-written trace survives scrolling.
- *
- * The commitment (modelSolution, decisionPoints, …) rides the tool call's
- * arguments and is NOT rendered here — only the statement is the
- * learner's. Esc dismisses the problem (the layered-Esc chain; the
- * confirm dialog then the silent route) — claimed by the page, not here.
+ * The commitment (modelSolution, …) rides the call's arguments and never
+ * renders here — only the statement is the learner's. Esc dismisses the
+ * problem through the page's layered-Esc chain, not here.
  */
-
 export interface PracticeDockProps {
 	/** The active problem's tool-call id (submissions target it). */
 	problemCallId: string;
-	/** The pose's arguments — only the statement is the learner's (the
-	 *  mode badge would edge toward announcing the target; dropped). */
+	/** The pose's arguments — only the statement is the learner's. */
 	input: { statement: string };
-	/** Collapse state, owned by the DockOverlay. */
-	expanded: boolean;
-	onExpand: () => void;
-	/** text — POST {type:"thinking"} (one lane; the register is read from the text). */
+	/** The problem's number in this lesson ("Problem 3"). */
+	number?: number | null;
+	/** text — POST {type:"thinking"} (one lane). */
 	onSubmit: (text: string) => void;
-	/** Compaction is running for this chat (owner round 14): the thinking
-	 *  POST would block on the server's compaction gate — disable submit
-	 *  and say so in the hint row. The server registry is the real gate;
-	 *  this is the affordance. */
+	/** Compaction is running: the POST would block on the server's gate. */
 	compactionRunning?: boolean;
+	/** A quiet row under the field (the lesson's stats). */
+	footer?: React.ReactNode;
 }
 
-export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmit, compactionRunning = false }: PracticeDockProps) {
+export function PracticeDock({ problemCallId, input, number, onSubmit, compactionRunning = false, footer }: PracticeDockProps) {
 	const [thinking, setThinking] = useState("");
-	// Ref MIRRORS the field: the window-level Enter submit reads the
-	// current trace, never a stale closure.
+	// The ref mirrors the field: the window-level Enter reads the current trace.
 	const thinkingRef = useRef("");
 
 	const submit = () => {
@@ -60,97 +43,69 @@ export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmi
 		onSubmit(text);
 	};
 
-	/* ENTER SUBMITS FROM ANYWHERE (owner round 6, 2026-10-05): the
-	 * window-level Enter
-	 * (typing surfaces and buttons excluded) submits the trace. Mounted
-	 * while the dock is — collapsed bar included (the trace survives). */
+	// Enter submits from anywhere outside a typing surface (owner round 6).
 	useEnterSubmits(submit);
 
-	/* ── the collapsed bar ── */
-	if (!expanded) {
-		return (
-			<button
-				type="button"
-				data-testid="practice-dock-bar"
-				onClick={onExpand}
-				className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
-			>
-				<ChevronRightIcon className="size-4 shrink-0 rotate-90" />
-				<span className="font-medium">Problem</span>
-				<span className="min-w-0 flex-1 truncate">{input.statement}</span>
-			</button>
-		);
-	}
-
-	/* ── the expanded form ── */
 	return (
-		<div data-testid="practice-dock" data-problem={problemCallId}>
-			{/* The agent's half: the 'Problem' eyebrow (mirroring the quiz
-			    cards' label row — owner round, 2026-10-05) + the statement,
-			    markdown + LaTeX rendered, capped by the measured column
-			    (--dock-max-h; the old fixed 40vh cut long problems short). */}
-			<div className="max-h-[var(--dock-max-h,40vh)] overflow-y-auto px-4 pt-3 pb-2">
-				<div className="mb-1 text-xs font-semibold text-muted-foreground">Problem</div>
-				<div className="lh-prose text-[15px]">
+		<form
+			data-testid="practice-dock"
+			data-problem={problemCallId}
+			className="flex min-h-0 flex-1 flex-col"
+			onSubmit={(e) => {
+				e.preventDefault();
+				submit();
+			}}
+		>
+			<PanelBody>
+				<PanelHeader
+					eyebrow="Your turn"
+					right={
+						<KindChip testId="problem-number">
+							<span className="text-[12.5px] font-bold text-ink-2">{number ? `Problem ${number}` : "Problem"}</span>
+						</KindChip>
+					}
+				/>
+				<div
+					data-session-find-root=""
+					data-testid="practice-statement"
+					className="mt-3 shrink-0 font-bold text-ink"
+					style={{ "--lh-prose-size": "18px", "--lh-prose-leading": `${25 / 18}`, "--lh-ink-body": "var(--foreground)" } as React.CSSProperties}
+				>
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
-			</div>
-
-			{/* The learner's half: Enter SENDS (owner round 2, 2026-10-05);
-			    Shift+Enter makes a newline — less to decide about. */}
-			<div
-				data-testid="practice-thinking-field"
-				className="m-1.5 rounded-[10px] border border-border/70 bg-background/60 transition-colors focus-within:border-primary/50"
-			>
-				<div className="px-2.5 pt-2 text-xs font-semibold text-muted-foreground">
-					YOUR THINKING
+				<div data-testid="practice-thinking-field" className="mt-5 flex min-h-0 flex-1 flex-col">
+					<FieldLabel>Your thinking</FieldLabel>
+					<textarea
+						value={thinking}
+						onChange={(e) => {
+							thinkingRef.current = e.target.value;
+							setThinking(e.target.value);
+						}}
+						onKeyDown={(e) => {
+							// Esc stays in the field so the window chain doesn't fire.
+							if (e.key === "Escape") {
+								e.preventDefault();
+								e.stopPropagation();
+								return;
+							}
+							if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
+								e.preventDefault();
+								submit();
+							}
+						}}
+						placeholder="Work here, think out loud."
+						aria-label="Your thinking"
+						className={PANEL_FIELD}
+					/>
 				</div>
-				<textarea
-					value={thinking}
-					onChange={(e) => {
-						thinkingRef.current = e.target.value;
-						setThinking(e.target.value);
-					}}
-					onKeyDown={(e) => {
-						// Esc in the field is the field's — stopPropagation
-						// claims it so the window chain doesn't also fire.
-						if (e.key === "Escape") {
-							e.preventDefault();
-							e.stopPropagation();
-							return;
-						}
-						// Enter SENDS — the single lane (owner round 2, 2026-10-05);
-						// Shift+Enter is the newline, ⌘/Ctrl+Enter the chord too.
-						if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							submit();
-						}
-					}}
-					placeholder="Work here, think out loud."
-					rows={4}
-					className={cn(
-						"field-sizing-content lh-input max-h-64 min-h-16 w-full resize-none bg-transparent px-2.5 pb-2 outline-none placeholder:text-muted-foreground",
-					)}
-				/>
-				{/* The submit row (owner round 4, 2026-10-05): IDENTICAL to the
-				    question dock's — hint left, the SAME Button (h-9, px-3.5),
-				    one p-1 row. Corner radii concentric: shell 16 − m-1.5 (6) =
-				    field 10 − p-1 (4) = button 6. */}
-				<div className="flex items-center justify-between gap-2 p-1">
-					<span aria-hidden className="pl-1.5 font-mono text-xs text-muted-foreground">
-						{compactionRunning ? "compacting session…" : "↵ submits · ⇧↵ newline"}
-					</span>
-					<Button
-						type="button"
-						data-testid="practice-send"
-						disabled={thinking.trim().length === 0 || compactionRunning}
-						onClick={() => submit()}
-						className="ml-auto h-9 rounded-[6px] px-3.5 text-sm font-medium"
-					>
-						Submit thinking
-					</Button>
-				</div>
-			</div>
-		</div>
+				{footer}
+			</PanelBody>
+			<ActionBar
+				type="submit"
+				testId="practice-send"
+				label={compactionRunning ? "Compacting the lesson…" : "Send"}
+				disabled={thinking.trim().length === 0 || compactionRunning}
+			/>
+		</form>
 	);
 }

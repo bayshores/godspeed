@@ -16,6 +16,8 @@ import {
 	coerceCorrectAnswer,
 	CONFIDENCE_STOPS,
 	DEFAULT_CONFIDENCE_INDEX,
+	confidenceLevel,
+	levelPercent,
 	isCorrect,
 	normalizeOptions,
 	quizInputProblems,
@@ -437,9 +439,22 @@ function quizData(overrides?: Partial<QuestionData>): QuestionData {
 }
 
 describe("confidence stops", () => {
-	it("the owner-decided grid (2026-10-01): resolution concentrates at the top", () => {
-		assert.deepEqual(CONFIDENCE_STOPS, [0, 30, 50, 70, 90, 100]);
-		assert.equal(CONFIDENCE_STOPS[DEFAULT_CONFIDENCE_INDEX], 50, "rests at a real coin flip");
+	it("the 1–5 meter saves as 20/40/60/80/100 (redesign, 2026-10-27)", () => {
+		assert.deepEqual(CONFIDENCE_STOPS, [20, 40, 60, 80, 100]);
+		assert.equal(CONFIDENCE_STOPS[DEFAULT_CONFIDENCE_INDEX], 60, "rests on level 3");
+		assert.deepEqual(([1, 2, 3, 4, 5] as const).map(levelPercent), [20, 40, 60, 80, 100]);
+	});
+
+	it("maps every stored percentage to its nearest level, ties to the lower one", () => {
+		// The new grid round-trips.
+		for (const level of [1, 2, 3, 4, 5] as const) assert.equal(confidenceLevel(levelPercent(level)), level);
+		// The old grid (0/30/50/70/90/100) displays at the nearest level.
+		assert.deepEqual([0, 30, 50, 70, 90, 100].map(confidenceLevel), [1, 1, 2, 3, 4, 5]);
+		// Out of range clamps.
+		assert.equal(confidenceLevel(-10), 1);
+		assert.equal(confidenceLevel(150), 5);
+		assert.equal(confidenceLevel(65), 3);
+		assert.equal(confidenceLevel(71), 4);
 	});
 });
 

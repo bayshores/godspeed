@@ -39,9 +39,7 @@ const { chatStore } = await import("../src/store/chats.ts");
 const { graphStore } = await import("../src/store/graph.ts");
 const { jobStore } = await import("../src/store/jobs.ts");
 const { settingsStore } = await import("../src/store/settings.ts");
-const { readRenderSettings } = await import("../src/store/render-settings.ts");
 const { getGraph, deriveView } = await import("../src/core/graph.ts");
-const { sanitizeRenderSettings } = await import("../src/core/render-settings.ts");
 const { toLlmMessages } = await import("../src/core/native-messages.ts");
 const { phaseAt3Lh } = await import("../src/core/phases.ts");
 const { danglingQuestionOf, activeProblemOf } = await import("../src/core/native-messages.ts");
@@ -181,17 +179,6 @@ assert.ok(derived.chains.length >= 150, "chains survive derivation");
 	assert.ok(view.impLinks.length >= 90, "every unique chain renders into the view (lines merged by premises+conclusion)");
 	assert.ok(view.edges.length >= view.impLinks.length, "premise/conclusion arrows drawn");
 	assert.ok(view.logicalEdges.length > 0, "logical edge contraction runs");
-});
-
-test("graph: render-settings sanitize and positions parse", () => {
-	const raw = readRenderSettings();
-	assert.ok(raw, "render-settings.json reads");
-	const clean = sanitizeRenderSettings(raw);
-	assert.ok(clean.nodeSize > 0 && typeof clean.labelZoom === "number", "sanitizes to concrete knobs");
-	const positionsFile = JSON.parse(fs.readFileSync(path.join(TMP, "graph", "positions.json"), "utf8")) as {
-		positions: Record<string, unknown>;
-	};
-	assert.ok(Object.keys(positionsFile.positions).length >= 300, "positions parse");
 });
 
 // ── jobs + settings ─────────────────────────────────────────────────────────

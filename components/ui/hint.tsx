@@ -1,13 +1,11 @@
-"use client"
-
 import * as React from "react"
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent, TooltipRows } from "@/components/ui/tooltip"
 import { bindingForAction, formatBinding, type KeyAction } from "@/src/core"
 
 /**
  * The tooltip composition for icon and pill controls (tooltip wave, owner
- * 2026-09-25; subtlety round same day). The styled Radix tooltip carries
- * the label, with the control's shortcut appended in parentheses when
+ * 2026-09-25; redesign 2026-10-27: the shared tooltip box, the label as
+ * its bold title). The styled Radix tooltip carries the label, with the control's shortcut appended in parentheses when
  * it has one ("Graph view (⌘G)") — the owner call: the em-dash suffix read
  * as too much air.
  *
@@ -48,7 +46,9 @@ export function Hint({ label, action, binding, side = "top", children }: HintPro
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>{children}</TooltipTrigger>
-				<TooltipContent side={side}>{hintText(label, action, binding)}</TooltipContent>
+				<TooltipContent side={side}>
+					<TooltipRows title={hintText(label, action, binding)} />
+				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
 	)

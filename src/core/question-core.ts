@@ -492,13 +492,33 @@ export interface AnswerRequest {
 	confidence?: number; // quiz only: 0-100 raw probability — 50 is a real coin flip, always sent (owner, 2026-10-01)
 }
 
-/** The confidence slider's snap stops (owner, 2026-10-01): raw probability
- *  that the selected answer is correct, uneven on purpose — resolution
- *  concentrates at the top where the calibration signal lives (90 vs 100
- *  separates knows from mastered). 50 is a genuine coin flip and the
- *  resting default — untouched and deliberate 50 are the same number. */
-export const CONFIDENCE_STOPS: readonly number[] = [0, 30, 50, 70, 90, 100];
+/** The confidence meter's stops (redesign plan, owner-approved 2026-10-27):
+ *  a 1–5 scale, SAVED as a percentage so the teacher's confidence prompt
+ *  (shared/25-confidence.md) reads the same numbers it always has —
+ *  level 1..5 ↔ 20/40/60/80/100. Older answers carry the previous grid
+ *  (0/30/50/70/90/100) and display at the nearest level (confidenceLevel).
+ *  The meter rests on level 3 (60). */
+export const CONFIDENCE_STOPS: readonly number[] = [20, 40, 60, 80, 100];
 export const DEFAULT_CONFIDENCE_INDEX = 2;
+
+export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5;
+
+/** The percentage a 1–5 level saves as (level × 20). */
+export function levelPercent(level: ConfidenceLevel): number {
+	return level * 20;
+}
+
+/** The 1–5 level nearest a stored percentage (any 0–100 value, old grid
+ *  included). Ties go to the lower level: 30 → 1, 50 → 2, 70 → 3, 90 → 4;
+ *  0 → 1, 100 → 5. Out-of-range or non-finite input clamps. */
+export function confidenceLevel(percent: number): ConfidenceLevel {
+	const p = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 60;
+	let best: ConfidenceLevel = 1;
+	for (const level of [2, 3, 4, 5] as const) {
+		if (Math.abs(levelPercent(level) - p) < Math.abs(levelPercent(best) - p)) best = level;
+	}
+	return best;
+}
 
 // ─── dock selection (the client state machine, pure for tests) ─────────────
 

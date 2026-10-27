@@ -1,19 +1,30 @@
-"use client";
-
 /**
- * THE CLASS SWITCHER (classes wave, owner-approved 2026-10-26): the picker
- * at the top of the sidebar. Picking a class switches the whole window to
- * it — the sidebar's lessons, home's graph, where new lessons start.
- * Entries: every active class, "No class", the archived classes (folded
- * under "Archived"), "New class…", and "Edit class…" for the active one.
+ * THE CLASS SWITCHER (classes wave 2026-10-26; redesign 2026-10-27): the
+ * block at the top of the sidebar — a white square with the class's
+ * initials, the class name, and the up/down chevrons. Picking a class
+ * switches the whole window to it — the sidebar's lessons, the graph,
+ * where new lessons start. Menu entries: every active class, "No class",
+ * the archived classes (folded under "Archived"), "Edit class…" for the
+ * active one, and "New class…".
  */
 
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, ChevronDownIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { MenuShell } from "@/components/menu-shell";
 import { ClassDialog } from "@/components/class-dialog";
 import { useClasses } from "@/components/class-context";
 import { cn } from "@/lib/utils";
+
+/** The class mark's letters: an acronym first word keeps its first two
+ *  letters ("ML Foundations" → "ML", "CSE 21" → "CS"); otherwise the
+ *  first letters of the first two words ("Linear algebra" → "LA"); a
+ *  single word gives its first two letters ("Calculus" → "CA"). */
+export function classInitials(name: string | null | undefined): string {
+	const [first = "", second = ""] = (name ?? "").trim().split(/\s+/);
+	if (first.length >= 2 && /^[A-Z0-9]+$/.test(first)) return first.slice(0, 2);
+	if (!second) return first.slice(0, 2).toUpperCase();
+	return (first.charAt(0) + second.charAt(0)).toUpperCase();
+}
 
 export function ClassSwitcher() {
 	const { classes, active, activeClass, setActive } = useClasses();
@@ -50,37 +61,35 @@ export function ClassSwitcher() {
 	};
 	const current = classes.filter((c) => !c.archived);
 	const archived = classes.filter((c) => c.archived);
-	const row = "lh-press flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-accent";
+	const row = "lh-press flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[13.5px] text-ink hover:bg-tone";
+	const name = activeClass?.name ?? "No class";
+	const initials = classInitials(activeClass?.name);
 
 	return (
 		<>
-			<div className="mx-3 mb-2 flex items-center gap-1">
-				<button
-					ref={anchorRef}
-					type="button"
-					data-testid="class-switcher"
-					onClick={() => setOpen((v) => !v)}
-					aria-haspopup="menu"
-					aria-expanded={open}
-					className="lh-press flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-xs hover:bg-accent"
+			<button
+				ref={anchorRef}
+				type="button"
+				data-testid="class-switcher"
+				onClick={() => setOpen((v) => !v)}
+				aria-haspopup="menu"
+				aria-expanded={open}
+				aria-label={`Class: ${name}`}
+				className="lh-press flex w-full items-center gap-3 bg-panel px-3 py-2.5 text-left hover:bg-tone"
+			>
+				<span
+					data-testid="class-mark"
+					aria-hidden
+					className={cn(
+						"flex size-[34px] shrink-0 items-center justify-center text-sm font-extrabold",
+						activeClass ? "bg-ink text-primary-foreground" : "bg-tone-2 text-ink-2",
+					)}
 				>
-					<span className="text-xs font-semibold text-muted-foreground/70">Class</span>
-					<span className="font-prose min-w-0 flex-1 truncate text-sm text-foreground">{activeClass?.name ?? "No class"}</span>
-					<ChevronDownIcon className="size-3 shrink-0 text-muted-foreground" />
-				</button>
-				{activeClass && (
-					<button
-						type="button"
-						data-testid="class-edit"
-						aria-label={`Edit ${activeClass.name}`}
-						title="Edit class, files and folder"
-						onClick={() => setDialog({ kind: "edit", classId: activeClass.id })}
-						className="lh-press flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-					>
-						<PencilIcon className="size-3.5" />
-					</button>
-				)}
-			</div>
+					{activeClass ? initials : "–"}
+				</span>
+				<span className={cn("min-w-0 flex-1 truncate text-[15px] font-bold", activeClass ? "text-ink" : "text-ink-2")}>{name}</span>
+				<ChevronsUpDownIcon className="size-4 shrink-0 text-ink-2" aria-hidden />
+			</button>
 
 			<MenuShell
 				open={open}
@@ -88,17 +97,17 @@ export function ClassSwitcher() {
 				testid="class-switcher-menu"
 				preferredSide="down"
 				align="left"
-				menuClass="flex w-64 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
+				menuClass="flex w-[236px] flex-col gap-0.5 border border-tone-2 bg-panel p-1.5 shadow-xl"
 			>
 				{current.map((c) => (
 					<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
-						<span className="font-prose min-w-0 flex-1 truncate text-sm">{c.name}</span>
-						{active === c.id && <CheckIcon className="size-3" />}
+						<span className="min-w-0 flex-1 truncate">{c.name}</span>
+						{active === c.id && <CheckIcon className="size-3.5" />}
 					</button>
 				))}
-				<button type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-muted-foreground")}>
+				<button type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-ink-2")}>
 					<span className="min-w-0 flex-1 truncate">No class</span>
-					{active === null && <CheckIcon className="size-3" />}
+					{active === null && <CheckIcon className="size-3.5" />}
 				</button>
 				{archived.length > 0 && (
 					<>
@@ -106,25 +115,39 @@ export function ClassSwitcher() {
 							type="button"
 							data-testid="class-show-archived"
 							onClick={() => setShowArchived((v) => !v)}
-							className={cn(row, "text-muted-foreground/80")}
+							className={cn(row, "text-ink-2")}
 						>
 							Archived ({archived.length}) {showArchived ? "▴" : "▾"}
 						</button>
-						{/* The fold slides open (motion wave, owner 2026-10-26): always
-						    mounted, inert while folded so Tab and the arrows skip it. */}
+						{/* The fold slides open (motion wave): always mounted, inert
+						    while folded so Tab and the arrows skip it. */}
 						<div className="lh-collapse" data-state={showArchived ? "open" : "closed"} data-testid="class-archived-fold">
 							<div className="flex flex-col gap-0.5" inert={!showArchived}>
 								{archived.map((c) => (
-									<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-muted-foreground")}>
-										<span className="font-prose min-w-0 flex-1 truncate text-sm">{c.name}</span>
-										{active === c.id && <CheckIcon className="size-3" />}
+									<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-ink-2")}>
+										<span className="min-w-0 flex-1 truncate">{c.name}</span>
+										{active === c.id && <CheckIcon className="size-3.5" />}
 									</button>
 								))}
 							</div>
 						</div>
 					</>
 				)}
-				<div className="my-0.5 border-t border-border/60" aria-hidden="true" />
+				<div className="my-0.5 border-t border-tone-2" aria-hidden="true" />
+				{activeClass && (
+					<button
+						type="button"
+						data-testid="class-edit"
+						onClick={() => {
+							setOpen(false);
+							setDialog({ kind: "edit", classId: activeClass.id });
+						}}
+						className={row}
+					>
+						<PencilIcon className="size-3.5" />
+						Edit class…
+					</button>
+				)}
 				<button
 					type="button"
 					data-testid="class-new"
@@ -134,7 +157,7 @@ export function ClassSwitcher() {
 					}}
 					className={row}
 				>
-					<PlusIcon className="size-3" />
+					<PlusIcon className="size-3.5" />
 					New class…
 				</button>
 			</MenuShell>

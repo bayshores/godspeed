@@ -1,5 +1,3 @@
-"use client";
-
 import { useContext, useState } from "react";
 import { ChatActionsContext } from "@/components/chat";
 import { DownloadIcon, MaximizeIcon } from "lucide-react";
@@ -71,7 +69,7 @@ export function VisualOutputCard({
 	const natural = result && typeof result.svg === "string" ? svgNaturalWidth(result.svg) : null;
 	if (!result || typeof result.svg !== "string") {
 		return (
-			<div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+			<div className=" border bg-card p-4 text-sm text-muted-foreground">
 				Figure completed, but the result could not be displayed.
 			</div>
 		);
@@ -79,10 +77,10 @@ export function VisualOutputCard({
 	const failed = result.svg.length === 0;
 	if (failed) {
 		return (
-			<div className="rounded-xl border bg-card p-4 text-card-foreground" data-testid="visual-card-failed">
+			<div className=" border bg-card p-4 text-card-foreground" data-testid="visual-card-failed">
 				<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 					Figure
-					<span className="rounded bg-red-500/15 px-1.5 py-0.5 text-red-500">failed</span>
+					<span className=" bg-red-500/15 px-1.5 py-0.5 text-red-500">failed</span>
 				</div>
 				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? "The figure could not be drawn."}</p>
 			</div>
@@ -111,8 +109,8 @@ export function VisualOutputCard({
 			<div
 				className={
 					natural !== null
-						? "w-fit max-w-full overflow-hidden rounded-lg bg-white"
-						: "w-full overflow-hidden rounded-lg bg-white"
+						? "w-fit max-w-full overflow-hidden bg-white"
+						: "w-full overflow-hidden bg-white"
 				}
 				style={{ filter: inverted ? "invert(1) hue-rotate(180deg)" : undefined }}
 				data-testid="visual-svg"
@@ -141,7 +139,7 @@ export function VisualOutputCard({
 						title="Download as SVG"
 						onClick={() => downloadFile("figure.svg", result.svg, "image/svg+xml")}
 						data-testid="visual-download"
-						className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<DownloadIcon className="size-3.5" />
 					</button>
@@ -152,7 +150,7 @@ export function VisualOutputCard({
 							title="Open fullscreen"
 							onClick={() => overlay.openFigure(result.svg, inverted)}
 							data-testid="visual-open"
-							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						>
 							<MaximizeIcon className="size-3.5" />
 						</button>

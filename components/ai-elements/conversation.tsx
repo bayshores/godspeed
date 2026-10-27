@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/components/presence";
 import { cn } from "@/lib/utils";
@@ -88,7 +86,7 @@ export const ConversationScrollButton = ({
     presence.mounted && (
       <Button
         className={cn(
-          "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
+          "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] dark:bg-background dark:hover:bg-muted",
           className
         )}
         data-state={presence.state}
@@ -157,7 +155,7 @@ export const ConversationDownload = ({
   return (
     <Button
       className={cn(
-        "absolute top-4 right-4 rounded-full dark:bg-background dark:hover:bg-muted",
+        "absolute top-4 right-4 dark:bg-background dark:hover:bg-muted",
         className
       )}
       onClick={handleDownload}

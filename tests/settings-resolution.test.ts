@@ -12,7 +12,6 @@ import { describe, it } from "node:test";
 import {
 	extractionEnabled,
 	graphToolsEnabled,
-	renderingEnabled,
 	resolveConversationSpec,
 	resolveModelSpec,
 	resolveRoleSpec,
@@ -44,7 +43,7 @@ describe("resolveSettings", () => {
 		// wave 7 collapse: the master switch ONLY + the redesign's chunk
 		// budget — absent record resolves the factory 4096 (halved back
 		// from the digest-era 8192, owner, 2026-10-13)
-		assert.deepEqual(eff.graph, { enabled: true, rendering: true, extractionChunkTokens: 4096 });
+		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
 	});
 
 	it("explicit record values win over every factory default", () => {
@@ -75,23 +74,17 @@ describe("resolveSettings", () => {
 		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
 		// wave 7 collapse: the section IS the master switch (absent budget
 		// field = factory 4096 — a pre-redesign record resolves cleanly).
-		assert.deepEqual(eff.graph, { enabled: false, rendering: true, extractionChunkTokens: 4096 });
-		// The DISPLAY split (owner, 2026-10-06): extraction off leaves the
-		// rendering switch ON — the data channel and the view are separate.
-		assert.equal(renderingEnabled(eff.graph), true);
+		assert.deepEqual(eff.graph, { enabled: false, extractionChunkTokens: 4096 });
+		
 		// The chunk budget rides the same resolution: stored value wins.
 		const budgeted = resolveSettings({ version: 1, graph: { extractionChunkTokens: 2000 } });
-		assert.deepEqual(budgeted.graph, { enabled: true, rendering: true, extractionChunkTokens: 2000 });
+		assert.deepEqual(budgeted.graph, { enabled: true, extractionChunkTokens: 2000 });
 	});
 
-	it("graph rendering (2026-10-06): display-only — off resolves off, extraction untouched", () => {
-		const eff = resolveSettings({ version: 1, graph: { rendering: false } });
-		assert.equal(eff.graph.rendering, false, "stored off wins");
-		assert.equal(eff.graph.enabled, true, "the data channel is untouched");
-		assert.equal(renderingEnabled(eff.graph), false);
+	it("an old record's graph.rendering (removed 2026-10-27) is not read", () => {
+		const eff = resolveSettings({ version: 1, graph: { rendering: false } as never });
+		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
 		assert.equal(extractionEnabled(eff.graph), true);
-		// absent = factory ON (the home defaults to the canvas)
-		assert.equal(resolveSettings({ version: 1, graph: {} }).graph.rendering, true);
 	});
 
 	it("partial role override: thinkingLevel alone borrows the SLOT's model (or nothing, without one)", () => {

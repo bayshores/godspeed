@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
@@ -177,7 +175,7 @@ export function DeleteSessionBody({
 			data-testid="delete-session-dialog"
 			data-state={state}
 			onClick={(e) => e.stopPropagation()}
-			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
+			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">Delete session?</h2>
 			{/* The session name below the title in JetBrains Mono (owner,
@@ -196,7 +194,7 @@ export function DeleteSessionBody({
 			</p>
 			<label
 				data-testid={TRACES_COPY.testid}
-				className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/60 px-4 py-3"
+				className="mt-4 flex cursor-pointer items-start gap-2.5 border border-border/60 px-4 py-3"
 			>
 				<input
 					type="checkbox"
@@ -215,7 +213,7 @@ export function DeleteSessionBody({
 				<div
 					role="alert"
 					data-testid="delete-failure"
-					className="mt-3 rounded-sm border border-border/60 px-3 py-2 text-xs"
+					className="mt-3 border border-border/60 px-3 py-2 text-xs"
 				>
 					<span className="text-foreground">{failure.error}</span>
 					<button
@@ -238,7 +236,7 @@ export function DeleteSessionBody({
 					data-testid="delete-cancel"
 					onClick={onClose}
 					disabled={busy}
-					className="lh-press rounded-sm px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+					className="lh-press px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
 				>
 					Cancel
 				</button>
@@ -247,7 +245,7 @@ export function DeleteSessionBody({
 					data-testid="delete-confirm"
 					onClick={onRun}
 					disabled={busy}
-					className="lh-press rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
+					className="lh-press border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
 				>
 					{busy ? "Deleting…" : "Delete"}
 				</button>

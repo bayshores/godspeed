@@ -1,6 +1,6 @@
 /**
  * CLASSES WAVE PINS (2026-10-26), Phase 5 — static renders of the class
- * surfaces: the lesson's class card, a class file row, and the switcher's
+ * surfaces: the lesson's class card, a Files-page row, and the switcher's
  * closed state outside a provider (reads as "No class").
  */
 import assert from "node:assert/strict";
@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { describe, it } from "node:test";
 import { ClassContextCard } from "../components/graph-context-card.tsx";
-import { ClassFileRow } from "../components/class-dialog.tsx";
+import { FileRow } from "../components/files/file-row.tsx";
 import { classQuery, className } from "../components/class-context.tsx";
 
 (globalThis as { React?: typeof React }).React = React;
@@ -24,16 +24,17 @@ describe("class surfaces", () => {
 		assert.ok(!html.includes("class-context-body"), "collapsed by default");
 	});
 
-	it("a file row shows kind, status, and Remove only for copied files", () => {
+	it("a file row shows its kind, Failed + Retry, and the ⋯ menu only when it has actions", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
-		const copied = renderToStaticMarkup(<ClassFileRow classId="cls_a" file={{ ...base, origin: "copied", status: "failed", error: "boom" }} onChanged={() => {}} onError={() => {}} />);
+		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
+		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} actions={actions} />);
 		assert.ok(copied.includes("Failed"));
-		assert.ok(copied.includes("Retry"));
-		assert.ok(copied.includes("Remove"));
-		const linked = renderToStaticMarkup(<ClassFileRow classId="cls_a" file={{ ...base, origin: "linked", status: "ready" }} onChanged={() => {}} onError={() => {}} />);
-		assert.ok(linked.includes("Ready"));
-		assert.ok(linked.includes("Folder"));
-		assert.ok(!linked.includes("Remove"));
+		assert.ok(copied.includes('data-testid="class-file-retry-f_1"'));
+		assert.ok(copied.includes('data-testid="class-file-menu-f_1"'), "a copied file can be removed from the ⋯ menu");
+		assert.match(copied, /data-testid="class-file-kind-f_1-study"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-testid="class-file-kind-f_1-study"/);
+		const linked = renderToStaticMarkup(<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={undefined} actions={actions} />);
+		assert.ok(!linked.includes("Failed"));
+		assert.ok(!linked.includes('data-testid="class-file-menu-f_1"'), "a linked, ready file has no menu actions");
 	});
 
 	it("class query and name helpers", () => {

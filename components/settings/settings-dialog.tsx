@@ -1,4 +1,3 @@
-"use client";
 /**
  * THE SETTINGS DIALOG (settings-app wave, 2026-09-20): the thin settings
  * page graduated into the designed surface — a centered modal over
@@ -9,9 +8,9 @@
  *   appearance edits restyle the chat LIVE behind the dialog). Escape,
  *   backdrop, and ✕ all close. Modal-only — /settings redirects, so
  *   nothing links into a dead surface.
- * - Left section nav in the app's mono chrome (text-only, session-list
- *   language — active = bg-accent), no icons, matching the minimal-color
- *   doctrine.
+ * - Left section nav (restyled 2026-10-27 to design/exports/settings.html):
+ *   920×720, "Settings" over icon + name rows (the open one lit), the
+ *   section's title and ✕ over the scrolling content.
  * - The dialog is surface-agnostic by construction: the sections talk to
  *   /api/settings* and localStorage only, so this shell can be re-mounted
  *   as a true OS window in the Electron round with near-zero churn.
@@ -48,27 +47,36 @@ import type { ModelsSettings } from "@/src/core";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { Hint } from "@/components/ui/hint";
+import { Tip } from "@/components/ui/tooltip";
+import { BotIcon, InfoIcon, KeyRoundIcon, KeyboardIcon, PaletteIcon, PlugIcon, SettingsIcon, XIcon } from "lucide-react";
 import { AppearanceSection, GraphSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
-import { AgentsSection } from "./agents-section.tsx";
+import { AGENTS_SECTION_HINT, AgentsSection } from "./agents-section.tsx";
 import { ChatGPTUIProvider } from "./chatgpt-connection.tsx";
 import { NativeSubscriptionUIProvider, SubscriptionConnections } from "./subscription-connections.tsx";
 
-/** Owner (2026-09-20): hints earn their place — mechanics-explaining
- *  prose is out; only the keyboard note stays (storage location is a
- *  real question users ask). */
+/** The left nav, in the redesign's order (design/exports/settings.html).
+ *  A section's hint shows as a tooltip on the info icon by its title.
+ *  The old Graph section's rows live in General now. */
 const SECTIONS = [
-	{ id: "providers", label: "Providers" },
-	{ id: "agent", label: "Agent" },
-	{ id: "agents", label: "Outside agents" },
-	{ id: "appearance", label: "Appearance" },
-	{ id: "graph", label: "Graph" },
-	{ id: "keyboard", label: "Keyboard", hint: "Stored on this device" },
-	{ id: "general", label: "General" },
+	{ id: "agents", label: "Outside agents", icon: PlugIcon, hint: AGENTS_SECTION_HINT },
+	{ id: "agent", label: "Agent", icon: BotIcon },
+	{ id: "providers", label: "Providers", icon: KeyRoundIcon },
+	{ id: "appearance", label: "Appearance", icon: PaletteIcon },
+	{ id: "keyboard", label: "Keyboard", icon: KeyboardIcon, hint: "Stored on this device" },
+	{ id: "general", label: "General", icon: SettingsIcon },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
+const DEFAULT_SECTION: SectionId = "agents";
 
-/** `open(section?)` — lands the dialog on a section (default Providers). */
+/** A requested section id → the section that shows it ("graph" moved
+ *  into General; unknown ids land on the default). */
+export function sectionFor(id: string | undefined): SectionId {
+	if (id === "graph") return "general";
+	return SECTIONS.some((s) => s.id === id) ? (id as SectionId) : DEFAULT_SECTION;
+}
+
+/** `open(section?)` — lands the dialog on a section (default Outside agents). */
 const DialogContext = createContext<{ open: (section?: string) => void }>({ open: () => {} });
 
 /** AppShell-level mount: the sidebar row and the mod+, chord call this.
@@ -79,9 +87,9 @@ export function SettingsDialogProvider({
 	children: React.ReactNode;
 }) {
 	const [show, setShow] = useState(false);
-	const [landOn, setLandOn] = useState<SectionId>("providers");
+	const [landOn, setLandOn] = useState<SectionId>(DEFAULT_SECTION);
 	const open = useCallback((section?: string) => {
-		setLandOn(section ? section as SectionId : "providers");
+		setLandOn(sectionFor(section));
 		setShow(true);
 	}, []);
 	useEffect(() => window.lh?.onOpenSettings?.((section) => open(section)), [open]);
@@ -115,7 +123,7 @@ function SettingsDialog({
 	// backdrop click closes, the dialog body stops propagation.
 	return createPortal(
 		<div
-			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/70"
 			data-testid="settings-backdrop"
 			data-state={presence.state}
 			inert={!open}
@@ -131,7 +139,7 @@ function SettingsDialog({
  *  (portals render nothing under renderToStaticMarkup). */
 export function SettingsDialogBody({
 	onClose,
-	initialSection = "providers",
+	initialSection = DEFAULT_SECTION,
 	state = "open",
 }: {
 	onClose: () => void;
@@ -177,6 +185,7 @@ export function SettingsDialogBody({
 		};
 	}, []);
 	const [active, setActive] = useState<SectionId>(initialSection);
+	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
 	// A deep-link fired while the dialog is ALREADY open (first exercised by
 	// the wave-6 embedding picker's "Add a provider key first…" link — the
 	// picker itself died with wave 7, the mechanism is general) changes
@@ -266,63 +275,69 @@ export function SettingsDialogBody({
 			aria-label="Settings"
 			data-testid="settings-dialog"
 			data-state={state}
-			className="lh-dialog flex h-[620px] max-h-[85vh] w-[920px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
+			className="lh-dialog flex h-[720px] max-h-[90vh] w-[920px] max-w-[90vw] overflow-hidden bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2"
 			onClick={(e) => e.stopPropagation()}
 		>
-			{/* Header — the app's quiet CMU title language. */}
-			<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
-				<h2 className="font-title text-2xl tracking-tight">Settings</h2>
-				<Hint
+			{/* Left nav: the title, then one row per section (icon + name;
+			    the open one is lit). */}
+			<nav
+				aria-label="Settings sections"
+				data-testid="settings-nav"
+				className="flex w-[220px] shrink-0 flex-col gap-0.5 border-r border-tone-2 px-2.5 py-[18px]"
+			>
+				<h2 className="px-2.5 pb-3 text-base font-bold text-ink">Settings</h2>
+				{SECTIONS.map((s) => {
+					const Icon = s.icon;
+					const on = active === s.id;
+					return (
+						<button
+							key={s.id}
+							type="button"
+							data-testid={`settings-nav-${s.id}`}
+							aria-current={on}
+							className={`lh-press flex items-center gap-2.5 px-2.5 py-2 text-left text-[14.5px] ${
+								on ? "bg-tone font-bold text-ink" : "text-ink-2 hover:bg-tone hover:text-ink"
+							}`}
+							onClick={() => setActive(s.id)}
+						>
+							<Icon className="size-[15px] shrink-0" aria-hidden />
+							{s.label}
+						</button>
+					);
+				})}
+			</nav>
+
+			<div className="flex min-w-0 flex-1 flex-col">
+				<header className="flex shrink-0 items-center justify-between gap-3 px-7 py-[22px]">
+					<span className="flex min-w-0 items-center gap-2">
+						<h3 data-testid="settings-section-title" className="truncate text-xl font-bold text-ink">
+							{current.label}
+						</h3>
+						{"hint" in current && (
+							<Tip title={current.label} body={<span className="text-xs text-ink-2">{current.hint}</span>} side="bottom" align="start" className="max-w-80">
+								<button type="button" aria-label={`About ${current.label}`} className="text-ink-3 hover:text-ink-2">
+									<InfoIcon className="size-[13px]" aria-hidden />
+								</button>
+							</Tip>
+						)}
+					</span>
+					<Hint
 						// Esc closes the dialog (its own listener) — surface it.
 						label="Close"
 						binding="escape"
 						side="left"
 					>
 						<button
-					type="button"
-					aria-label="Close settings"
-					data-testid="settings-close"
-					className="lh-press ml-auto size-7 rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-					onClick={onClose}
-				>
-					<svg
-						viewBox="0 0 16 16"
-						className="mx-auto size-3.5"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.5"
-					>
-						<path d="M4 4l8 8M12 4l-8 8" />
-					</svg>
-				</button>
-					</Hint>
-			</header>
-
-			<div className="flex min-h-0 flex-1">
-				{/* Left nav — text-only, the session-list mono language,
-					    active = bg-accent. */}
-				<nav
-					aria-label="Settings sections"
-					data-testid="settings-nav"
-					className="flex w-44 shrink-0 flex-col gap-1 border-r border-border p-2"
-				>
-					{SECTIONS.map((s) => (
-						<button
-							key={s.id}
 							type="button"
-							data-testid={`settings-nav-${s.id}`}
-							aria-current={active === s.id}
-							className={`lh-press rounded-sm px-3 py-1.5 text-left font-ui text-sm ${
-								active === s.id
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent hover:text-foreground"
-							}`}
-							onClick={() => setActive(s.id)}
+							aria-label="Close settings"
+							data-testid="settings-close"
+							className="lh-press flex size-7 items-center justify-center text-ink-2 hover:text-ink"
+							onClick={onClose}
 						>
-							{s.label}
+							<XIcon className="size-4" aria-hidden />
 						</button>
-					))}
-				</nav>
+					</Hint>
+				</header>
 
 				{/* Content column — one section at a time, this scrolls — and
 				    LOCKS while any MenuShell is open (owner ruling: no
@@ -332,24 +347,24 @@ export function SettingsDialogBody({
 				    nothing may shift when the lock engages. */}
 				<div
 					ref={contentRef}
-					className="min-w-0 flex-1 overflow-y-auto"
+					className="min-h-0 flex-1 overflow-y-auto px-7 pb-[22px]"
 					data-testid="settings-content"
 				>
 					{error && (
 						<p
 							role="alert"
-							className="m-4 rounded-sm border border-red-500/40 px-3 py-2 text-xs text-red-500"
+							className="mb-4 border border-ans-wrong/40 px-3 py-2 text-xs text-ans-wrong"
 							data-testid="settings-error"
 						>
 							{error}
 						</p>
 					)}
 					{record === undefined ? (
-						<p className="px-6 py-5 text-xs text-muted-foreground/70">
+						<p className="text-xs text-ink-3">
 							Loading settings…
 						</p>
 					) : record === null ? (
-						<p className="px-6 py-5 text-xs text-muted-foreground/70">
+						<p className="text-xs text-ink-3">
 							Settings could not be loaded — refresh to retry.
 						</p>
 					) : (
@@ -365,6 +380,14 @@ export function SettingsDialogBody({
 											void write("general", { ...record.general, autoUpdate: on })
 										}
 									/>
+									<SettingsGroup label="Graph" testid="section-graph">
+										<GraphSection
+											graph={record.graph}
+											onSectionChange={(next: GraphSettings) =>
+												void write("graph", next)
+											}
+										/>
+									</SettingsGroup>
 								</SettingsSection>
 							)}
 							{active === "providers" && (
@@ -397,7 +420,7 @@ export function SettingsDialogBody({
 								</SettingsSection>
 							)}
 							{active === "agents" && (
-								<SettingsSection title="Outside agents" hint="Let Claude Code, Codex, or another MCP app be your teacher." testid="section-agents">
+								<SettingsSection title="Outside agents" testid="section-agents">
 									<AgentsSection />
 								</SettingsSection>
 							)}
@@ -414,23 +437,9 @@ export function SettingsDialogBody({
 									/>
 								</SettingsSection>
 							)}
-							{active === "graph" && (
-								<SettingsSection
-									title="Graph"
-									testid="section-graph"
-								>
-									<GraphSection
-										graph={record.graph}
-										onSectionChange={(next: GraphSettings) =>
-											void write("graph", next)
-										}
-									/>
-								</SettingsSection>
-							)}
 							{active === "keyboard" && (
 								<SettingsSection
 									title="Keyboard"
-									hint="Stored on this device"
 									testid="section-keyboard"
 								>
 									<KeyboardSection />

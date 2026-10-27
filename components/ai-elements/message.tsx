@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import {
   ButtonGroup,
@@ -9,11 +7,11 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
+  TooltipRows,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
 import { createMathPlugin } from "@streamdown/math";
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
@@ -34,6 +32,7 @@ import {
   type PluginConfig,
 } from "streamdown";
 import { mdComponents } from "@/components/md-blocks";
+import { lazyCodePlugin } from "@/components/lazy-code-plugin";
 import { repairMathForDisplay, transformMathDelimiters } from "@/src/core";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
@@ -61,7 +60,7 @@ export const MessageContent = ({
   <div
     className={cn(
       "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+      "group-[.is-user]:ml-auto group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:text-foreground",
       className
     )}
@@ -109,7 +108,7 @@ export const MessageAction = ({
         <Tooltip>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent>
-            <p>{tooltip}</p>
+            <TooltipRows title={tooltip} />
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -249,7 +248,7 @@ export const MessageBranchSelector = ({
   return (
     <ButtonGroup
       className={cn(
-        "[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md",
+        "",
         className
       )}
       orientation="horizontal"
@@ -342,6 +341,9 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 // metastring parsing. The slot appends after the defaults, which is the
 // standard remark-gfm → remark-breaks order.
 //
+// SHIKI loads on the first code block (components/lazy-code-plugin.ts),
+// so it stays out of the lesson's startup JS.
+//
 // MERMAID is app-owned since the chrome-melt wave (2026-09-19): the md-blocks
 // `code` override intercepts mermaid fences and renders via
 // components/mermaid-render.ts — streamdown's internal mermaid machinery
@@ -351,7 +353,7 @@ export const streamdownPlugins = {
     ...cjk,
     remarkPluginsAfter: [...cjk.remarkPluginsAfter, remarkBreaks],
   },
-  code,
+  code: lazyCodePlugin,
   math: createMathPlugin({ singleDollarTextMath: true }),
 } as unknown as PluginConfig;
 

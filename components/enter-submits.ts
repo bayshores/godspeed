@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * ENTER SUBMITS — regardless of where focus is (owner round 6, 2026-10-05).
  * The learner's focus often isn't on the dock's field, so Enter must submit

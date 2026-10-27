@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef } from "react";
 import { useStickToBottomContext, type StickToBottomContext } from "use-stick-to-bottom";
 import { messageAnchorId, messageIdFromHash } from "@/src/core";

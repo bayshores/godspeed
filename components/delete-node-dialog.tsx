@@ -1,5 +1,3 @@
-"use client";
-
 import { classQuery, useClasses } from "@/components/class-context";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -58,7 +56,7 @@ export function DeleteNodeBody({
 			data-testid="delete-node-dialog"
 			data-state={state}
 			onClick={(e) => e.stopPropagation()}
-			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
+			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">
 				{nodes.length === 1 ? "Delete node?" : `Delete ${nodes.length} nodes?`}
@@ -93,7 +91,7 @@ export function DeleteNodeBody({
 				<div
 					role="alert"
 					data-testid="node-delete-failure"
-					className="mt-3 rounded-sm border border-border/60 px-3 py-2 text-xs"
+					className="mt-3 border border-border/60 px-3 py-2 text-xs"
 				>
 					<span className="text-foreground">
 						{failure.code === "extraction_running" ? EXTRACTION_RETRY_LINE : failure.error}
@@ -115,7 +113,7 @@ export function DeleteNodeBody({
 					data-testid="node-delete-cancel"
 					onClick={onClose}
 					disabled={busy}
-					className="lh-press rounded-sm px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+					className="lh-press px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
 				>
 					Cancel
 				</button>
@@ -127,7 +125,7 @@ export function DeleteNodeBody({
 					// Destructive red (owner, polish round) — the
 					// app's established destructive pair (chat's
 					// refusal banner): border + text, fill on hover.
-					className="lh-press rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
+					className="lh-press border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
 				>
 					{busy ? "Deleting…" : "Delete"}
 				</button>

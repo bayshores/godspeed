@@ -26,8 +26,8 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
-import type { ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
-import { isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
+import type { ClassExam, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
+import { ClassExamError, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
 import { ModelsNotConfiguredError, ProviderNotConnectedError } from "../core/settings.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
@@ -40,6 +40,7 @@ import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./st
 import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
 import { applyClassCard } from "./class-card.ts";
+import { cancelTopicGrouping } from "./topics.ts";
 
 export type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
 
@@ -122,6 +123,7 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 		await new Promise((r) => setTimeout(r, 50));
 	}
 	cancelledClasses.add(id);
+	cancelTopicGrouping(id);
 	// THE SYNC BLOCK: lessons → class folder.
 	let lessonsRemoved = 0;
 	for (const lesson of lessons) {
@@ -135,6 +137,49 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 	stores.classStore.deleteClass(id);
 	forgetGraphStore(id);
 	return { ok: true, value: { lessonsRemoved } };
+}
+
+// ─── exams (redesign plan, owner-approved 2026-10-27) ───────────────────────
+// Added by the learner (Edit class) or an outside agent from the syllabus
+// (MCP add_class_exam). The store validates; these map its refusals.
+
+function examFailure(err: unknown): { ok: false; status: number; code: string; error: string } {
+	if (err instanceof ClassExamError) return fail(err.code === "exam_not_found" ? 404 : 400, err.code, err.message);
+	throw err;
+}
+
+export function listClassExams(classId: string): ClassOutcome<ClassExam[]> {
+	const record = stores.classStore.getClass(classId);
+	if (!record) return fail(404, "not_found", "No such class");
+	return { ok: true, value: record.exams ?? [] };
+}
+
+export function addClassExam(classId: string, exam: { name: string; date: string; fileIds?: string[] }): ClassOutcome<ClassExam> {
+	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
+	try {
+		return { ok: true, value: stores.classStore.addExam(classId, exam) };
+	} catch (err) {
+		return examFailure(err);
+	}
+}
+
+export function updateClassExam(
+	classId: string,
+	examId: string,
+	patch: { name?: string; date?: string; fileIds?: string[] },
+): ClassOutcome<ClassExam> {
+	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
+	try {
+		return { ok: true, value: stores.classStore.updateExam(classId, examId, patch) };
+	} catch (err) {
+		return examFailure(err);
+	}
+}
+
+export function removeClassExam(classId: string, examId: string): ClassOutcome<null> {
+	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
+	if (!stores.classStore.removeExam(classId, examId)) return fail(404, "exam_not_found", `No exam "${examId}" in this class`);
+	return { ok: true, value: null };
 }
 
 // ─── file list mutation (sync read-modify-write) ────────────────────────────

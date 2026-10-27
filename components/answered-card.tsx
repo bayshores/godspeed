@@ -1,241 +1,215 @@
-"use client";
-
 import { useState } from "react";
-import { ConfidenceRail } from "@/components/confidence-rail";
+import { CheckIcon, XIcon } from "lucide-react";
 import { GlyphMark } from "@/components/ui/glyph-mark";
 import { ThinkingBlock } from "@/components/thinking-block";
 import { useFold } from "@/components/use-fold";
+import { useStepNumber } from "@/components/lesson/step-context";
 import { cn } from "@/lib/utils";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/src/core";
-import { answerForPresentation, parseAskInput, parseQuizInput } from "@/src/core";
+import { answerForPresentation, confidenceLevel, parseAskInput, parseQuizInput } from "@/src/core";
+
+/** Lesson prose at a given size/leading/color (the markdown renderer reads
+ *  these variables). */
+function proseVars(size: number, leading: number, ink: string): React.CSSProperties {
+	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink } as React.CSSProperties;
+}
+
+/** The card's label: the tool's own name first (probe-phase cards say
+ *  Probe/Recall), then the kind. */
+function kindLabel(answer: QuestionAnswerData): string {
+	if (answer.tool === "probe") return "Probe";
+	if (answer.tool === "recall") return "Recall";
+	if (answer.kind === "quiz") return answer.questionType === "predict" ? "Prediction" : "Check";
+	if (answer.kind === "explain") return "Explain";
+	return "Question";
+}
+
+/** The verdict chip: Right / Wrong / Didn't know (quiz answers only). */
+function ResultChip({ answer }: { answer: QuestionAnswerData }) {
+	const [cls, icon, word] = answer.dontKnow
+		? ["bg-ans-dontknow text-ink", null, "Didn't know"]
+		: answer.correct
+			? ["bg-ans-right text-black", <CheckIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Right"]
+			: ["bg-ans-wrong text-black", <XIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Wrong"];
+	return (
+		<span data-testid="answer-result" className={cn("flex shrink-0 items-center gap-1.5 px-2 py-[3px] text-[13px] font-extrabold", cls)}>
+			{icon}
+			{word}
+		</span>
+	);
+}
 
 /**
- * Static rendering of an answered question (tool part in `output-available`).
+ * An answered question in the lesson (redesign, lesson layout B): one
+ * compact card — "Right · Check · step 10 · Sure 4 · Why ▾" over the
+ * question. The rest opens under the toggle: the graded options and the
+ * explanation (quiz), the committed answer (explain), the learner's
+ * thinking.
  *
- * Quiz answers are GRADED: ✓/✗ marks, the correct answers, and the
- * explanation. Ask answers are NOT graded — a plain record of what was said.
- * (The v1 bug this pins: ask answers must never get quiz grading UI.)
- * Explain answers are graded by the MODEL in its next reply, not by the
- * client — the card reveals his answer, the committed correct answer, and
- * the explanation, with NO verdict chips (owner ruling 2026-09-27).
+ * Quiz answers are GRADED; ask answers are a plain record of what was
+ * said (never graded); explain answers are graded by the teacher in its
+ * next reply, so the card shows no verdict (owner ruling 2026-09-27).
  */
-export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionAnswerData; input?: unknown }) {
+export function AnsweredCard({
+	answer: savedAnswer,
+	input,
+	defaultOpen = false,
+}: {
+	answer: QuestionAnswerData;
+	input?: unknown;
+	/** Start with the details open (the toggle still closes them). */
+	defaultOpen?: boolean;
+}) {
 	const answer = answerForPresentation(savedAnswer, input);
-	const [whyOpen, setWhyOpen] = useState(false); // the tucked explanation (predictions, owner 2026-10-03)
-	const why = useFold(whyOpen); // eases open/shut (motion wave, owner 2026-10-26)
+	const [open, setOpen] = useState(defaultOpen);
+	const fold = useFold(open);
+	const step = useStepNumber(input);
 	if (answer.dismissed) {
 		return (
-			<div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-				<span className="font-medium">{answer.questionText}</span> — skipped
+			<div data-testid="answered-card" className="bg-panel px-4 py-3.5 text-sm text-ink-3">
+				<span className="text-ink-2">{answer.questionText}</span> — skipped
 			</div>
 		);
 	}
 
 	const isQuiz = answer.kind === "quiz";
 	const isExplain = answer.kind === "explain";
+	const isAsk = answer.kind === "ask";
 	const selectedIdx = new Set(answer.answers.map((a) => a.index));
 	const correctIdx = new Set(answer.correctIndices ?? []);
-	// The question's own context rides the ORIGINAL CALL, not the answer
-	// snapshot (owner, 2026-10-12): the details line — and, for ask
-	// questions, option descriptions — re-render from the persisted
-	// arguments, so every existing transcript shows them too. The lean
-	// snapshot (what the model sees, compactAnswerForModel) is untouched;
-	// any parse failure or absent input renders exactly the older card.
-	const askInput = answer.kind === "ask" ? parseAskInput(input) : undefined;
-	const parsedDetails = askInput?.details ?? (answer.kind === "quiz" ? parseQuizInput(input)?.details : undefined);
+	// The question's own context rides the ORIGINAL CALL (owner, 2026-10-12):
+	// the details line and ask option descriptions re-render from the call.
+	const askInput = isAsk ? parseAskInput(input) : undefined;
+	const parsedDetails = askInput?.details ?? (isQuiz ? parseQuizInput(input)?.details : undefined);
 	const descByIndex = new Map((askInput?.options ?? []).map((o, i) => [i + 1, o.description]));
+	const thinking = answer.thinking ?? answer.note;
+	const toggleLabel = isQuiz ? "Why" : isExplain ? "Answer" : "Details";
+	const hasDetails = isQuiz
+		? (answer.options?.length ?? 0) > 0 || !!answer.explanation || !!thinking
+		: isExplain
+			? !!answer.committed || !!thinking
+			: !!parsedDetails || descByIndex.size > 0 || !!thinking;
+	// What an ask or explain learner said stays in view (it is the record).
+	const said = isAsk ? (answer.options ?? []).filter((o) => selectedIdx.has(o.index)) : [];
 
 	return (
 		<>
-		{/* The reading channel LIFTED (owner round, 2026-10-05): thoughts
-		    captured while reading are chronologically PRIOR to the question —
-		    rendered as its own user-side block ABOVE the card, the unified
-		    ThinkingBlock, instead of an inset inside the answer. Same muted
-		    rail as before; the label is now plain "Your thinking". */}
-		{answer.readingThinking && (
-			<ThinkingBlock testId="reading-thinking-block" label="YOUR THINKING" text={answer.readingThinking} defaultOpen />
-		)}
-		{/* [&>*:last-child]:mb-0 (owner round, 2026-10-07): on ask cards the
-		    thinking row is the last child — its my-3 stacked with the card's
-		    p-4 into a 28px void below (12px above); the card's own padding is
-		    the bottom rhythm when a row ends the card. */}
-		<div
-			className="rounded-xl border bg-card p-4 text-card-foreground [&>*:last-child]:mb-0"
-			data-testid="answered-card"
-		>
-			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-				{/* The tool's OWN name first (owner 2026-10-09): probe-phase
-			    cards label Probe/Recall — the phase boundary visible in the
-			    transcript. No `tool` on old records: kind labels as before. */}
-				{answer.tool === "probe"
-					? "Probe"
-					: answer.tool === "recall"
-						? "Recall"
-						: isQuiz
-								? answer.questionType === "predict"
-									? "Prediction"
-									: "Check"
-									: isExplain
-										? "Explain"
-											: "Question"}
-				{isQuiz &&
-					(answer.dontKnow ? (
-						<span className="rounded bg-muted px-1.5 py-0.5">didn't know</span>
-					) : answer.correct ? (
-						<span className="rounded bg-green-500/15 px-1.5 py-0.5 text-green-500">correct</span>
-					) : (
-						<span className="rounded bg-red-500/15 px-1.5 py-0.5 text-red-500">incorrect</span>
-					))}
-			</div>
-			<div className="mb-3 font-medium">
-				<ToolContentResponse>{answer.questionText}</ToolContentResponse>
-			</div>
-			{parsedDetails && (
-				// The details line, same paint as the pending dock (owner,
-				// 2026-10-12): full markdown, LaTeX included.
-				<div className="mb-3 text-sm text-muted-foreground">
-					<ToolContentResponse>{parsedDetails}</ToolContentResponse>
-				</div>
+			{/* Thoughts noted while reading come before the question: their own
+			    block above the card. */}
+			{answer.readingThinking && (
+				<ThinkingBlock testId="reading-thinking-block" label="Your thinking" text={answer.readingThinking} defaultOpen />
 			)}
-
-			{((answer.options?.length ?? 0) > 0 || answer.other) && (
-				<div className="flex flex-col gap-1.5 text-sm">
-					{answer.options?.map((opt) => {
-						const sel = selectedIdx.has(opt.index);
-						const key = isQuiz && correctIdx.has(opt.index);
-						return (
-							<div
-								key={opt.index}
-								className={cn(
-									"flex items-center gap-2 rounded-lg border px-3 py-1.5",
-									sel && key && "border-green-500/60 bg-green-500/10",
-									sel && !key && isQuiz && "border-red-500/60 bg-red-500/10",
-									sel && !isQuiz && "border-primary bg-accent",
-									!sel && key && "border-green-500/40",
-								)}
-							>
-								{isQuiz && (
-									// Zapf-Dingbats-derived SVG outlines — the exact LaTeX \ding{51}/
-									// \ding{55} hand-drawn shapes (owner, round 6); see ui/glyph-mark.
-									<span
-										aria-hidden
-										data-mark={sel && key ? "check" : sel && !key ? "x" : !sel && key ? "check" : undefined}
-										className={cn(
-											"flex shrink-0 items-center",
-											sel && key && "text-green-500",
-											sel && !key && "text-red-500",
-											!sel && key && "text-green-500",
-										)}
-									>
-										{/* Owner round 8: a touch smaller than the text (size-4→size-3.5,
-											   ≈14px vs the 16px row) while centered. */}
-										{(key || sel) && <GlyphMark kind={key ? "check" : "x"} className="size-3.5" />}
-									</span>
-								)}
-								<span className={cn(!sel && "text-muted-foreground")}>
-									<ToolContentResponse>{opt.label}</ToolContentResponse>
-									{descByIndex.get(opt.index) && (
-										// Ask-option subtext (owner, 2026-10-12): same markdown path
-										// as the pending dock — LaTeX included. Quiz options carry
-										// none (owner ruling 2026-09-26); the map stays empty for them.
-										<ToolContentResponse className="lh-prose block text-xs text-muted-foreground">
-											{descByIndex.get(opt.index)}
-										</ToolContentResponse>
-									)}
-								</span>
-							</div>
-						);
-					})}
-					{/* The learner's own typed option is an OPTION — same container,
-					    same selected styling as its siblings, not a loose quote
-					    floating outside the list. Quotes keep the learner's words. */}
-					{answer.other && (
-						<div
-							data-testid="answered-other"
-							className="flex items-center gap-2 rounded-lg border border-primary bg-accent px-3 py-1.5"
-						>
-							<span>“{answer.other}”</span>
-						</div>
-					)}
-				</div>
-			)}
-
-			{answer.text && <div className="lh-prose mt-2 whitespace-pre-wrap">“{answer.text}”</div>}
-
-			{/* The confidence record (owner round 6): the slider's rail, disc
-			    removed — the missing handle itself says "this is a record, not a
-			    control". Same paint, same ticks, same ramp, same % read-out as the
-			    live dock. Quiz answers only, and only when a confidence exists:
-			    "I don't know" sent none (its slider was grayed out), explain and
-			    ask never had one, and records from before the feature carry no
-			    field — nothing to show, nothing rendered. */}
-			{isQuiz && answer.confidence != null && (
-				<div className="mt-3 flex items-center gap-3" data-testid="answered-confidence">
-					<ConfidenceRail value={answer.confidence} className="min-w-0 flex-1" />
-					<span className="w-9 shrink-0 text-right font-mono text-sm tabular-nums text-muted-foreground">
-						{answer.confidence}%
+			<div data-testid="answered-card" className="flex flex-col gap-2 bg-panel px-4 py-3.5 text-card-foreground">
+				<div className="flex items-center gap-2.5 text-[13px]">
+					{isQuiz && <ResultChip answer={answer} />}
+					<span data-testid="answer-kind" className="font-bold text-ink-3">
+						{kindLabel(answer)}
+						{step !== undefined && ` · step ${step}`}
 					</span>
-				</div>
-			)}
-			{answer.dontKnow && isQuiz && (
-				<div className="mt-2 text-sm text-muted-foreground">Answered “I don't know”.</div>
-			)}
-
-			{(answer.thinking ?? answer.note) && (
-				/* The SAME unified row (owner round, 2026-10-05): the quiz answer's
-				    thinking is the identical collapsible ThinkingBlock — one
-				    geometry, but NO band on the card (owner round five, 2026-10-07:
-				    the accent lift read too light); rail only, heights identical. */
-				<ThinkingBlock
-					testId="your-thinking"
-					label="YOUR THINKING"
-					text={answer.thinking ?? answer.note ?? ""}
-					inCard
-				/>
-			)}
-
-			{/* px-3→removed: card p-4 + box px-3 double-inset sat the "Why" label deeper
-			    than the option box edges (owner, round 3). Sides flush with everything
-			    else; py-2 stays for vertical air. */}
-			{isQuiz && answer.explanation && (
-				/* The TUCKED explanation — ALL questions (owner, 2026-10-07): the
-				   verdict shows, the explanation sits collapsed behind the Why
-				   toggle — viewable, never center stage. Identical to the
-				   prediction pattern it generalizes (owner, 2026-10-03). */
-				<div className="mt-2" data-testid="tucked-explanation">
-					<button
-						type="button"
-						onClick={() => setWhyOpen((v) => !v)}
-						className="lh-press text-xs font-medium text-muted-foreground hover:text-foreground"
-					>
-						{whyOpen ? "Hide why" : "Why"}
-					</button>
-					{why.mounted && (
-						<div className="lh-collapse" data-state={why.state}>
-							<div>
-								<div className="mt-1.5 rounded-lg bg-muted py-2 text-sm text-foreground/50">
-									<span className="font-medium text-muted-foreground">Why: </span>
-									{/* Keep the first paragraph beside the label, not every paragraph:
-									   later paragraphs must retain their recovered document structure. */}
-									<ToolContentResponse className="inline [&>p:first-child]:inline [&>p:first-child]:m-0">{answer.explanation}</ToolContentResponse>
-								</div>
-							</div>
-						</div>
+					{isQuiz && !answer.dontKnow && answer.confidence != null && (
+						<span data-testid="answered-confidence" className="text-ink-3">
+							Sure {confidenceLevel(answer.confidence)}
+						</span>
+					)}
+					<span className="flex-1" aria-hidden />
+					{hasDetails && (
+						<button
+							type="button"
+							data-testid="answer-toggle"
+							aria-expanded={open}
+							onClick={() => setOpen((v) => !v)}
+							className="lh-press shrink-0 font-bold text-ink-2 hover:text-ink"
+						>
+							{toggleLabel} {open ? "▴" : "▾"}
+						</button>
 					)}
 				</div>
-			)}
-
-			{/* The explain reveal (owner ruling 2026-09-27): the committed answer
-			    — one field, reasoning included — shown on submit; no verdict,
-			    the model's next reply IS the grading. */}
-			{isExplain && answer.committed && (
-				<div className="mt-3 rounded-lg bg-muted py-2 text-sm text-muted-foreground">
-					<span className="font-medium text-foreground">The answer: </span>
-					<ToolContentResponse className="inline [&>p:first-child]:inline [&>p:first-child]:m-0">{answer.committed}</ToolContentResponse>
+				<div className="text-ink-2" style={proseVars(15, 21, "var(--muted-foreground)")}>
+					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
 				</div>
-			)}
-		</div>
+				{(said.length > 0 || answer.other) && (
+					<div data-testid="answered-said" className="flex flex-col gap-0.5 text-[15px] text-ink">
+						{said.map((o) => (
+							<div key={o.index} className="bg-tone px-3 py-2">
+								<ToolContentResponse>{o.label}</ToolContentResponse>
+							</div>
+						))}
+						{/* The learner's own typed answer: a row like its siblings,
+						    quoted (the learner's words). */}
+						{answer.other && (
+							<div data-testid="answered-other" className="bg-tone px-3 py-2">
+								“{answer.other}”
+							</div>
+						)}
+					</div>
+				)}
+				{answer.text && <div className="lh-prose whitespace-pre-wrap text-ink">“{answer.text}”</div>}
+
+				{fold.mounted && (
+					<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">
+						<div className="flex flex-col gap-2 pt-1">
+							{parsedDetails && (
+								<div className="text-ink-3" style={proseVars(14, 20, "var(--lh-ink-3)")}>
+									<ToolContentResponse>{parsedDetails}</ToolContentResponse>
+								</div>
+							)}
+							{isQuiz && (answer.options?.length ?? 0) > 0 && (
+								<div className="flex flex-col gap-0.5 text-sm">
+									{answer.options?.map((opt) => {
+										const sel = selectedIdx.has(opt.index);
+										const key = correctIdx.has(opt.index);
+										return (
+											<div
+												key={opt.index}
+												data-testid="answered-option"
+												className={cn("flex items-center gap-2.5 bg-tone px-3 py-2", sel && "ring-1 ring-inset", sel && key && "ring-ans-right", sel && !key && "ring-ans-wrong")}
+											>
+												{/* The LaTeX \ding check/cross shapes (ui/glyph-mark). */}
+												<span
+													aria-hidden
+													data-mark={key ? "check" : sel ? "x" : undefined}
+													className={cn("flex w-3.5 shrink-0 items-center", key ? "text-ans-right" : "text-ans-wrong")}
+												>
+													{(key || sel) && <GlyphMark kind={key ? "check" : "x"} className="size-3.5" />}
+												</span>
+												<span className={cn(!sel && !key && "text-ink-2")}>
+													<ToolContentResponse>{opt.label}</ToolContentResponse>
+												</span>
+											</div>
+										);
+									})}
+									{answer.dontKnow && <div className="px-3 py-1 text-ink-3">Answered “I don't know”.</div>}
+								</div>
+							)}
+							{isAsk && descByIndex.size > 0 && (
+								<div className="flex flex-col gap-0.5 text-sm">
+									{answer.options?.map((opt) => (
+										<div key={opt.index} className={cn("bg-tone px-3 py-2", !selectedIdx.has(opt.index) && "text-ink-2")}>
+											<ToolContentResponse>{opt.label}</ToolContentResponse>
+											{descByIndex.get(opt.index) && (
+												<ToolContentResponse className="block text-xs text-ink-3">{descByIndex.get(opt.index)}</ToolContentResponse>
+											)}
+										</div>
+									))}
+								</div>
+							)}
+							{thinking && <ThinkingBlock testId="your-thinking" label="Your thinking" text={thinking} inCard />}
+							{isQuiz && answer.explanation && (
+								<div data-testid="tucked-explanation" className="bg-tone px-3 py-2 text-sm text-ink-2">
+									<ToolContentResponse className="[&>p:first-child]:mt-0">{answer.explanation}</ToolContentResponse>
+								</div>
+							)}
+							{isExplain && answer.committed && (
+								<div data-testid="committed-answer" className="bg-tone px-3 py-2 text-sm text-ink-2">
+									<span className="font-bold text-ink">The answer: </span>
+									<ToolContentResponse className="inline [&>p:first-child]:m-0 [&>p:first-child]:inline">{answer.committed}</ToolContentResponse>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
+			</div>
 		</>
 	);
 }

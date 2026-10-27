@@ -83,6 +83,9 @@ export interface WorkView {
 	/** The tools available for this reply — only on a full delivery. */
 	tools?: WorkTool[];
 	messages: WorkMessage[];
+	/** The background task's name ("Topic grouping · CSE 21"), when the
+	 *  caller gave one (pi-run taskLabel). */
+	label?: string;
 }
 
 interface BridgeState {
@@ -93,14 +96,27 @@ interface BridgeState {
 	waiters: Set<() => void>;
 	/** Last time any MCP client asked for work (the "agent connected" signal). */
 	lastPoll: number;
+	/** conversation → the task's name (background jobs that gave one). */
+	labels: Map<string, string>;
 }
 
 const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seen: new Map(), waiters: new Set(), lastPoll: 0 };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seen: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map() };
+	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	return g[STATE_KEY];
+}
+
+/** Name a background conversation for the outside agent (pi-run calls
+ *  this for runs with a taskLabel, and unlabels when the run ends). */
+export function labelConversation(conversation: string, label: string): void {
+	state().labels.set(conversation, label);
+}
+
+export function unlabelConversation(conversation: string): void {
+	state().labels.delete(conversation);
 }
 
 function wake(): void {
@@ -181,9 +197,11 @@ function view(item: WorkItem, forceFull: boolean): WorkView {
 	const continued = !!seen && seen.length <= prints.length && seen.every((p, i) => p === prints[i]);
 	const fresh = continued ? all.slice(seen!.length) : all;
 	const messages = fresh.filter((m) => m.role !== "system" || continued).map(renderMessage).filter((m): m is WorkMessage => m !== null);
-	if (continued) return { workId: item.id, conversation: item.conversation, continued, messages };
+	const label = state().labels.get(item.conversation);
+	const named = label ? { label } : {};
+	if (continued) return { workId: item.id, conversation: item.conversation, continued, messages, ...named };
 	const { instructions, tools } = instructionsAndTools(all);
-	return { workId: item.id, conversation: item.conversation, continued, instructions, tools, messages };
+	return { workId: item.id, conversation: item.conversation, continued, instructions, tools, messages, ...named };
 }
 
 // ─── The MCP-facing operations ──────────────────────────────────────────────

@@ -18,7 +18,6 @@
 export * from "./contracts.ts";
 export * from "./ports.ts";
 export * from "./chains.ts";
-export * from "./render-settings.ts";
 
 export * from "./question-core.ts";
 // The event bus (push architecture, 2026-10-02): vocabulary + emit/subscribe
@@ -29,8 +28,7 @@ export * from "./events.ts";
 // shell runs community detection — the snapshot carries the partition
 // from the server. Keeping it out keeps the heavy clustering deps out of the
 // client bundle (verified 2026-09-13: chunks contained it while this
-// line existed). Same logic as layout-settle.ts below.
-export * from "./layout.ts";
+// line existed).
 export * from "./plan-tree.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
@@ -71,6 +69,10 @@ export * from "./session-navigation.ts";
 // keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).
 export * from "./keyboard.ts";
 export * from "./coverage.ts";
+// Redesign (2026-10-27): topics (the grouper's read/repair rules) and the
+// derived progress numbers — pure, browser-safe.
+export * from "./topics.ts";
+export * from "./progress.ts";
 // session-markdown.ts (2026-09-27 engine; first consumer 2026-10-06): the
 // ONE session→markdown formatter — the extractor's view and the user-facing
 // export share it. Pure, browser-safe.

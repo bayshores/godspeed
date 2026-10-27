@@ -1,30 +1,25 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { MenuShell } from "@/components/menu-shell";
-import { DeleteSessionDialog } from "@/components/delete-session-dialog";
-import type { ChatDeleteMode } from "@/src/core";
-import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
-import { ActivitySection } from "@/components/activity-dock";
-import { CoverageMenuBlock } from "@/components/extraction-coverage";
-import { LhMark } from "@/components/lh-mark";
-import { BrailleSpinner } from "@/components/braille-spinner";
+import { usePathname } from "next/navigation";
+import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
-import { SettingsDialogProvider, useSettingsDialog } from "@/components/settings/settings-dialog.tsx";
+import { SettingsDialogProvider } from "@/components/settings/settings-dialog.tsx";
 import { Hint } from "@/components/ui/hint";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { fuzzyScore } from "@/src/core";
-import { useServerEvent, useServerResync } from "@/components/server-events";
-import type { ChatListItem } from "@/src/core";
 import { kbdEventForAction } from "@/src/core";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { ClassSwitcher } from "@/components/class-switcher";
-import { MoveLessonDialog } from "@/components/class-dialog";
 import { useClasses } from "@/components/class-context";
+import { replayRise } from "@/components/sidebar/motion";
+import { ClassNav } from "@/components/sidebar/class-nav";
+import { LessonsSection } from "@/components/sidebar/lessons-section";
+import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
+
+export { replayRise, useRiseOnChange } from "@/components/sidebar/motion";
+export { timeAgo, SessionRow, RenameRow } from "@/components/sidebar/session-row";
 
 /**
  * Toggleable sidebar — NOT a modal drawer: no backdrop, no focus theft. It
@@ -195,28 +190,6 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
  *  sidebar and its header toggle so the two stay in lockstep. */
 const SIDEBAR_MOTION = "duration-[var(--lh-dur-slow)] ease-[var(--lh-ease-out)]";
 
-/** Replays an element's one-shot .lh-rise (motion wave, owner
- *  2026-10-26): the class is removed, a reflow restarts it, and it is put
- *  back. Reduced motion: .lh-rise is inert, so this does nothing visible. */
-export function replayRise(el: HTMLElement | null): void {
-	if (!el) return;
-	el.classList.remove("lh-rise");
-	void el.offsetWidth;
-	el.classList.add("lh-rise");
-}
-
-/** Plays .lh-rise on `ref` each time `key` changes — never on first mount
- *  and never on a plain re-render or streamed update (motion wave). The
- *  element's own className must not carry lh-rise (this owns it). */
-export function useRiseOnChange(ref: RefObject<HTMLElement | null>, key: unknown): void {
-	const prev = useRef(key);
-	useLayoutEffect(() => {
-		if (Object.is(prev.current, key)) return;
-		prev.current = key;
-		replayRise(ref.current);
-	}, [ref, key]);
-}
-
 /** Hamburger for page headers — only visible when the sidebar is closed.
  *
  *  Owner, round 6c: the toggle is ALWAYS MOUNTED, owning a slot whose
@@ -258,778 +231,71 @@ export function SidebarToggle() {
 	);
 }
 
-/**
- * The row's status indicator (owner, minimal-color round): the braille
- * spinner, ONLY while a teach turn is in flight — monochrome motion, the
- * terminal's own glyph, existing exactly as long as the work does and
- * vanishing the moment it ends. Every other state renders NOTHING:
- * phases only advance (all sessions end in Teaching — phase-as-signal was
- * decoration, now retired app-wide), and question-pending is the dominant
- * RESTING state of real sessions — a resting state has no scan value, so
- * the meta line's "Waiting for input" text carries it. Idle is the
- * absence of a signal, by design.
- */
-function SessionStatus({ busy }: { busy: boolean }) {
-	if (!busy) return null;
-	return <BrailleSpinner />;
-}
-
-/** Compact "how long ago": "just now", "5m ago", "3h ago", "2d ago",
- *  then a plain date. How long a session has been WAITING matters more
- *  than an absolute timestamp. Beyond a week the date renders ISO
- *  (YYYY-MM-DD, zero-padded) — the international standard: unambiguous
- *  in any locale and it sorts (owner, typography round 5; the old
- *  M/D/YYYY was the US convention. A user-locale setting can come later
- *  — trivial, a format function swap). Pure — exported for tests. */
-export function timeAgo(iso: string, now = new Date()): string {
-	const ms = now.getTime() - new Date(iso).getTime();
-	if (ms < 60_000) return "just now";
-	const min = Math.floor(ms / 60_000);
-	if (min < 60) return `${min}m ago`;
-	const h = Math.floor(min / 60);
-	if (h < 24) return `${h}h ago`;
-	const d = Math.floor(h / 24);
-	if (d < 7) return `${d}d ago`;
-	const date = new Date(iso);
-	const mm = String(date.getMonth() + 1).padStart(2, "0");
-	const dd = String(date.getDate()).padStart(2, "0");
-	return `${date.getFullYear()}-${mm}-${dd}`;
-}
-
-/** The row's second line: the state when a state exists (waiting/working),
- *  otherwise just how long ago. The message count is DROPPED (owner,
- *  typography round 5): it informed no decision — clutter. messageCount
- *  still rides the API payload, so this is a one-line flip back if it's
- *  ever wanted. */
-function sessionMeta(chat: ChatListItem): string {
-	if (chat.compacting) return `Compacting context · ${timeAgo(chat.updatedAt)}`;
-	if (chat.pendingQuestion) return `Waiting for input · ${timeAgo(chat.updatedAt)}`;
-	if ((chat.kind ?? "teach") === "practice" && chat.pendingProblem) {
-		return `Problem waiting · ${timeAgo(chat.updatedAt)}`;
-	}
-	if (chat.busy) return "Working…";
-	return timeAgo(chat.updatedAt);
-}
+/** The sidebar's two buttons: tone blocks, 13.5px bold. */
+const NEW_BUTTON =
+	"lh-press flex flex-1 items-center justify-center gap-[7px] bg-tone py-[9px] text-[13.5px] font-bold text-ink hover:bg-tone-2";
 
 /**
- * One session row: the status spinner (only while working), then title +
- * state-aware meta. Exported for render tests — pure function of the
- * list item.
+ * THE SIDEBAR (redesign 2026-10-27, the same on every screen): the window
+ * row (traffic lights + close), the class switcher, the class nav
+ * (Overview / Graph / Files), "New lesson" and "Practice", the lessons,
+ * and the footer (outside agent · jobs, settings).
  */
-export function SessionRow({
-	chat,
-	active,
-	onOpen,
-	kbdSelected = false,
-	onContextMenu,
-	fresh = false,
-}: {
-	chat: ChatListItem;
-	active: boolean;
-	onOpen: () => void;
-	/** Keyboard-cycle highlight (shortcut wave A: Alt+↑/↓ + Alt+Enter) —
-	 *  visually distinct from the active session, which stays filled. */
-	kbdSelected?: boolean;
-	/** Right-click opens the context menu (wave 6: Rename / Delete). */
-	onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-	/** A lesson that just appeared in the list rises in once (motion wave). */
-	fresh?: boolean;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onOpen}
-			onContextMenu={onContextMenu}
-			data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
-			className={cn(
-				"lh-press relative mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-accent",
-				active && "bg-accent",
-				fresh && "lh-rise",
-				kbdSelected && !active && "bg-accent/60 ring-1 ring-border",
-			)}
-		>
-			<SessionStatus busy={chat.busy || chat.compacting} />
-			<span className="min-w-0 flex-1">
-				{/* Titles are the learner's/teacher's WORDS — Source Sans 3, the
-				    same voice the words were typed in (every input is lh-prose);
-				    the meta line below stays JetBrains Mono (machine data). One
-				    rule, finally applied to the picker too (owner, typography
-				    round): mono = chrome, Source Sans = human words. */}
-				<span className="block truncate font-prose text-(length:--lh-prose-size)">{chat.title}</span>
-				<span className="block text-xs text-muted-foreground">{sessionMeta(chat)}</span>
-			</span>
-			{/* The dumbbell rides the FAR RIGHT (owner round 6, 2026-10-05) —
-			    was left of the name; right-aligned keeps the titles flush with
-			    the teaching rows and reads cleaner. */}
-			{(chat.kind ?? "teach") === "practice" && (
-				<DumbbellIcon className="size-3.5 shrink-0 text-muted-foreground/70" aria-label="Practice session" />
-			)}
-		</button>
-	);
-}
-
-/** The inline-rename row (wave 6): same geometry as SessionRow, but the
- *  title line becomes a text input — select-all on entry (the click means
- *  "replace", the header rename's rule), Enter/blur commits, Esc discards.
- *  The meta line stays so the row never changes height mid-edit. */
-export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; onCommit: (next: string) => void; onCancel: () => void }) {
-	const [draft, setDraft] = useState(chat.title);
-	const inputRef = useRef<HTMLInputElement | null>(null);
-	useEffect(() => {
-		const el = inputRef.current;
-		if (el) {
-			el.focus();
-			el.select();
-		}
-	}, []);
-	return (
-		<div
-			data-testid="session-rename-row"
-			className="relative mb-0.5 flex w-full items-center rounded-lg bg-accent px-3 py-2"
-		>
-			{/* NOTHING MOVES (owner, polish round): an idle row renders no
-			    status spacer (SessionStatus is null when not busy), so the
-			    title starts at the row's own px-3 — 12px in. The old rename
-			    row always carried a 14px spacer + gap + the input's border
-			    and padding, landing the text ~41px in (and the meta with
-			    it). The input here is borderless and padding-free at the
-			    exact title x; the underline is the only editing cue. */}
-			<span className="flex min-w-0 w-full flex-col">
-				<input
-					ref={inputRef}
-					value={draft}
-					spellCheck={false}
-					onChange={(e) => setDraft(e.target.value)}
-					onBlur={() => onCommit(draft)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") e.currentTarget.blur();
-						if (e.key === "Escape") {
-							e.stopPropagation(); // discard, not also the sidebar/chat chains
-							onCancel();
-						}
-					}}
-					aria-label="Rename session"
-					data-testid="session-rename-input"
-					className="lh-input w-full min-w-0 truncate border-0 border-b border-border bg-transparent px-0 text-foreground outline-none"
-				/>
-				<span className="block truncate text-xs text-muted-foreground">{sessionMeta(chat)}</span>
-			</span>
-		</div>
-	);
-}
-
-/** The three-way kind filter (practice sessions, owner 2026-10-04):
- *  Teaching / All / Practice — a client-side filter over the same
- *  snapshot, persisted in localStorage, defaulting to All. */
-export type SessionKindFilter = "teach" | "all" | "practice";
-const KIND_FILTER_KEY = "lh:session-kind-filter";
-
 function SessionsSidebar() {
 	const { open, toggle } = useSidebar();
-	const [chats, setChats] = useState<ChatListItem[] | null>(null);
-	const [query, setQuery] = useState("");
-	const [kindFilter, setKindFilter] = useState<SessionKindFilter>("all");
-	useEffect(() => {
-		const stored = window.localStorage.getItem(KIND_FILTER_KEY);
-		if (stored === "teach" || stored === "all" || stored === "practice") setKindFilter(stored);
-	}, []);
-	const setFilter = useCallback((f: SessionKindFilter) => {
-		setKindFilter(f);
-		window.localStorage.setItem(KIND_FILTER_KEY, f);
-	}, []);
 	const pathname = usePathname();
-	const router = useRouter();
-	const { open: openSettings } = useSettingsDialog();
-	// Classes wave (2026-10-26): the list shows the ACTIVE class's lessons.
-	const { active: activeClassId } = useClasses();
-	const [moving, setMoving] = useState<ChatListItem | null>(null);
-
-	/* New session (owner, 2026-09-13): NO POST — the button opens the
-	   sessionless draft view; the session is created only when the first
-	   message is sent (and that message becomes its title). Search: a
-	   client-side filter over the poll snapshot — no server round trip. */
-	const newSession = useCallback(() => {
-		router.push("/chat/new");
-	}, [router]);
-
-	/* FUZZY (owner round 8, 2026-10-05): subsequence match ranked by
-	 * fuzzyScore — prefix beats word-boundary beats scattered. Empty query
-	 * keeps the natural list order (scores are all 0, sort is stable). */
-	const shown = useMemo(() => {
-		const q = query.trim();
-		let list = chats ? chats.filter((c) => (c.classId ?? null) === activeClassId) : chats;
-		if (list && kindFilter !== "all") {
-			list = list.filter((c) => (c.kind ?? "teach") === kindFilter);
-		}
-		if (!list) return list;
-		if (!q) return list;
-		return list
-			.map((c) => ({ c, score: fuzzyScore(q, c.title) }))
-			.filter((r): r is { c: (typeof list)[number]; score: number } => r.score !== null)
-			.sort((a, b) => b.score - a.score)
-			.map((r) => r.c);
-	}, [chats, query, kindFilter, activeClassId]);
-
-	/* Rows that arrived since the last snapshot rise in once (motion
-	   wave, owner 2026-10-26). The first snapshot marks nothing. */
-	const [freshIds, setFreshIds] = useState<ReadonlySet<string>>(() => new Set());
-	const knownIdsRef = useRef<Set<string> | null>(null);
-
-	const refreshInFlightRef = useRef(false);
-	const refresh = useCallback(async () => {
-		// In-flight coalesce (S6): event bursts may land several refresh
-		// calls at once — one fetch serves them all; anything newer arrives
-		// with the next event's fetch.
-		if (refreshInFlightRef.current) return;
-		refreshInFlightRef.current = true;
-		try {
-			const res = await fetch("/api/chats", { cache: "no-store" });
-			const d = (await res.json()) as { chats: ChatListItem[] };
-			const known = knownIdsRef.current;
-			if (known) {
-				const added = d.chats.filter((c) => !known.has(c.id)).map((c) => c.id);
-				if (added.length > 0) setFreshIds(new Set(added));
-			}
-			knownIdsRef.current = new Set(d.chats.map((c) => c.id));
-			setChats(d.chats);
-		} catch {
-			// a transient failure keeps the last snapshot
-			setChats((prev) => prev ?? []);
-		} finally {
-			refreshInFlightRef.current = false;
-		}
-	}, []);
-
-	/* Instant rename propagation (2026-09-17): the chat header's rename
-	   commits dispatch lh:chat-renamed; patch the snapshot in place instead
-	   of waiting for the 2.5s poll. */
-	useEffect(() => {
-		const onRenamed = (e: Event) => {
-			const { id, title } = (e as CustomEvent<{ id: string; title: string }>).detail;
-			setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, title } : c)) : prev));
-		};
-		window.addEventListener("lh:chat-renamed", onRenamed);
-		return () => window.removeEventListener("lh:chat-renamed", onRenamed);
-	}, []);
-
-	/* INSTANT TURN-STATE (owner, sidebar round 2026-10-02): the open
-	   session broadcasts lh:turn-state the instant its turn starts
-	   (submitted — the optimistic machine's own flip) and at settle —
-	   busy mirrors the server's own definition (isTurnRunning), so the
-	   patch is exact: spinner up the moment the action happens, cleared
-	   and refetched once at settle (title/order move with turns). The
-	   events channel is the backstop for everything only the server
-	   knows: other windows, wake turns in unopened sessions. A start on
-	   a chat not yet in the snapshot (a brand-new session) = one
-	   immediate refresh instead of a patch. */
-	const chatsRef = useRef(chats);
-	chatsRef.current = chats;
-	useEffect(() => {
-		const onTurnState = (e: Event) => {
-			const { id, running } = (e as CustomEvent<{ id: string; running: boolean }>).detail;
-			if (running) {
-				if (chatsRef.current?.some((c) => c.id === id)) {
-					setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, busy: true } : c)) : prev));
-				} else {
-					void refresh(); // the brand-new session: it isn't in the snapshot yet
-				}
-				return;
-			}
-			setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, busy: false } : c)) : prev));
-			void refresh(); // settle: the server snapshot is now truthful — land it now
-		};
-		window.addEventListener("lh:turn-state", onTurnState);
-		return () => window.removeEventListener("lh:turn-state", onTurnState);
-	}, [refresh]);
-
-	/* PUSH (architecture S6, 2026-10-02): the 2.5s poll is RETIRED — the
-	   last standing network poll in the app. List truth arrives as
-	   events: chats-changed (create/rename/delete — the list-SHAPE
-	   writes), and turn-started/turn-settled for EVERY chat (unfiltered:
-	   any chat's turn flips busy/order/phase in this list). Announced
-	   fetches ride the 250ms trailing debounce (the S4/S5 law); resync
-	   (reconnect / dev-restart) is immediate. lh:turn-state +
-	   lh:chat-renamed stay for same-tab INSTANTS — local beats any
-	   round-trip. */
-	const refreshRef = useRef(refresh);
-	refreshRef.current = refresh;
-	const eventDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-	const scheduleEventRefresh = () => {
-		if (eventDebounceRef.current) clearTimeout(eventDebounceRef.current);
-		eventDebounceRef.current = setTimeout(() => {
-			eventDebounceRef.current = undefined;
-			void refreshRef.current();
-		}, 250);
-	};
-	useServerEvent("chats-changed", scheduleEventRefresh);
-	useServerEvent("turn-started", scheduleEventRefresh);
-	useServerEvent("turn-settled", scheduleEventRefresh);
-	useServerEvent("compaction-changed", scheduleEventRefresh);
-	useServerResync(() => void refreshRef.current());
-	useEffect(
-		() => () => {
-			if (eventDebounceRef.current) clearTimeout(eventDebounceRef.current);
-		},
-		[],
-	);
-
-	/* ── Keyboard seams (shortcut wave A, 2026-09-17; search-walk round
-	   2026-10-10) ── ⌘⇧F focuses the search field — and THE SEARCH OWNS THE
-	   WALK: ↑/↓ cycle the filtered list (wrap — "cycle"), Enter opens the
-	   walked row, or the FIRST match when nothing is walked (owner,
-	   2026-10-10 — the quick-open pattern: ⌘⇧F, type, Enter, done). The
-	   Alt+↑/↓/↵ global cycle was RETIRED the same round: barely used,
-	   felt laggy. The selection is a row index into `shown`, so the walk
-	   follows whatever the query + kind filter leave. Mouse and keyboard
-	   coexist: hovering doesn't claim, a click or an open clears the
-	   selection. */
-	const [kbdIndex, setKbdIndex] = useState<number | null>(null);
-	const searchRef = useRef<HTMLInputElement>(null);
-	const listRef = useRef<HTMLDivElement>(null);
-	// Switching class or kind filter swaps the list: it rises in (motion wave).
-	useRiseOnChange(listRef, `${activeClassId ?? ""}|${kindFilter}`);
-
-	/* ── Wave 6 chunk A: context menu + inline rename + deletion ──
-	   Right-click a session row → MenuShell: the two management actions
-	   first (owner ruling), then — below a hairline — the extraction
-	   coverage block (owner-locked redesign 2026-09-24, order refined
-	   2026-09-24: Rename/Delete on top, the numbers + manual Extract
-	   affordance at the bottom). The anchor is the row that was
-	   right-clicked — assigned into a ref before the state flip so the
-	   shell measures it on its first (hidden) pass. */
-	const [ctxChatId, setCtxChatId] = useState<string | null>(null);
-	// The last menu's chat stays set after close, so the menu can play its
-	// exit (MenuShell's `open`, motion wave 2026-10-26).
-	const [ctxMenuId, setCtxMenuId] = useState<string | null>(null);
-	const ctxAnchorRef = useRef<HTMLElement | null>(null);
-	const [renamingId, setRenamingId] = useState<string | null>(null);
-	const [deleting, setDeleting] = useState<ChatListItem | null>(null);
-
-	const openContext = (e: React.MouseEvent<HTMLButtonElement>, chat: ChatListItem) => {
-		e.preventDefault(); // suppress the native menu
-		ctxAnchorRef.current = e.currentTarget;
-		setCtxChatId(chat.id);
-		setCtxMenuId(chat.id);
-	};
-
-	// The menu contract (agent-section's): any pointerdown outside the menu
-	// or its row closes it; Esc is CLAIMED so it never also aborts a turn
-	// or folds the sidebar. Right-clicking another row re-anchors: its
-	// pointerdown closes this menu, its contextmenu opens the next.
-	useEffect(() => {
-		if (ctxChatId === null) return;
-		const onPointerDown = (e: PointerEvent) => {
-			const target = e.target as Node;
-			if (target instanceof Element && target.closest("[data-lh-menu]")) return;
-			if (ctxAnchorRef.current?.contains(target)) return;
-			setCtxChatId(null);
-		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.stopPropagation();
-				setCtxChatId(null);
-			}
-		};
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [ctxChatId]);
-
-	// Inline rename (owner ruling, wave 6): the row swaps to a text input;
-	// commit rides the SAME plumbing as the header rename — PUT the title,
-	// then lh:chat-renamed patches every listener (this sidebar's own
-	// listener patches the snapshot instantly; an open chat header hears
-	// it too). Esc discards; empty commit discards (the header's rules).
-	const commitRename = useCallback(async (id: string, next: string) => {
-		setRenamingId(null);
-		const t = next.trim();
-		if (t === "") return;
-		try {
-			const res = await fetch(`/api/chats/${id}`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ title: t }),
-			});
-			if (!res.ok) throw new Error(`rename failed: ${res.status}`);
-			window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title: t } }));
-		} catch (err) {
-			console.error("rename failed:", err); // keep the old title
-		}
-	}, []);
-
-	// Delete success: patch the list instantly (the poll is the backstop),
-	// navigate home if the open session died (the chat view unmounts —
-	// drafts die with it, no orphan bubbles), and announce the graph
-	// revision so the graph view refetches (deletion is the one writer
-	// the status poll can't see — no run ever transitions some→none).
-	const onDeleted = useCallback(
-		(id: string, _mode: ChatDeleteMode, graphRevision: number) => {
-			setDeleting(null);
-			setChats((prev) => (prev ? prev.filter((c) => c.id !== id) : prev));
-			if (pathname === `/chat/${id}`) router.push("/");
-			window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { revision: graphRevision } }));
-		},
-		[pathname, router],
-	);
-
-	useEffect(() => {
-		const onFocusSearch = () => {
-			if (!open) toggle();
-			// A clipped (overflow-hidden) input still focuses — the sidebar's
-			// slide-in doesn't gate the keystroke.
-			requestAnimationFrame(() => searchRef.current?.focus());
-		};
-		window.addEventListener("lh:kbd-sessions-search", onFocusSearch);
-		return () => window.removeEventListener("lh:kbd-sessions-search", onFocusSearch);
-	}, [open, toggle]);
-
-	// Keep the kbd-selected row in view (the rows are the container's only
-	// buttons, so the index matches).
-	useEffect(() => {
-		if (kbdIndex === null) return;
-		listRef.current?.querySelectorAll("button")[kbdIndex]?.scrollIntoView({ block: "nearest" });
-	}, [kbdIndex]);
-
-	useEffect(() => {
-		if (!open) return;
-		void refresh();
-		// Opening + navigation refetch; while open, the events channel owns
-		// freshness (S6) — no interval, nothing standing.
-	}, [open, pathname, refresh]);
+	const { active: activeClassId, activeClass } = useClasses();
 
 	return (
 		<aside
-			className={cn("sidebar-motion shrink-0 overflow-hidden", SIDEBAR_MOTION, open ? "w-72" : "w-0")}
+			className={cn("sidebar-motion shrink-0 overflow-hidden", SIDEBAR_MOTION, open ? "w-64" : "w-0")}
 			aria-hidden={!open}
 		>
-			<div className="flex h-full w-72 flex-col border-r bg-background">
-				{/* LH wordmark — the owner's header; close toggle sits at the edge.
-				    Merged chrome (2026-09-17): in Electron this band is the
-				    window's drag surface and starts after the traffic lights
-				    (.lh-lights-gutter); in the browser those classes are inert. */}
-				<div className="lh-drag lh-lights-gutter flex items-center justify-between px-4 py-3">
-					{/* The owner's mark (2026-09-17) replaces the "LH" text — still the
-					    home link, still vertically centered by the band's items-center.
-					    The 92px .lh-lights-gutter keeps it clear of the traffic lights
-					    with the lights' own edge-inset as the gap. */}
-					{/* Hover mirrors the ghost toggle buttons (owner ask, 2026-09-17):
-					    same size-9 chip geometry, same hover:bg-accent treatment. */}
-					<Hint
-						// Kept (owner, subtlety round 2026-09-25) but to the RIGHT
-						// of the logo, carrying its real shortcut: ⌘G jumps to
-						// the graph view (keyboard-shortcuts routes it to "/",
-						// the same destination as this logo).
-						label="Home"
-						action="jump-graph"
-						side="right"
-					>
-						<Link
-							href="/"
-							aria-label="Home"
-							className="lh-no-drag flex size-9 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-						>
-							<LhMark className="size-6" />
-						</Link>
-					</Hint>
+			<div className="flex h-full w-64 flex-col items-start gap-3.5 border-r border-tone-2 bg-background px-2.5 pb-3">
+				{/* The window row: in Electron it is the window's drag surface and
+				    the native traffic lights sit in its left gutter
+				    (.lh-lights-gutter); the close toggle sits at the right edge.
+				    44px tall so the lights (centered 22px down) line up with it;
+				    -mb-2.5 keeps the design's 48px to the class switcher. */}
+				<div className="lh-drag lh-lights-gutter -mb-2.5 flex h-11 w-full shrink-0 items-center justify-end px-1">
 					<Hint label="Close sidebar" action="toggle-sidebar">
-						<Button
-							variant="ghost"
-							size="icon"
+						<button
+							type="button"
 							aria-label="Close sidebar"
 							onClick={toggle}
-							className="lh-no-drag"
+							className="lh-press lh-no-drag flex size-7 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink"
 						>
 							<PanelLeftCloseIcon className="size-4" />
-						</Button>
+						</button>
 					</Hint>
 				</div>
 
-				{/* The class switcher (classes wave, 2026-10-26): picks the
-				    class the whole window shows. */}
 				<ClassSwitcher />
 
-				{/* Two doors, STACKED (owner round 8, 2026-10-05 — was a
-				    half/half row): full-width rows read cleaner and give the
-				    labels room; teaching keeps the original draft route,
-				    practice carries its mode. */}
-				<div className="mx-3 mb-2 flex flex-col gap-1.5">
-					<button
-						type="button"
-						data-testid="new-session"
-						onClick={() => void newSession()}
-						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-muted-foreground lh-press hover:bg-accent hover:text-foreground"
-					>
-						<PlusIcon className="size-3" />
-						Teaching
-						<span className="sr-only">create a new teaching session</span>
-					</button>
-					<button
-						type="button"
-						data-testid="new-session-practice"
-						onClick={() => router.push("/chat/new?mode=practice")}
-						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-muted-foreground lh-press hover:bg-accent hover:text-foreground"
-					>
-						<DumbbellIcon className="size-3" />
+				<ClassNav pathname={pathname} hasClass={activeClass !== null} fileCount={activeClass?.fileCount ?? 0} />
+
+				{/* New lessons start on Home ("/"), in Teach or Practice mode. */}
+				<div className="flex w-full gap-0.5">
+					<Link href="/" data-testid="new-session" className={NEW_BUTTON}>
+						<PlusIcon className="size-3.5" aria-hidden />
+						New lesson
+					</Link>
+					<Link href="/?mode=practice" data-testid="new-session-practice" className={NEW_BUTTON}>
+						<DumbbellIcon className="size-3.5" aria-hidden />
 						Practice
-						<span className="sr-only">create a new practice session</span>
-					</button>
+					</Link>
 				</div>
 
-				<div className="mx-3 mb-2 flex items-center gap-2">
-					<span className="text-xs font-semibold text-muted-foreground/70">Sessions</span>
-					<Hint label="Search sessions" action="sessions-search" side="bottom">
-					<span className="relative flex-1">
-						<Input
-							ref={searchRef}
-							data-testid="session-search"
-							value={query}
-							onChange={(e) => {
-								setQuery(e.target.value);
-								// The list reorders under the query every keystroke —
-								// a stale walk index would point at the wrong row.
-								setKbdIndex(null);
-							}}
-							// THE SEARCH OWNS THE WALK (owner, 2026-10-10 — the
-							// retired Alt+↑/↓/↵ cycle's successor): ↑/↓ cycle the
-							// filtered rows (wrap), Enter opens the walked row —
-							// or the FIRST match when nothing is walked (the
-							// quick-open pattern) — then blurs (focus returns to
-							// the app per the Enter law; the query stays for
-							// re-searching). Esc leaves the search (owner,
-							// keyboard wave): blur back to normal, and claim the
-							// key so the window Esc chain (abort)
-							// doesn't also fire.
-							onKeyDown={(e) => {
-								if (e.key === "Escape") {
-									e.stopPropagation();
-									e.currentTarget.blur();
-									return;
-								}
-								// Modified keys belong to the surface (⇧↵ etc.).
-								if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
-								const n = shown?.length ?? 0;
-								if (n === 0) return;
-								if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-									// The rows move, not the caret.
-									e.preventDefault();
-									const dir = e.key === "ArrowDown" ? 1 : -1;
-									setKbdIndex((i) =>
-										i === null || i >= n ? (dir === 1 ? 0 : n - 1) : (i + dir + n) % n,
-										);
-									return;
-								}
-								if (e.key === "Enter") {
-									const target = shown![kbdIndex !== null && kbdIndex < n ? kbdIndex : 0];
-									if (!target) return;
-									e.preventDefault();
-									router.push(`/chat/${target.id}`);
-									setKbdIndex(null);
-									e.currentTarget.blur();
-								}
-							}}
-							placeholder="Search…"
-							aria-label="Search sessions"
-							className="h-6 rounded-sm border-border bg-background pl-6 text-xs placeholder:text-muted-foreground/60"
-						/>
-						<SearchIcon className="pointer-events-none absolute left-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/70" />
-					</span>
-					</Hint>
-				</div>
+				<LessonsSection open={open} toggle={toggle} pathname={pathname} activeClassId={activeClassId} />
 
-				{/* The three-way filter, HEADING THE LIST (owner round 8b,
-				    2026-10-05 — moved below the search): it scopes what the
-				    list shows, so it sits directly above it as a caption row;
-				    search stays the top muscle-memory target. Order: Teaching /
-				    Practice / All — the real modes first, "All" as the escape
-				    hatch on the right, mirroring the create-buttons above.
-				    Persisted client-side. */}
-				<div className="mx-3 flex items-center gap-0.5 rounded-md border border-border/60 bg-background p-0.5" data-testid="session-kind-filter">
-					{(["teach", "practice", "all"] as const).map((f) => (
-						<button
-							key={f}
-							type="button"
-							data-testid={`kind-filter-${f}`}
-							onClick={() => setFilter(f)}
-							className={cn(
-								"lh-press flex-1 rounded-sm px-2 py-1 text-xs font-semibold",
-								kindFilter === f
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:text-foreground",
-							)}
-						>
-							{f === "teach" ? "Teaching" : f === "all" ? "All" : "Practice"}
-						</button>
-					))}
-				</div>
-
-				<div ref={listRef} className="flex-1 overflow-y-auto p-2">
-					{shown === null ? (
-						<div className="px-2 py-4 text-xs text-muted-foreground">Loading…</div>
-					) : shown.length === 0 ? (
-						<div className="px-2 py-4 text-xs text-muted-foreground">
-							{query.trim() ? "No sessions match." : activeClassId ? "No lessons in this class yet." : "No sessions yet."}
-						</div>
-					) : (
-						shown.map((c, i) =>
-							renamingId === c.id ? (
-								<RenameRow
-									key={c.id}
-									chat={c}
-									onCommit={(next) => void commitRename(c.id, next)}
-									onCancel={() => setRenamingId(null)}
-								/>
-							) : (
-								<SessionRow
-									key={c.id}
-									chat={c}
-									active={pathname === `/chat/${c.id}`}
-									kbdSelected={i === kbdIndex}
-									fresh={freshIds.has(c.id)}
-									onOpen={() => {
-										setKbdIndex(null);
-										router.push(`/chat/${c.id}`);
-									}}
-									onContextMenu={(e) => openContext(e, c)}
-								/>
-							),
-						)
-					)}
-				</div>
-
-					{/* Background agents (owner, sidebar round): the section is
-					    ALWAYS here — empty means empty (the header sits alone); it
-					    populates and grows when processes run. The session list is
-					    flex-1, so this pins to the bottom. Sidebar closed = the
-					    learner opted out (no ambient signal, user decision). */}
-					<ActivitySection />
-
-					{/* Settings entry (settings-app wave): same row language as
-					    New session — quiet, bottom-pinned, opens the centered
-					    dialog (also mod+, in the keyboard registry). */}
-					<div className="px-3 pb-3 pt-1">
-						<Hint label="Settings" action="open-settings" side="right">
-							<button
-								type="button"
-								onClick={() => openSettings()}
-								data-testid="settings-entry"
-								className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-muted-foreground lh-press hover:bg-accent hover:text-foreground"
-							>
-								<SettingsIcon className="size-3" />
-								Settings
-							</button>
-						</Hint>
-					</div>
-				</div>
-
-				{/* The context menu (wave 6 + the extraction-UX redesign): the
-				    coverage block above, then exactly two management actions
-				    (owner ruling — no more). MenuShell owns placement/focus/arrow
-				    cycling; the dismissal effect above owns the contract. */}
-				{ctxMenuId !== null && (
-					<MenuShell
-						// Keyed: another row's menu is a fresh shell.
-						key={ctxMenuId}
-						open={ctxChatId === ctxMenuId}
-						anchorRef={ctxAnchorRef}
-						testid="session-context-menu"
-						preferredSide="down"
-						menuClass="flex w-52 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
-					>
-						{/* The two management actions first, then the extraction block
-						    (owner refinement round, 2026-09-24): Rename/Delete stay at the
-						    top, the coverage numbers + Extract affordance sit below the
-						    hairline — the block is info + a stateful affordance, the
-						    actions above it. Fetched on menu open (the block mounts WITH
-						    the menu); 409 = benign. Renders nothing on a failed read. */}
-						<button
-							type="button"
-							data-testid="ctx-rename"
-							onClick={() => {
-								setRenamingId(ctxChatId);
-								setCtxChatId(null);
-							}}
-							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground hover:bg-accent"
-						>
-							Rename
-						</button>
-						{/* Export as Markdown (owner, release polish 2026-10-06): the
-					    session-markdown engine's user-facing debut — same-origin
-						    anchor download; the route's Content-Disposition names the
-						    file. Sits with the management actions, above Delete (the
-						    destructive action stays last — the danger-fence law). */}
-						<button
-							type="button"
-							data-testid="ctx-export-md"
-							onClick={() => {
-								const chatId = ctxChatId;
-								setCtxChatId(null);
-								const a = document.createElement("a");
-								a.href = `/api/chats/${chatId}/markdown`;
-								a.download = ""; // the route's filename wins
-								document.body.appendChild(a);
-								a.click();
-								a.remove();
-							}}
-							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground hover:bg-accent"
-						>
-							Export as Markdown…
-						</button>
-						<button
-							type="button"
-							data-testid="ctx-move-class"
-							onClick={() => {
-								const target = chats?.find((c) => c.id === ctxChatId);
-								if (target) setMoving(target);
-								setCtxChatId(null);
-							}}
-							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground hover:bg-accent"
-						>
-							Move to class…
-						</button>
-						<button
-							type="button"
-							data-testid="ctx-delete"
-							onClick={() => {
-								const target = chats?.find((c) => c.id === ctxChatId);
-								if (target) setDeleting(target);
-								setCtxChatId(null);
-							}}
-							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 hover:bg-accent hover:text-foreground"
-						>
-							Delete…
-						</button>
-						<div className="my-0.5 border-t border-border/60" aria-hidden="true" />
-						<CoverageMenuBlock chatId={ctxMenuId} />
-					</MenuShell>
-				)}
-
-				{/* The two-option delete dialog (wave 6) — portaled to body
-				    by the component itself, lives here for state locality. */}
-				<DeleteSessionDialog
-					chat={deleting}
-					onClose={() => setDeleting(null)}
-					onDeleted={onDeleted}
-				/>
-				<MoveLessonDialog
-					lesson={moving}
-					onClose={() => setMoving(null)}
-					onMoved={(id, classId) => {
-						setMoving(null);
-						setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, classId: classId ?? undefined } : c)) : prev));
-						window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { revision: Date.now() } }));
-					}}
-				/>
-			</aside>
+				<SidebarFooter />
+			</div>
+		</aside>
 	);
 }
 
-/** The view swap (motion wave, owner 2026-10-26): switching between home,
- *  lessons, or the draft view rises the incoming page in once. The
- *  draft's first send is NOT a swap — /chat/new turns into its own lesson
- *  with the same look, so it lands still. */
+/** The view swap (motion wave, owner 2026-10-26): switching between
+ *  pages (Home, a lesson, Overview…) rises the incoming page in once. */
 function ViewSwap({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const ref = useRef<HTMLDivElement>(null);
@@ -1038,7 +304,6 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 		const from = prev.current;
 		prev.current = pathname;
 		if (from === pathname) return;
-		if (from === "/chat/new" && pathname.startsWith("/chat/")) return;
 		replayRise(ref.current);
 	}, [pathname]);
 	return (

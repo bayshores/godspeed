@@ -162,6 +162,7 @@ describe("the /api/mcp door", () => {
 		const tools = await (await mcp.handleMcpRequest(rpc(listTools, auth))).json();
 		const names = tools.result.tools.map((t: { name: string }) => t.name).sort();
 		assert.deepEqual(names, [
+			"add_class_exam",
 			"add_class_file",
 			"create_class",
 			"import_notes",
@@ -170,12 +171,14 @@ describe("the /api/mcp door", () => {
 			"list_lessons",
 			"read_class",
 			"read_lesson",
+			"remove_class_exam",
 			"respond",
 			"search_graph",
 			"set_class_file_kind",
 			"start_lesson",
 			"unlink_class_folder",
 			"update_class",
+			"update_class_exam",
 			"wait_for_work",
 		]);
 		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a class is app-only (owner ruling)");
@@ -212,5 +215,20 @@ describe("the /api/mcp door", () => {
 		// read as a refusal and every class-scoped tool failed).
 		const searched = await call("search_graph", { class_id: id, query: "anything" });
 		assert.equal(searched.error, false, JSON.stringify(searched.body));
+
+		// Exams (redesign plan, 2026-10-27): add from the syllabus, fix, remove.
+		const exam = await call("add_class_exam", { class_id: id, name: "Midterm 1", date: "2026-11-05" });
+		assert.equal(exam.error, false, JSON.stringify(exam.body));
+		const examId = exam.body.exam.id as string;
+		assert.equal((await call("add_class_exam", { class_id: id, name: "Final", date: "next week" })).error, true);
+		assert.equal((await call("add_class_exam", { class_id: id, name: "Final", date: "2026-12-10", file_ids: ["f_nope"] })).error, true);
+		assert.equal((await call("add_class_exam", { class_id: "cls_missing", name: "Final", date: "2026-12-10" })).error, true);
+		const moved = await call("update_class_exam", { class_id: id, exam_id: examId, date: "2026-11-06" });
+		assert.equal(moved.body.exam.date, "2026-11-06");
+		const withExam = await call("read_class", { class_id: id });
+		assert.deepEqual(withExam.body.exams, [{ id: examId, name: "Midterm 1", date: "2026-11-06", files: [] }]);
+		assert.equal((await call("remove_class_exam", { class_id: id, exam_id: examId })).error, false);
+		assert.equal((await call("remove_class_exam", { class_id: id, exam_id: examId })).error, true);
+		assert.deepEqual((await call("read_class", { class_id: id })).body.exams, []);
 	});
 });

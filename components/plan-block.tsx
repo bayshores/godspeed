@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { MaximizeIcon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,9 +11,10 @@ import { layout as dagreLayout } from "dagre-d3-es/src/dagre/index.js";
 // d3's curveBasis (the exact recipe dagre-d3's own renderer uses).
 import { curveBasis, line } from "d3-shape";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/components/pan-zoom";
-import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/src/core";
+import type { PlanBlockData, PlanNodeStatus } from "@/src/core";
 import { derivedNodeStatus, derivePlanStatuses } from "@/src/core";
 import { Hint } from "@/components/ui/hint";
+import { latestTree, type PopupMessage } from "@/components/plan-latest";
 
 /**
  * PLAN BLOCKS — the plan lives in the chat (wave 4): persisted
@@ -707,25 +706,9 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 
 // ─── The live plan popup ──────────────────────────────────────────────────────
 
-/** Minimal structural message slice (same trick as phases.ts). */
-export interface PopupMessage {
-	parts: ReadonlyArray<{ type: string; state?: string; input?: unknown; output?: unknown }>;
-}
-
-/** The latest plan tree in the transcript (latest tool-plan_ output). */
-export function latestTree(messages: readonly PopupMessage[]): PlanTree | null {
-	for (let m = messages.length - 1; m >= 0; m--) {
-		const parts = messages[m]?.parts;
-		if (!parts) continue;
-		for (let p = parts.length - 1; p >= 0; p--) {
-			const part = parts[p]!;
-			if (!part.type.startsWith("tool-plan_") || part.state !== "output-available") continue;
-			const output = part.output as { tree?: PlanTree } | undefined;
-			if (output?.tree && Array.isArray(output.tree.nodes)) return output.tree;
-		}
-	}
-	return null;
-}
+// latestTree lives in plan-latest.ts (no dagre) so the lesson can read
+// the plan without loading this module; re-exported for existing callers.
+export { latestTree, type PopupMessage } from "@/components/plan-latest";
 
 /** The popup shows the glow, so its frame pads by the glow's reach —
  *  the in-chat block (monochrome, no glow) stays tight at GRAPH_PAD. */
@@ -910,7 +893,7 @@ export function PlanPopup({
 					onClick={onClose}
 					aria-label="Close"
 					data-testid="plan-popup-close"
-					className="lh-press ml-auto rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+					className="lh-press ml-auto p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 				>
 					<XIcon className="size-4" />
 				</button>
@@ -919,7 +902,7 @@ export function PlanPopup({
 			<div
 				ref={viewportRef}
 				className={cn(
-					"relative min-h-0 flex-1 touch-none overflow-hidden rounded-xl border select-none",
+					"relative min-h-0 flex-1 touch-none overflow-hidden border select-none",
 					atFloor ? "cursor-default" : "cursor-grab",
 				)}
 				onPointerDown={startDrag}
@@ -963,7 +946,7 @@ export function PlanPopup({
 									type="button"
 									aria-label="Zoom out"
 									onClick={() => stepZoom(1 / 1.25)}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
+									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
 								>
 									<MinusIcon className="size-3.5" />
 								</button>
@@ -974,7 +957,7 @@ export function PlanPopup({
 									aria-label="Fit plan to screen"
 									onClick={fitView}
 									data-testid="plan-popup-fit"
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
+									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
 								>
 									<MaximizeIcon className="size-3.5" />
 								</button>
@@ -984,7 +967,7 @@ export function PlanPopup({
 									type="button"
 									aria-label="Zoom in"
 									onClick={() => stepZoom(1.25)}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
+									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
 								>
 									<PlusIcon className="size-3.5" />
 								</button>

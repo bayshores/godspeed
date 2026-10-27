@@ -284,6 +284,55 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	return out;
 }
 
+// ─── reuse unchanged messages ───────────────────────────────────────────────
+
+/** Equal when both are the same value, or both are plain objects/arrays
+ *  whose entries are the same values (one level deep — view parts hold
+ *  record objects by reference, plus a few small wrappers made per call). */
+function sameValue(a: unknown, b: unknown, depth: number): boolean {
+	if (a === b) return true;
+	if (depth === 0 || typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+	if (Array.isArray(a) !== Array.isArray(b)) return false;
+	const ka = Object.keys(a);
+	const kb = Object.keys(b);
+	if (ka.length !== kb.length) return false;
+	for (const k of ka) {
+		if (!sameValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], depth - 1)) return false;
+	}
+	return true;
+}
+
+function sameViewMessage(a: LhViewMessage, b: LhViewMessage): boolean {
+	if (a.id !== b.id || a.role !== b.role || a.parts.length !== b.parts.length) return false;
+	if (!sameValue(a.metadata, b.metadata, 1)) return false;
+	for (let i = 0; i < a.parts.length; i++) {
+		if (!sameValue(a.parts[i], b.parts[i], 2)) return false;
+	}
+	return true;
+}
+
+/** A fresh projection with every unchanged message swapped for the
+ *  previous projection's object, so memoized transcript rows skip their
+ *  redraw. Returns `prev` itself when nothing changed at all. Pure. */
+export function reuseUnchangedMessages(
+	prev: readonly LhViewMessage[],
+	next: readonly LhViewMessage[],
+): LhViewMessage[] {
+	if (prev.length === 0) return next as LhViewMessage[];
+	const byId = new Map(prev.map((m) => [m.id, m]));
+	let changed = prev.length !== next.length;
+	const out = next.map((m, i) => {
+		const old = byId.get(m.id);
+		if (old && sameViewMessage(old, m)) {
+			if (prev[i] !== old) changed = true;
+			return old;
+		}
+		changed = true;
+		return m;
+	});
+	return changed ? out : (prev as LhViewMessage[]);
+}
+
 /** The dock-owned tools: question tools (client-owned results — the dock
  *  mounts on the dangling call) and the practice pose (its ack is FINAL —
  *  details: null, never replaced — and the card + dock read the call's

@@ -1,8 +1,8 @@
-"use client";
 /**
- * Thin settings primitives (settings-app wave): the control kit the
- * settings dialog needs. Sections → groups → rows; everything SSRs clean
- * (render tests pin the sections' markup).
+ * Thin settings primitives (settings-app wave; restyled 2026-10-27 to
+ * design/exports/settings.html): the control kit the settings dialog
+ * needs. Sections → groups → rows; everything SSRs clean (render tests
+ * pin the sections' markup).
  *
  * The dependency graying (owner, 2026-09-20) follows the graph viewer's
  * render-panel convention: the WHOLE row dims (opacity-40, label and
@@ -11,31 +11,30 @@
 
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Tip } from "@/components/ui/tooltip";
 
-/** A section block: pronounced mono heading + content. */
+/** A section block (redesign 2026-10-27): the dialog's head shows the
+ *  section's title, so the block is just its groups and rows. */
 export function SettingsSection({
 	title,
-	hint,
 	children,
 	testid,
 }: {
 	title: string;
-	/** One quiet line under the header — only where it earns its place. */
+	/** Kept for callers; the dialog head shows section hints as a tooltip. */
 	hint?: string;
 	children: React.ReactNode;
 	testid?: string;
 }) {
 	return (
-		<section data-testid={testid} className="px-6 py-5">
-			<h2 className="text-sm font-semibold text-foreground">{title}</h2>
-			{hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-			<div className="mt-4 flex flex-col gap-3">{children}</div>
+		<section data-testid={testid} aria-label={title} className="flex flex-col gap-0.5">
+			{children}
 		</section>
 	);
 }
 
-/** A labeled sub-group inside a section (owner, 2026-09-20: clear
- *  separation — Models / Tools / Prompts read as three blocks). */
+/** A labeled sub-group inside a section (design/exports/settings.html:
+ *  "Access", "Setup" — a bold muted label over 2px-spaced rows). */
 export function SettingsGroup({
 	label,
 	children,
@@ -46,35 +45,47 @@ export function SettingsGroup({
 	testid?: string;
 }) {
 	return (
-		<div data-testid={testid} className="mt-5 border-t border-border/60 pt-4 first:mt-0 first:border-t-0 first:pt-0">
-			<p className="mb-2 text-xs font-semibold text-muted-foreground">{label}</p>
-			<div className="flex flex-col gap-2">{children}</div>
+		<div data-testid={testid} className="mt-[22px] first:mt-0">
+			<p className="pb-2 text-[13px] font-bold text-ink-3">{label}</p>
+			<div className="flex flex-col gap-0.5 [&>p]:py-1.5">{children}</div>
 		</div>
 	);
 }
 
-/** One label + one control. Label left (with optional muted hint), control
- *  right — the settings row shape. */
+/** One label + one control on a tone row: label left (with an optional
+ *  muted hint under it, or a hover tooltip on the label), control right. */
 export function SettingsRow({
 	label,
 	hint,
+	tip,
 	children,
 	testid,
 	dimmed,
 }: {
 	label: string;
 	hint?: ReactNode;
+	/** An explanation shown when the label is hovered or focused. */
+	tip?: ReactNode;
 	children: React.ReactNode;
 	testid?: string;
 	/** Dependency graying, graph-view style: the whole row dims when the
 	 *  control is inert (parent off, no file yet, …). */
 	dimmed?: boolean;
 }) {
+	const text = <span className="block text-[14.5px] text-ink">{label}</span>;
 	return (
-		<div data-testid={testid} className={cn("flex items-center justify-between gap-4 py-1", dimmed && "opacity-40")}>
+		<div data-testid={testid} className={cn("flex min-h-[46px] items-center justify-between gap-4 bg-tone px-3.5 py-2.5", dimmed && "opacity-40")}>
 			<span className="min-w-0">
-				<span className="block font-prose text-(length:--lh-prose-size)">{label}</span>
-				{hint && <span className="block text-xs text-muted-foreground/70">{hint}</span>}
+				{tip ? (
+					<Tip title={label} body={<span className="text-xs text-ink-2">{tip}</span>} side="top" align="start" className="max-w-80">
+						<span tabIndex={0} className="block w-fit cursor-default text-[14.5px] text-ink outline-none focus-visible:underline focus-visible:underline-offset-4">
+							{label}
+						</span>
+					</Tip>
+				) : (
+					text
+				)}
+				{hint && <span className="block text-xs text-ink-3">{hint}</span>}
 			</span>
 			{children}
 		</div>
@@ -115,10 +126,10 @@ export function Toggle({
 			className={cn(
 				// lh-press eases the track colors and dips on press (motion wave,
 				// owner 2026-10-26); the disc below slides on the same clock.
-				"lh-press relative h-4.5 w-8 shrink-0 rounded-full border border-border",
-				// Owner (2026-09-20): on is a gray track with a WHITE disc (a full-white
-				// track was too loud); off stays the muted track.
-				checked ? "bg-muted-foreground" : "bg-muted",
+				"lh-press relative h-[18px] w-[34px] shrink-0",
+				// Redesign 2026-10-27 (design/exports/settings.html): on is a white
+				// track with a black knob; off is the tone-2 track.
+				checked ? "bg-ink" : "bg-tone-2",
 				disabled && "cursor-not-allowed",
 			)}
 		>
@@ -127,8 +138,8 @@ export function Toggle({
 				// only the knob's face changes (the invert affordance).
 				<span
 					className={cn(
-						"absolute left-0 top-0.5 flex size-3 items-center justify-center rounded-full transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-						checked ? "translate-x-4 text-foreground" : "translate-x-0.5 text-muted-foreground",
+						"absolute left-0 top-0.5 flex size-3.5 items-center justify-center transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
+						checked ? "translate-x-[18px] text-black" : "translate-x-0.5 text-ink-3",
 					)}
 				>
 					{discIcon}
@@ -136,10 +147,9 @@ export function Toggle({
 			) : (
 				<span
 					className={cn(
-						"absolute left-0 top-0.5 size-3 rounded-full transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-						// 2px inset from each inner edge, both states (owner round: the on
-						// disc used to touch the pill's right edge).
-						checked ? "translate-x-4 bg-foreground" : "translate-x-0.5 bg-muted-foreground",
+						"absolute left-0 top-0.5 size-3.5 transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
+						// 2px inset from each inner edge, both states.
+						checked ? "translate-x-[18px] bg-black" : "translate-x-0.5 bg-ink-3",
 					)}
 				/>
 			)}
@@ -171,7 +181,7 @@ export function ThinSelect({
 			disabled={disabled}
 			onChange={(e) => onChange(e.target.value)}
 			className={cn(
-				"h-7 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
+				"h-7 bg-black px-1.5 font-ui text-[13px] text-ink border border-tone-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) focus-visible:border-ink-3",
 				disabled && "cursor-not-allowed",
 			)}
 		>
@@ -230,7 +240,10 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-7 w-40 rounded-sm border border-border bg-background px-2 font-ui text-xs text-foreground outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-muted-foreground/60"
+			className="h-7 w-40 bg-black px-2 font-ui text-[13px] text-ink border border-tone-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-ink-3 focus-visible:border-ink-3"
 		/>
 	);
 }
+/** The settings' small outlined button ("Copy", "New token"). */
+export const OUTLINE_BUTTON =
+	"lh-press shrink-0 px-2.5 py-[5px] text-[13px] font-bold text-ink border border-tone-2 hover:bg-tone-2 focus-visible:border-ink-3 disabled:opacity-50";

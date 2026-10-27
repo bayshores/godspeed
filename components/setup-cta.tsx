@@ -1,7 +1,6 @@
-"use client";
 /**
  * The no-connection surfaces (subscriptions only — API keys were
- * removed): when NO subscription is signed in, chat / home / /chat/new
+ * removed): when NO subscription is signed in, the lesson and Home
  * hoist a composer pill — "Sign in to a subscription" — that takes
  * PRECEDENCE over the models setup CTA (a connection comes first in the
  * chain: the model pickers list only what a connection unlocks). Click
@@ -36,7 +35,7 @@ export function ConnectPill({ onOpen, inline = false }: { onOpen: () => void; in
 			type="button"
 			data-testid="setup-cta-connect"
 			onClick={onOpen}
-			className="lh-press lh-fade rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
+			className="lh-press lh-fade border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
 		>
 			Sign in to a subscription
 		</button>
@@ -57,8 +56,8 @@ export function strongDisconnected(catalog: ModelCatalogResponse | undefined): b
 	return !catalog.providers.some((p) => p.id === strong.model.provider && p.connected);
 }
 
-/** The strong-slot disconnected truth for the PRE-SEND guard (home /
- *  /chat/new): the catalog seam with re-reads on BOTH signals that can
+/** The strong-slot disconnected truth for the PRE-SEND guard (Home and
+ *  every lesson start): the catalog seam with re-reads on BOTH signals that can
  *  flip it — "providers" (a subscription signed in or out) and "models"
  *  (the strong slot re-pinned). Live-updates with the page, never
  *  mid-send. */

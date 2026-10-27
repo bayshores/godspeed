@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * FOCUS HYGIENE — transient transcript controls don't keep focus
  * (owner, keyboard round 2026-10-10). A pointer click on a thinking

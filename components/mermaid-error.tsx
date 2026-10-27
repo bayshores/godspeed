@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { MermaidErrorComponentProps } from "streamdown";
@@ -18,7 +16,7 @@ export const MermaidError = ({
 }: MermaidErrorComponentProps & { className?: string }) => (
 	<div
 		className={cn(
-			"my-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4",
+			"my-4 border border-destructive/40 bg-destructive/5 p-4",
 			className,
 		)}
 		data-streamdown="mermaid-error"
@@ -33,7 +31,7 @@ export const MermaidError = ({
 			<summary className="cursor-pointer text-xs text-muted-foreground">
 				Show diagram source
 			</summary>
-			<pre className="mt-2 overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs text-foreground">
+			<pre className="mt-2 overflow-x-auto bg-muted p-3 font-mono text-xs text-foreground">
 				{chart}
 			</pre>
 		</details>

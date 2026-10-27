@@ -58,6 +58,21 @@ export interface ClassFile {
 	addedAt: string;
 }
 
+/** One exam of a class (redesign plan, owner-approved 2026-10-27): added by
+ *  the learner (Edit class) or by an outside agent from the syllabus (MCP
+ *  add_class_exam). The Graph page's "Where you're at" panel reads it: the
+ *  exam's topics are the topics with facts born in its files. */
+export interface ClassExam {
+	/** "exm_" + 12 hex. */
+	id: string;
+	/** "Midterm 1", "Final". */
+	name: string;
+	/** The exam day, YYYY-MM-DD (a calendar date, no time zone). */
+	date: string;
+	/** The class files (ClassFile.id) the exam covers. */
+	fileIds: string[];
+}
+
 export interface ClassRecord {
 	/** "cls_" + base36 time + "_" + 8 hex. */
 	id: string;
@@ -72,12 +87,38 @@ export interface ClassRecord {
 	/** Absolute path of a folder on the learner's computer (optional). */
 	linkedFolder?: string;
 	files: ClassFile[];
+	/** The class's exams, soonest first (absent on records that never had
+	 *  one — absence reads as none). */
+	exams?: ClassExam[];
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
 
-/** The class record format this build writes and understands. */
-export const CURRENT_CLASS_VERSION = 1;
+/** The class record format this build writes and understands.
+ *  v2 (2026-10-27): adds `exams`. A v1 record reads unchanged; the bump
+ *  makes an older build REFUSE a v2 record rather than drop its exams on
+ *  its next write (its reader rebuilds the record field by field). */
+export const CURRENT_CLASS_VERSION = 2;
+
+/** Why an exam write was refused (the store's validation; the server maps
+ *  it to a 400 / 404 with this message). */
+export class ClassExamError extends Error {
+	constructor(
+		public readonly code: "bad_name" | "bad_date" | "unknown_file" | "exam_not_found",
+		message: string,
+	) {
+		super(message);
+		this.name = "ClassExamError";
+	}
+}
+
+/** True when `date` is a real calendar date written YYYY-MM-DD. */
+export function isExamDate(date: unknown): date is string {
+	if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+	const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+	const t = new Date(Date.UTC(y, m - 1, d));
+	return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
 
 /** The list view: the record minus its file list, plus counts. */
 export interface ClassSummary {

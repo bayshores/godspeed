@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatSettings, ModelCatalogEntry, ModelCatalogResponse, ModelsSettings, UserSettings } from "@/src/core";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
@@ -75,7 +73,7 @@ export function catalogLimits(catalog: Pick<ModelCatalogResponse, "models">): Ma
  * (validated + level-clamped server-side). The session owns its model +
  * thinking level from birth; the strong slot never reaches it again.
  *
- * WITHOUT a chatId (the draft surfaces — home + /chat/new): the pills
+ * WITHOUT a chatId (no session yet): the pills
  * bind the STRONG SLOT (reads the raw models section, GET /api/settings;
  * writes PUT /api/settings/models via composeSlotModel — the same seam
  * the settings Agent section and the SetupDialog write): picking there IS
@@ -334,7 +332,7 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				// view's floating top-right buttons (import notes, gear,
 				// coverage) — blurred, fuller opacity, shadowed — so the
 				// graph no longer bleeds through these pills.
-				className="lh-press flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur hover:border-border hover:bg-muted"
+				className="lh-press flex items-center gap-1.5 border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur hover:border-border hover:bg-muted"
 			>
 				<span className="text-card-foreground">{effectiveId ? prettyModel(effectiveId) : "—"}</span>
 				<span aria-hidden className="text-xs text-muted-foreground">▾</span>
@@ -363,7 +361,7 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				// view's floating top-right buttons (import notes, gear,
 				// coverage) — blurred, fuller opacity, shadowed — so the
 				// graph no longer bleeds through these pills.
-				className="lh-press flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur hover:border-border hover:bg-muted"
+				className="lh-press flex items-center gap-1.5 border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur hover:border-border hover:bg-muted"
 			>
 				{/* Just the level — the button reads like the model button reads
 				   the model name (owner, stats-control round 1). */}
@@ -384,7 +382,7 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				anchorRef={containerRef}
 				testid="model-menu"
 				preferredSide="up"
-				menuClass="flex w-[22rem] flex-col rounded-xl border bg-card p-2 text-xs shadow-xl"
+				menuClass="flex w-[22rem] flex-col border bg-card p-2 text-xs shadow-xl"
 			>
 				{error && <div className="mb-1.5 text-destructive">{error}</div>}
 				<ModelMenuList
@@ -407,7 +405,7 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				anchorRef={containerRef}
 				testid="thinking-menu"
 				preferredSide="up"
-				menuClass="flex w-44 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
+				menuClass="flex w-44 flex-col gap-0.5 border bg-card p-2 text-xs shadow-xl"
 			>
 				<ThinkingMenuList
 					levels={catalog ? levels : []}

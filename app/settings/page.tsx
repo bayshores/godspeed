@@ -7,5 +7,5 @@ import { redirect } from "next/navigation";
  * page; the dialog opens via the sidebar row or mod+,.
  */
 export default function SettingsPage() {
-	redirect("/chat/new");
+	redirect("/");
 }

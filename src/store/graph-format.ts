@@ -1,10 +1,9 @@
 /**
  * The graph-family FORMAT STAMP (schema-versioning wave, owner 2026-10-10):
  * data/graph/format.json — one sidecar versioning the whole graph dir
- * family (the four JSONL ledgers, sources.json, render-settings.json).
+ * family (the JSONL ledgers and sources.json).
  * JSONL ledgers can't carry inline stamps without per-line bloat, and the
  * JSON files share the family's fate, so the stamp lives beside them.
- * positions.json is rebuildable (owner ruling) and needs no protection.
  *
  * The contract:
  *  - LAZY v1: NO sidecar = v1 (the pre-stamp world stays valid forever);

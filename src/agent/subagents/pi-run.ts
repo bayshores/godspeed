@@ -5,6 +5,7 @@ import { APP_IDENTITY, piEngineFor, type PiEngine } from "../models.ts";
 import { usageWasAdmitted } from "../subscription-request-cycle.ts";
 import { providerEventObserver } from "../provider-events.ts";
 import type { ModelRole } from "../../../config.ts";
+import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
 
 /**
  * The shared sub-agent runner (docs/pi-engine-swap.md §6): one helper every
@@ -44,6 +45,10 @@ export interface SubagentRunOptions {
 	 *  events append to data/debug/provider-events/<chatId>.jsonl (context
 	 *  "job:<role>"). Absent or env-off → no observer. */
 	chatId?: string;
+	/** A short name for the task ("Topic grouping · CSE 21"). An outside
+	 *  agent (MCP) sees it on the run's work items, so it can tell which
+	 *  background job it is answering. */
+	taskLabel?: string;
 }
 
 export interface SubagentRunResult {
@@ -65,10 +70,12 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 	let turns = 0;
 	// Debug recorder (owner, 2026-10-04): raw provider events per job run.
 	const providerEvents = opts.chatId ? providerEventObserver(opts.chatId, `job:${opts.role}`) : undefined;
+	// One unsaved conversation per invocation, stable through every turn.
+	const sessionId = randomUUID();
+	if (opts.taskLabel) labelConversation(sessionId, opts.taskLabel);
 	const agent = new Agent({
 		identity: APP_IDENTITY,
-		// One unsaved conversation per invocation, stable through every turn.
-		sessionId: randomUUID(),
+		sessionId,
 		initialState: {
 			systemPrompt: opts.systemPrompt,
 			model: engine.model,
@@ -128,6 +135,7 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 		else await agent.continue();
 	} finally {
 		opts.abortSignal?.removeEventListener("abort", onAbort);
+		if (opts.taskLabel) unlabelConversation(sessionId);
 	}
 
 	if (aborted || opts.abortSignal?.aborted) {

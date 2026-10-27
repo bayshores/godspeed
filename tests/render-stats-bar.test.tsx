@@ -44,8 +44,10 @@ describe("stats bar", () => {
 		assert.match(html, /data-testid="stats-model"[^>]*>\s*<span[^>]*>—<\/span>/);
 		assert.match(html, /data-testid="stats-thinking"[^>]*>\s*<span[^>]*>—<\/span>/);
 		assert.ok(!html.includes("aria-hidden>·"), "no dot between the controls");
-		// the control reads as a button: pill border + dropdown chevron
-		assert.match(html, /data-testid="stats-model"[^>]*rounded-full[^>]*>/);
+		// the control reads as a button: a square bordered chip + dropdown chevron
+		const model = html.match(/<button[^>]*data-testid="stats-model"[^>]*>/)?.[0] ?? "";
+		assert.match(model, /\bborder\b/);
+		assert.doesNotMatch(model, /rounded/, "square corners (redesign 2026-10-27)");
 		assert.match(html, /▾/);
 	});
 

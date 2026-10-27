@@ -1,4 +1,3 @@
-"use client";
 /**
  * The Agent section (settings-app wave): the THREE MODEL SLOTS, the tool
  * toggles, and the prompt override
@@ -230,7 +229,7 @@ function MenuTrigger({
 			aria-expanded={open}
 			data-testid={testid}
 			onClick={onClick}
-			className={`lh-press flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 ${widthClass}`}
+			className={`lh-press flex h-7 items-center gap-1 border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 ${widthClass}`}
 		>
 			<span className="min-w-0 flex-1 truncate">{value || emptyLabel}</span>
 			<span aria-hidden className="text-muted-foreground">
@@ -463,7 +462,7 @@ export function AgentSection({
 								readOnly
 								value={info.sourceText}
 								aria-label="The original instructions"
-								className="h-24 w-full resize-y rounded-sm border border-border bg-muted p-2 font-ui text-xs text-muted-foreground"
+								className="h-24 w-full resize-y border border-border bg-muted p-2 font-ui text-xs text-muted-foreground"
 							/>
 						</div>
 						<div>
@@ -473,7 +472,7 @@ export function AgentSection({
 								onChange={(e) => setSegmentDraft({ ...segmentDraft, [info.path]: e.target.value })}
 								aria-label="Your version of the instructions"
 								placeholder="Add your own instructions…"
-								className="h-24 w-full resize-y rounded-sm border border-border bg-background p-2 font-ui text-xs text-foreground outline-none"
+								className="h-24 w-full resize-y border border-border bg-background p-2 font-ui text-xs text-foreground outline-none"
 							/>
 						</div>
 						<div className="flex items-center gap-3">
@@ -591,7 +590,7 @@ export function AgentSection({
 									preferredSide="down"
 									anchorTestid={`slot-model-${slot}`}
 									testid={`slot-model-menu-${slot}`}
-									menuClass="flex w-[22rem] flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+									menuClass="flex w-[22rem] flex-col border border-border bg-card p-2 text-xs shadow-xl"
 								>
 									<ModelMenuList
 										models={slotCatalog ?? undefined}
@@ -617,7 +616,7 @@ export function AgentSection({
 									preferredSide="down"
 									anchorTestid={`slot-thinking-${slot}`}
 									testid={`slot-thinking-menu-${slot}`}
-									menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+									menuClass="flex w-44 flex-col gap-0.5 border border-border bg-card p-2 text-xs shadow-xl"
 								>
 									<ThinkingMenuList
 										levels={levels.map(String)}
@@ -676,7 +675,7 @@ export function AgentSection({
 							<div
 								role="radiogroup"
 								aria-label="Quizzing mechanics"
-								className="flex rounded-lg border border-border/60 bg-muted/30 p-0.5"
+								className="flex border border-border/60 bg-muted/30 p-0.5"
 								>
 								{(["choice", "free"] as const).map((m) => {
 									const active = m === "free" ? free : !free;
@@ -689,7 +688,7 @@ export function AgentSection({
 											data-testid={`quiz-mechanics-${m}`}
 											onClick={() => onSectionChange(composeQuizMechanics(agent, m))}
 											className={cn(
-												"lh-press h-8 rounded-md px-3 text-sm font-medium",
+												"lh-press h-8 px-3 text-sm font-medium",
 												active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
 											)}
 										>

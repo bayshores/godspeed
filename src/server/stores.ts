@@ -48,6 +48,14 @@ export function graphStoreFor(scope: ClassScope): GraphStore {
 	return store;
 }
 
+/** Which scope an adapter from graphStoreFor belongs to (null = "No
+ *  class"); undefined for an adapter this module did not build. */
+export function scopeOfGraphStore(store: GraphStore): ClassScope | undefined {
+	if (store === graphStore) return null;
+	for (const [scope, candidate] of classGraphStores) if (candidate === store) return scope;
+	return undefined;
+}
+
 /** The graph store a lesson writes to: its class's graph, or "No class". */
 export function graphStoreForChat(chatId: string): GraphStore {
 	return graphStoreFor(chatStore.getChat(chatId)?.classId ?? null);

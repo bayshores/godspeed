@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE cross-surface settings signal (fix wave, owner ruling 2026-09-22):
  * every WRITER dispatches after a successful PUT, every READER re-reads —

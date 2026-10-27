@@ -28,6 +28,8 @@ const classRoute = await import("../app/api/classes/[id]/route.ts");
 const filesRoute = await import("../app/api/classes/[id]/files/route.ts");
 const fileRoute = await import("../app/api/classes/[id]/files/[fileId]/route.ts");
 const folderRoute = await import("../app/api/classes/[id]/folder/route.ts");
+const examsRoute = await import("../app/api/classes/[id]/exams/route.ts");
+const examRoute = await import("../app/api/classes/[id]/exams/[examId]/route.ts");
 const chatsRoute = await import("../app/api/chats/route.ts");
 const moveRoute = await import("../app/api/chats/[id]/class/route.ts");
 const graphRoute = await import("../app/api/graph/route.ts");
@@ -89,6 +91,45 @@ describe("class routes", () => {
 		assert.equal(updated.description, "new");
 		const missing = await classRoute.GET(json("/api/classes/cls_nope", "GET"), ctx({ id: "cls_nope" }));
 		assert.equal(missing.status, 404);
+	});
+});
+
+describe("exam routes (redesign plan, 2026-10-27)", () => {
+	it("lists, adds, edits and removes exams; refuses bad input", async () => {
+		const id = await makeClass("CSE 21");
+		const up = await (await upload(id, "study", [["lecture1.md", "Counting"]])).json();
+		await classIdle(id);
+		const fileId = up.results[0].file.id as string;
+
+		const empty = await (await examsRoute.GET(json(`/api/classes/${id}/exams`, "GET"), ctx({ id }))).json();
+		assert.deepEqual(empty.exams, []);
+
+		const added = await examsRoute.POST(json("/x", "POST", { name: "Midterm 1", date: "2026-11-05", fileIds: [fileId] }), ctx({ id }));
+		assert.equal(added.status, 201);
+		const exam = (await added.json()).exam;
+		assert.deepEqual(exam.fileIds, [fileId]);
+
+		const badDate = await examsRoute.POST(json("/x", "POST", { name: "Final", date: "Dec 10" }), ctx({ id }));
+		assert.equal(badDate.status, 400);
+		assert.equal((await badDate.json()).code, "bad_date");
+		const badFile = await examsRoute.POST(json("/x", "POST", { name: "Final", date: "2026-12-10", fileIds: ["f_other"] }), ctx({ id }));
+		assert.equal(badFile.status, 400);
+		const noName = await examsRoute.POST(json("/x", "POST", { date: "2026-12-10" }), ctx({ id }));
+		assert.equal(noName.status, 400);
+
+		const put = await examRoute.PUT(json("/x", "PUT", { name: "Midterm" }), ctx({ id, examId: exam.id }));
+		assert.equal((await put.json()).exam.name, "Midterm");
+		const missing = await examRoute.PUT(json("/x", "PUT", { name: "x" }), ctx({ id, examId: "exm_nope" }));
+		assert.equal(missing.status, 404);
+
+		const listed = await (await examsRoute.GET(json("/x", "GET"), ctx({ id }))).json();
+		assert.equal(listed.exams.length, 1);
+		const read = await (await classRoute.GET(json(`/api/classes/${id}`, "GET"), ctx({ id }))).json();
+		assert.equal(read.class.exams[0].name, "Midterm", "the class record carries its exams");
+
+		assert.equal((await examRoute.DELETE(json("/x", "DELETE"), ctx({ id, examId: exam.id }))).status, 200);
+		assert.equal((await examRoute.DELETE(json("/x", "DELETE"), ctx({ id, examId: exam.id }))).status, 404);
+		assert.equal((await examsRoute.GET(json("/x", "GET"), ctx({ id: "cls_nope_x" }))).status, 404);
 	});
 });
 

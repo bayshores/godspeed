@@ -718,14 +718,12 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		mergeFindings(dB.id, findingsB, { links: [{ id: "q1", linkTo: xId }] }, graphDeps, sessionSource(dB.id));
 		const zId = bornOf(dB.id, "B extra statement");
 
-		// Coverage rows (both chats) + positions garnish — the deletion
-		// prunes both ledgers.
+		// Coverage rows (both chats) — the deletion prunes them.
 		for (const chat of [dA, dB]) {
 			for (let i = 0; i < 2; i++) {
 				graphStore.appendCoverage({ chatId: chat.id, fp: `${chat.id}-${i}`, tokens: 10, foldedAt: "2026-09-23T00:02:00.000Z" });
 			}
 		}
-		graphStore.writePositions({ ...graphStore.readPositions(), [xId]: { x: 1, y: 1 }, [yId]: { x: 2, y: 2 }, [zId]: { x: 3, y: 3 } });
 		return { dA, dB, xId, yId, zId };
 	}
 
@@ -761,10 +759,6 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		assert.deepEqual(scoped.chains[0]!.premises, [xId]);
 		assert.equal(scoped.chains[0]!.conclusion, zId);
 		assert.deepEqual(scoped.chains[0]!.provenance, [{ chatId: dB.id, messageId: "" }]);
-		// Positions: the orphan pruned.
-		const positions = graphStore.readPositions();
-		assert.equal(positions[yId], undefined);
-		assert.deepEqual(positions[xId], { x: 1, y: 1 });
 		// The snapshot resolves X to dB only — the deleted chat left no ghost.
 		const snapshot = graphSnapshot(graphDeps);
 		assert.deepEqual(snapshot.nodeSessions[xId], [dB.id]);
@@ -785,7 +779,6 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		const before = {
 			nodes: graphStore.readNodes(),
 			chains: graphStore.readChains(),
-			positions: graphStore.readPositions(),
 		};
 		const stats = deleteChatTraces(graphStore, dA.id, "preserve-graph");
 		assert.deepEqual(stats, {
@@ -796,7 +789,6 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		} satisfies ChatDeletionStats);
 		assert.deepEqual(graphStore.readNodes(), before.nodes);
 		assert.deepEqual(graphStore.readChains(), before.chains);
-		assert.deepEqual(graphStore.readPositions(), before.positions);
 		assert.equal(graphStore.readCoverage().some((row) => row.chatId === dA.id), false);
 		assert.equal(graphStore.readCoverage().some((row) => row.chatId === dB.id), true);
 		void xId; void yId; void zId;
@@ -852,7 +844,6 @@ describe("single-node deletion (deleteNodeTraces + deleteGraphNode, node interlu
 		// scenario from empty ledgers (the suite's isolation covers the
 		// whole file; this covers describe-internal stacking).
 		graphStore.rewriteLedgers({ nodes: [], chains: [] });
-		graphStore.writePositions({});
 		graphStore.appendNode({
 			id: "n_dead",
 			name: "Doomed",
@@ -884,11 +875,9 @@ describe("single-node deletion (deleteNodeTraces + deleteGraphNode, node interlu
 		// A FOREIGN chain the deletion must not touch (destructive rewriting
 		// may not exceed the blast radius — foreign data rides untouched).
 		graphStore.appendChain({ id: "arg_keep_other", premises: ["n_keep"], conclusion: "n_other", createdAt: "2026-09-23T00:00:00.000Z", provenance: [{ chatId: "chat_node_b", messageId: "m3" }] });
-		// Resting positions for both nodes and both dying chains' imp nodes.
-		graphStore.writePositions({ n_dead: { x: 1, y: 1 }, n_keep: { x: 2, y: 2 }, arg_dead_keep: { x: 1.5, y: 1.5 }, arg_keep_dead: { x: 2.5, y: 2.5 } });
 	}
 
-	it("deleteNodeTraces: FULL DEATH — the node, its edges, its evidence, its anchors, its position", () => {
+	it("deleteNodeTraces: FULL DEATH — the node, its edges, its evidence, its anchors", () => {
 		buildNodeScenario();
 		const keepLineBefore = JSON.stringify(graphStore.readNodes().find((n) => n.id === "n_keep"));
 		const stats = deleteNodeTraces(graphStore, "n_dead");
@@ -908,12 +897,6 @@ describe("single-node deletion (deleteNodeTraces + deleteGraphNode, node interlu
 			graphStore.readChains().map((c) => [c.premises, c.conclusion]),
 			[[["n_keep"], "n_other"]],
 		);
-		// The resting position died with the node.
-		const positions = graphStore.readPositions();
-		assert.equal(positions["n_dead"], undefined);
-		assert.deepEqual(positions["n_keep"], { x: 2, y: 2 });
-		assert.equal(positions["arg_dead_keep"], undefined, "the dying chains' imp-node positions die too");
-		assert.equal(positions["arg_keep_dead"], undefined);
 		// Atomic rewrites left no temp files.
 		assert.equal(fs.readdirSync(PATHS.graph).filter((f) => f.includes(".tmp-")).length, 0);
 		// Idempotent: a second run finds no node — null.

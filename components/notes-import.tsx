@@ -1,5 +1,3 @@
-"use client";
-
 import { useClasses } from "@/components/class-context";
 import { useRef, useState } from "react";
 

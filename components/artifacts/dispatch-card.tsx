@@ -1,5 +1,3 @@
-"use client";
-
 import { useContext } from "react";
 import { CheckIcon, SettingsIcon, XIcon } from "lucide-react";
 import { JobsContext } from "@/components/jobs-context";
@@ -75,7 +73,7 @@ function DispatchRefusedCard({ label, line, button }: { label: string; line: str
 					type="button"
 					data-testid="dispatch-setup-link"
 					onClick={ctx.openSetup}
-					className="ml-1 rounded-sm border border-border bg-card px-2 py-0.5 font-ui normal-case tracking-normal text-foreground transition-colors hover:border-muted-foreground/50"
+					className="ml-1 border border-border bg-card px-2 py-0.5 font-ui normal-case tracking-normal text-foreground transition-colors hover:border-muted-foreground/50"
 				>
 					{button}
 				</button>
@@ -91,7 +89,7 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 		job && job.createdAt ? Math.max(0, Math.round((Date.now() - Date.parse(job.createdAt)) / 1000)) : null;
 	return (
 		<div
-			className="rounded-xl border bg-card p-4 text-card-foreground"
+			className=" border bg-card p-4 text-card-foreground"
 			data-testid="dispatch-card"
 		>
 			<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">

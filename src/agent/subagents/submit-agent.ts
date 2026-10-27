@@ -67,6 +67,8 @@ export async function runSubmitAgent<T>(opts: {
 	maxTurns?: number;
 	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
+	/** The task's name on outside-agent work items (pi-run taskLabel). */
+	taskLabel?: string;
 	/** Weak-model argument heal at pi's prepareArguments seam (runs BEFORE
 	 *  TypeBox validation — the sanctioned shim point). Identity by
 	 *  default; extraction wires healStringifiedArrays here. */
@@ -114,6 +116,7 @@ export async function runSubmitAgent<T>(opts: {
 			maxTurns: opts.maxTurns ?? 4,
 			abortSignal: opts.signal,
 			chatId: opts.chatId,
+			taskLabel: opts.taskLabel,
 			onAssistantMessage: (message, step) =>
 				opts.onStep(
 					message.usage,

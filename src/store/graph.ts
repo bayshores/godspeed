@@ -13,6 +13,9 @@
  *                                      another line; readers merge)
  *   sessions.jsonl  SessionCheckpoint— emission checkpoints (foldedAt)
  *   coverage.jsonl  CoverageEntry    — per-message extraction coverage
+ *   topics.jsonl    TopicSnapshot    — the topic grouper's full snapshots
+ *                                      (redesign 2026-10-27); readers take
+ *                                      the LAST valid line
  *
  * CHAINS-PRIMARY (owner, 2026-09-30): there is NO edges ledger — the edge
  * view (implication nodes + untyped arrows) is derived in core/graph.ts on
@@ -41,10 +44,11 @@ import type {
 	GraphNode,
 	ExtractionRunUsage,
 	NotesSource,
-	Position,
 	ProvenancePoint,
 	CoverageEntry,
 	SessionCheckpoint,
+	GraphTopic,
+	TopicSnapshot,
 } from "../core/contracts.ts";
 import type { GraphStore } from "../core/ports.ts";
 
@@ -123,6 +127,12 @@ const isGraphChain = (v: unknown): v is GraphChain =>
 const isCheckpoint = (v: unknown): v is SessionCheckpoint =>
 	isRecord(v) && isString(v.chatId) && isString(v.foldedAt);
 
+const isTopic = (v: unknown): v is GraphTopic =>
+	isRecord(v) && isString(v.id) && isString(v.name) && Array.isArray(v.members) && v.members.every(isString);
+
+const isTopicSnapshot = (v: unknown): v is TopicSnapshot =>
+	isRecord(v) && isString(v.at) && Array.isArray(v.topics) && v.topics.every(isTopic);
+
 const isCoverageEntry = (v: unknown): v is CoverageEntry =>
 	isRecord(v) && isString(v.chatId) && isString(v.fp) && typeof v.tokens === "number" && isString(v.foldedAt);
 
@@ -166,6 +176,14 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 			return readValid(files, files.coverage, isCoverageEntry);
 		},
 
+		readTopics(): TopicSnapshot | null {
+			const lines = readValid(files, files.topics, isTopicSnapshot);
+			return lines.at(-1) ?? null;
+		},
+		appendTopics(snapshot: TopicSnapshot): void {
+			appendLine(files, files.topics, snapshot);
+		},
+
 		// ── imported-notes bookkeeping (config.SOURCES_FILE — a JSON map) ──
 
 		/** Upsert: keeps the existing record's usage log when re-importing. */
@@ -194,14 +212,6 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 				? source.extractions
 				: [...(source.extractions ?? []), entry];
 			writeSourceMap(files, all);
-		},
-
-		// ── the layout ledger (config.POSITIONS_FILE — a JSON map) ──
-		readPositions(): Record<string, Position> {
-			return readPositionMap(files);
-		},
-		writePositions(positions: Record<string, Position>): void {
-			writePositionMap(files, positions);
 		},
 
 		/** THE DESTRUCTIVE SEAM (wave 6 session deletion): atomic full-content
@@ -247,54 +257,6 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 
 /** The "No class" graph (data/graph) — today's graph, untouched. */
 export const graphStore: GraphStore = createGraphStore(graphFilesIn(PATHS.graph));
-
-/** positions.json — { positions, updatedAt }. Read-modify-write, NOT
- *  append-only: the settle is a full-graph computation, so it replaces the
- *  whole map. The updatedAt stamp exists for future live-physics conflict
- *  handling (a browser commit must be able to detect "the graph changed
- *  underneath me"); reads just return the map. */
-function readPositionMap(files: GraphFiles): Record<string, Position> {
-	let raw: string;
-	try {
-		raw = fs.readFileSync(files.positions, "utf-8");
-	} catch {
-		return {}; // no ledger yet — nothing has ever settled
-	}
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		if (!isRecord(parsed) || !isRecord(parsed.positions)) return {};
-		const out: Record<string, Position> = {};
-		for (const [id, value] of Object.entries(parsed.positions)) {
-			if (isPosition(value)) out[id] = { x: value.x, y: value.y };
-		}
-		return out;
-	} catch {
-		return {};
-	}
-}
-
-function writePositionMap(files: GraphFiles, positions: Record<string, Position>): void {
-	const POSITIONS_FILE = files.positions;
-	fs.mkdirSync(path.dirname(POSITIONS_FILE), { recursive: true });
-	// Tmp + rename — the same crash-safety rewriteLedgers uses two blocks
-	// up (a9339b3 UI flag): a torn write must never replace the ledger
-	// with a half-written file the reader parses as empty.
-	const tmp = `${POSITIONS_FILE}.tmp-${crypto.randomUUID().slice(0, 8)}`;
-	try {
-		fs.writeFileSync(tmp, JSON.stringify({ positions, updatedAt: new Date().toISOString() }, null, "\t"), "utf-8");
-		fs.renameSync(tmp, POSITIONS_FILE);
-	} catch (err) {
-		try {
-			fs.unlinkSync(tmp);
-		} catch {
-			/* the rename either already happened or the tmp never existed */
-		}
-		throw err;
-	}
-}
-
-const isPosition = (v: unknown): v is Position =>
-	isRecord(v) && typeof v.x === "number" && Number.isFinite(v.x) && typeof v.y === "number" && Number.isFinite(v.y);
 
 /** sources.json — { id: NotesSource }. Read-modify-write, NOT append-only:
  *  the usage log lives inside the record (like a chat's JSON file). */

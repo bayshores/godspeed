@@ -22,8 +22,7 @@ test("actual select → submit → saved result → historical Why uses source d
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host);
 	try {
-		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="interactive_source" input={input} expanded
-			onExpand={() => {}} onSubmit={a => { answer = a; }} />));
+		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="interactive_source" input={input} onSubmit={a => { answer = a; }} />));
 		assert.equal(host.querySelectorAll("mtr").length, 2, "the live matrix retains two rows");
 		const choice = [...host.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find(button => button.querySelector(".katex"))!;
 		assert.ok(choice);
@@ -45,12 +44,11 @@ test("actual select → submit → saved result → historical Why uses source d
 		assert.equal(persisted.details.explanation, explanation);
 		const saved = structuredClone(persisted.details);
 		await act(async () => root.render(<AnsweredCard answer={persisted.details} input={input} />));
-		const why = [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "Why")!;
+		const why = [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.startsWith("Why"))!;
 		await act(async () => why.click());
 		assert.equal(host.querySelectorAll("mtr").length, 4, "question and revealed explanation retain their rows");
 		const paragraphs = host.querySelectorAll('[data-testid="tucked-explanation"] p');
 		assert.equal(paragraphs.length, 2, "recovered paragraphs remain distinct in Why");
-		assert.ok(paragraphs[0]!.parentElement!.classList.contains("[&>p:first-child]:inline"));
 		assert.ok(!paragraphs[0]!.parentElement!.classList.contains("[&_p]:inline"));
 		const annotations = [...host.querySelectorAll('annotation[encoding="application/x-tex"]')].map(n => n.textContent);
 		assert.equal(annotations.filter(t => t === String.raw`\nabla f`).length, 3);
@@ -67,7 +65,7 @@ test("committed-answer reveals keep the first paragraph inline without flattenin
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host);
 	try {
-		await act(async () => root.render(<AnsweredCard answer={answer} input={input} />));
+		await act(async () => root.render(<AnsweredCard answer={answer} input={input} defaultOpen />));
 		const paragraphs = host.querySelectorAll("p");
 		assert.equal(paragraphs.length, 3, "question plus two committed-answer paragraphs");
 		assert.ok(paragraphs[1]!.parentElement!.classList.contains("[&>p:first-child]:inline"));

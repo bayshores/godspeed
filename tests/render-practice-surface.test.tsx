@@ -39,42 +39,23 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 // ── the dock ─────────────────────────────────────────────────────────────────
 
 describe("PracticeDock", () => {
-	it("expanded: statement renders, the two lanes sit in the thinking field", () => {
+	it("the Your-turn panel: statement, problem number, thinking field and Send", () => {
 		const html = renderToStaticMarkup(
 			<PracticeDock
 				problemCallId="call_p1"
 				input={{ statement: "Show that the sum is even." }}
-				expanded={true}
-				onExpand={() => {}}
+				number={3}
 				onSubmit={() => {}}
 			/>,
 		);
 		assert.match(html, /Show that the sum is even\./);
-		// The 'Problem' eyebrow (owner round, 2026-10-05): the quiz cards'
-		// label row, mirrored — dock and transcript card read identically.
-		assert.match(html, /Problem/);
-		// The measured column cap (the old fixed 40vh is only the fallback).
-		assert.match(html, /--dock-max-h/);
-		assert.match(html, /YOUR THINKING/);
-		assert.match(html, /data-testid="practice-send"/);
+		assert.match(html, /Your turn/);
+		assert.match(html, /data-testid="problem-number"[\s\S]*?Problem 3/, "the problem's number");
+		assert.match(html, /Your thinking/);
+		assert.match(html, /data-testid="practice-send"[^>]*disabled/, "Send starts disabled (empty field)");
+		assert.match(html, />Send</);
 		assert.ok(!html.includes("practice-nudge") && !html.includes("practice-commit"), "the two-lane buttons are gone");
-		// The buttons carry their lane in the disabled gate; both start
-		// disabled (empty field).
-		assert.match(html, /disabled/);
-	});
-
-	it("collapsed: the slim bar carries the statement excerpt", () => {
-		const html = renderToStaticMarkup(
-			<PracticeDock
-				problemCallId="call_p1"
-				input={{ statement: "Show that the sum is even." }}
-				expanded={false}
-				onExpand={() => {}}
-				onSubmit={() => {}}
-			/>,
-		);
-		assert.match(html, /data-testid="practice-dock-bar"/);
-		assert.match(html, /Show that the sum is even\./);
+		assert.ok(!html.includes("practice-dock-bar"), "no collapsed bar — the panel is always open");
 	});
 });
 

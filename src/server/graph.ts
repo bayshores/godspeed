@@ -48,16 +48,16 @@ export function graphCosts(scope: ClassScope = null): GraphCostSummary {
 }
 
 /** The graph's version stamp (session-deletion wave 6): the max mtime
- * across every graph data file — ledgers, positions. Moves on ANY
- * graph write (merge append, settle, or a deletion's atomic rewrite),
+ * across every graph data file (the ledgers). Moves on ANY graph write
+ * (merge append or a deletion's atomic rewrite),
  * never moves on reads, and needs no bookkeeping of its own: the fs
  * IS the counter. Consumers poll it (the activity feed
- *  carries it; the DELETE response returns it) to know clusters/layout
+ *  carries it; the DELETE response returns it) to know the graph
  *  must refetch — the "graph changed underneath me" signal. */
 export function graphRevision(scope: ClassScope = null): number {
 	let revision = 0;
 	const files = graphFilesIn(graphDirFor(scope));
-	for (const file of [files.nodes, files.chains, files.sessions, files.coverage, files.positions]) {
+	for (const file of [files.nodes, files.chains, files.sessions, files.coverage, files.topics]) {
 		try {
 			revision = Math.max(revision, fs.statSync(file).mtimeMs);
 		} catch {
@@ -99,7 +99,9 @@ export type NodeDeleteOutcome =
  *     existingIds guard) — no dangling edges, no resurrection.
  */
 export function deleteGraphNode(nodeId: string, scope: ClassScope = null): NodeDeleteOutcome {
-	if (extractionStatuses().length > 0) {
+	// Topic-grouping runs only read facts and write topics.jsonl — they
+	// never block a deletion (readers drop members that are gone).
+	if (extractionStatuses().some((run) => run.kind !== "topics")) {
 		return {
 			ok: false,
 			status: 409,

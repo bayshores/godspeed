@@ -1,14 +1,15 @@
-"use client";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { Button } from "@/components/ui/button";
 
 export function ConnectionRow({ label, action, disabled, onAction, children, testid, actionTestid }: { label: string; action: string; disabled: boolean; onAction: () => void; children?: React.ReactNode; testid?: string; actionTestid?: string }) {
-	return <div className="flex flex-wrap items-center gap-3" data-testid={testid}>
-		<span className="font-ui text-xs text-foreground">{label}</span>
+	// Redesign 2026-10-27 (design/exports/settings.html): a tone row — the
+	// provider's name left, its action right.
+	return <div className="flex min-h-[46px] flex-wrap items-center gap-3 bg-tone px-3.5 py-2" data-testid={testid}>
+		<span className="font-ui text-[14.5px] text-ink">{label}</span>
 		{children}
-		<Button type="button" size="xs" variant={action === "Connect" ? "outline" : "ghost"} className={`cursor-pointer disabled:cursor-not-allowed ${action === "Connect" ? "" : "text-muted-foreground hover:text-foreground"}`} data-testid={actionTestid} disabled={disabled} onClick={onAction}>{action}</Button>
+		<Button type="button" size="xs" variant={action === "Connect" ? "outline" : "ghost"} className={`ml-auto cursor-pointer disabled:cursor-not-allowed ${action === "Connect" ? "" : "text-muted-foreground hover:text-foreground"}`} data-testid={actionTestid} disabled={disabled} onClick={onAction}>{action}</Button>
 	</div>;
 }
 
@@ -43,6 +44,6 @@ export function ConnectionDialog({ children, onClose, busy, label, testid, backd
 	// dialog and its key remounts it per view, so a fading backdrop would
 	// blink on every view change, and there is no exit to play.
 	return createPortal(<div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80" data-testid={backdropTestid} {...backdropDismiss}>
-		<div ref={ref} role="dialog" aria-modal="true" aria-label={label} aria-busy={busy} data-testid={testid} data-state="open" onClick={(event) => event.stopPropagation()} className="lh-dialog mx-4 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-md border border-border bg-card p-5 shadow-xl">{children}</div>
+		<div ref={ref} role="dialog" aria-modal="true" aria-label={label} aria-busy={busy} data-testid={testid} data-state="open" onClick={(event) => event.stopPropagation()} className="lh-dialog mx-4 max-h-[85vh] w-full max-w-lg overflow-y-auto border border-border bg-card p-5 shadow-xl">{children}</div>
 	</div>, document.body);
 }

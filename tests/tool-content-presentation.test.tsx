@@ -103,7 +103,7 @@ test("shape parsers retain source text and identities; recovery is presentation 
 test("the live dock recovers only its rendering, including question, context and option labels", () => {
 	const source = { question: doubled, details: doubled, options: [{ label: doubled }, { label: "no" }] };
 	const before = structuredClone(source);
-	const html = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="source_q" input={source} expanded onExpand={() => {}} onSubmit={() => {}} />);
+	const html = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="source_q" input={source} onSubmit={() => {}} />);
 	assert.deepEqual(tex(html), Array(3).fill(String.raw`\nabla f`));
 	assert.deepEqual(source, before);
 });
@@ -122,7 +122,9 @@ test("answers snapshot source text, not recovered labels or identities", () => {
 	assert.equal(answer.explanation, doubled);
 	assert.equal(answer.correct, true);
 	const before = structuredClone(answer);
-	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} />)), Array(2).fill(String.raw`\nabla f`));
+	// Closed: the question; opened: the question, the option and the explanation.
+	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} />)), [String.raw`\nabla f`]);
+	assert.deepEqual(tex(renderToStaticMarkup(<AnsweredCard answer={answer} input={source} defaultOpen />)), Array(3).fill(String.raw`\nabla f`));
 	assert.deepEqual(answer, before);
 });
 
@@ -142,9 +144,9 @@ test("historical source join restores matrices while retaining recorded order, a
 	assert.equal(projection.correctIndices, answer.correctIndices);
 	assert.equal(projection.correct, false);
 	assert.equal(projection.confidence, 70);
-	const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={input} />);
-	assert.deepEqual(tex(html), [a.slice(1,-1), b.slice(1,-1), a.slice(1,-1)]);
-	assert.match(html, /incorrect/);
+	const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={input} defaultOpen />);
+	assert.deepEqual(tex(html), [a.slice(1,-1), b.slice(1,-1), a.slice(1,-1), a.slice(1,-1)], "question, both options, explanation");
+	assert.match(html, /Wrong/);
 	assert.deepEqual({ answer, input }, before);
 });
 

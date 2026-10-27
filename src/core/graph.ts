@@ -578,11 +578,6 @@ export function graphSnapshot(deps: GraphDeps): GraphSnapshot {
 	// canvas's region rasterization — read it through this one list.
 	attachImpToCommunities(clusters, graph.nodes, graph.chains);
 
-	// Resting layout (Option A): the positions ledger, when the settle has
-	// ever run. Absent on a fresh graph — the view falls back to its own
-	// one-shot pass until the first merge writes the ledger.
-	const positions = deps.graphStore.readPositions();
-
 	return {
 		nodes,
 		propositions: graph.nodes,
@@ -594,7 +589,6 @@ export function graphSnapshot(deps: GraphDeps): GraphSnapshot {
 		fileSources,
 		nodeSessions,
 		clusters,
-		...(Object.keys(positions).length > 0 ? { positions } : {}),
 	};
 }
 

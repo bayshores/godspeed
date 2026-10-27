@@ -9,7 +9,7 @@ import { useNoConnection, useStrongDisconnected } from "../components/setup-cta.
 import { notifySettingsSaved } from "../components/settings-signal.ts";
 import { SidebarProvider } from "../components/sidebar.tsx";
 import { ChatGPTConnection, ChatGPTUIProvider } from "../components/settings/chatgpt-connection.tsx";
-import { GraphCostControl } from "../components/graph-view.tsx";
+import { GraphCostControl } from "../components/graph/cost-control.tsx";
 import { graphCostSummary as foldGraphCostSummary, type CostSummaryInput } from "../src/core/cost-summary.ts";
 const graphCostSummary = (input: CostSummaryInput) => foldGraphCostSummary(input, () => null);
 import type { ModelCatalogResponse, ChatGPTStatus } from "../src/core/index.ts";

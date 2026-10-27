@@ -37,9 +37,9 @@ describe("hintText — the parenthesized composition", () => {
 	});
 });
 
-describe("subtlety round pins (owner 2026-09-25)", () => {
-	it("the rest delay is 500ms — tooltips appear on pause, never in passing", () => {
-		assert.equal(TOOLTIP_DELAY_MS, 500);
+describe("hover delay (redesign 2026-10-27)", () => {
+	it("tooltips open after a 150ms hover (focus opens them at once — tests/tooltip-focus)", () => {
+		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 });
 

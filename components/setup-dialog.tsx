@@ -1,13 +1,11 @@
-"use client";
 /**
  * The first-run setup flow (model-slots wave, 2026-09-20, owner design
  * "A — composer CTA + send interception"): chats cannot start until the
- * user has picked all three model slots — there are no defaults. The
- * graph view's new-session dock (the app's home, where
- * chats start) shows a "Set up your models" CTA while unconfigured;
- * submitting a topic — or sending on /chat/new — opens THIS dialog with
- * the draft preserved; Save stores the slots — the draft WAITS in the
- * composer, the learner sends it themselves (owner ruling 2026-10-09:
+ * user has picked all three model slots — there are no defaults. Home
+ * (where lessons start) shows a "Set up your models" button while
+ * unconfigured; starting a lesson opens THIS dialog with the topic
+ * preserved; Save stores the slots — the topic WAITS in the box, the
+ * learner starts the lesson themselves (owner ruling 2026-10-09:
  * saving models must never send the message).
  *
  * STAGED BY DEPENDENCY (owner, 2026-09-20: first a connection, then
@@ -267,7 +265,7 @@ export function SetupDialog({
 				aria-label="Set up your models"
 				data-testid="setup-dialog"
 				data-state={presence.state}
-				className="lh-dialog flex max-h-[85vh] w-[640px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
+				className="lh-dialog flex max-h-[85vh] w-[640px] max-w-[90vw] flex-col overflow-hidden border border-border bg-card shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
@@ -311,7 +309,7 @@ export function SetupDialog({
 										{!body?.slots?.[slot]?.model && !picked[slot] && (
 											<span
 												data-testid={`setup-needed-${slot}`}
-												className="rounded-sm border border-border px-1 py-0.5 text-xs font-normal text-muted-foreground"
+												className=" border border-border px-1 py-0.5 text-xs font-normal text-muted-foreground"
 											>
 												needed
 											</span>
@@ -327,7 +325,7 @@ export function SetupDialog({
 												data-testid={`setup-trigger-${slot}`}
 												aria-expanded={openMenu?.slot === slot && openMenu.kind === "model"}
 												onClick={() => setOpenMenu(openMenu?.slot === slot && openMenu.kind === "model" ? null : { slot, kind: "model" })}
-												className="lh-press flex h-7 min-w-40 w-full items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
+												className="lh-press flex h-7 min-w-40 w-full items-center gap-1 border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
 											>
 												<span className="min-w-0 flex-1 truncate">{entry ? prettyModel(entry.id) : "Pick a model…"}</span>
 												<span aria-hidden className="text-muted-foreground">
@@ -349,7 +347,7 @@ export function SetupDialog({
 												testid={`setup-menu-${slot}`}
 												preferredSide="down"
 												align="left"
-												menuClass="flex w-[22rem] flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+												menuClass="flex w-[22rem] flex-col border border-border bg-card p-2 text-xs shadow-xl"
 											>
 												<ModelMenuList
 													models={catalog}
@@ -383,7 +381,7 @@ export function SetupDialog({
 												aria-expanded={openMenu?.slot === slot && openMenu.kind === "thinking"}
 												disabled={!entry}
 												onClick={() => setOpenMenu(openMenu?.slot === slot && openMenu.kind === "thinking" ? null : { slot, kind: "thinking" })}
-												className="lh-press flex h-7 w-24 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
+												className="lh-press flex h-7 w-24 items-center gap-1 border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
 											>
 												<span className="min-w-0 flex-1 truncate text-left">
 													{entry ? (level ? THINKING_LABEL[level] ?? level : "…") : "—"}
@@ -398,7 +396,7 @@ export function SetupDialog({
 												testid={`setup-thinking-menu-${slot}`}
 												preferredSide="down"
 												align="left"
-												menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+												menuClass="flex w-44 flex-col gap-0.5 border border-border bg-card p-2 text-xs shadow-xl"
 											>
 												<ThinkingMenuList
 													levels={levelsForEntry.map(String)}
@@ -421,7 +419,7 @@ export function SetupDialog({
 								data-testid="setup-save"
 								disabled={!allPicked || saving}
 								onClick={() => void save()}
-								className="lh-press rounded-sm border border-border bg-background px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
+								className="lh-press border border-border bg-background px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
 							>
 								{saving ? "Saving…" : "Save models"}
 							</button>

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * MARKDOWN BLOCKS, MELTED INTO THE MESSAGE (owner wave, 2026-09-19): the
  * boxed streamdown chrome — the double-framed tables (border + sidebar bg +
@@ -101,7 +99,7 @@ export function CopyCorner({
 				type="button"
 				aria-label={label}
 				data-testid="md-copy"
-				className="lh-press flex size-6 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
+				className="lh-press flex size-6 items-center justify-center text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
 				onClick={(e) => {
 					blurAfterPointerClick(e);
 					void copyText(getText()).then((ok) => {
@@ -212,7 +210,7 @@ function MermaidInline({ chart }: { chart: string }) {
 						type="button"
 						aria-label="Expand diagram"
 						data-testid="md-mermaid-expand"
-												className="lh-press flex size-6 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground group-hover/md:opacity-100"
+												className="lh-press flex size-6 items-center justify-center text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground group-hover/md:opacity-100"
 						onClick={(e) => {
 							blurAfterPointerClick(e);
 							overlay.openMermaid(chart);
@@ -241,7 +239,7 @@ export function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	// Inline code: no data-block (the pre handler stamps block fences only).
 	if (!("data-block" in props)) {
 		return (
-			<code className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-sm", className)} data-streamdown="inline-code" {...rest}>
+			<code className={cn(" bg-muted px-1.5 py-0.5 font-mono text-sm", className)} data-streamdown="inline-code" {...rest}>
 				{children}
 			</code>
 		);

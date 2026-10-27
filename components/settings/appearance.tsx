@@ -51,14 +51,18 @@ function raise(hex: string, add: number): string {
 }
 
 /** The derived palette a chosen background implies (dark curve): background
- *  itself, the raised surfaces (card/popover/secondary/muted, +8), the
- *  accent (+22), the edges (border/input, +47), and primary-foreground
- *  (the inverted text on primary = the background's own color, as today). */
+ *  itself, the raised surfaces (card/popover/secondary/muted, +8 — the
+ *  redesign's "panel"), the accent (+22, "tone"), the tooltip box (+20),
+ *  the edges (border/input, +47, "tone-2"), and primary-foreground (the
+ *  inverted text on primary = the background's own color). For the
+ *  default #000000 this is exactly the redesign's #080808 / #161616 /
+ *  #141414 / #2F2F2F. */
 export function derivedPalette(background: string): Record<string, string> {
 	const card = raise(background, 8);
 	const accent = raise(background, 22);
 	const border = raise(background, 47);
 	return {
+		"--lh-tip": raise(background, 20),
 		"--background": background,
 		"--card": card,
 		"--popover": card,
@@ -84,8 +88,8 @@ export function appearanceVars(a: ReturnType<typeof resolveAppearance>): Record<
 	// inputs, and session titles all read it, so one setProperty moves them.
 	vars["--lh-prose-size"] = `${a.proseFontSize}px`;
 	// Session names: CMU Serif by default; the toggle swaps the title font
-	// to the prose family — covers chat.tsx + new-session.tsx titles with
-	// zero component edits (they use the .font-title utility).
+	// to the prose family — covers every title with zero component edits
+	// (they all use the .font-title utility).
 	if (!a.sessionNameSerif) vars["--font-title"] = "var(--font-prose)";
 	// Markdown rendering: heading weight + the emphasis inks (the vars
 	// were built "ready for the settings UI").

@@ -408,7 +408,7 @@ function ActivityBlobRow({
 			data-testid={`activity-blob-${blob.process}`}
 			// A new background agent rises in once (keyed by id, so the
 			// once-a-second clock re-render never replays it).
-			className="lh-rise relative rounded-lg px-2 py-1.5 text-xs transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent"
+			className="lh-rise relative px-2 py-1.5 text-xs transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent"
 		>
 			<button
 				type="button"
@@ -442,7 +442,7 @@ function ActivityBlobRow({
 				disabled={abortState !== undefined}
 				title={abortState === "failed" ? "Abort failed — try again" : "End this background process"}
 				aria-label={`End ${label} in ${blob.title}`}
-				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
 			>
 				<SquareIcon className="size-3" />
 			</button>
@@ -452,7 +452,7 @@ function ActivityBlobRow({
 				<div>
 				<div
 					data-testid="activity-blob-detail"
-					className="mt-1 flex flex-col gap-1 rounded-lg bg-accent/40 p-2 text-muted-foreground"
+					className="mt-1 flex flex-col gap-1 bg-accent/40 p-2 text-muted-foreground"
 				>
 					<div className="mb-1.5 flex items-center gap-2">
 						<Icon className="size-3.5 text-muted-foreground" />

@@ -20,14 +20,15 @@ import type {
 	JobRecord,
 	ExtractionRunUsage,
 	PlanTree,
-	Position,
 	CoverageEntry,
 	SessionCheckpoint,
 	TurnUsage,
 	NotesSource,
+	ClassExam,
 	ClassFile,
 	ClassRecord,
 	ClassSummary,
+	TopicSnapshot,
 } from "./contracts.ts";
 import type { UserSettings } from "./settings.ts";
 
@@ -117,13 +118,6 @@ export interface GraphStore {
 	 *  startedAt, mirroring ChatRecord.extractions. */
 	appendSourceUsage(id: string, entry: ExtractionRunUsage): void;
 
-	/** The layout ledger (config.POSITIONS_FILE): nodeId → resting {x,y}.
-	 *  WRITTEN ONLY by the incremental settle after a merge (core/layout.ts
-	 *  settleGraphLayout) — read-only for everything else. */
-	readPositions(): Record<string, Position>;
-	/** Replace the whole ledger (the settle is a full-graph computation). */
-	writePositions(positions: Record<string, Position>): void;
-
 	/** THE DESTRUCTIVE SEAM (session-deletion wave 6, owner 2026-09-22 —
 	 *  the first non-append operation on these ledgers): atomically
 	 *  replace the full contents of any subset of the six rewritable
@@ -132,6 +126,13 @@ export interface GraphStore {
 	 *  original); absent keys leave their ledger untouched. The pure
 	 *  computation is core/graph-deletion.ts — the store only makes the
 	 *  replacement atomic. */
+	/** The topic grouper's snapshots (topics.jsonl — append-only, each line
+	 *  a full snapshot). The LAST valid line, or null when none. Members
+	 *  are raw: readers drop ids that are no longer facts. */
+	readTopics(): TopicSnapshot | null;
+	/** Append one full topic snapshot. */
+	appendTopics(snapshot: TopicSnapshot): void;
+
 	rewriteLedgers(next: {
 		nodes?: GraphNode[];
 		chains?: GraphChain[];
@@ -161,6 +162,15 @@ export interface ClassStore {
 	/** Replace the whole file list (the file pipeline's write). Quiet: no
 	 *  updatedAt bump, no event. */
 	saveFiles(id: string, files: ClassFile[]): ClassRecord;
+	/** Add an exam (validated: non-empty name, a YYYY-MM-DD date, every
+	 *  file id one of the class's files). Bumps updatedAt. Throws
+	 *  ClassExamError on bad input, Error on unknown class. */
+	addExam(id: string, exam: { name: string; date: string; fileIds?: string[] }): ClassExam;
+	/** Patch one exam (same validation). Throws ClassExamError when the
+	 *  exam is unknown or the input is bad. */
+	updateExam(id: string, examId: string, patch: { name?: string; date?: string; fileIds?: string[] }): ClassExam;
+	/** Remove one exam. False when unknown. */
+	removeExam(id: string, examId: string): boolean;
 	/** Delete the class folder entirely (record, copied files, graph).
 	 *  False when unknown. Lessons are the caller's choreography. */
 	deleteClass(id: string): boolean;

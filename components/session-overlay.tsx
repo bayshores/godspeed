@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MaximizeIcon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -231,7 +229,7 @@ export function MermaidOverlay({
 					onClick={onClose}
 					aria-label="Close"
 					data-testid="mermaid-overlay-close"
-					className="lh-press ml-auto rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+					className="lh-press ml-auto p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 				>
 					<XIcon className="size-4" />
 				</button>
@@ -240,7 +238,7 @@ export function MermaidOverlay({
 			<div
 				ref={viewportRef}
 				className={cn(
-					"relative min-h-0 flex-1 touch-none overflow-hidden rounded-xl border select-none",
+					"relative min-h-0 flex-1 touch-none overflow-hidden border select-none",
 					atFloor ? "cursor-default" : "cursor-grab",
 				)}
 				onPointerDown={startDrag}
@@ -298,7 +296,7 @@ export function MermaidOverlay({
 									type="button"
 									aria-label="Zoom out"
 									onClick={() => stepZoom(1 / 1.25)}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
+									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
 								>
 									<MinusIcon className="size-3.5" />
 								</button>
@@ -308,7 +306,7 @@ export function MermaidOverlay({
 									type="button"
 									aria-label="Fit diagram to view"
 									onClick={fitView}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
+									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
 								>
 									<MaximizeIcon className="size-3.5" />
 								</button>
@@ -318,7 +316,7 @@ export function MermaidOverlay({
 									type="button"
 									aria-label="Zoom in"
 									onClick={() => stepZoom(1.25)}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
+									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
 								>
 									<PlusIcon className="size-3.5" />
 								</button>

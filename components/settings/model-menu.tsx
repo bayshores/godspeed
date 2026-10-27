@@ -1,4 +1,3 @@
-"use client";
 /**
  * The model menu (extracted 2026-09-20 from model-picker.tsx, owner ask:
  * the agent settings' role selects use the EXACT same dropdown as the
@@ -105,7 +104,7 @@ export function ModelMenuList({
 					}
 				}}
 				placeholder="Search models…"
-				className="lh-input mb-1.5 w-full rounded-lg border bg-background px-2 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
+				className="lh-input mb-1.5 w-full border bg-background px-2 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
 			/>
 			{!models && <div className="px-2 py-3 text-center text-muted-foreground">Loading models…</div>}
 			{models && results.length === 0 && (
@@ -119,7 +118,7 @@ export function ModelMenuList({
 							data-testid={`model-option-${m.id.replace(/[^a-z0-9-]/gi, "_")}`}
 							data-idx={i}
 							onClick={() => onPick(m)}
-							className={`lh-press flex w-full flex-col gap-0.5 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-muted ${
+							className={`lh-press flex w-full flex-col gap-0.5 px-2 py-1.5 text-left outline-none hover:bg-muted ${
 								i === menuIdx ? "bg-accent/40 ring-1 ring-inset ring-border" : ""
 							}${m.id === effectiveId && m.provider === (effectiveProvider ?? m.provider) && i !== menuIdx ? " bg-muted/60" : ""}`}
 						>
@@ -171,7 +170,7 @@ export function ThinkingMenuList({
 						type="button"
 						data-testid={`thinking-option-${level}`}
 						onClick={() => onPick(level)}
-						className={`lh-press flex items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-muted ${
+						className={`lh-press flex items-center justify-between px-2 py-1.5 text-left hover:bg-muted ${
 							level === effectiveLevel ? "bg-muted/60 text-card-foreground" : "text-card-foreground"
 						}`}
 					>
@@ -290,7 +289,7 @@ export function FontMenuList({
 					}
 				}}
 				placeholder="Search fonts…"
-				className="lh-input mb-1.5 w-full rounded-lg border bg-background px-2 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
+				className="lh-input mb-1.5 w-full border bg-background px-2 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
 			/>
 			{!families && <div className="px-2 py-3 text-center text-muted-foreground">Loading fonts…</div>}
 			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto px-1">
@@ -305,7 +304,7 @@ export function FontMenuList({
 									data-testid={isDefault ? "font-option-default" : `font-option-${family.replace(/[^a-z0-9-]/gi, "_")}`}
 									data-idx={i}
 									onClick={() => onPick(family)}
-									className={`lh-press flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-muted ${
+									className={`lh-press flex w-full items-center justify-between gap-3 px-2 py-1.5 text-left outline-none hover:bg-muted ${
 										i === menuIdx ? "bg-accent/40 ring-1 ring-inset ring-border" : ""
 									}${effective && i !== menuIdx ? " bg-muted/60" : ""}`}
 								>
@@ -322,7 +321,7 @@ export function FontMenuList({
 							data-testid="font-option-custom"
 							data-idx={0}
 							onClick={() => onPick(customFamily)}
-							className={`lh-press flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-muted ${
+							className={`lh-press flex w-full items-center justify-between gap-3 px-2 py-1.5 text-left outline-none hover:bg-muted ${
 								menuIdx === 0 ? "bg-accent/40 ring-1 ring-inset ring-border" : ""
 							}`}
 						>

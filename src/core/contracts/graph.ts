@@ -118,6 +118,27 @@ export interface NamingRunStats {
 	appended: number;
 }
 
+/** One topic: a named group of a graph's facts (redesign plan, owner-
+ *  approved 2026-10-27). Named by the topic grouper (a background model
+ *  job) in the course's own terms. */
+export interface GraphTopic {
+	/** "tpc_" + 10 hex — stable across regroupings (the grouper keeps ids). */
+	id: string;
+	/** 1–4 words: "Expected value", "Conditional probability". */
+	name: string;
+	/** Fact (GraphNode) ids. */
+	members: string[];
+}
+
+/** One line of topics.jsonl — append-only, each line a FULL snapshot of the
+ *  graph's topics. Readers take the last valid line, drop members that are
+ *  no longer facts, and treat facts in no topic as "Ungrouped". */
+export interface TopicSnapshot {
+	/** ISO — when the grouper wrote it. */
+	at: string;
+	topics: GraphTopic[];
+}
+
 /** The graph-family format version this build writes and understands
  *  (the format.json sidecar — src/store/graph-format.ts). */
 export const CURRENT_GRAPH_FORMAT_VERSION = 1;
@@ -340,16 +361,6 @@ export interface GraphSnapshot {
 	 * nodes are never partitioned. Purely provenance-derived — never
 	 * depends on layout. */
 	clusters: Cluster[];
-	/** Resting layout positions per node id, when a positions ledger
-	 *  exists (core/layout.ts settle writes it). Absent on a fresh graph —
-	 *  the view then falls back to its own one-shot forceAtlas2 pass. */
-	positions?: Record<string, Position>;
-}
-
-/** A node's resting position in layout space (the positions ledger). */
-export interface Position {
-	x: number;
-	y: number;
 }
 
 /** The auto-title's character cap (owner, 2026-10-06): long enough to

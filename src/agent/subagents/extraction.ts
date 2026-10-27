@@ -26,7 +26,6 @@ import type {
 import { getGraph, mergeFindings, type DerivedGraph, type EmissionStats, type GraphDeps } from "../../core/graph.ts";
 import type { GraphStore } from "../../core/ports.ts";
 import { emit } from "../../core/events.ts";
-import { settleGraphLayout } from "../../core/layout-settle.ts";
 import { batchRuns, coverageOf, messageViewLines } from "../../core/coverage.ts";
 import { failedOutputCallIds, type LhMessage } from "../../core/native-messages.ts";
 import { auditorGraphTools } from "../tools/graph.ts";
@@ -615,7 +614,7 @@ function runAuditor(
  *  audit+merge critical section is queued behind another job's; the
  *  extractor is done but the auditor may not start until the graph is
  *  stable. */
-export type ExtractionPhase = "queued" | "extracting" | "waiting" | "auditing" | "merging";
+export type ExtractionPhase = "queued" | "extracting" | "waiting" | "auditing" | "merging" | "grouping";
 
 /** One in-flight pipeline run. Module-level: one process, one registry.
  *  Exported for the status payload's consumer typing (the dock). */
@@ -632,7 +631,7 @@ export interface RunningExtraction {
 	/** Which front door the run came through — label + usage-persistence
 	 *  depend on it (chats bill their chat record; notes bill the source
 	 *  record). */
-	kind: "chat" | "notes";
+	kind: "chat" | "notes" | "topics";
 	/** Display label (the file path for notes imports); the status route
 	 *  falls back to the chat store for chat runs. */
 	label?: string;
@@ -688,6 +687,26 @@ export function extractionStatuses(): RunningExtraction[] {
 	return [...runs().running.values()].sort((a, b) => a.startedAt - b.startedAt);
 }
 
+/** A non-extraction background graph job (the topic grouper, redesign
+ *  2026-10-27) joins the same registry so the activity dock shows it and
+ *  its abort button works (abortExtraction by `key`). One entry per key;
+ *  a second start while one is registered returns the running controller.
+ *  Call finishBackgroundGraphRun on every exit. */
+export function startBackgroundGraphRun(key: string, label: string, phase: ExtractionPhase = "grouping"): AbortController {
+	const R = runs();
+	const prev = R.running.get(key);
+	if (prev) return prev.controller;
+	R.lastStartedAt = Math.max(Date.now(), R.lastStartedAt + 1);
+	const controller = new AbortController();
+	R.running.set(key, { chatId: key, kind: "topics", label, phase, startedAt: R.lastStartedAt, usage: {}, controller });
+	emit("activity-changed", {});
+	return controller;
+}
+
+export function finishBackgroundGraphRun(key: string): void {
+	if (runs().running.delete(key)) emit("activity-changed", {});
+}
+
 /** True cancellation of the in-flight run for a chat (the dock's abort
  *  button): the pending model call receives the signal — the provider
  *  cancels the request, spend stops — and the run ends like a failure:
@@ -740,6 +759,11 @@ export interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
 	 *  own graph, or "No class"). Absent = deps.graphStore for every chat
 	 *  (test fixtures, single-graph callers). */
 	graphStoreForChat?: (chatId: string) => GraphStore;
+	/** Called after a run that may have written a graph ends (done, partial
+	 *  or failed — the callee decides whether anything changed). The topic
+	 *  grouper's trigger (redesign 2026-10-27). Errors are logged, never
+	 *  thrown into the run. */
+	onGraphWritten?: (graphStore: GraphStore) => void;
 }
 
 export interface NotesImportInput {
@@ -1224,9 +1248,6 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 										.filter((slot) => slot.tokens > 0)
 										.map((slot) => ({ chatId, fp: slot.fp, tokens: slot.tokens, foldedAt })),
 								});
-								// The layout ledger evolves with the merge (sync — the
-								// next snapshot fetch must already reflect the new nodes).
-								settleGraphLayout(chatGraph);
 								console.info(
 									`[extraction ${jobKey}] merged: ${batchStats.nodes} nodes, ${batchStats.chains ?? 0} chains`,
 								);
@@ -1259,6 +1280,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		} finally {
 			inFlight.delete(chatId);
 			finishExtraction(chatId); // done or failed — no longer running
+			notifyGraphWritten(storeFor(chatId));
 		}
 	}
 
@@ -1389,14 +1411,11 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 									{ chatStore, graphStore: storeFor(id) },
 									{ foldedAt: input.importedAt },
 								);
-								// Capture the committed merge BEFORE layout/usage can fail.
+								// Capture the committed merge BEFORE usage can fail.
 								mergedStats.nodes += merged.nodes;
 								mergedStats.chains! += merged.chains ?? 0;
 								if (merged.droppedChains)
 									mergedStats.droppedChains = (mergedStats.droppedChains ?? 0) + merged.droppedChains;
-								// The layout ledger evolves with each merge — the next
-								// snapshot fetch reflects every finished chunk.
-								settleGraphLayout(storeFor(id));
 								console.info(`[extraction ${jobKey}] merged: ${merged.nodes} nodes, ${merged.chains ?? 0} chains`);
 								return merged;
 							});
@@ -1462,6 +1481,15 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		} finally {
 			inFlight.delete(id);
 			sourceStores.delete(id);
+			notifyGraphWritten(target);
+		}
+	}
+
+	function notifyGraphWritten(store: GraphStore): void {
+		try {
+			deps.onGraphWritten?.(store);
+		} catch (err) {
+			console.error("[extraction] onGraphWritten failed:", err);
 		}
 	}
 

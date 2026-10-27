@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE SESSION HOOK (Wave D, owner-approved 2026-09-26): the React adapter
  * over the pure SessionModel (components/session-core.ts — the state
@@ -15,8 +13,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import type { ChatInput, LhMessage, QuestionAnswerData } from "@/src/core";
+import { reuseUnchangedMessages, type ChatInput, type LhMessage, type QuestionAnswerData } from "@/src/core";
 import { SessionModel, type SessionState } from "@/components/session-core";
+
+/** The streaming redraw's safety net when animation frames pause (a
+ *  hidden window): the update still lands within this many ms. */
+const STREAM_FRAME_FALLBACK_MS = 100;
 
 export interface UseChatSessionOptions {
 	chatId: string;
@@ -43,10 +45,34 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 	// never saw a single model update — no optimistic bubble, no stream, no
 	// error banner. The empty-session bug, 2026-09-26.)
 	const [version, bump] = useReducer((n: number) => n + 1, 0);
+	// ONE REDRAW PER FRAME while text streams (redesign, Phase 7): token
+	// updates arrive faster than the screen refreshes, so they coalesce
+	// into the next animation frame. Every other change (status flips,
+	// sends, errors, settle) redraws at once and carries any pending
+	// update with it. The timer covers hidden windows, where frames pause.
 	useEffect(() => {
-		model.onChange = bump;
+		let frame = 0;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const flush = () => {
+			if (frame) cancelAnimationFrame(frame);
+			if (timer) clearTimeout(timer);
+			frame = 0;
+			timer = undefined;
+			bump();
+		};
+		model.onChange = () => {
+			if (model.status !== "streaming" || typeof requestAnimationFrame !== "function") {
+				flush();
+				return;
+			}
+			if (frame || timer) return;
+			frame = requestAnimationFrame(flush);
+			timer = setTimeout(flush, STREAM_FRAME_FALLBACK_MS);
+		};
 		return () => {
 			model.onChange = undefined;
+			if (frame) cancelAnimationFrame(frame);
+			if (timer) clearTimeout(timer);
 		};
 	}, [model, bump]);
 
@@ -73,8 +99,16 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		};
 	}, [initiallyInFlight, model]);
 
-	// The view + state, derived per model change from the model.
-	const state = useMemo<SessionState>(() => model.getState(), [model, version] as const);
+	// The view + state, derived per model change from the model. Unchanged
+	// view messages keep their previous objects (reuseUnchangedMessages), so
+	// only the message being written redraws its transcript row.
+	const prevViewRef = useRef<SessionState["messages"]>([]);
+	const state = useMemo<SessionState>(() => {
+		const next = model.getState();
+		const messages = reuseUnchangedMessages(prevViewRef.current, next.messages);
+		prevViewRef.current = messages;
+		return { ...next, messages };
+	}, [model, version] as const);
 
 	// THE TURN-STATE BROADCAST (owner, sidebar round 2026-10-02): the same
 	// optimistic machine, propagated — the instant a turn starts locally

@@ -1,35 +1,25 @@
-"use client";
-
 /**
- * THE CLASS DIALOG (classes wave, owner-approved 2026-10-26): create a class
- * or manage one — name, description, its files (each "study material" or
- * "course info", with a status badge), "Add files…", "Link folder…" /
- * "Unlink", Archive, Delete. Portaled z-50 like the other dialogs
- * (delete-session-dialog.tsx is the shape template).
+ * THE CLASS DIALOG (classes wave 2026-10-26; redesigned 2026-10-27 —
+ * design/exports/edit-class-exams.html): create a class (name and
+ * description) or edit one — name, description and its Exams — with
+ * Archive and Delete class in the footer. The class's files live on the
+ * Files page (components/files/*).
  *
- * Every write goes to /api/classes/*; the server announces classes-changed
- * and the class list (components/class-context.tsx) refetches.
+ * Exam edits are drafts until Save (components/class-exams-model.ts turns
+ * them into the exam routes' writes). Every write goes to /api/classes/*;
+ * the server announces classes-changed and the class list refetches.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { XIcon } from "lucide-react";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
-import { useServerEvent } from "@/components/server-events";
-import type { ClassFile, ClassRecord } from "@/src/core";
-import { cn } from "@/lib/utils";
-
-/** Accepted by "Add files…" (mirrors SUPPORTED_CLASS_FILE_EXTENSIONS). */
-export const CLASS_FILE_ACCEPT = ".md,.markdown,.txt,.pdf,.vtt,.srt,.mp3,.m4a,.wav,.mp4,.mov";
-
-export const FILE_STATUS_LABEL: Record<ClassFile["status"], string> = {
-	pending: "Waiting",
-	extracting: "Working…",
-	ready: "Ready",
-	failed: "Failed",
-	"needs-whisper": "Needs whisper",
-};
+import { ExamsEditor } from "@/components/class-exams";
+import { draftProblem, draftsFrom, examWrites, type ExamDraft } from "@/components/class-exams-model";
+import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
+import type { ClassExam, ClassRecord } from "@/src/core";
 
 type Mode = { kind: "create" } | { kind: "edit"; classId: string };
 
@@ -50,43 +40,33 @@ export function ClassDialog({ mode, onClose }: { mode: Mode | null; onClose: () 
 
 type MotionState = "open" | "closed";
 
+const LABEL = "text-[13px] font-bold text-ink-2";
+const FIELD =
+	"w-full bg-black px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-tone-2 placeholder:text-ink-3 focus:border-ink-3";
+
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { setActive } = useClasses();
-	const [record, setRecord] = useState<ClassRecord | null>(null);
+	const classId = mode.kind === "edit" ? mode.classId : null;
+	const { record, reload } = useClassRecord(classId);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [drafts, setDrafts] = useState<ExamDraft[]>([]);
+	const [openExam, setOpenExam] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const [folderInput, setFolderInput] = useState("");
-	const [addKind, setAddKind] = useState<"study" | "info">("study");
-	const fileInputRef = useRef<HTMLInputElement>(null);
-	const classId = mode.kind === "edit" ? mode.classId : null;
+	const newCount = useRef(0);
 
-	const load = useCallback(async () => {
-		if (!classId) return;
-		const res = await fetch(`/api/classes/${encodeURIComponent(classId)}`, { cache: "no-store" });
-		if (!res.ok) return;
-		const body = (await res.json()) as { class: ClassRecord };
-		setRecord(body.class);
-	}, [classId]);
-
-	useEffect(() => {
-		void (async () => {
-			await load();
-		})();
-	}, [load]);
-	// First load fills the text fields; later refreshes keep your edits.
+	// First load fills the fields; later refreshes keep your edits.
 	const seeded = useRef(false);
 	useEffect(() => {
 		if (record && !seeded.current) {
 			seeded.current = true;
 			setName(record.name);
 			setDescription(record.description);
-			setFolderInput(record.linkedFolder ?? "");
+			setDrafts(draftsFrom(record.exams));
 		}
 	}, [record]);
-	useServerEvent("classes-changed", () => void load());
 
 	const backdropDismiss = useBackdropDismiss(() => {
 		if (!busy) onClose();
@@ -107,26 +87,47 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const call = async (url: string, init: RequestInit): Promise<unknown | null> => {
 		setBusy(true);
 		setError(null);
-		try {
-			const res = await fetch(url, init);
-			const body = (await res.json().catch(() => ({}))) as { error?: string };
-			if (!res.ok) {
-				setError(body.error ?? `Request failed (${res.status})`);
-				return null;
-			}
-			return body;
-		} catch {
-			setError("Network error. Try again.");
+		const { error: failed, body } = await send(url, init);
+		setBusy(false);
+		if (failed) {
+			setError(failed);
 			return null;
-		} finally {
-			setBusy(false);
 		}
+		return body;
 	};
-	const jsonInit = (method: string, body: unknown): RequestInit => ({
-		method,
-		headers: { "content-type": "application/json" },
-		body: JSON.stringify(body),
-	});
+
+	const changeExam = useCallback((key: string, patch: Partial<Pick<ExamDraft, "name" | "date" | "fileIds">>) => {
+		setDrafts((ds) => ds.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+	}, []);
+	const addExam = useCallback(() => {
+		const key = `new-${++newCount.current}`;
+		setDrafts((ds) => [...ds, { key, name: "", date: "", fileIds: [] }]);
+		setOpenExam(key);
+	}, []);
+	const removeExam = useCallback((key: string) => {
+		setDrafts((ds) => ds.filter((d) => d.key !== key));
+	}, []);
+
+	/** Save the exam drafts: each write in turn; a created exam keeps its
+	 *  new id so a retried Save never adds it twice. */
+	const saveExams = async (current: ClassRecord): Promise<string | null> => {
+		const base = `/api/classes/${encodeURIComponent(current.id)}/exams`;
+		for (const w of examWrites(current.exams, drafts)) {
+			if (w.op === "remove") {
+				const { error: failed } = await send(`${base}/${encodeURIComponent(w.id)}`, { method: "DELETE" });
+				if (failed) return failed;
+			} else if (w.op === "update") {
+				const { error: failed } = await send(`${base}/${encodeURIComponent(w.id)}`, jsonInit("PUT", w.body));
+				if (failed) return failed;
+			} else {
+				const { error: failed, body } = await send(base, jsonInit("POST", w.body));
+				if (failed) return failed;
+				const exam = (body as { exam?: ClassExam } | null)?.exam;
+				if (exam) setDrafts((ds) => ds.map((d) => (d.key === w.key ? { ...d, id: exam.id } : d)));
+			}
+		}
+		return null;
+	};
 
 	const save = async () => {
 		if (name.trim() === "") {
@@ -141,38 +142,28 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			}
 			return;
 		}
-		const ok = await call(`/api/classes/${classId}`, jsonInit("PUT", { name, description }));
-		if (ok) onClose();
+		if (!record) return;
+		const problem = draftProblem(drafts);
+		if (problem) {
+			setError(problem);
+			return;
+		}
+		setBusy(true);
+		setError(null);
+		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", { name, description }));
+		const examsFailed = failed ?? (await saveExams(record));
+		setBusy(false);
+		if (examsFailed) {
+			setError(examsFailed);
+			void reload();
+			return;
+		}
+		onClose();
 	};
 
-	const uploadFiles = async (files: FileList | null) => {
-		if (!files || files.length === 0 || !classId) return;
-		const form = new FormData();
-		form.append("kind", addKind);
-		for (const f of Array.from(files)) form.append("files", f);
-		const body = (await call(`/api/classes/${classId}/files`, { method: "POST", body: form })) as {
-			results?: { name: string; ok: boolean; error?: string }[];
-		} | null;
-		const failed = body?.results?.filter((r) => !r.ok) ?? [];
-		if (failed.length > 0) setError(failed.map((r) => r.error ?? r.name).join("\n"));
-		void load();
-	};
-
-	const pickFolder = async () => {
-		const picked = await window.lh?.pickFolder?.();
-		if (picked) setFolderInput(picked);
-		return picked ?? null;
-	};
-
-	const linkFolder = async (folder: string) => {
-		if (!classId || folder.trim() === "") return;
-		await call(`/api/classes/${classId}/folder`, jsonInit("PUT", { path: folder.trim() }));
-		void load();
-	};
-
-	const title = mode.kind === "create" ? "New class" : "Class";
+	const title = mode.kind === "create" ? "New class" : "Edit class";
 	return (
-		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80" {...backdropDismiss}>
+		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/70" {...backdropDismiss}>
 			<div
 				role="dialog"
 				aria-modal="true"
@@ -180,161 +171,71 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				data-testid="class-dialog"
 				data-state={state}
 				onClick={(e) => e.stopPropagation()}
-				className="lh-dialog flex max-h-[85vh] w-[36rem] max-w-[calc(100vw-2rem)] flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-5 text-xs shadow-xl"
+				className="lh-dialog flex max-h-[85vh] w-[560px] max-w-[calc(100vw-2rem)] flex-col bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2"
 			>
-				<h2 className="text-sm font-semibold text-foreground">{title}</h2>
+				<div className="flex shrink-0 items-center justify-between px-5 py-[18px]">
+					<h2 className="text-base font-bold text-ink">{title}</h2>
+					<button type="button" aria-label="Close" data-testid="class-dialog-close" onClick={onClose} className="lh-press text-ink-2 hover:text-ink">
+						<XIcon className="size-4" aria-hidden />
+					</button>
+				</div>
 
-				<label className="flex flex-col gap-1">
-					<span className="font-semibold text-muted-foreground">Name</span>
-					<input
-						data-testid="class-name"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						placeholder="e.g. MATH 20C – Calculus III"
-						className="font-prose rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
-						autoFocus
-					/>
-				</label>
+				<div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-5 pb-5">
+					<label className="flex flex-col gap-1.5">
+						<span className={LABEL}>Name</span>
+						<input
+							type="text"
+							data-testid="class-name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							placeholder="e.g. MATH 20C – Calculus III"
+							className={`h-10 ${FIELD}`}
+							autoFocus
+						/>
+					</label>
+					<label className="mt-2.5 flex flex-col gap-1.5">
+						<span className={LABEL}>Description</span>
+						<textarea
+							data-testid="class-description"
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							rows={2}
+							placeholder="Level, textbook, the professor's notation, what exams look like… The teacher reads this."
+							className={`min-h-[72px] resize-y ${FIELD}`}
+						/>
+					</label>
 
-				<label className="flex flex-col gap-1">
-					<span className="font-semibold text-muted-foreground">About the class</span>
-					<textarea
-						data-testid="class-description"
-						value={description}
-						onChange={(e) => setDescription(e.target.value)}
-						rows={4}
-						placeholder="Level, textbook, the professor's notation, what exams look like… The teacher reads this."
-						className="font-prose resize-y rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
-					/>
-				</label>
+					{mode.kind === "edit" && record && (
+						<div className="mt-2.5">
+							<ExamsEditor
+								drafts={drafts}
+								files={record.files}
+								openKey={openExam}
+								disabled={busy}
+								onOpen={setOpenExam}
+								onChange={changeExam}
+								onAdd={addExam}
+								onRemove={removeExam}
+							/>
+						</div>
+					)}
 
-				{mode.kind === "edit" && record && (
-					<>
-						<section className="flex flex-col gap-2" data-testid="class-files">
-							<div className="flex items-center justify-between">
-								<span className="font-semibold text-muted-foreground">Files</span>
-								<div className="flex items-center gap-1.5">
-									<select
-										data-testid="class-add-kind"
-										value={addKind}
-										onChange={(e) => setAddKind(e.target.value === "info" ? "info" : "study")}
-										className="rounded-md border border-border bg-background px-1.5 py-1 text-xs"
-										aria-label="Add new files as"
-									>
-										<option value="study">as study material</option>
-										<option value="info">as course info</option>
-									</select>
-									<input
-										ref={fileInputRef}
-										type="file"
-										multiple
-										accept={CLASS_FILE_ACCEPT}
-										className="hidden"
-										onChange={(e) => {
-											void uploadFiles(e.target.files);
-											e.target.value = "";
-										}}
-									/>
-									<button
-										type="button"
-										data-testid="class-add-files"
-										disabled={busy}
-										onClick={() => fileInputRef.current?.click()}
-										className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
-									>
-										Add files…
-									</button>
-								</div>
-							</div>
-							<p className="text-muted-foreground/80">
-								Study material (notes, readings, transcripts) becomes facts in this class&apos;s graph. Course info (syllabus,
-								assignments) is only read by the teacher.
-							</p>
-							{record.files.length === 0 ? (
-								<div className="rounded-md border border-dashed border-border/70 px-3 py-2 text-muted-foreground">No files yet.</div>
-							) : (
-								<ul className="flex flex-col divide-y divide-border/50 rounded-md border border-border/60">
-									{record.files.map((file) => (
-										<ClassFileRow key={file.id} classId={record.id} file={file} disabled={busy} onChanged={() => void load()} onError={setError} />
-									))}
-								</ul>
-							)}
-						</section>
-
-						<section className="flex flex-col gap-2" data-testid="class-folder">
-							<span className="font-semibold text-muted-foreground">Linked folder</span>
-							<p className="text-muted-foreground/80">
-								New files you put in this folder are added as study material automatically, and edited files are rebuilt. The
-								folder itself is never changed.
-							</p>
-							<div className="flex items-center gap-1.5">
-								<input
-									data-testid="class-folder-path"
-									value={folderInput}
-									onChange={(e) => setFolderInput(e.target.value)}
-									placeholder="/Users/you/School/MATH20C"
-									className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs"
-								/>
-								{typeof window !== "undefined" && window.lh?.pickFolder && (
-									<button
-										type="button"
-										data-testid="class-pick-folder"
-										disabled={busy}
-										onClick={() =>
-											void pickFolder().then((p) => {
-												if (p) void linkFolder(p);
-											})
-										}
-										className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
-									>
-										Choose…
-									</button>
-								)}
-								<button
-									type="button"
-									data-testid="class-link-folder"
-									disabled={busy || folderInput.trim() === "" || folderInput.trim() === record.linkedFolder}
-									onClick={() => void linkFolder(folderInput)}
-									className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
-								>
-									Link
-								</button>
-								{record.linkedFolder && (
-									<button
-										type="button"
-										data-testid="class-unlink-folder"
-										disabled={busy}
-										onClick={() =>
-											void call(`/api/classes/${record.id}/folder`, { method: "DELETE" }).then(() => {
-												setFolderInput("");
-												void load();
-											})
-										}
-										className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
-									>
-										Unlink
-									</button>
-								)}
-							</div>
-						</section>
-					</>
-				)}
-
-				{error && (
-					<div data-testid="class-dialog-error" className="whitespace-pre-wrap rounded-md border border-destructive/50 px-3 py-2 text-destructive">
-						{error}
-					</div>
-				)}
+					{error && (
+						<div role="alert" data-testid="class-dialog-error" className="mt-2.5 whitespace-pre-wrap border border-ans-wrong/50 px-3 py-2 text-[13px] text-ans-wrong">
+							{error}
+						</div>
+					)}
+				</div>
 
 				{confirmDelete && record ? (
-					<div data-testid="class-delete-confirm" className="flex flex-col gap-2 rounded-md border border-destructive/50 px-3 py-3">
-						<span className="text-sm font-semibold text-destructive">Delete {record.name}?</span>
-						<span className="text-muted-foreground">
+					<div data-testid="class-delete-confirm" className="flex shrink-0 flex-col gap-2 border-t border-tone-2 px-5 py-3.5 text-[13px]">
+						<span className="text-sm font-bold text-ans-wrong">Delete {record.name}?</span>
+						<span className="text-ink-2">
 							This permanently removes the class, all its lessons, its copied files, and its knowledge graph. A linked folder on
 							your computer is not touched. This cannot be undone.
 						</span>
 						<div className="flex justify-end gap-2">
-							<button type="button" onClick={() => setConfirmDelete(false)} className="lh-press rounded-md px-3 py-1.5 hover:bg-accent">
+							<button type="button" onClick={() => setConfirmDelete(false)} className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink">
 								Cancel
 							</button>
 							<button
@@ -349,15 +250,15 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										}
 									})
 								}
-								className="lh-press rounded-md bg-destructive px-3 py-1.5 text-white hover:bg-destructive/90"
+								className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-white hover:bg-red-600 disabled:opacity-60"
 							>
 								Delete class
 							</button>
 						</div>
 					</div>
 				) : (
-					<div className="flex items-center justify-between gap-2">
-						<div className="flex gap-2">
+					<div className="flex shrink-0 items-center justify-between border-t border-tone-2 px-5 py-3.5">
+						<div className="flex items-center gap-4">
 							{mode.kind === "edit" && record && (
 								<>
 									<button
@@ -372,7 +273,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 												}
 											})
 										}
-										className="lh-press rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press text-[13.5px] font-bold text-ink-2 hover:text-ink disabled:opacity-60"
 									>
 										{record.archived ? "Unarchive" : "Archive"}
 									</button>
@@ -380,99 +281,26 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										type="button"
 										data-testid="class-delete"
 										onClick={() => setConfirmDelete(true)}
-										className="lh-press rounded-md px-3 py-1.5 text-muted-foreground/80 hover:bg-accent hover:text-destructive"
+										className="lh-press text-[13.5px] font-bold text-ans-wrong hover:text-red-400"
 									>
-										Delete…
+										Delete class
 									</button>
 								</>
 							)}
 						</div>
-						<div className="flex gap-2">
-							<button type="button" onClick={onClose} className="lh-press rounded-md px-3 py-1.5 hover:bg-accent">
-								{mode.kind === "edit" ? "Close" : "Cancel"}
-							</button>
-							<button
-								type="button"
-								data-testid="class-save"
-								disabled={busy}
-								onClick={() => void save()}
-								className="lh-press rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90"
-							>
-								{mode.kind === "create" ? "Create class" : "Save"}
-							</button>
-						</div>
+						<button
+							type="button"
+							data-testid="class-save"
+							disabled={busy}
+							onClick={() => void save()}
+							className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-black hover:bg-white disabled:opacity-60"
+						>
+							{mode.kind === "create" ? "Create class" : "Save"}
+						</button>
 					</div>
 				)}
 			</div>
 		</div>
-	);
-}
-
-/** One file row: name, origin, kind toggle, status badge, retry/remove. */
-export function ClassFileRow({
-	classId,
-	file,
-	disabled,
-	onChanged,
-	onError,
-}: {
-	classId: string;
-	file: ClassFile;
-	disabled?: boolean;
-	onChanged: () => void;
-	onError: (message: string | null) => void;
-}) {
-	const put = async (body: unknown) => {
-		const res = await fetch(`/api/classes/${classId}/files/${file.id}`, {
-			method: "PUT",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify(body),
-		});
-		if (!res.ok) onError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Change failed");
-		onChanged();
-	};
-	const remove = async () => {
-		const res = await fetch(`/api/classes/${classId}/files/${file.id}`, { method: "DELETE" });
-		if (!res.ok) onError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Remove failed");
-		onChanged();
-	};
-	return (
-		<li data-testid={`class-file-${file.id}`} className="flex items-center gap-2 px-3 py-2">
-			<span className="min-w-0 flex-1 truncate font-prose text-sm text-foreground" title={file.error ?? file.path}>
-				{file.name}
-				{file.origin === "linked" && <span className="ml-1.5 text-xs font-semibold text-muted-foreground/70">Folder</span>}
-			</span>
-			<select
-				aria-label={`${file.name} kind`}
-				value={file.kind}
-				disabled={disabled}
-				onChange={(e) => void put({ kind: e.target.value })}
-				className="rounded-md border border-border bg-background px-1.5 py-0.5 text-xs"
-			>
-				<option value="study">Study material</option>
-				<option value="info">Course info</option>
-			</select>
-			<span
-				data-testid={`class-file-status-${file.id}`}
-				title={file.error}
-				className={cn(
-					"w-24 shrink-0 text-right text-xs font-semibold",
-					file.status === "failed" || file.status === "needs-whisper" ? "text-destructive" : "text-muted-foreground",
-				)}
-			>
-				{FILE_STATUS_LABEL[file.status]}
-			</span>
-			{(file.status === "failed" || file.status === "needs-whisper" || file.status === "pending") && (
-				<button type="button" disabled={disabled} onClick={() => void put({ retry: true })} className="lh-press text-muted-foreground hover:text-foreground">
-					Retry
-				</button>
-			)}
-			{file.origin === "copied" && (
-				<button type="button" disabled={disabled} onClick={() => void remove()} aria-label={`Remove ${file.name}`} className="lh-press text-muted-foreground/70 hover:text-destructive">
-					Remove
-				</button>
-			)}
-		</li>
 	);
 }
 
@@ -545,13 +373,13 @@ function MoveLessonInner({
 				data-testid="move-lesson-dialog"
 				data-state={state}
 				onClick={(e) => e.stopPropagation()}
-				className="lh-dialog flex w-[28rem] max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-xl border bg-card p-5 text-xs shadow-xl"
+				className="lh-dialog flex w-[28rem] max-w-[calc(100vw-2rem)] flex-col gap-3 border bg-card p-5 text-xs shadow-xl"
 			>
 				<h2 className="text-sm font-semibold text-foreground">Move lesson to another class</h2>
 				<code className="font-mono text-sm text-foreground">{lesson.title}</code>
 				<div className="flex flex-col gap-0.5">
 					{options.map((o) => (
-						<label key={o.id ?? "none"} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
+						<label key={o.id ?? "none"} className="flex cursor-pointer items-center gap-2 px-2 py-1.5 hover:bg-accent">
 							<input type="radio" name="move-target" checked={target === o.id} onChange={() => setTarget(o.id)} className="accent-primary" />
 							<span className="font-prose text-sm">{o.name}</span>
 							{o.id === from && <span className="text-muted-foreground">(current)</span>}
@@ -562,9 +390,9 @@ function MoveLessonInner({
 					Its facts leave the current class&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new
 					class&apos;s graph. Rebuilding uses your background model.
 				</p>
-				{error && <div className="rounded-md border border-destructive/50 px-3 py-2 text-destructive">{error}</div>}
+				{error && <div className=" border border-destructive/50 px-3 py-2 text-destructive">{error}</div>}
 				<div className="flex justify-end gap-2">
-					<button type="button" onClick={onClose} className="lh-press rounded-md px-3 py-1.5 hover:bg-accent">
+					<button type="button" onClick={onClose} className="lh-press px-3 py-1.5 hover:bg-accent">
 						Cancel
 					</button>
 					<button
@@ -572,7 +400,7 @@ function MoveLessonInner({
 						data-testid="move-lesson-confirm"
 						disabled={busy || target === from}
 						onClick={() => void move()}
-						className="lh-press rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+						className="lh-press bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
 					>
 						Move
 					</button>

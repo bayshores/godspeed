@@ -200,9 +200,6 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 			// the embedding/clustering/labeling rungs and the BYOK embeddingModel
 			// are gone (stale record keys are simply never read here).
 			enabled: graph.enabled ?? FACTORY_SETTINGS.graph.enabled,
-			// The RENDERING switch (owner, 2026-10-06): display-only — gates
-			// the home's main view (canvas vs chains), never the data.
-			rendering: graph.rendering ?? FACTORY_SETTINGS.graph.rendering,
 			// The chunk budget (extraction-UX redesign, 2026-09-24): absent
 			// (pre-redesign record, fresh install) resolves to the factory
 			// 4096; the sanitizer has already clamped/floored any stored value.
@@ -225,14 +222,6 @@ export function extractionEnabled(graph: { enabled: boolean }): boolean {
 	return graph.enabled;
 }
 
-/**
- * The RENDERING gate (owner, 2026-10-06): graph off = the home shows the
- * chains view, not the canvas. Display-only by construction — every data
- * path (ledgers, extraction, tools) never consults this.
- */
-export function renderingEnabled(graph: { rendering: boolean }): boolean {
-	return graph.rendering;
-}
 
 /**
  * The PROBER GRAPH TOOLS gate (wave 7, owner ruling 2026-09-23): the

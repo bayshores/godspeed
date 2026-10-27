@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/components/activity-dock";
 import { usePopoverDismiss } from "@/components/popover-dismiss";
@@ -7,7 +5,7 @@ import { useSettingsSaved } from "@/components/settings-signal";
 import { formatTokens } from "@/components/usage-format";
 import { Hint } from "@/components/ui/hint";
 import { usePresence } from "@/components/presence";
-import { timeAgo } from "@/components/sidebar";
+import { timeAgo } from "@/components/sidebar/session-row";
 import { resolveSettings } from "@/src/core";
 
 /**
@@ -210,7 +208,7 @@ export function CoverageMenuBody({
 				data-testid="ctx-extract"
 				onClick={onExtract}
 				disabled={busy || complete}
-				className="lh-press flex items-center justify-center rounded-lg border px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+				className="lh-press flex items-center justify-center border px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
 			>
 				{busy ? "Running" : "Extract"}
 			</button>
@@ -323,7 +321,7 @@ export function CoverageRing({ chatId, refreshKey = 0 }: { chatId: string; refre
 				<div
 					data-testid="coverage-ring-popover"
 					data-state={popover.state}
-					className="lh-pop absolute top-full right-0 z-40 mt-1.5 w-64 rounded-xl border bg-card p-3 text-xs shadow-xl"
+					className="lh-pop absolute top-full right-0 z-40 mt-1.5 w-64 border bg-card p-3 text-xs shadow-xl"
 				>
 					<CoverageRingDetail coverage={coverage} chunkTokens={graph.chunkTokens} />
 				</div>

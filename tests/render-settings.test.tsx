@@ -40,17 +40,20 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 		assert.ok(!html.includes("settings-dialog"));
 	});
 
-	it("the dialog frame: role=dialog + the ✕ + the six-section nav, Providers first and General last", () => {
+	it("the dialog frame: role=dialog + the ✕ + the six-section nav, Outside agents first and General last", () => {
 		const html = renderToStaticMarkup(<SettingsDialogBody onClose={() => {}} />);
 		assert.ok(html.includes('role="dialog"'));
 		assert.ok(html.includes('aria-modal="true"'));
 		assert.ok(html.includes('aria-label="Close settings"'));
-		for (const id of ["general", "providers", "agent", "appearance", "graph", "keyboard"]) {
+		for (const id of ["agents", "agent", "providers", "appearance", "keyboard", "general"]) {
 			assert.ok(html.includes(`data-testid="settings-nav-${id}"`), id);
 		}
-		// Providers is the first landing section.
-		assert.ok(tagOf(html, "settings-nav-providers").includes('aria-current="true"'));
-		assert.ok(html.indexOf('data-testid="settings-nav-providers"') < html.indexOf('data-testid="settings-nav-general"'));
+		// Redesign (design/exports/settings.html): Outside agents is the first
+		// landing section; the old Graph section's rows live in General.
+		assert.ok(tagOf(html, "settings-nav-agents").includes('aria-current="true"'));
+		assert.ok(html.indexOf('data-testid="settings-nav-agents"') < html.indexOf('data-testid="settings-nav-general"'));
+		assert.ok(!html.includes('data-testid="settings-nav-graph"'));
+		assert.ok(html.includes('data-testid="settings-section-title"') && html.includes(">Outside agents</h3>"));
 		assert.ok(tagOf(html, "settings-nav-keyboard").includes('aria-current="false"'));
 		// Fetches don't run under SSR — the loading state IS the SSR state.
 		assert.ok(html.includes("Loading settings…"));
@@ -61,7 +64,7 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 
 describe("AgentSection (thin SSR)", () => {
 	it("renders the three model SLOT rows (slots-only, fix wave: unpicked reads —, no Default option)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		for (const slot of ["strong", "cheap", "vision"]) {
 			assert.ok(html.includes(`data-testid="slot-row-${slot}"`), slot);
 			// The shared model-picker dropdown as the opened menu (owner,
@@ -87,14 +90,14 @@ describe("AgentSection (thin SSR)", () => {
 	});
 
 	it("no search-engine row (web search was removed)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		assert.ok(!html.includes('data-testid="search-engine-row"'));
 	});
 
 	it("the prober graph-tools row: FIRST in the Tools group, default ON, its own key (wave 7)", () => {
 		// Default state: graph on, graphTools absent → ON, the describing
 		// hint rides.
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		const toolsGroup = html.split('data-testid="group-tools"')[1] ?? "";
 		const rows = [...toolsGroup.matchAll(/data-testid="(graph-tools-row|tool-row-\w+)"/g)].map((m) => m[1]);
 		assert.equal(rows[0], "graph-tools-row", "graph tools is the FIRST row of the Tools group");
@@ -107,7 +110,7 @@ describe("AgentSection (thin SSR)", () => {
 
 	it("graph disabled dims the graph-tools row with the honest hint (the predicate composes)", () => {
 		const html = renderToStaticMarkup(
-			<AgentSection agent={undefined} models={undefined} graph={{ enabled: false }} onSectionChange={() => {}} onModelsChange={() => {}} />,
+			<AgentSection agent={undefined} models={undefined} graph={{ enabled: false }} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />,
 		);
 		const row = html.split('data-testid="graph-tools-row"')[1]?.split('data-testid="tool-row-')[0] ?? "";
 		assert.ok(row.includes("opacity-40"), "row dims when the graph is off");
@@ -117,7 +120,7 @@ describe("AgentSection (thin SSR)", () => {
 
 	it("an explicit graphTools off shows stored-off (the record never lies)", () => {
 		const html = renderToStaticMarkup(
-			<AgentSection agent={{ graphTools: { enabled: false } }} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />,
+			<AgentSection agent={{ graphTools: { enabled: false } }} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />,
 		);
 		const row = html.split('data-testid="graph-tools-row"')[1] ?? "";
 		assert.ok(row.includes('aria-checked="false"'), "stored-off renders off");
@@ -125,12 +128,12 @@ describe("AgentSection (thin SSR)", () => {
 
 	it("renders the owner's FINAL tool list — research, demo, visual, pdf", () => {
 		assert.deepEqual([...TOGGLE_TOOLS], ["research", "demo", "visual", "pdf"]);
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		for (const id of TOGGLE_TOOLS) assert.ok(html.includes(`data-testid="tool-row-${id}"`), id);
 	});
 
 	it("tools default ON (absent key = enabled)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		for (const id of TOGGLE_TOOLS) {
 			assert.ok(tagOf(html, `toggle-tool-${id}`).includes('aria-checked="true"'), `${id} defaults on`);
 		}
@@ -141,8 +144,11 @@ describe("AgentSection (thin SSR)", () => {
 			<AgentSection
 				agent={{ tools: { demo: false } }}
 				models={{ strong: { model: { provider: "zai", id: "glm-4.7-flash" } } }}
+				graph={undefined}
+				compaction={undefined}
 				onSectionChange={() => {}}
 				onModelsChange={() => {}}
+				onCompactionChange={() => {}}
 			/>,
 		);
 		// The trigger shows the stored id even with no catalog loaded (a
@@ -153,7 +159,7 @@ describe("AgentSection (thin SSR)", () => {
 	});
 
 	it("prompts show the loading state under SSR (effects never fire)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		assert.ok(html.includes("Loading prompt segments"));
 	});
 });
@@ -182,14 +188,10 @@ describe("GraphSection — master switch + chunk budget (wave 7 + 2026-10-02)", 
 		assert.ok(tagOf(html, "toggle-extraction-enabled").includes('aria-checked="false"'));
 	});
 
-	it("the GRAPH RENDERING row (2026-10-06): display-only — absent record = factory ON, stored off shows off", () => {
+	it("no Graph rendering row (removed with the old fact canvas, 2026-10-27)", () => {
 		const html = renderToStaticMarkup(<GraphSection graph={undefined} onSectionChange={() => {}} />);
-		assert.ok(html.includes('data-testid="graph-row-rendering"'));
-		assert.ok(html.includes(">Graph rendering<"));
-		assert.ok(tagOf(html, "toggle-graph-rendering-enabled").includes('aria-checked="true"'), "the home defaults to the canvas");
-		const off = renderToStaticMarkup(<GraphSection graph={{ rendering: false }} onSectionChange={() => {}} />);
-		assert.ok(tagOf(html, "toggle-extraction-enabled").includes('aria-checked="true"'), "rendering off does NOT touch extraction");
-		assert.ok(tagOf(off, "toggle-graph-rendering-enabled").includes('aria-checked="false"'));
+		assert.ok(!html.includes('data-testid="graph-row-rendering"'));
+		assert.ok(!html.includes("Graph rendering"));
 	});
 
 	it("the chunk-budget row: unset shows EMPTY with the factory placeholder + hint — one truth with the trigger", () => {

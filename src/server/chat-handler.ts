@@ -30,7 +30,8 @@ import {
 import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
 import { providerEventNote } from "../agent/provider-events.ts";
-import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, stores } from "./stores.ts";
+import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, scopeOfGraphStore, stores } from "./stores.ts";
+import { scheduleTopicGrouping } from "./topics.ts";
 import { classCardFor } from "./class-card.ts";
 import { providerConnected } from "./connections.ts";
 import {
@@ -107,6 +108,12 @@ export const extraction = createExtractionPipeline({
 	...stores,
 	// Classes wave (2026-10-26): a lesson's facts land in ITS class's graph.
 	graphStoreForChat,
+	// Topics (redesign 2026-10-27): a run that wrote a CLASS graph queues a
+	// debounced topic-grouping run for that class ("No class" has none).
+	onGraphWritten: (store) => {
+		const scope = scopeOfGraphStore(store);
+		if (typeof scope === "string") scheduleTopicGrouping(scope);
+	},
 	// BYOK (owner, 2026-09-22): the extraction stages resolve the chain —
 	// role override → slot → NOTHING — read FRESH per stage call; an empty
 	// chain flows through as undefined and the pipeline refuses the run

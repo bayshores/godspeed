@@ -22,3 +22,6 @@ xai-credentials.json*
 
 # graphify knowledge-graph output (generated locally)
 graphify-out/
+
+# Playwright MCP helper screenshots
+.playwright-mcp/

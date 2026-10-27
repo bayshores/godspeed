@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, type MouseEvent, type PointerEvent } from "react";
 
 /** A synthesized click may target the backdrop even when a drag began

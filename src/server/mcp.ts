@@ -34,15 +34,18 @@ import { deleteMcpToken, readMcpToken, writeNewMcpToken } from "../store/mcp-tok
 import { extraction, handleChatInput } from "./chat-handler.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import {
+	addClassExam,
 	addCopiedFile,
 	addFileFromPath,
 	classFilePath,
 	createClass,
 	linkFolder,
+	removeClassExam,
 	removeFile,
 	setFileKind,
 	unlinkFolder,
 	updateClass,
+	updateClassExam,
 } from "./classes.ts";
 import { createLesson } from "./lessons.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
@@ -63,7 +66,7 @@ The work loop:
 
 Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.
 
-Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. Use list_classes / read_class to see them, create_class / update_class / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
+Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have exams (name, date, and which of its files each exam covers): add them with add_class_exam, fix them with update_class_exam / remove_class_exam. Use list_classes / read_class to see them, create_class / update_class / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
 
 // ─── Class arguments ────────────────────────────────────────────────────────
 
@@ -134,7 +137,9 @@ function describe(view: WorkView) {
 	const chat = stores.chatStore.getChat(view.conversation);
 	const about = chat
 		? { lessonId: chat.id, lessonTitle: chat.title, kind: chat.kind ?? "lesson" }
-		: { kind: "background task (a helper job or knowledge-graph run)" };
+		: view.label
+			? { kind: "background task", task: view.label }
+			: { kind: "background task (a helper job or knowledge-graph run)" };
 	return { status: "work", workId: view.workId, ...about, continued: view.continued, ...(view.instructions !== undefined ? { instructions: view.instructions } : {}), ...(view.tools ? { tools: view.tools } : {}), messages: view.messages };
 }
 
@@ -378,6 +383,12 @@ function classView(classId: string) {
 			...(f.error ? { error: f.error } : {}),
 			path: classFilePath(record, f),
 		})),
+		exams: (record.exams ?? []).map((e) => ({
+			id: e.id,
+			name: e.name,
+			date: e.date,
+			files: e.fileIds.map((id) => ({ id, name: record.files.find((f) => f.id === id)?.name ?? id })),
+		})),
 		lessons: stores.chatStore
 			.listChats()
 			.filter((c) => c.classId === record.id)
@@ -417,7 +428,7 @@ function registerClassTools(server: McpServer): void {
 		"read_class",
 		{
 			title: "Read a class",
-			description: "Read one class: its description, its files (kind, status, path on disk), and its lessons.",
+			description: "Read one class: its description, its files (kind, status, path on disk), its exams (date and the files each covers), and its lessons.",
 			inputSchema: { class_id: z.string() },
 			annotations: { readOnlyHint: true },
 		},
@@ -485,6 +496,60 @@ function registerClassTools(server: McpServer): void {
 		async ({ class_id, file_id, kind }) => {
 			const outcome = setFileKind(class_id, file_id, kind);
 			return outcome.ok ? result({ file: outcome.value }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"add_class_exam",
+		{
+			title: "Add an exam to a class",
+			description: "Add an exam to a class: its name, its date, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what to work on before the exam. Take the dates and the covered lectures from the syllabus; file ids come from read_class.",
+			inputSchema: {
+				class_id: z.string(),
+				name: z.string().min(1).describe('e.g. "Midterm 1", "Final".'),
+				date: z.string().describe("The exam day as YYYY-MM-DD."),
+				file_ids: z.array(z.string()).optional().describe("Ids of the class files the exam covers (from read_class)."),
+			},
+		},
+		async ({ class_id, name, date, file_ids }) => {
+			const outcome = addClassExam(class_id, { name, date, ...(file_ids ? { fileIds: file_ids } : {}) });
+			return outcome.ok ? result({ exam: outcome.value }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"update_class_exam",
+		{
+			title: "Update a class exam",
+			description: "Change an exam's name, date, or covered files. file_ids replaces the whole list.",
+			inputSchema: {
+				class_id: z.string(),
+				exam_id: z.string(),
+				name: z.string().min(1).optional(),
+				date: z.string().optional().describe("YYYY-MM-DD."),
+				file_ids: z.array(z.string()).optional(),
+			},
+		},
+		async ({ class_id, exam_id, name, date, file_ids }) => {
+			const outcome = updateClassExam(class_id, exam_id, {
+				...(name !== undefined ? { name } : {}),
+				...(date !== undefined ? { date } : {}),
+				...(file_ids !== undefined ? { fileIds: file_ids } : {}),
+			});
+			return outcome.ok ? result({ exam: outcome.value }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"remove_class_exam",
+		{
+			title: "Remove a class exam",
+			description: "Remove one exam from a class (its files and facts are not touched).",
+			inputSchema: { class_id: z.string(), exam_id: z.string() },
+		},
+		async ({ class_id, exam_id }) => {
+			const outcome = removeClassExam(class_id, exam_id);
+			return outcome.ok ? result({ removed: exam_id }) : failure(outcome.error);
 		},
 	);
 

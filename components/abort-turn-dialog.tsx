@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
@@ -80,7 +78,7 @@ export function AbortTurnBody({
 		>
 			<div
 				data-state={state}
-				className="lh-dialog mx-4 w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg"
+				className="lh-dialog mx-4 w-full max-w-sm border bg-card p-5 shadow-lg"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<h2 className="text-sm font-semibold text-card-foreground" data-testid="abort-turn-title">
@@ -95,7 +93,7 @@ export function AbortTurnBody({
 						type="button"
 						data-testid="abort-turn-cancel"
 						onClick={onClose}
-						className="lh-press rounded-sm px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+						className="lh-press px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
 					>
 						Cancel
 					</button>
@@ -104,7 +102,7 @@ export function AbortTurnBody({
 						data-testid="abort-turn-confirm"
 						onClick={onConfirm}
 						// Destructive red — the app's established destructive pair.
-						className="lh-press rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20"
+						className="lh-press border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20"
 					>
 						{copy.action}
 					</button>

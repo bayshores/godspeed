@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * GYpH-true ✓/✗ marks (owner's "old LaTeX style" round 6) — the real
  * Computer-Modern-adjacent hand-drawn shapes extracted as vector outlines
