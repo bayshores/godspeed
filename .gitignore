@@ -11,7 +11,7 @@ SCOPE.md
 real-data-extraction/
 dist/
 
-# dev auth/keys store (auth-keys wave): repo-root auth.json — secrets never committed
+# retired API-key store: old checkouts may still hold a repo-root auth.json — never commit it
 auth.json
 chatgpt-credentials.json*
 github-copilot-credentials.json*
@@ -19,3 +19,6 @@ xai-credentials.json*
 
 # dev-fresh launcher scratch (fresh-user sim): disposable per launch
 .fresh-data/
+
+# graphify knowledge-graph output (generated locally)
+graphify-out/

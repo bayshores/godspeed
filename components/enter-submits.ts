@@ -2,9 +2,8 @@
 
 /**
  * ENTER SUBMITS — regardless of where focus is (owner round 6, 2026-10-05).
- * The dictation reality: the learner dictates into the dock's field without
- * ever focusing it, so Enter must submit from ANYWHERE — body focus, a
- * scroll, a stray link. The field's own Enter handler still fires first
+ * The learner's focus often isn't on the dock's field, so Enter must submit
+ * from ANYWHERE — body focus, a scroll, a stray link. The field's own Enter handler still fires first
  * when it IS focused (this listener sits at the window level, bubble's last
  * stop) — one law, two entry points, no double submit (the focused field's
  * handler claims the event via its own keydown; this hook skips typing

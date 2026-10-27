@@ -36,7 +36,7 @@ test("desktop capability injects only trusted app mainframe exact-origin API req
 		{ initiatorOrigin: "https://thirdparty.invalid" },
 		{ initiatorOrigin: "null" },
 	]) {
-		const result = desktopAPIHeaders({ ...details, ...mutation, requestHeaders: { "X-LearnHarness-Desktop": secret } }, origin, secret, [win]);
+		const result = desktopAPIHeaders({ ...details, ...mutation, requestHeaders: { "X-godspeed-Desktop": secret } }, origin, secret, [win]);
 		assert(!Object.keys(result).some((key) => key.toLowerCase() === HEADER), JSON.stringify(mutation));
 	}
 	assert.equal(desktopAPIHeaders(details, origin, secret, [])[HEADER], undefined, "other WebContents are not app windows");

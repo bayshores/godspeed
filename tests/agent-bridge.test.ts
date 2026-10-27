@@ -1,0 +1,173 @@
+/** The outside agent as the model: a lesson turn parks its model request in
+ *  the bridge, the agent (here: the test) takes it and answers, and the app
+ *  runs everything else as usual. Plus the /api/mcp door: access control
+ *  and the tool surface. Closed network, scratch data dir. */
+import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { after, describe, it } from "node:test";
+
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-agent-bridge-"));
+const originalEnv = process.env;
+const originalFetch = globalThis.fetch;
+process.env = {
+	...(originalEnv.NODE_TEST_CONTEXT ? { NODE_TEST_CONTEXT: originalEnv.NODE_TEST_CONTEXT } : {}),
+	...(originalEnv.NODE_OPTIONS ? { NODE_OPTIONS: originalEnv.NODE_OPTIONS } : {}),
+	NODE_ENV: "test",
+	LH_DATA_DIR: path.join(scratch, "data"),
+	LH_AUTH_FILE: path.join(scratch, "auth.json"),
+	HOME: path.join(scratch, "home"),
+};
+fs.mkdirSync(path.join(scratch, "home"), { recursive: true });
+globalThis.fetch = async () => { throw new Error("CLOSED: unexpected network request"); };
+after(() => {
+	process.env = originalEnv;
+	globalThis.fetch = originalFetch;
+	fs.rmSync(scratch, { recursive: true, force: true });
+});
+
+const { handleChatInput } = await import("../src/server/chat-handler.ts");
+const { isTurnRunning } = await import("../src/server/turn-liveness.ts");
+const { abortTurn } = await import("../src/server/turn-runs.ts");
+const { chatStore } = await import("../src/store/chats.ts");
+const bridge = await import("../src/agent/agent-bridge.ts");
+const mcp = await import("../src/server/mcp.ts");
+
+function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const started = Date.now();
+		const tick = () => {
+			if (cond()) return resolve();
+			if (Date.now() - started > timeoutMs) return reject(new Error(`timeout waiting for ${what}`));
+			setTimeout(tick, 20);
+		};
+		tick();
+	});
+}
+
+function agentChat(title: string) {
+	const chat = chatStore.createChat(title);
+	chatStore.saveSettings(chat.id, { model: { provider: bridge.AGENT_PROVIDER, id: bridge.AGENT_MODEL_ID } });
+	return chat;
+}
+
+function textOf(message: unknown): string {
+	const content = (message as { content?: unknown }).content;
+	return Array.isArray(content) ? content.filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("") : String(content);
+}
+
+describe("outside agent as the model", () => {
+	// The agent model counts as connected only while agent access is on.
+	mcp.enableMcpAccess();
+
+	it("a lesson turn waits for the agent, and the agent's reply is saved", async () => {
+		const chat = agentChat("Photosynthesis");
+		const ack = await handleChatInput(chat.id, { type: "text", text: "Teach me photosynthesis" });
+		assert.equal(ack.status, 200, await ack.clone().text());
+
+		const work = await bridge.waitForWork(5000);
+		assert.ok(work, "the turn parked a request");
+		assert.equal(work.conversation, chat.id);
+		assert.equal(work.continued, false);
+		assert.ok((work.instructions ?? "").length > 500, "the app's teaching instructions ride along");
+		assert.ok(work.tools?.some((t) => t.name === "probe_done"), "a new lesson starts in the probing phase");
+		const lastUser = work.messages.filter((m) => m.role === "user").at(-1);
+		assert.equal(lastUser && "text" in lastUser ? lastUser.text : "", "Teach me photosynthesis");
+		assert.ok(isTurnRunning(chat.id), "the turn stays open while the agent thinks");
+
+		const answered = bridge.respondToWork(work.workId, { text: "What do you already know about how plants get energy?" });
+		assert.ok(answered.ok);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+
+		const last = chatStore.getChat(chat.id)!.messages.at(-1)!;
+		assert.equal((last as { role: string }).role, "assistant");
+		assert.equal(textOf(last), "What do you already know about how plants get energy?");
+	});
+
+	it("tool calls run in the app and their results come back as continued work", async () => {
+		const chat = agentChat("Tools");
+		await handleChatInput(chat.id, { type: "text", text: "hello" });
+		const first = await bridge.waitForWork(5000, { conversation: chat.id });
+		assert.ok(first);
+		assert.ok(bridge.respondToWork(first.workId, { toolCalls: [{ name: "ls", arguments: {} }] }).ok);
+
+		const second = await bridge.waitForWork(5000, { conversation: chat.id });
+		assert.ok(second, "the tool result asks the agent again");
+		assert.equal(second.continued, true, "only the new messages are sent");
+		assert.equal(second.instructions, undefined);
+		assert.deepEqual(second.messages.map((m) => m.role), ["toolResult"]);
+
+		assert.ok(bridge.respondToWork(second.workId, { text: "Done looking." }).ok);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("refuses tool names the work item does not offer", async () => {
+		const chat = agentChat("Unknown tool");
+		await handleChatInput(chat.id, { type: "text", text: "hi" });
+		const work = await bridge.waitForWork(5000, { conversation: chat.id });
+		assert.ok(work);
+		const refused = bridge.respondToWork(work.workId, { toolCalls: [{ name: "launch_rockets", arguments: {} }] });
+		assert.equal(refused.ok, false);
+		assert.ok(bridge.respondToWork(work.workId, { text: "ok" }).ok, "the item is still open after a refusal");
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("stopping the turn withdraws the parked request", async () => {
+		const chat = agentChat("Abort");
+		await handleChatInput(chat.id, { type: "text", text: "hi" });
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "request parked");
+		abortTurn(chat.id);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+		assert.equal(bridge.pendingWorkCount(), 0);
+		assert.equal(await bridge.waitForWork(50), null);
+	});
+});
+
+describe("the /api/mcp door", () => {
+	function rpc(body: unknown, headers: Record<string, string> = {}) {
+		return new Request("http://127.0.0.1:3000/api/mcp", {
+			method: "POST",
+			headers: {
+				host: "127.0.0.1:3000",
+				"content-type": "application/json",
+				accept: "application/json, text/event-stream",
+				...headers,
+			},
+			body: JSON.stringify(body),
+		});
+	}
+	const listTools = { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} };
+
+	it("is closed until access is turned on", async () => {
+		mcp.disableMcpAccess();
+		const res = await mcp.handleMcpRequest(rpc(listTools, { authorization: "Bearer x" }));
+		assert.equal(res.status, 403);
+	});
+
+	it("needs the right token, and refuses browsers and other hosts", async () => {
+		const token = mcp.enableMcpAccess();
+		assert.equal((await mcp.handleMcpRequest(rpc(listTools))).status, 401);
+		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: "Bearer wrong" }))).status, 401);
+		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: `Bearer ${token}`, origin: "https://evil.example" }))).status, 403);
+		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: `Bearer ${token}`, host: "evil.example" }))).status, 403);
+	});
+
+	it("lists its tools and answers calls", async () => {
+		const token = mcp.enableMcpAccess();
+		const auth = { authorization: `Bearer ${token}` };
+		const init = await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } } }, auth));
+		assert.equal(init.status, 200, await init.clone().text());
+
+		const tools = await (await mcp.handleMcpRequest(rpc(listTools, auth))).json();
+		const names = tools.result.tools.map((t: { name: string }) => t.name).sort();
+		assert.deepEqual(names, ["import_notes", "list_lessons", "read_lesson", "respond", "search_graph", "start_lesson", "wait_for_work"]);
+
+		const call = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_lessons", arguments: {} } }, auth))).json();
+		const lessons = JSON.parse(call.result.content[0].text).lessons;
+		assert.ok(lessons.some((l: { title: string }) => l.title === "Photosynthesis"));
+
+		const idle = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1 } } }, auth))).json();
+		assert.equal(JSON.parse(idle.result.content[0].text).status, "idle");
+	});
+});

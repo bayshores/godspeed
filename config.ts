@@ -32,11 +32,11 @@ export const PATHS = {
 } as const;
 
 // ─── Models ────────────────────────────────────────────────────────────────
-// BYOK ALL THE WAY DOWN (owner, 2026-09-22): there are NO factory default
+// NO DEFAULTS ALL THE WAY DOWN (owner, 2026-09-22): there are NO factory default
 // models. Every engine resolves from the user's model slots (settings.json
 // models section: strong/cheap/vision) over per-role/ChatSettings overrides,
 // and a chain that ends empty REFUSES honestly (503 models_not_configured).
-// .env stays for secrets (API keys) only. What remains here are ENGINE
+// What remains here are ENGINE
 // CONSTRUCTION FACTS: the thinking-level scale and the default order.
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -104,8 +104,8 @@ export const GRAPH_FORMAT_FILE = path.join(PATHS.graph, "format.json");
  * field) needs no migration — old records simply lack the new keys. The
  * version field is a PRIVATE schema counter for breaking shape changes
  * only (field renamed/meaning changed), unrelated to the app release
- * version. Secrets (API keys, login tokens) NEVER live here — auth.json /
- * .env.local keep that role. (The `chat` default-settings section died
+ * version. Secrets (login tokens) NEVER live here — the subscription
+ * credential files keep that role. (The `chat` default-settings section died
  * with per-session models, owner 2026-09-28 — sessions own their model
  * from birth, stamped from the strong slot.)
  */
@@ -127,19 +127,13 @@ export const SETTINGS_FILE = path.join(DATA_ROOT, "settings.json");
 export const PROMPTS_OVERRIDE_DIR = path.join(DATA_ROOT, "prompts");
 
 /**
- * THE AUTH/KEY STORE (auth-keys wave, 2026-09-19): BYOK provider keys in a
- * flat {VAR: value} JSON map — the SAME file the Electron app has always
- * hand-edited (owner decision: option A, zero migration). Desktop main.cjs
- * passes LH_AUTH_FILE pointing at userData/auth.json (mode 0600); in dev
- * (no Electron) the default is the repo-root auth.json (gitignored, same
- * pattern as .env.local — a worktree may symlink it to the master copy).
- * The SERVER reads/writes this file directly at call time (no restart to
- * change a key); it reflects the values into process.env at boot with
- * FILL-GAP precedence — real environment variables (incl. .env.local in
- * dev) always win (src/server/keys.ts). Hand-edits still work: the file is
- * re-read from disk on every API access. Secrets NEVER go in settings.json
- * — this file keeps that role, alongside .env.local.
+ * The web/dev subscription credential directory: ChatGPT, GitHub Copilot
+ * and xAI sign-ins save their owner-only credential files here
+ * (src/server/web-subscriptions.ts). LH_CREDENTIALS_DIR overrides it (the
+ * fresh-user script and the smoke probes point it at a scratch dir); the
+ * default is the repo root (the files are gitignored). Secrets NEVER go
+ * in settings.json.
  */
-export const AUTH_FILE = process.env.LH_AUTH_FILE
-	? path.resolve(process.env.LH_AUTH_FILE)
-	: path.join(ROOT, "auth.json");
+export const CREDENTIALS_DIR = process.env.LH_CREDENTIALS_DIR
+	? path.resolve(process.env.LH_CREDENTIALS_DIR)
+	: ROOT;

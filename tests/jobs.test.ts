@@ -9,7 +9,7 @@
  *      IMMEDIATELY with the fire-and-forget ack (the teacher's turn
  *      CONTINUES — no turn break at the call), a job record exists, and the
  *      test runner (fake deliver) produces the steer
- *   4. runner completion: a fake researcher model (web_search call → final
+ *   4. runner completion: a fake researcher model (web_fetch call → final
  *      text brief, globalThis.fetch stubbed) → the job stores the result,
  *      the steer carries the brief + sources, the fake deliver flips the
  *      job done
@@ -70,9 +70,9 @@ import { persistTurn } from "../src/server/turn-service.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { createJobRunner, pdfModelOverride, researchModelOverride } from "../src/agent/subagents/runner.ts";
-import { providerKeyMissing, type ModelSlotName } from "../src/core/settings.ts";
+import { providerNotConnected, type ModelSlotName } from "../src/core/settings.ts";
+import { connectProviderForTests } from "../src/server/connections.ts";
 import type { PiEngine } from "../src/agent/models.ts";
-import type { SearchProvider } from "../src/core/search.ts";
 import { PATHS } from "../config.ts";
 import { projectView as projectNative } from "../src/core/view.ts";
 import { subscribe } from "../src/core/events.ts";
@@ -83,10 +83,9 @@ const JOBS_DIR = path.join(PATHS.data, "jobs");
 
 const createdChats: string[] = [];
 
-// The key-presence turn gate (provider-key interlude, 2026-09-25): scripted
-// turns pin openrouter per chat — the gate reads env-first truth, so the
-// key must be present in the test process like any real setup.
-process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
+// The connection turn gate: scripted turns pin openrouter per chat (a
+// faux engine stands in), so the test process marks it connected.
+connectProviderForTests("openrouter");
 const createdJobs: string[] = [];
 
 function trackChat(id: string) {
@@ -137,6 +136,8 @@ function trackJob(id: string) {
  * in the full run. The fence makes every test's start state identical:
  * all tracked jobs settled, aborts unregistered, seams inert. */
 afterEach(() => {
+	restoreFetch?.();
+	restoreFetch = undefined;
 	for (const id of createdJobs) {
 		try {
 			const job = jobStore.getJob(id);
@@ -264,8 +265,8 @@ describe("job store", () => {
 		assert.equal(loaded.toolCallId, "call-store");
 		assert.equal(loaded.kind, "research");
 
-		const updated = jobStore.updateJob(job.id, { activity: 'web_search: "test"', status: "done", result: { brief: "b" } })!;
-		assert.equal(updated.activity, 'web_search: "test"');
+		const updated = jobStore.updateJob(job.id, { activity: 'web_fetch: example.com', status: "done", result: { brief: "b" } })!;
+		assert.equal(updated.activity, 'web_fetch: example.com');
 		assert.equal(updated.status, "done");
 		assert.ok(updated.updatedAt >= job.updatedAt);
 		// immutable identity fields survive a patch
@@ -505,8 +506,8 @@ describe("dispatch (async protocol §2)", () => {
 		chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
 
 		const delivery = fakeDeliver();
-		const search = stubSearch();
-		const testRunner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver, searchProvider: () => search });
+		const fetches = stubFetch();
+		const testRunner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver });
 		const engine = researchCallingTeacher();
 		const tools = createTeacherTools({
 			chatId: chat.id,
@@ -549,9 +550,8 @@ describe("dispatch (async protocol §2)", () => {
 		assert.equal((steer.details as { jobId: string }).jobId, job!.id);
 		assert.ok(steer.content.includes("sigma.js v3 is current"), "steer text carries the brief");
 
-		// Search threading (2026-09-20): the researcher's web_search ran on
-		// the INJECTED port — the stub saw the scripted query, no network.
-		assert.deepEqual(search.queries, ["sigma.js latest version (5)"]);
+		// The researcher's web_fetch ran on the stubbed fetch — no network.
+		assert.deepEqual(fetches.urls, [SIGMA_DOCS]);
 		researchModelOverride.current = undefined;
 	});
 });
@@ -567,29 +567,34 @@ sigma.js v3 is current.
 ## Sources
 - sigma.js docs (https://www.sigmajs.org/docs)`;
 
-/** The researcher loop's scripted engine. Turn 1: a web_search tool call;
+const SIGMA_DOCS = "https://www.sigmajs.org/docs";
+
+/** The researcher loop's scripted engine. Turn 1: a web_fetch tool call;
  *  turn 2: the final text brief. */
 function researcherModel(): PiEngine {
 	return fauxEngine([
-		fauxAssistantMessage([fauxToolCall("web_search", { query: "sigma.js latest version" }, { id: "ws1" })], {
+		fauxAssistantMessage([fauxToolCall("web_fetch", { url: SIGMA_DOCS }, { id: "wf1" })], {
 			stopReason: "toolUse",
 		}),
 		fauxAssistantMessage([fauxText(BRIEF)]),
 	]);
 }
 
-/** A recording stub provider (search port wave, 2026-09-20): the runner's
- *  injected search seam — no network, queries captured for assertions. */
-function stubSearch(): SearchProvider & { queries: string[] } {
-	const queries: string[] = [];
-	return {
-		id: "tavily",
-		async search(query: string, count: number) {
-			queries.push(`${query} (${count})`);
-			return [{ title: "sigma.js", url: "https://www.sigmajs.org/", snippet: "v3 released" }];
-		},
-		queries,
+/** A recording fetch stub: the researcher's web_fetch hits it instead of
+ *  the network; URLs are captured for assertions. The file's afterEach
+ *  restores the real fetch. */
+let restoreFetch: (() => void) | undefined;
+function stubFetch(): { urls: string[] } {
+	const urls: string[] = [];
+	const realFetch = globalThis.fetch;
+	globalThis.fetch = (async (source) => {
+		urls.push(String(source));
+		return new Response("sigma.js v3 released", { headers: { "content-type": "text/plain" } });
+	}) as typeof fetch;
+	restoreFetch = () => {
+		globalThis.fetch = realFetch;
 	};
+	return { urls };
 }
 
 describe("research runner (async protocol §3)", () => {
@@ -605,8 +610,8 @@ describe("research runner (async protocol §3)", () => {
 		trackJob(job.id);
 
 		const delivery = fakeDeliver();
-		const search = stubSearch();
-		const runner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver, searchProvider: () => search });
+		const fetches = stubFetch();
+		const runner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver });
 		researchModelOverride.current = researcherModel();
 		try {
 			await runner.runJob(job.id);
@@ -623,23 +628,21 @@ describe("research runner (async protocol §3)", () => {
 		assert.ok(result.sources.length > 0, "sources parsed from the brief");
 		assert.equal(result.sources[0]!.url, "https://www.sigmajs.org/docs");
 
-				// The activity trail: the last recorded activity is the deliver
-		// flip; the search line fired before it. The search itself ran on
-		// the INJECTED port — the stub saw the query (no network):
-		assert.deepEqual(search.queries, ["sigma.js latest version (5)"]);
+		// The fetch ran on the stub — no network.
+		assert.deepEqual(fetches.urls, [SIGMA_DOCS]);
 	});
 
-	it("a keyless fetch-only researcher still completes and delivers a sourced job result", async () => {
+	it("a fetch-only researcher completes and delivers a sourced job result", async () => {
 		const url = "https://example.com/supplied-source";
 		const brief = `## Summary\nVerified supplied source. [Source](${url})\n\n## Sources\n- Source (${url})`;
 		const input = { question: `Verify ${url}` };
-		const chat = chatStore.createChat("Test: keyless fetch-only research");
+		const chat = chatStore.createChat("Test: fetch-only research");
 		trackChat(chat.id);
 		chatStore.saveMessages(chat.id, nativeToolMessages("verify supplied URL", "research", "call-keyless", input));
 		const job = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "call-keyless" });
 		trackJob(job.id);
 		const delivery = fakeDeliver();
-		const runner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver, searchProvider: () => null });
+		const runner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver });
 		const fetched: string[] = [];
 		const realFetch = globalThis.fetch;
 		globalThis.fetch = (async (source) => {
@@ -709,8 +712,8 @@ describe("research runner (async protocol §3)", () => {
 			chatStore,
 			jobStore,
 			deliver: delivery.deliver,
-			searchProvider: () => stubSearch(),
 		});
+		stubFetch();
 		researchModelOverride.current = researcherModel();
 		try {
 			// no input passed — as a recovery re-spawn would call it
@@ -874,9 +877,8 @@ describe("researcher agent", () => {
 	it("runs with the web tool set (no network touched)", () => {
 		// The researcher is a runSubagent call over the webTools registry —
 		// the tool set is what the loop sees.
-		assert.ok(webTools.web_search, "web_search available");
 		assert.ok(webTools.web_fetch, "web_fetch available");
-		assert.equal(Object.keys(webTools).length, 2, "ONLY the web tools — no question/plan tools");
+		assert.deepEqual(Object.keys(webTools), ["web_fetch"], "ONLY web_fetch — no search engine, no question/plan tools");
 		// reset any accidental global override
 		researchModelOverride.current = undefined;
 	});
@@ -1530,7 +1532,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 	/** One step (billed) then a hang — proves usage-so-far survives the kill. */
 	function oneStepThenHangModel(): PiEngine {
 		return fauxEngine([
-			fauxAssistantMessage([fauxToolCall("web_search", { query: "anything" }, { id: "ws1" })], {
+			fauxAssistantMessage([fauxToolCall("web_fetch", { url: SIGMA_DOCS }, { id: "wf1" })], {
 				stopReason: "toolUse",
 			}),
 			abortableFactory(),
@@ -1620,7 +1622,8 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 		const { jobId } = newChatWithResearchJob("abort keeps usage", "call-abort2");
 		setTurnRunner(async () => 200);
 		researchModelOverride.current = oneStepThenHangModel();
-		const runner = createJobRunner({ chatStore, jobStore, deliver: async () => {}, searchProvider: () => stubSearch() });
+		stubFetch();
+		const runner = createJobRunner({ chatStore, jobStore, deliver: async () => {} });
 		try {
 			const settled = runner.runJob(jobId, RESEARCH_INPUT);
 			await waitFor(() => (jobStore.getJob(jobId)!.usage?.steps ?? 0) === 1, 8000, "first step folded");
@@ -1807,11 +1810,11 @@ describe("BYOK job refusal (no factory floor)", () => {
 	});
 });
 
-// ─── provider-key: the key-presence job refusal (owner, 2026-09-25) ─────────
+// ─── the connection job refusal ─────────────────────────────────────────────
 
-describe("provider-key job refusal (key-presence interlude)", () => {
-	it("an engine whose provider key is gone refuses the spawn — envelope wording, no phantom run", async () => {
-		const chat = chatStore.createChat("Test: keyless spawn");
+describe("connection job refusal", () => {
+	it("an engine whose provider is not connected refuses the spawn — envelope wording, no phantom run", async () => {
+		const chat = chatStore.createChat("Test: disconnected spawn");
 		trackChat(chat.id);
 		chatStore.saveMessages(chat.id, nativeToolMessages("hi", "research", "call-km1", RESEARCH_INPUT));
 
@@ -1819,7 +1822,7 @@ describe("provider-key job refusal (key-presence interlude)", () => {
 		trackJob(job.id);
 
 		const delivery = fakeDeliver();
-		// The chain RESOLVES (an engine exists) — the KEY is what's missing.
+		// The chain RESOLVES (an engine exists) — the CONNECTION is missing.
 		// The injected check is the server seam's stand-in: it sees the
 		// engine's provider + the kind's slot tier, exactly as wired.
 		const engine = fauxEngine([]);
@@ -1829,9 +1832,9 @@ describe("provider-key job refusal (key-presence interlude)", () => {
 			jobStore,
 			deliver: delivery.deliver,
 			engineFor: () => engine,
-			providerKeyMissing: (provider, tier) => {
+			providerNotConnected: (provider, tier) => {
 				seen.push([provider, tier]);
-				return providerKeyMissing(provider, [tier]);
+				return providerNotConnected(provider, [tier]);
 			},
 		});
 		await runner.runJob(job.id);
@@ -1840,11 +1843,11 @@ describe("provider-key job refusal (key-presence interlude)", () => {
 		// honest record, kind failure shape steered, terminal flip after.
 		const done = jobStore.getJob(job.id)!;
 		assert.equal(done.status, "error", "the job lands error, never a phantom run");
-		assert.equal(done.error, providerKeyMissing(engine.model.provider, ["cheap"]).error, "the envelope's error line verbatim");
+		assert.equal(done.error, providerNotConnected(engine.model.provider, ["cheap"]).error, "the envelope's error line verbatim");
 		assert.deepEqual(seen, [[engine.model.provider, "cheap"]], "the check saw the engine's provider + the researcher's tier");
 		assert.equal(delivery.steers.length, 1, "the refusal STEERED — the teacher is not stranded");
 		assert.ok(
-			delivery.steers[0]!.content.includes(`Research failed: No ${engine.model.provider} key is set`),
+			delivery.steers[0]!.content.includes(`Research failed: ${engine.model.provider} is not connected`),
 			"the steer carries the kind's failure shape",
 		);
 		const result = done.result as ResearchResult;

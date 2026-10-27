@@ -10,7 +10,7 @@ fixtures are in `tests/compaction-native-parity.test.ts`.
 Walk backward to the approximately 20,000-token retained-tail budget, then select
 the nearest valid user/assistant boundary at or after the crossing. Never start
 at a tool result. If trailing results alone exceed the budget, keep the preceding
-assistant call. Preserve adjacent context-invisible metadata. LearnHarness adapts
+assistant call. Preserve adjacent context-invisible metadata. godspeed adapts
 its visible custom markers to user-like entries, excludes UI-only markers, and
 uses the active compaction's retained history rather than discarded messages.
 
@@ -19,7 +19,7 @@ images receive the native fixed 1,200-token allowance. Encrypted signatures are
 not measured or stripped. Whole-message boundaries can overshoot. This does
 **not** guarantee a measured 20k tail or a fixed post-compaction request size.
 
-Only cutoff selection is ported. LearnHarness retains its educational summary
+Only cutoff selection is ported. godspeed retains its educational summary
 prompt, plan continuity, persistence, threshold, scheduling, and authorization
 lifecycle. It does not adopt Pi's coding summary or separate split-turn summary
 calls. A cut that drops no active history does not launch a summarizer.

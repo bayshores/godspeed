@@ -7,7 +7,7 @@ import { useNotifyHub, type createNotifyHub } from "@/components/server-events";
 type Hub = ReturnType<typeof createNotifyHub> | null;
 type Reply<T> = { value: T; browserAction?: string; error?: string };
 const PATH = "/api/subscriptions";
-const headers = { "Content-Type": "application/json", "x-learnharness-subscriptions": "1" };
+const headers = { "Content-Type": "application/json", "x-godspeed-subscriptions": "1" };
 
 async function status() {
 	const response = await fetch(PATH, { headers, cache: "no-store" });

@@ -67,7 +67,7 @@ for (const [name, results] of [
 });
 
 it("POST sends only captured files, and retains config/provider details", async () => {
-	const refused: NotesImportResult = { requestIndex: 0, filePath: files[1]!.name, ok: false, outcome: "failed", code: "provider_key_missing", provider: "openai", slots: ["cheap"], error: "No key is set" };
+	const refused: NotesImportResult = { requestIndex: 0, filePath: files[1]!.name, ok: false, outcome: "failed", code: "provider_not_connected", provider: "openai", slots: ["cheap"], error: "No key is set" };
 	globalThis.fetch = async (url, init) => {
 		assert.equal(url, "/api/graph/import"); assert.equal(init?.method, "POST");
 		const sent = (init?.body as FormData).getAll("files") as File[];
@@ -88,7 +88,7 @@ for (const kind of ["network", "non-JSON", "non-2xx", "malformed"] as const) it(
 
 for (const outcome of ["completed", "failed", "partial", "aborted", "busy"] as const) it(`${outcome} leaves only escaped raw failure text, without results or controls`, async () => {
 	const file = new File(["notes"], "<script>notes.md");
-	const result: NotesImportResult = { ...completed(), filePath: file.name, outcome, ok: outcome === "completed", error: "<img>synthetic failure", code: "provider_key_missing", provider: "openai", missing: ["OPENAI_API_KEY"], slots: ["cheap", "strong"] };
+	const result: NotesImportResult = { ...completed(), filePath: file.name, outcome, ok: outcome === "completed", error: "<img>synthetic failure", code: "provider_not_connected", provider: "openai", missing: ["OPENAI_API_KEY"], slots: ["cheap", "strong"] };
 	globalThis.fetch = async () => Response.json({ results: [result] });
 	await mount();
 	await submit([file]);
@@ -102,9 +102,9 @@ for (const outcome of ["completed", "failed", "partial", "aborted", "busy"] as c
 		assert.equal(html, "");
 		assert.deepEqual(current.errors, []);
 	} else {
-		assert.deepEqual(current.errors, [`${file.name}: ${result.error}\nprovider_key_missing — openai — OPENAI_API_KEY — cheap, strong`]);
+		assert.deepEqual(current.errors, [`${file.name}: ${result.error}\nprovider_not_connected — openai — OPENAI_API_KEY — cheap, strong`]);
 		assert.match(html, /&lt;script&gt;notes.md: &lt;img&gt;synthetic failure/);
-		assert.match(html, /provider_key_missing — openai — OPENAI_API_KEY — cheap, strong/);
+		assert.match(html, /provider_not_connected — openai — OPENAI_API_KEY — cheap, strong/);
 		assert.match(html, /role="alert"/);
 		assert.match(html, /text-xs text-red-400/);
 		assert.match(html, /whitespace-pre-wrap break-words/);
@@ -114,14 +114,14 @@ for (const outcome of ["completed", "failed", "partial", "aborted", "busy"] as c
 
 for (const details of [
 	{ code: "models_not_configured", missing: ["cheap", "strong", "vision"] },
-	{ code: "provider_key_missing", provider: "openai", slots: ["cheap"] },
-	{ code: "provider_key_missing" },
+	{ code: "provider_not_connected", provider: "openai", slots: ["cheap"] },
+	{ code: "provider_not_connected" },
 	{},
 ]) it(`keeps existing configuration detail strings (${JSON.stringify(details)})`, async () => {
 	globalThis.fetch = async () => Response.json({ results: [{ requestIndex: 0, filePath: "same.md", ok: false, outcome: "failed", error: "Existing raw error", ...details }] });
 	await mount();
 	await submit([files[0]!]);
-	const suffix = details.code === "models_not_configured" ? "\nmodels_not_configured — cheap, strong, vision" : details.provider ? "\nprovider_key_missing — openai — cheap" : details.code ? "\nprovider_key_missing" : "";
+	const suffix = details.code === "models_not_configured" ? "\nmodels_not_configured — cheap, strong, vision" : details.provider ? "\nprovider_not_connected — openai — cheap" : details.code ? "\nprovider_not_connected" : "";
 	assert.deepEqual(current.errors, [`same.md: Existing raw error${suffix}`]);
 });
 

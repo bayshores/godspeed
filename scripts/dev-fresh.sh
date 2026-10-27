@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # THE EXACT NEW-USER SIMULATOR (owner, interlude 2026-09-22): one command,
-# a fresh instance with zero keys and zero data — setup stage 1, every
-# launch. The owner's repeatable first-run BYOK test bed.
+# a fresh instance with no sign-ins and zero data — setup stage 1, every
+# launch. The owner's repeatable first-run test bed.
 #
 #   bash scripts/dev-fresh.sh            # http://localhost:3005
 #   npm run dev:fresh                    # the same, via package.json
@@ -10,18 +10,9 @@
 #   scripts/dev-fresh.sh --keep         # don't wipe between runs
 #                                        (multi-session testing)
 #
-# WHY A SWITCH, NOT AN ENV SCRUB: a script cannot merely unset shell
-# *_API_KEY vars — Next injects .env.local (the dev secrets) into the
-# server env at boot, so a "fresh" instance would silently federate the
-# real keys. LH_IGNORE_ENV_KEYS=1 (the keys seam, src/server/keys.ts)
-# deletes every managed key var from the process after Next's env load:
-# pi-ai reads provider keys from process.env NATIVELY at every request,
-# so deletion hides keys from the whole app, model engines included.
-#
-#   LH_DATA_DIR     → .fresh-data/ (wiped each launch unless --keep)
-#   LH_AUTH_FILE    → .fresh-data/auth.json (NEVER the repo-root auth.json
-#                     — that file may symlink the real keys)
-#   LH_IGNORE_ENV_KEYS=1
+#   LH_DATA_DIR        → .fresh-data/ (wiped each launch unless --keep)
+#   LH_CREDENTIALS_DIR → .fresh-data/ (NEVER the repo root — that holds
+#                        the real subscription sign-ins)
 #
 # Safe to rerun. The data dir is disposable scratch — never copy it back.
 
@@ -85,14 +76,13 @@ fi
 mkdir -p "$DATA_DIR"
 
 export LH_DATA_DIR="$DATA_DIR"
-export LH_AUTH_FILE="$DATA_DIR/auth.json"
-export LH_IGNORE_ENV_KEYS=1
+export LH_CREDENTIALS_DIR="$DATA_DIR"
 export PORT
 
 echo "── fresh-user instance ─────────────────────────────────"
 echo "  URL      : http://localhost:$PORT"
 echo "  data dir : $DATA_DIR ($( [ "$KEEP" = "true" ] && echo 'kept across runs' || echo 'wiped next launch unless --keep' ))"
-echo "  keys     : env keys hidden (LH_IGNORE_ENV_KEYS=1), auth.json empty"
+echo "  sign-ins : none (credentials live in the data dir)"
 echo "─────────────────────────────────────────────────────────"
 
 cd "$ROOT"

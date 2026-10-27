@@ -6,7 +6,7 @@ Known-stale in this copy: the single `contracts.ts` (now six domain files), the 
 
 ---
 
-# Learning Harness — Architecture
+# godspeed — Architecture
 
 Status: **the canonical target-architecture spec** — describes the as-built system (post-pivot, refactor stages 1–5 complete). The pre-pivot v0 scaffold doc (pi-based, Fastify/Vite) lives in git history; product reasoning lives in [`docs/vision.md`](vision.md); file-by-file layout lives in the README.
 

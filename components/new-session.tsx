@@ -4,11 +4,10 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation";
 import { Conversation, ConversationContent, ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Composer } from "@/components/composer";
-import { DictationBar, joinDictation, useDictation } from "@/components/dictation";
 import { useFieldCycle } from "@/components/field-cycle";
 import { SidebarToggle } from "@/components/sidebar";
 import { SetupDialog } from "@/components/setup-dialog";
-import { useStrongKeyless, useZeroKeys, ZeroKeysPill } from "@/components/setup-cta";
+import { ConnectPill, useNoConnection, useStrongDisconnected } from "@/components/setup-cta";
 import { StatsBar } from "@/components/stats-bar";
 import { ChainTableOverlay } from "@/components/chain-table.tsx";
 import { ComposerActions, NodePickerControl } from "@/components/composer-actions";
@@ -69,9 +68,6 @@ export async function startDraftSession(
 
 /** The pure shell (no router) — the render-test seam: the draft view's
  *  visible surface, assembled from the same pieces a fresh chat shows. */
-/* FINISH-FIRST SEND + RUN-END FOCUS live in the shell (it owns the
- * dictation instance); the truth of the text stays in the parent, whose
- * send reads a REF mirror — see NewSession below. */
 export function DraftShell({
 	busy,
 	text,
@@ -110,46 +106,13 @@ export function DraftShell({
 	 *  Passed as a node so the pick state stays in NewSession. */
 	overlay?: ReactNode;
 }) {
-	// Voice dictation (STT wave, 2026-09-17): finals append at the end of the
-	// draft text (via the parent's onChange — the truth lives there); the
-	// strip lives in the stats bar's middle slot.
 	// Tab navigates INTO the composer (owner, keyboard round 2026-10-06):
 	// the only text field on this surface — the cycle's whole chain.
 	const cycleComposer = useCallback((): readonly HTMLElement[] =>
 		Array.from(document.querySelectorAll<HTMLElement>('[data-testid="composer"] textarea')),
 		[]);
 	useFieldCycle(cycleComposer);
-	const dictation = useDictation({
-		append: (t) => onChange(joinDictation(text, t)),
-	});
-	// A LIVE dictation keeps the composer sendable ("nothing gets lost"
-	// round, owner 2026-10-01): the spoken text is deferred in the run's
-	// buffer — Enter must reach the finish-first send, not be gated out by
-	// an empty textarea. Nothing said → the send no-ops.
-	const canSend = text.trim().length > 0 || dictation.active;
-	/* FINISH DICTATION FIRST (owner, 2026-10-01): stop the run, let the
-	 * last finals land through onChange, THEN call the parent's send —
-	 * which reads its REF mirror, so the post-await timing of React's
-	 * re-render cannot eat the dictated tail. */
-	const handleSend = () => {
-		if (dictation.active) {
-			void dictation.finish().then(onSend);
-			return;
-		}
-		onSend();
-	};
-	/* Run end focuses the composer (owner, 2026-10-01): the hands are on
-	 * the keyboard from the stop — falling edge of `active` only. */
-	const composerInputRef = useRef<HTMLTextAreaElement>(null);
-	const dictationWasActiveRef = useRef(false);
-	useEffect(() => {
-		if (dictation.active) {
-			dictationWasActiveRef.current = true;
-		} else if (dictationWasActiveRef.current) {
-			dictationWasActiveRef.current = false;
-			composerInputRef.current?.focus();
-		}
-	}, [dictation.active]);
+	const canSend = text.trim().length > 0;
 	return (
 		/* CHROME-LESS CREATION SURFACE (owner round 11, 2026-10-05): the
 		 * drafts join home's register — no TopBar, no title (the serif title
@@ -195,12 +158,10 @@ export function DraftShell({
 										busy={busy}
 										value={text}
 										onChange={onChange}
-										onSend={handleSend}
+										onSend={onSend}
 										onStop={() => {}}
 										canSend={canSend}
-										inputRef={composerInputRef}
 										autoFocus
-										onEscape={dictation.active ? dictation.cancel : undefined}
 										// The opening question, same as the graph view's new-session
 										// input (owner refinement round, 2026-09-24) — no lesson has
 										// started yet, so the composer must not read like one is in
@@ -208,10 +169,7 @@ export function DraftShell({
 										placeholder={mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
 									/>
 								</div>
-								<StatsBar
-									dictationSlot={<DictationBar dictation={dictation} />}
-									turns={[]}
-								/>
+								<StatsBar turns={[]} />
 							</div>
 						</div>
 					</div>
@@ -233,10 +191,8 @@ export function DraftShell({
 export function NewSession({ initialConfigured, mode = "teach" }: { initialConfigured: boolean; mode?: "teach" | "practice" }) {
 	const router = useRouter();
 	const [text, setText] = useState("");
-	/* The draft MIRROR ("nothing gets lost" round, 2026-10-01): the shell's
-	 * finish-first send calls THIS send after the dictation flush — which
-	 * landed via setState and may not have re-rendered yet. The send reads
-	 * the mirror; every write keeps it current. */
+	/* The draft MIRROR: the send reads the ref; every write keeps it
+	 * current, so a closure never sees a stale draft. */
 	const textRef = useRef("");
 	const applyText = (v: string) => {
 		textRef.current = v;
@@ -276,13 +232,13 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 	// Save stores the slots and never sends (owner ruling 2026-10-09) —
 	// the learner sends the draft themselves.
 	const [configured, setConfigured] = useState(initialConfigured);
-	// The zero-keys truth (zero-keys wave): no provider key = the pill
-	// takes precedence over the models CTA (keys come first in the chain).
-	const zeroKeys = useZeroKeys();
-	// The strong slot's keyless truth (pre-send key guards, owner interlude
-	// 2026-09-25): keys may exist generally while the STRONG slot's pinned
-	// provider has none — the same skip-everything treatment on send.
-	const strongKeyless = useStrongKeyless();
+	// The no-connection truth: no subscription signed in = the pill takes
+	// precedence over the models CTA (a connection comes first in the chain).
+	const noConnection = useNoConnection();
+	// The strong slot's disconnected truth (pre-send guards): a subscription
+	// may be connected generally while the STRONG slot's pinned provider is
+	// not — the same skip-everything treatment on send.
+	const strongDisconnected = useStrongDisconnected();
 	const [setupOpen, setSetupOpen] = useState(false);
 
 	const send = useCallback(() => {
@@ -292,12 +248,12 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 			setSetupOpen(true);
 			return;
 		}
-		// The pre-send KEY guards (owner interlude, no-orphan-chats): guard
+		// The pre-send CONNECTION guards (no-orphan-chats): guard
 		// BEFORE startDraftSession creates the record — a refused first
 		// send would otherwise leave an orphan error-shell chat in the
 		// sidebar. Same skip-everything-and-open-setup treatment; the
 		// server's 503 gate remains the belt for /chat/[id] sessions.
-		if (zeroKeys || strongKeyless) {
+		if (noConnection || strongDisconnected) {
 			setSetupOpen(true);
 			return;
 		}
@@ -308,7 +264,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 				else setBusy(false);
 			})
 			.catch(() => setBusy(false));
-	}, [busy, router, configured, zeroKeys, strongKeyless]);
+	}, [busy, router, configured, noConnection, strongDisconnected]);
 
 	return (
 		<>
@@ -347,8 +303,8 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 					/>
 				}
 				setupCta={
-					zeroKeys ? (
-						<ZeroKeysPill inline onOpen={() => setSetupOpen(true)} />
+					noConnection ? (
+						<ConnectPill inline onOpen={() => setSetupOpen(true)} />
 					) : (
 						!configured && (
 							<button
@@ -364,7 +320,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 				}
 			/>
 			{/* First-run setup: the send interception's landing surface — stage
-			    1 is the self-contained first-key screen (zero-keys wave). */}
+			    1 is the self-contained connect screen. */}
 			<SetupDialog
 				open={setupOpen}
 				onClose={() => setSetupOpen(false)}

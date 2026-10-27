@@ -40,7 +40,7 @@ export function useModelCatalog(): { catalog: ModelCatalogResponse | undefined; 
 		catalogReaders.add(read);
 		if (first) {
 			stopCatalogSignals = onSettingsSaved((section) => {
-				if (section === "keys") {
+				if (section === "providers") {
 					catalogGeneration++; catalogInflight = undefined; catalogCache = undefined;
 					publishCatalog(); fetchCatalog();
 				} else if (section === "models") fetchCatalog(true);
@@ -170,7 +170,7 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				// Claim the Esc (keyboard wave A): the window-level chain must
-				// not ALSO stop dictation / abort the turn under this menu.
+				// not ALSO abort the turn under this menu.
 				e.stopPropagation();
 				setOpen(null);
 			}

@@ -12,8 +12,8 @@ import os from "node:os";
 import path from "node:path";
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-chatgpt-native-"));
 process.env.LH_DATA_DIR = path.join(scratch, "data");
-process.env.LH_AUTH_FILE = path.join(scratch, "auth.json");
-fs.writeFileSync(process.env.LH_AUTH_FILE, "{}");
+process.env.LH_CREDENTIALS_DIR = scratch;
+
 const { runPiTurn } = await import("../src/server/pi/ui-stream.ts");
 import { newUserMessage, newNextMessage, newThinkingMessage, newAnswerResult, reconstructRequestCause, concludedByDismissalPair, type LhMessage } from "../src/core/native-messages.ts";
 
@@ -52,7 +52,7 @@ before(() => {
   fetches++;
   if (cut === "afterFetch") { cut = "none"; revoke(); throw new Error("admitted local abort"); }
   if (toolFirst && fetches === 1) {
-   const call = { type: "function_call", id: "fc_again", call_id: "call_again", name: "again", namespace: "learnharness", arguments: "{}", status: "completed" };
+   const call = { type: "function_call", id: "fc_again", call_id: "call_again", name: "again", namespace: "godspeed", arguments: "{}", status: "completed" };
    return new Response([{ type: "response.output_item.added", output_index: 0, item: call }, { type: "response.output_item.done", output_index: 0, item: call }, { type: "response.completed", response: { status: "completed", output: [call], usage: { input_tokens: 4, output_tokens: 2, total_tokens: 6 } } }].map((e) => `data: ${JSON.stringify(e)}\n\n`).join(""), { headers: { "content-type": "text/event-stream" } });
   }
   const item = { id: "msg_native", type: "message", role: "assistant", content: [{ type: "output_text", text: "Accepted learner", annotations: [] }] };

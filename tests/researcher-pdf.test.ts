@@ -18,7 +18,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { createPdfReadTools } from "../src/agent/tools/pdf-read.ts";
-import { createWebTools } from "../src/agent/tools/web.ts";
+import { webTools } from "../src/agent/tools/web.ts";
 
 /** Build a valid N-page PDF in memory — ASCII-only so string offsets ARE
  *  byte offsets; xref entries computed as we assemble. */
@@ -174,7 +174,7 @@ describe("researcher pdf tools — the temp-dir wall", () => {
 
 describe("web_fetch — PDF pointer + source header", () => {
 	it("a PDF URL points at web_fetch_pdf instead of dead-ending", async () => {
-		const web = createWebTools(() => null);
+		const web = webTools;
 		const realFetch = globalThis.fetch;
 		globalThis.fetch = (async () =>
 			pdfResponse()) as typeof fetch;
@@ -188,7 +188,7 @@ describe("web_fetch — PDF pointer + source header", () => {
 	});
 
 	it("output carries the source line with HTTP status", async () => {
-		const web = createWebTools(() => null);
+		const web = webTools;
 		const realFetch = globalThis.fetch;
 		globalThis.fetch = (async () =>
 			new Response("A plain text page with enough content to matter.", {

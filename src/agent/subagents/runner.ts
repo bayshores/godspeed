@@ -1,5 +1,4 @@
 import type { PiEngine } from "../models.ts";
-import type { SearchProvider } from "../../core/search.ts";
 import {
 	accumulateJobUsage,
 	buildSubagentSteer,
@@ -24,7 +23,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { ModelRole } from "../../../config.ts";
-import { ROLE_SLOT, modelsNotConfigured, type ModelSlotName, type ProviderKeyMissing } from "../../core/settings.ts";
+import { ROLE_SLOT, modelsNotConfigured, type ModelSlotName, type ProviderNotConnected } from "../../core/settings.ts";
 import type { ChatStore, JobStore } from "../../core/ports.ts";
 import { runDemoBuilder } from "./demo-builder.ts";
 import { runPdfReaderAgent } from "./pdf-reader.ts";
@@ -80,18 +79,12 @@ export interface JobRunnerDeps {
 	 *  EMPTY → undefined; runJob then refuses the spawn honestly instead
 	 *  of guessing a model. */
 	engineFor?: (role: ModelRole) => PiEngine | undefined;
-	/** The search seam (search port wave, 2026-09-20): resolves the LIVE
-	 *  provider fresh per job — server/search.ts composition injected by
-	 *  the wiring; null = honestly unavailable (the researcher's web_search
-	 *  reports it as recoverable text). Absent seam (tests) reads the same;
-	 *  research dispatch and web_fetch do not require search credentials. */
-	searchProvider?: () => SearchProvider | null;
-	/** Key-presence gate (provider-key interlude, 2026-09-25): given the
-	 *  resolved engine's provider + the kind's slot tier, return the
-	 *  refusal envelope when the provider's key is missing (null = run).
-	 *  Injected because the agent layer may not read the key store; absent
+	/** Connection gate: given the resolved engine's provider + the kind's
+	 *  slot tier, return the refusal envelope when the provider is not a
+	 *  connected subscription (null = run). Injected because the agent
+	 *  layer may not read connection state; absent
 	 *  in tests that inject engines directly (test engines never owe a key). */
-	providerKeyMissing?: (provider: string, tier: ModelSlotName) => ProviderKeyMissing | null;
+	providerNotConnected?: (provider: string, tier: ModelSlotName) => ProviderNotConnected | null;
 }
 
 export interface JobRunner {
@@ -202,9 +195,8 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			return;
 		}
 		const engine = pickEngine(job.kind);
-		// The per-need refusal guards (BYOK 2026-09-22 / provider-key
-		// interlude 2026-09-25): no engine for the kind's tier, or the
-		// resolved engine's provider key gone — both refuse through the SAME
+		// The per-need refusal guards: no engine for the kind's tier, or the
+		// resolved engine's provider not connected — both refuse through the SAME
 		// convention as every other failed job: record the honest error (no
 		// status flip: finalizeJob owns the terminal flip after delivery),
 		// then steer the kind's failure shape through finishJob so the wake
@@ -247,12 +239,12 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			await refuse(`${envelope.error} (missing: ${tier})`);
 			return;
 		}
-		// Key presence (2026-09-25): the engine exists, but its provider's
-		// key may be gone — refuse the spawn BEFORE the loop, same
-		// convention (the injected check reads the key store; absent in
+		// Connection: the engine exists, but its provider may not be
+		// connected — refuse the spawn BEFORE the loop, same convention
+		// (the injected check reads connection state; absent in
 		// engine-injecting tests).
 		const keyRefusal =
-			deps.providerKeyMissing?.(engine.model.provider, ROLE_SLOT[KIND_ROLE[job.kind]]) ?? null;
+			deps.providerNotConnected?.(engine.model.provider, ROLE_SLOT[KIND_ROLE[job.kind]]) ?? null;
 		if (keyRefusal) {
 			console.info(`[job ${jobId}] refused — ${JSON.stringify(keyRefusal)}`);
 			await refuse(keyRefusal.error);
@@ -372,7 +364,6 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			jobStore.updateJob(jobId, { activity: "researching" });
 			const brief = await runResearcherAgent(prompt, {
 				engine: model,
-				search: deps.searchProvider,
 				pdfDir,
 				abortSignal: loop.abortSignal,
 				chatId: loop.chatId,
@@ -536,9 +527,8 @@ function isPdfFailure(result: PdfResult): boolean {
 	return /^PDF failed:/i.test(result.brief);
 }
 
-/** The activity line shown in the UI: `web_search: "query"` / `web_fetch: host`. */
-function activityLine(toolName: string, input: { query?: string; url?: string } | undefined): string {
-	if (toolName === "web_search") return `web_search: "${input?.query ?? ""}"`;
+/** The activity line shown in the UI: `web_fetch: host`. */
+function activityLine(toolName: string, input: { url?: string } | undefined): string {
 	if (toolName === "web_fetch") return `web_fetch: ${hostOf(input?.url)}`;
 	return toolName;
 }

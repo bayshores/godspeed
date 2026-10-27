@@ -44,8 +44,6 @@ export function Composer({
 	onStop,
 	canSend,
 	autoFocus,
-	inputRef,
-	onEscape,
 	placeholder = "Ask, answer, or steer the lesson…",
 	nextProblem = false,
 	onNext,
@@ -57,12 +55,6 @@ export function Composer({
 	onStop: () => void;
 	canSend: boolean;
 	autoFocus?: boolean;
-	/** The page's handle to the textarea — the dictation-end focus (owner,
-	 *  2026-10-01): a run ending hands the cursor to the bare composer. */
-	inputRef?: React.RefObject<HTMLTextAreaElement | null>;
-	/** Escape while a dictation runs stops it (STT wave, 2026-09-17). No-op
-	 *  when absent — Esc otherwise means nothing in the composer. */
-	onEscape?: () => void;
 	/** The textarea's placeholder (owner refinement round, 2026-09-24):
 	 *  active sessions read "Ask, answer, or steer the lesson…"; the fresh
 	 *  new-session page asks the graph view's opening question instead. */
@@ -91,20 +83,9 @@ export function Composer({
 			}}
 		>
 			<textarea
-				ref={inputRef}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
 				onKeyDown={(e) => {
-					// Esc ends dictation before anything else Esc might someday mean
-					// here (the dictate decisions: click-again or Esc to stop).
-					// stopPropagation claims the Esc (keyboard wave A): the
-					// window-level chain must not also abort a turn under us.
-					if (e.key === "Escape" && onEscape) {
-						e.preventDefault();
-						e.stopPropagation();
-						onEscape();
-						return;
-					}
 					// Chat convention: Enter sends, Shift+Enter is a newline.
 					// ⌘/Ctrl+Enter also sends — the universal submit shortcut
 					// across every input in the app (thinking field, answers).

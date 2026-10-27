@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve LearnHarness. Describe what you observed; you do not need to know the cause.
+        Thanks for helping improve godspeed. Describe what you observed; you do not need to know the cause.
 
         **This report is public.** Remove API keys, tokens, passwords and private information before posting. Never attach credential files or your whole data folder. Share only the learning content you are comfortable making public.
   - type: textarea
@@ -18,7 +18,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: LearnHarness version or build
+      label: godspeed version or build
       description: Include the app version, installer filename or source commit. If you cannot find it, write "unknown".
     validations:
       required: true

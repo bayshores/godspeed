@@ -9,7 +9,7 @@ import { SetupDialog } from "../components/setup-dialog.tsx";
 import type { ModelCatalogEntry } from "../src/core/contracts/models.ts";
 
 // As in render-update-banner: mount real React handlers against an isolated
-// DOM. Fetch is wholly stubbed; no key, settings, or session writes can escape.
+// DOM. Fetch is wholly stubbed; no settings or session writes can escape.
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
 	window: dom.window,
@@ -27,7 +27,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const originalFetch = globalThis.fetch;
-const provider = { id: "openrouter", envVar: "OPENROUTER_API_KEY", label: "OpenRouter" };
+const provider = { id: "chatgpt" };
 const model: ModelCatalogEntry = {
 	id: "fixture-text",
 	name: "Fixture text",
@@ -44,18 +44,19 @@ let host: HTMLDivElement | null = null;
 let closed = 0;
 let completed = 0;
 
-async function mount({ keyed = false, catalogFails = false } = {}) {
+async function mount({ connected = false, catalogFails = false } = {}) {
 	closed = 0;
 	completed = 0;
 	globalThis.fetch = async (input, init) => {
 		assert.equal(init?.method ?? "GET", "GET", "interaction tests must not write data");
 		const path = new URL(String(input), "http://localhost").pathname;
-		if (path === "/api/keys") return Response.json({ providers: [provider], keys: [] });
-		assert.equal(path, "/api/models");
+		// The connect stage's subscription controls may read their own state;
+		// they get nothing here (the stage itself is under test).
+		if (path !== "/api/models") return new Response(null, { status: 404 });
 		if (catalogFails) throw new Error("fixture catalog failure");
 		return Response.json({
-			providers: [{ ...provider, keyPresent: keyed }],
-			models: keyed ? [model] : [],
+			providers: [{ ...provider, connected }],
+			models: connected ? [model] : [],
 			slots: { strong: null, cheap: null, vision: null },
 		});
 	};
@@ -105,47 +106,20 @@ afterEach(async () => {
 });
 
 describe("setup polish interactions", () => {
-	it("provider dropdown closes on a click elsewhere inside the dialog without closing setup", async () => {
+	it("no connection: the connect stage shows; Escape closes setup", async () => {
 		await mount();
-		await click(element('[data-testid="setup-key-provider"]'));
-		assert.ok(document.querySelector('[data-testid="setup-key-provider-menu"]'));
-		await click(element('[data-testid="setup-dialog"] h2'));
-		assert.equal(document.querySelector('[data-testid="setup-key-provider-menu"]'), null);
-		assert.ok(document.querySelector('[data-testid="setup-dialog"]'));
-		assert.equal(closed, 0);
-	});
-
-	it("provider trigger still toggles and picking an option still opens the key field", async () => {
-		await mount();
-		await click(element('[data-testid="setup-key-provider"]'));
-		await click(element('[data-testid="setup-key-provider"]'));
-		assert.equal(document.querySelector('[data-testid="setup-key-provider-menu"]'), null);
-		await click(element('[data-testid="setup-key-provider"]'));
-		await click(element('[data-testid="provider-option-openrouter"]'));
-		assert.equal(document.querySelector('[data-testid="setup-key-provider-menu"]'), null);
-		assert.ok(document.querySelector('[data-testid="setup-key-input"]'));
-		assert.equal(closed, 0);
-	});
-
-	it("Escape closes the provider dropdown first, then setup on the next press", async () => {
-		await mount();
-		await click(element('[data-testid="setup-key-provider"]'));
-		await escape();
-		assert.equal(document.querySelector('[data-testid="setup-key-provider-menu"]'), null);
-		assert.ok(document.querySelector('[data-testid="setup-dialog"]'));
-		assert.equal(closed, 0);
+		assert.ok(element('[data-testid="setup-stage-connect"]').textContent?.includes("Sign in to a subscription."));
+		assert.equal(document.querySelector('[data-testid="setup-key-provider"]'), null, "no API-key picker");
 		await escape();
 		assert.equal(closed, 1);
 		assert.equal(document.querySelector('[data-testid="setup-dialog"]'), null);
 	});
 
-	it("a genuine backdrop click closes setup and its open dropdown", async () => {
+	it("a genuine backdrop click closes setup", async () => {
 		await mount();
-		await click(element('[data-testid="setup-key-provider"]'));
 		await click(element('[data-testid="setup-backdrop"]'));
 		assert.equal(closed, 1);
 		assert.equal(document.querySelector('[data-testid="setup-dialog"]'), null);
-		assert.equal(document.querySelector('[data-testid="setup-key-provider-menu"]'), null);
 	});
 
 	it("inside press followed by backdrop release and ancestor click does not dismiss setup", async () => {
@@ -158,7 +132,7 @@ describe("setup polish interactions", () => {
 	});
 
 	it("model and thinking dropdowns keep outside-click dismissal and model guidance uses two sentences", async () => {
-		await mount({ keyed: true });
+		await mount({ connected: true });
 		assert.equal(element('[data-testid="setup-stage-pickers"] > p').textContent, "Pick the model for each tier. All three are required before chats can start.");
 		await click(element('[data-testid="setup-trigger-strong"]'));
 		await click(element('[data-testid="setup-dialog"] h2'));
@@ -173,9 +147,9 @@ describe("setup polish interactions", () => {
 	});
 
 	it("the empty vision list gives the approved next action without an em dash", async () => {
-		await mount({ keyed: true });
+		await mount({ connected: true });
 		await click(element('[data-testid="setup-trigger-vision"]'));
-		assert.ok(element('[data-testid="setup-menu-vision"]').textContent?.includes("No image-capable models. Add a provider key with access to a vision model."));
+		assert.ok(element('[data-testid="setup-menu-vision"]').textContent?.includes("No image-capable models. Sign in to a subscription with a vision model."));
 	});
 
 	it("catalog failure uses the approved two-sentence error", async () => {

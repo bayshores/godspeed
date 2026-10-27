@@ -7,10 +7,10 @@ import type { ModelRole } from "../../../config.ts";
 import {
 	FACTORY_SETTINGS,
 	ModelsNotConfiguredError,
-	ProviderKeyMissingError,
+	ProviderNotConnectedError,
 	ROLE_SLOT,
 	type ModelSlotName,
-	type ProviderKeyMissing,
+	type ProviderNotConnected,
 } from "../../core/settings.ts";
 import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
@@ -724,8 +724,8 @@ export interface ExtractionModels {
 	 *  (null = run). Same injection discipline as the job runner's seam
 	 *  (the agent layer may not read the key store); absent in tests that
 	 *  inject engines directly (test engines never owe a key). A keyless
-	 *  stage refuses with ProviderKeyMissingError BEFORE any batch runs. */
-	providerKeyMissing?: (provider: string, tier: ModelSlotName) => ProviderKeyMissing | null;
+	 *  stage refuses with ProviderNotConnectedError BEFORE any batch runs. */
+	providerNotConnected?: (provider: string, tier: ModelSlotName) => ProviderNotConnected | null;
 }
 
 export interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
@@ -799,8 +799,8 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		override ?? deps.engineFor?.(role);
 	/** The per-need refusal guard: which slot tiers the pipeline's stages
 	 *  found unset (test values count as configured — they ARE engines),
-	 *  and whether a configured stage's provider key is gone (provider-key
-	 *  interlude, 2026-09-25) — both refuse BEFORE any batch runs. */
+	 *  and whether a configured stage's provider is not connected — both
+	 *  refuse BEFORE any batch runs. */
 	function refuseIfStagesUnready(): void {
 		const stages: readonly [ModelRole, PiEngine | undefined][] = [
 			["extractor", stageEngine("extractor", deps.extractor)],
@@ -812,14 +812,14 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			console.info(`[extraction] refused — no model configured for: ${[...missing].join(", ")}`);
 			throw new ModelsNotConfiguredError([...missing]);
 		}
-		// Key-presence parity: first offender surfaces (extractor before
-		// auditor); fixing that key re-gates and the next run surfaces the
+		// Connection parity: first offender surfaces (extractor before
+		// auditor); connecting it re-gates and the next run surfaces the
 		// next offender, if any.
 		for (const [role, engine] of stages) {
-			const refusal = deps.providerKeyMissing?.(engine!.model.provider, ROLE_SLOT[role]);
+			const refusal = deps.providerNotConnected?.(engine!.model.provider, ROLE_SLOT[role]);
 			if (refusal) {
 				console.info(`[extraction] refused — ${JSON.stringify(refusal)}`);
-				throw new ProviderKeyMissingError(refusal.provider, refusal.slots);
+				throw new ProviderNotConnectedError(refusal.provider, refusal.slots);
 			}
 		}
 	}
@@ -1407,7 +1407,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			return stats;
 		} catch (err) {
 			console.error(`[extraction ${id}] notes pipeline failed (${Math.round(performance.now() - t0)}ms):`, err);
-			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderKeyMissingError) throw err;
+			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError) throw err;
 			throw new NotesImportError(err instanceof Error && err.name === "AbortError" ? "aborted" : "failed", mergedStats,
 				err instanceof Error ? err.message : String(err), { cause: err });
 		} finally {
@@ -1427,7 +1427,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			graphStore.upsertSource({ id, filePath: input.filePath, importedAt });
 			return await runNotesExtraction({ id, ...input, importedAt });
 		} catch (err) {
-			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderKeyMissingError) throw err;
+			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError) throw err;
 			throw new NotesImportError("failed", { nodes: 0, chains: 0 }, err instanceof Error ? err.message : String(err), { cause: err });
 		} finally {
 			inFlight.delete(id);

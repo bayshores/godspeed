@@ -23,10 +23,6 @@ export interface JobToolContext {
 	 *  input rides along because the spawn happens MID-STREAM, before
 	 *  onFinish persists the tool part — a transcript scan would race it. */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** Search-provider availability, retained for existing composition seams.
-	 *  Research dispatch does not depend on it: web_fetch is keyless and
-	 *  web_search reports a missing provider as a recoverable tool result. */
-	searchAvailable?: () => boolean;
 }
 
 export const researchInputSchema = Type.Object({
@@ -125,8 +121,7 @@ const PDF_DESCRIPTION =
  * context (chatId + jobStore + the spawn seam), so concurrent chats never
  * share state. chat-handler wires it each turn; tests wire their own.
  *
- * Research remains available without a search-provider key; the role's
- * existing user-toggle filtering still applies outside this registry.
+ * The role's user-toggle filtering applies outside this registry.
  */
 export function jobTools(ctx: JobToolContext): Record<string, AgentTool<any>> {
 	return {

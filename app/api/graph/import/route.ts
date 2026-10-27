@@ -16,8 +16,8 @@
 import { extraction, NotesImportError } from "@/src/server";
 import {
 	ModelsNotConfiguredError,
-	PROVIDER_KEY_MISSING_CODE,
-	ProviderKeyMissingError,
+	PROVIDER_NOT_CONNECTED_CODE,
+	ProviderNotConnectedError,
 	type EmissionStats,
 } from "@/src/core";
 
@@ -31,11 +31,11 @@ interface ImportResult {
 	stats?: EmissionStats;
 	error?: string;
 	/** The machine discriminator when ok:false is a config refusal — the
-	 * BYOK models refusal (owner, 2026-09-22) or the provider-key refusal
-	 * (2026-09-25); the client can open the setup/keys flow off it. */
-	code?: "models_not_configured" | (typeof PROVIDER_KEY_MISSING_CODE);
+	 * BYOK models refusal (owner, 2026-09-22) or the connection refusal;
+	 * the client can open the setup flow off it. */
+	code?: "models_not_configured" | (typeof PROVIDER_NOT_CONNECTED_CODE);
 	missing?: string[];
-	/** The key-refusal specifics (provider_key_missing only). */
+	/** The connection-refusal specifics (provider_not_connected only). */
 	provider?: string;
 	slots?: string[];
 }
@@ -70,13 +70,13 @@ export async function POST(request: Request) {
 					});
 					continue;
 				}
-				if (err instanceof ProviderKeyMissingError) {
+				if (err instanceof ProviderNotConnectedError) {
 					results.push({
 						filePath: file.name,
 						ok: false,
 						requestIndex, outcome: "failed",
 						error: err.envelope.error,
-						code: PROVIDER_KEY_MISSING_CODE,
+						code: PROVIDER_NOT_CONNECTED_CODE,
 						provider: err.envelope.provider,
 						slots: err.envelope.slots,
 					});

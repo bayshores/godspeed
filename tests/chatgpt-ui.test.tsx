@@ -5,7 +5,7 @@ import { test, afterEach } from "node:test";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { useModelCatalog, catalogLimits } from "../components/model-picker.tsx";
-import { useZeroKeys, useStrongKeyless } from "../components/setup-cta.tsx";
+import { useNoConnection, useStrongDisconnected } from "../components/setup-cta.tsx";
 import { notifySettingsSaved } from "../components/settings-signal.ts";
 import { SidebarProvider } from "../components/sidebar.tsx";
 import { ChatGPTConnection, ChatGPTUIProvider } from "../components/settings/chatgpt-connection.tsx";
@@ -19,18 +19,18 @@ const originalFetch = globalThis.fetch;
 let root: Root | undefined, host: HTMLDivElement | undefined;
 function deferred<T>() { let resolve!: (v: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 function body(id: string, ready = true): ModelCatalogResponse {
- return { models: ready ? [{ id, name: id, provider: "chatgpt", input: ["text"], contextWindow: 8192, maxTokens: 1024, reasoning: false, supportedLevels: ["off"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] : [], providers: [{ id: "chatgpt", envVar: "", keyPresent: ready }], slots: { strong: { model: { provider: "chatgpt", id: "explicit-pin" } }, cheap: null, vision: null }, defaults: {} } as ModelCatalogResponse;
+ return { models: ready ? [{ id, name: id, provider: "chatgpt", input: ["text"], contextWindow: 8192, maxTokens: 1024, reasoning: false, supportedLevels: ["off"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] : [], providers: [{ id: "chatgpt", connected: ready }], slots: { strong: { model: { provider: "chatgpt", id: "explicit-pin" } }, cheap: null, vision: null }, defaults: {} } as ModelCatalogResponse;
 }
 let snapshots: Record<string, { catalog?: ModelCatalogResponse; zero: boolean; strong: boolean }> = {};
 function Reader({ id }: { id: string }) {
  const { catalog } = useModelCatalog();
- snapshots[id] = { catalog, zero: useZeroKeys(), strong: useStrongKeyless() };
+ snapshots[id] = { catalog, zero: useNoConnection(), strong: useStrongDisconnected() };
  return <span data-testid={id}>{catalog ? [...catalogLimits(catalog).keys()].join(",") : "unavailable"}</span>;
 }
 async function mount(children: React.ReactNode) { host = document.createElement("div"); document.body.append(host); root = createRoot(host); await act(async () => root!.render(children)); }
 afterEach(async () => { await act(async () => root?.unmount()); host?.remove(); root = undefined; host = undefined; globalThis.fetch = originalFetch; delete window.lh; snapshots = {}; });
 
-test("shared ChatGPT-only readiness admits without API keys; connection invalidation clears every reader and fences old success/error", async () => {
+test("shared ChatGPT-only readiness admits a connected subscription; connection invalidation clears every reader and fences old success/error", async () => {
  const requests: ReturnType<typeof deferred<Response>>[] = [];
  globalThis.fetch = async (input) => { assert.equal(input, "/api/models"); const request = deferred<Response>(); requests.push(request); return request.promise; };
  await mount(<><Reader id="first" /><Reader id="second" /></>);
@@ -39,7 +39,7 @@ test("shared ChatGPT-only readiness admits without API keys; connection invalida
  for (const value of Object.values(snapshots)) { assert.equal(value.zero, false); assert.equal(value.strong, false); assert.equal(value.catalog?.models[0]?.id, "A"); }
  await act(async () => notifySettingsSaved("models"));
  assert.equal(requests.length, 2);
- await act(async () => notifySettingsSaved("keys"));
+ await act(async () => notifySettingsSaved("providers"));
  assert.equal(requests.length, 3);
  for (const value of Object.values(snapshots)) assert.equal(value.catalog, undefined);
  await act(async () => requests[2]!.resolve(Response.json(body("B", false))));

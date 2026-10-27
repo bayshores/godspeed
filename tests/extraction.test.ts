@@ -57,7 +57,7 @@ import {
 	NOTES_EXTRACTOR_INSTRUCTIONS,
 } from "../src/agent/subagents/extraction.ts";
 import { getGraph, simplifyChains } from "../src/core/graph.ts";
-import { ModelsNotConfiguredError, ProviderKeyMissingError, providerKeyMissing, type ModelSlotName } from "../src/core/settings.ts";
+import { ModelsNotConfiguredError, ProviderNotConnectedError, providerNotConnected, type ModelSlotName } from "../src/core/settings.ts";
 import { coverageOf, coverageSlots, messageViewLines } from "../src/core/coverage.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { subscribe } from "../src/core/events.ts";
@@ -555,14 +555,14 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			graphStore: ledgers,
 			extractor,
 			auditor,
-			providerKeyMissing: (provider, tier) => {
+			providerNotConnected: (provider, tier) => {
 				seen.push([provider, tier]);
-				return providerKeyMissing(provider, [tier]);
+				return providerNotConnected(provider, [tier]);
 			},
 		});
 		await assert.rejects(pipeline.runExtraction(chatId), (err: unknown) => {
-			assert.ok(err instanceof ProviderKeyMissingError);
-			assert.equal(err.envelope.code, "provider_key_missing");
+			assert.ok(err instanceof ProviderNotConnectedError);
+			assert.equal(err.envelope.code, "provider_not_connected");
 			assert.equal(err.envelope.provider, extractor.model.provider, "the provider of the keyless engine");
 			assert.deepEqual(err.envelope.slots, ["cheap"], "extractor + auditor are the cheap tier");
 			return true;
@@ -582,10 +582,10 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			graphStore: ledgers,
 			extractor: fauxEngine([]),
 			auditor: fauxEngine([]),
-			providerKeyMissing: (provider, tier) => (calls++ < 1 ? null : providerKeyMissing(provider, [tier])),
+			providerNotConnected: (provider, tier) => (calls++ < 1 ? null : providerNotConnected(provider, [tier])),
 		});
 		await assert.rejects(pipeline.runExtraction(chatId), (err: unknown) => {
-			assert.ok(err instanceof ProviderKeyMissingError, "the auditor's refusal surfaces after the extractor passed");
+			assert.ok(err instanceof ProviderNotConnectedError, "the auditor's refusal surfaces after the extractor passed");
 			return true;
 		});
 		assert.equal(calls, 2, "both stages were checked, in order");
@@ -2360,7 +2360,7 @@ describe("notes import completion and retry reliability", () => {
 		assert.deepEqual(await make(ledgers, submitModel("submit_findings", { propositions: [], chains: [] })).importNotes(input), { nodes: 0, chains: 0 });
 		assert.deepEqual(await make(ledgers).importNotes({ ...input, text: " \n" }), { nodes: 0, chains: 0 });
 		await assert.rejects(createExtractionPipeline({ chatStore, graphStore: ledgers }).importNotes({ ...input, text: "" }), ModelsNotConfiguredError);
-		await assert.rejects(createExtractionPipeline({ chatStore, graphStore: ledgers, extractor: submitModel("submit_findings", NOTES_FINDINGS), auditor: submitModel("submit_review", NOTES_VERDICT), providerKeyMissing: () => providerKeyMissing("openai", ["cheap"]) }).importNotes(input), ProviderKeyMissingError);
+		await assert.rejects(createExtractionPipeline({ chatStore, graphStore: ledgers, extractor: submitModel("submit_findings", NOTES_FINDINGS), auditor: submitModel("submit_review", NOTES_VERDICT), providerNotConnected: () => providerNotConnected("openai", ["cheap"]) }).importNotes(input), ProviderNotConnectedError);
 	});
 
 	it("isolates an ordinary failed chunk, reports partial, and keeps earlier/later merges and usage", async () => {

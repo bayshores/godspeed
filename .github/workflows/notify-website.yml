@@ -10,7 +10,7 @@ permissions: {}
 jobs:
   notify-website:
     if: >-
-      github.repository == 'amosblomqvist/learnharness' &&
+      github.repository == 'amosblomqvist/godspeed' &&
       !github.event.release.draft && !github.event.release.prerelease
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -41,7 +41,7 @@ jobs:
             --header 'Content-Type: application/json' \
             --data "$payload" \
             --output /dev/null --write-out '%{http_code}' \
-            https://api.github.com/repos/amosblomqvist/learnharness-web/dispatches)
+            https://api.github.com/repos/amosblomqvist/godspeed-web/dispatches)
           if [[ "$status" != '204' ]]; then
             printf '::error::Expected dispatch HTTP 204, received %s.\n' "$status"
             exit 1

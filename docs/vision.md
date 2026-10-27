@@ -1,4 +1,4 @@
-# Learning Harness — Vision & Plans
+# godspeed — Vision & Plans
 
 Living document. Started 2026-08-22, capturing the current vision and all agreed decisions. Amend as things evolve.
 

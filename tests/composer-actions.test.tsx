@@ -6,11 +6,11 @@ import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import { ComposerActions, NodePickerControl } from "../components/composer-actions.tsx";
-import { ZeroKeysPill } from "../components/setup-cta.tsx";
+import { ConnectPill } from "../components/setup-cta.tsx";
 import { DraftShell } from "../components/new-session.tsx";
 
 const modelSetup = <button data-testid="setup-cta">Set up your models</button>;
-const keySetup = <ZeroKeysPill inline onOpen={() => {}} />;
+const connectSetup = <ConnectPill inline onOpen={() => {}} />;
 function documentFor(node: React.ReactNode) {
 	return parseHTML(`<html><body>${renderToStaticMarkup(node)}</body></html>`).document;
 }
@@ -20,7 +20,7 @@ describe("composer action row", () => {
 		assert.equal(renderToStaticMarkup(<ComposerActions picker={false} setup={false} />), "");
 	});
 
-	for (const [label, setup] of [["provider key", keySetup], ["models", modelSetup]] as const) {
+	for (const [label, setup] of [["connection", connectSetup], ["models", modelSetup]] as const) {
 		it(`${label}: setup-only stays centered`, () => {
 			const document = documentFor(<ComposerActions setup={setup} />);
 			const row = document.querySelector('[data-testid="composer-actions"]')!;
@@ -70,8 +70,8 @@ describe("composer action row", () => {
 		}
 	});
 
-	it("existing chat callers retain the standalone provider-key pill wrapper", () => {
-		const document = documentFor(<ZeroKeysPill onOpen={() => {}} />);
+	it("existing chat callers retain the standalone connect pill wrapper", () => {
+		const document = documentFor(<ConnectPill onOpen={() => {}} />);
 		const wrapper = document.body.firstElementChild!;
 		assert.equal(wrapper.tagName, "DIV");
 		assert.ok(wrapper.classList.contains("justify-center"));

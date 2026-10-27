@@ -31,15 +31,14 @@ import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
 import { providerEventNote } from "../agent/provider-events.ts";
 import { effectiveSettings, stores } from "./stores.ts";
-import { searchAvailable, searchProvider } from "./search.ts";
-import { providerKeyPresent } from "./keys.ts";
+import { providerConnected } from "./connections.ts";
 import {
 	extractionEnabled,
 	graphToolsEnabled,
 	resolveConversationSpec,
 	resolveRoleSpec,
 } from "../core/settings-resolution.ts";
-import { modelsNotConfigured, providerKeyMissing as providerKeyMissingEnvelope, type ProviderKeyMissing } from "../core/settings.ts";
+import { modelsNotConfigured, providerNotConnected as providerNotConnectedEnvelope } from "../core/settings.ts";
 import { beginTurn, endTurn } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
 import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.ts";
@@ -93,17 +92,12 @@ const jobRunner = createJobRunner({
 	// undefined and the runner refuses the spawn honestly.
 	engineFor: (role) =>
 		resolveEngine(role),
-	// Key-presence gate (provider-key interlude, 2026-09-25): the runner
-	// reads the resolved engine's provider and asks THIS check (the agent
-	// layer may not read the key store); a missing key refuses the spawn
-	// with the 503-envelope family instead of dying mid-run.
-	providerKeyMissing: (provider, tier) =>
-		providerKeyPresent(provider) ? null : providerKeyMissingEnvelope(provider, [tier]),
-	// Search port wave (2026-09-20): the researcher's web_search runs on the
-	// injected port — resolved FRESH per job (key rotations land immediately).
-	// null = honestly unavailable; the dispatch-level drop (below) uses the
-	// same signal so keyless servers never see the research tool at all.
-	searchProvider,
+	// Connection gate: the runner reads the resolved engine's provider and
+	// asks THIS check (the agent layer may not read connection state); an
+	// unconnected provider refuses the spawn with the 503-envelope family
+	// instead of dying mid-run.
+	providerNotConnected: (provider, tier) =>
+		providerConnected(provider) ? null : providerNotConnectedEnvelope(provider, [tier]),
 });
 /** The app's ONE extraction pipeline instance — both front doors share it:
  *  quiz-triggered session runs (turn-service) and notes imports
@@ -116,11 +110,11 @@ export const extraction = createExtractionPipeline({
 	// with the typed ModelsNotConfiguredError. Direct test values still win.
 	engineFor: (role) =>
 		resolveEngine(role),
-	// Key-presence gate (provider-key interlude, 2026-09-25): same check
-	// the job runner gets — a stage engine whose provider key is gone
-	// refuses BEFORE any batch runs (the typed throw), never mid-run.
-	providerKeyMissing: (provider, tier) =>
-		providerKeyPresent(provider) ? null : providerKeyMissingEnvelope(provider, [tier]),
+	// Connection gate: same check the job runner gets — a stage engine whose
+	// provider is not connected refuses BEFORE any batch runs (the typed
+	// throw), never mid-run.
+	providerNotConnected: (provider, tier) =>
+		providerConnected(provider) ? null : providerNotConnectedEnvelope(provider, [tier]),
 });
 
 
@@ -202,12 +196,10 @@ export async function handleChatInput(
 		return Response.json(envelope, { status: 503 });
 	}
 
-	// THE KEY-PRESENCE GATE (provider-key interlude, owner, 2026-09-25): a
-	// pinned model is not enough — its PROVIDER's key must be present, or
-	// the turn dies mid-stream masked to a generic error. Truth is env-first
-	// (providerKeyPresent reads what pi-ai would read at request time), so
-	// an env-shadowed key passes. Same placement discipline as the models
-	// gate: BEFORE beginTurn (no liveness effects) and the write-ahead
+	// THE CONNECTION GATE (API keys removed — subscriptions only): a pinned
+	// model is not enough — its PROVIDER must be a connected subscription,
+	// or the turn dies mid-stream masked to a generic error. Same placement
+	// discipline as the models gate: BEFORE beginTurn (no liveness effects) and the write-ahead
 	// persist (nothing durable changes); wake-pipeline turns ride the same
 	// path. The affected tier is strong — the conversation chain's own tier
 	// (a chat.model override still resolves through it).
@@ -217,8 +209,8 @@ export async function handleChatInput(
 			return Response.json({ error: "Background use is off for this connection. Automatic follow-up remains deferred in its queue." }, { status: 403 });
 		}
 	}
-	if (!providerKeyPresent(conversation.provider)) {
-		const envelope = providerKeyMissingEnvelope(conversation.provider, ["strong"]);
+	if (!providerConnected(conversation.provider)) {
+		const envelope = providerNotConnectedEnvelope(conversation.provider, ["strong"]);
 		console.info(`[chat ${chatId}] turn refused — ${JSON.stringify(envelope)}`);
 		return Response.json(envelope, { status: 503 });
 	}
@@ -429,8 +421,7 @@ export async function handleChatInput(
 							chatId,
 							jobStore: stores.jobStore,
 							spawn: (job, input) => void jobRunner.runJob(job.id, input),
-							searchAvailable,
-						},
+							},
 						...(graphToolsEnabled(effective) ? { graph: { chatStore: stores.chatStore, graphStore: stores.graphStore } } : {}),
 					},
 					agentOpts,
@@ -444,7 +435,6 @@ export async function handleChatInput(
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
 						// The registry drop's signal (2026-09-20): no live engine
 						// = no research tool in the teacher's registry.
-						searchAvailable,
 					},
 					agentOpts,
 				)
@@ -458,7 +448,6 @@ export async function handleChatInput(
 						// needs the same job wiring as the teacher's.
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						searchAvailable,
 						// The map reader (wave 7): the prober reads the learner's
 						// knowledge graph through tools when the gate opens —
 						// graph master switch AND the agent.graphTools toggle.

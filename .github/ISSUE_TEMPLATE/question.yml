@@ -1,5 +1,5 @@
 name: Question
-description: Ask about using LearnHarness.
+description: Ask about using godspeed.
 labels: [question]
 body:
   - type: markdown

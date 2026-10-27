@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { Button } from "@/components/ui/button";
-import { joinDictation, useDictationTarget } from "@/components/dictation";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +38,6 @@ export interface PracticeDockProps {
 	onExpand: () => void;
 	/** text — POST {type:"thinking"} (one lane; the register is read from the text). */
 	onSubmit: (text: string) => void;
-	/** Escape in the thinking field stops dictation (threaded from the page). */
-	onEscape?: () => void;
 	/** Compaction is running for this chat (owner round 14): the thinking
 	 *  POST would block on the server's compaction gate — disable submit
 	 *  and say so in the hint row. The server registry is the real gate;
@@ -48,24 +45,11 @@ export interface PracticeDockProps {
 	compactionRunning?: boolean;
 }
 
-export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmit, onEscape, compactionRunning = false }: PracticeDockProps) {
+export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmit, compactionRunning = false }: PracticeDockProps) {
 	const [thinking, setThinking] = useState("");
-	// Ref MIRRORS the field ("nothing gets lost", the question-dock
-	// discipline): a submit resuming after `await finishDictation()` reads
-	// the tail, never a stale closure.
+	// Ref MIRRORS the field: the window-level Enter submit reads the
+	// current trace, never a stale closure.
 	const thinkingRef = useRef("");
-
-	useDictationTarget(
-		useCallback(
-			(t: string) => {
-				const v = joinDictation(thinkingRef.current, t);
-				thinkingRef.current = v;
-				setThinking(v);
-			},
-			[],
-		),
-		true,
-	);
 
 	const submit = () => {
 		if (compactionRunning) return;
@@ -76,8 +60,8 @@ export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmi
 		onSubmit(text);
 	};
 
-	/* ENTER SUBMITS FROM ANYWHERE (owner round 6, 2026-10-05): dictation
-	 * means the field is often never focused — the window-level Enter
+	/* ENTER SUBMITS FROM ANYWHERE (owner round 6, 2026-10-05): the
+	 * window-level Enter
 	 * (typing surfaces and buttons excluded) submits the trace. Mounted
 	 * while the dock is — collapsed bar included (the trace survives). */
 	useEnterSubmits(submit);
@@ -128,12 +112,11 @@ export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmi
 						setThinking(e.target.value);
 					}}
 					onKeyDown={(e) => {
-						// Esc ends dictation — stopPropagation claims it (the
-						// keyboard machine) so the window chain doesn't also fire.
-						if (e.key === "Escape" && onEscape) {
+						// Esc in the field is the field's — stopPropagation
+						// claims it so the window chain doesn't also fire.
+						if (e.key === "Escape") {
 							e.preventDefault();
 							e.stopPropagation();
-							onEscape();
 							return;
 						}
 						// Enter SENDS — the single lane (owner round 2, 2026-10-05);

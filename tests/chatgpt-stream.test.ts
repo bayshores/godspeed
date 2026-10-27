@@ -58,7 +58,7 @@ test("catalog intersects supported capabilities, without inventing model limits"
 
 test("alias resolves only OAuth; native Responses body is stateless/namespaced, image/history preserved and logical output retained", async () => {
 	requests = [];
-	const tool = { type: "function_call", id: "fc_scratch", call_id: "call_scratch", name: "scratch_tool", namespace: "learnharness", arguments: '{"value":"yes"}', status: "completed" };
+	const tool = { type: "function_call", id: "fc_scratch", call_id: "call_scratch", name: "scratch_tool", namespace: "godspeed", arguments: '{"value":"yes"}', status: "completed" };
 	const reasoning = { type: "reasoning", id: "rs_scratch", summary: [], encrypted_content: "scratch-encrypted-reasoning" };
 	responseEvents = [{ type: "response.created", response: { id: "resp_scratch" } }, { type: "response.output_item.added", output_index: 0, item: reasoning }, { type: "response.output_item.done", output_index: 0, item: reasoning }, { type: "response.output_item.added", output_index: 1, item: tool }, { type: "response.output_item.done", output_index: 1, item: tool }, complete([reasoning, tool])];
 	const engine = piEngineForSpec({ provider: "chatgpt", id: model.id }, false);
@@ -76,7 +76,7 @@ test("alias resolves only OAuth; native Responses body is stateless/namespaced, 
 	assert.equal(body.input[1].content[1].type, "input_image");
 	assert.equal(body.tools[0].type, "namespace"); assert.equal(body.tools[0].tools[0].name, "scratch_tool");
 	const call = result.content.find((block) => block.type === "toolCall")!;
-	assert.equal(call.id, "call_scratch|fc_scratch"); assert.equal(call.namespace, "learnharness");
+	assert.equal(call.id, "call_scratch|fc_scratch"); assert.equal(call.namespace, "godspeed");
 	const thinking = result.content.find((block) => block.type === "thinking")!;
 	assert.equal(thinking.thinkingSignature, JSON.stringify(reasoning));
 	const history = normalizeContext({ messages: [...context().messages, result, { role: "toolResult", toolCallId: call.id, toolName: call.name, isError: false, content: [{ type: "text", text: "Scratch tool result" }], timestamp: 2 }] });
@@ -84,7 +84,7 @@ test("alias resolves only OAuth; native Responses body is stateless/namespaced, 
 	await engine.streamFn(engine.model, history).result();
 	const replay = requests[1]!.body.input;
 	assert(replay.some((item: any) => item.encrypted_content === "scratch-encrypted-reasoning"));
-	assert(replay.some((item: any) => item.type === "function_call" && item.id === "fc_scratch" && item.namespace === "learnharness"));
+	assert(replay.some((item: any) => item.type === "function_call" && item.id === "fc_scratch" && item.namespace === "godspeed"));
 	assert(replay.some((item: any) => item.type === "function_call_output" && item.call_id === "call_scratch"));
 });
 

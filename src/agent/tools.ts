@@ -268,8 +268,6 @@ export interface ProberToolContext extends ProbeDoneContext {
 	jobStore: JobStore;
 	/** Fire the background runner for a freshly created job. */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** Retained search-status seam; research dispatch is available keylessly. */
-	searchAvailable?: () => boolean;
 	/** The prober's graph-map reader (wave 7): present = the two map tools
 	 *  (list_sessions / list_propositions) are registered. The composition
 	 *  root passes it only when graphToolsEnabled(effective) — the graph
@@ -297,7 +295,6 @@ export function createProberTools(
 		chatId: ctx.chatId,
 		jobStore: ctx.jobStore,
 		spawn: ctx.spawn,
-		searchAvailable: ctx.searchAvailable,
 	});
 	// Quizzing mechanics (owner 2026-09-27): free-recall swaps the probe
 	// quiz for the probe explain — one quizzing tool at a time, whichever
@@ -330,8 +327,7 @@ export function createProberTools(
 				// research + pdf are ALWAYS available in every phase — the
 				// prober can verify facts or read learner PDFs while assessing.
 				// demo/visual stay teach-phase-only (they need the lesson's plan
-				// context). Same user-toggle filtering as the teacher; research
-				// remains available without a search-provider key.
+				// context). Same user-toggle filtering as the teacher.
 				...(jobs.research ? { research: jobs.research } : {}),
 				pdf: jobs.pdf!,
 				// The map reader (wave 7): present only when the settings gate
@@ -398,8 +394,6 @@ export interface TeacherToolContext extends PlanToolContext {
 	 *  rides along — the spawn fires mid-stream, before the tool part is
 	 *  persisted to the transcript (a transcript scan would race it). */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** Retained search-status seam; research dispatch is available keylessly. */
-	searchAvailable?: () => boolean;
 }
 
 /**
@@ -458,7 +452,7 @@ export function createTeacherTools(
 			find: findTool,
 			grep: grepTool,
 			...planTools(ctx),
-			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn, searchAvailable: ctx.searchAvailable }),
+			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn }),
 		},
 		withoutMechanics(enabled),
 		),

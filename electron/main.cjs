@@ -1,10 +1,10 @@
 /**
- * LearnHarness — the Electron shell (wrapper milestone, 2026-09-17).
+ * godspeed — the Electron shell (wrapper milestone, 2026-09-17).
  *
  * What this process is and is not:
  *   IS:  a thin launcher + security guard around the app's real server —
  *        `next build`'s standalone server.js (Next 16), spawned as a child
- *        on 127.0.0.1 with the BYOK auth file and the LH_DATA_DIR seam.
+ *        on 127.0.0.1 with the LH_DATA_DIR seam.
  *   NOT: a host for any app logic. Everything — teacher turns, extraction,
  *        the graph — runs in the Next server, unchanged.
  *
@@ -16,12 +16,9 @@
  *     read-only and native .node/dylib can't dlopen from one);
  *   - all mutable state under userData (never inside the .app bundle —
  *     translocated apps are read-only);
- *   - keys ride the child's ENV, never argv; auth.json (BYOK) is a flat
- *     {VAR: value} JSON map, plaintext, mode 0600 — server-managed since
- *     the auth-keys wave (2026-09-19): the child reads/writes it DIRECTLY
- *     (LH_AUTH_FILE below) and reflects values into its own env. The old
- *     spawn-time env injection retired with that wave — a copy made here
- *     would shadow every settings-page key change until restart.
+ *   - secrets ride the child's ENV, never argv. There are no API keys:
+ *     models come only from subscription sign-ins, which this shell owns
+ *     (chatgpt.cjs / subscriptions.cjs) and serves to the child over IPC.
  */
 
 const { app, BrowserWindow, Menu, ipcMain, session, shell } = require("electron");
@@ -42,16 +39,15 @@ const path = require("node:path");
 // renderer owns the number; this is the IPC widen target).
 const SIDEBAR_AUTOCLOSE = 928;
 
-const PRODUCT_NAME = "LearnHarness";
+const PRODUCT_NAME = "godspeed";
 
 // APP NAME → userData (owner, 2026-10-10): the Application Support dir is
-// exactly "LearnHarness" in dev AND packaged. Packaged Electron would
+// exactly "godspeed" in dev AND packaged. Packaged Electron would
 // otherwise derive it from package.json "name" (now lowercase
-// "learnharness"), and productName metadata alone doesn't reach app.name.
+// "godspeed"), and productName metadata alone doesn't reach app.name.
 // Must run before the LH_DEV_URL suffix below — dev becomes
-// "LearnHarness-dev".
+// "godspeed-dev".
 app.setName(PRODUCT_NAME);
-const AUTH_FILE = () => path.join(app.getPath("userData"), "auth.json");
 const DATA_DIR = () => path.join(app.getPath("userData"), "data");
 
 /** The packaged standalone server (extraResources → Resources/server).
@@ -112,7 +108,7 @@ if (process.argv.includes("--browser-service")) {
 	// Dev shell (LH_DEV_URL) runs BESIDE the packaged app, not instead of it:
 	// its own userData so (a) the single-instance lock — checked below — doesn't
 	// silently kill it, and (b) it never reads/writes the real app's
-	// localStorage, auth.json, or logs. Must run before the lock check.
+	// localStorage or logs. Must run before the lock check.
 	if (process.env.LH_DEV_URL) {
 		app.setPath("userData", `${app.getPath("userData")}-dev`);
 	}
@@ -169,12 +165,27 @@ function freePort() {
 	});
 }
 
-/** BYOK keys: auth.json in userData, flat {VAR: value} map, 0600 —
- *  SERVER-MANAGED since the auth-keys wave (2026-09-19). This shell no
- *  longer reads or injects it: the child gets LH_AUTH_FILE below and does
- *  its own read/reflect/write, so a key saved in the settings page takes
- *  effect on the next model call — no restart. Real environment variables
- *  still win over the file inside the child (its documented rule). */
+/** Outside agents (MCP) connect to the server directly, so a stable port keeps
+ *  their saved setup working across launches. Taken → any free port; the real
+ *  address is always in <data>/mcp-endpoint.json and Settings → Outside agents. */
+const PREFERRED_PORT = 47613;
+function preferredPort() {
+	return new Promise((resolve) => {
+		const srv = net.createServer();
+		srv.once("error", () => resolve(freePort()));
+		srv.listen(PREFERRED_PORT, "127.0.0.1", () => srv.close(() => resolve(PREFERRED_PORT)));
+	});
+}
+
+/** Tell the MCP connector (integrations/claude-code) where this launch's server is. */
+function writeMcpEndpoint(baseUrl) {
+	try {
+		fs.mkdirSync(DATA_DIR(), { recursive: true });
+		fs.writeFileSync(path.join(DATA_DIR(), "mcp-endpoint.json"), JSON.stringify({ url: new URL("/api/mcp", baseUrl).toString() }) + "\n");
+	} catch (err) {
+		log(`could not write mcp-endpoint.json: ${err}`);
+	}
+}
 
 function log(line) {
 	const stamp = new Date().toISOString();
@@ -216,10 +227,6 @@ function startServer(port) {
 					PORT: String(port),
 					HOSTNAME: "127.0.0.1", // the server defaults to 0.0.0.0 — never
 					LH_DATA_DIR: DATA_DIR(),
-					// The auth/keys store — the child reads AND writes this file itself
-					// (no env injection anymore: a spawn-time copy would shadow every
-					// settings-page key change until restart; env wins over file).
-					LH_AUTH_FILE: AUTH_FILE(),
 					LH_DESKTOP_SERVER: "1",
 					LH_DESKTOP_API_SECRET: desktopAPISecret,
 				},
@@ -282,8 +289,7 @@ function killServer() {
 /** Security posture (all defaults asserted explicitly; the guards are the
  *  checklist's own recommendations for localhost-app shells):
  *  - deny-by-default permission handler allowing only our loopback origin
- *    (groundwork for the mic/STT milestone — Electron auto-approves by
- *    default, we do not);
+ *    (Electron auto-approves by default, we do not);
  *  - will-navigate pinned to the app origin; window.open always denied —
  *    external links go to the real browser via shell.openExternal. */
 function createWindow(url) {
@@ -341,15 +347,14 @@ function createWindow(url) {
 	trustedAppWindows.add(win);
 	win.once("closed", () => trustedAppWindows.delete(win));
 	const allowedOrigin = () => new URL(url).origin;
-	// Deny-by-default; the ONLY grants are media (mic/STT groundwork) and
-	// clipboard-sanitized-write — the copy affordances in the transcript
+	// Deny-by-default; the ONLY grants are clipboard-sanitized-write — the copy affordances in the transcript
 	// (md-blocks copy corners) call navigator.clipboard.writeText(), which
 	// Chromium only honors with that permission (chrome-melt tweaks wave,
 	// 2026-09-19; before this grant every copy silently rejected). Still
 	// loopback-origin only — Electron's default is auto-approve-everything,
 	// and we do not ship that.
 	// "local-fonts": the appearance section's reading-font picker (2026-09-26).
-	const allowedPermissions = new Set(["media", "clipboard-sanitized-write", "local-fonts"]);
+	const allowedPermissions = new Set(["clipboard-sanitized-write", "local-fonts"]);
 	const fromOwnOrigin = (origin, permission) =>
 		origin === allowedOrigin() && allowedPermissions.has(permission);
 	session.defaultSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
@@ -650,7 +655,7 @@ async function main() {
 	// spawn, no packaging, full HMR. The rest of this shell still applies
 	// (guards, menu, single instance).
 	const devUrl = process.env.LH_DEV_URL;
-	const url = devUrl ?? `http://127.0.0.1:${await freePort()}`;
+	const url = devUrl ?? `http://127.0.0.1:${await preferredPort()}`;
 	if (!devUrl) {
 		desktopAPISecret = randomBytes(32).toString("hex");
 		const ownedOrigin = new URL(url).origin;
@@ -677,19 +682,20 @@ async function main() {
 		});
 		await subscriptions.ready;
 		log(`starting server: ${serverEntry()}`);
-		log(`data dir: ${DATA_DIR()}${fs.existsSync(AUTH_FILE()) ? " · auth.json: present" : " · auth.json: ABSENT (no BYOK keys yet)"}`);
+		log(`data dir: ${DATA_DIR()}`);
 		await startServer(new URL(url).port);
 		await waitUntilUp(url);
 		log(`server up: ${url}`);
 	} else {
 		log(`dev mode: ${devUrl}`);
 	}
+	writeMcpEndpoint(url);
 
 	// Renderer controls contain no token/URL/code operation. The separate server
 	// child is the only recipient of credential leases over inherited IPC.
 	ipcMain.handle("lh:chatgpt:control", async (event, command) => {
 		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) return { error: "Untrusted desktop request." };
-		if (!chatgpt || !serverProcess?.connected) return { available: false, pending: false, activeId: null, accounts: [], error: "ChatGPT sign-in requires the desktop app's private server connection. Browser-only and externally launched development servers keep API-key connections." };
+		if (!chatgpt || !serverProcess?.connected) return { available: false, pending: false, activeId: null, accounts: [], error: "ChatGPT sign-in requires the desktop app's private server connection." };
 		return chatGPTControl(command, chatgpt);
 	});
 

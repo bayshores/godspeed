@@ -205,7 +205,7 @@ describe("the practice agent", () => {
 	});
 
 	it("THE RARELY-NEEDED SET (owner round 10): jobs + map readers compose in when their roots are passed", () => {
-		const jobs = { chatId: "c1", jobStore: null as never, spawn: (() => {}) as never, searchAvailable: () => false };
+		const jobs = { chatId: "c1", jobStore: null as never, spawn: (() => {}) as never };
 		const graph = { chatStore: null as never, graphStore: null as never };
 		const tools = practiceTools({ ...ctxOf([]), jobs, graph });
 		// Both jobs remain available keylessly; the prober's two map
@@ -215,8 +215,6 @@ describe("the practice agent", () => {
 			Object.keys(tools).sort(),
 			["conclude", "find", "grep", "list_propositions", "list_sessions", "ls", "pdf", "problem", "read", "research"],
 		);
-		const withSearch = practiceTools({ ...ctxOf([]), jobs: { ...jobs, searchAvailable: () => true }, graph });
-		assert.ok(withSearch.research, "a live engine also keeps research");
 	});
 
 	it("constructs with exactly the two practice tools", () => {

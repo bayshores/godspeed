@@ -67,19 +67,16 @@ export interface ModelCatalogResponse {
 	 *  granularity; effectiveSettings().models verbatim, NULL per unset
 	 *  tier. */
 	slots: SlotPins;
-	/** Providers with a PRESENT key, and which env var gates each — the
+	/** The subscription sign-ins and whether each is connected — the
 	 *  model slots wave's federation surface (2026-09-20): the picker lists
-	 *  models from these providers' pi-ai catalogs only. Keyless providers
-	 *  are simply absent (the Keys page is the discovery surface, same
-	 *  discipline as the search engines). */
+	 *  models from the CONNECTED subscription providers only (ChatGPT,
+	 *  GitHub Copilot, Grok — API keys were removed). */
 	providers: CatalogProvider[];
 }
 
-/** One row of the providers surface. */
+/** One row of the providers surface: a subscription sign-in. */
 export interface CatalogProvider {
 	id: string;
-	/** The env var whose presence federates this provider in. */
-	envVar: string;
-	/** Whether that var is currently present (env or auth file). */
-	keyPresent: boolean;
+	/** Whether the subscription is currently signed in. */
+	connected: boolean;
 }

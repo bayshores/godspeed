@@ -9,13 +9,8 @@
 	       one exception modern Electron requires;
 	     - allow-unsigned-executable-memory: DROPPED 2026-10-08 — a 2019-era
 	       Electron relic, not needed by modern V8/Electron (44), and it
-	       weakens the hardened runtime for no benefit;
-	     - audio-input: macOS mic for the STT milestone (the Developer-ID
-	       variant — com.apple.security.device.microphone is the App-Store
-	       sandbox variant and does NOT apply to Developer ID apps). -->
+	       weakens the hardened runtime for no benefit. -->
 	<key>com.apple.security.cs.allow-jit</key>
-	<true/>
-	<key>com.apple.security.device.audio-input</key>
 	<true/>
 </dict>
 </plist>

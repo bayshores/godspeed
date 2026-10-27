@@ -17,7 +17,7 @@ test("web ChatGPT reserves a new tab before async login, navigates only to an op
 	window.open = (() => { calls.push("tab"); return tab; }) as unknown as typeof window.open;
 	const safe = { available: true, pending: true, allowBackgroundUse: true, activeId: null, accounts: [], error: null };
 	globalThis.fetch = async (url, options) => {
-		assert.equal(url, "/api/subscriptions"); assert.equal(new Headers(options?.headers).get("x-learnharness-subscriptions"), "1");
+		assert.equal(url, "/api/subscriptions"); assert.equal(new Headers(options?.headers).get("x-godspeed-subscriptions"), "1");
 		if (!options?.method) return Response.json({ chatgpt: safe, native: [] });
 		calls.push("login"); assert.equal(tab.opener, null);
 		assert.deepEqual(JSON.parse(String(options.body)), { providerId: "chatgpt", op: "login" });
@@ -70,12 +70,12 @@ test("web notices identify the server machine and same-machine ChatGPT sign-in; 
 	const { CHATGPT_NOTICE, chatGPTNotice } = await import("../components/settings/chatgpt-connection.tsx");
 	const { subscriptionNotice, subscriptionDisconnectCopy } = await import("../components/settings/subscription-connections.tsx");
 	assert.equal(chatGPTNotice(), CHATGPT_NOTICE); assert(CHATGPT_NOTICE.includes("on this device"));
-	assert(chatGPTNotice(true).includes("on the machine running LearnHarness"));
+	assert(chatGPTNotice(true).includes("on the machine running godspeed"));
 	assert(chatGPTNotice(true).endsWith("Complete ChatGPT sign-in in a browser on that same machine."));
 	for (const label of ["GitHub Copilot", "Grok"]) {
 		assert(subscriptionNotice(label).includes("stored locally")); assert(subscriptionDisconnectCopy(label).includes("from this device"));
-		assert(subscriptionNotice(label, true).includes("on the machine running LearnHarness"));
-		assert(subscriptionDisconnectCopy(label, true).includes("from the machine running LearnHarness"));
+		assert(subscriptionNotice(label, true).includes("on the machine running godspeed"));
+		assert(subscriptionDisconnectCopy(label, true).includes("from the machine running godspeed"));
 	}
 });
 

@@ -112,7 +112,7 @@ export function MermaidOverlay({
 
 	// Esc closes — claimed at the document level (THE ONE-ESC LAW, owner
 	// keyboard round 2026-10-06): one Esc, one action; the window chain
-	// (dictation → abort) never fires under a surfaced layer.
+	// (abort) never fires under a surfaced layer.
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {

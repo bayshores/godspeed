@@ -642,8 +642,8 @@ export function ChainTableOverlay({
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				// THE ONE-ESC LAW (owner, keyboard round 2026-10-06): claim
-				// at the document level — the window chain (dictation →
-				// abort) must not also act. One Esc, one action.
+				// at the document level — the window chain (abort) must
+				// not also act. One Esc, one action.
 				e.preventDefault();
 				e.stopPropagation();
 				onClose();

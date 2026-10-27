@@ -18,10 +18,11 @@ const nextConfig: NextConfig = {
 	// developer's session data inside it.
 	//
 	// SECRETS (2026-10-08, caught in the payload audit): the same sweep
-	// ships the repo-root auth.json — the DEV BYOK key store — byte-identical
-	// into the DMG (the packaged app never reads it: the shell passes
-	// LH_AUTH_FILE → userData). Excluded here; build-server.mjs also REFUSES
-	// to package any standalone still containing it. .env* belt-and-braces
+	// ships repo-root secrets byte-identical into the DMG: the web/dev
+	// subscription credential files, and a legacy auth.json (the retired
+	// API-key store — old checkouts may still hold one). Excluded here;
+	// build-server.mjs also REFUSES to package any standalone still
+	// containing them. .env* belt-and-braces
 	// the same class. Next also copies loaded bare .env after tracing;
 	// the build-server refusal remains required even with these excludes.
 	//

@@ -94,8 +94,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
 		const bridge = window.lh?.chatgpt;
 		if (!bridge) return;
-		const off = bridge.onChange(() => notifySettingsSaved("keys"));
-		notifySettingsSaved("keys"); // cover changes missed before this root-lifetime subscription
+		const off = bridge.onChange(() => notifySettingsSaved("providers"));
+		notifySettingsSaved("providers"); // cover changes missed before this root-lifetime subscription
 		return off;
 	}, []);
 	// Start closed so server and client first-render agree (no hydration
@@ -738,7 +738,7 @@ function SessionsSidebar() {
 							// the app per the Enter law; the query stays for
 							// re-searching). Esc leaves the search (owner,
 							// keyboard wave): blur back to normal, and claim the
-							// key so the window Esc chain (dictation / abort)
+							// key so the window Esc chain (abort)
 							// doesn't also fire.
 							onKeyDown={(e) => {
 								if (e.key === "Escape") {

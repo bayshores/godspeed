@@ -1,7 +1,7 @@
 "use client";
 /**
  * The Agent section (settings-app wave): the THREE MODEL SLOTS, the tool
- * toggles + the search-engine preference, and the prompt override
+ * toggles, and the prompt override
  * switches — three GROUPS (owner, 2026-09-20: clear separation — Models /
  * Tools / System prompts).
  *
@@ -11,25 +11,18 @@
  * = the five workhorse roles, Vision = Visual maker + PDF reader. Each
  * slot row carries the shared dropdown (fuzzy search, arrow-walk, Enter
  * pick — ModelMenuList/ThinkingMenuList from ./model-menu.tsx) over the
- * FEDERATED catalog (/api/models serves only keyed providers, fresh per
- * call — saving a key in Keys immediately widens this picker). The
+ * FEDERATED catalog (/api/models serves only connected subscriptions,
+ * fresh per call — signing in under Providers immediately widens this
+ * picker). The
  * vision slot filters to image-capable models (Model.input). The slots
  * live in the `models` settings section (PUT /api/settings/models — slot
  * pins are engine-level, not per-chat); the rest of the section writes
  * the `agent` section as before. Resolution per tier: slot override →
  * factory pin (GET /api/models' `slots` — resolved, cannot drift from
  * what runs). The Default row clears the slot override; a stored id stays
- * VISIBLE even when its provider's key lapsed out of the catalog — a
+ * VISIBLE even when its provider was signed out of the catalog — a
  * trigger showing "Default" over a live override would lie about the
  * record.
- *
- * Search engine (search wave, 2026-09-20, owner: no default — an engine
- * is live iff its key is present; with a key the engine AUTO-activates,
- * the explicit choice is only a preference between live engines): a row
- * in the Tools group, Tavily / Brave via the same shared-menu look, with
- * the live reason line from /api/search. No engine key at all → the row
- * grays whole-row (a choice without a key would only BLOCK the other
- * engine's auto-activation).
  *
  * Tools — the owner's final list (2026-09-19): research, demo, visual, pdf.
  * Absent key = enabled in the schema; the UI writes explicit booleans for
@@ -82,9 +75,6 @@ const SLOT_META: Record<ModelSlotName, { label: string; roster: string }> = {
 	cheap: { label: "Cheap", roster: "The assistants that research, build demos, and grade your work" },
 	vision: { label: "Vision", roster: "The assistants that draw and read PDFs" },
 };
-
-/** The search engines this wave ships (src/core/search.ts) + their labels. */
-const SEARCH_ENGINES = ["tavily", "brave"] as const;
 
 /** The owner's final toggleable-tool list (confirm with the user before
  *  changing — the Teacher stream settled this 2026-09-19). */
@@ -157,21 +147,6 @@ export function composeSlotModel(
 	return next;
 }
 
-/** Compose: the search-engine preference. null = the explicit pin is
- *  REMOVED (auto-activation takes over — the schema's resting state).
- *  Pure — exported for tests. */
-export function composeSearchEngine(
-	agent: AgentSettings | undefined,
-	engine: (typeof SEARCH_ENGINES)[number] | null,
-): AgentSettings {
-	if (engine === null) {
-		if (!agent?.search) return { ...agent };
-		const { search: _drop, ...rest } = agent;
-		return { ...rest } as AgentSettings;
-	}
-	return { ...agent, search: { engine } };
-}
-
 /** The indicator under a row whose override IS the version in use (owner
  *  ruling, refined 2026-09-26: the small text states WHICH VERSION IS
  *  IN USE — "Your version is in use" when the switch is on, and NOTHING
@@ -233,7 +208,6 @@ function MenuTrigger({
 	open,
 	onClick,
 	widthClass,
-	disabled,
 }: {
 	value: string;
 	/** What the trigger shows when there is no override ("Default"). */
@@ -247,8 +221,6 @@ function MenuTrigger({
 	 *  the model trigger takes the same width as a MINIMUM — its values
 	 *  genuinely vary in length. */
 	widthClass: string;
-	/** The no-key search state grays the whole row; the trigger follows. */
-	disabled?: boolean;
 }) {
 	return (
 		<button
@@ -256,12 +228,8 @@ function MenuTrigger({
 			aria-label={ariaLabel}
 			aria-expanded={open}
 			data-testid={testid}
-			onClick={() => {
-				if (!disabled) onClick();
-			}}
-			className={`flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground transition-colors ${
-				disabled ? "cursor-not-allowed" : "hover:border-muted-foreground/50"
-			} ${widthClass}`}
+			onClick={onClick}
+			className={`flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 ${widthClass}`}
 		>
 			<span className="min-w-0 flex-1 truncate">{value || emptyLabel}</span>
 			<span aria-hidden className="text-muted-foreground">
@@ -307,25 +275,13 @@ export function AgentSection({
 	/** The three tiers' resolved pins — GET /api/models `slots`. The rows'
 	 *  Default hints and thinking lists resolve from it. */
 	const [slots, setSlots] = useState<ModelsBody["slots"] | null>(null);
-	/** The live search state (/api/search) — the row's reason line. */
-	const [search, setSearch] = useState<{ available: boolean; engine: string | null; reason: string } | null>(null);
-	/** Which search engines have a key (/api/keys) — the no-keys-anywhere
-	 *  state grays the row; per-engine marks ride the menu rows. */
-	const [engineKeys, setEngineKeys] = useState<Partial<Record<(typeof SEARCH_ENGINES)[number], boolean>>>({});
 	const [prompts, setPrompts] = useState<{ prober: SegmentInfo[]; teacher: SegmentInfo[] } | null>(null);
 	const [openSegment, setOpenSegment] = useState<string | null>(null);
 	const [segmentDraft, setSegmentDraft] = useState<Record<string, string>>({});
 	const [segmentStatus, setSegmentStatus] = useState<string | null>(null);
-	/** One open dropdown for the whole section: which slot (or the search
-	 *  row), which kind. */
-	const [openMenu, setOpenMenu] = useState<{ target: ModelSlotName | "search"; kind: "model" | "thinking" | "engine" } | null>(null);
+	/** One open dropdown for the whole section: which slot, which kind. */
+	const [openMenu, setOpenMenu] = useState<{ target: ModelSlotName; kind: "model" | "thinking" } | null>(null);
 	const menuAnchorRef = useRef<HTMLSpanElement>(null);
-
-	const refreshSearch = () =>
-		fetch("/api/search")
-			.then((r) => r.json())
-			.then((body: { available: boolean; engine: string | null; reason: string }) => setSearch(body))
-			.catch(() => setSearch(null));
 
 	/** Re-read the prompt-segment view — the signal seam for the
 	 *  2026-09-26 state-echo fix: the view's `enabled` flags DERIVE from
@@ -341,9 +297,8 @@ export function AgentSection({
 			.catch(() => {});
 	}, []);
 
-	// The catalog (federated: keyed providers only), the resolved slots,
-	// the prompt segments, and the search engines' key presence — one
-	// fetch each per section mount. The models read ALSO re-runs on the
+	// The catalog (federated: connected subscriptions only), the resolved
+	// slots, and the prompt segments — one fetch each per section mount. The models read ALSO re-runs on the
 	// cross-surface signal (fix wave: another surface's write re-reads
 	// into the slot rows live).
 	const modelsRequest = useRef(0);
@@ -362,7 +317,7 @@ export function AgentSection({
 	}, []);
 
 	useSettingsSaved((section) => {
-		if (section === "models" || section === "keys") readModels(section === "keys");
+		if (section === "models" || section === "providers") readModels(section === "providers");
 		// THE state-echo root cause: the prompt switches write through the
 		// agent section, but this view (the toggles' truth) never re-read —
 		// the settings-saved law (every reader re-reads) was missing this
@@ -377,27 +332,8 @@ export function AgentSection({
 			.then((r) => r.json())
 			.then((body: { prober: SegmentInfo[]; teacher: SegmentInfo[] }) => setPrompts(body))
 			.catch(() => setPrompts(null));
-		fetch("/api/keys")
-			.then((r) => r.json())
-			.then((body: { keys: { id: string; present: boolean }[] }) => {
-				const present: Partial<Record<(typeof SEARCH_ENGINES)[number], boolean>> = {};
-				for (const id of SEARCH_ENGINES) {
-					const envVar = id === "tavily" ? "TAVILY_API_KEY" : "BRAVE_API_KEY";
-					present[id] = body.keys.some((k) => k.id === envVar && k.present);
-				}
-				setEngineKeys(present);
-			})
-			.catch(() => {});
 		return () => { modelsMounted.current = false; modelsRequest.current++; };
 	}, []);
-
-	// The reason line re-reads /api/search AFTER an engine write lands —
-	// the write updates the `agent` prop (the dialog's record mirror), so
-	// keying on the pin avoids the race where the fetch beat the PUT and
-	// the hint contradicted the trigger it sits under.
-	useEffect(() => {
-		refreshSearch();
-	}, [agent?.search?.engine]);
 
 	// The dropdown contract (the chat model selector's, mirrored): any
 	// click outside the open menu — or an Esc — closes it. Esc is CLAIMED
@@ -472,30 +408,6 @@ export function AgentSection({
 		readPrompts();
 		setSegmentStatus("Deleted");
 	}
-
-		/** The search-engine menu row — label + the quiet live-key mark. */
-	const engineOption = (
-		id: (typeof SEARCH_ENGINES)[number] | "auto",
-		label: string,
-		active: boolean,
-		live: boolean | null,
-		onPick: () => void,
-	) => (
-		<button
-			key={id}
-			type="button"
-			data-testid={`engine-option-${id}`}
-			onClick={onPick}
-			className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted ${
-				active ? "bg-muted/60 text-card-foreground" : "text-card-foreground"
-			}`}
-		>
-			<span>{label}</span>
-			<span className="text-muted-foreground">
-				{live === null ? (active && <span aria-hidden>✓</span>) : live ? <span aria-hidden>✓ key</span> : <span aria-hidden>· no key</span>}
-			</span>
-		</button>
-	);
 
 	const segmentRow = (info: SegmentInfo) => {
 		const fileExists = info.overrideText !== null;
@@ -728,8 +640,7 @@ export function AgentSection({
 				    FIRST row of the group — its subject is the map, its
 				    mechanism is agent capability, so it lives in Tools but
 				    NOT in the tool-toggles list. Its own agent-section key
-				    (agent.graphTools), the search-row hint discipline: a
-				    smaller line under it explaining what it is — this
+				    (agent.graphTools), with a smaller line under it explaining what it is — this
 				    connects prior sessions' knowledge into new ones. */}
 				{(() => {
 					const graphOn = graph?.enabled ?? true;
@@ -802,51 +713,6 @@ export function AgentSection({
 						/>
 					</SettingsRow>
 				))}
-				{(() => {
-					const engine = agent?.search?.engine ?? null;
-					const anyKey = engineKeys.tavily === true || engineKeys.brave === true;
-					const open = openMenu?.target === "search";
-					return (
-						<SettingsRow
-							label="Search engine"
-							hint={search?.reason ?? undefined}
-							testid="search-engine-row"
-							dimmed={!anyKey}
-						>
-							<span ref={open ? menuAnchorRef : undefined} className="relative flex items-center gap-2">
-								<MenuTrigger
-									value={engine === "tavily" ? "Tavily" : engine === "brave" ? "Brave" : ""}
-									emptyLabel="Automatic"
-									ariaLabel="Search engine"
-									testid="search-engine-trigger"
-									open={open}
-									onClick={() => setOpenMenu(open ? null : { target: "search", kind: "engine" })}
-									widthClass="min-w-20"
-									disabled={!anyKey}
-								/>
-								{open && (
-									<MenuShell
-										preferredSide="down"
-											anchorTestid="search-engine-trigger"
-										testid="search-engine-menu"
-										menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
-									>
-										{engineOption("auto", "Automatic", engine === null, null, () => {
-											onSectionChange(composeSearchEngine(agent, null));
-											setOpenMenu(null);
-										})}
-										{SEARCH_ENGINES.map((id) =>
-											engineOption(id, id === "tavily" ? "Tavily" : "Brave", engine === id, engineKeys[id] ?? false, () => {
-												onSectionChange(composeSearchEngine(agent, id));
-												setOpenMenu(null);
-											}),
-										)}
-									</MenuShell>
-								)}
-							</span>
-						</SettingsRow>
-					);
-				})()}
 			</SettingsGroup>
 
 			<SettingsGroup label="Context" testid="group-context">

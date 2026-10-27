@@ -4,7 +4,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { AUTH_FILE } from "../../config.ts";
+import { CREDENTIALS_DIR } from "../../config.ts";
 import { createChatGPT, fileStore } from "../../electron/chatgpt.cjs";
 import { createSubscriptions } from "../../electron/subscriptions.cjs";
 import { chatGPTControl } from "../../electron/chatgpt-ipc.cjs";
@@ -97,7 +97,7 @@ export function webSubscriptionOwner() {
 	if (!webSubscriptionsEnabled()) throw new Error("Web subscription controls are unavailable in desktop-owned mode.");
 	const state = registry();
 	if (!state.owner) {
-		state.owner = createWebSubscriptionOwner({ directory: path.dirname(AUTH_FILE), onPacket: publish });
+		state.owner = createWebSubscriptionOwner({ directory: CREDENTIALS_DIR, onPacket: publish });
 		process.once("exit", () => state.owner?.close());
 	}
 	return state.owner;

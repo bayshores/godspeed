@@ -1,6 +1,6 @@
 "use strict";
 
-// LearnHarness-owned public-client OAuth. Never import pi's bundled login.
+// godspeed-owned public-client OAuth. Never import pi's bundled login.
 // This module is main-process-only; dependencies are injectable for scratch tests.
 const crypto = require("node:crypto");
 const http = require("node:http");
@@ -23,7 +23,7 @@ const publicError = (err) => ({
 	identity: "ChatGPT sign-in could not be verified. Select the intended saved account and try again.",
 	scope: "ChatGPT plan permission is missing. Reconnect and authorize ChatGPT plan use.",
 	disconnected: "This ChatGPT connection is disconnected. Reconnect in Providers.",
-	background: "ChatGPT background use is off in this app. Enable Allow background use for all ChatGPT accounts in Providers, or explicitly select an API-key model for that workload.",
+	background: "ChatGPT background use is off in this app. Enable Allow background use for all ChatGPT accounts in Providers to run that workload.",
 	catalog: "The ChatGPT account model catalog is unavailable. Retry the connection; no API-key fallback was used.",
 	expired: "The ChatGPT session expired. Reconnect in Providers.",
 	network: "ChatGPT could not be reached. Check your connection and try again.",
@@ -294,7 +294,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 				// Reject duplicate parameters and unsolicited callbacks without consuming a valid pending attempt.
 				if (["state", "code", "client_id", "error"].some((key) => params.getAll(key).length > 1) || params.get("state") !== expectedState) { res.writeHead(400).end("Sign-in could not be verified."); return; }
 				consumed = true;
-				res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("Return to LearnHarness to view the sign-in result. You may close this tab.");
+				res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("Return to godspeed to view the sign-in result. You may close this tab.");
 				cleanup();
 				try {
 					if (params.has("error")) throw fail(params.get("error") === "access_denied" ? "cancelled" : "identity");
@@ -336,7 +336,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 			const url = new URL(AUTHORIZE);
 			url.search = new URLSearchParams({
 				client_id: selected?.clientId ?? "dynamic_agent_client",
-				...(selected ? {} : { agent_name_hint: "LearnHarness" }),
+				...(selected ? {} : { agent_name_hint: "godspeed" }),
 				ext_agent_host_id: state.hostId,
 				...(selected?.tokens?.idToken ? { id_token_hint: selected.tokens.idToken } : {}),
 				...(selected?.email ? { login_hint: selected.email } : {}),

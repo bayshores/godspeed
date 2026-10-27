@@ -7,7 +7,7 @@
  * real defects nothing else saw: (1) a trace-exclude regression that
  * stripped the pi engine packages to bare package.jsons — the server
  * answered 500 on every route with ERR_MODULE_NOT_FOUND; (2) before that,
- * the dev auth.json (BYOK keys) shipping inside the bundle. It runs
+ * a dev secrets file shipping inside the bundle. It runs
  * between build-server.mjs and electron-builder so a broken payload fails
  * in seconds, not after a full packaging pass.
  *
@@ -15,8 +15,8 @@
  * Electron shell does (electron/main.cjs) — with --electron it uses
  * Electron's bundled Node via ELECTRON_RUN_AS_NODE, otherwise host Node —
  * 127.0.0.1 on a kernel-assigned
- * free port, NODE_ENV=production, a THROWAWAY LH_DATA_DIR and an EMPTY
- * LH_AUTH_FILE under os.tmpdir() (no real keys or data ever touch it) —
+ * free port, NODE_ENV=production, a THROWAWAY LH_DATA_DIR and credential
+ * dir under os.tmpdir() (no real credentials or data ever touch it) —
  * polls GET / until 200, then probes the GET-only API surface (graph /
  * models / settings — no side effects). Any non-200, an early server
  * exit, or a 30s boot timeout fails the gate and prints the server's own
@@ -87,8 +87,6 @@ async function main() {
 	const url = `http://127.0.0.1:${port}`;
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh-smoke-"));
 	const dataDir = path.join(home, "data");
-	const authFile = path.join(home, "auth.json");
-	fs.writeFileSync(authFile, "{}\n", "utf-8");
 
 	const tail = []; // rolling log tail for failure diagnosis
 	let tailBytes = 0;
@@ -117,7 +115,6 @@ async function main() {
 			PORT: String(port),
 			HOSTNAME: "127.0.0.1",
 			LH_DATA_DIR: dataDir,
-			LH_AUTH_FILE: authFile,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
 	});

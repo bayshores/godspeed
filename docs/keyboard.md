@@ -28,9 +28,7 @@ second pillar of input).
   navigation abandoned). Shift+Tab cycles the thinking level — also
   while typing in a field (modifier combos are the only keys that fire
   from typing surfaces; bare keys never do).
-- **Esc priority chain**: topmost popover → cheat sheet → cancel
-  dictation (DISCARD — the transcript flush is Cmd+D/Stop only, owner
-  round) → abort turn (local stream only — a server-side wake turn has
+- **Esc priority chain**: topmost popover → cheat sheet → abort turn (local stream only — a server-side wake turn has
   no client request to abort). Every element/document-level Esc handler
   that acts calls `e.stopPropagation()` so the window chain never
   double-fires. The session search claims Esc to blur back to normal.
@@ -42,7 +40,6 @@ second pillar of input).
 
 | Action | Binding | Seam |
 |---|---|---|
-| Toggle dictation | ⌘D | `lh:kbd-toggle-dictation` (dictation.tsx) |
 | Model selector | ⌘K | `lh:kbd-open-model-picker` (model-picker.tsx) |
 | Cycle thinking level | Shift+Tab | `lh:kbd-cycle-thinking` (model-picker.tsx) |
 | Toggle sidebar | ⌘B | `lh:toggle-sidebar` (sidebar.tsx) |

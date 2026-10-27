@@ -12,7 +12,7 @@ const patterns = nextConfig.outputFileTracingExcludes!["*"];
 
 describe("standalone JavaScript tracing exclusions and native workaround policy", () => {
 	for (const windows of [false, true]) {
-		const root = windows ? "C:\\build\\learnharness" : "/build/learnharness";
+		const root = windows ? "C:\\build\\godspeed" : "/build/godspeed";
 		const file = (relative: string) => root + (windows ? "\\" : "/") + (windows ? relative.replaceAll("/", "\\") : relative);
 		const ignored = picomatch(patterns, { contains: true, dot: true, windows });
 		it(`excludes genuine data directories and secrets (${windows ? "Windows" : "POSIX"})`, () => {

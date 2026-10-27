@@ -14,7 +14,7 @@ import unittest
 
 sys.dont_write_bytecode = True
 REPO = Path(__file__).resolve().parents[2]
-SKILL = REPO / "skills" / "learnharness"
+SKILL = REPO / "skills" / "godspeed"
 GOLDEN = REPO / "tests" / "fixtures" / "golden-data"
 
 
@@ -37,7 +37,7 @@ class SkillFolderTest(unittest.TestCase):
         self.assertLess(len(text.splitlines()), 500)
         self.assertIn("references/data-format.md", text)
         self.assertTrue((SKILL / "references" / "data-format.md").is_file())
-        self.assertIn("Never modify LearnHarness's data", text)
+        self.assertIn("Never modify godspeed's data", text)
         self.assertIn("archival view", text)
         self.assertNotIn("/Users/amos/", text)
 
@@ -53,7 +53,7 @@ class SkillFolderTest(unittest.TestCase):
     def test_copied_skill_runs_outside_repository_and_creates_no_cache_or_data(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            skill = base / "standalone" / "learnharness"
+            skill = base / "standalone" / "godspeed"
             data = base / "learning-data"
             elsewhere = base / "unrelated-working-directory"
             elsewhere.mkdir()

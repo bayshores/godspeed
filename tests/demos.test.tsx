@@ -87,11 +87,11 @@ function testRunner() {
 	return { steers, runner };
 }
 import { artifactRenderers } from "../components/artifacts/index.ts";
+import { connectProviderForTests } from "../src/server/connections.ts";
 
-// The key-presence turn gate (provider-key interlude, 2026-09-25): scripted
-// turns pin openrouter per chat — the gate reads env-first truth, so the
-// key must be present in the test process like any real setup.
-process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
+// The connection turn gate: scripted turns pin openrouter per chat (a faux
+// engine stands in), so the test process marks it connected.
+connectProviderForTests("openrouter");
 
 
 

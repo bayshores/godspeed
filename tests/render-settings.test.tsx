@@ -14,7 +14,6 @@ import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TOGGLE_TOOLS, AgentSection } from "../components/settings/agent-section.tsx";
 import { AppearanceSection, GraphSection } from "../components/settings/appearance-section.tsx";
-import { KeysSection } from "../components/settings/keys-section.tsx";
 import { KeyboardSection } from "../components/settings/keyboard-section.tsx";
 import type { GraphSettings } from "../src/core/index.ts";
 import { SettingsDialogBody, SettingsDialogProvider } from "../components/settings/settings-dialog.tsx";
@@ -46,12 +45,12 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 		assert.ok(html.includes('role="dialog"'));
 		assert.ok(html.includes('aria-modal="true"'));
 		assert.ok(html.includes('aria-label="Close settings"'));
-		for (const id of ["general", "keys", "agent", "appearance", "graph", "keyboard"]) {
+		for (const id of ["general", "providers", "agent", "appearance", "graph", "keyboard"]) {
 			assert.ok(html.includes(`data-testid="settings-nav-${id}"`), id);
 		}
-		// Providers is the first landing section; internal keys deep links survive.
-		assert.ok(tagOf(html, "settings-nav-keys").includes('aria-current="true"'));
-		assert.ok(html.indexOf('data-testid="settings-nav-keys"') < html.indexOf('data-testid="settings-nav-general"'));
+		// Providers is the first landing section.
+		assert.ok(tagOf(html, "settings-nav-providers").includes('aria-current="true"'));
+		assert.ok(html.indexOf('data-testid="settings-nav-providers"') < html.indexOf('data-testid="settings-nav-general"'));
 		assert.ok(tagOf(html, "settings-nav-keyboard").includes('aria-current="false"'));
 		// Fetches don't run under SSR — the loading state IS the SSR state.
 		assert.ok(html.includes("Loading settings…"));
@@ -87,22 +86,14 @@ describe("AgentSection (thin SSR)", () => {
 		assert.ok(html.includes('data-testid="group-prompts"'), "System prompts sub-group");
 	});
 
-	it("the search-engine row renders with its live reason (search wave 2026-09-20)", () => {
+	it("no search-engine row (web search was removed)", () => {
 		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
-		assert.ok(html.includes('data-testid="search-engine-row"'), "the row");
-		assert.ok(html.includes('data-testid="search-engine-trigger"'), "the trigger");
-		// SSR: /api/search never fired → no reason line yet, trigger reads Automatic
-		assert.ok(html.includes("Automatic"), "unset engine reads Automatic");
-		// the explicit preference shows the chosen engine in the trigger
-		const html2 = renderToStaticMarkup(
-			<AgentSection agent={{ search: { engine: "tavily" } }} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />,
-		);
-		assert.ok(html2.includes("Tavily"), "pinned engine visible in the trigger");
+		assert.ok(!html.includes('data-testid="search-engine-row"'));
 	});
 
 	it("the prober graph-tools row: FIRST in the Tools group, default ON, its own key (wave 7)", () => {
 		// Default state: graph on, graphTools absent → ON, the describing
-		// hint rides (the search-row hint discipline).
+		// hint rides.
 		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} />);
 		const toolsGroup = html.split('data-testid="group-tools"')[1] ?? "";
 		const rows = [...toolsGroup.matchAll(/data-testid="(graph-tools-row|tool-row-\w+)"/g)].map((m) => m[1]);
@@ -111,7 +102,7 @@ describe("AgentSection (thin SSR)", () => {
 		assert.ok(html.includes("Lets the tutor consult your knowledge map between sessions"), "the describing hint");
 		assert.ok((html.split('data-testid="graph-tools-row"')[1] ?? "").includes('aria-checked="true"'), "absent = on");
 		const rowHtml = html.split('data-testid="graph-tools-row"')[1]?.split('data-testid="tool-row-')[0] ?? "";
-		assert.ok(!rowHtml.includes("opacity-40"), "lit while the graph is on (the search row may dim — no keys in SSR)");
+		assert.ok(!rowHtml.includes("opacity-40"), "lit while the graph is on");
 	});
 
 	it("graph disabled dims the graph-tools row with the honest hint (the predicate composes)", () => {
@@ -215,13 +206,6 @@ describe("GraphSection — master switch + chunk budget (wave 7 + 2026-10-02)", 
 		);
 		assert.ok(tagOf(html, "input-chunk-tokens").includes('value="6000"'));
 		assert.ok(html.includes(">6000 tok</"));
-	});
-});
-
-describe("KeysSection (thin SSR)", () => {
-	it("SSR = the loading state (effects never fire)", () => {
-		const html = renderToStaticMarkup(<KeysSection />);
-		assert.ok(html.includes("Loading keys…"));
 	});
 });
 

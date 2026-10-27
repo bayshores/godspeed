@@ -28,10 +28,9 @@
  */
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
-import { AUTH_PROVIDER_KEYS } from "./auth-keys.ts";
+import { NATIVE_SUBSCRIPTIONS } from "./contracts/subscriptions.ts";
 import type { ModelRole } from "../../config.ts";
 import type { ChatSettings } from "./contracts/chat.ts";
-import type { SearchEngineId } from "./search.ts";
 
 /** The schema version this code understands. Bump ONLY for breaking shape
  *  changes (a field renamed/meaning changed); pure additions never bump. */
@@ -134,52 +133,61 @@ export class ModelsNotConfiguredError extends Error {
 	}
 }
 
-/** The key-presence refusal (provider-key interlude, owner, 2026-09-25):
- * a PINNED model is not enough — its provider's key must be present, or
- * the action dies mid-stream masked to a generic error. Same envelope
- * family as modelsNotConfigured: HTTP callers get 503 + this JSON;
- * in-band consumers (the job record's error field) carry the human
- * `error` line. `provider` names whose key is gone; `slots` names the
- * slot tier(s) the refused action resolves to that provider. */
-export const PROVIDER_KEY_MISSING_CODE = "provider_key_missing" as const;
-export interface ProviderKeyMissing {
+/** The connection refusal (subscriptions only — API keys were removed):
+ * a PINNED model is not enough — its provider must be a CONNECTED
+ * subscription (ChatGPT, GitHub Copilot, Grok), or the action dies
+ * mid-stream masked to a generic error. Same envelope family as
+ * modelsNotConfigured: HTTP callers get 503 + this JSON; in-band consumers
+ * (the job record's error field) carry the human `error` line.
+ * `provider` names the unconnected provider; `slots` names the slot
+ * tier(s) the refused action resolves to that provider. */
+export const PROVIDER_NOT_CONNECTED_CODE = "provider_not_connected" as const;
+export interface ProviderNotConnected {
 	/** Human-readable — safe to render as-is. */
 	error: string;
 	/** The machine discriminator the client switches on. */
-	code: typeof PROVIDER_KEY_MISSING_CODE;
-	/** The provider whose key is gone, e.g. "openrouter". */
+	code: typeof PROVIDER_NOT_CONNECTED_CODE;
+	/** The unconnected provider, e.g. "chatgpt". */
 	provider: string;
 	/** Which slot tiers the refused action resolves to that provider. */
 	slots: ModelSlotName[];
 }
 /** The refusal wording's invariant tail — the matcher below keys on it
  * (the label prefix varies by provider). */
-const PROVIDER_KEY_MISSING_TAIL = "key is set — add one in Settings → Keys";
-export function providerKeyMissing(provider: string, slots: ModelSlotName[]): ProviderKeyMissing {
-	const label = AUTH_PROVIDER_KEYS.find((p) => p.id === provider)?.label ?? provider;
+const PROVIDER_NOT_CONNECTED_TAIL = "is not connected — sign in under Settings → Providers";
+/** The outside agent (MCP) has no sign-in: its access switch lives in
+ * Settings → Outside agents. Its own tail, matched by the same refusal check. */
+const AGENT_NOT_CONNECTED_TAIL = "is off — turn on agent access under Settings → Outside agents";
+/** Display label for a model provider id (the subscription routes). */
+function providerLabel(provider: string): string {
+	if (provider === "chatgpt") return "ChatGPT";
+	if (provider === "agent") return "Outside agent";
+	return NATIVE_SUBSCRIPTIONS.find((p) => p.logicalId === provider || p.providerId === provider)?.label ?? provider;
+}
+export function providerNotConnected(provider: string, slots: ModelSlotName[]): ProviderNotConnected {
 	return {
-		error: `No ${label} ${PROVIDER_KEY_MISSING_TAIL}`,
-		code: PROVIDER_KEY_MISSING_CODE,
+		error: `${providerLabel(provider)} ${provider === "agent" ? AGENT_NOT_CONNECTED_TAIL : PROVIDER_NOT_CONNECTED_TAIL}`,
+		code: PROVIDER_NOT_CONNECTED_CODE,
 		provider,
 		slots,
 	};
 }
 /** The refusal error text (same discipline as isModelsRefusal): UI
- * consumers detect key-refused work by the wording (info tone, not
+ * consumers detect connection-refused work by the wording (info tone, not
  * scary-error) — the envelope's home module owns the string so the
  * writer and the matcher can never drift. */
-export function isProviderKeyRefusal(error: string | undefined): boolean {
-	return !!error && error.endsWith(PROVIDER_KEY_MISSING_TAIL);
+export function isProviderNotConnectedRefusal(error: string | undefined): boolean {
+	return !!error && (error.endsWith(PROVIDER_NOT_CONNECTED_TAIL) || error.endsWith(AGENT_NOT_CONNECTED_TAIL));
 }
 /** The typed throw for in-process seams (extraction pipeline) — the
- * ProviderKeyMissing sibling of ModelsNotConfiguredError: callers catch
+ * ProviderNotConnected sibling of ModelsNotConfiguredError: callers catch
  * it to skip honestly (trigger) or surface the 503 envelope (routes). */
-export class ProviderKeyMissingError extends Error {
-	readonly envelope: ProviderKeyMissing;
+export class ProviderNotConnectedError extends Error {
+	readonly envelope: ProviderNotConnected;
 	constructor(provider: string, slots: ModelSlotName[]) {
-		const envelope = providerKeyMissing(provider, slots);
+		const envelope = providerNotConnected(provider, slots);
 		super(envelope.error);
-		this.name = "ProviderKeyMissingError";
+		this.name = "ProviderNotConnectedError";
 		this.envelope = envelope;
 	}
 }
@@ -229,7 +237,7 @@ export const ROLE_SLOT: Readonly<Record<ModelRole, ModelSlotName>> = {
 };
 
 /** General settings — app-level behavior. Version DISPLAY and plans login
- *  live outside the record (package.json / auth.json) by owner decision. */
+ *  live outside the record (package.json / credential files) by owner decision. */
 export interface GeneralSettings {
 	/** Automatic startup/24h update checks (default ON). Manual checks bypass this. */
 	autoUpdate?: boolean;
@@ -242,13 +250,6 @@ export interface AgentSettings {
 	/** Tool toggles keyed by tool id (absent key = enabled). User-level
 	 *  only — no per-chat override (owner decision 2026-09-19). */
 	tools?: Record<string, boolean>;
-	/** Search-engine preference (search wave, 2026-09-20). OPTIONAL by
-	 *  owner decision: setting a key auto-activates its engine — the user
-	 *  never chooses an engine to make search work. An explicit choice only
-	 *  pins the preference (e.g. when BOTH keys are present); the chosen
-	 *  engine must still have its key, else search is honestly unavailable.
-	 *  Absent + no key = unavailable (no silent fallback, no default). */
-	search?: { engine?: SearchEngineId };
 	/** Prober graph tools (wave 7, owner ruling 2026-09-23): read-only
 	 *  knowledge-graph views for the prober agent — a session list +
 	 *  per-session propositions with understanding levels. Its SUBJECT
@@ -513,13 +514,6 @@ function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	if (tools) out.tools = tools;
 	const prompts = sanitizeBooleanMap(raw.prompts);
 	if (prompts) out.prompts = prompts;
-	// Search preference: lenient read side (an unknown engine id drops;
-	// the write side's parser is strict — a stale client can't brick the
-	// record, it just loses the pin and auto-detection resumes).
-	if (raw.search !== null && typeof raw.search === "object" && !Array.isArray(raw.search)) {
-		const engine = (raw.search as Record<string, unknown>).engine;
-		if (engine === "tavily" || engine === "brave") out.search = { engine };
-	}
 	// Prober graph tools (wave 7): its own agent-section subsection —
 	// lenient read side (a bad shape drops the key and the default ON
 	// resumes; the write side's parser is strict).

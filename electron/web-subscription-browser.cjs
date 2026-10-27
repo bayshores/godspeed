@@ -7,7 +7,7 @@ async function openWebSubscriptionBrowser(action, origin, { fetch: request = glo
 	if (typeof action !== "string" || !/^\/api\/subscriptions\/browser\?id=[0-9a-f-]{36}$/.test(action)) throw new Error("Invalid sign-in action.");
 	const response = await request(new URL(action, origin), {
 		method: "POST", redirect: "manual", credentials: "omit",
-		headers: { origin, "x-learnharness-subscriptions": "1" },
+		headers: { origin, "x-godspeed-subscriptions": "1" },
 		signal: AbortSignal.timeout(15000),
 	});
 	const target = response.headers.get("location");

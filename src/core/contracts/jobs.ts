@@ -28,7 +28,7 @@ export interface JobRecord {
 	delivery?: { kind: "result" | "abort"; status: "pending" | "delivered" };
 	/** Worker computation only; a pending delivery does not keep it running. */
 	status: JobStatus;
-	/** Latest human-readable activity line, e.g. `web_search: "sigma.js v3"`. */
+	/** Latest human-readable activity line, e.g. `web_fetch: en.wikipedia.org`. */
 	activity: string;
 	createdAt: string;
 	updatedAt: string;

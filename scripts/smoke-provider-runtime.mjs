@@ -19,7 +19,6 @@ import { formatProbeError, probeEnv } from "./smoke-demo-runtime.mjs";
 export function verifyProviderRuntime(standalone, runtime = process.execPath) {
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh-provider-runtime-"));
 	try {
-		fs.writeFileSync(path.join(home, "auth.json"), "{}\n", { mode: 0o600 });
 		const result = spawnSync(runtime, [fileURLToPath(import.meta.url), "--probe", path.resolve(standalone)], {
 			cwd: home,
 			env: { ...probeEnv(process.env, home), ELECTRON_RUN_AS_NODE: "1" },

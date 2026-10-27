@@ -1,8 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
-import { joinDictation, useDictationTarget } from "@/components/dictation";
-
 /**
  * The reading-thinking field (owner design 2026-10-03, "two questions per
  * teaching unit"): a quiet textarea for thinking WHILE READING the
@@ -12,40 +9,19 @@ import { joinDictation, useDictationTarget } from "@/components/dictation";
  * the check), rides the check answer as the SEPARATE `readingThinking`
  * channel (never conflated with the quiz thinking), and disappears with
  * the question.
- *
- * Dictation: while the check sits UNREVEALED this field is the primary
- * target (the dock releases its claim — dictated reading-thoughts land
- * here, not in the hidden quiz field); once the learner reveals the
- * check, the dock reclaims and this field is plain typing.
  */
 export function ReadingThinkingField({
 	value,
 	onChange,
-	onEscape,
 	onOpen,
-	claim,
 }: {
 	value: string;
 	onChange: (v: string) => void;
-	/** Esc in the field stops dictation (threaded from the page's hook). */
-	onEscape?: () => void;
 	/** The check waits CLOSED — Enter opens it (owner, keyboard round
-	 *  2026-10-06). The caller finishes any live dictation FIRST (the
-	 *  flush lands here — the field is the live claim), then reveals.
-	 *  Absent = the check is open: Enter keeps the dumping convention. */
+	 *  2026-10-06). Absent = the check is open: Enter keeps the dumping
+	 *  convention. */
 	onOpen?: () => void;
-	/** Primary dictation claim — true while the check is behind its reveal. */
-	claim: boolean;
 }) {
-	useDictationTarget(
-		useCallback(
-			(t: string) => {
-				onChange(joinDictation(value, t));
-			},
-			[value, onChange],
-		),
-		claim,
-	);
 	return (
 		<div
 			data-testid="reading-thinking-field"
@@ -67,19 +43,17 @@ export function ReadingThinkingField({
 				   get implicitly from their py-2. Line-height stays 1.25 (the
 				   caret law, typography round 2). */
 				onKeyDown={(e) => {
+					// Esc in the field is the field's — claimed so the window
+					// chain doesn't read it as abort-turn.
 					if (e.key === "Escape") {
-						// Esc stops dictation (the strip's rule) — claimed so the
-						// window chain doesn't also read it as abort-turn.
 						e.preventDefault();
 						e.stopPropagation();
-						onEscape?.();
 						return;
 					}
 					// ENTER OPENS THE WAITING CHECK (owner, keyboard round
 					// 2026-10-06): while the check sits closed, plain Enter
-					// (and the universal ⌘/Ctrl+Enter) opens it — the dictation
-					// flush lands HERE first via the caller's finishDictation,
-					// so spoken thoughts ride along. Shift+Enter stays a newline.
+					// (and the universal ⌘/Ctrl+Enter) opens it. Shift+Enter
+					// stays a newline.
 					if (e.key === "Enter" && onOpen !== undefined && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
 						e.preventDefault();
 						e.stopPropagation();

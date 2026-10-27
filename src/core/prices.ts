@@ -18,6 +18,8 @@ export function isChatGPTPlan(model: string | undefined): boolean {
 }
 export function subscriptionLabel(model: string | undefined): string | undefined {
 	if (isChatGPTPlan(model)) return "ChatGPT";
+	// The outside agent (MCP) runs on the agent's own plan: no per-token price here.
+	if (model?.startsWith("agent:")) return "Outside agent";
 	return NATIVE_SUBSCRIPTIONS.find((p) => model?.startsWith(`${p.logicalId}:`))?.label;
 }
 export function isSubscriptionModel(model: string | undefined): boolean { return subscriptionLabel(model) !== undefined; }

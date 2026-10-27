@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, it } from "node:test";
 import { POST } from "../app/api/graph/import/route.ts";
 import { extraction } from "../src/server/index.ts";
-import { ModelsNotConfiguredError, ProviderKeyMissingError } from "../src/core/settings.ts";
+import { ModelsNotConfiguredError, ProviderNotConnectedError } from "../src/core/settings.ts";
 import { createExtractionPipeline, NotesImportError } from "../src/agent/subagents/extraction.ts";
 import { createFauxCore, fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai";
 import { stores } from "../src/server/stores.ts";
@@ -25,7 +25,7 @@ it("route keeps three-worker batching, request positions and mixed per-file outc
 		try {
 			await new Promise((resolve) => setTimeout(resolve, filePath === "slow.md" ? 25 : 1));
 			if (filePath === "models.md") throw new ModelsNotConfiguredError(["cheap"]);
-			if (filePath === "key.md") throw new ProviderKeyMissingError("openai", ["cheap"]);
+			if (filePath === "key.md") throw new ProviderNotConnectedError("openai", ["cheap"]);
 			if (["failed", "partial", "aborted", "busy"].includes(filePath)) throw new NotesImportError(filePath as NotesImportError["outcome"], { nodes: 2, chains: 1 }, `synthetic ${filePath}`);
 			if (filePath === "unknown.md") throw new Error("synthetic unknown error");
 			return { nodes: 0, chains: 0 };
@@ -51,7 +51,7 @@ it("route keeps three-worker batching, request positions and mixed per-file outc
 	}
 	assert.deepEqual(results.find((r: { filePath: string }) => r.filePath === "models.md").missing, ["cheap"]);
 	const key = results.find((r: { filePath: string }) => r.filePath === "key.md");
-	assert.equal(key.code, "provider_key_missing"); assert.equal(key.provider, "openai"); assert.deepEqual(key.slots, ["cheap"]);
+	assert.equal(key.code, "provider_not_connected"); assert.equal(key.provider, "openai"); assert.deepEqual(key.slots, ["cheap"]);
 });
 
 it("real route plus in-memory ledgers and faux stages reprocess identical imports for all four filename cases", async () => {

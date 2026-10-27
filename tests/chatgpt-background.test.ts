@@ -10,8 +10,8 @@ import { toLlmMessages } from "../src/core/native-messages.ts";
 import { buildSubagentSteer } from "../src/core/contracts.ts";
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-chatgpt-background-"));
 process.env.LH_DATA_DIR = path.join(dir, "data");
-process.env.LH_AUTH_FILE = path.join(dir, "scratch-auth.json");
-fs.writeFileSync(process.env.LH_AUTH_FILE, "{}");
+process.env.LH_CREDENTIALS_DIR = dir;
+
 const { stores } = await import("../src/server/stores.ts");
 const { beginTurn, endTurn } = await import("../src/server/turn-liveness.ts");
 const { deliverJobResult, registerLiveAgent, unregisterLiveAgent, setTurnRunner, settleSteers, steerLiveChat } = await import("../src/server/jobs.ts");

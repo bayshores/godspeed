@@ -25,8 +25,8 @@ export function probeEnv(env, home) {
 		HOME: home, USERPROFILE: home,
 		APPDATA: path.join(home, "config"), LOCALAPPDATA: path.join(home, "local"),
 		XDG_CONFIG_HOME: path.join(home, "config"), XDG_CACHE_HOME: path.join(home, "cache"),
-		LH_DATA_DIR: path.join(home, "data"), LH_AUTH_FILE: path.join(home, "auth.json"),
-		LH_IGNORE_ENV_KEYS: "1", NODE_ENV: "production",
+		LH_DATA_DIR: path.join(home, "data"), LH_CREDENTIALS_DIR: home,
+		NODE_ENV: "production",
 	};
 }
 
@@ -49,7 +49,6 @@ export function formatProbeError(error, depth = 0) {
 export function verifyDemoRuntime(standalone, runtime = process.execPath, browser = false) {
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh-demo-runtime-"));
 	try {
-		fs.writeFileSync(path.join(home, "auth.json"), "{}\n", { mode: 0o600 });
 		const result = spawnSync(runtime, [fileURLToPath(import.meta.url), "--probe", path.resolve(standalone), ...(browser ? ["--browser"] : [])], {
 			cwd: home,
 			env: { ...probeEnv(process.env, home), ELECTRON_RUN_AS_NODE: "1" },

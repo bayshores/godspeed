@@ -5,14 +5,13 @@ import os from "node:os";
 import path from "node:path";
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-dev-ipc-"));
 process.env.LH_DATA_DIR = scratch;
-process.env.LH_AUTH_FILE = path.join(scratch, "auth.json");
-fs.writeFileSync(process.env.LH_AUTH_FILE, "{}", { mode: 0o600 });
-process.env.OPENAI_API_KEY = "sk-fixture-not-used-for-generation";
+process.env.LH_CREDENTIALS_DIR = scratch;
+
 const { GET } = await import("../app/api/models/route.ts");
 const { chatGPTRequest, chatGPTConnected, chatGPTModels } = await import("../src/agent/chatgpt-bridge.ts");
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 
-test("Next-style IPC is not desktop transport; web ownership works without delaying keyed catalogs", async () => {
+test("Next-style IPC is not desktop transport; web ownership works and the catalog never lists API-key providers", async () => {
 	const send = Object.getOwnPropertyDescriptor(process, "send");
 	const connected = Object.getOwnPropertyDescriptor(process, "connected");
 	const marker = process.env.LH_DESKTOP_SERVER, secret = process.env.LH_DESKTOP_API_SECRET;
@@ -30,9 +29,9 @@ test("Next-style IPC is not desktop transport; web ownership works without delay
 			const response = await GET();
 			assert.equal(response.status, 200);
 			const catalog = await response.json();
-			assert.ok(catalog.models.some((m: { provider: string }) => m.provider === "openai"));
-			assert.equal(catalog.providers.find((p: { id: string }) => p.id === "openai").keyPresent, true);
-			assert.equal(catalog.providers.find((p: { id: string }) => p.id === "chatgpt").keyPresent, false);
+			assert.ok(!catalog.models.some((m: { provider: string }) => m.provider === "openai"));
+			assert.ok(!catalog.providers.some((p: { id: string }) => p.id === "openai"));
+			assert.equal(catalog.providers.find((p: { id: string }) => p.id === "chatgpt").connected, false);
 			assert.equal(chatGPTConnected(), false);
 			assert.deepEqual(chatGPTModels(), []);
 			if (!mode && !capability) {

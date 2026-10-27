@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-pricing-transport-"));
 process.env.LH_DATA_DIR = scratch;
-process.env.LH_AUTH_FILE = path.join(scratch, "empty-auth.json");
-fs.writeFileSync(process.env.LH_AUTH_FILE, "{}", { mode: 0o600 });
+process.env.LH_CREDENTIALS_DIR = scratch;
+
 const { chatStore } = await import("../src/store/chats.ts");
 const { GET } = await import("../app/api/chats/[id]/route.ts");
 const { sessionCost } = await import("../src/server/pricing.ts");

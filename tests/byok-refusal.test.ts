@@ -1,13 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseModelsRefusal, parseProviderKeyRefusal } from "../components/chat.tsx";
+import { parseModelsRefusal, parseProviderNotConnectedRefusal } from "../components/chat.tsx";
 import { prefillFromSlots, prefillLevelFromPin, setupStage } from "../components/setup-dialog.tsx";
 import {
 	isModelsRefusal,
-	isProviderKeyRefusal,
+	isProviderNotConnectedRefusal,
 	modelsNotConfigured,
-	providerKeyMissing,
-	PROVIDER_KEY_MISSING_CODE,
+	providerNotConnected,
+	PROVIDER_NOT_CONNECTED_CODE,
 } from "../src/core/settings.ts";
 import type { ModelCatalogEntry, ModelSlotName } from "../src/core/index.ts";
 
@@ -48,47 +48,47 @@ describe("isModelsRefusal — the job-record matcher", () => {
 	});
 });
 
-describe("providerKeyMissing — the envelope factory (provider-key interlude, 2026-09-25)", () => {
+describe("providerNotConnected — the envelope factory", () => {
 	it("names the provider from the curated label and carries the exact machine code", () => {
-		const envelope = providerKeyMissing("openrouter", ["strong"]);
+		const envelope = providerNotConnected("chatgpt", ["strong"]);
 		assert.deepEqual(envelope, {
-			error: "No OpenRouter key is set — add one in Settings → Keys",
-			code: PROVIDER_KEY_MISSING_CODE,
-			provider: "openrouter",
+			error: "ChatGPT is not connected — sign in under Settings → Providers",
+			code: PROVIDER_NOT_CONNECTED_CODE,
+			provider: "chatgpt",
 			slots: ["strong"],
 		});
-		assert.equal(envelope.code, "provider_key_missing");
+		assert.equal(envelope.code, "provider_not_connected");
 	});
 
 	it("an unknown provider falls back to its raw id as the label", () => {
-		const envelope = providerKeyMissing("weird", ["cheap"]);
-		assert.equal(envelope.error, "No weird key is set — add one in Settings → Keys");
+		const envelope = providerNotConnected("weird", ["cheap"]);
+		assert.equal(envelope.error, "weird is not connected — sign in under Settings → Providers");
 	});
 });
 
-describe("parseProviderKeyRefusal — the send refusal detector's twin (zero-keys wave)", () => {
+describe("parseProviderNotConnectedRefusal — the send refusal detector's twin", () => {
 	it("reads the envelope's own code + invariant tail — the wording can never drift client-side", () => {
-		const REFUSED = JSON.stringify(providerKeyMissing("openrouter", ["strong"]));
-		assert.equal(parseProviderKeyRefusal(REFUSED), true);
-		assert.equal(parseProviderKeyRefusal(JSON.stringify(providerKeyMissing("anthropic", ["strong", "vision"]))), true);
+		const REFUSED = JSON.stringify(providerNotConnected("chatgpt", ["strong"]));
+		assert.equal(parseProviderNotConnectedRefusal(REFUSED), true);
+		assert.equal(parseProviderNotConnectedRefusal(JSON.stringify(providerNotConnected("xai-subscription", ["strong", "vision"]))), true);
 	});
 
 	it("anything else is a real error — false, the honest banner stays", () => {
-		assert.equal(parseProviderKeyRefusal(REFUSAL), false); // the models refusal is NOT this one
-		assert.equal(parseProviderKeyRefusal("FAILED: headless crashed"), false);
-		assert.equal(parseProviderKeyRefusal(undefined), false);
-		assert.equal(parseProviderKeyRefusal("{not json"), false);
+		assert.equal(parseProviderNotConnectedRefusal(REFUSAL), false); // the models refusal is NOT this one
+		assert.equal(parseProviderNotConnectedRefusal("FAILED: headless crashed"), false);
+		assert.equal(parseProviderNotConnectedRefusal(undefined), false);
+		assert.equal(parseProviderNotConnectedRefusal("{not json"), false);
 	});
 });
 
-describe("isProviderKeyRefusal — the job-record matcher (provider-key interlude)", () => {
+describe("isProviderNotConnectedRefusal — the job-record matcher", () => {
 	it("matches the envelope wording regardless of provider label, not real failures", () => {
-		assert.equal(isProviderKeyRefusal(providerKeyMissing("together", ["cheap"]).error), true);
-		assert.equal(isProviderKeyRefusal(providerKeyMissing("openai", ["strong"]).error), true);
-		assert.equal(isProviderKeyRefusal(""), false);
-		assert.equal(isProviderKeyRefusal(undefined), false);
-		assert.equal(isProviderKeyRefusal("FAILED: headless crashed"), false);
-		assert.equal(isProviderKeyRefusal(modelsNotConfigured(["strong"]).error), false, "the models refusal is a different failure");
+		assert.equal(isProviderNotConnectedRefusal(providerNotConnected("github-copilot-subscription", ["cheap"]).error), true);
+		assert.equal(isProviderNotConnectedRefusal(providerNotConnected("chatgpt", ["strong"]).error), true);
+		assert.equal(isProviderNotConnectedRefusal(""), false);
+		assert.equal(isProviderNotConnectedRefusal(undefined), false);
+		assert.equal(isProviderNotConnectedRefusal("FAILED: headless crashed"), false);
+		assert.equal(isProviderNotConnectedRefusal(modelsNotConfigured(["strong"]).error), false, "the models refusal is a different failure");
 	});
 });
 
@@ -123,7 +123,7 @@ describe("prefillFromSlots — the SetupDialog prefill (BYOK wave)", () => {
 		assert.deepEqual(pre, {});
 	});
 
-	it("a pin whose model left the federated catalog does not prefill (lapsed key)", () => {
+	it("a pin whose model left the federated catalog does not prefill (signed out)", () => {
 		const pre = prefillFromSlots(catalog, { strong: { model: { provider: "gone", id: "vanished" } }, cheap: null, vision: null });
 		assert.deepEqual(pre, {});
 	});
@@ -158,10 +158,10 @@ describe("prefillLevelFromPin — the setup dialog's level prefill (chunk 2)", (
 	});
 });
 
-describe("setupStage — unchanged by the BYOK wave", () => {
-	it("keys first (owner ordering), pickers when a provider is keyed", () => {
-		assert.equal(setupStage(null), "keys");
-		assert.equal(setupStage([{ id: "x", keyPresent: false }]), "keys");
-		assert.equal(setupStage([{ id: "x", keyPresent: true }]), "pickers");
+describe("setupStage — connect first", () => {
+	it("connect first (owner ordering), pickers when a subscription is connected", () => {
+		assert.equal(setupStage(null), "connect");
+		assert.equal(setupStage([{ id: "x", connected: false }]), "connect");
+		assert.equal(setupStage([{ id: "x", connected: true }]), "pickers");
 	});
 });

@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { CheckIcon, SettingsIcon, XIcon } from "lucide-react";
 import { JobsContext } from "@/components/jobs-context";
 import { ChatActionsContext } from "@/components/chat";
-import { isModelsRefusal, isProviderKeyRefusal, type JobKind, type JobRecord } from "@/src/core";
+import { isModelsRefusal, isProviderNotConnectedRefusal, type JobKind, type JobRecord } from "@/src/core";
 import { BrailleSpinner } from "@/components/braille-spinner";
 
 /**
@@ -37,14 +37,14 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 	// BYOK (owner, 2026-09-22): a job refused for missing models is INFO,
 	// not scary-error — gray glyph + "needs model setup" + the deep-link
 	// into the SetupDialog (the same flow the send interception uses).
-	// The provider-key refusal twin (zero-keys wave): a pinned model
-	// whose key is gone reads as the key being needed — the deep-link
-	// lands on the SetupDialog's first-key stage on its own.
+	// The connection refusal twin: a pinned model whose provider is not
+	// connected reads as sign-in needed — the deep-link lands on the
+	// SetupDialog's connect stage on its own.
 	if (isModelsRefusal(job.error)) {
 		return <DispatchRefusedCard label={label} line="needs model setup" button="Set up models" />;
 	}
-	if (isProviderKeyRefusal(job.error)) {
-		return <DispatchRefusedCard label={label} line="needs a provider key" button="Add a key" />;
+	if (isProviderNotConnectedRefusal(job.error)) {
+		return <DispatchRefusedCard label={label} line="needs a sign-in" button="Sign in" />;
 	}
 	const failed = job.status === "error";
 	return (

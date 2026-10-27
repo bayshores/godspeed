@@ -17,11 +17,12 @@ import { chatGPTStream } from "./chatgpt-stream.ts";
 import type { ChatGPTDispatchLifecycle } from "./chatgpt-request-cycle.ts";
 import { nativeSubscriptionId, nativeSubscriptionModel } from "./subscription-bridge.ts";
 import { nativeSubscriptionStream } from "./subscription-stream.ts";
+import { AGENT_PROVIDER, agentModel, agentStream } from "./agent-bridge.ts";
 
 /** App identity is immutable and shared by Models and every native Agent.
  * Agent's default Pi attribution otherwise overrides the Models identity. */
 export const APP_IDENTITY = Object.freeze({
-	userAgent: Object.freeze({ custom: `learnharness/${packageMetadata.version}` }),
+	userAgent: Object.freeze({ custom: `godspeed/${packageMetadata.version}` }),
 	attribution: Object.freeze({ name: packageMetadata.name, url: packageMetadata.homepage }),
 });
 
@@ -51,24 +52,18 @@ export type { ThinkingLevel };
 let collection: ReturnType<typeof createModels> | undefined;
 
 /** The process-wide pi-ai Models collection — EVERY builtin provider's
- *  catalog (model slots wave, 2026-09-20): engines and the picker resolve
- *  against all of pi-ai's per-provider catalogs, so a settings slot can pin
- *  any native model id. Auth is resolved per request by pi-ai itself from
- *  the environment (the keys seam reflects file-saved keys into env), and
- *  a provider with no key simply fails its stream with "not configured" —
- *  honest, late, and unreachable through the picker, which gates on
- *  keyPresent. */
+ *  catalog (model slots wave, 2026-09-20). The subscription routes read
+ *  their base catalogs from it (ChatGPT's from "openai", the native
+ *  subscriptions' from their SDK providers). API keys were removed: no
+ *  other provider can authenticate, and the connection gate
+ *  (src/server/connections.ts) refuses every non-subscription provider
+ *  before an engine built here could stream. */
 export function piModels() {
 	if (!collection) {
 		collection = createModels({ identity: APP_IDENTITY });
 		for (const provider of builtinProviders()) collection.setProvider(provider);
 	}
 	return collection;
-}
-
-/** OpenRouter API key (BYOK); tests never read this — they inject engines. */
-export function openRouterApiKey(): string | undefined {
-	return process.env.OPENROUTER_API_KEY || undefined;
 }
 
 /** A fully-resolved model pin — the shape every engine now comes from:
@@ -94,11 +89,12 @@ function defaultThinkingLevel(model: Model<Api>): ThinkingLevel {
 }
 
 /** The production engine for a RESOLVED spec (model slots wave,
- *  2026-09-20): provider-aware catalog lookup + thinking clamp. The API
- *  key is resolved by pi-ai itself from the environment per request (the
- *  keys seam reflects file-saved keys into env), so the engine never
- *  hardcodes OpenRouter's. */
+ *  2026-09-20): provider-aware catalog lookup + thinking clamp. Subscription
+ *  providers stream through their own authenticated routes; any other
+ *  catalog provider is refused upstream by the connection gate. */
 export function piEngineForSpec(spec: ResolvedModelSpec, background: boolean | (() => boolean) = true, lifecycle?: ChatGPTDispatchLifecycle): PiEngine {
+	// The outside agent (MCP) answers in place of a model — see agent-bridge.ts.
+	if (spec.provider === AGENT_PROVIDER) return { model: agentModel(), level: "off", streamFn: agentStream };
 	const models: Models = piModels();
 	const nativeId = nativeSubscriptionId(spec.provider);
 	const model = spec.provider === "chatgpt" ? chatGPTModel(spec.id) : nativeId ? nativeSubscriptionModel(spec.provider, spec.id) : models.getModel(spec.provider, spec.id);

@@ -1,4 +1,4 @@
-# electron-builder config — LearnHarness desktop (macOS arm64; Windows/Linux x64).
+# electron-builder config — godspeed desktop (macOS arm64; Windows/Linux x64).
 #
 # Shape (fact-checked 2026-09-17):
 #   - the app's real server (.next/standalone, curated by
@@ -9,8 +9,8 @@
 #   - signed + notarized since 2026-10-08 (Developer ID Application cert in
 #     the login keychain; notary credentials in the LH_NOTARY keychain
 #     profile; the profile + team env vars are baked into desktop:dist).
-appId: com.learnharness.LearnHarness
-productName: LearnHarness
+appId: com.bayshores.godspeed
+productName: godspeed
 directories:
   output: dist
 # Icons (owner ruling, 2026-10-13) — per-platform sources in build/:
@@ -117,15 +117,11 @@ mac:
       arch:
         - arm64
   # Locale trim (payload wave, 2026-09-24): English-only app — cuts
-  # every non-en .lproj from the frameworks (the STT/mic entitlements
-  # don't depend on locales). Revisit only if localization ever lands.
+  # every non-en .lproj from the frameworks. Revisit only if
+  # localization ever lands.
   electronLanguages:
     - en
   category: public.app-category.education
-  # Laid for the STT milestone (researcher-verified): the TCC mic prompt
-  # reads this string; macOS asks regardless of Electron's own handlers.
-  extendInfo:
-    NSMicrophoneUsageDescription: "LearnHarness uses the microphone only for speech-to-text input into your sessions."
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   # Signing + notarization (flipped 2026-10-08): identity auto-detects the
@@ -188,7 +184,7 @@ publish:
   # would be a leak. desktop:dist passes no --publish flag, so builds never
   # upload; publishing happens at release time (GH_TOKEN + --publish).
   - provider: github
-    owner: amosblomqvist
-    repo: learnharness
+    owner: bayshores
+    repo: godspeed
     # All three CI jobs contribute assets; only the owner publishes it.
     releaseType: draft

@@ -102,7 +102,7 @@ async function serverLaunch(platform: string) {
 				return child;
 			},
 		} : mainRequire(id),
-		process: { platform, argv: [], env: { FIXTURE: "kept" }, on() {}, execPath: "/fixture/LearnHarness", resourcesPath: "/fixture/resources with spaces" },
+		process: { platform, argv: [], env: { FIXTURE: "kept" }, on() {}, execPath: "/fixture/godspeed", resourcesPath: "/fixture/resources with spaces" },
 		__dirname: path.dirname(mainFile),
 	};
 	runInNewContext(mainSource, context, { filename: mainFile });
@@ -115,7 +115,7 @@ describe("backend-only preload wiring and packaging", () => {
 		it(`${platform} uses the real server launch with the intended argument order`, async () => {
 			const launch = await serverLaunch(platform);
 			const entry = path.join("/fixture/resources with spaces", "server", "standalone", "server.js");
-			assert.equal(launch.binary, "/fixture/LearnHarness");
+			assert.equal(launch.binary, "/fixture/godspeed");
 			assert.deepEqual(launch.args, platform === "darwin"
 				? ["--require", path.join("/fixture/resources with spaces", "server-title-guard.cjs"), entry]
 				: [entry]);
@@ -124,7 +124,7 @@ describe("backend-only preload wiring and packaging", () => {
 			assert.equal(launch.options.env.ELECTRON_RUN_AS_NODE, "1");
 			assert.equal(launch.options.env.LH_DESKTOP_SERVER, "1");
 			assert.equal(launch.options.env.LH_DATA_DIR, path.join("/fixture/user-data", "data"));
-			assert.equal(launch.options.env.LH_AUTH_FILE, path.join("/fixture/user-data", "auth.json"));
+			assert.equal(launch.options.env.LH_AUTH_FILE, undefined, "no API-key file reaches the child");
 			assert.equal(launch.options.env.PORT, "54321");
 			assert.equal(launch.options.env.HOSTNAME, "127.0.0.1");
 			assert.equal(launch.options.env.FIXTURE, "kept");
