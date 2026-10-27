@@ -120,7 +120,7 @@ describe("ChainTableBody — clusters (the outermost layer)", () => {
 		// chat1: chains c1 (a, b, c1) + solo (solo) → 4 member ids
 		assert.ok(html.includes(">4</span>"), "chat1's proposition count");
 		assert.ok(html.includes("2026-09-20"), "the newest-member date");
-		assert.ok(html.includes(">notes</span>"), "the notes kind tag");
+		assert.ok(html.includes(">Notes</span>"), "the notes kind tag");
 	});
 });
 

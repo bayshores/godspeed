@@ -108,7 +108,7 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 					{description.trim() && <p className="font-prose whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{description}</p>}
 					{files.map((f, i) => (
 						<div key={i} className="leading-relaxed">
-							<span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{f.kind === "study" ? "study" : "info"}</span>
+							<span className="text-xs font-semibold text-muted-foreground/70">{f.kind === "study" ? "Study" : "Info"}</span>
 							<span className="ml-2 text-foreground/80">{f.name}</span>
 						</div>
 					))}

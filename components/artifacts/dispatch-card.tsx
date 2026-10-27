@@ -53,7 +53,7 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 			data-testid="dispatch-settled"
 		>
 			{failed ? <XIcon className="size-3.5 text-red-500" /> : <CheckIcon className="size-3.5" />}
-			<span className="font-medium uppercase tracking-wide">{label}</span>
+			<span className="font-semibold">{label}</span>
 			<span>{failed ? "failed" : "finished"}</span>
 		</div>
 	);
@@ -68,7 +68,7 @@ function DispatchRefusedCard({ label, line, button }: { label: string; line: str
 			data-testid="dispatch-refused"
 		>
 			<SettingsIcon className="size-3.5" />
-			<span className="font-medium uppercase tracking-wide">{label}</span>
+			<span className="font-semibold">{label}</span>
 			<span>{line}</span>
 			{ctx && (
 				<button
@@ -94,7 +94,7 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 			className="rounded-xl border bg-card p-4 text-card-foreground"
 			data-testid="dispatch-card"
 		>
-			<div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+			<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				{/* The working-state grammar (owner, streaming round 2026-10-01):
 				    the Braille spinner replaces the pulsing dot — one indicator
 				    everywhere. This is the ONLY dispatch-card change; the card's

@@ -64,7 +64,7 @@ export function ClassSwitcher() {
 					aria-expanded={open}
 					className="lh-press flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-xs hover:bg-accent"
 				>
-					<span className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Class</span>
+					<span className="text-xs font-semibold text-muted-foreground/70">Class</span>
 					<span className="font-prose min-w-0 flex-1 truncate text-sm text-foreground">{activeClass?.name ?? "No class"}</span>
 					<ChevronDownIcon className="size-3 shrink-0 text-muted-foreground" />
 				</button>

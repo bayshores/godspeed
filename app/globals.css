@@ -63,6 +63,11 @@
 	   the reskin's hand-tuned 16.5 to the ladder's 16.) */
 	--lh-prose-size: 16px;
 	--lh-prose-leading: 1.5;
+	/* Lesson text sits a step below the text color so bold and italic
+	   (which stay at the full text color) stand out. */
+	--lh-ink-body: #cfcfcf;
+	/* Bold words in lesson text sit on a flat block in the border color. */
+	--lh-mark-bg: var(--border);
 	/* Markdown heading weight (appearance settings; 900 = the Black cut). */
 	--lh-heading-weight: 900;
 }
@@ -98,6 +103,8 @@
 	   the reskin's hand-tuned 16.5 to the ladder's 16.) */
 	--lh-prose-size: 16px;
 	--lh-prose-leading: 1.5;
+	--lh-ink-body: #cfcfcf;
+	--lh-mark-bg: var(--border);
 	/* Markdown heading weight (appearance settings; 900 = the Black cut). */
 	--lh-heading-weight: 900;
 }
@@ -112,13 +119,16 @@
 }
 
 @theme inline {
-	/* Fonts: chrome = JetBrains Mono, prose = Source Sans 3, titles = CMU
-	   Serif bold. The JetBrains/SourceSans variables attach in app/layout.tsx.
+	/* Fonts: chrome and prose = Source Sans 3, titles = CMU Serif bold,
+	   JetBrains Mono only where digits must line up (counts, scores, steps,
+	   keys — the `font-mono tabular-nums` spots). (owner, redesign
+	   2026-10-27: mono capitals for every label read as noise.)
+	   The JetBrains/SourceSans variables attach in app/layout.tsx.
 	   (owner, typography round) The Tailwind defaults are ALIASED to the app
 	   fonts: `font-mono`/`font-sans` utilities would otherwise fall to the
 	   SYSTEM stacks — a fourth font the app never chose — and streamdown's
 	   code-block chrome + mermaid-error + demo-card all use them. */
-	--font-ui: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+	--font-ui: var(--font-sans3), ui-sans-serif, system-ui, sans-serif;
 	--font-prose: var(--font-sans3), ui-sans-serif, system-ui, sans-serif;
 	--font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
 	--font-sans: var(--font-sans3), ui-sans-serif, system-ui, sans-serif;
@@ -135,11 +145,14 @@
 	   toggle write a runtime --font-title no consumer ever read (owner, fix
 	   wave: toggle looked dead). Non-inline emits :root { --font-title: … }
 	   and the utility reads var(--font-title) — appearance overrides win. */
-	--text-xs: 11px;
+	/* (redesign 2026-10-27) the three small rungs moved up ~1px when the
+	   chrome switched from JetBrains Mono to Source Sans 3: at the same px
+	   the sans reads a notch smaller than the wide mono. */
+	--text-xs: 12px;
 	--text-xs--line-height: 1.4;
-	--text-sm: 12.5px;
+	--text-sm: 13.5px;
 	--text-sm--line-height: 1.4;
-	--text-base: 14px;
+	--text-base: 15px;
 	--text-base--line-height: 1.45;
 	--text-lg: 16px;
 	--text-lg--line-height: 1.45;
@@ -192,6 +205,7 @@ body {
 	font-family: var(--font-prose);
 	font-size: var(--lh-prose-size);
 	line-height: var(--lh-prose-leading);
+	color: var(--lh-ink-body);
 }
 
 /* Session-name weight (owner, fix wave round 3): with the serif toggle
@@ -207,6 +221,17 @@ body {
 .lh-prose :where(strong, b) {
 	color: var(--lh-ink-strong);
 	font-weight: 700;
+}
+
+/* Shaded block (owner pick, redesign 2026-10-27): bold words in lesson
+   text sit on a flat block so key terms are easy to find when scanning
+   back. Not in headings, where bold is just the heading weight. Clone
+   keeps the block's padding on every line when a bold run wraps. */
+.lh-prose :where(strong, b):not(:where(h1, h2, h3, h4, h5, h6) *) {
+	background: var(--lh-mark-bg);
+	padding: 0 0.25em;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
 }
 
 .lh-prose :where(em, i) {

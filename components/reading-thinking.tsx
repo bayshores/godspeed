@@ -31,7 +31,7 @@ export function ReadingThinkingField({
 			data-testid="reading-thinking-field"
 			className={`${rise ? "lh-rise " : ""}pointer-events-auto mb-2 rounded-2xl border bg-card/60 px-3 py-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) focus-within:border-primary/50`}
 		>
-			<div className="pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+			<div className="pb-1 text-xs font-semibold text-muted-foreground">
 				Thinking while reading
 			</div>
 			<textarea

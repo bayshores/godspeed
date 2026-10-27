@@ -36,7 +36,9 @@ describe("PhaseChip (header)", () => {
 		assert.ok(!html.includes("rounded-full"), "no pill curve");
 		assert.ok(!html.includes("border-border"), "no border chrome");
 		assert.ok(!html.includes("px-2"), "no pill padding");
-		assert.match(html, /class="[^"]*text-xs font-medium uppercase/, "the quiet flat label keeps its type treatment");
+		// (redesign 2026-10-27) labels are sentence case now: semibold, never capitals.
+		assert.match(html, /class="[^"]*text-xs font-semibold/, "the quiet flat label keeps its type treatment");
+		assert.ok(!html.includes("uppercase"), "no capitals");
 	});
 
 	it("NEVER shows a working spinner — the pill's curve suits text, not glyph cells (owner, round 2)", () => {

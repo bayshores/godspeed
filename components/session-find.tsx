@@ -193,7 +193,7 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 				spellCheck={false}
 				className="lh-input min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
 			/>
-			<output aria-live="polite" data-testid="session-find-count" className="shrink-0 text-xs tabular-nums text-muted-foreground">
+			<output aria-live="polite" data-testid="session-find-count" className="shrink-0 text-xs font-mono tabular-nums text-muted-foreground">
 				{query ? `${result.index + 1}/${result.count}` : ""}
 			</output>
 			<button type="button" aria-label="Previous match" title="Previous match (Shift+Enter)" className={buttonClass}

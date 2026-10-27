@@ -185,7 +185,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				<h2 className="text-sm font-semibold text-foreground">{title}</h2>
 
 				<label className="flex flex-col gap-1">
-					<span className="uppercase tracking-wider text-muted-foreground">Name</span>
+					<span className="font-semibold text-muted-foreground">Name</span>
 					<input
 						data-testid="class-name"
 						value={name}
@@ -197,7 +197,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				</label>
 
 				<label className="flex flex-col gap-1">
-					<span className="uppercase tracking-wider text-muted-foreground">About the class</span>
+					<span className="font-semibold text-muted-foreground">About the class</span>
 					<textarea
 						data-testid="class-description"
 						value={description}
@@ -212,7 +212,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 					<>
 						<section className="flex flex-col gap-2" data-testid="class-files">
 							<div className="flex items-center justify-between">
-								<span className="uppercase tracking-wider text-muted-foreground">Files</span>
+								<span className="font-semibold text-muted-foreground">Files</span>
 								<div className="flex items-center gap-1.5">
 									<select
 										data-testid="class-add-kind"
@@ -240,7 +240,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										data-testid="class-add-files"
 										disabled={busy}
 										onClick={() => fileInputRef.current?.click()}
-										className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										Add files…
 									</button>
@@ -262,7 +262,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						</section>
 
 						<section className="flex flex-col gap-2" data-testid="class-folder">
-							<span className="uppercase tracking-wider text-muted-foreground">Linked folder</span>
+							<span className="font-semibold text-muted-foreground">Linked folder</span>
 							<p className="text-muted-foreground/80">
 								New files you put in this folder are added as study material automatically, and edited files are rebuilt. The
 								folder itself is never changed.
@@ -285,7 +285,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 												if (p) void linkFolder(p);
 											})
 										}
-										className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										Choose…
 									</button>
@@ -295,7 +295,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 									data-testid="class-link-folder"
 									disabled={busy || folderInput.trim() === "" || folderInput.trim() === record.linkedFolder}
 									onClick={() => void linkFolder(folderInput)}
-									className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+									className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
 								>
 									Link
 								</button>
@@ -310,7 +310,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 												void load();
 											})
 										}
-										className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										Unlink
 									</button>
@@ -440,14 +440,14 @@ export function ClassFileRow({
 		<li data-testid={`class-file-${file.id}`} className="flex items-center gap-2 px-3 py-2">
 			<span className="min-w-0 flex-1 truncate font-prose text-sm text-foreground" title={file.error ?? file.path}>
 				{file.name}
-				{file.origin === "linked" && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">folder</span>}
+				{file.origin === "linked" && <span className="ml-1.5 text-xs font-semibold text-muted-foreground/70">Folder</span>}
 			</span>
 			<select
 				aria-label={`${file.name} kind`}
 				value={file.kind}
 				disabled={disabled}
 				onChange={(e) => void put({ kind: e.target.value })}
-				className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11px]"
+				className="rounded-md border border-border bg-background px-1.5 py-0.5 text-xs"
 			>
 				<option value="study">Study material</option>
 				<option value="info">Course info</option>
@@ -456,7 +456,7 @@ export function ClassFileRow({
 				data-testid={`class-file-status-${file.id}`}
 				title={file.error}
 				className={cn(
-					"w-24 shrink-0 text-right text-[11px] uppercase tracking-wider",
+					"w-24 shrink-0 text-right text-xs font-semibold",
 					file.status === "failed" || file.status === "needs-whisper" ? "text-destructive" : "text-muted-foreground",
 				)}
 			>

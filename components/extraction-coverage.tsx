@@ -197,10 +197,10 @@ export function CoverageMenuBody({
 				<span className="text-muted-foreground">fully extracted</span>
 			) : (
 				<span className="flex flex-col">
-					<span className="tabular-nums text-foreground">
+					<span className="font-mono tabular-nums text-foreground">
 						{formatTokens(coverage.uncoveredTokens)} tok uncovered
 					</span>
-					<span className="tabular-nums text-muted-foreground">
+					<span className="font-mono tabular-nums text-muted-foreground">
 						{coverage.uncoveredCount} message{coverage.uncoveredCount === 1 ? "" : "s"} unextracted
 					</span>
 				</span>
@@ -365,37 +365,37 @@ export function CoverageRingGlyph({ fill, running }: { fill: number; running: bo
 export function CoverageRingDetail({ coverage, chunkTokens }: { coverage: SessionCoverage; chunkTokens: number }) {
 	return (
 		<>
-			<div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+			<div className="mb-2 text-xs font-semibold text-muted-foreground">
 				Extraction coverage
 			</div>
 			<div className="flex flex-col gap-1 text-muted-foreground">
 				<div className="flex justify-between gap-2">
 					<span>Uncovered</span>
-					<span className="tabular-nums text-card-foreground">
+					<span className="font-mono tabular-nums text-card-foreground">
 						{formatTokens(coverage.uncoveredTokens)} tokens
 					</span>
 				</div>
 				<div className="flex justify-between gap-2">
 					<span>Covered</span>
-					<span className="tabular-nums text-card-foreground">
+					<span className="font-mono tabular-nums text-card-foreground">
 						{formatTokens(coverage.coveredTokens)} tokens
 					</span>
 				</div>
 				<div className="flex justify-between gap-2">
 					<span>Messages</span>
-					<span className="tabular-nums text-card-foreground">
+					<span className="font-mono tabular-nums text-card-foreground">
 						{coverage.coveredCount} / {coverage.totalMessages}
 					</span>
 				</div>
 				<div className="flex justify-between gap-2">
 					<span>Chunk threshold</span>
-					<span className="tabular-nums text-card-foreground">
+					<span className="font-mono tabular-nums text-card-foreground">
 						{formatTokens(chunkTokens)} tokens
 					</span>
 				</div>
 				<div className="flex justify-between gap-2">
 					<span>Last extraction</span>
-					<span className="tabular-nums text-card-foreground">
+					<span className="font-mono tabular-nums text-card-foreground">
 						{coverage.lastFoldedAt ? timeAgo(coverage.lastFoldedAt) : "—"}
 					</span>
 				</div>

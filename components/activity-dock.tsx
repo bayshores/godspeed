@@ -345,11 +345,11 @@ export function ActivitySection({ feed: feedProp }: { feed?: ActivityFeed }) {
 	// alone (the cost span is population, not decoration).
 	return (
 		<section data-testid="activity-section" className="border-t border-border px-3 pb-3 pt-2">
-			<div className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground/70">
+			<div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground/70">
 				<ActivityIcon className="size-3" />
 				Background agents
 				{blobs.length > 0 && (
-					<span className="ml-auto tabular-nums" data-testid="activity-total-cost" title="Total running cost (inferred)">
+					<span className="ml-auto font-mono tabular-nums" data-testid="activity-total-cost" title="Total running cost (inferred)">
 						{planCostLabel(totalCost, subscriptionLabels(blobs.map((blob) => blob.model)))}
 				</span>
 				)}
@@ -427,7 +427,7 @@ function ActivityBlobRow({
 						<span className="block truncate text-muted-foreground/80">{label}</span>
 					)}
 				</span>
-				<span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
+				<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-muted-foreground">
 					<span data-testid="activity-blob-cost">{planCostLabel(blob.cost, subscriptionLabel(blob.model))}</span>
 					<span data-testid="activity-blob-elapsed">{formatElapsed(now - blob.startedAt)}</span>
 				</span>
@@ -457,7 +457,7 @@ function ActivityBlobRow({
 					<div className="mb-1.5 flex items-center gap-2">
 						<Icon className="size-3.5 text-muted-foreground" />
 						<span className="font-medium">{label}</span>
-						<span className="ml-auto tabular-nums text-muted-foreground">
+						<span className="ml-auto font-mono tabular-nums text-muted-foreground">
 							{formatElapsed(now - blob.startedAt)}
 						</span>
 					</div>
@@ -468,13 +468,13 @@ function ActivityBlobRow({
 						{blob.activity && <div className="break-words">{blob.activity}</div>}
 						<div className="flex justify-between gap-2">
 							<span>Cost</span>
-							<span className="tabular-nums text-card-foreground">
+							<span className="font-mono tabular-nums text-card-foreground">
 								{planCostLabel(blob.cost, subscriptionLabel(blob.model))}
 							</span>
 						</div>
 						<div className="flex justify-between gap-2">
 							<span>Context</span>
-							<span className="tabular-nums text-card-foreground" data-testid="activity-blob-context">
+							<span className="font-mono tabular-nums text-card-foreground" data-testid="activity-blob-context">
 								{blob.context === null
 									? "—"
 									: `${formatTokens(blob.context.used)} / ${formatTokens(blob.context.limit)}`}
@@ -489,7 +489,7 @@ function ActivityBlobRow({
 						{blob.steps !== undefined && (
 							<div className="flex justify-between gap-2">
 								<span>Steps</span>
-								<span className="tabular-nums text-card-foreground">{blob.steps}</span>
+								<span className="font-mono tabular-nums text-card-foreground">{blob.steps}</span>
 							</div>
 						)}
 						<a href={`/chat/${blob.chatId}`} className="text-primary hover:underline">

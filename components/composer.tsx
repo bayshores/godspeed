@@ -118,7 +118,7 @@ export function Composer({
 						type="submit"
 						data-testid="next-problem-button"
 						aria-label="Next problem"
-						className="lh-press lh-fade flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-green-600 px-4 font-ui text-xs font-medium uppercase tracking-wide text-white hover:bg-green-500"
+						className="lh-press lh-fade flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-green-600 px-4 font-ui text-xs font-semibold text-white hover:bg-green-500"
 					>
 						Next problem
 						<ArrowRightIcon className="size-4" />

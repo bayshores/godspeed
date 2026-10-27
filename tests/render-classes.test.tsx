@@ -32,7 +32,7 @@ describe("class surfaces", () => {
 		assert.ok(copied.includes("Remove"));
 		const linked = renderToStaticMarkup(<ClassFileRow classId="cls_a" file={{ ...base, origin: "linked", status: "ready" }} onChanged={() => {}} onError={() => {}} />);
 		assert.ok(linked.includes("Ready"));
-		assert.ok(linked.includes("folder"));
+		assert.ok(linked.includes("Folder"));
 		assert.ok(!linked.includes("Remove"));
 	});
 

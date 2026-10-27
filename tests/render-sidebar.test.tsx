@@ -82,7 +82,9 @@ describe("SessionRow", () => {
 	});
 
 	it("the meta line: state replaces the count when the state is the useful fact", () => {
-		const awaiting = render(item({ pendingQuestion: true, updatedAt: "2026-01-02T01:00:00.000Z" }));
+		// Midday UTC: the row shows the LOCAL date, and 01:00Z is still Jan 1
+		// west of UTC, so an early-morning time made this test fail there.
+		const awaiting = render(item({ pendingQuestion: true, updatedAt: "2026-01-02T12:00:00.000Z" }));
 		assert.ok(awaiting.includes("Waiting for input · 2026-01-02"), "awaiting meta keeps the existing date");
 		assert.ok(!awaiting.includes("messages"), "count yields to the state");
 		assert.ok(!awaiting.includes("braille-spinner"), "…and the spinner stays off");

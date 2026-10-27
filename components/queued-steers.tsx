@@ -26,7 +26,7 @@ export function QueuedSteersBody({ steers }: { steers: QueuedSteerLine[] }) {
 				<span
 					key={s.id}
 					title={s.text}
-					className="lh-rise block max-w-[240px] truncate font-ui text-[11px] text-muted-foreground/60"
+					className="lh-rise block max-w-[240px] truncate font-ui text-xs text-muted-foreground/60"
 				>
 					{s.text}
 				</span>

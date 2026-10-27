@@ -117,7 +117,7 @@ export function StatsBar({
 				onClick={() => setOpen((o) => !o)}
 				aria-expanded={open}
 				data-testid="stats-summary"
-				className="lh-press flex items-center gap-1.5 tabular-nums hover:text-foreground"
+				className="lh-press flex items-center gap-1.5 font-mono tabular-nums hover:text-foreground"
 			>
 				<span data-testid="stats-context">
 					{contextLabel}
@@ -133,31 +133,31 @@ export function StatsBar({
 						data-state={detail.state}
 						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 rounded-xl border bg-card p-3 text-xs shadow-xl"
 					>
-						<div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+						<div className="mb-2 text-xs font-semibold text-muted-foreground">
 							Session stats
 						</div>
 						<div className="flex flex-col gap-1 text-muted-foreground">
 							<div className="flex justify-between gap-2">
 								<span>Context (last call)</span>
-								<span className="tabular-nums text-card-foreground">
+								<span className="font-mono tabular-nums text-card-foreground">
 									{contextLabel}
 								</span>
 							</div>
 							<div className="flex justify-between gap-2">
 								<span>{subscription ? "Usage" : "Total cost"}</span>
-								<span className="tabular-nums text-card-foreground">{costLabel}</span>
+								<span className="font-mono tabular-nums text-card-foreground">{costLabel}</span>
 							</div>
 							{providers.includes("ChatGPT") && <a href="https://chatgpt.com/settings/usage" target="_blank" rel="noreferrer" className="underline underline-offset-2">Manage ChatGPT usage</a>}
 							{unpriced > 0 && (
 								<div className="flex justify-between gap-2">
 									<span>Unpriced turns</span>
-									<span className="tabular-nums text-card-foreground">{unpriced}</span>
+									<span className="font-mono tabular-nums text-card-foreground">{unpriced}</span>
 								</div>
 							)}
 						</div>
 						{turns.length > 0 && (
 							<>
-								<div className="mb-1 mt-2.5 border-t pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								<div className="mb-1 mt-2.5 border-t pt-2 text-xs font-semibold text-muted-foreground">
 									Turns
 								</div>
 								<ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
@@ -168,7 +168,7 @@ export function StatsBar({
 												<span className="truncate text-muted-foreground">
 													#{i + 1} · {prettyModel(turn.model, true)}
 												</span>
-												<span className="flex shrink-0 items-center gap-2 tabular-nums text-card-foreground">
+												<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-card-foreground">
 													<span className="text-muted-foreground">{turn.steps.length} steps</span>
 													<span>{subscriptionLabel(turn.model) ?? (c === null ? "—" : formatUsd(c))}</span>
 												</span>
