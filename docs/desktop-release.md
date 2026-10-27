@@ -82,7 +82,7 @@ Add these under repository **Settings → Secrets and variables → Actions**:
 | `MAC_CSC_KEY_PASSWORD` | Password protecting that `.p12` |
 | `APPLE_ID` | Apple ID used for notarization |
 | `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password for that Apple ID |
-| `APPLE_TEAM_ID` | `JS6XN22HY6` |
+| `APPLE_TEAM_ID` | `TM8Y622C8X` |
 
 The workflow maps the certificate secrets to electron-builder's `CSC_LINK` / `CSC_KEY_PASSWORD`. GitHub's built-in `GITHUB_TOKEN` supplies `GH_TOKEN` with job-scoped `contents: write`; no separate GitHub token secret is required. Signing credentials are present only for the packaging step, not the Next build. Never commit certificates, passwords, or `.env.local`.
 

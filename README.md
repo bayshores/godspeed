@@ -9,7 +9,7 @@
 <p align="center"><strong>An agent harness for learning, taught by the AI you already pay for.</strong></p>
 
 <p align="center">
-  <a href="#get-started">Get started</a> ·
+  <a href="https://github.com/bayshores/godspeed/releases/latest"><strong>Download</strong></a> ·
   <a href="#whats-different-from-learnharness">What's different</a> ·
   <a href="#outside-agents-mcp">Outside agents</a> ·
   <a href="docs/development.md">Docs</a> ·
@@ -35,7 +35,6 @@ godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharne
 | **Confidence** | Percent slider | Five levels |
 | **Look** | Rounded corners | OLED black, square corners, CMU Serif titles, Source Sans 3 text |
 | **Dictation and web search keys** | Deepgram, Tavily, Brave | Removed |
-| **Install** | Signed downloads for Mac, Windows and Linux | Build from source |
 
 The lesson screen was also rebuilt for speed. While the teacher writes, the screen redraws at most once per frame and only the message being written updates. Diagrams, code highlighting and the topic map load the first time you need them.
 
@@ -52,14 +51,17 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 ## Get started
 
-```bash
-npm install
-npm run desktop:local   # builds an unsigned Mac app into dist/
-```
+**[Download the latest release](https://github.com/bayshores/godspeed/releases/latest)**
 
-Or run it in a browser with `npm run dev` at http://localhost:3000.
+- **Mac (Apple Silicon):** open the `.dmg` and drag godspeed to Applications. It's signed and notarized, so it opens like any other app.
+- **Windows:** run the `setup.exe`. It isn't signed, so Windows may warn about an unknown publisher. Click **More info → Run anyway**.
+- **Linux:** make the `.AppImage` executable and open it, or install the `.deb`.
+
+The app checks for updates once a day and installs them when you quit. **Settings → General → Check for updates** checks right away.
 
 Then pick a teacher. Sign in to a subscription under **Settings → Providers**, or connect an outside agent (below).
+
+To build it yourself instead: `npm install`, then `npm run desktop:local` (an unsigned Mac app in `dist/`) or `npm run dev` (http://localhost:3000).
 
 ## Outside agents (MCP)
 
