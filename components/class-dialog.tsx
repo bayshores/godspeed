@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
 import { useServerEvent } from "@/components/server-events";
 import type { ClassFile, ClassRecord } from "@/src/core";
@@ -32,12 +33,24 @@ export const FILE_STATUS_LABEL: Record<ClassFile["status"], string> = {
 
 type Mode = { kind: "create" } | { kind: "edit"; classId: string };
 
-export function ClassDialog({ mode, onClose }: { mode: Mode | null; onClose: () => void }) {
-	if (!mode) return null;
-	return createPortal(<ClassDialogInner mode={mode} onClose={onClose} />, document.body);
+/** Exit motion (motion wave, owner 2026-10-26): the dialog stays mounted
+ *  with its last `value` while it fades out. */
+function useLastWhileClosing<T>(value: T | null) {
+	const presence = usePresence(value !== null);
+	const [last, setLast] = useState(value);
+	if (value !== null && value !== last) setLast(value);
+	return { mounted: presence.mounted, state: presence.state, shown: value ?? last };
 }
 
-function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }) {
+export function ClassDialog({ mode, onClose }: { mode: Mode | null; onClose: () => void }) {
+	const { mounted, state, shown } = useLastWhileClosing(mode);
+	if (!mounted || !shown) return null;
+	return createPortal(<ClassDialogInner mode={shown} onClose={onClose} state={state} />, document.body);
+}
+
+type MotionState = "open" | "closed";
+
+function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { setActive } = useClasses();
 	const [record, setRecord] = useState<ClassRecord | null>(null);
 	const [name, setName] = useState("");
@@ -79,6 +92,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 		if (!busy) onClose();
 	});
 	useEffect(() => {
+		if (state === "closed") return;
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				e.preventDefault();
@@ -88,7 +102,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [onClose]);
+	}, [onClose, state]);
 
 	const call = async (url: string, init: RequestInit): Promise<unknown | null> => {
 		setBusy(true);
@@ -158,14 +172,15 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 
 	const title = mode.kind === "create" ? "New class" : "Class";
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" {...backdropDismiss}>
+		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80" {...backdropDismiss}>
 			<div
 				role="dialog"
 				aria-modal="true"
 				aria-label={title}
 				data-testid="class-dialog"
+				data-state={state}
 				onClick={(e) => e.stopPropagation()}
-				className="flex max-h-[85vh] w-[36rem] max-w-[calc(100vw-2rem)] flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-5 text-xs shadow-xl"
+				className="lh-dialog flex max-h-[85vh] w-[36rem] max-w-[calc(100vw-2rem)] flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-5 text-xs shadow-xl"
 			>
 				<h2 className="text-sm font-semibold text-foreground">{title}</h2>
 
@@ -225,7 +240,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 										data-testid="class-add-files"
 										disabled={busy}
 										onClick={() => fileInputRef.current?.click()}
-										className="rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										Add files…
 									</button>
@@ -270,7 +285,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 												if (p) void linkFolder(p);
 											})
 										}
-										className="rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										Choose…
 									</button>
@@ -280,7 +295,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 									data-testid="class-link-folder"
 									disabled={busy || folderInput.trim() === "" || folderInput.trim() === record.linkedFolder}
 									onClick={() => void linkFolder(folderInput)}
-									className="rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+									className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
 								>
 									Link
 								</button>
@@ -295,7 +310,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 												void load();
 											})
 										}
-										className="rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md border border-border px-2 py-1 uppercase tracking-wider text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										Unlink
 									</button>
@@ -319,7 +334,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 							your computer is not touched. This cannot be undone.
 						</span>
 						<div className="flex justify-end gap-2">
-							<button type="button" onClick={() => setConfirmDelete(false)} className="rounded-md px-3 py-1.5 hover:bg-accent">
+							<button type="button" onClick={() => setConfirmDelete(false)} className="lh-press rounded-md px-3 py-1.5 hover:bg-accent">
 								Cancel
 							</button>
 							<button
@@ -334,7 +349,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 										}
 									})
 								}
-								className="rounded-md bg-destructive px-3 py-1.5 text-white hover:bg-destructive/90"
+								className="lh-press rounded-md bg-destructive px-3 py-1.5 text-white hover:bg-destructive/90"
 							>
 								Delete class
 							</button>
@@ -357,7 +372,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 												}
 											})
 										}
-										className="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+										className="lh-press rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
 										{record.archived ? "Unarchive" : "Archive"}
 									</button>
@@ -365,7 +380,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 										type="button"
 										data-testid="class-delete"
 										onClick={() => setConfirmDelete(true)}
-										className="rounded-md px-3 py-1.5 text-muted-foreground/80 hover:bg-accent hover:text-destructive"
+										className="lh-press rounded-md px-3 py-1.5 text-muted-foreground/80 hover:bg-accent hover:text-destructive"
 									>
 										Delete…
 									</button>
@@ -373,7 +388,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 							)}
 						</div>
 						<div className="flex gap-2">
-							<button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 hover:bg-accent">
+							<button type="button" onClick={onClose} className="lh-press rounded-md px-3 py-1.5 hover:bg-accent">
 								{mode.kind === "edit" ? "Close" : "Cancel"}
 							</button>
 							<button
@@ -381,7 +396,7 @@ function ClassDialogInner({ mode, onClose }: { mode: Mode; onClose: () => void }
 								data-testid="class-save"
 								disabled={busy}
 								onClick={() => void save()}
-								className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90"
+								className="lh-press rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90"
 							>
 								{mode.kind === "create" ? "Create class" : "Save"}
 							</button>
@@ -448,12 +463,12 @@ export function ClassFileRow({
 				{FILE_STATUS_LABEL[file.status]}
 			</span>
 			{(file.status === "failed" || file.status === "needs-whisper" || file.status === "pending") && (
-				<button type="button" disabled={disabled} onClick={() => void put({ retry: true })} className="text-muted-foreground hover:text-foreground">
+				<button type="button" disabled={disabled} onClick={() => void put({ retry: true })} className="lh-press text-muted-foreground hover:text-foreground">
 					Retry
 				</button>
 			)}
 			{file.origin === "copied" && (
-				<button type="button" disabled={disabled} onClick={() => void remove()} aria-label={`Remove ${file.name}`} className="text-muted-foreground/70 hover:text-destructive">
+				<button type="button" disabled={disabled} onClick={() => void remove()} aria-label={`Remove ${file.name}`} className="lh-press text-muted-foreground/70 hover:text-destructive">
 					Remove
 				</button>
 			)}
@@ -472,18 +487,21 @@ export function MoveLessonDialog({
 	onClose: () => void;
 	onMoved: (id: string, classId: string | null) => void;
 }) {
-	if (!lesson) return null;
-	return createPortal(<MoveLessonInner lesson={lesson} onClose={onClose} onMoved={onMoved} />, document.body);
+	const { mounted, state, shown } = useLastWhileClosing(lesson);
+	if (!mounted || !shown) return null;
+	return createPortal(<MoveLessonInner lesson={shown} onClose={onClose} onMoved={onMoved} state={state} />, document.body);
 }
 
 function MoveLessonInner({
 	lesson,
 	onClose,
 	onMoved,
+	state,
 }: {
 	lesson: { id: string; title: string; classId?: string };
 	onClose: () => void;
 	onMoved: (id: string, classId: string | null) => void;
+	state: MotionState;
 }) {
 	const { classes } = useClasses();
 	const from = lesson.classId ?? null;
@@ -519,14 +537,15 @@ function MoveLessonInner({
 		{ id: null, name: "No class" },
 	];
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" {...backdropDismiss}>
+		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80" {...backdropDismiss}>
 			<div
 				role="dialog"
 				aria-modal="true"
 				aria-label="Move lesson"
 				data-testid="move-lesson-dialog"
+				data-state={state}
 				onClick={(e) => e.stopPropagation()}
-				className="flex w-[28rem] max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-xl border bg-card p-5 text-xs shadow-xl"
+				className="lh-dialog flex w-[28rem] max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-xl border bg-card p-5 text-xs shadow-xl"
 			>
 				<h2 className="text-sm font-semibold text-foreground">Move lesson to another class</h2>
 				<code className="font-mono text-sm text-foreground">{lesson.title}</code>
@@ -545,7 +564,7 @@ function MoveLessonInner({
 				</p>
 				{error && <div className="rounded-md border border-destructive/50 px-3 py-2 text-destructive">{error}</div>}
 				<div className="flex justify-end gap-2">
-					<button type="button" onClick={onClose} className="rounded-md px-3 py-1.5 hover:bg-accent">
+					<button type="button" onClick={onClose} className="lh-press rounded-md px-3 py-1.5 hover:bg-accent">
 						Cancel
 					</button>
 					<button
@@ -553,7 +572,7 @@ function MoveLessonInner({
 						data-testid="move-lesson-confirm"
 						disabled={busy || target === from}
 						onClick={() => void move()}
-						className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+						className="lh-press rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
 					>
 						Move
 					</button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MenuShell } from "@/components/menu-shell";
@@ -182,10 +182,39 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
 	return (
 		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
-			{/* transitions gated on mount: no slide-in flash on page load */}
-			<div className={cn("flex h-dvh", mounted && "[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
+			{/* transitions gated on mount: no slide-in flash on page load;
+			    motion-safe: reduced motion opens/closes at once (motion wave,
+			    owner 2026-10-26) */}
+			<div className={cn("flex h-dvh", mounted && "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
 		</SidebarContext.Provider>
 	);
+}
+
+/** The sidebar slide's timing — the motion tokens (motion wave, owner
+ *  2026-10-26; was duration-200 + the default ease). Shared by the
+ *  sidebar and its header toggle so the two stay in lockstep. */
+const SIDEBAR_MOTION = "duration-[var(--lh-dur-slow)] ease-[var(--lh-ease-out)]";
+
+/** Replays an element's one-shot .lh-rise (motion wave, owner
+ *  2026-10-26): the class is removed, a reflow restarts it, and it is put
+ *  back. Reduced motion: .lh-rise is inert, so this does nothing visible. */
+export function replayRise(el: HTMLElement | null): void {
+	if (!el) return;
+	el.classList.remove("lh-rise");
+	void el.offsetWidth;
+	el.classList.add("lh-rise");
+}
+
+/** Plays .lh-rise on `ref` each time `key` changes — never on first mount
+ *  and never on a plain re-render or streamed update (motion wave). The
+ *  element's own className must not carry lh-rise (this owns it). */
+export function useRiseOnChange(ref: RefObject<HTMLElement | null>, key: unknown): void {
+	const prev = useRef(key);
+	useLayoutEffect(() => {
+		if (Object.is(prev.current, key)) return;
+		prev.current = key;
+		replayRise(ref.current);
+	}, [ref, key]);
 }
 
 /** Hamburger for page headers — only visible when the sidebar is closed.
@@ -205,7 +234,7 @@ export function SidebarToggle() {
 	return (
 		<span
 			className={cn(
-				"sidebar-motion lh-no-drag relative flex h-9 shrink-0 overflow-hidden duration-200",
+				"sidebar-motion lh-no-drag relative flex h-9 shrink-0 overflow-hidden", SIDEBAR_MOTION,
 				open ? "w-0 -mr-3" : "w-9 mr-0 lh-closed-toggle",
 			)}
 		>
@@ -217,7 +246,7 @@ export function SidebarToggle() {
 				aria-hidden={open}
 				tabIndex={open ? -1 : 0}
 				onClick={toggle}
-				className={cn("sidebar-motion duration-200", open ? "pointer-events-none opacity-0" : "opacity-100")}
+				className={cn("sidebar-motion", SIDEBAR_MOTION, open ? "pointer-events-none opacity-0" : "opacity-100")}
 			>
 				{/* Owner, round 6: size-4, SAME as the close glyph — the toggle
 				    must not grow when the sidebar is closed (it did: size-5 here).
@@ -293,6 +322,7 @@ export function SessionRow({
 	onOpen,
 	kbdSelected = false,
 	onContextMenu,
+	fresh = false,
 }: {
 	chat: ChatListItem;
 	active: boolean;
@@ -302,6 +332,8 @@ export function SessionRow({
 	kbdSelected?: boolean;
 	/** Right-click opens the context menu (wave 6: Rename / Delete). */
 	onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+	/** A lesson that just appeared in the list rises in once (motion wave). */
+	fresh?: boolean;
 }) {
 	return (
 		<button
@@ -310,8 +342,9 @@ export function SessionRow({
 			onContextMenu={onContextMenu}
 			data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
 			className={cn(
-				"relative mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent",
+				"lh-press relative mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-accent",
 				active && "bg-accent",
+				fresh && "lh-rise",
 				kbdSelected && !active && "bg-accent/60 ring-1 ring-border",
 			)}
 		>
@@ -437,6 +470,11 @@ function SessionsSidebar() {
 			.map((r) => r.c);
 	}, [chats, query, kindFilter, activeClassId]);
 
+	/* Rows that arrived since the last snapshot rise in once (motion
+	   wave, owner 2026-10-26). The first snapshot marks nothing. */
+	const [freshIds, setFreshIds] = useState<ReadonlySet<string>>(() => new Set());
+	const knownIdsRef = useRef<Set<string> | null>(null);
+
 	const refreshInFlightRef = useRef(false);
 	const refresh = useCallback(async () => {
 		// In-flight coalesce (S6): event bursts may land several refresh
@@ -447,6 +485,12 @@ function SessionsSidebar() {
 		try {
 			const res = await fetch("/api/chats", { cache: "no-store" });
 			const d = (await res.json()) as { chats: ChatListItem[] };
+			const known = knownIdsRef.current;
+			if (known) {
+				const added = d.chats.filter((c) => !known.has(c.id)).map((c) => c.id);
+				if (added.length > 0) setFreshIds(new Set(added));
+			}
+			knownIdsRef.current = new Set(d.chats.map((c) => c.id));
 			setChats(d.chats);
 		} catch {
 			// a transient failure keeps the last snapshot
@@ -542,6 +586,8 @@ function SessionsSidebar() {
 	const [kbdIndex, setKbdIndex] = useState<number | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	// Switching class or kind filter swaps the list: it rises in (motion wave).
+	useRiseOnChange(listRef, `${activeClassId ?? ""}|${kindFilter}`);
 
 	/* ── Wave 6 chunk A: context menu + inline rename + deletion ──
 	   Right-click a session row → MenuShell: the two management actions
@@ -552,6 +598,9 @@ function SessionsSidebar() {
 	   right-clicked — assigned into a ref before the state flip so the
 	   shell measures it on its first (hidden) pass. */
 	const [ctxChatId, setCtxChatId] = useState<string | null>(null);
+	// The last menu's chat stays set after close, so the menu can play its
+	// exit (MenuShell's `open`, motion wave 2026-10-26).
+	const [ctxMenuId, setCtxMenuId] = useState<string | null>(null);
 	const ctxAnchorRef = useRef<HTMLElement | null>(null);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<ChatListItem | null>(null);
@@ -560,6 +609,7 @@ function SessionsSidebar() {
 		e.preventDefault(); // suppress the native menu
 		ctxAnchorRef.current = e.currentTarget;
 		setCtxChatId(chat.id);
+		setCtxMenuId(chat.id);
 	};
 
 	// The menu contract (agent-section's): any pointerdown outside the menu
@@ -652,7 +702,7 @@ function SessionsSidebar() {
 
 	return (
 		<aside
-			className={cn("sidebar-motion shrink-0 overflow-hidden duration-200", open ? "w-72" : "w-0")}
+			className={cn("sidebar-motion shrink-0 overflow-hidden", SIDEBAR_MOTION, open ? "w-72" : "w-0")}
 			aria-hidden={!open}
 		>
 			<div className="flex h-full w-72 flex-col border-r bg-background">
@@ -710,7 +760,7 @@ function SessionsSidebar() {
 						type="button"
 						data-testid="new-session"
 						onClick={() => void newSession()}
-						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground lh-press hover:bg-accent hover:text-foreground"
 					>
 						<PlusIcon className="size-3" />
 						Teaching
@@ -720,7 +770,7 @@ function SessionsSidebar() {
 						type="button"
 						data-testid="new-session-practice"
 						onClick={() => router.push("/chat/new?mode=practice")}
-						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground lh-press hover:bg-accent hover:text-foreground"
 					>
 						<DumbbellIcon className="size-3" />
 						Practice
@@ -804,7 +854,7 @@ function SessionsSidebar() {
 							data-testid={`kind-filter-${f}`}
 							onClick={() => setFilter(f)}
 							className={cn(
-								"flex-1 rounded-sm px-2 py-1 text-[11px] uppercase tracking-wider transition-colors",
+								"lh-press flex-1 rounded-sm px-2 py-1 text-[11px] uppercase tracking-wider",
 								kindFilter === f
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:text-foreground",
@@ -837,6 +887,7 @@ function SessionsSidebar() {
 									chat={c}
 									active={pathname === `/chat/${c.id}`}
 									kbdSelected={i === kbdIndex}
+									fresh={freshIds.has(c.id)}
 									onOpen={() => {
 										setKbdIndex(null);
 										router.push(`/chat/${c.id}`);
@@ -864,7 +915,7 @@ function SessionsSidebar() {
 								type="button"
 								onClick={() => openSettings()}
 								data-testid="settings-entry"
-								className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground lh-press hover:bg-accent hover:text-foreground"
 							>
 								<SettingsIcon className="size-3" />
 								Settings
@@ -877,8 +928,11 @@ function SessionsSidebar() {
 				    coverage block above, then exactly two management actions
 				    (owner ruling — no more). MenuShell owns placement/focus/arrow
 				    cycling; the dismissal effect above owns the contract. */}
-				{ctxChatId !== null && (
+				{ctxMenuId !== null && (
 					<MenuShell
+						// Keyed: another row's menu is a fresh shell.
+						key={ctxMenuId}
+						open={ctxChatId === ctxMenuId}
 						anchorRef={ctxAnchorRef}
 						testid="session-context-menu"
 						preferredSide="down"
@@ -897,7 +951,7 @@ function SessionsSidebar() {
 								setRenamingId(ctxChatId);
 								setCtxChatId(null);
 							}}
-							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
+							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground hover:bg-accent"
 						>
 							Rename
 						</button>
@@ -919,7 +973,7 @@ function SessionsSidebar() {
 								a.click();
 								a.remove();
 							}}
-							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
+							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground hover:bg-accent"
 						>
 							Export as Markdown…
 						</button>
@@ -931,7 +985,7 @@ function SessionsSidebar() {
 								if (target) setMoving(target);
 								setCtxChatId(null);
 							}}
-							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
+							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground hover:bg-accent"
 						>
 							Move to class…
 						</button>
@@ -943,12 +997,12 @@ function SessionsSidebar() {
 								if (target) setDeleting(target);
 								setCtxChatId(null);
 							}}
-							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
+							className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 hover:bg-accent hover:text-foreground"
 						>
 							Delete…
 						</button>
 						<div className="my-0.5 border-t border-border/60" aria-hidden="true" />
-						<CoverageMenuBlock chatId={ctxChatId} />
+						<CoverageMenuBlock chatId={ctxMenuId} />
 					</MenuShell>
 				)}
 
@@ -972,12 +1026,36 @@ function SessionsSidebar() {
 	);
 }
 
+/** The view swap (motion wave, owner 2026-10-26): switching between home,
+ *  lessons, or the draft view rises the incoming page in once. The
+ *  draft's first send is NOT a swap — /chat/new turns into its own lesson
+ *  with the same look, so it lands still. */
+function ViewSwap({ children }: { children: React.ReactNode }) {
+	const pathname = usePathname();
+	const ref = useRef<HTMLDivElement>(null);
+	const prev = useRef(pathname);
+	useLayoutEffect(() => {
+		const from = prev.current;
+		prev.current = pathname;
+		if (from === pathname) return;
+		if (from === "/chat/new" && pathname.startsWith("/chat/")) return;
+		replayRise(ref.current);
+	}, [pathname]);
+	return (
+		<div ref={ref} className="h-full" style={{ animationDuration: "var(--lh-dur-slow)" }}>
+			{children}
+		</div>
+	);
+}
+
 /** The app frame: sidebar inline + content. Rendered once in the root layout. */
 export function AppShell({ children }: { children: React.ReactNode }) {
 	return (
 		<SettingsDialogProvider>
 			<SessionsSidebar />
-			<main className="min-w-0 flex-1">{children}</main>
+			<main className="min-w-0 flex-1">
+				<ViewSwap>{children}</ViewSwap>
+			</main>
 			{/* The single document-level keydown listener (keyboard wave A) —
 			    after the content in the tree, but it's window-level so order only
 			    matters for the events it dispatches, never for DOM priority. */}

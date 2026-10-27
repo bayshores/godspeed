@@ -68,6 +68,7 @@ import {
 	XIcon,
 } from "lucide-react";
 import { chainsForSelection, formatChainLine, fuzzyScore } from "@/src/core";
+import { usePresence } from "@/components/presence";
 import type { GraphChain, GraphNode } from "@/src/core";
 import { TopBar } from "@/components/top-bar";
 import { DeleteNodeDialog } from "@/components/delete-node-dialog";
@@ -146,6 +147,8 @@ export function ChainTableBody({
 	const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 	const chains = useMemo(() => chainsForSelection(nodes, storedChains), [nodes, storedChains]);
 	const searching = query.trim() !== "";
+	// The selection bar fades out before unmounting (motion wave, owner 2026-10-26).
+	const bar = usePresence(selection.size > 0);
 
 	// The fuzzy filter: a chain is visible when ANY member matches on
 	// name, aliases, or statement; chains rank by best member score.
@@ -265,7 +268,7 @@ export function ChainTableBody({
 					data-testid="chain-table-close"
 					onClick={onClose}
 					aria-label="Close chains"
-					className="lh-no-drag flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card/80 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					className="lh-press lh-no-drag flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card/80 text-muted-foreground hover:bg-accent hover:text-foreground"
 				>
 					<XIcon className="size-4" />
 				</button>
@@ -286,7 +289,7 @@ export function ChainTableBody({
 						data-testid="sort-name"
 						onClick={() => onSort("name")}
 						aria-sort={sort.col === "name" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-						className="flex flex-1 items-center gap-1 text-left transition-colors hover:text-foreground"
+						className="lh-press flex flex-1 items-center gap-1 text-left hover:text-foreground"
 					>
 						Name {dirIcon("name")}
 					</button>
@@ -295,7 +298,7 @@ export function ChainTableBody({
 						data-testid="sort-props"
 						onClick={() => onSort("props")}
 						aria-sort={sort.col === "props" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-						className="flex w-14 shrink-0 items-center justify-end gap-1 text-right transition-colors hover:text-foreground"
+						className="lh-press flex w-14 shrink-0 items-center justify-end gap-1 text-right hover:text-foreground"
 					>
 						Props {dirIcon("props")}
 					</button>
@@ -304,7 +307,7 @@ export function ChainTableBody({
 						data-testid="sort-created"
 						onClick={() => onSort("created")}
 						aria-sort={sort.col === "created" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-						className="flex w-20 shrink-0 items-center justify-end gap-1 text-right transition-colors hover:text-foreground"
+						className="lh-press flex w-20 shrink-0 items-center justify-end gap-1 text-right hover:text-foreground"
 					>
 						Created {dirIcon("created")}
 					</button>
@@ -375,7 +378,7 @@ export function ChainTableBody({
 									const chainOpen = expandedChains.has(chain.id);
 									const selectedInChain = memberIds.filter((id) => selection.has(id)).length;
 									return (
-										<div key={chain.id} data-testid={`chain-block-${chain.id}`} className="relative">
+										<div key={chain.id} data-testid={`chain-block-${chain.id}`} className="lh-rise relative">
 												{/* The chain's own thread (owner rounds 5–6): the same
 												    bracket law one level down — at the chain arrow's column
 												    (center 73px), from the chain row's checkbox bottom
@@ -459,7 +462,7 @@ export function ChainTableBody({
 														<div
 															key={id}
 															data-testid={`prop-row-${id}`}
-															className="flex items-start gap-2 py-1 pl-21 pr-3"
+															className="lh-rise flex items-start gap-2 py-1 pl-21 pr-3"
 														>
 															<RowCheckbox
 																checked={selection.has(id)}
@@ -486,11 +489,12 @@ export function ChainTableBody({
 			{/* The floating selection bar (owner ruling: never shifts layout —
 			    the Google-Photos pattern). Appears only when something is
 			    selected; floats over the table's bottom edge. */}
-			{selection.size > 0 && (
+			{bar.mounted && (
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-4">
 					<div
 						data-testid="chain-selection-bar"
-						className="pointer-events-auto flex items-center gap-3 rounded-full border bg-card px-4 py-2 shadow-lg"
+						data-state={bar.state}
+						className="lh-pop pointer-events-auto flex items-center gap-3 rounded-full border bg-card px-4 py-2 shadow-lg"
 					>
 						<span data-testid="chain-selected-summary" className="text-xs font-medium">
 							{selection.size} {selection.size === 1 ? "node" : "nodes"} →{" "}
@@ -500,7 +504,7 @@ export function ChainTableBody({
 							type="button"
 							data-testid="chain-clear"
 							onClick={onClear}
-							className="rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							className="lh-press rounded-full px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
 						>
 							Clear
 						</button>
@@ -510,7 +514,7 @@ export function ChainTableBody({
 								data-testid="chain-practice-done"
 								onClick={onSelect}
 								aria-label={`Done picking — ${selection.size} ${selection.size === 1 ? "proposition" : "propositions"} selected`}
-								className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+								className="lh-press flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
 							>
 								<DumbbellIcon aria-hidden="true" className="size-3.5" />
 								Done
@@ -527,7 +531,7 @@ export function ChainTableBody({
 								data-testid="chain-delete"
 								onClick={onDelete}
 								aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "node" : "nodes"}`}
-								className="flex items-center gap-1.5 rounded-full border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
+								className="lh-press flex items-center gap-1.5 rounded-full border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
 							>
 								<Trash2Icon aria-hidden="true" className="size-3.5" />
 								Delete
@@ -551,9 +555,9 @@ function Expander({ open, onClick, testid, label }: { open: boolean; onClick: ()
 			onClick={onClick}
 			aria-label={label}
 			aria-expanded={open}
-			className="flex h-5 w-3.5 shrink-0 items-center justify-center rounded text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+			className="lh-press flex h-5 w-3.5 shrink-0 items-center justify-center rounded text-muted-foreground/70 hover:bg-accent hover:text-foreground"
 		>
-			<ChevronRightIcon className={`size-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
+			<ChevronRightIcon className={`size-3.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) ${open ? "rotate-90" : ""}`} />
 		</button>
 	);
 }
@@ -709,22 +713,21 @@ export function ChainTableOverlay({
 					onSelect={onClose}
 				/>
 			</div>
-			{deleteOpen && (
-				<DeleteNodeDialog
-					nodes={selectedNodes.map((n) => ({ id: n.id, name: n.name }))}
-					onClose={() => setDeleteOpen(false)}
-					onDeleted={(deadIds, graphRevision) => {
-						// Close the dialog; prune the dead ids from the
-						// selection (the rest of a big selection survives);
-						// announce the revision so GraphView refetches the
-						// snapshot — fresh nodes/edges flow back in as props.
-						setDeleteOpen(false);
-						const dead = new Set(deadIds);
-						applySelection(new Set([...selection].filter((id) => !dead.has(id))));
-						window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { graphRevision } }));
-					}}
-				/>
-			)}
+			{/* Always mounted (null = closed) so the dialog can fade out. */}
+			<DeleteNodeDialog
+				nodes={deleteOpen ? selectedNodes.map((n) => ({ id: n.id, name: n.name })) : null}
+				onClose={() => setDeleteOpen(false)}
+				onDeleted={(deadIds, graphRevision) => {
+					// Close the dialog; prune the dead ids from the
+					// selection (the rest of a big selection survives);
+					// announce the revision so GraphView refetches the
+					// snapshot — fresh nodes/edges flow back in as props.
+					setDeleteOpen(false);
+					const dead = new Set(deadIds);
+					applySelection(new Set([...selection].filter((id) => !dead.has(id))));
+					window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { graphRevision } }));
+				}}
+			/>
 		</>
 	);
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ConfidenceRail } from "@/components/confidence-rail";
 import { GlyphMark } from "@/components/ui/glyph-mark";
 import { ThinkingBlock } from "@/components/thinking-block";
+import { useFold } from "@/components/use-fold";
 import { cn } from "@/lib/utils";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/src/core";
@@ -22,6 +23,7 @@ import { answerForPresentation, parseAskInput, parseQuizInput } from "@/src/core
 export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionAnswerData; input?: unknown }) {
 	const answer = answerForPresentation(savedAnswer, input);
 	const [whyOpen, setWhyOpen] = useState(false); // the tucked explanation (predictions, owner 2026-10-03)
+	const why = useFold(whyOpen); // eases open/shut (motion wave, owner 2026-10-26)
 	if (answer.dismissed) {
 		return (
 			<div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
@@ -205,16 +207,20 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 					<button
 						type="button"
 						onClick={() => setWhyOpen((v) => !v)}
-						className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+						className="lh-press text-xs font-medium text-muted-foreground hover:text-foreground"
 					>
 						{whyOpen ? "Hide why" : "Why"}
 					</button>
-					{whyOpen && (
-						<div className="mt-1.5 rounded-lg bg-muted py-2 text-sm text-foreground/50">
-							<span className="font-medium text-muted-foreground">Why: </span>
-							{/* Keep the first paragraph beside the label, not every paragraph:
-							   later paragraphs must retain their recovered document structure. */}
-							<ToolContentResponse className="inline [&>p:first-child]:inline [&>p:first-child]:m-0">{answer.explanation}</ToolContentResponse>
+					{why.mounted && (
+						<div className="lh-collapse" data-state={why.state}>
+							<div>
+								<div className="mt-1.5 rounded-lg bg-muted py-2 text-sm text-foreground/50">
+									<span className="font-medium text-muted-foreground">Why: </span>
+									{/* Keep the first paragraph beside the label, not every paragraph:
+									   later paragraphs must retain their recovered document structure. */}
+									<ToolContentResponse className="inline [&>p:first-child]:inline [&>p:first-child]:m-0">{answer.explanation}</ToolContentResponse>
+								</div>
+							</div>
 						</div>
 					)}
 				</div>

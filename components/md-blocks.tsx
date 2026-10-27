@@ -101,7 +101,7 @@ export function CopyCorner({
 				type="button"
 				aria-label={label}
 				data-testid="md-copy"
-				className="flex size-6 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
+				className="lh-press flex size-6 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
 				onClick={(e) => {
 					blurAfterPointerClick(e);
 					void copyText(getText()).then((ok) => {
@@ -112,7 +112,8 @@ export function CopyCorner({
 					});
 				}}
 			>
-				{copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+				{/* The copied check settles in (motion wave, owner 2026-10-26). */}
+				{copied ? <CheckIcon className="size-3.5 motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]" /> : <CopyIcon className="size-3.5" />}
 			</button>
 		</span>
 	);
@@ -211,7 +212,7 @@ function MermaidInline({ chart }: { chart: string }) {
 						type="button"
 						aria-label="Expand diagram"
 						data-testid="md-mermaid-expand"
-												className="flex size-6 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover/md:opacity-100"
+												className="lh-press flex size-6 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground group-hover/md:opacity-100"
 						onClick={(e) => {
 							blurAfterPointerClick(e);
 							overlay.openMermaid(chart);

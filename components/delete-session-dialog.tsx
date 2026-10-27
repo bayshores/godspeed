@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { usePresence } from "@/components/presence";
 import type { ChatDeleteMode, ChatListItem } from "@/src/core";
 
 /** The graph-traces checkbox copy (owner, 2026-09-24 flow rework — was
@@ -50,6 +51,12 @@ export function DeleteSessionDialog({
 	/** Success path — the sidebar owns navigation + list patching. */
 	onDeleted: (id: string, mode: ChatDeleteMode, graphRevision: number) => void;
 }) {
+	// Exit motion (motion wave, owner 2026-10-26): the last session stays on
+	// screen while the dialog fades out.
+	const presence = usePresence(chat !== null);
+	const [lastChat, setLastChat] = useState(chat);
+	if (chat !== null && chat !== lastChat) setLastChat(chat);
+	const shown = chat ?? lastChat;
 	const [traces, setTraces] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const backdropDismiss = useBackdropDismiss(() => {
@@ -61,14 +68,15 @@ export function DeleteSessionDialog({
 	// busy, so no mid-flight switches).
 	const [failure, setFailure] = useState<{ code: string; error: string } | null>(null);
 
-	// Fresh state per session: closing resets, opening a new chat starts clean.
+	// Fresh state per session: closing resets (once the exit has played, so
+	// the fading dialog keeps its look), opening a new chat starts clean.
 	useEffect(() => {
-		if (!chat) {
+		if (!presence.mounted) {
 			setTraces(false);
 			setBusy(false);
 			setFailure(null);
 		}
-	}, [chat]);
+	}, [presence.mounted]);
 
 	// Esc closes (claimed — a menu/dialog Esc must not also abort a turn).
 	useEffect(() => {
@@ -114,15 +122,18 @@ export function DeleteSessionDialog({
 		}
 	};
 
-	if (!chat) return null;
+	if (!presence.mounted || !shown) return null;
 
 	return createPortal(
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			data-state={presence.state}
+			inert={chat === null}
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80"
 			{...backdropDismiss}
 		>
 			<DeleteSessionBody
-				chat={chat}
+				state={presence.state}
+				chat={shown}
 				traces={traces}
 				busy={busy}
 				failure={failure}
@@ -145,6 +156,7 @@ export function DeleteSessionBody({
 	onTraces,
 	onClose,
 	onRun,
+	state = "open",
 }: {
 	chat: Pick<ChatListItem, "id" | "title">;
 	/** The graph-traces checkbox — unchecked by default (preserve-graph). */
@@ -154,6 +166,8 @@ export function DeleteSessionBody({
 	onTraces: (next: boolean) => void;
 	onClose: () => void;
 	onRun: () => void;
+	/** Motion (motion wave): "closed" while the exit plays. */
+	state?: "open" | "closed";
 }) {
 	return (
 		<div
@@ -161,8 +175,9 @@ export function DeleteSessionBody({
 			aria-modal="true"
 			aria-label="Delete session"
 			data-testid="delete-session-dialog"
+			data-state={state}
 			onClick={(e) => e.stopPropagation()}
-			className="w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
+			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">Delete session?</h2>
 			{/* The session name below the title in JetBrains Mono (owner,
@@ -208,7 +223,7 @@ export function DeleteSessionBody({
 						data-testid="delete-retry"
 						onClick={onRun}
 						disabled={busy}
-						className="ml-3 text-xs text-foreground underline-offset-2 hover:underline disabled:opacity-40"
+						className="lh-press ml-3 text-xs text-foreground underline-offset-2 hover:underline disabled:opacity-40"
 					>
 						Try again
 					</button>
@@ -223,7 +238,7 @@ export function DeleteSessionBody({
 					data-testid="delete-cancel"
 					onClick={onClose}
 					disabled={busy}
-					className="rounded-sm px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+					className="lh-press rounded-sm px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
 				>
 					Cancel
 				</button>
@@ -232,7 +247,7 @@ export function DeleteSessionBody({
 					data-testid="delete-confirm"
 					onClick={onRun}
 					disabled={busy}
-					className="rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40"
+					className="lh-press rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
 				>
 					{busy ? "Deleting…" : "Delete"}
 				</button>

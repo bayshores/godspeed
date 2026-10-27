@@ -143,7 +143,7 @@ export function QuestionDock({
 					}
 				/>
 			)}
-			<div className={expanded ? "dock-variant" : "invisible h-0 overflow-hidden"}>
+			<div className={expanded ? "lh-rise" : "invisible h-0 overflow-hidden"}>
 				<QuestionDockForm
 					toolName={toolName}
 					toolCallId={toolCallId}
@@ -159,6 +159,10 @@ export function QuestionDock({
 		</>
 	);
 }
+
+/** The picked mark (dot or check) settles in: fade + 2% scale (motion
+ *  wave, owner 2026-10-26). Off under reduced motion. */
+const PICK_IN = "motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]";
 
 /** A plain-text teaser of a question for the collapsed bar: unwrap math, flatten common LaTeX. */
 function teaserText(q: string): string {
@@ -203,7 +207,7 @@ export function QuestionDockBar({
 				type="button"
 				data-testid="teach-check-reveal"
 				onClick={onExpand}
-				className="dock-variant flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/40"
+				className="lh-rise flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent/40"
 			>
 				<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
 					<PlayIcon className="size-3.5" />
@@ -223,7 +227,7 @@ export function QuestionDockBar({
 			type="button"
 			data-testid="question-dock-bar"
 			onClick={onExpand}
-			className="dock-variant flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors hover:bg-accent/40"
+			className="lh-rise flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent/40"
 		>
 			<span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 				{label ??
@@ -540,20 +544,20 @@ function QuestionDockForm({
 									data-kbdrow={i}
 									onClick={() => toggle(i)}
 									className={cn(
-										"flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-colors",
+										"lh-press flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none",
 										isSel ? "border-primary bg-accent" : "hover:bg-accent/50",
 										i === kbdIdx && !isSel && "ring-1 ring-border bg-accent/40",
 									)}
 								>
 									<span
 										className={cn(
-											"mt-0.5 flex size-4 shrink-0 items-center justify-center border",
+											"mt-0.5 flex size-4 shrink-0 items-center justify-center border transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 											qd.mode === "multi-select" ? "rounded-sm" : "rounded-full",
 											isSel ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
 										)}
 									>
 										{isSel && (
-											<span className={cn(qd.mode === "multi-select" ? "text-base leading-none" : "size-1.5 rounded-full bg-current")}>
+											<span className={cn(PICK_IN, qd.mode === "multi-select" ? "text-base leading-none" : "size-1.5 rounded-full bg-current")}>
 												{qd.mode === "multi-select" ? "✓" : ""}
 											</span>
 										)}
@@ -588,20 +592,20 @@ function QuestionDockForm({
 								className={cn(
 									// Option-row layout + radio circle (owner); the dashed
 									// outline stays — this is the deliberate non-answer.
-									"flex items-start gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm outline-none transition-colors",
+									"lh-press flex items-start gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm outline-none",
 									sel.dontKnow ? "border-primary text-foreground" : "text-muted-foreground",
 									kbdIdx === optionCount && !sel.dontKnow && "ring-1 ring-border bg-accent/40",
 								)}
 							>
 								<span
 									className={cn(
-										"mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
+										"mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 										sel.dontKnow
 											? "border-primary bg-primary text-primary-foreground"
 											: "border-muted-foreground/40",
 									)}
 								>
-									{sel.dontKnow && <span className="size-1.5 rounded-full bg-current" />}
+									{sel.dontKnow && <span className={cn(PICK_IN, "size-1.5 rounded-full bg-current")} />}
 								</span>
 								<span>I don't know</span>
 							</button>
@@ -615,14 +619,14 @@ function QuestionDockForm({
 								data-kbdrow={optionCount}
 								onClick={selectOther}
 								className={cn(
-									"flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-colors",
+									"flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-[color,background-color,border-color,box-shadow] duration-(--lh-dur) ease-(--lh-ease-out)",
 									sel.otherSelected ? "border-primary bg-accent" : "border-dashed hover:bg-accent/50",
 									kbdIdx === optionCount && !sel.otherSelected && "ring-1 ring-border bg-accent/40",
 								)}
 							>
 								<span
 									className={cn(
-										"mt-0.5 flex size-4 shrink-0 items-center justify-center border",
+										"mt-0.5 flex size-4 shrink-0 items-center justify-center border transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 										qd.mode === "multi-select" ? "rounded-sm" : "rounded-full",
 										sel.otherSelected
 											? "border-primary bg-primary text-primary-foreground"
@@ -630,7 +634,7 @@ function QuestionDockForm({
 									)}
 								>
 									{sel.otherSelected && (
-										<span className={cn(qd.mode === "multi-select" ? "text-base leading-none" : "size-1.5 rounded-full bg-current")}>
+										<span className={cn(PICK_IN, qd.mode === "multi-select" ? "text-base leading-none" : "size-1.5 rounded-full bg-current")}>
 											{qd.mode === "multi-select" ? "✓" : ""}
 										</span>
 									)}

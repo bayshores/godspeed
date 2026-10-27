@@ -31,6 +31,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { usePresence } from "@/components/presence";
 import {
 	CURRENT_SETTINGS_VERSION,
 	type AgentSettings,
@@ -87,9 +88,8 @@ export function SettingsDialogProvider({
 	return (
 		<ChatGPTUIProvider><NativeSubscriptionUIProvider><DialogContext.Provider value={{ open }}>
 			{children}
-			{show && (
-				<SettingsDialog onClose={() => setShow(false)} initialSection={landOn} />
-			)}
+			{/* Rendered always; `open` lets it fade out (motion wave). */}
+			<SettingsDialog open={show} onClose={() => setShow(false)} initialSection={landOn} />
 		</DialogContext.Provider></NativeSubscriptionUIProvider></ChatGPTUIProvider>
 	);
 }
@@ -99,22 +99,29 @@ export function useSettingsDialog() {
 }
 
 function SettingsDialog({
+	open,
 	onClose,
 	initialSection,
 }: {
+	open: boolean;
 	onClose: () => void;
 	initialSection: SectionId;
 }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
+	// Exit motion (motion wave, owner 2026-10-26): mounted through its fade-out.
+	const presence = usePresence(open);
+	if (!presence.mounted) return null;
 	// Plain dim backdrop (no blur — nothing decorative); a genuine
 	// backdrop click closes, the dialog body stops propagation.
 	return createPortal(
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80"
 			data-testid="settings-backdrop"
+			data-state={presence.state}
+			inert={!open}
 			{...backdropDismiss}
 		>
-			<SettingsDialogBody onClose={onClose} initialSection={initialSection} />
+			<SettingsDialogBody onClose={onClose} initialSection={initialSection} state={presence.state} />
 		</div>,
 		document.body,
 	);
@@ -125,9 +132,12 @@ function SettingsDialog({
 export function SettingsDialogBody({
 	onClose,
 	initialSection = "providers",
+	state = "open",
 }: {
 	onClose: () => void;
 	initialSection?: SectionId;
+	/** Motion (motion wave): "closed" while the exit plays — Esc is free. */
+	state?: "open" | "closed";
 }) {
 	const { onAppearanceChange } = useAppearance();
 	const [record, setRecord] = useState<UserSettings | null | undefined>(
@@ -194,6 +204,7 @@ export function SettingsDialogBody({
 	// sections' own editors while they hold focus; this listener is the
 	// dialog's outer layer).
 	useEffect(() => {
+		if (state === "closed") return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				// THE ONE-ESC LAW (owner, keyboard round 2026-10-06): claim
@@ -206,7 +217,7 @@ export function SettingsDialogBody({
 		};
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);
-	}, [onClose]);
+	}, [onClose, state]);
 
 	/** ONE writer for the whole dialog: PUT the whole section, keep the
 	 *  record mirror in sync, surface route errors inline (a 400 is a
@@ -254,7 +265,8 @@ export function SettingsDialogBody({
 			aria-modal="true"
 			aria-label="Settings"
 			data-testid="settings-dialog"
-			className="settings-dialog-pop flex h-[620px] max-h-[85vh] w-[920px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
+			data-state={state}
+			className="lh-dialog flex h-[620px] max-h-[85vh] w-[920px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
 			onClick={(e) => e.stopPropagation()}
 		>
 			{/* Header — the app's quiet CMU title language. */}
@@ -270,7 +282,7 @@ export function SettingsDialogBody({
 					type="button"
 					aria-label="Close settings"
 					data-testid="settings-close"
-					className="ml-auto size-7 rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					className="lh-press ml-auto size-7 rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
 					onClick={onClose}
 				>
 					<svg
@@ -300,7 +312,7 @@ export function SettingsDialogBody({
 							type="button"
 							data-testid={`settings-nav-${s.id}`}
 							aria-current={active === s.id}
-							className={`rounded-sm px-3 py-1.5 text-left font-ui text-sm transition-colors ${
+							className={`lh-press rounded-sm px-3 py-1.5 text-left font-ui text-sm ${
 								active === s.id
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:bg-accent hover:text-foreground"

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/src/core";
 import { formatTokens, formatUsd, planCostLabel, prettyModel } from "@/components/usage-format";
 import { ModelControl, catalogLimits, useModelCatalog } from "@/components/model-picker";
+import { usePresence } from "@/components/presence";
 
 export function formatContextMeasurement(tokens: number | null, limit: number | null): string {
 	const numerator = tokens === null ? "?" : formatTokens(tokens);
@@ -48,6 +49,7 @@ export function StatsBar({
 	leadingSlot?: ReactNode;
 }) {
 	const [open, setOpen] = useState(false);
+	const detail = usePresence(open);
 	const [selectedModel, setSelectedModel] = useState<string | undefined>();
 	// Same dropdown discipline as the model control (owner, df4433f treatment,
 	// stats round 1): close on any pointerdown outside the bar or on Escape.
@@ -115,7 +117,7 @@ export function StatsBar({
 				onClick={() => setOpen((o) => !o)}
 				aria-expanded={open}
 				data-testid="stats-summary"
-				className="flex items-center gap-1.5 tabular-nums transition-colors hover:text-foreground"
+				className="lh-press flex items-center gap-1.5 tabular-nums hover:text-foreground"
 			>
 				<span data-testid="stats-context">
 					{contextLabel}
@@ -123,10 +125,13 @@ export function StatsBar({
 				<span aria-hidden>·</span>
 				<span data-testid="stats-cost">{costLabel}</span>
 			</button>
-				{open && (
+				{detail.mounted && (
 					<div
 						data-testid="stats-detail"
-						className="absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 rounded-xl border bg-card p-3 text-xs shadow-xl"
+						// Pops up out of the bar and back (motion wave, owner 2026-10-26).
+						data-side="up"
+						data-state={detail.state}
+						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 rounded-xl border bg-card p-3 text-xs shadow-xl"
 					>
 						<div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 							Session stats

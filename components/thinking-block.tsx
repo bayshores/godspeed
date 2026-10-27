@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
 import { blurAfterPointerClick } from "@/components/focus-hygiene";
+import { useFold } from "@/components/use-fold";
 import { cn } from "@/lib/utils";
 
 /** The unified user-thinking row (owner round, 2026-10-05): ONE visual
@@ -90,6 +91,9 @@ export function ThinkingBlock({
 		() => subscribeUserThinking((o) => { syncedRef.current = true; setOpen(o); }),
 		[],
 	);
+	// The text folds open/shut (motion wave, owner 2026-10-26) and stays
+	// unmounted while closed.
+	const fold = useFold(open);
 	return (
 		/* The rail GROUPS and the rail IS THE MISSING CHARACTER (owner
 		   rounds, 2026-10-05): the heading sits INSIDE the rail, and the
@@ -109,7 +113,9 @@ export function ThinkingBlock({
 				// chevron law); the rail narrows (14px gap), padding 4px, pr-4
 				// keeps the text off the band's right edge. In-card rows take
 				// NO band — the accent lift read too light; rail only.
-				"lh-card-enter my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 py-1 pl-[14px] pr-4 font-ui text-xs",
+				// Arrival motion now rides the transcript (chat.tsx), so a
+				// reopened lesson no longer replays it on every row.
+				"my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 py-1 pl-[14px] pr-4 font-ui text-xs",
 				inCard ? "" : "bg-card",
 			)}
 		>
@@ -121,13 +127,17 @@ export function ThinkingBlock({
 					blurAfterPointerClick(e);
 				}}
 				aria-expanded={open}
-				className="flex w-full items-center gap-2 font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+				className="flex w-full items-center gap-2 font-medium uppercase tracking-wide text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
 			>
 				{label}
-				<ChevronDownIcon className={cn("size-4 shrink-0 transition-transform", open ? "rotate-180" : "rotate-0")} />
+				<ChevronDownIcon className={cn("size-4 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "rotate-180" : "rotate-0")} />
 			</button>
-			{open && (
-				<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-foreground/50">{text}</span>
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+					<div>
+						<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-foreground/50">{text}</span>
+					</div>
+				</div>
 			)}
 		</div>
 	);

@@ -72,6 +72,7 @@ import { incrementalLayout, propositionSessionHref, type GraphCostSummary, type 
 import { planCostLabel } from "@/components/usage-format";
 import { GraphCanvasRenderer, type GraphRenderSettings } from "./graph-canvas.ts";
 import { usePopoverDismiss } from "@/components/popover-dismiss";
+import { usePresence } from "@/components/presence";
 import { useActivity } from "@/components/activity-dock";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 import { MenuShell } from "@/components/menu-shell.tsx";
@@ -346,6 +347,8 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	// wraps button + panel, so the toggle itself keeps working.
 	const rootRef = useRef<HTMLDivElement>(null);
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
+	// The panel pops in and out (motion wave, owner 2026-10-26).
+	const panel = usePresence(open);
 	return (
 		<div ref={rootRef} className="relative">
 			<Hint
@@ -357,15 +360,15 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={`rounded-lg px-2 py-1 text-xs tabular-nums transition-colors hover:bg-accent ${
+				className={`lh-press rounded-lg px-2 py-1 text-xs tabular-nums hover:bg-accent ${
 					open ? "text-foreground" : "text-muted-foreground hover:text-foreground"
 				}`}
 			>
 				{graphUsageLabel(costs)}
 			</button>
 			</Hint>
-			{open && (
-				<div className="absolute right-0 top-full mt-2 max-h-[60vh] overflow-y-auto">
+			{panel.mounted && (
+				<div data-state={panel.state} className="lh-pop absolute right-0 top-full mt-2 max-h-[60vh] overflow-y-auto">
 					<GraphCostPanel costs={costs} />
 				</div>
 			)}
@@ -460,6 +463,8 @@ function GraphSettingsControl({
 	// the root wraps button + panel, so the toggle itself keeps working.
 	const rootRef = useRef<HTMLDivElement>(null);
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
+	// The panel pops in and out (motion wave, owner 2026-10-26).
+	const panel = usePresence(open);
 	const regionTuning = settings.regions;
 	const physicsTuning = settings.physics;
 	return (
@@ -473,14 +478,14 @@ function GraphSettingsControl({
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={`flex size-9 items-center justify-center rounded-xl border bg-card/85 shadow-lg backdrop-blur transition-colors hover:bg-accent ${
+				className={`lh-press flex size-9 items-center justify-center rounded-xl border bg-card/85 shadow-lg backdrop-blur hover:bg-accent ${
 					open ? "text-foreground" : "text-muted-foreground hover:text-foreground"
 				}`}
 			>
 				<SettingsIcon className="size-4" />
 			</button>
 			</Hint>
-			{open && (
+			{panel.mounted && (
 				// Viewport-capped + internally scrollable — the coverage
 				// dropdown's exact pattern (owner, 2026-09-17): max-h keeps a
 				// floor of free space above the window bottom at any height,
@@ -492,7 +497,7 @@ function GraphSettingsControl({
 				// (pr-2.5) -> scrollbar -> 10px (p-2.5) -> panel edge. The
 				// scrollbar itself does NOT move: it stays pinned at the same
 				// distance from the panel's right border.
-				<div className="absolute right-0 top-full mt-2 flex max-h-[60vh] w-72 flex-col rounded-xl border bg-card/85 p-2.5 shadow-lg backdrop-blur">
+				<div data-state={panel.state} className="lh-pop absolute right-0 top-full mt-2 flex max-h-[60vh] w-72 flex-col rounded-xl border bg-card/85 p-2.5 shadow-lg backdrop-blur">
 					<div className="flex flex-col gap-2 overflow-y-auto pr-2.5">
 							{/* Size/zoom/region sliders: LADDER-mapped 0-100, step 10 (11
 							    stops, every DEFAULT dead-center at 50, every value a nice
@@ -904,7 +909,7 @@ export function GraphChromeRow({
 							type="button"
 							onClick={onOpenChains}
 							data-testid="open-chain-table"
-							className="flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
+							className="lh-press flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-accent"
 						>
 							<ListTreeIcon className="size-3" />
 							Chains
@@ -938,7 +943,7 @@ export function GraphChromeRow({
 						disabled={importing}
 						onClick={() => fileInputRef.current?.click()}
 						data-testid="import-notes"
-					className="flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
+					className="lh-press flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
 				>
 						<UploadIcon className="size-3" />
 						{importing ? "Importing…" : "Import notes…"}
@@ -1529,26 +1534,27 @@ export function GraphView({
 			    (the same MenuShell discipline as the sidebar's session menu —
 			    placement, focus, arrow cycling; the dismissal effect above owns
 			    the contract). */}
-			{ctxNode !== null && (
-				<MenuShell
-					anchorRef={ctxAnchorRef}
-					testid="node-context-menu"
-					preferredSide="down"
-					menuClass="flex w-fit flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
+			<MenuShell
+				open={ctxNode !== null}
+				anchorRef={ctxAnchorRef}
+				testid="node-context-menu"
+				preferredSide="down"
+				menuClass="flex w-fit flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
+			>
+				<button
+					type="button"
+					data-testid="ctx-node-delete"
+					onClick={() => {
+						// Null while the menu plays its exit (it is inert then).
+						if (ctxNode === null) return;
+						setDeletingNode({ id: ctxNode.id, name: ctxNode.name });
+						setCtxNode(null);
+					}}
+					className="lh-press flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 hover:bg-accent hover:text-foreground"
 				>
-					<button
-						type="button"
-						data-testid="ctx-node-delete"
-						onClick={() => {
-							setDeletingNode({ id: ctxNode.id, name: ctxNode.name });
-							setCtxNode(null);
-						}}
-						className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
-					>
-						Delete
-					</button>
-				</MenuShell>
-			)}
+					Delete
+				</button>
+			</MenuShell>
 
 			{/* The full-death confirm dialog (node interlude) — portaled to
 			    body by the component itself, lives here for state locality. */}

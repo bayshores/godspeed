@@ -30,7 +30,7 @@ function CopyBlock({ text, label }: { text: string; label: string }) {
 			<button
 				type="button"
 				aria-label={`Copy ${label}`}
-				className="absolute right-1.5 top-1.5 rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+				className="lh-press absolute right-1.5 top-1.5 rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
 				onClick={() => {
 					void navigator.clipboard.writeText(text).then(() => {
 						setCopied(true);
@@ -95,10 +95,10 @@ export function AgentsSection() {
 						</SettingsRow>
 						<SettingsRow label="Access token" hint="Anyone with this token can use godspeed as you. Make a new one if it leaks.">
 							<span className="flex items-center gap-2">
-								<button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowToken((s) => !s)}>
+								<button type="button" className="lh-press text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowToken((s) => !s)}>
 									{showToken ? "Hide" : "Show"}
 								</button>
-								<button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => void act("rotate")}>
+								<button type="button" className="lh-press text-xs text-muted-foreground hover:text-foreground" onClick={() => void act("rotate")}>
 									New token
 								</button>
 							</span>

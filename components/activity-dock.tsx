@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIcon, BotIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFold } from "@/components/use-fold";
 import type { CallUsage, JobKind, JobRecord } from "@/src/core";
 import { isModelsRefusal, isProviderNotConnectedRefusal, subscriptionLabel, subscriptionLabels } from "@/src/core";
 import { formatTokens, planCostLabel } from "@/components/usage-format";
@@ -388,6 +389,7 @@ function ActivityBlobRow({
 	abortState: AbortState | undefined;
 	onAbort: () => void;
 }) {
+	const detail = useFold(detailOpen); // eases open/shut (motion wave, owner 2026-10-26)
 	const Icon = blob.process === "extraction" ? WaypointsIcon : (blob.jobKind && KIND_ICON[blob.jobKind]) || BotIcon;
 	const label =
 		blob.process === "extraction"
@@ -404,7 +406,9 @@ function ActivityBlobRow({
 	return (
 		<div
 			data-testid={`activity-blob-${blob.process}`}
-			className="relative rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-accent"
+			// A new background agent rises in once (keyed by id, so the
+			// once-a-second clock re-render never replays it).
+			className="lh-rise relative rounded-lg px-2 py-1.5 text-xs transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent"
 		>
 			<button
 				type="button"
@@ -438,12 +442,14 @@ function ActivityBlobRow({
 				disabled={abortState !== undefined}
 				title={abortState === "failed" ? "Abort failed — try again" : "End this background process"}
 				aria-label={`End ${label} in ${blob.title}`}
-				className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
 			>
 				<SquareIcon className="size-3" />
 			</button>
 
-			{detailOpen && (
+			{detail.mounted && (
+				<div className="lh-collapse" data-state={detail.state}>
+				<div>
 				<div
 					data-testid="activity-blob-detail"
 					className="mt-1 flex flex-col gap-1 rounded-lg bg-accent/40 p-2 text-muted-foreground"
@@ -493,6 +499,8 @@ function ActivityBlobRow({
 					<div className="mt-2 text-muted-foreground/80">
 					{abortState === "failed" && "Abort failed — try again"}
 					{abortState === "pending" && "Stopping…"}
+				</div>
+				</div>
 				</div>
 				</div>
 			)}

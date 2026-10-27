@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFold } from "@/components/use-fold";
 
 /**
  * The graph-context card (owner, 2026-10-04): the session's map pick —
@@ -22,6 +23,7 @@ export interface GraphContextData {
 
 export function GraphContextCard({ data }: { data: GraphContextData }) {
 	const [open, setOpen] = useState(false);
+	const fold = useFold(open); // eases open/shut (motion wave, owner 2026-10-26)
 	const { propositions = [], chains = [] } = data ?? {};
 	const noun = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 	return (
@@ -30,16 +32,18 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 				type="button"
 				data-testid="graph-context-toggle"
 				onClick={() => setOpen((v) => !v)}
-				className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+				className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
 			>
-				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 				<span className="font-medium">Graph context</span>
 				<span className="min-w-0 flex-1 truncate">
 					{noun(propositions.length, "proposition", "propositions")}
 					{chains.length > 0 ? ` · ${noun(chains.length, "chain", "chains")}` : ""}
 				</span>
 			</button>
-			{open && (
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+				<div>
 				<div data-testid="graph-context-body" className="mt-1 space-y-1 rounded-lg border border-dashed border-border/70 px-4 py-3 text-xs">
 					{propositions.map((p) => (
 						<div key={p.id} data-testid={`graph-context-prop-${p.id}`} className="leading-relaxed">
@@ -56,6 +60,8 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 							))}
 						</div>
 					)}
+				</div>
+				</div>
 				</div>
 			)}
 		</div>
@@ -78,6 +84,7 @@ export interface ClassContextData {
  */
 export function ClassContextCard({ data }: { data: ClassContextData }) {
 	const [open, setOpen] = useState(false);
+	const fold = useFold(open);
 	const { name = "", description = "", files = [] } = data ?? {};
 	return (
 		<div data-testid="class-context-card" className="my-1">
@@ -85,16 +92,18 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 				type="button"
 				data-testid="class-context-toggle"
 				onClick={() => setOpen((v) => !v)}
-				className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+				className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
 			>
-				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 				<span className="font-medium">Class context</span>
 				<span className="min-w-0 flex-1 truncate">
 					{name}
 					{files.length > 0 ? ` · ${files.length} ${files.length === 1 ? "file" : "files"}` : ""}
 				</span>
 			</button>
-			{open && (
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+				<div>
 				<div data-testid="class-context-body" className="mt-1 space-y-2 rounded-lg border border-dashed border-border/70 px-4 py-3 text-xs">
 					{description.trim() && <p className="font-prose whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{description}</p>}
 					{files.map((f, i) => (
@@ -103,6 +112,8 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 							<span className="ml-2 text-foreground/80">{f.name}</span>
 						</div>
 					))}
+				</div>
+				</div>
 				</div>
 			)}
 		</div>

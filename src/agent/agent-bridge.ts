@@ -27,8 +27,9 @@ import {
 	type ToolCall,
 	type JsonObject,
 } from "@earendil-works/pi-ai";
+import { OUTSIDE_AGENT_PROVIDER } from "../core/settings.ts";
 
-export const AGENT_PROVIDER = "agent";
+export const AGENT_PROVIDER = OUTSIDE_AGENT_PROVIDER;
 export const AGENT_MODEL_ID = "outside-agent";
 export const AGENT_MODEL_NAME = "Outside agent (MCP)";
 const AGENT_API = "godspeed-agent";

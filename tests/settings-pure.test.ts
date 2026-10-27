@@ -300,3 +300,14 @@ describe("composeQuizMechanics (the segmented control's write)", () => {
 		}
 	});
 });
+
+describe("the outside agent has no thinking control (owner, 2026-10-26)", () => {
+	it("only the outside agent's provider hides the thinking level", async () => {
+		const { providerHidesThinking, OUTSIDE_AGENT_PROVIDER } = await import("../src/core/settings.ts");
+		const { AGENT_PROVIDER } = await import("../src/agent/agent-bridge.ts");
+		assert.equal(OUTSIDE_AGENT_PROVIDER, AGENT_PROVIDER, "the UI and the bridge name the same provider");
+		assert.equal(providerHidesThinking(AGENT_PROVIDER), true);
+		assert.equal(providerHidesThinking("chatgpt"), false);
+		assert.equal(providerHidesThinking(undefined), false);
+	});
+});

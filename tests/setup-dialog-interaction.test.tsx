@@ -88,6 +88,21 @@ async function click(target: HTMLElement) {
 	for (const type of ["pointerdown", "pointerup", "click"]) await event(target, type);
 }
 
+// Closing plays a short exit (motion wave, usePresence): the element flips to
+// data-state="closed", then unmounts once the exit has run.
+async function settle() {
+	await act(async () => { await new Promise((resolve) => setTimeout(resolve, 150)); });
+}
+
+function gone(selector: string) {
+	// Compare booleans: a failed equal() on a DOM node prints the whole tree.
+	assert.equal(document.querySelector(selector) === null, true, `expected ${selector} gone`);
+}
+
+function closing(selector: string) {
+	assert.equal(document.querySelector(selector)?.getAttribute("data-state"), "closed", `expected ${selector} closing`);
+}
+
 async function escape() {
 	await act(async () => {
 		const key = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
@@ -112,14 +127,18 @@ describe("setup polish interactions", () => {
 		assert.equal(document.querySelector('[data-testid="setup-key-provider"]'), null, "no API-key picker");
 		await escape();
 		assert.equal(closed, 1);
-		assert.equal(document.querySelector('[data-testid="setup-dialog"]'), null);
+		closing('[data-testid="setup-dialog"]');
+		await settle();
+		gone('[data-testid="setup-dialog"]');
 	});
 
 	it("a genuine backdrop click closes setup", async () => {
 		await mount();
 		await click(element('[data-testid="setup-backdrop"]'));
 		assert.equal(closed, 1);
-		assert.equal(document.querySelector('[data-testid="setup-dialog"]'), null);
+		closing('[data-testid="setup-dialog"]');
+		await settle();
+		gone('[data-testid="setup-dialog"]');
 	});
 
 	it("inside press followed by backdrop release and ancestor click does not dismiss setup", async () => {
@@ -136,13 +155,17 @@ describe("setup polish interactions", () => {
 		assert.equal(element('[data-testid="setup-stage-pickers"] > p').textContent, "Pick the model for each tier. All three are required before chats can start.");
 		await click(element('[data-testid="setup-trigger-strong"]'));
 		await click(element('[data-testid="setup-dialog"] h2'));
-		assert.equal(document.querySelector('[data-testid="setup-menu-strong"]'), null);
+		closing('[data-testid="setup-menu-strong"]');
+		await settle();
+		gone('[data-testid="setup-menu-strong"]');
 		await click(element('[data-testid="setup-trigger-strong"]'));
 		await click(element('[data-testid="model-option-fixture-text"]'));
 		await click(element('[data-testid="setup-thinking-strong"]'));
 		assert.ok(document.querySelector('[data-testid="setup-thinking-menu-strong"]'));
 		await click(element('[data-testid="setup-dialog"] h2'));
-		assert.equal(document.querySelector('[data-testid="setup-thinking-menu-strong"]'), null);
+		closing('[data-testid="setup-thinking-menu-strong"]');
+		await settle();
+		gone('[data-testid="setup-thinking-menu-strong"]');
 		assert.equal(closed, 0);
 	});
 

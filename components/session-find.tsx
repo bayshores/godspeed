@@ -7,6 +7,7 @@ import {
 	sameSessionRange, sessionFindRanges, sessionRangeIdentity, type SessionRangeIdentity,
 } from "@/components/session-find-dom";
 import { scrollSessionTarget, type SessionScrollContext } from "@/components/session-navigation";
+import { usePresence } from "@/components/presence";
 
 export const SESSION_FIND_HIGHLIGHT = "lh-session-find";
 export const SESSION_FIND_ACTIVE_HIGHLIGHT = "lh-session-find-active";
@@ -69,6 +70,7 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [result, setResult] = useState({ index: -1, count: 0 });
+	const presence = usePresence(open);
 	useEffect(injectFindStyles, []);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const previousFocus = useRef<HTMLElement | null>(null);
@@ -158,14 +160,16 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 		if (ranges[index] && scopeRef.current) scrollSessionTarget(ranges[index]!, scopeRef.current, scrollContextRef.current);
 	};
 
-	if (!open) return null;
-	const buttonClass = "flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40";
+	// The bar fades in and out (motion wave, owner 2026-10-26).
+	if (!presence.mounted) return null;
+	const buttonClass = "lh-press flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40";
 	return (
 		<div
 			role="search"
 			aria-label="Session Find"
 			data-testid="session-find"
-			className="lh-no-drag flex h-10 shrink-0 items-center gap-2 border-b border-border px-6 font-ui text-sm"
+			data-state={presence.state}
+			className="lh-fade lh-no-drag flex h-10 shrink-0 items-center gap-2 border-b border-border px-6 font-ui text-sm"
 			onKeyDown={(event) => {
 				if (event.key === "Enter") {
 					event.stopPropagation(); // NEVER reach question/global Enter submits.

@@ -2,49 +2,11 @@
 /**
  * godspeed MCP connector: a stdio MCP server that forwards every message
  * to the running godspeed app (its /api/mcp endpoint), adding the access
- * token from the app's data folder. No dependencies — Node 18+.
- *
- * Where it looks (first match wins):
- *   URL:   $GODSPEED_MCP_URL → <data>/mcp-endpoint.json → http://127.0.0.1:47613/api/mcp
- *   Token: $GODSPEED_MCP_TOKEN → <data>/mcp-token
- *   <data>: $GODSPEED_DATA_DIR → the desktop app's data folder for this OS
+ * token from the app's data folder (found by target.mjs). No
+ * dependencies — Node 18+.
  */
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import readline from "node:readline";
-
-const DEFAULT_URL = "http://127.0.0.1:47613/api/mcp";
-
-function dataDir() {
-	if (process.env.GODSPEED_DATA_DIR) return process.env.GODSPEED_DATA_DIR;
-	const home = os.homedir();
-	if (process.platform === "darwin") return path.join(home, "Library", "Application Support", "godspeed", "data");
-	if (process.platform === "win32") return path.join(process.env.APPDATA ?? path.join(home, "AppData", "Roaming"), "godspeed", "data");
-	return path.join(process.env.XDG_CONFIG_HOME ?? path.join(home, ".config"), "godspeed", "data");
-}
-
-function readText(file) {
-	try {
-		return fs.readFileSync(file, "utf8").trim();
-	} catch {
-		return null;
-	}
-}
-
-/** Read fresh on every message: the app may restart on a new port, or the token may be rotated. */
-function target() {
-	const dir = dataDir();
-	let url = process.env.GODSPEED_MCP_URL;
-	if (!url) {
-		try {
-			url = JSON.parse(readText(path.join(dir, "mcp-endpoint.json")) ?? "null")?.url;
-		} catch {
-			url = undefined;
-		}
-	}
-	return { url: url || DEFAULT_URL, token: process.env.GODSPEED_MCP_TOKEN || readText(path.join(dir, "mcp-token")) };
-}
+import { ACCESS_OFF, target } from "./target.mjs";
 
 function send(message) {
 	process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -64,7 +26,7 @@ async function forward(line) {
 	}
 	const { url, token } = target();
 	if (!token) {
-		replyError(message.id, "godspeed access is off. In the godspeed app open Settings → Outside agents and turn on outside-agent access.");
+		replyError(message.id, ACCESS_OFF);
 		return;
 	}
 	let res;

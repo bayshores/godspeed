@@ -226,7 +226,7 @@ export function AppearanceSection({
 								aria-expanded={fontMenuOpen}
 								data-testid="font-trigger"
 								onClick={openFontMenu}
-								className="flex h-7 min-w-20 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50"
+								className="lh-press flex h-7 min-w-20 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
 							>
 								<span className="min-w-0 flex-1 truncate">{appearance?.fontFamily || DEFAULT_READING_FONT}</span>
 								<span aria-hidden className="text-muted-foreground">
@@ -242,29 +242,28 @@ export function AppearanceSection({
 							</Hint>
 						);
 					})()}
-					{fontMenuOpen && (
-						<MenuShell
-							preferredSide="down"
-							anchorTestid="font-trigger"
-							testid="font-menu"
-							menuClass="flex w-[18rem] flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
-						>
-							<FontMenuList
-								families={localFonts === undefined ? undefined : (localFonts ?? [...CURATED_FALLBACK_FONTS])}
-								effectiveFamily={appearance?.fontFamily ?? null}
-								onPick={pickFont}
-								footer={
-									localFonts === undefined
-										? undefined
-										: localFonts === null
-											? enumEmpty
-												? "Common families — installed fonts could not be read"
-												: "Common families — your installed list needs the desktop app"
-											: "Your installed fonts"
-								}
-							/>
-						</MenuShell>
-					)}
+					<MenuShell
+						open={fontMenuOpen}
+						preferredSide="down"
+						anchorTestid="font-trigger"
+						testid="font-menu"
+						menuClass="flex w-[18rem] flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+					>
+						<FontMenuList
+							families={localFonts === undefined ? undefined : (localFonts ?? [...CURATED_FALLBACK_FONTS])}
+							effectiveFamily={appearance?.fontFamily ?? null}
+							onPick={pickFont}
+							footer={
+								localFonts === undefined
+									? undefined
+									: localFonts === null
+										? enumEmpty
+											? "Common families — installed fonts could not be read"
+											: "Common families — your installed list needs the desktop app"
+										: "Your installed fonts"
+							}
+						/>
+					</MenuShell>
 				</span>
 			</SettingsRow>
 			<SettingsRow label="Reading font size" hint={`${resolved.proseFontSize}px`} testid="row-prose-size">

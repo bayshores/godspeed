@@ -598,3 +598,152 @@ body {
 	outline: 1px solid var(--border);
 	border-radius: 0.25rem;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   THE MOTION SYSTEM (motion wave, owner 2026-10-26: "quick and subtle").
+   One register for the whole app, extending settings-pop / lh-card-enter:
+   short fades, a 4px travel, a 2% settle-scale, a press-down on buttons.
+   Nothing bounces, nothing overshoots.
+
+   Tokens: --lh-dur-fast (exits, presses) · --lh-dur (enters, state
+   changes) · --lh-dur-slow (larger surfaces: dialogs, view swaps) ·
+   --lh-ease-out (enters) · --lh-ease-in (exits).
+
+   Classes — pair with data-state="open" | "closed" (usePresence in
+   components/presence.ts keeps an element mounted through its exit):
+   - .lh-pop       menus/popovers: fade + 2% scale + 4px travel toward the
+                   anchor (--lh-pop-y: +4px opens down, -4px opens up)
+   - .lh-dialog    dialog panels: fade + 2% scale
+   - .lh-fade      backdrops and anything that only fades
+   - .lh-rise      one-shot arrival (messages, cards, view content):
+                   fade + 4px rise (no exit)
+   - .lh-press     buttons: ease the hover colors, dip to 97% while pressed
+   - .lh-collapse  a folding section: grid-rows 0fr ↔ 1fr (data-state)
+
+   Reduced motion: every animation and transform here turns off; colors
+   still change, instantly. */
+:root {
+	--lh-dur-fast: 110ms;
+	--lh-dur: 160ms;
+	--lh-dur-slow: 220ms;
+	--lh-ease-out: cubic-bezier(0.2, 0, 0, 1);
+	--lh-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+@keyframes lh-pop-in {
+	from {
+		opacity: 0;
+		transform: translateY(var(--lh-pop-y, 4px)) scale(0.98);
+	}
+}
+@keyframes lh-pop-out {
+	to {
+		opacity: 0;
+		transform: translateY(var(--lh-pop-y, 4px)) scale(0.98);
+	}
+}
+@keyframes lh-dialog-in {
+	from {
+		opacity: 0;
+		transform: scale(0.98);
+	}
+}
+@keyframes lh-dialog-out {
+	to {
+		opacity: 0;
+		transform: scale(0.98);
+	}
+}
+@keyframes lh-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+@keyframes lh-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes lh-rise-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+}
+
+.lh-pop {
+	transform-origin: top;
+}
+.lh-pop[data-side="up"] {
+	transform-origin: bottom;
+	--lh-pop-y: -4px;
+}
+.lh-pop,
+.lh-pop[data-state="open"] {
+	animation: lh-pop-in var(--lh-dur) var(--lh-ease-out) both;
+}
+.lh-pop[data-state="closed"] {
+	animation: lh-pop-out var(--lh-dur-fast) var(--lh-ease-in) both;
+	pointer-events: none;
+}
+
+.lh-dialog,
+.lh-dialog[data-state="open"] {
+	animation: lh-dialog-in var(--lh-dur-slow) var(--lh-ease-out) both;
+}
+.lh-dialog[data-state="closed"] {
+	animation: lh-dialog-out var(--lh-dur-fast) var(--lh-ease-in) both;
+	pointer-events: none;
+}
+
+.lh-fade,
+.lh-fade[data-state="open"] {
+	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;
+}
+.lh-fade[data-state="closed"] {
+	animation: lh-fade-out var(--lh-dur-fast) var(--lh-ease-in) both;
+	pointer-events: none;
+}
+
+.lh-rise {
+	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
+}
+
+.lh-press {
+	transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+	transition-duration: var(--lh-dur);
+	transition-timing-function: var(--lh-ease-out);
+}
+.lh-press:active:not(:disabled) {
+	transform: scale(0.97);
+	transition-duration: var(--lh-dur-fast);
+}
+
+.lh-collapse {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows var(--lh-dur) var(--lh-ease-out);
+}
+.lh-collapse[data-state="open"] {
+	grid-template-rows: 1fr;
+}
+.lh-collapse > * {
+	overflow: hidden;
+	min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lh-pop,
+	.lh-dialog,
+	.lh-fade,
+	.lh-rise {
+		animation: none !important;
+	}
+	.lh-press,
+	.lh-collapse {
+		transition-duration: 0ms !important;
+	}
+	.lh-press:active:not(:disabled) {
+		transform: none;
+	}
+}

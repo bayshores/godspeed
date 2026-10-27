@@ -208,5 +208,9 @@ describe("the /api/mcp door", () => {
 		assert.equal(bad.error, true);
 		const missingFile = await call("add_class_file", { class_id: id, path: "/definitely/not/here.md", kind: "info" });
 		assert.equal(missingFile.error, true);
+		// A REAL class id is accepted (a class id is a string too — it once
+		// read as a refusal and every class-scoped tool failed).
+		const searched = await call("search_graph", { class_id: id, query: "anything" });
+		assert.equal(searched.error, false, JSON.stringify(searched.body));
 	});
 });

@@ -33,8 +33,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { usePresence } from "@/components/presence";
 import type React from "react";
-import { type ModelCatalogEntry, type ModelSlotName, type ModelsSettings } from "@/src/core";
+import { providerHidesThinking, type ModelCatalogEntry, type ModelSlotName, type ModelsSettings } from "@/src/core";
 import { prettyModel } from "@/components/usage-format";
 import { ModelMenuList } from "@/components/settings/model-menu";
 import { MenuShell } from "@/components/menu-shell";
@@ -132,6 +133,8 @@ export function SetupDialog({
 	onDone: (models: ModelsSettings) => void;
 }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
+	// Stays mounted through its fade-out (motion wave, owner 2026-10-26).
+	const presence = usePresence(open);
 	const [body, setBody] = useState<ModelsBody | null>(null);
 	const [failed, setFailed] = useState(false);
 	const [picked, setPicked] = useState<Partial<Record<ModelSlotName, ModelCatalogEntry>>>({});
@@ -219,7 +222,7 @@ export function SetupDialog({
 		};
 	}, [open, onClose, openMenu]);
 
-	if (!open) return null;
+	if (!presence.mounted) return null;
 
 	const stage = failed ? "connect" : setupStage(body ? body.providers : null);
 	const allPicked = SLOT_ORDER.every((s) => picked[s]);
@@ -252,8 +255,10 @@ export function SetupDialog({
 
 	return createPortal(
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80"
 			data-testid="setup-backdrop"
+			data-state={presence.state}
+			inert={!open}
 			{...backdropDismiss}
 		>
 			<div
@@ -261,7 +266,8 @@ export function SetupDialog({
 				aria-modal="true"
 				aria-label="Set up your models"
 				data-testid="setup-dialog"
-				className="settings-dialog-pop flex max-h-[85vh] w-[640px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
+				data-state={presence.state}
+				className="lh-dialog flex max-h-[85vh] w-[640px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
@@ -272,7 +278,7 @@ export function SetupDialog({
 						aria-label="Close setup"
 						data-testid="setup-close"
 						onClick={onClose}
-						className="ml-auto text-muted-foreground transition-colors hover:text-foreground"
+						className="lh-press ml-auto text-muted-foreground hover:text-foreground"
 					>
 						✕
 					</button>
@@ -321,7 +327,7 @@ export function SetupDialog({
 												data-testid={`setup-trigger-${slot}`}
 												aria-expanded={openMenu?.slot === slot && openMenu.kind === "model"}
 												onClick={() => setOpenMenu(openMenu?.slot === slot && openMenu.kind === "model" ? null : { slot, kind: "model" })}
-												className="flex h-7 min-w-40 w-full items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50"
+												className="lh-press flex h-7 min-w-40 w-full items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
 											>
 												<span className="min-w-0 flex-1 truncate">{entry ? prettyModel(entry.id) : "Pick a model…"}</span>
 												<span aria-hidden className="text-muted-foreground">
@@ -337,37 +343,38 @@ export function SetupDialog({
 											    place()) shows it. querySelector at place time has no such
 											    ordering hazard. Live-caught by the owner 2026-10-09: every
 											    setup picker opened dead until a window resize. */}
-											{openMenu?.slot === slot && openMenu.kind === "model" && (
-												<MenuShell
-													anchorTestid={`setup-trigger-${slot}`}
-													testid={`setup-menu-${slot}`}
-													preferredSide="down"
-													align="left"
-													menuClass="flex w-[22rem] flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
-												>
-													<ModelMenuList
-														models={catalog}
-														effectiveId={entry?.id}
-														effectiveProvider={entry?.provider}
-														onPick={(m) => {
-															setPicked((prev) => ({ ...prev, [slot]: m }));
-															// Auto-populate (chunk 2, owner: "populate
-															// everywhere"): no explicit level → the
-															// ordering's level for the fresh pick; an
-															// explicit one rides (Save clamps server-side).
-															setLevels((prev) => ({
-																...prev,
-																[slot]: populateLevel(prev[slot], m.supportedLevels),
-															}));
-															setOpenMenu(null);
-														}}
-														footer={catalog && catalog.length === 0 ? "No image-capable models. Sign in to a subscription with a vision model." : undefined}
-													/>
-												</MenuShell>
-											)}
+											<MenuShell
+												open={open && openMenu?.slot === slot && openMenu.kind === "model"}
+												anchorTestid={`setup-trigger-${slot}`}
+												testid={`setup-menu-${slot}`}
+												preferredSide="down"
+												align="left"
+												menuClass="flex w-[22rem] flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+											>
+												<ModelMenuList
+													models={catalog}
+													effectiveId={entry?.id}
+													effectiveProvider={entry?.provider}
+													onPick={(m) => {
+														setPicked((prev) => ({ ...prev, [slot]: m }));
+														// Auto-populate (chunk 2, owner: "populate
+														// everywhere"): no explicit level → the
+														// ordering's level for the fresh pick; an
+														// explicit one rides (Save clamps server-side).
+														setLevels((prev) => ({
+															...prev,
+															[slot]: populateLevel(prev[slot], m.supportedLevels),
+														}));
+														setOpenMenu(null);
+													}}
+													footer={catalog && catalog.length === 0 ? "No image-capable models. Sign in to a subscription with a vision model." : undefined}
+												/>
+											</MenuShell>
 										</div>
 										{/* Thinking selector (chunk 2): editable, pre-populated from
-										    the ordering per picked model — no model, no levels. */}
+										    the ordering per picked model — no model, no levels.
+										    None for the outside agent (it sets its own effort). */}
+										{!providerHidesThinking(entry?.provider) && (
 										<div className="relative">
 											<button
 												type="button"
@@ -376,7 +383,7 @@ export function SetupDialog({
 												aria-expanded={openMenu?.slot === slot && openMenu.kind === "thinking"}
 												disabled={!entry}
 												onClick={() => setOpenMenu(openMenu?.slot === slot && openMenu.kind === "thinking" ? null : { slot, kind: "thinking" })}
-												className="flex h-7 w-24 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
+												className="lh-press flex h-7 w-24 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
 											>
 												<span className="min-w-0 flex-1 truncate text-left">
 													{entry ? (level ? THINKING_LABEL[level] ?? level : "…") : "—"}
@@ -385,25 +392,25 @@ export function SetupDialog({
 													▾
 												</span>
 											</button>
-											{openMenu?.slot === slot && openMenu.kind === "thinking" && (
-												<MenuShell
-													anchorTestid={`setup-thinking-${slot}`}
-													testid={`setup-thinking-menu-${slot}`}
-													preferredSide="down"
-													align="left"
-													menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
-												>
-													<ThinkingMenuList
-														levels={levelsForEntry.map(String)}
-														effectiveLevel={level}
-														onPick={(lv) => {
-															setLevels((prev) => ({ ...prev, [slot]: lv as ThinkingLevel }));
-															setOpenMenu(null);
-														}}
-													/>
-												</MenuShell>
-											)}
+											<MenuShell
+												open={open && openMenu?.slot === slot && openMenu.kind === "thinking"}
+												anchorTestid={`setup-thinking-${slot}`}
+												testid={`setup-thinking-menu-${slot}`}
+												preferredSide="down"
+												align="left"
+												menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+											>
+												<ThinkingMenuList
+													levels={levelsForEntry.map(String)}
+													effectiveLevel={level}
+													onPick={(lv) => {
+														setLevels((prev) => ({ ...prev, [slot]: lv as ThinkingLevel }));
+														setOpenMenu(null);
+													}}
+												/>
+											</MenuShell>
 										</div>
+										)}
 									</div>
 								</div>
 							);
@@ -414,7 +421,7 @@ export function SetupDialog({
 								data-testid="setup-save"
 								disabled={!allPicked || saving}
 								onClick={() => void save()}
-								className="rounded-sm border border-border bg-background px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
+								className="lh-press rounded-sm border border-border bg-background px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-40"
 							>
 								{saving ? "Saving…" : "Save models"}
 							</button>

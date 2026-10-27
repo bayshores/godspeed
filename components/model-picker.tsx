@@ -10,6 +10,7 @@ import { MenuShell } from "@/components/menu-shell";
 import { Hint } from "@/components/ui/hint";
 import { notifySettingsSaved, onSettingsSaved, useSettingsSaved } from "@/components/settings-signal";
 import { defaultOrderLevel, populateLevel, THINKING_LABEL } from "@/components/thinking-default";
+import { providerHidesThinking } from "@/src/core";
 
 /** GET /api/models is cached per page load for instant menu opens, but
  *  the federation is LIVE per call — keys saved mid-session widen the
@@ -143,7 +144,9 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 	const entry = catalog?.models.find(
 		(m) => m.id === effectiveId && m.provider === effectiveProvider,
 	);
-	const levels = entry?.supportedLevels ?? [];
+	// The outside agent sets its own effort in its own harness: no control.
+	const hideThinking = providerHidesThinking(effectiveProvider);
+	const levels = hideThinking ? [] : (entry?.supportedLevels ?? []);
 	// Legacy display (chunk 2 item 4, owner): a record with a model but no
 	// stored level shows the RESOLVED level — the ordering's first supported
 	// — because that is exactly what the engine build would run. Display-
@@ -331,12 +334,13 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				// view's floating top-right buttons (import notes, gear,
 				// coverage) — blurred, fuller opacity, shadowed — so the
 				// graph no longer bleeds through these pills.
-				className="flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur transition-colors hover:border-border hover:bg-muted"
+				className="lh-press flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur hover:border-border hover:bg-muted"
 			>
 				<span className="text-card-foreground">{effectiveId ? prettyModel(effectiveId) : "—"}</span>
 				<span aria-hidden className="text-xs text-muted-foreground">▾</span>
 			</button>
 			</Hint>
+			{!hideThinking && (
 			<Hint
 				// "Thinking" + its real shortcut via the registry (owner interlude
 				// 2026-09-25): ⇧⇥ cycles the level, so "Thinking (⇧⇥)" —
@@ -359,7 +363,7 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				// view's floating top-right buttons (import notes, gear,
 				// coverage) — blurred, fuller opacity, shadowed — so the
 				// graph no longer bleeds through these pills.
-				className="flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur transition-colors hover:border-border hover:bg-muted"
+				className="lh-press flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 shadow-lg backdrop-blur hover:border-border hover:bg-muted"
 			>
 				{/* Just the level — the button reads like the model button reads
 				   the model name (owner, stats-control round 1). */}
@@ -369,51 +373,51 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				<span aria-hidden className="text-xs text-muted-foreground">▾</span>
 			</button>
 			</Hint>
+			)}
 
 			{/* The shared dropdown body (extracted 2026-09-20): the agent
 			    settings' slot selects and the setup dialog use the exact same
 			    one. */}
-			{open === "model" && (
-				<MenuShell
-					anchorRef={containerRef}
-					testid="model-menu"
-					preferredSide="up"
-					menuClass="flex w-[22rem] flex-col rounded-xl border bg-card p-2 text-xs shadow-xl"
-				>
-					{error && <div className="mb-1.5 text-destructive">{error}</div>}
-					<ModelMenuList
-						models={catalog?.models}
-						effectiveId={effectiveId}
-						effectiveProvider={effectiveProvider}
-						onPick={pickModel}
-						footer={
-							catalog && catalog.models.length === 0
-								? "No models — add a provider key in Keys"
-								: chatId
-									? "This session's model"
-									: "Strong tier — the default for new sessions"
-						}
-					/>
-				</MenuShell>
-			)}
+			{/* Rendered always; `open` lets the shell play its exit (motion wave). */}
+			<MenuShell
+				open={open === "model"}
+				anchorRef={containerRef}
+				testid="model-menu"
+				preferredSide="up"
+				menuClass="flex w-[22rem] flex-col rounded-xl border bg-card p-2 text-xs shadow-xl"
+			>
+				{error && <div className="mb-1.5 text-destructive">{error}</div>}
+				<ModelMenuList
+					models={catalog?.models}
+					effectiveId={effectiveId}
+					effectiveProvider={effectiveProvider}
+					onPick={pickModel}
+					footer={
+						catalog && catalog.models.length === 0
+							? "No models — add a provider key in Keys"
+							: chatId
+								? "This session's model"
+								: "Strong tier — the default for new sessions"
+					}
+				/>
+			</MenuShell>
 
-			{open === "thinking" && (
-				<MenuShell
-					anchorRef={containerRef}
-					testid="thinking-menu"
-					preferredSide="up"
-					menuClass="flex w-44 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
-				>
-					<ThinkingMenuList
-						levels={catalog ? levels : []}
-						effectiveLevel={effectiveLevel}
-						onPick={(level) => apply(effectiveProvider ?? "", effectiveId ?? "", level as ThinkingLevel)}
-						empty={catalog ? (effectiveId ? `${prettyModel(effectiveId)} has no thinking levels.` : "Pick a model first.") : "Loading…"}
-						footer="Levels this model actually supports"
-					/>
-					{error && <div className="mt-1 text-destructive">{error}</div>}
-				</MenuShell>
-			)}
+			<MenuShell
+				open={open === "thinking" && !hideThinking}
+				anchorRef={containerRef}
+				testid="thinking-menu"
+				preferredSide="up"
+				menuClass="flex w-44 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
+			>
+				<ThinkingMenuList
+					levels={catalog ? levels : []}
+					effectiveLevel={effectiveLevel}
+					onPick={(level) => apply(effectiveProvider ?? "", effectiveId ?? "", level as ThinkingLevel)}
+					empty={catalog ? (effectiveId ? `${prettyModel(effectiveId)} has no thinking levels.` : "Pick a model first.") : "Loading…"}
+					footer="Levels this model actually supports"
+				/>
+				{error && <div className="mt-1 text-destructive">{error}</div>}
+			</MenuShell>
 		</div>
 	);
 }

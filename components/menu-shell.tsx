@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { usePresence } from "@/components/presence";
 
 /**
  * THE shared menu shell (menu standardization, fix wave chunk B): one
@@ -35,6 +36,12 @@ import { createPortal } from "react-dom";
  * SSR: menus only mount client-side while open; the hidden measuring pass
  * below is the only pre-placement render, so a server render never emits
  * a positioned menu.
+ *
+ * Motion (motion wave, owner 2026-10-26): the placed body carries .lh-pop
+ * (data-side from the placement, data-state from presence). Sites pass
+ * `open` and render the shell unconditionally, so it stays mounted ~110ms
+ * through its exit; while closing it is inert — no focus, no keys, no
+ * clicks. Without `open` the shell is open while mounted (enter only).
  */
 
 const GAP = 4; // anchor edge → menu (the bespoke shells' settled 4px)
@@ -101,15 +108,19 @@ export function computeMenuPlacement(
 /** The shared shell. Exactly one anchor seam: pass `anchorRef` (a live
  *  element ref) or `anchorTestid` (the settings section's pattern — the
  *  trigger is queried by testid at place time). */
-export function MenuShell({
-	anchorRef,
-	anchorTestid,
-	testid,
-	preferredSide,
-	align = "right",
-	menuClass,
-	children,
-}: {
+export function MenuShell({ open, ...body }: MenuShellProps) {
+	const presence = usePresence(open ?? true);
+	if (!presence.mounted) return null;
+	return <MenuShellBody {...body} closing={presence.state === "closed"} />;
+}
+
+interface MenuShellProps extends MenuBodyProps {
+	/** Open flag (motion wave): given, the site renders the shell always and
+	 *  the shell plays its exit before unmounting. Omitted: mounted = open. */
+	open?: boolean;
+}
+
+interface MenuBodyProps {
 	anchorRef?: RefObject<HTMLElement | null>;
 	anchorTestid?: string;
 	/** The menu body's own testid (sites assert it). */
@@ -122,18 +133,43 @@ export function MenuShell({
 	 *  shell adds position, z-index, the height cap, and scrolling. */
 	menuClass: string;
 	children: ReactNode;
-}) {
+}
+
+function MenuShellBody({
+	anchorRef,
+	anchorTestid,
+	testid,
+	preferredSide,
+	align = "right",
+	menuClass,
+	children,
+	closing,
+}: MenuBodyProps & { closing: boolean }) {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const [placed, setPlaced] = useState<MenuPlacement | null>(null);
 	const focusedOnceRef = useRef(false);
 
-	// Announce open↔close for lockable surfaces (see MENU_OPEN_EVENT).
+	// Announce open↔close for lockable surfaces (see MENU_OPEN_EVENT). The
+	// close fires when the exit STARTS, not at unmount — the lock lifts with
+	// the click that closed the menu. One open per close, always.
 	useEffect(() => {
+		if (closing) return;
 		window.dispatchEvent(new CustomEvent(MENU_OPEN_EVENT));
 		return () => {
 			window.dispatchEvent(new CustomEvent(MENU_CLOSE_EVENT));
 		};
-	}, []);
+	}, [closing]);
+
+	// Closing: drop focus that was still inside (unmount used to do this),
+	// and re-arm the focus-on-open below in case the menu re-opens mid-exit.
+	useEffect(() => {
+		if (!closing) return;
+		focusedOnceRef.current = false;
+		const el = menuRef.current;
+		if (el && document.activeElement instanceof HTMLElement && el.contains(document.activeElement)) {
+			document.activeElement.blur();
+		}
+	}, [closing]);
 
 	// Focus on open (owner, fix wave): the search menus land focus IN the
 	// search; menus without one land it on the body (tabIndex -1 below) so
@@ -143,13 +179,13 @@ export function MenuShell({
 	// fails (visibility: hidden subtrees are not focusable) — this seam is
 	// the one that actually lands.
 	useEffect(() => {
-		if (placed === null || focusedOnceRef.current) return;
+		if (placed === null || closing || focusedOnceRef.current) return;
 		focusedOnceRef.current = true;
 		const el = menuRef.current;
 		if (!el) return;
 		const input = el.querySelector<HTMLElement>("input");
 		(input ?? el).focus();
-	}, [placed]);
+	}, [placed, closing]);
 
 	// The standard arrow machine for menus WITHOUT a search (owner: when a
 	// dropdown is expanded, the arrow keys cycle the options and never
@@ -159,12 +195,14 @@ export function MenuShell({
 	// input (their clamped-walk machine, 2026-09-17) — those events never
 	// bubble here, and the input/textarea guard is belt-and-braces.
 	const onBodyKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+		if (closing) return;
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 		const { key } = e;
 		if (key !== "ArrowDown" && key !== "ArrowUp" && key !== "Home" && key !== "End") return;
+		// Folded sections stay mounted but inert (motion wave) — skip them.
 		const buttons = Array.from(
 			menuRef.current?.querySelectorAll<HTMLElement>("button:not([disabled])") ?? [],
-		);
+		).filter((b) => !b.closest("[inert]"));
 		if (buttons.length === 0) return;
 		e.preventDefault();
 		if (key === "Home") {
@@ -245,13 +283,18 @@ export function MenuShell({
 			data-lh-menu=""
 			tabIndex={-1}
 			onKeyDown={onBodyKeyDown}
+			data-side={placed.side}
+			data-state={closing ? "closed" : "open"}
+			inert={closing}
 			style={{ position: "fixed", zIndex: 60, ...placed.style, maxHeight: placed.maxHeight, overflowY: "auto" }}
 			// The body is the arrow machine's focus home (input-less menus
 			// land focus here on open) — the focus STAYS, but the browser's
 			// default blue ring around it must not draw (owner, polish
 			// round). Arrow cycling moves DOM focus to the buttons, which
 			// carry their own hover/highlight; the ring is pure noise.
-			className={`${menuClass} outline-none`}
+			// .lh-pop lands on the PLACED body only: the animation starts on
+			// the first visible frame, already at its anchor.
+			className={`${menuClass} lh-pop outline-none`}
 		>
 			{children}
 		</div>,

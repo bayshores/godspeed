@@ -25,6 +25,7 @@ import { createPortal } from "react-dom";
 
 import { ThinkingBlock } from "@/components/thinking-block";
 import { usePopoverDismiss } from "@/components/popover-dismiss";
+import { usePresence } from "@/components/presence";
 import { classQuery, useClasses } from "@/components/class-context";
 
 /* TARGET NAMES (owner round 17, 2026-10-06): targets are normalized to
@@ -70,7 +71,7 @@ export function ProblemCard({ part }: ArtifactPartProps) {
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";
 	return (
-		<div data-testid="problem-card" className="lh-card-enter my-1 rounded-xl border bg-card p-4">
+		<div data-testid="problem-card" className="my-1 rounded-xl border bg-card p-4">
 			<div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Problem</div>
 			<div className="lh-prose text-[15px]">
 				<ToolContentResponse>{statement}</ToolContentResponse>
@@ -124,7 +125,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	}
 
 	return (
-		<div data-testid="conclude-card" className="lh-card-enter relative my-1 rounded-xl border bg-card p-4">
+		<div data-testid="conclude-card" className="relative my-1 rounded-xl border bg-card p-4">
 			{/* The heading row (owner round 3, 2026-10-05): plain 'Concluded'
 			    eyebrow + the outcome in the quiz cards' EXACT chip register —
 			    no more two same-weight headings stacked. */}
@@ -209,6 +210,8 @@ function MetadataPopover({
 	}, [open, targets.length, names]);
 
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
+	// The box fades out before unmounting (motion wave, owner 2026-10-26).
+	const box = usePresence(open);
 	// ANY scroll closes it (owner law): capture-phase, so every scroller
 	// in the tree counts — the transcript's own scroll included.
 	useEffect(() => {
@@ -245,15 +248,16 @@ function MetadataPopover({
 					});
 				}}
 				aria-expanded={open}
-				className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+				className="lh-press flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
 			>
 				Metadata
 			</button>
-			{open &&
+			{box.mounted &&
 				anchor &&
 				createPortal(
 					<div
 						data-testid="metadata-box"
+						data-state={box.state}
 						// PORTALED TO BODY (owner fix, 2026-10-06): the transcript's
 						// MessageContent boxes carry overflow-hidden — an absolutely
 						// positioned child clips at its own message block's edge (the
@@ -261,7 +265,7 @@ function MetadataPopover({
 						// EVERYTHING, the dialogs' law. Node-card info-box register;
 						// opening BELOW the trigger — always.
 						style={{ position: "fixed", top: anchor.top, left: anchor.left }}
-						className="z-50 w-80 max-w-[calc(100vw-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
+						className="lh-pop z-50 w-80 max-w-[calc(100vw-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
 					>
 				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
 						<dt className="text-muted-foreground">Mode</dt>

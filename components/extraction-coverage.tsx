@@ -6,6 +6,7 @@ import { usePopoverDismiss } from "@/components/popover-dismiss";
 import { useSettingsSaved } from "@/components/settings-signal";
 import { formatTokens } from "@/components/usage-format";
 import { Hint } from "@/components/ui/hint";
+import { usePresence } from "@/components/presence";
 import { timeAgo } from "@/components/sidebar";
 import { resolveSettings } from "@/src/core";
 
@@ -209,7 +210,7 @@ export function CoverageMenuBody({
 				data-testid="ctx-extract"
 				onClick={onExtract}
 				disabled={busy || complete}
-				className="flex items-center justify-center rounded-lg border px-2 py-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+				className="lh-press flex items-center justify-center rounded-lg border px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
 			>
 				{busy ? "Running" : "Extract"}
 			</button>
@@ -247,6 +248,8 @@ export function CoverageRing({ chatId, refreshKey = 0 }: { chatId: string; refre
 	const [nonce, setNonce] = useState(0);
 	const rootRef = useRef<HTMLDivElement>(null);
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
+	// The numbers popover pops in and out (motion wave, owner 2026-10-26).
+	const popover = usePresence(open);
 
 	// The activity/refresh chain (the dispatch's seam): runs can fire from
 	// OTHER surfaces (the sidebar menu's Extract, the turn pipeline, another
@@ -309,17 +312,18 @@ export function CoverageRing({ chatId, refreshKey = 0 }: { chatId: string; refre
 					data-testid="coverage-ring"
 					onClick={() => setOpen((o) => !o)}
 					aria-expanded={open}
-					className="relative flex size-5 cursor-pointer items-center justify-center transition-opacity hover:opacity-80"
+					className="lh-press relative flex size-5 cursor-pointer items-center justify-center hover:opacity-80"
 				>
 					{/* The donut: track + fill. The whole ring pulses while a run
 					    is in flight (motion = the working-state signal). */}
 					<CoverageRingGlyph fill={fill} running={coverage.running} />
 				</button>
 			</Hint>
-			{open && (
+			{popover.mounted && (
 				<div
 					data-testid="coverage-ring-popover"
-					className="absolute top-full right-0 z-40 mt-1.5 w-64 rounded-xl border bg-card p-3 text-xs shadow-xl"
+					data-state={popover.state}
+					className="lh-pop absolute top-full right-0 z-40 mt-1.5 w-64 rounded-xl border bg-card p-3 text-xs shadow-xl"
 				>
 					<CoverageRingDetail coverage={coverage} chunkTokens={graph.chunkTokens} />
 				</div>

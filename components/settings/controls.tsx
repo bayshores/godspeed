@@ -113,7 +113,9 @@ export function Toggle({
 			data-testid={`toggle-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
 			onClick={() => onChange(!checked)}
 			className={cn(
-				"relative h-4.5 w-8 shrink-0 rounded-full border border-border transition-colors",
+				// lh-press eases the track colors and dips on press (motion wave,
+				// owner 2026-10-26); the disc below slides on the same clock.
+				"lh-press relative h-4.5 w-8 shrink-0 rounded-full border border-border",
 				// Owner (2026-09-20): on is a gray track with a WHITE disc (a full-white
 				// track was too loud); off stays the muted track.
 				checked ? "bg-muted-foreground" : "bg-muted",
@@ -125,7 +127,7 @@ export function Toggle({
 				// only the knob's face changes (the invert affordance).
 				<span
 					className={cn(
-						"absolute left-0 top-0.5 flex size-3 items-center justify-center rounded-full transition-transform",
+						"absolute left-0 top-0.5 flex size-3 items-center justify-center rounded-full transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
 						checked ? "translate-x-4 text-foreground" : "translate-x-0.5 text-muted-foreground",
 					)}
 				>
@@ -134,7 +136,7 @@ export function Toggle({
 			) : (
 				<span
 					className={cn(
-						"absolute left-0 top-0.5 size-3 rounded-full transition-transform",
+						"absolute left-0 top-0.5 size-3 rounded-full transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
 						// 2px inset from each inner edge, both states (owner round: the on
 						// disc used to touch the pill's right edge).
 						checked ? "translate-x-4 bg-foreground" : "translate-x-0.5 bg-muted-foreground",
@@ -169,7 +171,7 @@ export function ThinSelect({
 			disabled={disabled}
 			onChange={(e) => onChange(e.target.value)}
 			className={cn(
-				"h-7 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground outline-none",
+				"h-7 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 				disabled && "cursor-not-allowed",
 			)}
 		>
@@ -228,7 +230,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-7 w-40 rounded-sm border border-border bg-background px-2 font-ui text-xs text-foreground outline-none placeholder:text-muted-foreground/60"
+			className="h-7 w-40 rounded-sm border border-border bg-background px-2 font-ui text-xs text-foreground outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-muted-foreground/60"
 		/>
 	);
 }

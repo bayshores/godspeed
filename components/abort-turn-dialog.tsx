@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { usePresence } from "@/components/presence";
 
 /**
  * The ESC-abort guard (owner, 2026-10-02): the global Esc → abort chain
@@ -52,6 +53,7 @@ export function AbortTurnBody({
 	onClose,
 	onConfirm,
 	busy = false,
+	state = "open",
 }: {
 	mode: AbortMode;
 	onClose: () => void;
@@ -59,6 +61,8 @@ export function AbortTurnBody({
 	/** The dismiss doubles as the abort when a turn is still running
 	 * (owner, 2026-10-04): the line says so. */
 	busy?: boolean;
+	/** Motion (motion wave): "closed" while the exit plays — inert. */
+	state?: "open" | "closed";
 }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
 	const copy = COPY[mode];
@@ -68,12 +72,15 @@ export function AbortTurnBody({
 			aria-modal="true"
 			aria-label={copy.title}
 			data-testid="abort-turn-dialog"
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+			data-state={state}
+			inert={state === "closed"}
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
 			// A genuine click on the scrim cancels — the cautious default, like Esc.
 			{...backdropDismiss}
 		>
 			<div
-				className="mx-4 w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg"
+				data-state={state}
+				className="lh-dialog mx-4 w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<h2 className="text-sm font-semibold text-card-foreground" data-testid="abort-turn-title">
@@ -88,7 +95,7 @@ export function AbortTurnBody({
 						type="button"
 						data-testid="abort-turn-cancel"
 						onClick={onClose}
-						className="rounded-sm px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+						className="lh-press rounded-sm px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
 					>
 						Cancel
 					</button>
@@ -97,7 +104,7 @@ export function AbortTurnBody({
 						data-testid="abort-turn-confirm"
 						onClick={onConfirm}
 						// Destructive red — the app's established destructive pair.
-						className="rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/20"
+						className="lh-press rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20"
 					>
 						{copy.action}
 					</button>
@@ -119,6 +126,13 @@ export function AbortTurnDialog({
 	onConfirm: (mode: AbortMode) => void;
 	busy?: boolean;
 }) {
+	// Exit motion (motion wave, owner 2026-10-26): the last mode stays on
+	// screen while the dialog fades out.
+	const presence = usePresence(mode !== null);
+	const [lastMode, setLastMode] = useState(mode);
+	if (mode !== null && mode !== lastMode) setLastMode(mode);
+	const shown = mode ?? lastMode;
+
 	// Esc cancels the popup (claimed — never a chained abort).
 	useEffect(() => {
 		if (mode === null) return;
@@ -136,9 +150,9 @@ export function AbortTurnDialog({
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [mode, onClose]);
 
-	if (mode === null || typeof document === "undefined") return null;
+	if (!presence.mounted || shown === null || typeof document === "undefined") return null;
 	return createPortal(
-		<AbortTurnBody mode={mode} onClose={onClose} onConfirm={() => onConfirm(mode)} busy={busy} />,
+		<AbortTurnBody mode={shown} onClose={onClose} onConfirm={() => onConfirm(shown)} busy={busy} state={presence.state} />,
 		document.body,
 	);
 }

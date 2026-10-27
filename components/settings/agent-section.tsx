@@ -52,6 +52,7 @@ import type React from "react";
 import {
 	COMPACTION_THRESHOLD_FLOOR,
 	MODEL_SLOTS,
+	providerHidesThinking,
 	resolveSettings,
 	type AgentSettings,
 	type CompactionSettings,
@@ -229,7 +230,7 @@ function MenuTrigger({
 			aria-expanded={open}
 			data-testid={testid}
 			onClick={onClick}
-			className={`flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 ${widthClass}`}
+			className={`lh-press flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 ${widthClass}`}
 		>
 			<span className="min-w-0 flex-1 truncate">{value || emptyLabel}</span>
 			<span aria-hidden className="text-muted-foreground">
@@ -450,7 +451,7 @@ export function AgentSection({
 						setOpenSegment(open ? null : info.path);
 						setSegmentStatus(null);
 					}}
-					className="text-xs text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+					className="lh-press text-xs text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
 				>
 					{open ? "Hide text" : "Show text"}
 				</button>
@@ -482,8 +483,8 @@ export function AgentSection({
 								onClick={() => void saveSegment(info.path, segmentDraft[info.path] ?? "")}
 								className={
 									dirty
-										? "text-xs text-foreground underline-offset-2 hover:underline"
-										: "cursor-not-allowed text-xs text-muted-foreground/40 underline-offset-2"
+										? "lh-press text-xs text-foreground underline-offset-2 hover:underline"
+										: "lh-press cursor-not-allowed text-xs text-muted-foreground/40 underline-offset-2"
 								}
 							>
 								Save
@@ -492,7 +493,7 @@ export function AgentSection({
 								<button
 									type="button"
 									onClick={() => void deleteSegment(info.path)}
-									className="text-xs text-muted-foreground/70 underline-offset-2 hover:text-red-500 hover:underline"
+									className="lh-press text-xs text-muted-foreground/70 underline-offset-2 hover:text-red-500 hover:underline"
 								>
 									Delete
 								</button>
@@ -571,6 +572,7 @@ export function AgentSection({
 									onClick={() => setOpenMenu(thisMenuOpen === "model" ? null : { target: slot, kind: "model" })}
 									widthClass="min-w-20"
 								/>
+								{!providerHidesThinking(coord?.provider) && (
 								<MenuTrigger
 									// Legacy display (chunk 2 item 4): no stored level + a known
 									// model → the RESOLVED level (the ordering's first supported —
@@ -583,52 +585,51 @@ export function AgentSection({
 									onClick={() => setOpenMenu(thisMenuOpen === "thinking" ? null : { target: slot, kind: "thinking" })}
 									widthClass="w-20"
 								/>
-								{thisMenuOpen === "model" && (
-									<MenuShell
-										preferredSide="down"
-											anchorTestid={`slot-model-${slot}`}
-										testid={`slot-model-menu-${slot}`}
-										menuClass="flex w-[22rem] flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
-									>
-										<ModelMenuList
-											models={slotCatalog ?? undefined}
-											effectiveId={modelId}
-											effectiveProvider={provider}
-											onPick={(entry) => {
-												// Auto-populate (chunk 2, owner: "populate everywhere"): the
-												// fresh pick writes a level — the stored one rides as-is
-												// (the write clamps server-side), else the ordering's level.
-												const next = populateLevel(thinking || undefined, entry.supportedLevels);
-												onModelsChange(composeSlotModel(models, slot, entry.provider, entry.id, next));
-												setOpenMenu(null);
-											}}
-											footer={
-												catalog && catalog.length === 0
-													? "No models — add a provider key in Keys"
-													: "Runs every agent of this tier"
-											}
-										/>
-									</MenuShell>
 								)}
-								{thisMenuOpen === "thinking" && (
-									<MenuShell
-										preferredSide="down"
-											anchorTestid={`slot-thinking-${slot}`}
-										testid={`slot-thinking-menu-${slot}`}
-										menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
-									>
-										<ThinkingMenuList
-											levels={levels.map(String)}
-											// The ✓ sits on the RESOLVED level for legacy unset records —
-											// the same one the trigger shows.
-											effectiveLevel={thinking || (chosen ? defaultOrderLevel(levels) : undefined)}
-											onPick={(level) => {
-												onModelsChange(composeSlotModel(models, slot, provider, modelId, level));
-												setOpenMenu(null);
-											}}
-										/>
-									</MenuShell>
-								)}
+								<MenuShell
+									open={thisMenuOpen === "model"}
+									preferredSide="down"
+									anchorTestid={`slot-model-${slot}`}
+									testid={`slot-model-menu-${slot}`}
+									menuClass="flex w-[22rem] flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+								>
+									<ModelMenuList
+										models={slotCatalog ?? undefined}
+										effectiveId={modelId}
+										effectiveProvider={provider}
+										onPick={(entry) => {
+											// Auto-populate (chunk 2, owner: "populate everywhere"): the
+											// fresh pick writes a level — the stored one rides as-is
+											// (the write clamps server-side), else the ordering's level.
+											const next = populateLevel(thinking || undefined, entry.supportedLevels);
+											onModelsChange(composeSlotModel(models, slot, entry.provider, entry.id, next));
+											setOpenMenu(null);
+										}}
+										footer={
+											catalog && catalog.length === 0
+												? "No models — add a provider key in Keys"
+												: "Runs every agent of this tier"
+										}
+									/>
+								</MenuShell>
+								<MenuShell
+									open={thisMenuOpen === "thinking" && !providerHidesThinking(coord?.provider)}
+									preferredSide="down"
+									anchorTestid={`slot-thinking-${slot}`}
+									testid={`slot-thinking-menu-${slot}`}
+									menuClass="flex w-44 flex-col gap-0.5 rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
+								>
+									<ThinkingMenuList
+										levels={levels.map(String)}
+										// The ✓ sits on the RESOLVED level for legacy unset records —
+										// the same one the trigger shows.
+										effectiveLevel={thinking || (chosen ? defaultOrderLevel(levels) : undefined)}
+										onPick={(level) => {
+											onModelsChange(composeSlotModel(models, slot, provider, modelId, level));
+											setOpenMenu(null);
+										}}
+									/>
+								</MenuShell>
 							</span>
 						</SettingsRow>
 					);
@@ -688,7 +689,7 @@ export function AgentSection({
 											data-testid={`quiz-mechanics-${m}`}
 											onClick={() => onSectionChange(composeQuizMechanics(agent, m))}
 											className={cn(
-												"h-8 rounded-md px-3 text-sm font-medium transition-colors",
+												"lh-press h-8 rounded-md px-3 text-sm font-medium",
 												active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
 											)}
 										>

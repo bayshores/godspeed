@@ -118,7 +118,7 @@ export function Composer({
 						type="submit"
 						data-testid="next-problem-button"
 						aria-label="Next problem"
-						className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-green-600 px-4 font-ui text-xs font-medium uppercase tracking-wide text-white transition-colors hover:bg-green-500"
+						className="lh-press lh-fade flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-green-600 px-4 font-ui text-xs font-medium uppercase tracking-wide text-white hover:bg-green-500"
 					>
 						Next problem
 						<ArrowRightIcon className="size-4" />
@@ -129,13 +129,14 @@ export function Composer({
 						aria-label={busy && !canSend ? "Stop" : "Send"}
 						disabled={!busy && !canSend}
 						className={cn(
-							"flex size-10 shrink-0 items-center justify-center rounded-[10px] transition-colors",
+							"lh-press flex size-10 shrink-0 items-center justify-center rounded-[10px]",
 							busy && !canSend
 								? "bg-secondary text-foreground hover:bg-accent"
 								: "bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40",
 						)}
 					>
-						{busy && !canSend ? <SquareIcon className="size-4" /> : <CornerDownLeftIcon className="size-5" />}
+						{/* The glyph swap fades rather than snaps (motion wave, owner 2026-10-26). */}
+						{busy && !canSend ? <SquareIcon className="lh-fade size-4" /> : <CornerDownLeftIcon className="lh-fade size-5" />}
 					</button>
 				)}
 		</form>

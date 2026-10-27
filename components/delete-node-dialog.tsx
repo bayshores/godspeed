@@ -4,6 +4,7 @@ import { classQuery, useClasses } from "@/components/class-context";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { usePresence } from "@/components/presence";
 
 /** The 409 extraction_running line (owner phrasing, node interlude):
  *  the server's error names the extraction; the ACTIVITY DOCK is the
@@ -36,6 +37,7 @@ export function DeleteNodeBody({
 	failure,
 	onClose,
 	onRun,
+	state = "open",
 }: {
 	/** One node (the canvas context menu) or many (the chain table's
 	 *  selection). One names it alone; many pluralize the title and
@@ -45,6 +47,8 @@ export function DeleteNodeBody({
 	failure: { code: string; error: string } | null;
 	onClose: () => void;
 	onRun: () => void;
+	/** Motion (motion wave): "closed" while the exit plays. */
+	state?: "open" | "closed";
 }) {
 	return (
 		<div
@@ -52,8 +56,9 @@ export function DeleteNodeBody({
 			aria-modal="true"
 			aria-label="Delete node"
 			data-testid="delete-node-dialog"
+			data-state={state}
 			onClick={(e) => e.stopPropagation()}
-			className="w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
+			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">
 				{nodes.length === 1 ? "Delete node?" : `Delete ${nodes.length} nodes?`}
@@ -98,7 +103,7 @@ export function DeleteNodeBody({
 						data-testid="node-delete-retry"
 						onClick={onRun}
 						disabled={busy}
-						className="ml-3 text-xs text-foreground underline-offset-2 hover:underline disabled:opacity-40"
+						className="lh-press ml-3 text-xs text-foreground underline-offset-2 hover:underline disabled:opacity-40"
 					>
 						Try again
 					</button>
@@ -110,7 +115,7 @@ export function DeleteNodeBody({
 					data-testid="node-delete-cancel"
 					onClick={onClose}
 					disabled={busy}
-					className="rounded-sm px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+					className="lh-press rounded-sm px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
 				>
 					Cancel
 				</button>
@@ -122,7 +127,7 @@ export function DeleteNodeBody({
 					// Destructive red (owner, polish round) — the
 					// app's established destructive pair (chat's
 					// refusal banner): border + text, fill on hover.
-					className="rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40"
+					className="lh-press rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
 				>
 					{busy ? "Deleting…" : "Delete"}
 				</button>
@@ -148,19 +153,26 @@ export function DeleteNodeDialog({
 	onDeleted: (nodeIds: string[], graphRevision: number) => void;
 }) {
 	const { active: activeClassId } = useClasses();
+	// Exit motion (motion wave, owner 2026-10-26): the last names stay on
+	// screen while the dialog fades out.
+	const isOpen = !!nodes && nodes.length > 0;
+	const presence = usePresence(isOpen);
+	const [lastNodes, setLastNodes] = useState(nodes);
+	if (isOpen && nodes !== lastNodes) setLastNodes(nodes);
+	const shown = isOpen ? nodes : lastNodes;
 	const [busy, setBusy] = useState(false);
 	const backdropDismiss = useBackdropDismiss(() => {
 		if (!busy) onClose();
 	});
 	const [failure, setFailure] = useState<{ code: string; error: string } | null>(null);
 
-	// Fresh state per dialog: closing resets.
+	// Fresh state per dialog: closing resets (once the exit has played).
 	useEffect(() => {
-		if (!nodes || nodes.length === 0) {
+		if (!presence.mounted) {
 			setBusy(false);
 			setFailure(null);
 		}
-	}, [nodes]);
+	}, [presence.mounted]);
 
 	// Esc closes (claimed — a dialog Esc must not also abort a turn).
 	useEffect(() => {
@@ -215,15 +227,18 @@ export function DeleteNodeDialog({
 		}
 	};
 
-	if (!nodes || nodes.length === 0) return null;
+	if (!presence.mounted || !shown || shown.length === 0) return null;
 
 	return createPortal(
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			data-state={presence.state}
+			inert={!isOpen}
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80"
 			{...backdropDismiss}
 		>
 			<DeleteNodeBody
-				nodes={nodes}
+				state={presence.state}
+				nodes={shown}
 				busy={busy}
 				failure={failure}
 				onClose={onClose}

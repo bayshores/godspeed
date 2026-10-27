@@ -156,7 +156,7 @@ export const ReasoningTrigger = memo(
           /* The heading register (owner round 4, 2026-10-05): the small
              mono caps of the card eyebrows — matching YOUR THINKING, whose
              rail offsets it by exactly the one-character difference. */
-          "flex w-full items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wide transition-colors hover:text-foreground",
+          "flex w-full items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wide transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground",
           className
         )}
         {...props}
@@ -179,7 +179,7 @@ export const ReasoningTrigger = memo(
             {getThinkingMessage(isStreaming)}
             <ChevronDownIcon
               className={cn(
-                "size-4 transition-transform",
+                "size-4 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)",
                 isOpen ? "rotate-180" : "rotate-0"
               )}
             />
@@ -203,8 +203,11 @@ export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
       className={cn(
-        "mt-4 text-sm",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+        "mt-4 text-sm text-muted-foreground outline-none",
+        /* The app's motion tokens (motion wave, owner 2026-10-26): the old
+           tw-animate classes were dead (the plugin is not loaded). Opening
+           rises in; closing fades, and Radix waits for it before unmounting. */
+        "motion-safe:data-[state=open]:animate-[lh-rise-in_var(--lh-dur)_var(--lh-ease-out)] motion-safe:data-[state=closed]:animate-[lh-fade-out_var(--lh-dur-fast)_var(--lh-ease-in)_both]",
         className
       )}
       {...props}

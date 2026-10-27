@@ -1,6 +1,6 @@
 {
   "name": "godspeed",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Teach in godspeed: Claude becomes the app's teacher (and, if you choose, its helper and knowledge-graph model) through the app's MCP server.",
   "author": { "name": "godspeed fork (bayshores)" },
   "repository": "https://github.com/bayshores/godspeed",

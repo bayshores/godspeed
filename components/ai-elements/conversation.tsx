@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { usePresence } from "@/components/presence";
 import { cn } from "@/lib/utils";
 import type { LhViewMessage, LhViewPart } from "@/src/core";
 import { ArrowDownIcon, DownloadIcon } from "lucide-react";
@@ -76,18 +77,21 @@ export const ConversationScrollButton = ({
   ...props
 }: ConversationScrollButtonProps) => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  // Fades in and out instead of popping (motion wave, owner 2026-10-26).
+  const presence = usePresence(!isAtBottom);
 
   const handleScrollToBottom = useCallback(() => {
     scrollToBottom();
   }, [scrollToBottom]);
 
   return (
-    !isAtBottom && (
+    presence.mounted && (
       <Button
         className={cn(
-          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
+          "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
           className
         )}
+        data-state={presence.state}
         onClick={handleScrollToBottom}
         size="icon"
         type="button"

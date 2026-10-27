@@ -17,6 +17,8 @@ import { Message, MessageContent, MessageResponse } from "@/components/ai-elemen
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { BrailleSpinner } from "@/components/braille-spinner";
+import { prefersReducedMotion, usePresence } from "@/components/presence";
+import { cn } from "@/lib/utils";
 import { LiveToolCard } from "@/components/artifacts/live-tool-card";
 import { Separator } from "@/components/ui/separator";
 import { AnsweredCard } from "@/components/answered-card";
@@ -167,6 +169,51 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
 /** The quiet system line (custom-message scheme rendering): centered, muted,
  *  small — the transcript's voice for events that are not speech (wake
  *  scaffolding). */
+/* ARRIVAL MOTION (motion wave, owner 2026-10-26): a message or card that
+ * appears DURING the live session rises in once (.lh-rise). Whatever the
+ * first render shows — a reopened lesson — never animates. Slots are keyed
+ * by POSITION (message index, part index), not id: an optimistic message
+ * that later swaps its local id for the server's keeps its slot, so the
+ * remount never replays. The class only rides an element for a short
+ * window after its slot first appears, so streamed-token re-renders and
+ * later remounts leave it still. Agent text and reasoning are left alone —
+ * streaming is their motion, and the Thinking… handoff stays seamless. */
+const ARRIVAL_WINDOW_MS = 400;
+
+function useArrivals(): (slot: string) => string | undefined {
+	const firstSeen = useRef(new Map<string, number | null>());
+	const live = useRef(false);
+	useEffect(() => {
+		live.current = true;
+	}, []);
+	return useCallback((slot: string) => {
+		const now = performance.now();
+		let at = firstSeen.current.get(slot);
+		if (at === undefined) {
+			at = live.current ? now : null; // null: there at first render
+			firstSeen.current.set(slot, at);
+		}
+		return at !== null && now - at < ARRIVAL_WINDOW_MS ? "lh-rise" : undefined;
+	}, []);
+}
+
+/** A one-off row (the Thinking…/Compacting placeholders) that rises in
+ *  when it mounts mid-session — decided once, at mount. */
+function ArrivalRow({
+	live,
+	as: Tag = "span",
+	className,
+	children,
+}: {
+	live: boolean;
+	as?: "span" | "div";
+	className?: string;
+	children: React.ReactNode;
+}) {
+	const [rise] = useState(live);
+	return <Tag className={cn(rise && "lh-rise", className)}>{children}</Tag>;
+}
+
 function SystemLine({ children, testId }: { children: React.ReactNode; testId?: string }) {
 	return (
 		<div
@@ -242,6 +289,10 @@ export function Chat({
 	const sessionFindScopeRef = useRef<HTMLDivElement | null>(null);
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
 	const sourceTextParts = useMemo(() => firstSourceTextParts(messages), [messages]);
+	const arrive = useArrivals();
+	// Mounted past the first render: one-off rows rise in from here on.
+	const [arrivalsLive, setArrivalsLive] = useState(false);
+	useEffect(() => setArrivalsLive(true), []);
 
 	// The reattach settled terminal → the sync-and-continue seam (below).
 	setReattachSettled(() => reattachSettledRef.current());
@@ -780,6 +831,7 @@ export function Chat({
 	// The live plan popup (wave 4): opened by any transcript plan block, the
 	// top-bar plan chip, and the dock band's marginalia.
 	const [planOpen, setPlanOpen] = useState(false);
+	const planPresence = usePresence(planOpen); // fades out (motion wave, owner 2026-10-26)
 	// Real plan presence — gates the marginalia's clickable flank. A JSX
 	// element is always truthy; gating on the node alone mounted a phantom
 	// (invisible, clickable) button in the bottom-right whenever a question
@@ -797,6 +849,13 @@ export function Chat({
 	// overlay shell as mermaid, but carrying the raw svg + the card's invert
 	// state so the fullscreen view stays faithful to the toggled card.
 	const [figureFocus, setFigureFocus] = useState<{ svg: string; inverted: boolean } | null>(null);
+	// The last focus each overlay showed, held through its exit fade.
+	const mermaidPresence = usePresence(mermaidFocus !== null);
+	const figurePresence = usePresence(figureFocus !== null);
+	const lastMermaidRef = useRef(mermaidFocus);
+	if (mermaidFocus !== null) lastMermaidRef.current = mermaidFocus;
+	const lastFigureRef = useRef(figureFocus);
+	if (figureFocus !== null) lastFigureRef.current = figureFocus;
 
 	// Overlay mirrors for the layered-Esc gate (owner 2026-10-04): the
 	// lh:kbd-abort-turn handler reads these at EVENT time — declared here
@@ -1222,7 +1281,7 @@ export function Chat({
 								setTitleDraft(titleText);
 								setRenaming(true);
 							}}
-							className="lh-no-drag -mx-1.5 min-w-4 shrink cursor-text truncate rounded-md px-1.5 text-left font-title text-3xl tracking-tight transition-colors hover:bg-accent"
+							className="lh-no-drag -mx-1.5 min-w-4 shrink cursor-text truncate rounded-md px-1.5 text-left font-title text-3xl tracking-tight transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent"
 						>
 							{titleText}
 							</button>
@@ -1244,7 +1303,7 @@ export function Chat({
 								blurAfterPointerClick(e);
 								setPlanOpen(true);
 							}}
-							className="lh-no-drag flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/80 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+							className="lh-press lh-no-drag flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/80 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:border-border hover:text-foreground"
 						>
 							<WaypointsIcon className="size-3.5 text-primary" aria-hidden />
 							Plan
@@ -1296,7 +1355,9 @@ export function Chat({
 									// and centered like the teacher's artifacts (contracts.ts "THE ASYNC
 									// PROTOCOL" §4). Key fallback: legacy transcripts (pre id-hygiene)
 									// can still hold empty ids — the index keeps keys unique for them.
-									<SubagentSteerCard key={m.id || `m-${mi}`} message={m} />
+									<div key={m.id || `m-${mi}`} className={cn("flex flex-col empty:hidden", arrive(`${mi}`))}>
+										<SubagentSteerCard message={m} />
+									</div>
 								) : m.role === "user" && m.parts.some((p) => p.type === "data-probe-handoff") ? (
 								// The probe→teach handoff wake (custom-message scheme): the
 								// PLANNING DIVIDER IS the seam (owner ruling 2026-09-26 — it
@@ -1306,7 +1367,9 @@ export function Chat({
 								// Wave D grouping merged the whole probe into one giant
 								// assistant group — is gone). Never a user bubble: the wake is
 								// scaffolding; the model-facing instruction lives in the adapter.
-								<PhaseDivider key={m.id || `m-${mi}`} phase="plan" />
+								<div key={m.id || `m-${mi}`} className={cn("flex flex-col empty:hidden", arrive(`${mi}`))}>
+									<PhaseDivider phase="plan" />
+								</div>
 							) : m.role === "user" && m.parts.length > 0 && m.parts.every((p) => p.type.startsWith("data-")) ? (
 								// Marker cards (custom messages, 2026-10-04): user-side
 								// scaffolding — the graph-context pick, the practice
@@ -1315,7 +1378,7 @@ export function Chat({
 								// precedent). The user branch below renders text only;
 								// without this hoist a data-only message read as an
 								// EMPTY bubble (owner report, 2026-10-04).
-								<Fragment key={m.id || `m-${mi}`}>
+								<div key={m.id || `m-${mi}`} className={cn("flex flex-col gap-4 empty:hidden", arrive(`${mi}`))}>
 									{m.parts.map((part, pi) => {
 										switch (part.type) {
 											case "data-graph-context":
@@ -1345,7 +1408,7 @@ export function Chat({
 												return null;
 										}
 									})}
-								</Fragment>
+								</div>
 							) : (
 									<Fragment key={m.id || `m-${mi}`}>
 									{/* THE INFERRED TEACH SEAM (owner ruling 2026-09-26, the verdict
@@ -1392,7 +1455,7 @@ export function Chat({
 										    inset (the band is the authorship mark against the agent's
 										    transparent prose). The "You" label stays — one register
 										    with the thinking labels. */
-										className="my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 bg-card py-1 pl-[14px] pr-4 font-ui text-xs"
+										className={cn("my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 bg-card py-1 pl-[14px] pr-4 font-ui text-xs", arrive(`${mi}`))}
 									>
 												{/* The rail GROUPS (owner round 4, 2026-10-05): the YOU heading
 												    sits INSIDE the rail, same mono-xs register and same 1ch
@@ -1429,9 +1492,9 @@ export function Chat({
 													part.errorText !== "Operation aborted"
 												) {
 													return (
-														<SystemLine key={`retry-${pi}`} testId="tool-retry">
-															Retrying…
-														</SystemLine>
+														<div key={`retry-${pi}`} className={cn("flex flex-col", arrive(`${mi}:${pi}`))}>
+															<SystemLine testId="tool-retry">Retrying…</SystemLine>
+														</div>
 													);
 												}
 												switch (part.type) {
@@ -1453,17 +1516,19 @@ export function Chat({
 														);
 													case "step-start":
 														if (teachBoundary)
-															return <PhaseDivider key={`teach-step-${pi}`} phase="teach" />;
+															return (
+																<div key={`teach-step-${pi}`} className={cn("flex flex-col", arrive(`${mi}:${pi}`))}>
+																	<PhaseDivider phase="teach" />
+																</div>
+															);
 														return pi > 0 ? <Separator key={pi} className="my-3" /> : null;
 													case "data-plan-block":
 														// The plan in the chat (wave 4): a frozen snapshot
 														// block — rendered as carried, never re-derived.
 														return (
-															<PlanBlock
-																key={pi}
-																data={part.data as PlanBlockData}
-																onOpen={() => setPlanOpen(true)}
-															/>
+															<div key={pi} className={cn("flex flex-col", arrive(`${mi}:${pi}`))}>
+																<PlanBlock data={part.data as PlanBlockData} onOpen={() => setPlanOpen(true)} />
+															</div>
 														);
 													case "tool-quiz":
 													case "tool-probe":
@@ -1473,8 +1538,13 @@ export function Chat({
 														// Pending/streaming questions live in the dock, not the
 														// transcript; answered ones render as graded records.
 														if (part.state === "output-available") {
+															// The graded reveal rises in the moment it lands (the dock's
+															// submit); reopened lessons stay still. gap-2: the
+															// lifted thinking row + the card.
 															return (
-																<AnsweredCard key={pi} answer={part.output as QuestionAnswerData} input={part.input} />
+																<div key={pi} className={cn("flex flex-col gap-2", arrive(`${mi}:${pi}`))}>
+																	<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} />
+																</div>
 															);
 														}
 														return null;
@@ -1486,14 +1556,25 @@ export function Chat({
 														// — replaces the retired transcript bottom line. On settling, the
 														// registry's card takes over below.
 														if (part.type.startsWith("tool-") && part.state === "input-streaming") {
-															return <LiveToolCard key={pi} part={part as ArtifactPartProps["part"]} />;
+															// Live card and settled card share ONE wrapper (same key,
+															// same slot): the swap never replays the rise.
+															return (
+																<div key={pi} className={cn("flex flex-col", arrive(`${mi}:${pi}`))}>
+																	<LiveToolCard part={part as ArtifactPartProps["part"]} />
+																</div>
+															);
 														}
 														// Artifact extension point (contracts.ts): job
 														// parts and future artifacts render via the
 														// registry — add renderers there, not here.
 														if (part.type.startsWith("tool-")) {
 															const Renderer = artifactRenderers[part.type.slice("tool-".length)];
-															if (Renderer) return <Renderer key={pi} part={part as ArtifactPartProps["part"]} />;
+															if (Renderer)
+																return (
+																	<div key={pi} className={cn("flex flex-col empty:hidden", arrive(`${mi}:${pi}`))}>
+																		<Renderer part={part as ArtifactPartProps["part"]} />
+																	</div>
+																);
 														}
 														return null;
 													}
@@ -1526,23 +1607,23 @@ export function Chat({
 						    the THINKING placeholder by construction (the gate sits
 						    BEFORE beginTurn; the settle kick runs after endTurn). */}
 							{compacting && (
-								<span className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									<BrailleSpinner label="Compacting context" />
 									<Shimmer duration={1}>COMPACTING CONTEXT…</Shimmer>
-								</span>
+								</ArrivalRow>
 							)}
 							{(status === "submitted" || turnInFlight) && (
-								<span className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									<BrailleSpinner label="Thinking" />
 									<Shimmer duration={1}>
 										THINKING…
 									</Shimmer>
-								</span>
+								</ArrivalRow>
 							)}
 							{error && (
-								<div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm">
+								<ArrivalRow live={arrivalsLive} as="div" className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm">
 									Something went wrong: {error.message}
-								</div>
+								</ArrivalRow>
 							)}
 						</div>
 
@@ -1588,7 +1669,7 @@ export function Chat({
 										type="button"
 										data-testid="setup-cta"
 										onClick={() => setSetupOpen(true)}
-										className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
+										className="lh-press rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
 									>
 										Set up your models
 									</button>
@@ -1639,17 +1720,32 @@ export function Chat({
 				    INSIDE the session area — absolute inset-0 siblings of the scroller,
 				    so they own the area below the drag bar, right of the sidebar, and
 				    the top bar stays sharp + draggable while a focus is open. */}
-				{mermaidFocus !== null && (
-					<MermaidOverlay chart={mermaidFocus} onClose={() => setMermaidFocus(null)} />
+				{/* Exit fade (motion wave, owner 2026-10-26): the overlay fades in
+				    on its own; this same-rect wrapper keeps it mounted (showing the
+				    last focus) and fades it out on close. */}
+				{mermaidPresence.mounted && lastMermaidRef.current !== null && (
+					<div
+						className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")}
+						data-state={mermaidPresence.state}
+					>
+						<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
+					</div>
 				)}
-				{figureFocus !== null && (
-					<MermaidOverlay
-						svg={figureFocus.svg}
-						inverted={figureFocus.inverted}
-						onClose={() => setFigureFocus(null)}
-					/>
+				{figurePresence.mounted && lastFigureRef.current !== null && (
+					<div
+						className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")}
+						data-state={figurePresence.state}
+					>
+						<MermaidOverlay
+							svg={lastFigureRef.current.svg}
+							inverted={lastFigureRef.current.inverted}
+							onClose={() => setFigureFocus(null)}
+						/>
+					</div>
 				)}
-				{planOpen && <PlanPopup messages={messages} onClose={() => setPlanOpen(false)} />}
+				{planPresence.mounted && (
+					<PlanPopup messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />
+				)}
 				<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
 				</div>
 			</div>
@@ -2178,9 +2274,12 @@ function DockOverlay({
 	useIsoLayoutEffect(() => {
 		if (prevExpandedForFadeRef.current === expanded) return;
 		prevExpandedForFadeRef.current = expanded;
+		// The motion tokens (motion wave, owner 2026-10-26): 4px, --lh-dur,
+		// --lh-ease-out. WAAPI skips the CSS reduced-motion rule, so check.
+		if (prefersReducedMotion()) return;
 		contentRef.current?.animate(
-			[{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
-			{ duration: 160, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+			[{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "translateY(0)" }],
+			{ duration: 160, easing: "cubic-bezier(0.2, 0, 0, 1)" },
 		);
 	}, [expanded]);
 	// The height-morph key (components/dock-state-key.ts): the expanded
@@ -2209,10 +2308,10 @@ function DockOverlay({
 		// Variant change → re-reserve. Growth applies instantly; a drop (the
 		// fold, or question → composer) is filtered by the offer policy.
 		measureBlock();
-		if (p && Math.abs(p.height - h) > 1) {
+		if (p && Math.abs(p.height - h) > 1 && !prefersReducedMotion()) {
 			el.animate([{ height: `${p.height}px` }, { height: `${h}px` }], {
-				duration: 120,
-				easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+				duration: 160, // --lh-dur
+				easing: "cubic-bezier(0.2, 0, 0, 1)", // --lh-ease-out
 			});
 		}
 		prevRef.current = { key: stateKey, height: h };
@@ -2234,6 +2333,7 @@ function DockOverlay({
 					    Rides the check answer on submit. */}
 					{pending && requiresReveal && (
 						<ReadingThinkingField
+							rise={mode !== initialModeRef.current}
 							value={readingThinking}
 							onChange={onReadingThinking}
 							onOpen={!expanded ? () => expandAndRevealRef.current() : undefined}
@@ -2243,7 +2343,7 @@ function DockOverlay({
 						<div
 						ref={contentRef}
 						key={mode}
-						className={mode === initialModeRef.current ? undefined : "dock-variant"}
+						className={mode === initialModeRef.current ? undefined : "lh-rise"}
 					>
 							{pending ? (
 								<QuestionDock

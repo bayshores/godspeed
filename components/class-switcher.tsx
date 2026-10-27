@@ -50,7 +50,7 @@ export function ClassSwitcher() {
 	};
 	const current = classes.filter((c) => !c.archived);
 	const archived = classes.filter((c) => c.archived);
-	const row = "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-accent";
+	const row = "lh-press flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-accent";
 
 	return (
 		<>
@@ -62,7 +62,7 @@ export function ClassSwitcher() {
 					onClick={() => setOpen((v) => !v)}
 					aria-haspopup="menu"
 					aria-expanded={open}
-					className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent"
+					className="lh-press flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-xs hover:bg-accent"
 				>
 					<span className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Class</span>
 					<span className="font-prose min-w-0 flex-1 truncate text-sm text-foreground">{activeClass?.name ?? "No class"}</span>
@@ -75,65 +75,69 @@ export function ClassSwitcher() {
 						aria-label={`Edit ${activeClass.name}`}
 						title="Edit class, files and folder"
 						onClick={() => setDialog({ kind: "edit", classId: activeClass.id })}
-						className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="lh-press flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<PencilIcon className="size-3.5" />
 					</button>
 				)}
 			</div>
 
-			{open && (
-				<MenuShell
-					anchorRef={anchorRef}
-					testid="class-switcher-menu"
-					preferredSide="down"
-					align="left"
-					menuClass="flex w-64 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
-				>
-					{current.map((c) => (
-						<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
-							<span className="font-prose min-w-0 flex-1 truncate text-sm">{c.name}</span>
-							{active === c.id && <CheckIcon className="size-3" />}
-						</button>
-					))}
-					<button type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-muted-foreground")}>
-						<span className="min-w-0 flex-1 truncate">No class</span>
-						{active === null && <CheckIcon className="size-3" />}
+			<MenuShell
+				open={open}
+				anchorRef={anchorRef}
+				testid="class-switcher-menu"
+				preferredSide="down"
+				align="left"
+				menuClass="flex w-64 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
+			>
+				{current.map((c) => (
+					<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
+						<span className="font-prose min-w-0 flex-1 truncate text-sm">{c.name}</span>
+						{active === c.id && <CheckIcon className="size-3" />}
 					</button>
-					{archived.length > 0 && (
-						<>
-							<button
-								type="button"
-								data-testid="class-show-archived"
-								onClick={() => setShowArchived((v) => !v)}
-								className={cn(row, "text-muted-foreground/80")}
-							>
-								Archived ({archived.length}) {showArchived ? "▴" : "▾"}
-							</button>
-							{showArchived &&
-								archived.map((c) => (
+				))}
+				<button type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-muted-foreground")}>
+					<span className="min-w-0 flex-1 truncate">No class</span>
+					{active === null && <CheckIcon className="size-3" />}
+				</button>
+				{archived.length > 0 && (
+					<>
+						<button
+							type="button"
+							data-testid="class-show-archived"
+							onClick={() => setShowArchived((v) => !v)}
+							className={cn(row, "text-muted-foreground/80")}
+						>
+							Archived ({archived.length}) {showArchived ? "▴" : "▾"}
+						</button>
+						{/* The fold slides open (motion wave, owner 2026-10-26): always
+						    mounted, inert while folded so Tab and the arrows skip it. */}
+						<div className="lh-collapse" data-state={showArchived ? "open" : "closed"} data-testid="class-archived-fold">
+							<div className="flex flex-col gap-0.5" inert={!showArchived}>
+								{archived.map((c) => (
 									<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-muted-foreground")}>
 										<span className="font-prose min-w-0 flex-1 truncate text-sm">{c.name}</span>
 										{active === c.id && <CheckIcon className="size-3" />}
 									</button>
 								))}
-						</>
-					)}
-					<div className="my-0.5 border-t border-border/60" aria-hidden="true" />
-					<button
-						type="button"
-						data-testid="class-new"
-						onClick={() => {
-							setOpen(false);
-							setDialog({ kind: "create" });
-						}}
-						className={row}
-					>
-						<PlusIcon className="size-3" />
-						New class…
-					</button>
-				</MenuShell>
-			)}
+							</div>
+						</div>
+					</>
+				)}
+				<div className="my-0.5 border-t border-border/60" aria-hidden="true" />
+				<button
+					type="button"
+					data-testid="class-new"
+					onClick={() => {
+						setOpen(false);
+						setDialog({ kind: "create" });
+					}}
+					className={row}
+				>
+					<PlusIcon className="size-3" />
+					New class…
+				</button>
+			</MenuShell>
 
 			<ClassDialog mode={dialog} onClose={() => setDialog(null)} />
 		</>

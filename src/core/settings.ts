@@ -155,18 +155,29 @@ export interface ProviderNotConnected {
 /** The refusal wording's invariant tail — the matcher below keys on it
  * (the label prefix varies by provider). */
 const PROVIDER_NOT_CONNECTED_TAIL = "is not connected — sign in under Settings → Providers";
+/** The outside agent's provider id (MCP bridge, src/agent/agent-bridge.ts).
+ *  Browser-safe home so the UI can recognise it: the outside agent picks
+ *  its own model and effort in its own harness, so godspeed shows no
+ *  thinking control for it (owner, 2026-10-26). */
+export const OUTSIDE_AGENT_PROVIDER = "agent";
+
+/** True when godspeed has no thinking level to offer for this provider. */
+export function providerHidesThinking(provider: string | undefined): boolean {
+	return provider === OUTSIDE_AGENT_PROVIDER;
+}
+
 /** The outside agent (MCP) has no sign-in: its access switch lives in
  * Settings → Outside agents. Its own tail, matched by the same refusal check. */
 const AGENT_NOT_CONNECTED_TAIL = "is off — turn on agent access under Settings → Outside agents";
 /** Display label for a model provider id (the subscription routes). */
 function providerLabel(provider: string): string {
 	if (provider === "chatgpt") return "ChatGPT";
-	if (provider === "agent") return "Outside agent";
+	if (provider === OUTSIDE_AGENT_PROVIDER) return "Outside agent";
 	return NATIVE_SUBSCRIPTIONS.find((p) => p.logicalId === provider || p.providerId === provider)?.label ?? provider;
 }
 export function providerNotConnected(provider: string, slots: ModelSlotName[]): ProviderNotConnected {
 	return {
-		error: `${providerLabel(provider)} ${provider === "agent" ? AGENT_NOT_CONNECTED_TAIL : PROVIDER_NOT_CONNECTED_TAIL}`,
+		error: `${providerLabel(provider)} ${provider === OUTSIDE_AGENT_PROVIDER ? AGENT_NOT_CONNECTED_TAIL : PROVIDER_NOT_CONNECTED_TAIL}`,
 		code: PROVIDER_NOT_CONNECTED_CODE,
 		provider,
 		slots,

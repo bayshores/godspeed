@@ -10,7 +10,7 @@ import { SetupDialog } from "@/components/setup-dialog";
 import { ComposerActions, NodePickerControl } from "@/components/composer-actions";
 import { ConnectPill, useNoConnection, useStrongDisconnected } from "@/components/setup-cta";
 import { useFieldCycle } from "@/components/field-cycle";
-import { SidebarToggle } from "@/components/sidebar";
+import { SidebarToggle, useRiseOnChange } from "@/components/sidebar";
 import { StatsBar } from "@/components/stats-bar";
 import type { TurnUsage } from "@/src/core";
 
@@ -62,6 +62,10 @@ export function Home({
 		[],
 	);
 	useFieldCycle(cycleTopicField);
+	// Switching class swaps the main view: it rises in once (motion wave,
+	// owner 2026-10-26). The view itself stays keyed by class.
+	const viewRef = useRef<HTMLElement>(null);
+	useRiseOnChange(viewRef, activeClassId);
 
 	/* PRACTICE MODE (owner, 2026-10-04): the graph composer's teach |
 	 *  practice switch — practice creates a kind:"practice" session and
@@ -144,7 +148,7 @@ export function Home({
 			    MINIMAL HOME — a quiet knowledge-base summary + the graph
 			    chrome's survivors; data, extraction, and the pick flow are
 			    untouched, and the chain table stays behind its button. */}
-			<main className="absolute inset-0">
+			<main ref={viewRef} className="absolute inset-0" style={{ animationDuration: "var(--lh-dur-slow)" }}>
 				{rendering ? (
 					<GraphView
 						key={activeClassId ?? "none"}
@@ -204,7 +208,7 @@ export function Home({
 									type="button"
 									data-testid="setup-cta"
 									onClick={() => setSetupOpen(true)}
-									className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
+									className="lh-press rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
 								>
 									Set up your models
 								</button>
@@ -242,7 +246,7 @@ export function Home({
 						type="submit"
 						aria-label="Start session"
 						disabled={!topic.trim() || busy}
-						className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-40"
+						className="lh-press flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40"
 					>
 						<CornerDownLeftIcon className="size-5" />
 					</button>
@@ -262,7 +266,7 @@ export function Home({
 										data-testid={`home-mode-${m}`}
 										onClick={() => setMode(m)}
 										className={
-											"flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] uppercase tracking-wider transition-colors " +
+											"lh-press flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] uppercase tracking-wider " +
 											(mode === m
 												? "bg-accent text-foreground"
 												: "text-muted-foreground hover:text-foreground")

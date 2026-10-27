@@ -69,11 +69,13 @@ Classes: the learner can organize learning by class (a university course). Each 
 
 /** A tool's class_id argument: absent / "none" = No class; otherwise the
  *  class must exist. A string = the error to report. */
-function classArg(classId: string | undefined): ClassScope | string {
+/** A tool's class_id argument, checked: the scope, or the refusal text.
+ *  (A class id is itself a string, so the two are kept apart.) */
+function classArg(classId: string | undefined): { scope: ClassScope } | { error: string } {
 	const scope = parseClassScope(classId);
-	if (scope === undefined) return `"${classId}" is not a class id. Use list_classes.`;
-	if (scope !== null && !stores.classStore.getClass(scope)) return `No class "${classId}". Use list_classes.`;
-	return scope;
+	if (scope === undefined) return { error: `"${classId}" is not a class id. Use list_classes.` };
+	if (scope !== null && !stores.classStore.getClass(scope)) return { error: `No class "${classId}". Use list_classes.` };
+	return { scope };
 }
 
 const CLASS_ID_ARG = z
@@ -261,8 +263,9 @@ function buildServer(): McpServer {
 			annotations: { readOnlyHint: true },
 		},
 		async ({ query, limit, class_id }) => {
-			const scope = classArg(class_id);
-			if (typeof scope === "string") return failure(scope);
+			const arg = classArg(class_id);
+			if ("error" in arg) return failure(arg.error);
+			const scope = arg.scope;
 			const graph = getGraph(graphStoreFor(scope));
 			const terms = searchTerms(query ?? "");
 			const scored = graph.nodes
@@ -299,8 +302,9 @@ function buildServer(): McpServer {
 			},
 		},
 		async ({ name, text, class_id }) => {
-			const scope = classArg(class_id);
-			if (typeof scope === "string") return failure(scope);
+			const arg = classArg(class_id);
+			if ("error" in arg) return failure(arg.error);
+			const scope = arg.scope;
 			if (scope !== null) {
 				const fileName = /\.(md|markdown|txt)$/i.test(name) ? name : `${name}.md`;
 				const existing = stores.classStore.getClass(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
@@ -331,8 +335,9 @@ function buildServer(): McpServer {
 			},
 		},
 		async ({ topic, class_id, kind }) => {
-			const scope = classArg(class_id);
-			if (typeof scope === "string") return failure(scope);
+			const arg = classArg(class_id);
+			if ("error" in arg) return failure(arg.error);
+			const scope = arg.scope;
 			const created = createLesson({
 				title: topic,
 				kind: kind === "practice" ? "practice" : undefined,
