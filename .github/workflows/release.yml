@@ -45,9 +45,11 @@ jobs:
       - run: npm test
       - run: npm run lint
 
+  # Speed: the draft and the three package jobs start right away, in
+  # parallel with the quality gates. A failed gate still blocks the release:
+  # verify needs quality, and only a verified draft gets published.
   draft:
     name: Prepare one draft
-    needs: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -85,7 +87,7 @@ jobs:
 
   package:
     name: Package (${{ matrix.platform }})
-    needs: [quality, draft]
+    needs: draft
     permissions:
       contents: write
     strategy:
@@ -122,12 +124,34 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+      # Electron and electron-builder download ~100-200 MB of binaries per
+      # build; keep them between runs (restored BEFORE npm ci, whose
+      # electron postinstall reads this cache).
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
       - run: npm ci
       - name: Native renderer tests on this OS
         run: npx electron --import tsx --test tests/pdf-native-render.test.ts tests/pdf-ops.test.ts tests/svg-native-render.test.ts tests/browser-service.test.ts
         env:
           NODE_ENV: test
           ELECTRON_RUN_AS_NODE: "1"
+      # Next's incremental build cache: later releases rebuild only what changed.
+      - name: Cache Next build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run build
       # Check the fresh trace before any static copying/curation.
       - run: node scripts/smoke-provider-runtime.mjs
@@ -228,7 +252,7 @@ jobs:
   # so there is no draft to verify and the job stays skipped.
   verify:
     name: Verify draft release
-    needs: package
+    needs: [quality, package]
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
