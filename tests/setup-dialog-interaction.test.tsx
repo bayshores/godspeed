@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { SetupDialog } from "../components/setup-dialog.tsx";
+import { SetupDialog } from "../src/components/setup-dialog.tsx";
 import type { ModelCatalogEntry } from "../src/core/contracts/models.ts";
 
 // As in render-update-banner: mount real React handlers against an isolated

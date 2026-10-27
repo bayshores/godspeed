@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 import { parseHTML } from "linkedom";
-import { createNotifyHub } from "../components/server-events.tsx";
-import { createWebChatGPTBridge, createWebNativeBridge } from "../components/settings/subscription-client.ts";
+import { createNotifyHub } from "../src/components/server-events.tsx";
+import { createWebChatGPTBridge, createWebNativeBridge } from "../src/components/settings/subscription-client.ts";
 import { createRequire } from "node:module";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -67,8 +67,8 @@ test("Electron dev uses its narrow external-browser bridge, without attempting a
 });
 
 test("web notices identify the server machine and same-machine ChatGPT sign-in; desktop copy stays unchanged", async () => {
-	const { CHATGPT_NOTICE, chatGPTNotice } = await import("../components/settings/chatgpt-connection.tsx");
-	const { subscriptionNotice, subscriptionDisconnectCopy } = await import("../components/settings/subscription-connections.tsx");
+	const { CHATGPT_NOTICE, chatGPTNotice } = await import("../src/components/settings/chatgpt-connection.tsx");
+	const { subscriptionNotice, subscriptionDisconnectCopy } = await import("../src/components/settings/subscription-connections.tsx");
 	assert.equal(chatGPTNotice(), CHATGPT_NOTICE); assert(CHATGPT_NOTICE.includes("on this device"));
 	assert(chatGPTNotice(true).includes("on the machine running godspeed"));
 	assert(chatGPTNotice(true).endsWith("Complete ChatGPT sign-in in a browser on that same machine."));

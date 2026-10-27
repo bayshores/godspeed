@@ -6,8 +6,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import { QueuedSteersBody } from "../components/queued-steers.tsx";
-import { visibleQueuedSteers } from "../components/session-core.ts";
+import { QueuedSteersBody } from "../src/components/queued-steers.tsx";
+import { visibleQueuedSteers } from "../src/components/session-core.ts";
 
 describe("QueuedSteersBody (the quiet queue above the composer)", () => {
 	it("renders one truncated right-aligned line per queued steer — no background, no container chrome", () => {

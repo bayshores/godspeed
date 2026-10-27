@@ -9,7 +9,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import katex from "katex";
-import { MessageResponse } from "../components/ai-elements/message.tsx";
+import { MessageResponse } from "../src/components/ai-elements/message.tsx";
 
 (globalThis as Record<string, unknown>).React = React;
 const blocked = String.raw`\href{https://katex-security.invalid/blocked}{blocked}`;

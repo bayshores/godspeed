@@ -1,5 +1,5 @@
 /**
- * The settings restyle (redesign plan, Phase 6 — design/exports/
+ * The settings restyle (redesign plan, Phase 6 — docs/design/exports/
  * settings.html): requested sections land where they live now (the old
  * Graph rows are in General), the Outside agents section reads as the
  * design's rows (Access: switch, Connection, Access token; Setup: Claude
@@ -25,8 +25,8 @@ Object.assign(globalThis, {
 });
 
 const { createRoot } = await import("react-dom/client");
-const { SettingsDialogBody, sectionFor } = await import("../components/settings/settings-dialog.tsx");
-const { AgentsSection, CLAUDE_CODE_SETUP, codexConfig, maskToken } = await import("../components/settings/agents-section.tsx");
+const { SettingsDialogBody, sectionFor } = await import("../src/components/settings/settings-dialog.tsx");
+const { AgentsSection, CLAUDE_CODE_SETUP, codexConfig, maskToken } = await import("../src/components/settings/agents-section.tsx");
 
 const originalFetch = globalThis.fetch;
 let root: Root | undefined;

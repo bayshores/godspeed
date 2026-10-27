@@ -7,9 +7,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import { createRequire } from "node:module";
 import { generateKeyPair, exportJWK, SignJWT } from "jose";
-import { ChatGPTBackgroundAccess, ChatGPTConnection, ChatGPTUIProvider, CHATGPT_NOTICE, CHATGPT_DISCONNECT_COPY } from "../components/settings/chatgpt-connection.tsx";
-import { SettingsDialogBody } from "../components/settings/settings-dialog.tsx";
-import { ModelControl } from "../components/model-picker.tsx";
+import { ChatGPTBackgroundAccess, ChatGPTConnection, ChatGPTUIProvider, CHATGPT_NOTICE, CHATGPT_DISCONNECT_COPY } from "../src/components/settings/chatgpt-connection.tsx";
+import { SettingsDialogBody } from "../src/components/settings/settings-dialog.tsx";
+import { ModelControl } from "../src/components/model-picker.tsx";
 import type { ChatGPTStatus, ChatGPTControlBridge } from "../src/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");

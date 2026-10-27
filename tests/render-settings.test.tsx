@@ -12,11 +12,11 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TOGGLE_TOOLS, AgentSection } from "../components/settings/agent-section.tsx";
-import { AppearanceSection, GraphSection } from "../components/settings/appearance-section.tsx";
-import { KeyboardSection } from "../components/settings/keyboard-section.tsx";
+import { TOGGLE_TOOLS, AgentSection } from "../src/components/settings/agent-section.tsx";
+import { AppearanceSection, GraphSection } from "../src/components/settings/appearance-section.tsx";
+import { KeyboardSection } from "../src/components/settings/keyboard-section.tsx";
 import type { GraphSettings } from "../src/core/index.ts";
-import { SettingsDialogBody, SettingsDialogProvider } from "../components/settings/settings-dialog.tsx";
+import { SettingsDialogBody, SettingsDialogProvider } from "../src/components/settings/settings-dialog.tsx";
 import { KEYBOARD_ACTIONS } from "../src/core/index.ts";
 
 /** The full opening tag of the element carrying a testid — attribute
@@ -48,7 +48,7 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 		for (const id of ["agents", "agent", "providers", "appearance", "keyboard", "general"]) {
 			assert.ok(html.includes(`data-testid="settings-nav-${id}"`), id);
 		}
-		// Redesign (design/exports/settings.html): Outside agents is the first
+		// Redesign (docs/design/exports/settings.html): Outside agents is the first
 		// landing section; the old Graph section's rows live in General.
 		assert.ok(tagOf(html, "settings-nav-agents").includes('aria-current="true"'));
 		assert.ok(html.indexOf('data-testid="settings-nav-agents"') < html.indexOf('data-testid="settings-nav-general"'));

@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { after, afterEach, describe, it } from "node:test";
-import { SETTINGS_FILE } from "../config.ts";
+import { SETTINGS_FILE } from "../src/config.ts";
 import { readSettings, writeSettings } from "../src/store/settings.ts";
 
 // Snapshot any pre-existing record; restore in after() so the worktree's

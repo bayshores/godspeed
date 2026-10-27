@@ -13,7 +13,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { PATHS } from "../../config.ts";
+import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import type { ClassPatch, ClassStore } from "../core/ports.ts";
 import type { ClassExam, ClassFile, ClassRecord, ClassSummary } from "../core/contracts.ts";

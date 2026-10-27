@@ -3,7 +3,7 @@ import React, { act } from "react";
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { parseHTML } from "linkedom";
-import { AgentSection } from "../components/settings/agent-section.tsx";
+import { AgentSection } from "../src/components/settings/agent-section.tsx";
 import type { AgentSettings } from "../src/core/index.ts";
 
 it("Research stays interactive and there is no search-engine row", async () => {

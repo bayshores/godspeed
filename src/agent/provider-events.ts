@@ -27,7 +27,7 @@
 
 import * as fs from "node:fs";
 import path from "node:path";
-import { PATHS } from "../../config.ts";
+import { PATHS } from "../config.ts";
 
 /** Max bytes per chat's JSONL before recording stops (with a marker). */
 const CAP_BYTES = 20 * 1024 * 1024;

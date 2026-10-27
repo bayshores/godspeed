@@ -1,16 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { StatsBar, formatContextMeasurement } from "../components/stats-bar.tsx";
+import { StatsBar, formatContextMeasurement } from "../src/components/stats-bar.tsx";
 import { sessionCost } from "../src/server/pricing.ts";
-import { catalogLimits } from "../components/model-picker.tsx";
+import { catalogLimits } from "../src/components/model-picker.tsx";
 import type { ModelCatalogEntry, ModelCatalogResponse } from "../src/core/contracts.ts";
-import { prettyModel } from "../components/usage-format.ts";
+import { prettyModel } from "../src/components/usage-format.ts";
 import type { ChatSettings, TurnUsage } from "../src/core/contracts.ts";
 
 // The stats bar: folds only (no cost math in the component), the "—"
 // doctrine for absent data, honest cost (never a fake $0), and the model +
-// thinking control (components/model-picker.tsx — pi-ai catalog backed).
+// thinking control (src/components/model-picker.tsx — pi-ai catalog backed).
 
 function step(inputTokens: number, outputTokens: number, over: Record<string, number | undefined> = {}) {
 	return { inputTokens, outputTokens, cacheReadTokens: undefined, cacheWriteTokens: undefined, reasoningTokens: undefined, ...over };

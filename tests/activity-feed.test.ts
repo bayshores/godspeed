@@ -12,7 +12,7 @@ import * as path from "node:path";
 
 import { chatStore } from "../src/store/chats.ts";
 import { jobStore } from "../src/store/jobs.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 import { activityFeed } from "../src/server/observability.ts";
 
 test("activityFeed: running jobs across ALL chats, running-only, title-joined, oldest first", () => {

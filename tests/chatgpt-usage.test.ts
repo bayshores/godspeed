@@ -4,7 +4,7 @@ import { callCost, sessionCost, turnCost, jobCost } from "../src/server/pricing.
 import { graphCostSummary as foldGraphCostSummary, type CostSummaryInput } from "../src/core/cost-summary.ts";
 const graphCostSummary = (input: CostSummaryInput) => foldGraphCostSummary(input, callCost);
 import type { TurnUsage } from "../src/core/contracts.ts";
-import { planCostLabel } from "../components/usage-format.ts";
+import { planCostLabel } from "../src/components/usage-format.ts";
 const step = { inputTokens: 1000, outputTokens: 100, cacheReadTokens: undefined, cacheWriteTokens: undefined, reasoningTokens: undefined };
 const turn = (model: string, steps = [step]): TurnUsage => ({ id: "scratch-turn", messageId: "scratch-message", at: "2026-10-19T00:00:00Z", model, steps });
 

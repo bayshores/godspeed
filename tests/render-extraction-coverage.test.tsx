@@ -11,7 +11,7 @@ import {
 	fetchGraphRead,
 	ringFill,
 	type SessionCoverage,
-} from "../components/extraction-coverage.tsx";
+} from "../src/components/extraction-coverage.tsx";
 
 /**
  * The extraction-coverage surfaces (extraction-UX redesign, owner-locked

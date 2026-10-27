@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { APP_IDENTITY, piEngineFor, type PiEngine } from "../models.ts";
 import { usageWasAdmitted } from "../subscription-request-cycle.ts";
 import { providerEventObserver } from "../provider-events.ts";
-import type { ModelRole } from "../../../config.ts";
+import type { ModelRole } from "../../config.ts";
 import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
 
 /**

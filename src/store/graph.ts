@@ -37,7 +37,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { LEDGER_FILES, PATHS, graphFilesIn, type GraphFiles } from "../../config.ts";
+import { LEDGER_FILES, PATHS, graphFilesIn, type GraphFiles } from "../config.ts";
 import { assertGraphFormat, ensureGraphFormat } from "./graph-format.ts";
 import type {
 	GraphChain,

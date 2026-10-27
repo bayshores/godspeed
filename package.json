@@ -21,8 +21,8 @@
 		"typecheck": "tsc --noEmit",
 		"desktop:dev": "concurrently -k \"next dev\" \"LH_DEV_URL=http://localhost:3000 electron .\"",
 		"dev:fresh": "bash scripts/dev-fresh.sh",
-		"desktop:local": "rm -rf dist .next/standalone && next build && node scripts/build-server.mjs && electron-builder --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
-		"desktop:dist": "rm -rf dist .next/standalone && next build && node scripts/smoke-provider-runtime.mjs && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder --mac --arm64"
+		"desktop:local": "rm -rf dist .next/standalone && next build && node scripts/build-server.mjs && electron-builder -c electron/electron-builder.yml --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
+		"desktop:dist": "rm -rf dist .next/standalone && next build && node scripts/smoke-provider-runtime.mjs && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"
 	},
 	"dependencies": {
 		"@earendil-works/pi-agent-core": "1.4.0",

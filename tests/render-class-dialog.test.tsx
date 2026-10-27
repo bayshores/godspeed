@@ -1,6 +1,6 @@
 /**
  * The Edit class dialog with Exams (redesign plan, Phase 6 —
- * design/exports/edit-class-exams.html), mounted over linkedom with a fake
+ * docs/design/exports/edit-class-exams.html), mounted over linkedom with a fake
  * fetch: exam rows read "Midterm 1 · Thu Oct 29 · 2 files"; one opens to
  * its name, date and a checkbox per study file; Add exam and Remove exam
  * are drafts until Save, which writes the class, then removals, changes
@@ -30,9 +30,9 @@ Object.assign(globalThis, {
 });
 
 const { createRoot } = await import("react-dom/client");
-const { ClassDialog } = await import("../components/class-dialog.tsx");
-const { ServerEventsProvider } = await import("../components/server-events.tsx");
-const { ClassProvider } = await import("../components/class-context.tsx");
+const { ClassDialog } = await import("../src/components/class-dialog.tsx");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const { ClassProvider } = await import("../src/components/class-context.tsx");
 
 function file(id: string, name: string, kind: "study" | "info" = "study"): ClassFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind, contentFp: "", status: "ready", addedAt: "" };

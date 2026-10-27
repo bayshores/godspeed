@@ -23,7 +23,7 @@ process.env.LH_DATA_DIR = TMP_DATA;
 const { chatStore } = await import("../src/store/chats.ts");
 const { classStore } = await import("../src/store/classes.ts");
 const { graphStore } = await import("../src/store/graph.ts");
-const { GRAPH_FORMAT_FILE } = await import("../config.ts");
+const { GRAPH_FORMAT_FILE } = await import("../src/config.ts");
 
 test.after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });

@@ -13,8 +13,8 @@
 import assert from "node:assert/strict";
 import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
-import { buttonKeepsNativeEnter } from "../components/enter-submits.ts";
-import { blurAfterPointerClick } from "../components/focus-hygiene.ts";
+import { buttonKeepsNativeEnter } from "../src/components/enter-submits.ts";
+import { blurAfterPointerClick } from "../src/components/focus-hygiene.ts";
 
 const { document } = parseHTML("<html><body></body></html>");
 

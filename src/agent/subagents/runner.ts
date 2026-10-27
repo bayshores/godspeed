@@ -22,7 +22,7 @@ import { registerJobAbort, unregisterJobAbort } from "./aborts.ts";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ModelRole } from "../../../config.ts";
+import type { ModelRole } from "../../config.ts";
 import { ROLE_SLOT, modelsNotConfigured, type ModelSlotName, type ProviderNotConnected } from "../../core/settings.ts";
 import type { ChatStore, JobStore } from "../../core/ports.ts";
 import { runDemoBuilder } from "./demo-builder.ts";

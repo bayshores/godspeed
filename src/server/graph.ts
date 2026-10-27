@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { graphFilesIn } from "../../config.ts";
+import { graphFilesIn } from "../config.ts";
 import type { ClassScope, GraphSnapshot } from "../core/contracts.ts";
 import type { GraphCostSummary } from "../core/cost-summary.ts";
 import { graphCostSummary } from "../core/cost-summary.ts";

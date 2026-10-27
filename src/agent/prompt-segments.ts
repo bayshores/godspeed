@@ -29,7 +29,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { PATHS, PROMPTS_OVERRIDE_DIR } from "../../config.ts";
+import { PATHS, PROMPTS_OVERRIDE_DIR } from "../config.ts";
 import { FRAGMENT_RE, isValidSegmentPath, type PromptAgent, type PromptSegmentInfo } from "../core/prompt-segments.ts";
 
 const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");

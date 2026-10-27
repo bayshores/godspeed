@@ -10,7 +10,7 @@
  * model chain that ends empty resolves to null/undefined and whatever
  * needs it refuses honestly (503 models_not_configured). This module
  * stays browser-safe/pure, so it imports config TYPES only, never the
- * runtime module (config.ts pulls node:path).
+ * runtime module (src/config.ts pulls node:path).
  *
  * Deliberately NOT resolved here (see settings.ts module doc):
  * - per-chat overrides: the chat record's ChatSettings applies via the
@@ -23,7 +23,7 @@
  */
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
-import type { ModelRole } from "../../config.ts";
+import type { ModelRole } from "../config.ts";
 import type { ChatSettings } from "./contracts/chat.ts";
 import {
 	BACKGROUND_MODEL_ROLES,
@@ -44,7 +44,7 @@ import {
 
 /** A configured model slot: the tier's concrete model, with its optional
  *  thinking level. UNSET level is legal — the engine build resolves it
- *  from config.ts's DEFAULT_THINKING_ORDER (first entry the model
+ *  from src/config.ts's DEFAULT_THINKING_ORDER (first entry the model
  *  supports; owner, 2026-09-22). A slot is CONFIGURED iff its model is
  *  present; a level-only slot is inert (kept on disk, resolved as null). */
 export interface EffectiveSlot {

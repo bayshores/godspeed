@@ -23,16 +23,16 @@ const LINKED = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-linked-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
 const server = await import("../src/server/index.ts");
-const classesRoute = await import("../app/api/classes/route.ts");
-const classRoute = await import("../app/api/classes/[id]/route.ts");
-const filesRoute = await import("../app/api/classes/[id]/files/route.ts");
-const fileRoute = await import("../app/api/classes/[id]/files/[fileId]/route.ts");
-const folderRoute = await import("../app/api/classes/[id]/folder/route.ts");
-const examsRoute = await import("../app/api/classes/[id]/exams/route.ts");
-const examRoute = await import("../app/api/classes/[id]/exams/[examId]/route.ts");
-const chatsRoute = await import("../app/api/chats/route.ts");
-const moveRoute = await import("../app/api/chats/[id]/class/route.ts");
-const graphRoute = await import("../app/api/graph/route.ts");
+const classesRoute = await import("../src/app/api/classes/route.ts");
+const classRoute = await import("../src/app/api/classes/[id]/route.ts");
+const filesRoute = await import("../src/app/api/classes/[id]/files/route.ts");
+const fileRoute = await import("../src/app/api/classes/[id]/files/[fileId]/route.ts");
+const folderRoute = await import("../src/app/api/classes/[id]/folder/route.ts");
+const examsRoute = await import("../src/app/api/classes/[id]/exams/route.ts");
+const examRoute = await import("../src/app/api/classes/[id]/exams/[examId]/route.ts");
+const chatsRoute = await import("../src/app/api/chats/route.ts");
+const moveRoute = await import("../src/app/api/chats/[id]/class/route.ts");
+const graphRoute = await import("../src/app/api/graph/route.ts");
 
 const { extraction, stores, graphStoreFor, classIdle } = server;
 

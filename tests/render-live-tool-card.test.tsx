@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { LiveToolCard } from "../components/artifacts/live-tool-card.tsx";
+import { LiveToolCard } from "../src/components/artifacts/live-tool-card.tsx";
 
 function part(tool: string, input: unknown) {
 	return { type: `tool-${tool}`, toolCallId: "c1", state: "input-streaming", input };

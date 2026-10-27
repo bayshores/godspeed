@@ -138,7 +138,7 @@ describe("update preload bridge", () => {
 
 describe("desktop packaging policy", () => {
 	const yaml = require("js-yaml") as { load(source: string): Record<string, any> };
-	const config = yaml.load(readFileSync(new URL("../electron-builder.yml", import.meta.url), "utf8"));
+	const config = yaml.load(readFileSync(new URL("../electron/electron-builder.yml", import.meta.url), "utf8"));
 
 	it("configuration is accepted by the INSTALLED electron-builder schema", async () => {
 		const { validateConfiguration } = require("app-builder-lib/out/util/config/config.js");
@@ -176,7 +176,7 @@ describe("workflow action versions", () => {
 	for (const filename of ["ci.yml", "release.yml"]) {
 		it(`${filename} uses supported Action runtimes without changing the app's Node 26`, () => {
 			const workflow = yaml.load(readFileSync(new URL(`../.github/workflows/${filename}`, import.meta.url), "utf8"));
-			const expected = ["actions/checkout@v7", "actions/setup-node@v7"];
+			const expected = ["actions/checkout@v7", "actions/setup-node@v7", "actions/cache@v4"];
 			if (filename === "release.yml") {
 				expected.push("actions/github-script@v9", "actions/upload-artifact@v7", "maxim-lobanov/setup-xcode@v1");
 			}
@@ -250,10 +250,11 @@ describe("desktop release workflow", () => {
 		return created;
 	}
 
-	it("prepares once after gates, never on rehearsals, before parallel packaging", () => {
-		assert.equal(draft.needs, "quality");
+	it("prepares once in parallel with the gates, never on rehearsals, before parallel packaging", () => {
+		assert.equal(draft.needs, undefined, "the draft starts right away, alongside quality");
 		assert.equal(prepare.if, "github.event_name == 'push'");
-		assert.deepEqual(packaging.needs, ["quality", "draft"]);
+		assert.equal(packaging.needs, "draft");
+		assert.deepEqual(workflow.jobs.verify?.needs, ["quality", "package"], "a failed gate still blocks the release");
 		assert.equal(workflow.concurrency.group, "release-${{ github.ref }}");
 		assert.equal(workflow.concurrency["cancel-in-progress"], false);
 		for (const filename of ["ci.yml", "release.yml"]) {

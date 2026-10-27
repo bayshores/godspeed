@@ -9,9 +9,9 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ClassNav, activeNavHref } from "../components/sidebar/class-nav.tsx";
-import { footerLabel } from "../components/sidebar/sidebar-footer.tsx";
-import { classInitials } from "../components/class-switcher.tsx";
+import { ClassNav, activeNavHref } from "../src/components/sidebar/class-nav.tsx";
+import { footerLabel } from "../src/components/sidebar/sidebar-footer.tsx";
+import { classInitials } from "../src/components/class-switcher.tsx";
 
 function nav(pathname: string, hasClass = true, fileCount = 33) {
 	return renderToStaticMarkup(<ClassNav pathname={pathname} hasClass={hasClass} fileCount={fileCount} />);

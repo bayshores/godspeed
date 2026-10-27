@@ -10,10 +10,10 @@ import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { YourTurnPanel } from "../components/lesson/your-turn-panel.tsx";
-import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../components/lesson/step-bar.tsx";
-import { practiceProgress } from "../components/lesson/practice-progress.ts";
-import { QuestionDock } from "../components/question-dock.tsx";
+import { YourTurnPanel } from "../src/components/lesson/your-turn-panel.tsx";
+import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../src/components/lesson/step-bar.tsx";
+import { practiceProgress } from "../src/components/lesson/practice-progress.ts";
+import { QuestionDock } from "../src/components/question-dock.tsx";
 import { CONFIDENCE_STOPS, projectView, reuseUnchangedMessages, type LhMessage, type PlanStepBar, type QuestionAnswerData } from "../src/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");

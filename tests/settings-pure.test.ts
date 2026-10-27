@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../components/settings/appearance.tsx";
+import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../src/components/settings/appearance.tsx";
 import {
 	PROMPT_IN_USE_HINT,
 	composePromptSwitch,
@@ -15,11 +15,11 @@ import {
 	composeTool,
 	composeQuizMechanics,
 	sectionedSegments,
-} from "../components/settings/agent-section.tsx";
-import { nextOverrides } from "../components/settings/keyboard-section.tsx";
+} from "../src/components/settings/agent-section.tsx";
+import { nextOverrides } from "../src/components/settings/keyboard-section.tsx";
 import type { AgentSettings, ModelsSettings } from "../src/core";
 import { slotsConfigured } from "../src/core";
-import { setupStage } from "../components/setup-dialog.tsx";
+import { setupStage } from "../src/components/setup-dialog.tsx";
 
 describe("resolveAppearance — delta over factory", () => {
 	it("absent everything = the factory view", () => {

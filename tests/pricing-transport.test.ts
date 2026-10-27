@@ -8,7 +8,7 @@ process.env.LH_DATA_DIR = scratch;
 process.env.LH_CREDENTIALS_DIR = scratch;
 
 const { chatStore } = await import("../src/store/chats.ts");
-const { GET } = await import("../app/api/chats/[id]/route.ts");
+const { GET } = await import("../src/app/api/chats/[id]/route.ts");
 const { sessionCost } = await import("../src/server/pricing.ts");
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 

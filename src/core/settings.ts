@@ -29,7 +29,7 @@
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { NATIVE_SUBSCRIPTIONS } from "./contracts/subscriptions.ts";
-import type { ModelRole } from "../../config.ts";
+import type { ModelRole } from "../config.ts";
 import type { ChatSettings } from "./contracts/chat.ts";
 
 /** The schema version this code understands. Bump ONLY for breaking shape
@@ -50,7 +50,7 @@ export const BACKGROUND_MODEL_ROLES = [
 export type BackgroundModelRole = (typeof BACKGROUND_MODEL_ROLES)[number];
 
 /** A per-role model/thinking override — every field independent (absent
- *  field = that aspect falls back to config.ts's pin for the role). */
+ *  field = that aspect falls back to src/config.ts's pin for the role). */
 export interface RoleModelOverride {
 	/** The model swap: both coordinates or neither (mirrors ChatSettings.model). */
 	model?: { provider: string; id: string };

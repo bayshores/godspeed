@@ -73,7 +73,7 @@ import { createJobRunner, pdfModelOverride, researchModelOverride } from "../src
 import { providerNotConnected, type ModelSlotName } from "../src/core/settings.ts";
 import { connectProviderForTests } from "../src/server/connections.ts";
 import type { PiEngine } from "../src/agent/models.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 import { projectView as projectNative } from "../src/core/view.ts";
 import { subscribe } from "../src/core/events.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";

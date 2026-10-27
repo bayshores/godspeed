@@ -8,8 +8,10 @@ import importPlugin from "eslint-plugin-import";
  * architecture, docs/architecture.md). Everything else stays out of the
  * way — this is not a style linter.
  *
- *   components/**  →  "@/src/core"  (the pure core barrel) — ONLY
- *   app/**         →  "@/src/core" + "@/src/server" (the server barrel) — ONLY
+ *   src/components/**  →  "@/core"  (the pure core barrel) — ONLY
+ *   src/app/**         →  "@/core" + "@/server" (the server barrel) — ONLY
+ *   (the core library = src/core, src/server, src/agent, src/store,
+ *   src/utils.ts; components/, app/, lib/ and config.ts are not part of it)
  *   src/core/**    →  never imports src/agent, src/server, src/store (pure
  *                    core: adapters implement core/ports.ts, never the reverse)
  *   src/agent/**   →  never imports src/server, src/store (dependencies —
@@ -18,6 +20,11 @@ import importPlugin from "eslint-plugin-import";
  *
  * tests/ and scripts/ are internal — unrestricted.
  */
+
+const SHELL_MESSAGE =
+	"Browser shell imports ONLY the pure core barrel: `from \"@/core\"` (architecture: docs/architecture.md).";
+const APP_MESSAGE =
+	"src/app/ (transport + server components) imports ONLY the barrels: `@/core` and `@/server` (architecture: docs/architecture.md).";
 
 export default defineConfig([
 	// electron/** — the desktop shell: plain Node, no framework, outside the
@@ -39,20 +46,35 @@ export default defineConfig([
 				"error",
 				{
 					zones: [
+						// One zone per `from` dir: the plugin resolves `except` relative to
+						// the zone's `from` path, and every exception must sit inside it.
 						{
-							target: "./components",
-							from: "./src",
-							// NOTE: the plugin resolves `except` relative to the zone's `from` path.
-							except: ["./core/index.ts"],
-							message:
-								"Browser shell imports ONLY the pure core barrel: `from \"@/src/core\"` (architecture: docs/architecture.md).",
+							target: "./src/components",
+							from: "./src/core",
+							except: ["./index.ts"],
+							message: SHELL_MESSAGE,
 						},
 						{
-							target: "./app",
-							from: "./src",
-							except: ["./core/index.ts", "./server/index.ts"],
-							message:
-								"app/ (transport + server components) imports ONLY the barrels: `@/src/core` and `@/src/server` (architecture: docs/architecture.md).",
+							target: "./src/components",
+							from: ["./src/agent", "./src/server", "./src/store", "./src/utils.ts"],
+							message: SHELL_MESSAGE,
+						},
+						{
+							target: "./src/app",
+							from: "./src/core",
+							except: ["./index.ts"],
+							message: APP_MESSAGE,
+						},
+						{
+							target: "./src/app",
+							from: "./src/server",
+							except: ["./index.ts"],
+							message: APP_MESSAGE,
+						},
+						{
+							target: "./src/app",
+							from: ["./src/agent", "./src/store", "./src/utils.ts"],
+							message: APP_MESSAGE,
 						},
 						{
 							target: "./src/core",

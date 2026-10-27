@@ -1,7 +1,7 @@
 /**
  * THE SERVER-SIDE SURFACE — the only src module (besides the core barrel)
- * that app/ may import. Route handlers and server components come through
- * here; nothing under app/ touches src/store or src/agent directly.
+ * that src/app/ may import. Route handlers and server components come through
+ * here; nothing under src/app/ touches src/store or src/agent directly.
  */
 
 export * from "./chat-handler.ts";
@@ -17,7 +17,7 @@ export { NotesImportError } from "../agent/subagents/extraction.ts";
 export * from "./jobs.ts";
 export * from "./stores.ts";
 // The settings record + prompt overrides (settings-storage wave, 2026-09-19).
-// The *Record aliases keep the app/api/settings routes explicit about which
+// The *Record aliases keep the src/app/api/settings routes explicit about which
 // seam they touch (the raw record, not the chat-section convenience view).
 export {
 	readSettings as readSettingsRecord,

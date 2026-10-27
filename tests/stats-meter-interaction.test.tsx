@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { StatsBar } from "../components/stats-bar.tsx";
-import { notifySettingsSaved } from "../components/settings-signal.ts";
+import { StatsBar } from "../src/components/stats-bar.tsx";
+import { notifySettingsSaved } from "../src/components/settings-signal.ts";
 import type { ModelCatalogResponse, TurnUsage } from "../src/core/index.ts";
 
 (globalThis as Record<string, unknown>).React = React;

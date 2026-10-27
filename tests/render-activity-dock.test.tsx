@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../components/activity-dock.tsx";
-import { formatTokens, formatUsd } from "../components/usage-format.ts";
+import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
+import { formatTokens, formatUsd } from "../src/components/usage-format.ts";
 import { jobCost } from "../src/server/pricing.ts";
 
 // The section's pure layer: folds, formatting, and blob order — then the SSR

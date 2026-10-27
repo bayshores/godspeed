@@ -18,7 +18,7 @@
 
 godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist. The teaching method is the same: measure what you know, plan a path to your goal, teach one reasoning step at a time, then practice. The fork changes who does the teaching and what you study with it. Claude Code, Codex or any MCP app can be your teacher on your own plan, and your courses get their own files, graphs, exams and progress.
 
-![A godspeed lesson: the plan step bar on top, the reading column on the left, and the Your turn panel on the right](design/exports/lesson.png)
+![A godspeed lesson: the plan step bar on top, the reading column on the left, and the Your turn panel on the right](docs/design/exports/lesson.png)
 
 ## What's different from LearnHarness
 
@@ -47,7 +47,7 @@ The lesson screen was also rebuilt for speed. While the teacher writes, the scre
 
 Everything you learn is saved as facts and the reasoning chains between them, linked back to the lesson they came from. Later lessons read that graph instead of starting from zero.
 
-![The class Overview: file coverage, how lessons went, and a confidence check](design/exports/overview.png)
+![The class Overview: file coverage, how lessons went, and a confidence check](docs/design/exports/overview.png)
 
 ## Get started
 

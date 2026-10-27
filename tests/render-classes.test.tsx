@@ -7,9 +7,9 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { describe, it } from "node:test";
-import { ClassContextCard } from "../components/graph-context-card.tsx";
-import { FileRow } from "../components/files/file-row.tsx";
-import { classQuery, className } from "../components/class-context.tsx";
+import { ClassContextCard } from "../src/components/graph-context-card.tsx";
+import { FileRow } from "../src/components/files/file-row.tsx";
+import { classQuery, className } from "../src/components/class-context.tsx";
 
 (globalThis as { React?: typeof React }).React = React;
 

@@ -9,7 +9,7 @@
 import { chatStore } from "../store/chats.ts";
 import { classStore } from "../store/classes.ts";
 import { createGraphStore, graphStore } from "../store/graph.ts";
-import { PATHS, graphFilesIn } from "../../config.ts";
+import { PATHS, graphFilesIn } from "../config.ts";
 import type { GraphStore } from "../core/ports.ts";
 import type { ClassScope } from "../core/contracts.ts";
 import { jobStore } from "../store/jobs.ts";

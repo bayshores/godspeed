@@ -7,7 +7,7 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-dev-ipc-"));
 process.env.LH_DATA_DIR = scratch;
 process.env.LH_CREDENTIALS_DIR = scratch;
 
-const { GET } = await import("../app/api/models/route.ts");
+const { GET } = await import("../src/app/api/models/route.ts");
 const { chatGPTRequest, chatGPTConnected, chatGPTModels } = await import("../src/agent/chatgpt-bridge.ts");
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 

@@ -8,8 +8,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConnectPill, strongDisconnected } from "../components/setup-cta.tsx";
-import { setupStage } from "../components/setup-dialog.tsx";
+import { ConnectPill, strongDisconnected } from "../src/components/setup-cta.tsx";
+import { setupStage } from "../src/components/setup-dialog.tsx";
 import type { ModelCatalogResponse } from "../src/core/index.ts";
 
 describe("ConnectPill — the composer-hoisted notice", () => {

@@ -31,7 +31,7 @@ import { handleChatRequest } from "../src/server/chat-handler.ts";
 import { runningTurn } from "../src/server/turn-runs.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { activeProblemOf, needsContinuation } from "../src/core/index.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 import { CONCLUDE_ACK_TEXT } from "../src/core/contracts/chat.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
@@ -198,7 +198,7 @@ describe("practice flow (scripted model)", () => {
 		await drainTurn(post(chat.id, { type: "text", text: "go" }), factory);
 
 		// The silent dismissal route (the same POST the client's Esc takes).
-		const dismissRoute = await import("../app/api/chats/[id]/dismiss/route.ts");
+		const dismissRoute = await import("../src/app/api/chats/[id]/dismiss/route.ts");
 		const dismissRes = await dismissRoute.POST(
 			new Request(`http://test/api/chats/${chat.id}/dismiss`, {
 				method: "POST",

@@ -6,7 +6,7 @@
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { PATHS } from "../../config.ts";
+import { PATHS } from "../config.ts";
 
 const TOKEN_FILE = path.join(PATHS.data, "mcp-token");
 

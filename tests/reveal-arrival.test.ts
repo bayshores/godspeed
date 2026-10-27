@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { revealArrival } from "../components/chat.tsx";
+import { revealArrival } from "../src/components/chat.tsx";
 
 /**
  * Teach-question arrival states (owner ruling, scroll-honesty round

@@ -4,7 +4,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { CREDENTIALS_DIR } from "../../config.ts";
+import { CREDENTIALS_DIR } from "../config.ts";
 import { createChatGPT, fileStore } from "../../electron/chatgpt.cjs";
 import { createSubscriptions } from "../../electron/subscriptions.cjs";
 import { chatGPTControl } from "../../electron/chatgpt-ipc.cjs";

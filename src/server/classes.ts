@@ -2,7 +2,7 @@
  * CLASS ORCHESTRATION (classes wave, owner-approved 2026-10-26).
  *
  * The cross-store choreography behind every class action: the routes
- * (app/api/classes/*), the MCP tools, and the folder scanner all come
+ * (src/app/api/classes/*), the MCP tools, and the folder scanner all come
  * through here.
  *
  *  - create / edit / archive / delete a class (delete takes its lessons,

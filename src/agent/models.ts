@@ -9,7 +9,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { builtinProviders } from "@earendil-works/pi-ai/providers/all";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
-import { type ModelRole } from "../../config.ts";
+import { type ModelRole } from "../config.ts";
 import { DEFAULT_THINKING_ORDER } from "../core/settings.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 import { chatGPTModel } from "./chatgpt-bridge.ts";

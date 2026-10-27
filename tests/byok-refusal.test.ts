@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseModelsRefusal, parseProviderNotConnectedRefusal } from "../components/chat.tsx";
-import { prefillFromSlots, prefillLevelFromPin, setupStage } from "../components/setup-dialog.tsx";
+import { parseModelsRefusal, parseProviderNotConnectedRefusal } from "../src/components/chat.tsx";
+import { prefillFromSlots, prefillLevelFromPin, setupStage } from "../src/components/setup-dialog.tsx";
 import {
 	isModelsRefusal,
 	isProviderNotConnectedRefusal,

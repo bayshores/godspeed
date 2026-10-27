@@ -19,7 +19,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { SETTINGS_FILE } from "../../config.ts";
+import { SETTINGS_FILE } from "../config.ts";
 import {
 	sanitizeUserSettings,
 	type UserSettings,

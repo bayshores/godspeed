@@ -1,5 +1,5 @@
 /**
- * Pure tests for the shared pan/zoom viewport math (components/pan-zoom.ts),
+ * Pure tests for the shared pan/zoom viewport math (src/components/pan-zoom.ts),
  * harvested from the plan popup so the mermaid focus overlay runs the same
  * fit-floor geometry: fully zoomed out IS the fit, panning locks at the
  * floor (and re-centers), wheel zooms to the cursor, ceiling 4×. Pure
@@ -9,7 +9,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { FIT_ZOOM_MAX, ZOOM_MAX, fitGraphView, fitZoomFor, zoomedGraphView } from "../components/pan-zoom.ts";
+import { FIT_ZOOM_MAX, ZOOM_MAX, fitGraphView, fitZoomFor, zoomedGraphView } from "../src/components/pan-zoom.ts";
 
 describe("fitZoomFor", () => {
 	it("binds on the axis that runs out of room (wide box → width)", () => {

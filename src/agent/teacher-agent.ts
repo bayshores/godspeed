@@ -3,7 +3,7 @@ import type { AgentEvent, AgentMessage, AgentTool } from "@earendil-works/pi-age
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
 import { providerEventObserver } from "./provider-events.ts";
 import type { Usage } from "@earendil-works/pi-ai";
-import { PATHS } from "../../config.ts";
+import { PATHS } from "../config.ts";
 import { APP_IDENTITY, piEngineFor, type PiEngine } from "./models.ts";
 import { effectivePromptSegments } from "./prompt-segments.ts";
 import {

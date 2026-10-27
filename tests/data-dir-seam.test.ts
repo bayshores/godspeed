@@ -5,7 +5,7 @@
  * so pin both directions.
  *
  * The seam is evaluated at MODULE LOAD, so the "set" case must set the env
- * BEFORE the first import of config.ts in this process (dynamic import,
+ * BEFORE the first import of src/config.ts in this process (dynamic import,
  * below) and the "unset" case needs a fresh child process.
  */
 import assert from "node:assert/strict";
@@ -23,7 +23,7 @@ describe("LH_DATA_DIR seam", () => {
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-seam-"));
 		process.env.LH_DATA_DIR = dir;
 		try {
-			const { PATHS, ROOT } = await import("../config.ts");
+			const { PATHS, ROOT } = await import("../src/config.ts");
 			assert.equal(PATHS.data, dir, "PATHS.data resolves the env value (resolved absolute)");
 			assert.equal(PATHS.chats, path.join(dir, "chats"));
 			assert.equal(PATHS.graph, path.join(dir, "graph"));
@@ -40,7 +40,7 @@ describe("LH_DATA_DIR seam", () => {
 	it("unset = the repo data/ exactly as before (fresh child process, no env)", () => {
 		const out = execFileSync(
 			process.execPath,
-			["--import", TSX_LOADER, "--eval", `const m = await import(${JSON.stringify(path.join(REPO_ROOT, "config.ts"))}); console.log(JSON.stringify({ data: m.PATHS.data, chats: m.PATHS.chats }));`],
+			["--import", TSX_LOADER, "--eval", `const m = await import(${JSON.stringify(path.join(REPO_ROOT, "src", "config.ts"))}); console.log(JSON.stringify({ data: m.PATHS.data, chats: m.PATHS.chats }));`],
 			{ cwd: REPO_ROOT, encoding: "utf-8" },
 		);
 		const parsed = JSON.parse(out) as { data: string; chats: string | null };

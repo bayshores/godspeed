@@ -31,7 +31,7 @@ import { after, describe, it } from "node:test";
 import { Value } from "typebox/value";
 import { createFauxCore, fauxAssistantMessage, fauxToolCall, type FauxResponseStep, type ToolCall } from "@earendil-works/pi-ai";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 import {
 	buildDemoSrcDoc,
 	DEMO_BRIDGE_SCRIPT,
@@ -39,15 +39,15 @@ import {
 	DemoErrorChip,
 	INITIAL_DEMO_BRIDGE_STATE,
 	reduceDemoBridgeState,
-} from "../components/artifacts/demo-card.tsx";
-import { svgNaturalWidth, VisualCard, VisualOutputCard } from "../components/artifacts/visual-card.tsx";
-import { slugFilename } from "../components/artifacts/download.ts";
-import { chartSize } from "../components/session-overlay.tsx";
-import { SubagentSteerCard } from "../components/artifacts/steer-card.tsx";
-import { DispatchCard } from "../components/artifacts/dispatch-card.tsx";
-import { JobCard, PdfJobCard } from "../components/artifacts/job-card.tsx";
-import { ToolCallCard } from "../components/artifacts/tool-call-card.tsx";
-import { JobsContext } from "../components/jobs-context.ts";
+} from "../src/components/artifacts/demo-card.tsx";
+import { svgNaturalWidth, VisualCard, VisualOutputCard } from "../src/components/artifacts/visual-card.tsx";
+import { slugFilename } from "../src/components/artifacts/download.ts";
+import { chartSize } from "../src/components/session-overlay.tsx";
+import { SubagentSteerCard } from "../src/components/artifacts/steer-card.tsx";
+import { DispatchCard } from "../src/components/artifacts/dispatch-card.tsx";
+import { JobCard, PdfJobCard } from "../src/components/artifacts/job-card.tsx";
+import { ToolCallCard } from "../src/components/artifacts/tool-call-card.tsx";
+import { JobsContext } from "../src/components/jobs-context.ts";
 import { demoInputSchema, jobTools, pdfInputSchema, visualInputSchema } from "../src/agent/tools/jobs.ts";
 import { runDemoBuilder } from "../src/agent/subagents/demo-builder.ts";
 import { headlessOverride, type DemoRunResult, type HeadlessApi } from "../src/agent/subagents/headless.ts";
@@ -86,7 +86,7 @@ function testRunner() {
 	});
 	return { steers, runner };
 }
-import { artifactRenderers } from "../components/artifacts/index.ts";
+import { artifactRenderers } from "../src/components/artifacts/index.ts";
 import { connectProviderForTests } from "../src/server/connections.ts";
 
 // The connection turn gate: scripted turns pin openrouter per chat (a faux

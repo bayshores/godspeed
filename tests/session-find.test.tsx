@@ -13,8 +13,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { parseHTML } from "linkedom";
 import { findSessionTextMatches, stepSessionMatch } from "../src/core/session-find.ts";
-import { sessionFindRanges, sessionRangeIdentity, sameSessionRange } from "../components/session-find-dom.ts";
-import { clearSessionFindHighlights, injectFindStyles, sessionFindHasForegroundLayer } from "../components/session-find.tsx";
+import { sessionFindRanges, sessionRangeIdentity, sameSessionRange } from "../src/components/session-find-dom.ts";
+import { clearSessionFindHighlights, injectFindStyles, sessionFindHasForegroundLayer } from "../src/components/session-find.tsx";
 
 const dom = parseHTML("<html><head><style></style></head><body></body></html>");
 (globalThis as Record<string, unknown>).window = dom.window;

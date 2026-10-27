@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { computeMenuPlacement, type MenuSide } from "../components/menu-shell.tsx";
+import { computeMenuPlacement, type MenuSide } from "../src/components/menu-shell.tsx";
 
 /**
  * The shared menu shell's placement decision (fix wave chunk B): the
