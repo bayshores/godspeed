@@ -28,3 +28,6 @@ graphify-out/
 
 # Next.js regenerates this on every dev/build run
 next-env.d.ts
+
+# Claude Code local state (session worktrees, settings)
+.claude/
