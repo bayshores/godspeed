@@ -13,7 +13,7 @@
  * healthy. The dock's chips + graph refetch track progress live through
  * /api/graph/status, as with session runs.
  */
-import { extraction, NotesImportError } from "@/src/server";
+import { addCopiedFile, classIdle, extraction, getClass, NotesImportError, requestClassScope } from "@/src/server";
 import {
 	ModelsNotConfiguredError,
 	PROVIDER_NOT_CONNECTED_CODE,
@@ -46,6 +46,13 @@ export async function POST(request: Request) {
 	if (files.length === 0) {
 		return Response.json({ results: [] as ImportResult[], error: "no files" }, { status: 400 });
 	}
+
+	// Classes wave (2026-10-26): ?class=<id> imports into that class — each
+	// file becomes a class file (study material) and runs through the class
+	// file pipeline into the class's own graph. Absent / "none" = No class.
+	const scope = requestClassScope(request);
+	if (scope === undefined) return Response.json({ results: [] as ImportResult[], error: "No such class" }, { status: 404 });
+	if (scope !== null) return Response.json({ results: await importIntoClass(scope, files) });
 
 	const results: ImportResult[] = [];
 	const queue = files.map((file, requestIndex) => ({ file, requestIndex }));
@@ -93,4 +100,20 @@ export async function POST(request: Request) {
 	});
 	await Promise.all(workers);
 	return Response.json({ results });
+}
+/** Class import: add each file as study material, wait for the class's
+ *  file queue to drain, report each file's resulting state. */
+async function importIntoClass(classId: string, files: File[]): Promise<ImportResult[]> {
+	const added: { requestIndex: number; filePath: string; fileId?: string; error?: string }[] = [];
+	for (const [requestIndex, file] of files.entries()) {
+		const outcome = addCopiedFile(classId, file.name, new Uint8Array(await file.arrayBuffer()), "study");
+		added.push(outcome.ok ? { requestIndex, filePath: file.name, fileId: outcome.value.id } : { requestIndex, filePath: file.name, error: outcome.error });
+	}
+	await classIdle(classId);
+	const record = getClass(classId);
+	return added.map(({ requestIndex, filePath, fileId, error }) => {
+		const file = fileId ? record?.files.find((f) => f.id === fileId) : undefined;
+		if (file?.status === "ready") return { requestIndex, filePath, ok: true, outcome: "completed" as const };
+		return { requestIndex, filePath, ok: false, outcome: "failed" as const, error: error ?? file?.error ?? "Import did not finish" };
+	});
 }

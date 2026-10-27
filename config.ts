@@ -26,6 +26,10 @@ export const PATHS = {
 	/** Chat sessions (AI SDK UIMessage transcripts, one JSON file per chat). */
 	chats: path.join(DATA_ROOT, "chats"),
 	graph: path.join(DATA_ROOT, "graph"),
+	/** Classes (classes wave, 2026-10-26): one folder per class —
+	 *  classes/<id>/class.json (the record), files/ (copied class files),
+	 *  graph/ (that class's own graph family, same files as PATHS.graph). */
+	classes: path.join(DATA_ROOT, "classes"),
 	/** Debug artifacts (env-gated): data/debug/provider-events/<chatId>.jsonl
 	 * raw provider stream recordings (src/agent/provider-events.ts). */
 	debug: path.join(DATA_ROOT, "debug"),
@@ -59,26 +63,51 @@ export type ModelRole =
  * pipeline. Line shapes: src/core/contracts.ts. CHAINS ARE THE STORED
  * TRUTH (owner, 2026-09-30): edges are a derived view, never stored.
  */
-export const LEDGER_FILES = {
-	nodes: path.join(PATHS.graph, "nodes.jsonl"),
-	chains: path.join(PATHS.graph, "chains.jsonl"),
-	sessions: path.join(PATHS.graph, "sessions.jsonl"),
+export interface GraphFiles {
+	nodes: string;
+	chains: string;
+	sessions: string;
 	/** Per-message extraction coverage (contracts/graph.ts CoverageEntry;
 	 *  the checkpoint's replacement for chat extractions — notes keep
 	 *  sessions.jsonl, whole-file as they are). */
-	coverage: path.join(PATHS.graph, "coverage.jsonl"),
+	coverage: string;
+	/** Notes-import bookkeeping (NOT a ledger): one JSON map, src-id →
+	 *  NotesSource record (contracts/graph.ts) — the file path + import time
+	 *  + the run's usage log. Read-modify-write like a chat file. */
+	sources: string;
+	/** The layout ledger (read-modify-write like sources.json): nodeId →
+	 *  {x,y} resting positions from the incremental settle (core/layout.ts). */
+	positions: string;
+	/** The graph-family FORMAT STAMP sidecar (see GRAPH_FORMAT_FILE). */
+	format: string;
+}
+
+/** Every file of one graph family rooted at `dir` (classes wave,
+ *  2026-10-26): the "No class" graph lives at PATHS.graph, each class's
+ *  graph at PATHS.classes/<id>/graph — same layout, same adapter. */
+export function graphFilesIn(dir: string): GraphFiles {
+	return {
+		nodes: path.join(dir, "nodes.jsonl"),
+		chains: path.join(dir, "chains.jsonl"),
+		sessions: path.join(dir, "sessions.jsonl"),
+		coverage: path.join(dir, "coverage.jsonl"),
+		sources: path.join(dir, "sources.json"),
+		positions: path.join(dir, "positions.json"),
+		format: path.join(dir, "format.json"),
+	};
+}
+
+const NO_CLASS_GRAPH = graphFilesIn(PATHS.graph);
+
+export const LEDGER_FILES = {
+	nodes: NO_CLASS_GRAPH.nodes,
+	chains: NO_CLASS_GRAPH.chains,
+	sessions: NO_CLASS_GRAPH.sessions,
+	coverage: NO_CLASS_GRAPH.coverage,
 } as const;
 
-/**
- * Notes-import bookkeeping (NOT a ledger): one JSON map, src-id → NotesSource
- * record (contracts/graph.ts) — the file path + import time + the run's usage
- * log. Read-modify-write like a chat file, not append-only like the ledgers.
- */
-export const SOURCES_FILE = path.join(PATHS.graph, "sources.json");
-/** The layout ledger (read-modify-write like sources.json): nodeId →
- *  {x,y} resting positions from the incremental settle (core/layout.ts).
- *  Carries an updatedAt stamp for future live-physics conflict handling. */
-export const POSITIONS_FILE = path.join(PATHS.graph, "positions.json");
+export const SOURCES_FILE = NO_CLASS_GRAPH.sources;
+export const POSITIONS_FILE = NO_CLASS_GRAPH.positions;
 
 /**
  * Graph render settings (the settings-panel controls): one small JSON blob,
@@ -91,7 +120,7 @@ export const RENDER_SETTINGS_FILE = path.join(PATHS.graph, "render-settings.json
  *  sources.json, render-settings.json. LAZY v1: absent = v1; the first
  *  graph-family write creates it. positions.json is REBUILDABLE and rides
  *  along unversioned by design (owner ruling). */
-export const GRAPH_FORMAT_FILE = path.join(PATHS.graph, "format.json");
+export const GRAPH_FORMAT_FILE = NO_CLASS_GRAPH.format;
 
 /**
  * THE USER SETTINGS RECORD (settings-storage wave, 2026-09-19): one

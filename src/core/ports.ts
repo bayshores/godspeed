@@ -25,6 +25,9 @@ import type {
 	SessionCheckpoint,
 	TurnUsage,
 	NotesSource,
+	ClassFile,
+	ClassRecord,
+	ClassSummary,
 } from "./contracts.ts";
 import type { UserSettings } from "./settings.ts";
 
@@ -34,7 +37,7 @@ export interface ChatStore {
 	/** Create a session record (persisted immediately). */
 	/** Create a session record; kind "practice" marks a practice session
 	 *  (absent = teach, the default). */
-	createChat(title: string, kind?: "practice"): ChatRecord;
+	createChat(title: string, kind?: "practice", classId?: string): ChatRecord;
 	/** The full record, or null if unknown id / corrupt file. */
 	getChat(id: string): ChatRecord | null;
 	/** All sessions, newest activity first (the sidebar's list view). */
@@ -63,6 +66,10 @@ export interface ChatStore {
 	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +
 	 *  the DELETE route), not the store's. */
 	deleteChat(id: string): boolean;
+	/** Set or clear (null = "No class") the lesson's class. Quiet like
+	 *  rename: updatedAt stays put. The graph choreography of a move is the
+	 *  caller's (src/server/classes.ts). */
+	setChatClass(id: string, classId: string | null): ChatRecord;
 }
 
 // ─── GraphStore — the append-only evidence ledgers (data/graph) ──────────────
@@ -101,6 +108,11 @@ export interface GraphStore {
 	upsertSource(source: NotesSource): void;
 	/** Every notes source record, by id order-insensitive. */
 	readSources(): NotesSource[];
+	/** Remove one notes source record (classes wave, 2026-10-26: a class
+	 *  file's facts are rebuilt or removed — core/graph-deletion.ts
+	 *  deleteSourceTraces owns the ledgers, this only drops the record).
+	 *  False when unknown. */
+	removeSource(id: string): boolean;
 	/** Append one run's usage to a source record — idempotent per
 	 *  startedAt, mirroring ChatRecord.extractions. */
 	appendSourceUsage(id: string, entry: ExtractionRunUsage): void;
@@ -126,6 +138,36 @@ export interface GraphStore {
 		coverage?: CoverageEntry[];
 		checkpoints?: SessionCheckpoint[];
 	}): void;
+}
+
+// ─── ClassStore — the classes' records + copied files (data/classes) ────────
+
+export interface ClassPatch {
+	name?: string;
+	description?: string;
+	archived?: boolean;
+	/** null unlinks. */
+	linkedFolder?: string | null;
+}
+
+export interface ClassStore {
+	createClass(init: { name: string; description?: string }): ClassRecord;
+	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
+	getClass(id: string): ClassRecord | null;
+	/** Every class (archived included), most recently updated first. */
+	listClasses(): ClassSummary[];
+	/** Merge a patch; bumps updatedAt. Throws on unknown id. */
+	updateClass(id: string, patch: ClassPatch): ClassRecord;
+	/** Replace the whole file list (the file pipeline's write). Quiet: no
+	 *  updatedAt bump, no event. */
+	saveFiles(id: string, files: ClassFile[]): ClassRecord;
+	/** Delete the class folder entirely (record, copied files, graph).
+	 *  False when unknown. Lessons are the caller's choreography. */
+	deleteClass(id: string): boolean;
+	/** The class's own folder for copied files (absolute). */
+	filesDir(id: string): string;
+	/** The class's own graph folder (absolute). */
+	graphDir(id: string): string;
 }
 
 // ─── JobStore — background sub-agent jobs (data/jobs) ─────────────────────────

@@ -7,7 +7,7 @@ You are now the AI inside the godspeed learning app, connected through the `gods
 
 Topic: $ARGUMENTS
 
-1. If a topic was given above, call `start_lesson` with it, and tell the user in one short line to open the new lesson in the godspeed window. If no topic was given, just start the loop — lessons the learner starts in the app with the model set to "Outside agent (MCP)" come to you.
+1. If a topic was given above, call `list_classes`. If the topic clearly belongs to one of the learner's classes, call `start_lesson` with the topic and that class's `class_id`. If it's unclear which class it belongs to, ask the user in one short question. Otherwise call `start_lesson` without a class. Then tell the user in one short line to open the new lesson in the godspeed window. If no topic was given, just start the loop — lessons the learner starts in the app with the model set to "Outside agent (MCP)" come to you.
 2. Loop:
    - Call `wait_for_work`. If it returns `idle`, call it again. Don't comment on idle results.
    - For a work item, follow its `instructions` exactly: that is the app's teaching method and your role for that conversation (teacher, helper, or knowledge-graph builder). Use only the tools listed in the item, with arguments matching their schemas.

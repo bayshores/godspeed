@@ -22,6 +22,9 @@ import { useServerEvent, useServerResync } from "@/components/server-events";
 import type { ChatListItem } from "@/src/core";
 import { kbdEventForAction } from "@/src/core";
 import { notifySettingsSaved } from "@/components/settings-signal";
+import { ClassSwitcher } from "@/components/class-switcher";
+import { MoveLessonDialog } from "@/components/class-dialog";
+import { useClasses } from "@/components/class-context";
 
 /**
  * Toggleable sidebar — NOT a modal drawer: no backdrop, no focus theft. It
@@ -61,6 +64,8 @@ declare global {
 		lh?: {
 			/** Read-only host OS; determines the native-control gutter. */
 			platform?: string;
+			/** Native folder picker (classes wave): absolute path or null. */
+			pickFolder?: () => Promise<string | null>;
 			/** External Next desktop-dev uses the server's web connections. */
 			subscriptionTransport?: "desktop" | "web";
 			openSubscriptionBrowser?: (action: string) => Promise<void>;
@@ -402,6 +407,9 @@ function SessionsSidebar() {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { open: openSettings } = useSettingsDialog();
+	// Classes wave (2026-10-26): the list shows the ACTIVE class's lessons.
+	const { active: activeClassId } = useClasses();
+	const [moving, setMoving] = useState<ChatListItem | null>(null);
 
 	/* New session (owner, 2026-09-13): NO POST — the button opens the
 	   sessionless draft view; the session is created only when the first
@@ -416,7 +424,7 @@ function SessionsSidebar() {
 	 * keeps the natural list order (scores are all 0, sort is stable). */
 	const shown = useMemo(() => {
 		const q = query.trim();
-		let list = chats;
+		let list = chats ? chats.filter((c) => (c.classId ?? null) === activeClassId) : chats;
 		if (list && kindFilter !== "all") {
 			list = list.filter((c) => (c.kind ?? "teach") === kindFilter);
 		}
@@ -427,7 +435,7 @@ function SessionsSidebar() {
 			.filter((r): r is { c: (typeof list)[number]; score: number } => r.score !== null)
 			.sort((a, b) => b.score - a.score)
 			.map((r) => r.c);
-	}, [chats, query, kindFilter]);
+	}, [chats, query, kindFilter, activeClassId]);
 
 	const refreshInFlightRef = useRef(false);
 	const refresh = useCallback(async () => {
@@ -689,6 +697,10 @@ function SessionsSidebar() {
 					</Hint>
 				</div>
 
+				{/* The class switcher (classes wave, 2026-10-26): picks the
+				    class the whole window shows. */}
+				<ClassSwitcher />
+
 				{/* Two doors, STACKED (owner round 8, 2026-10-05 — was a
 				    half/half row): full-width rows read cleaner and give the
 				    labels room; teaching keeps the original draft route,
@@ -808,7 +820,7 @@ function SessionsSidebar() {
 						<div className="px-2 py-4 text-xs text-muted-foreground">Loading…</div>
 					) : shown.length === 0 ? (
 						<div className="px-2 py-4 text-xs text-muted-foreground">
-							{query.trim() ? "No sessions match." : "No sessions yet."}
+							{query.trim() ? "No sessions match." : activeClassId ? "No lessons in this class yet." : "No sessions yet."}
 						</div>
 					) : (
 						shown.map((c, i) =>
@@ -913,6 +925,18 @@ function SessionsSidebar() {
 						</button>
 						<button
 							type="button"
+							data-testid="ctx-move-class"
+							onClick={() => {
+								const target = chats?.find((c) => c.id === ctxChatId);
+								if (target) setMoving(target);
+								setCtxChatId(null);
+							}}
+							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
+						>
+							Move to class…
+						</button>
+						<button
+							type="button"
 							data-testid="ctx-delete"
 							onClick={() => {
 								const target = chats?.find((c) => c.id === ctxChatId);
@@ -934,6 +958,15 @@ function SessionsSidebar() {
 					chat={deleting}
 					onClose={() => setDeleting(null)}
 					onDeleted={onDeleted}
+				/>
+				<MoveLessonDialog
+					lesson={moving}
+					onClose={() => setMoving(null)}
+					onMoved={(id, classId) => {
+						setMoving(null);
+						setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, classId: classId ?? undefined } : c)) : prev));
+						window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { revision: Date.now() } }));
+					}}
 				/>
 			</aside>
 	);

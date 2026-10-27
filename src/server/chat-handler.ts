@@ -30,7 +30,8 @@ import {
 import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
 import { providerEventNote } from "../agent/provider-events.ts";
-import { effectiveSettings, stores } from "./stores.ts";
+import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, stores } from "./stores.ts";
+import { classCardFor } from "./class-card.ts";
 import { providerConnected } from "./connections.ts";
 import {
 	extractionEnabled,
@@ -104,6 +105,8 @@ const jobRunner = createJobRunner({
  *  (/api/graph/import) hit the same single-flight registry. */
 export const extraction = createExtractionPipeline({
 	...stores,
+	// Classes wave (2026-10-26): a lesson's facts land in ITS class's graph.
+	graphStoreForChat,
 	// BYOK (owner, 2026-09-22): the extraction stages resolve the chain —
 	// role override → slot → NOTHING — read FRESH per stage call; an empty
 	// chain flows through as undefined and the pipeline refuses the run
@@ -401,6 +404,20 @@ export async function handleChatInput(
 	// split, no plan/question/job tools; the whole registry is
 	// problem + conclude. buildAgent stays honored (the test seam is
 	// uniform across kinds).
+	// CLASSES WAVE (owner-approved 2026-10-26): the lesson's class scope.
+	// Writes (extraction, practice targets) stay in its OWN graph; the map
+	// readers see every class (reads may cross classes, writes never do);
+	// read_class serves its live card (lessons in a class only).
+	const lessonScope = record.classId ?? null;
+	const scopedGraphs = () =>
+		allGraphScopes().map((g) => ({ className: g.name, graphStore: graphStoreFor(g.scope), own: g.scope === lessonScope }));
+	const classCard =
+		lessonScope === null
+			? undefined
+			: () => {
+					const cls = stores.classStore.getClass(lessonScope);
+					return cls ? classCardFor(cls) : null;
+				};
 	const constructed: TeachingAgent = buildAgent
 		? buildAgent({ ...agentOpts, teaching })
 		: record.kind === "practice"
@@ -412,7 +429,9 @@ export async function handleChatInput(
 						// WHOLE graph fresh per pose — targets validate against every
 						// proposition, not just the session's picks (pickless sessions
 						// and future graph-tools poses stay valid).
-						graphNodes: () => stores.graphStore.readNodes(),
+						// Classes wave: targets are the lesson's OWN class graph
+						// (owner ruling: writes never cross classes).
+						graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
 						// THE RARELY-NEEDED SET (owner round 10): research + pdf jobs
 						// (same runner/gating as the teacher's — research honestly
 						// absent when no engine is live) and the map readers behind
@@ -422,7 +441,10 @@ export async function handleChatInput(
 							jobStore: stores.jobStore,
 							spawn: (job, input) => void jobRunner.runJob(job.id, input),
 							},
-						...(graphToolsEnabled(effective) ? { graph: { chatStore: stores.chatStore, graphStore: stores.graphStore } } : {}),
+						...(graphToolsEnabled(effective)
+							? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
+							: {}),
+						...(classCard ? { classCard } : {}),
 					},
 					agentOpts,
 				)
@@ -433,6 +455,7 @@ export async function handleChatInput(
 						chatStore: stores.chatStore,
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
+						...(classCard ? { classCard } : {}),
 						// The registry drop's signal (2026-09-20): no live engine
 						// = no research tool in the teacher's registry.
 					},
@@ -451,7 +474,8 @@ export async function handleChatInput(
 						// The map reader (wave 7): the prober reads the learner's
 						// knowledge graph through tools when the gate opens —
 						// graph master switch AND the agent.graphTools toggle.
-						...(graphToolsEnabled(effective) ? { graphStore: stores.graphStore } : {}),
+						...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
+						...(classCard ? { classCard } : {}),
 					},
 					agentOpts,
 				);
@@ -544,7 +568,12 @@ export async function handleChatInput(
 					// Fresh per-turn read of the graph section's chunk budget
 					// (extraction-UX redesign, 2026-09-24): the trigger compares
 					// against it and the pipeline's batches share it.
-					triggerExtraction(stores, extraction, chatId, effective.graph.extractionChunkTokens);
+					triggerExtraction(
+						{ chatStore: stores.chatStore, graphStore: graphStoreFor(record.classId ?? null) },
+						extraction,
+						chatId,
+						effective.graph.extractionChunkTokens,
+					);
 				}
 				// PARKED DISMISSAL (owner, 2026-10-04): a dismissal that arrived
 				// mid-turn was parked by the dismiss route (202); now that

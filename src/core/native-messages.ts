@@ -67,6 +67,7 @@ export interface LhMarkerMessage {
 	role: "custom";
 	customType:
 		| "graph-context"
+		| "class-context"
 		| "probe-handoff"
 		| "subagent-steer"
 		| "subagent-abort"
@@ -282,6 +283,55 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 		content: lines.join("\n"),
 		display: true,
 		details: { propositions: picks, chains },
+		timestamp: Date.now(),
+	};
+}
+
+// ─── classes (owner-approved 2026-10-26) ────────────────────────────────────
+
+/** One file line of the class card. `path` is where the teacher can read
+ *  it (a recording's transcript once it exists; null when not readable). */
+export interface ClassCardFile {
+	name: string;
+	kind: "study" | "info";
+	path: string | null;
+}
+
+/** The class card's UI payload (the transcript's collapsible card). */
+export interface ClassCardDetails {
+	classId: string;
+	name: string;
+	description: string;
+	files: ClassCardFile[];
+}
+
+/** The model-facing class card text. Bracket-labelled like the graph
+ *  context (PREAMBLE LAW: markers flatten to user-role messages, so the
+ *  card must read as injected context, never learner speech). Data only:
+ *  how to use it is doctrine (prompts/shared/12-class-context.md). */
+export function classCardText(card: ClassCardDetails): string {
+	const lines = [
+		"[Class context] — this lesson belongs to a course the learner is taking:",
+		"",
+		`Class: ${card.name}`,
+	];
+	if (card.description.trim()) lines.push("", "About the class (the learner's own words):", card.description.trim());
+	const readable = card.files.filter((f) => f.path !== null);
+	if (readable.length > 0) {
+		lines.push("", "Class files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):");
+		for (const f of readable) lines.push(`- [${f.kind === "study" ? "study material" : "course info"}] ${f.name} — ${f.path}`);
+	}
+	return lines.join("\n");
+}
+
+export function newClassContextMessage(card: ClassCardDetails): LhMarkerMessage {
+	return {
+		id: newMessageId(),
+		role: "custom",
+		customType: "class-context",
+		content: classCardText(card),
+		display: true,
+		details: card,
 		timestamp: Date.now(),
 	};
 }
@@ -733,7 +783,7 @@ export function nativeInputCause(message: AgentMessage, history: readonly AgentM
 	if (message.role === "custom") {
 		if (["probe-handoff", "subagent-steer", "subagent-abort"].includes(message.customType)) return "automatic";
 		if (["practice-thinking", "practice-next"].includes(message.customType)) return "learner";
-		return ["graph-context", "plan-block", "problem-dismissed", "compaction"].includes(message.customType) ? "neutral" : "unrecognizable";
+		return ["graph-context", "class-context", "plan-block", "problem-dismissed", "compaction"].includes(message.customType) ? "neutral" : "unrecognizable";
 	}
 	if (message.role === "toolResult") {
 		if (!(QUESTION_TOOLS as readonly string[]).includes(message.toolName) || message.isError || message.details == null || (message.details as { dismissed?: boolean }).dismissed) return "neutral";

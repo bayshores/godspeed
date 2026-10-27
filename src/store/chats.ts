@@ -32,7 +32,7 @@ function chatFile(id: string): string {
  *  phase, busy, pendingQuestion) is already announced by turn-started /
  *  turn-settled, which the sidebar refetches on. Silence here is law,
  *  not oversight. */
-function createChat(title: string, kind?: "practice"): ChatRecord {
+function createChat(title: string, kind?: "practice", classId?: string): ChatRecord {
 	const now = new Date().toISOString();
 	const record: ChatRecord = {
 		id: `chat_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
@@ -43,6 +43,8 @@ function createChat(title: string, kind?: "practice"): ChatRecord {
 		// Practice sessions carry the marker; teach stays ABSENT (absence
 		// reads as teach — pre-practice records never migrate).
 		...(kind === "practice" ? { kind: "practice" as const } : {}),
+		// The lesson's class; ABSENT = "No class" (classes wave, 2026-10-26).
+		...(classId ? { classId } : {}),
 	};
 	fs.mkdirSync(PATHS.chats, { recursive: true });
 	writeChat(record);
@@ -195,6 +197,19 @@ function deleteChat(id: string): boolean {
 	}
 }
 
+/** Set or clear the lesson's class (classes wave, 2026-10-26). Quiet like
+ *  rename — updatedAt stays put — but it changes which list the lesson
+ *  shows in, so it announces chats-changed (a list-SHAPE mutation). */
+function setChatClass(id: string, classId: string | null): ChatRecord {
+	const record = getChat(id);
+	if (!record) throw new Error(`Chat not found: ${id}`);
+	if (classId) record.classId = classId;
+	else delete record.classId;
+	writeChat(record);
+	emit("chats-changed", {});
+	return record;
+}
+
 /** Persist the session plan tree (plan tools call this in execute). */
 function saveTree(id: string, tree: PlanTree): void {
 	const record = getChat(id);
@@ -214,6 +229,7 @@ export const chatStore: ChatStore = {
 	saveSettings,
 	renameChat,
 	deleteChat,
+	setChatClass,
 	appendTurnUsage,
 	appendExtractionUsage,
 };

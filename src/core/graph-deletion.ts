@@ -43,10 +43,9 @@
  * aliases) are stripped and its provenance points removed (owner ruling
  * 2026-09-23: all traces, identity survives).
  *
- * Not touched, by design:
- *   - imported-notes sources (src_…) — a different front door with its
- *     own lifecycle (re-import dedupes by path hash); this wave deletes
- *     CHATS.
+ * Imported-notes sources (src_…) ride the same purge since the classes
+ * wave (deleteSourceTraces below): their id sits in the same provenance
+ * slot, so "this source never happened" is the same computation.
  *
  * Resurrection safety: the deletion runs as ONE synchronous block (no
  * awaits — atomic vs the event loop, so no extraction append can
@@ -230,6 +229,23 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 		graphStore.writePositions(prunedPositions);
 	}
 
+	return stats;
+}
+
+// ─── source deletion (classes wave, owner-approved 2026-10-26) ───────────────
+
+/**
+ * Remove one imported-notes source's traces — the class-file twin of a
+ * chat's delete-nodes (a class file was edited, deleted, switched to
+ * "course info", or its lesson moved class). Same survival law: a fact
+ * another lesson or file also produced survives with its identity; only
+ * this source's points, phrasings and orphans die. The source record goes
+ * too. Synchronous, idempotent.
+ */
+export function deleteSourceTraces(graphStore: GraphStore, sourceId: string): ChatDeletionStats {
+	if (!sourceId.startsWith("src_")) throw new Error(`Not a notes source id: ${sourceId}`);
+	const stats = deleteChatTraces(graphStore, sourceId, "delete-nodes");
+	graphStore.removeSource(sourceId);
 	return stats;
 }
 

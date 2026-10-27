@@ -1,3 +1,5 @@
+import { classTools, type ClassToolContext } from "./tools/class.ts";
+import type { GraphToolContext } from "./tools/graph.ts";
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { invalidInputResult, questionResult, serverExecute } from "./tool-execute.ts";
@@ -274,6 +276,12 @@ export interface ProberToolContext extends ProbeDoneContext {
 	 *  master switch AND the agent.graphTools toggle (settings-resolution).
 	 *  Absent = the gate is closed, no map tools (tests drive this seam). */
 	graphStore?: GraphStore;
+	/** Cross-class map reading (classes wave, owner ruling 2026-10-26:
+	 *  reads may cross classes, writes never do) — see GraphToolContext. */
+	graphs?: GraphToolContext["graphs"];
+	/** The lesson's class card reader (classes wave): present = read_class
+	 *  is registered (lessons in a class only). */
+	classCard?: ClassToolContext["classCard"];
 }
 
 /** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
@@ -333,8 +341,9 @@ export function createProberTools(
 				// The map reader (wave 7): present only when the settings gate
 				// opened.
 				...(ctx.graphStore
-					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore })
+					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
+				...(ctx.classCard ? classTools({ classCard: ctx.classCard }) : {}),
 				...done,
 			},
 				withoutMechanics(enabled),
@@ -394,6 +403,8 @@ export interface TeacherToolContext extends PlanToolContext {
 	 *  rides along — the spawn fires mid-stream, before the tool part is
 	 *  persisted to the transcript (a transcript scan would race it). */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
+	/** The lesson's class card reader (classes wave): present = read_class. */
+	classCard?: ClassToolContext["classCard"];
 }
 
 /**
@@ -453,6 +464,7 @@ export function createTeacherTools(
 			grep: grepTool,
 			...planTools(ctx),
 			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn }),
+			...(ctx.classCard ? classTools({ classCard: ctx.classCard }) : {}),
 		},
 		withoutMechanics(enabled),
 		),

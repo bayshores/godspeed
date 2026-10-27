@@ -77,17 +77,52 @@ def union_points(target, points):
             seen.add(key)
 
 
-def load_graph(root):
+CLASS_ID = re.compile(r"^cls_[A-Za-z0-9_-]+$")
+
+
+def graph_dir(class_id=None):
+    """The graph folder: graph/ ("No class") or classes/<id>/graph/."""
+    if class_id in (None, "none"):
+        return "graph"
+    if not CLASS_ID.match(class_id):
+        raise DataError(f"Invalid class id: {class_id}")
+    return f"classes/{class_id}/graph"
+
+
+def load_classes(root):
+    """Class records (classes/<id>/class.json): id, name, description, archived, file count."""
+    folder = safe_path(root, "classes")
+    classes = []
+    if not folder.is_dir():
+        return classes
+    for path in sorted(folder.iterdir()):
+        if not CLASS_ID.match(path.name):
+            continue
+        record = read_json(root, f"classes/{path.name}/class.json", missing=None)
+        if not isinstance(record, dict) or not isinstance(record.get("name"), str):
+            warn(f"classes/{path.name}/class.json: unreadable class record; skipped")
+            continue
+        files = record.get("files") if isinstance(record.get("files"), list) else []
+        classes.append({
+            "id": path.name, "name": record["name"], "description": record.get("description") or "",
+            "archived": record.get("archived") is True, "files": len(files),
+            "studyFiles": sum(1 for f in files if isinstance(f, dict) and f.get("kind") == "study"),
+        })
+    return classes
+
+
+def load_graph(root, class_id=None):
     """Merge ledger lines using getGraph's first-identity/union semantics."""
-    stamp = read_json(root, "graph/format.json", missing=None)
+    base = graph_dir(class_id)
+    stamp = read_json(root, f"{base}/format.json", missing=None)
     if stamp is not None:
         version = stamp.get("version") if isinstance(stamp, dict) else None
         if isinstance(version, bool) or not isinstance(version, (int, float)) or version % 1:
-            raise DataError("graph/format.json: invalid graph format version")
+            raise DataError(f"{base}/format.json: invalid graph format version")
         if version > 1:
             raise DataError(f"Graph format version {version} is newer than supported version 1; upgrade this skill")
     nodes = {}
-    for line in read_ledger(root, "graph/nodes.jsonl"):
+    for line in read_ledger(root, f"{base}/nodes.jsonl"):
         existing = nodes.get(line["id"])
         if existing is None:
             nodes[line["id"]] = {**line, "aliases": list(line["aliases"]), "provenance": list(line["provenance"])}
@@ -97,7 +132,7 @@ def load_graph(root):
                 existing["aliases"].append(phrasing)
         union_points(existing["provenance"], line["provenance"])
     chains = {}
-    for line in read_ledger(root, "graph/chains.jsonl", chain=True):
+    for line in read_ledger(root, f"{base}/chains.jsonl", chain=True):
         key = "+".join(sorted(line["premises"])) + ">" + line["conclusion"]
         existing = chains.get(key)
         if existing is None:
@@ -111,15 +146,16 @@ def birth_session(node):
     return node["provenance"][0]["chatId"] if node["provenance"] else None
 
 
-def load_metadata(root):
+def load_metadata(root, class_id=None):
     """Read only stored metadata, never the filePath references in sources."""
-    sources = read_json(root, "graph/sources.json", missing={})
+    base = graph_dir(class_id)
+    sources = read_json(root, f"{base}/sources.json", missing={})
     if not isinstance(sources, dict):
-        raise DataError("graph/sources.json: expected an object keyed by source id")
+        raise DataError(f"{base}/sources.json: expected an object keyed by source id")
     metadata = {}
     for source in sources.values():
         if not isinstance(source, dict) or not all(isinstance(source.get(key), str) for key in ("id", "filePath", "importedAt")):
-            warn("graph/sources.json: invalid source metadata; skipped (labels may be incomplete)")
+            warn(f"{base}/sources.json: invalid source metadata; skipped (labels may be incomplete)")
             continue
         metadata[source["id"]] = {
             "id": source["id"], "name": source["filePath"], "kind": "file",
@@ -250,6 +286,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     add_common_arguments(parser)
     commands = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument("--class", dest="class_id", metavar="ID", help='Read one class\'s graph (an id from the "classes" command); default: the "No class" graph')
+    commands.add_parser("classes", help="List the learner's classes (each has its own graph)")
     commands.add_parser("sessions", help="List birth sessions, most recently active first")
     propositions = commands.add_parser("propositions", help="Read full propositions; optionally filter by birth session")
     propositions.add_argument("--session", metavar="ID", type=nonempty)
@@ -260,8 +298,24 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         root = data_root(args.data_dir)
-        graph = load_graph(root)
-        metadata = load_metadata(root) if args.command == "sessions" or args.format == "markdown" else {}
+        if args.command == "classes":
+            classes = load_classes(root)
+            if args.format == "json":
+                print_json({"data_dir": str(root), "records": classes})
+            else:
+                print(f"# Classes\n\nData directory: {root}\n")
+                if not classes:
+                    print("No classes. Every lesson is in \"No class\" (the default graph).")
+                for item in classes:
+                    archived = " (archived)" if item["archived"] else ""
+                    print(f"## {item['name']}{archived} (`{item['id']}`)\n")
+                    print(f"- Files: {item['files']} ({item['studyFiles']} study material)")
+                    if item["description"]:
+                        print(f"- About: {item['description']}")
+                    print()
+            return 0
+        graph = load_graph(root, args.class_id)
+        metadata = load_metadata(root, args.class_id) if args.command == "sessions" or args.format == "markdown" else {}
         if args.command == "sessions":
             result = session_index(graph, metadata)
         elif args.command in ("propositions", "find"):

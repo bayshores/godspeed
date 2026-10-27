@@ -161,7 +161,24 @@ describe("the /api/mcp door", () => {
 
 		const tools = await (await mcp.handleMcpRequest(rpc(listTools, auth))).json();
 		const names = tools.result.tools.map((t: { name: string }) => t.name).sort();
-		assert.deepEqual(names, ["import_notes", "list_lessons", "read_lesson", "respond", "search_graph", "start_lesson", "wait_for_work"]);
+		assert.deepEqual(names, [
+			"add_class_file",
+			"create_class",
+			"import_notes",
+			"link_class_folder",
+			"list_classes",
+			"list_lessons",
+			"read_class",
+			"read_lesson",
+			"respond",
+			"search_graph",
+			"set_class_file_kind",
+			"start_lesson",
+			"unlink_class_folder",
+			"update_class",
+			"wait_for_work",
+		]);
+		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a class is app-only (owner ruling)");
 
 		const call = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_lessons", arguments: {} } }, auth))).json();
 		const lessons = JSON.parse(call.result.content[0].text).lessons;
@@ -169,5 +186,27 @@ describe("the /api/mcp door", () => {
 
 		const idle = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1 } } }, auth))).json();
 		assert.equal(JSON.parse(idle.result.content[0].text).status, "idle");
+	});
+
+	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {
+		const token = mcp.enableMcpAccess();
+		const auth = { authorization: `Bearer ${token}` };
+		const call = async (name: string, args: Record<string, unknown>) => {
+			const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json();
+			return { error: res.result.isError === true, body: (() => { try { return JSON.parse(res.result.content[0].text); } catch { return res.result.content[0].text; } })() };
+		};
+		const created = await call("create_class", { name: "PHYS 2B", description: "Griffiths, chapters 1-4" });
+		const id = created.body.class.id as string;
+		assert.match(id, /^cls_/);
+		const listed = await call("list_classes", {});
+		assert.ok(listed.body.classes.some((c: { id: string }) => c.id === id));
+		const updated = await call("update_class", { class_id: id, description: "Griffiths 1-5" });
+		assert.equal(updated.body.class.description, "Griffiths 1-5");
+		const read = await call("read_class", { class_id: id });
+		assert.deepEqual(read.body.files, []);
+		const bad = await call("search_graph", { class_id: "cls_missing" });
+		assert.equal(bad.error, true);
+		const missingFile = await call("add_class_file", { class_id: id, path: "/definitely/not/here.md", kind: "info" });
+		assert.equal(missingFile.error, true);
 	});
 });

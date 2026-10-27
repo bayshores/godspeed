@@ -1,5 +1,6 @@
 "use client";
 
+import { classQuery, useClasses } from "@/components/class-context";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
@@ -146,6 +147,7 @@ export function DeleteNodeDialog({
 	 *  selection-side callers can prune. */
 	onDeleted: (nodeIds: string[], graphRevision: number) => void;
 }) {
+	const { active: activeClassId } = useClasses();
 	const [busy, setBusy] = useState(false);
 	const backdropDismiss = useBackdropDismiss(() => {
 		if (!busy) onClose();
@@ -190,7 +192,7 @@ export function DeleteNodeDialog({
 		let revision = 0;
 		try {
 			for (const n of nodes) {
-				const res = await fetch(`/api/graph/nodes/${encodeURIComponent(n.id)}`, { method: "DELETE" });
+				const res = await fetch(`/api/graph/nodes/${encodeURIComponent(n.id)}${classQuery(activeClassId)}`, { method: "DELETE" });
 				const body = (await res.json()) as {
 					error?: string;
 					code?: string;

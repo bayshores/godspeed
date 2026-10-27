@@ -18,6 +18,7 @@
  * The practice pick flow mirrors GraphView's contract verbatim (home
  * lifts the pick set; the chip opens the overlay in select mode).
  */
+import { classQuery, useClasses } from "@/components/class-context";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ListTreeIcon, UploadIcon } from "lucide-react";
 import { ChainTableOverlay } from "@/components/chain-table.tsx";
@@ -93,6 +94,7 @@ export function MinimalHome({
 	onPracticeSelectionChange?: (nodes: { id: string; name: string; statement: string }[]) => void;
 	onChainSelectClose?: () => void;
 }) {
+	const { active: activeClassId } = useClasses();
 	const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null);
 	const [costs, setCosts] = useState<GraphCostSummary | null>(null);
 	const [chats, setChats] = useState<ChatSummary[]>([]);
@@ -100,19 +102,19 @@ export function MinimalHome({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const readState = useCallback(() => {
-		fetch("/api/graph")
+		fetch(`/api/graph${classQuery(activeClassId)}`)
 			.then((res) => res.json() as Promise<GraphSnapshot>)
 			.then(setSnapshot)
 			.catch(() => {});
-		fetch("/api/graph/costs")
+		fetch(`/api/graph/costs${classQuery(activeClassId)}`)
 			.then((res) => res.json() as Promise<GraphCostSummary>)
 			.then(setCosts)
 			.catch(() => {});
-		fetch("/api/chats")
+		fetch(`/api/chats${classQuery(activeClassId)}`)
 			.then((res) => res.json() as Promise<{ chats: ChatSummary[] }>)
 			.then((body) => setChats(body.chats))
 			.catch(() => {});
-	}, []);
+	}, [activeClassId]);
 	useEffect(() => {
 		readState();
 	}, [readState]);

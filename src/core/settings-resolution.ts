@@ -170,6 +170,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 	return {
 		general: {
 			autoUpdate: record?.general?.autoUpdate ?? FACTORY_SETTINGS.general.autoUpdate,
+			activeClass: record?.general?.activeClass ?? FACTORY_SETTINGS.general.activeClass,
 		},
 		agent: {
 			models,

@@ -102,6 +102,7 @@ function memoryLedgers() {
 			sources.set(s.id, { ...s, extractions: [...(prev?.extractions ?? [])] });
 		},
 		readSources: () => [...sources.values()].map((s) => ({ ...s, extractions: [...(s.extractions ?? [])] })),
+		removeSource: (id: string) => sources.delete(id),
 		appendSourceUsage: (id: string, entry: ExtractionRunUsage) => {
 			const source = sources.get(id);
 			if (!source) return;

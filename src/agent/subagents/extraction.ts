@@ -736,6 +736,10 @@ export interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
 	 *  callers wire the live effective settings (extraction-UX redesign,
 	 *  2026-09-24). */
 	getChunkTokens?: () => number;
+	/** The graph a LESSON writes to (classes wave, 2026-10-26: its class's
+	 *  own graph, or "No class"). Absent = deps.graphStore for every chat
+	 *  (test fixtures, single-graph callers). */
+	graphStoreForChat?: (chatId: string) => GraphStore;
 }
 
 export interface NotesImportInput {
@@ -744,6 +748,13 @@ export interface NotesImportInput {
 	filePath: string;
 	/** The file's raw content, VERBATIM — any format. */
 	text: string;
+	/** The graph to import into (classes wave: a class's own graph).
+	 *  Absent = deps.graphStore ("No class"). */
+	graphStore?: GraphStore;
+	/** An explicit source id (class files: src_ + hash of class + file id,
+	 *  so the same filename in two classes never collides). Absent = the
+	 *  path-hash id, as before. */
+	sourceId?: string;
 }
 
 /** A notes import did not finish. Earlier graph writes and billed usage are
@@ -828,6 +839,17 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	// single-flight guard. No module-level state left in this factory.
 	const runningExtractions = runs().running;
 	const inFlight = runs().inFlight;
+
+	/** WHICH GRAPH a source writes to (classes wave, 2026-10-26 — owner
+	 *  ruling: writes never cross classes). A notes import registers its
+	 *  target for the run's lifetime; a chat resolves through its class. */
+	const sourceStores = new Map<string, GraphStore>();
+	function storeFor(sourceId: string): GraphStore {
+		const registered = sourceStores.get(sourceId);
+		if (registered) return registered;
+		if (sourceId.startsWith("src_")) return graphStore;
+		return deps.graphStoreForChat?.(sourceId) ?? graphStore;
+	}
 
 	function setPhase(
 		jobKey: string,
@@ -924,7 +946,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		// on it. Serialized batches make this read the post-merge graph of
 		// every earlier batch (cross-source runs stay parallel — the
 		// digest is source-scoped, so only SAME-source order matters).
-		const graph = getGraph(graphStore);
+		const graph = getGraph(storeFor(sourceId));
 		const digest = sourceDigest(graph, sourceId);
 		const prompt = digest === "" ? view : `${digest}\n\n${view}`;
 		console.info(
@@ -952,7 +974,8 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	async function audit(jobKey: string, sourceId: string, findings: SessionFindings): Promise<AuditVerdicts> {
 		const signal = runningExtractions.get(jobKey)?.controller.signal;
 		signal?.throwIfAborted(); // an abort during the extract→audit gap ends here
-		const graph = getGraph(graphStore);
+		const sourceGraph = storeFor(sourceId);
+		const graph = getGraph(sourceGraph);
 		console.info(
 			`[extraction ${jobKey}] auditor starting (${findings.propositions.length} propositions, ` +
 				`${graph.nodes.length} graph nodes)`,
@@ -987,7 +1010,9 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 				recordStep(jobKey, "auditor", callUsage(usage), model);
 				console.info(`[extraction] auditor step ${step}: ${finishReason}, tools: ${tools}`);
 			},
-			auditorGraphTools({ chatStore, graphStore }),
+			// Identity search stays inside the source's own class graph
+			// (owner ruling 2026-10-26: writes never cross classes).
+			auditorGraphTools({ chatStore, graphStore: sourceGraph }),
 		);
 		console.info(
 			`[extraction ${jobKey}] audit: ${findings.propositions.length} propositions through, ` +
@@ -1034,7 +1059,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 				auditor: run.usage.auditor ?? { model: "unknown", steps: [] },
 			},
 		};
-		if (run.kind === "notes") graphStore.appendSourceUsage(run.chatId, entry);
+		if (run.kind === "notes") storeFor(run.chatId).appendSourceUsage(run.chatId, entry);
 		else chatStore.appendExtractionUsage(run.chatId, entry);
 	}
 
@@ -1116,7 +1141,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			// engines AND their providers' keys; a refusal lands BEFORE any
 			// stage runs (typed — the trigger skips, routes surface 503).
 			refuseIfStagesUnready();
-			const covered = coverageOf(record.messages, graphStore.readCoverage(), chatId);
+			// The lesson's class graph, fixed for the whole run (a class
+			// move is refused while extraction runs).
+			const chatGraph = storeFor(chatId);
+			const covered = coverageOf(record.messages, chatGraph.readCoverage(), chatId);
 			const failedOutputCalls = failedOutputCallIds(record.messages);
 			if (covered.uncovered.length === 0) {
 				console.info(`[extraction ${chatId}] nothing uncovered — no-op`);
@@ -1190,7 +1218,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 								// merges in), the stored fingerprint won't match its new
 								// one and it re-opens: honest by construction.
 								const foldedAt = new Date().toISOString();
-								const batchStats = mergeFindings(chatId, findings, auditResult, { chatStore, graphStore }, {
+								const batchStats = mergeFindings(chatId, findings, auditResult, { chatStore, graphStore: chatGraph }, {
 									foldedAt,
 									coverage: batch
 										.filter((slot) => slot.tokens > 0)
@@ -1198,7 +1226,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 								});
 								// The layout ledger evolves with the merge (sync — the
 								// next snapshot fetch must already reflect the new nodes).
-								settleGraphLayout(graphStore);
+								settleGraphLayout(chatGraph);
 								console.info(
 									`[extraction ${jobKey}] merged: ${batchStats.nodes} nodes, ${batchStats.chains ?? 0} chains`,
 								);
@@ -1277,7 +1305,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		const view = notesView(input);
 		// Same digest law as the chat door (owner, 2026-09-30 evening): the
 		// chunk extractor continues its own source, ids verbatim.
-		const graph = getGraph(graphStore);
+		const graph = getGraph(storeFor(input.id));
 		const digest = sourceDigest(graph, input.id);
 		const prompt = digest === "" ? view : `${digest}\n\n${view}`;
 		console.info(
@@ -1358,7 +1386,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 									id,
 									findings,
 									auditResult,
-									{ chatStore, graphStore },
+									{ chatStore, graphStore: storeFor(id) },
 									{ foldedAt: input.importedAt },
 								);
 								// Capture the committed merge BEFORE layout/usage can fail.
@@ -1368,7 +1396,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 									mergedStats.droppedChains = (mergedStats.droppedChains ?? 0) + merged.droppedChains;
 								// The layout ledger evolves with each merge — the next
 								// snapshot fetch reflects every finished chunk.
-								settleGraphLayout(graphStore);
+								settleGraphLayout(storeFor(id));
 								console.info(`[extraction ${jobKey}] merged: ${merged.nodes} nodes, ${merged.chains ?? 0} chains`);
 								return merged;
 							});
@@ -1418,19 +1446,22 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	/** Every explicit import processes the whole file. Identity, source digest,
 	 * auditor and usage history remain source-scoped; this is not exactly-once. */
 	async function importNotes(input: NotesImportInput): Promise<EmissionStats> {
-		const id = `src_${crypto.createHash("sha256").update(input.filePath).digest("hex").slice(0, 12)}`;
+		const id = input.sourceId ?? `src_${crypto.createHash("sha256").update(input.filePath).digest("hex").slice(0, 12)}`;
 		// Acquire BEFORE source upsert: overlapping contents must not alter metadata.
 		if (inFlight.has(id)) throw new NotesImportError("busy", { nodes: 0, chains: 0 }, "This file is already being imported. Try again when it finishes.");
 		inFlight.add(id);
+		const target = input.graphStore ?? graphStore;
+		sourceStores.set(id, target);
 		try {
 			const importedAt = new Date().toISOString();
-			graphStore.upsertSource({ id, filePath: input.filePath, importedAt });
-			return await runNotesExtraction({ id, ...input, importedAt });
+			target.upsertSource({ id, filePath: input.filePath, importedAt });
+			return await runNotesExtraction({ id, filePath: input.filePath, text: input.text, importedAt });
 		} catch (err) {
 			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError) throw err;
 			throw new NotesImportError("failed", { nodes: 0, chains: 0 }, err instanceof Error ? err.message : String(err), { cause: err });
 		} finally {
 			inFlight.delete(id);
+			sourceStores.delete(id);
 		}
 	}
 

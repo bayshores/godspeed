@@ -21,7 +21,7 @@
  *     (chatgpt.cjs / subscriptions.cjs) and serves to the child over IPC.
  */
 
-const { app, BrowserWindow, Menu, ipcMain, session, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("electron");
 const { createChatGPT, fileStore } = require("./chatgpt.cjs");
 const { attachChatGPTChild, trustedSender, chatGPTControl } = require("./chatgpt-ipc.cjs");
 const { createSubscriptions, loadSubscriptionSDK } = require("./subscriptions.cjs");
@@ -739,6 +739,15 @@ async function main() {
 	// window grows right. No-op when already wide.
 	// The renderer's first paint can race did-finish-load — it asks for
 	// the current factor itself (mirrors "lh:zoom" pushes).
+	// Classes wave (2026-10-26): the native folder picker for "Link folder…".
+	// Returns the chosen absolute path, or null when cancelled.
+	ipcMain.handle("lh:pick-folder", async (event) => {
+		const win = BrowserWindow.fromWebContents(event.sender);
+		const result = win
+			? await dialog.showOpenDialog(win, { properties: ["openDirectory"] })
+			: await dialog.showOpenDialog({ properties: ["openDirectory"] });
+		return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+	});
 	ipcMain.handle("lh:zoom:get", (event) => BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1);
 	ipcMain.on("lh:expand-window", (event) => {
 		const win = BrowserWindow.fromWebContents(event.sender);

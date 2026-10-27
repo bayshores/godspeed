@@ -1,4 +1,4 @@
-import { graphView } from "@/src/server";
+import { graphView, requestClassScope } from "@/src/server";
 
 /**
  * The home graph view's data endpoint (W4; vision §1 "Home page") — thin
@@ -8,6 +8,9 @@ import { graphView } from "@/src/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-	return Response.json(graphView());
+export async function GET(req: Request) {
+	// Classes wave: ?class=<id|none> picks which graph (absent = No class).
+	const scope = requestClassScope(req);
+	if (scope === undefined) return Response.json({ error: "No such class" }, { status: 404 });
+	return Response.json(graphView(scope));
 }

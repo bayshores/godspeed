@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
-import { LEDGER_FILES, POSITIONS_FILE } from "../../config.ts";
-import type { GraphSnapshot } from "../core/contracts.ts";
+import { graphFilesIn } from "../../config.ts";
+import type { ClassScope, GraphSnapshot } from "../core/contracts.ts";
 import type { GraphCostSummary } from "../core/cost-summary.ts";
 import { graphCostSummary } from "../core/cost-summary.ts";
 import { graphSnapshot } from "../core/graph.ts";
@@ -10,7 +10,7 @@ import {
 	type NodeDeletionStats,
 } from "../core/graph-deletion.ts";
 import { extractionStatuses } from "../agent/subagents/extraction.ts";
-import { stores } from "./stores.ts";
+import { graphDirFor, graphStoreFor, stores } from "./stores.ts";
 import { callCost } from "./pricing.ts";
 
 /**
@@ -19,8 +19,8 @@ import { callCost } from "./pricing.ts";
  * answers in sessions (turn-service), never from here — the home view
  * reflects whatever the pipeline has merged so far.
  */
-export function graphView(): GraphSnapshot {
-	return graphSnapshot(stores);
+export function graphView(scope: ClassScope = null): GraphSnapshot {
+	return graphSnapshot({ chatStore: stores.chatStore, graphStore: graphStoreFor(scope) });
 }
 
 /** The graph view's cost surface (GET /api/graph/costs — the 2026-09 cost
@@ -29,16 +29,18 @@ export function graphView(): GraphSnapshot {
  *  (notes-front-door runs), and the naming ledger (graph-global runs);
  *  dollars are inferred by the pure core fold (core/cost-summary.ts +
  *  prices.ts) — nothing here stores or caches money. */
-export function graphCosts(): GraphCostSummary {
+export function graphCosts(scope: ClassScope = null): GraphCostSummary {
 	const chats = stores.chatStore
 		.listChats()
+		// Classes wave: a graph's costs are its own class's lessons only.
+		.filter((summary) => (summary.classId ?? null) === scope)
 		.flatMap((summary) => {
 			const record = stores.chatStore.getChat(summary.id);
 			return record?.extractions?.length
 				? [{ title: record.title ?? summary.id, extractions: record.extractions }]
 				: [];
 		});
-	const sources = stores.graphStore
+	const sources = graphStoreFor(scope)
 		.readSources()
 		.filter((s) => s.extractions?.length)
 		.map((s) => ({ filePath: s.filePath, extractions: s.extractions! }));
@@ -52,15 +54,10 @@ export function graphCosts(): GraphCostSummary {
  * IS the counter. Consumers poll it (the activity feed
  *  carries it; the DELETE response returns it) to know clusters/layout
  *  must refetch — the "graph changed underneath me" signal. */
-export function graphRevision(): number {
+export function graphRevision(scope: ClassScope = null): number {
 	let revision = 0;
-	for (const file of [
-		LEDGER_FILES.nodes,
-		LEDGER_FILES.chains,
-		LEDGER_FILES.sessions,
-		LEDGER_FILES.coverage,
-		POSITIONS_FILE,
-	]) {
+	const files = graphFilesIn(graphDirFor(scope));
+	for (const file of [files.nodes, files.chains, files.sessions, files.coverage, files.positions]) {
 		try {
 			revision = Math.max(revision, fs.statSync(file).mtimeMs);
 		} catch {
@@ -101,7 +98,7 @@ export type NodeDeleteOutcome =
  *     mergeFindings ignores linkTo ids that no longer exist (the
  *     existingIds guard) — no dangling edges, no resurrection.
  */
-export function deleteGraphNode(nodeId: string): NodeDeleteOutcome {
+export function deleteGraphNode(nodeId: string, scope: ClassScope = null): NodeDeleteOutcome {
 	if (extractionStatuses().length > 0) {
 		return {
 			ok: false,
@@ -112,10 +109,10 @@ export function deleteGraphNode(nodeId: string): NodeDeleteOutcome {
 	}
 	// THE SYNC BLOCK — no awaits below (the doc above): the gate and the
 	// rewrite are one atomic stretch of the event loop.
-	const stats = deleteNodeTraces(stores.graphStore, nodeId);
+	const stats = deleteNodeTraces(graphStoreFor(scope), nodeId);
 	if (stats === null) {
 		return { ok: false, status: 404, code: "not_found", error: "No such node" };
 	}
-	return { ok: true, stats, graphRevision: graphRevision() };
+	return { ok: true, stats, graphRevision: graphRevision(scope) };
 }
 

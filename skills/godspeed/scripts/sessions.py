@@ -419,8 +419,11 @@ def list_sessions(root: Path) -> dict[str, Any]:
             skipped.append({"id": session_id, "error": str(exc)})
             print(f"Warning: skipped session {session_id}: {exc}", file=sys.stderr)
             continue
-        sessions.append({key: record.get(key, "teach" if key == "kind" else None)
-                         for key in ("id", "title", "kind", "createdAt", "updatedAt")})
+        entry = {key: record.get(key, "teach" if key == "kind" else None)
+                 for key in ("id", "title", "kind", "createdAt", "updatedAt")}
+        # Classes (2026-10-26): absent = "No class".
+        entry["classId"] = record.get("classId") if isinstance(record.get("classId"), str) else None
+        sessions.append(entry)
     return {"data_dir": str(root), "sessions": sessions, "skipped": skipped, "skipped_count": len(skipped)}
 
 
@@ -443,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"# Sessions\n\nData directory: {_text(root)}\n")
                 for session in value["sessions"]:
-                    print(f"- {_text(session['id'])} · {_text(session['title'])} · {_text(session['kind'])} · created {_text(session['createdAt'])} · updated {_text(session['updatedAt'])}")
+                    print(f"- {_text(session['id'])} · {_text(session['title'])} · {_text(session['kind'])} · class {_text(session['classId'] or 'none')} · created {_text(session['createdAt'])} · updated {_text(session['updatedAt'])}")
                 print(f"\nSkipped/unreadable sessions: {value['skipped_count']}")
                 for skipped in value["skipped"]:
                     print(f"- {_text(skipped['id'])}: {_text(skipped['error'])}")

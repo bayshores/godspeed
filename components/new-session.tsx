@@ -1,5 +1,6 @@
 "use client";
 
+import { classQuery, useClasses } from "@/components/class-context";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Conversation, ConversationContent, ConversationEmptyState } from "@/components/ai-elements/conversation";
@@ -44,6 +45,8 @@ export async function startDraftSession(
 	fetchLike: typeof fetch,
 	mode?: "practice",
 	picks?: readonly DraftPick[],
+	/** The active class (classes wave): the lesson starts in it. */
+	classId?: string | null,
 ): Promise<string | null> {
 	const t = text.trim();
 	if (!t) return null;
@@ -54,11 +57,12 @@ export async function startDraftSession(
 	const res = await fetchLike("/api/chats", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(
-			mode === "practice"
+		body: JSON.stringify({
+			...(mode === "practice"
 				? { title: t, kind: "practice", ...(picks && picks.length > 0 ? { graphContext: { propositions: picks } } : {}) }
-				: { title: t },
-		),
+				: { title: t }),
+			...(classId ? { classId } : {}),
+		}),
 	});
 	const { id } = (await res.json()) as { id: string };
 	// No settings PUT on create (per-session models, owner 2026-09-28):
@@ -202,6 +206,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 	// THE PICK BAR (owner round 10): the draft's lifted pick set + the
 	// snapshot the standalone chain-table picker reads. Lazy — the graph
 	// is fetched on FIRST open only, then reused.
+	const { active: activeClassId } = useClasses();
 	const [picks, setPicks] = useState<DraftPick[]>([]);
 	const picksRef = useRef<DraftPick[]>([]);
 	const applyPicks = (next: DraftPick[]) => {
@@ -215,7 +220,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 			setPickerOpen(true);
 			return;
 		}
-		void fetch("/api/graph")
+		void fetch(`/api/graph${classQuery(activeClassId)}`)
 			.then((r) => r.json() as Promise<GraphSnapshot>)
 			.then((snap) => {
 				setSnapshot(snap);
@@ -258,7 +263,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 			return;
 		}
 		setBusy(true);
-		void startDraftSession(draft, fetch, mode === "practice" ? "practice" : undefined, mode === "practice" ? picksRef.current : undefined)
+		void startDraftSession(draft, fetch, mode === "practice" ? "practice" : undefined, mode === "practice" ? picksRef.current : undefined, activeClassId)
 			.then((target) => {
 				if (target) router.push(target);
 				else setBusy(false);

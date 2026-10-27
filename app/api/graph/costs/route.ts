@@ -10,10 +10,12 @@
  * Scope (user-decided): the graph pipeline ONLY — teaching turns and
  * sub-agent jobs have their own cost channels elsewhere.
  */
-import { graphCosts } from "@/src/server";
+import { graphCosts, requestClassScope } from "@/src/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-	return Response.json(graphCosts());
+export async function GET(req: Request) {
+	const scope = requestClassScope(req);
+	if (scope === undefined) return Response.json({ error: "No such class" }, { status: 404 });
+	return Response.json(graphCosts(scope));
 }

@@ -75,7 +75,7 @@ function asRecord(body: unknown): Record<string, unknown> | null {
 	return body as Record<string, unknown>;
 }
 
-/** general: { autoUpdate?: boolean } */
+/** general: { autoUpdate?: boolean; activeClass?: string } */
 export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<GeneralSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -85,6 +85,12 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 			return { ok: false, error: "autoUpdate must be a boolean" };
 		}
 		settings.autoUpdate = raw.autoUpdate;
+	}
+	if (raw.activeClass !== undefined) {
+		if (typeof raw.activeClass !== "string" || !(raw.activeClass === "none" || /^cls_[A-Za-z0-9_-]+$/.test(raw.activeClass))) {
+			return { ok: false, error: 'activeClass must be a class id or "none"' };
+		}
+		settings.activeClass = raw.activeClass;
 	}
 	return { ok: true, settings };
 }

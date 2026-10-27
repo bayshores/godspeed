@@ -61,3 +61,50 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 		</div>
 	);
 }
+
+/** The class card's details (native-messages.ts ClassCardDetails). */
+export interface ClassContextData {
+	classId: string;
+	name: string;
+	description: string;
+	files: { name: string; kind: "study" | "info"; path: string | null }[];
+}
+
+/**
+ * The class card (classes wave, owner-approved 2026-10-26): message[0] of
+ * a lesson in a class — the class name, the learner's description, and
+ * the class files the teacher can open. Same scaffolding look as the
+ * graph-context card: muted, collapsed by default.
+ */
+export function ClassContextCard({ data }: { data: ClassContextData }) {
+	const [open, setOpen] = useState(false);
+	const { name = "", description = "", files = [] } = data ?? {};
+	return (
+		<div data-testid="class-context-card" className="my-1">
+			<button
+				type="button"
+				data-testid="class-context-toggle"
+				onClick={() => setOpen((v) => !v)}
+				className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+			>
+				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+				<span className="font-medium">Class context</span>
+				<span className="min-w-0 flex-1 truncate">
+					{name}
+					{files.length > 0 ? ` · ${files.length} ${files.length === 1 ? "file" : "files"}` : ""}
+				</span>
+			</button>
+			{open && (
+				<div data-testid="class-context-body" className="mt-1 space-y-2 rounded-lg border border-dashed border-border/70 px-4 py-3 text-xs">
+					{description.trim() && <p className="font-prose whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{description}</p>}
+					{files.map((f, i) => (
+						<div key={i} className="leading-relaxed">
+							<span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{f.kind === "study" ? "study" : "info"}</span>
+							<span className="ml-2 text-foreground/80">{f.name}</span>
+						</div>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}

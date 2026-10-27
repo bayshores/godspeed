@@ -21,7 +21,17 @@ graph/coverage.jsonl       Extraction fingerprints, NOT learner assessment
 graph/positions.json      Canvas layout, not semantic relationships
 graph/render-settings.json  Presentation preferences, not learning evidence
 jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
+classes/<class-id>/class.json   A class (course): name, description, archived, file list
+classes/<class-id>/files/       The class's copied files (and recording transcripts)
+classes/<class-id>/graph/       That class's OWN graph: the same files as graph/ above
 ```
+
+**Classes.** A lesson with a `classId` field belongs to that class, and its
+propositions live in `classes/<class-id>/graph/`, not `graph/`. A lesson without
+`classId` is in "No class", whose graph is `graph/`. Each class graph is separate:
+the same idea taught in two classes is two propositions. A class file with kind
+`study` was turned into propositions (its source id is in the class graph's
+`sources.json`); a file with kind `info` (syllabus, assignments) never was.
 
 `settings.json`, downloaded models, caches, and provider debug logs are not needed
 to interpret learning history. `auth.json` is normally one directory above data;

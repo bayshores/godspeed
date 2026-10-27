@@ -1,5 +1,6 @@
 "use client";
 
+import { useClasses } from "@/components/class-context";
 import { useRef, useState } from "react";
 
 // Transport-only types: never import the server's extraction/agent module here.
@@ -37,10 +38,11 @@ export function parseNotesImportResults(body: unknown, files: readonly File[]): 
 	return body.results as NotesImportResult[];
 }
 
-export async function postNotesImport(files: readonly File[]): Promise<NotesImportResult[]> {
+export async function postNotesImport(files: readonly File[], classId: string | null = null): Promise<NotesImportResult[]> {
 	const form = new FormData();
 	for (const file of files) form.append("files", file);
-	const response = await fetch("/api/graph/import", { method: "POST", body: form });
+	// Classes wave: imports land in the active class (as study material).
+	const response = await fetch(`/api/graph/import${classId ? `?class=${encodeURIComponent(classId)}` : ""}`, { method: "POST", body: form });
 	let body: unknown;
 	try { body = await response.json(); }
 	catch { throw new Error("Invalid import response. Please retry the file."); }
@@ -53,6 +55,7 @@ export async function postNotesImport(files: readonly File[]): Promise<NotesImpo
 
 /** Only error text survives a request; selected Files stay request-local. */
 export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () => void } = {}) {
+	const { active: activeClassId } = useClasses();
 	const [errors, setErrors] = useState<string[]>([]);
 	const [importing, setImporting] = useState(false);
 	const pending = useRef(false);
@@ -63,7 +66,7 @@ export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () 
 		setErrors([]);
 		try {
 			callbacks.onStart?.();
-			const results = await postNotesImport(files);
+			const results = await postNotesImport(files, activeClassId);
 			setErrors(results
 				.filter((result) => !result.ok)
 				.sort((a, b) => a.requestIndex - b.requestIndex)

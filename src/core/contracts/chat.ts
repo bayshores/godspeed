@@ -35,6 +35,10 @@ export interface ChatRecord {
 	messages: LhMessage[];
 	/** The session's kind — absent = teach (pre-practice records). */
 	kind?: ChatKind;
+	/** The class this lesson belongs to (classes wave, 2026-10-26) —
+	 *  ABSENT = "No class" (pre-classes records never migrate; same rule as
+	 *  kind). Decides which graph the lesson's facts are written to. */
+	classId?: string;
 	/** The session's plan tree (vision §2) — written by plan tools via saveTree. */
 	tree?: PlanTree;
 	/** Append-only usage log (observability, 2026-09): one entry per model
@@ -263,6 +267,8 @@ export interface ChatSummary {
 	updatedAt: string;
 	/** Normalized kind (absent record field reads as teach). */
 	kind: ChatKind;
+	/** The lesson's class — absent = "No class". */
+	classId?: string;
 	messageCount: number;
 	/** The session's current phase, derived from the stored plan tree. */
 	phase: Phase3;

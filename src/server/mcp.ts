@@ -9,6 +9,10 @@
  *    request in agent-bridge.ts; the agent takes it, answers it, repeats.
  *  - DIRECT ACCESS: list/read lessons, search the knowledge graph, import
  *    notes, start a lesson.
+ *  - CLASSES (classes wave, owner-approved 2026-10-26): agents set up the
+ *    learner's classes — create/edit/archive, add files, link folders,
+ *    read them, start lessons inside them. Deleting a class is app-only
+ *    on purpose (owner ruling): no tool here can wipe a class.
  */
 import { timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -25,10 +29,22 @@ import {
 } from "../agent/agent-bridge.ts";
 import { getGraph } from "../core/graph.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
-import { titleFromPrompt } from "../core/contracts.ts";
+import { parseClassScope, type ClassScope } from "../core/contracts.ts";
 import { deleteMcpToken, readMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
-import { stores } from "./stores.ts";
+import { graphStoreFor, stores } from "./stores.ts";
+import {
+	addCopiedFile,
+	addFileFromPath,
+	classFilePath,
+	createClass,
+	linkFolder,
+	removeFile,
+	setFileKind,
+	unlinkFolder,
+	updateClass,
+} from "./classes.ts";
+import { createLesson } from "./lessons.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 
@@ -45,7 +61,25 @@ The work loop:
 3. Answer with respond: your text and/or tool calls, exactly as a model would. The app runs the tools and, when it needs you again in the same conversation (e.g. tool results), respond returns the next work item directly.
 4. When respond says the turn is complete, the app is waiting on the learner (they read and answer in the godspeed window). Call wait_for_work again.
 
-Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.`;
+Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.
+
+Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. Use list_classes / read_class to see them, create_class / update_class / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
+
+// ─── Class arguments ────────────────────────────────────────────────────────
+
+/** A tool's class_id argument: absent / "none" = No class; otherwise the
+ *  class must exist. A string = the error to report. */
+function classArg(classId: string | undefined): ClassScope | string {
+	const scope = parseClassScope(classId);
+	if (scope === undefined) return `"${classId}" is not a class id. Use list_classes.`;
+	if (scope !== null && !stores.classStore.getClass(scope)) return `No class "${classId}". Use list_classes.`;
+	return scope;
+}
+
+const CLASS_ID_ARG = z
+	.string()
+	.optional()
+	.describe('The class id from list_classes, or "none" for lessons without a class (the default).');
 
 // ─── Access control ─────────────────────────────────────────────────────────
 
@@ -174,7 +208,7 @@ function buildServer(): McpServer {
 		"list_lessons",
 		{
 			title: "List lessons",
-			description: "List the learner's lessons and practice sessions, newest first.",
+			description: "List the learner's lessons and practice sessions, newest first, each with its class.",
 			inputSchema: {},
 			annotations: { readOnlyHint: true },
 		},
@@ -185,6 +219,8 @@ function buildServer(): McpServer {
 					id: c.id,
 					title: c.title,
 					kind: c.kind ?? "lesson",
+					classId: c.classId ?? "none",
+					className: c.classId ? (stores.classStore.getClass(c.classId)?.name ?? "Unknown class") : "No class",
 					phase: c.phase,
 					waitingForLearner: c.pendingQuestion || c.pendingProblem,
 					running: isTurnRunning(c.id),
@@ -216,15 +252,18 @@ function buildServer(): McpServer {
 		"search_graph",
 		{
 			title: "Search the knowledge graph",
-			description: "Search the learner's knowledge graph: the facts (propositions) they have learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
+			description: "Search one class's knowledge graph (each class has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
 			inputSchema: {
 				query: z.string().optional().describe("Words to look for in fact names and statements."),
 				limit: z.number().int().min(1).max(200).optional().describe("Most facts to return (default 30)."),
+				class_id: CLASS_ID_ARG,
 			},
 			annotations: { readOnlyHint: true },
 		},
-		async ({ query, limit }) => {
-			const graph = getGraph(stores.graphStore);
+		async ({ query, limit, class_id }) => {
+			const scope = classArg(class_id);
+			if (typeof scope === "string") return failure(scope);
+			const graph = getGraph(graphStoreFor(scope));
 			const terms = searchTerms(query ?? "");
 			const scored = graph.nodes
 				.map((n) => {
@@ -252,13 +291,27 @@ function buildServer(): McpServer {
 		"import_notes",
 		{
 			title: "Import notes",
-			description: "Add notes to the learner's knowledge graph. godspeed turns them into facts in the background with its graph-fact model; if that model is \"Outside agent\", the work arrives through wait_for_work. Returns right away.",
+			description: "Add notes to a knowledge graph. godspeed turns them into facts in the background with its graph-fact model; if that model is \"Outside agent\", the work arrives through wait_for_work. Returns right away. With class_id the notes become a study file of that class (to add a file from disk, use add_class_file).",
 			inputSchema: {
-				name: z.string().describe("A file-like name for the notes, e.g. \"biology-ch3.md\". Re-importing the same name replaces that import."),
+				name: z.string().describe("A file-like name for the notes, e.g. \"biology-ch3.md\". In a class, re-importing the same name replaces that file and rebuilds its facts; in No class it is processed again and adds to that import."),
 				text: z.string().min(1).describe("The notes."),
+				class_id: CLASS_ID_ARG,
 			},
 		},
-		async ({ name, text }) => {
+		async ({ name, text, class_id }) => {
+			const scope = classArg(class_id);
+			if (typeof scope === "string") return failure(scope);
+			if (scope !== null) {
+				const fileName = /\.(md|markdown|txt)$/i.test(name) ? name : `${name}.md`;
+				const existing = stores.classStore.getClass(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
+				if (existing) {
+					const removed = removeFile(scope, existing.id);
+					if (!removed.ok) return failure(removed.error);
+				}
+				const added = addCopiedFile(scope, fileName, new TextEncoder().encode(text), "study");
+				if (!added.ok) return failure(added.error);
+				return result({ status: "started", fileId: added.value.id, note: "Import started. Check progress with read_class." });
+			}
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
 				console.error(`[mcp] import of ${name} failed:`, err);
 			});
@@ -270,12 +323,24 @@ function buildServer(): McpServer {
 		"start_lesson",
 		{
 			title: "Start a lesson",
-			description: "Start a new lesson in godspeed taught by you (the outside agent). The topic becomes the learner's first message. Then call wait_for_work to teach it; the learner follows along in the godspeed window.",
-			inputSchema: { topic: z.string().min(1).describe("What the learner wants to understand, in their words.") },
+			description: "Start a new lesson (or practice session) in godspeed taught by you (the outside agent). The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. Then call wait_for_work to teach it; the learner follows along in the godspeed window.",
+			inputSchema: {
+				topic: z.string().min(1).describe("What the learner wants to understand (or practice), in their words."),
+				class_id: CLASS_ID_ARG,
+				kind: z.enum(["teach", "practice"]).optional().describe('"teach" (default) or "practice".'),
+			},
 		},
-		async ({ topic }) => {
-			const chat = stores.chatStore.createChat(titleFromPrompt(topic));
-			stores.chatStore.saveSettings(chat.id, { model: { provider: AGENT_PROVIDER, id: AGENT_MODEL_ID } });
+		async ({ topic, class_id, kind }) => {
+			const scope = classArg(class_id);
+			if (typeof scope === "string") return failure(scope);
+			const created = createLesson({
+				title: topic,
+				kind: kind === "practice" ? "practice" : undefined,
+				classId: scope,
+				settings: { model: { provider: AGENT_PROVIDER, id: AGENT_MODEL_ID } },
+			});
+			if (!created.ok) return failure(created.error);
+			const chat = created.chat;
 			const started = await handleChatInput(chat.id, { type: "text", text: topic });
 			if (!started.ok) {
 				const body = await started.text();
@@ -285,7 +350,164 @@ function buildServer(): McpServer {
 		},
 	);
 
+	registerClassTools(server);
 	return server;
+}
+
+/** A class as agents see it: summary, files with paths and states, lessons. */
+function classView(classId: string) {
+	const record = stores.classStore.getClass(classId);
+	if (!record) return null;
+	return {
+		id: record.id,
+		name: record.name,
+		description: record.description,
+		archived: record.archived,
+		linkedFolder: record.linkedFolder ?? null,
+		files: record.files.map((f) => ({
+			id: f.id,
+			name: f.name,
+			kind: f.kind,
+			origin: f.origin,
+			status: f.status,
+			...(f.error ? { error: f.error } : {}),
+			path: classFilePath(record, f),
+		})),
+		lessons: stores.chatStore
+			.listChats()
+			.filter((c) => c.classId === record.id)
+			.map((c) => ({ id: c.id, title: c.title, kind: c.kind ?? "teach", updatedAt: c.updatedAt })),
+	};
+}
+
+const FILE_KIND = z
+	.enum(["study", "info"])
+	.describe('"study" = study material turned into graph facts (notes, readings, transcripts, recordings); "info" = course info the teacher can read but that never becomes facts (syllabus, assignments, logistics).');
+
+function registerClassTools(server: McpServer): void {
+	server.registerTool(
+		"list_classes",
+		{
+			title: "List classes",
+			description: "List the learner's classes (university courses), archived ones included, with file and lesson counts.",
+			inputSchema: {},
+			annotations: { readOnlyHint: true },
+		},
+		async () => {
+			const lessons = stores.chatStore.listChats();
+			const classes = stores.classStore.listClasses().map((c) => ({
+				id: c.id,
+				name: c.name,
+				description: c.description,
+				archived: c.archived,
+				linkedFolder: c.linkedFolder ?? null,
+				files: c.fileCount,
+				lessons: lessons.filter((l) => l.classId === c.id).length,
+			}));
+			return result({ classes, noClassLessons: lessons.filter((l) => !l.classId).length });
+		},
+	);
+
+	server.registerTool(
+		"read_class",
+		{
+			title: "Read a class",
+			description: "Read one class: its description, its files (kind, status, path on disk), and its lessons.",
+			inputSchema: { class_id: z.string() },
+			annotations: { readOnlyHint: true },
+		},
+		async ({ class_id }) => {
+			const view = classView(class_id);
+			return view ? result(view) : failure(`No class "${class_id}". Use list_classes.`);
+		},
+	);
+
+	server.registerTool(
+		"create_class",
+		{
+			title: "Create a class",
+			description: "Create a class for a course the learner is taking. The description is shown to the teacher in every lesson of the class: level, textbook, the professor's notation, what exams look like.",
+			inputSchema: {
+				name: z.string().min(1).describe('The course, e.g. "MATH 20C – Calculus III".'),
+				description: z.string().optional().describe("What the teacher should know about the course, in the learner's terms."),
+			},
+		},
+		async ({ name, description }) => result({ class: classView(createClass({ name, description }).id) }),
+	);
+
+	server.registerTool(
+		"update_class",
+		{
+			title: "Update a class",
+			description: "Rename a class, change its description, or archive / unarchive it (archiving hides it from the class switcher but keeps everything).",
+			inputSchema: {
+				class_id: z.string(),
+				name: z.string().min(1).optional(),
+				description: z.string().optional(),
+				archived: z.boolean().optional(),
+			},
+		},
+		async ({ class_id, name, description, archived }) => {
+			const outcome = updateClass(class_id, { name, description, archived });
+			return outcome.ok ? result({ class: classView(class_id) }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"add_class_file",
+		{
+			title: "Add a file to a class",
+			description: "Copy a file from this computer into a class. Supported: .md .txt .pdf .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Study files are turned into facts in the background; check progress with read_class.",
+			inputSchema: {
+				class_id: z.string(),
+				path: z.string().describe("The file's absolute path."),
+				kind: FILE_KIND,
+			},
+		},
+		async ({ class_id, path, kind }) => {
+			const outcome = addFileFromPath(class_id, path, kind);
+			return outcome.ok ? result({ file: outcome.value, note: "Added. Check progress with read_class." }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"set_class_file_kind",
+		{
+			title: "Set a class file's kind",
+			description: "Switch a class file between study material and course info. Study → info removes its facts; info → study builds them.",
+			inputSchema: { class_id: z.string(), file_id: z.string(), kind: FILE_KIND },
+		},
+		async ({ class_id, file_id, kind }) => {
+			const outcome = setFileKind(class_id, file_id, kind);
+			return outcome.ok ? result({ file: outcome.value }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"link_class_folder",
+		{
+			title: "Link a folder to a class",
+			description: "Link a folder on this computer to a class. Its supported files are added as study material, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed never changes the folder. Use set_class_file_kind afterwards for course-info files.",
+			inputSchema: { class_id: z.string(), path: z.string().describe("The folder's absolute path.") },
+		},
+		async ({ class_id, path }) => {
+			const outcome = linkFolder(class_id, path);
+			return outcome.ok ? result({ class: classView(class_id) }) : failure(outcome.error);
+		},
+	);
+
+	server.registerTool(
+		"unlink_class_folder",
+		{
+			title: "Unlink a class's folder",
+			description: "Unlink the class's folder: its files leave the class together with their facts. The folder itself is not touched.",
+			inputSchema: { class_id: z.string() },
+		},
+		async ({ class_id }) => {
+			const outcome = unlinkFolder(class_id);
+			return outcome.ok ? result({ class: classView(class_id) }) : failure(outcome.error);
+		},
+	);
 }
 
 /** The /api/mcp transport: one stateless server per request. */

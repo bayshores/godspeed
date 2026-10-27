@@ -63,6 +63,7 @@
  * camera never moves.
  */
 
+import { classQuery, useClasses } from "@/components/class-context";
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NotesImportErrors, useNotesImport } from "@/components/notes-import.tsx";
 import Link from "next/link";
@@ -974,6 +975,9 @@ export function GraphView({
 	onPracticeSelectionChange?: (nodes: { id: string; name: string; statement: string }[]) => void;
 	onChainSelectClose?: () => void;
 }) {
+	// Classes wave (2026-10-26): the canvas shows the ACTIVE class's graph
+	// (home keys this view by class, so a switch remounts it).
+	const { active: activeClassId } = useClasses();
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const cardRef = useRef<HTMLDivElement | null>(null);
@@ -1085,7 +1089,7 @@ export function GraphView({
 	}, [chainSelectOpen]);
 	useEffect(() => {
 		let cancelled = false;
-		fetch("/api/graph")
+		fetch(`/api/graph${classQuery(activeClassId)}`)
 			.then((res) => res.json() as Promise<GraphSnapshot>)
 			.then((data) => {
 				if (!cancelled) setSnapshot(data);
@@ -1172,7 +1176,7 @@ export function GraphView({
 	// the view — the pill just stays on its last numbers.
 	const [costs, setCosts] = useState<GraphCostSummary | null>(null);
 	const refreshCosts = useCallback(() => {
-		fetch("/api/graph/costs")
+		fetch(`/api/graph/costs${classQuery(activeClassId)}`)
 			.then((res) => res.json() as Promise<GraphCostSummary>)
 			.then(setCosts)
 			.catch(() => {});
@@ -1381,7 +1385,7 @@ export function GraphView({
 				// Live physics settled: persist the new rest state. Fire-and-
 				// forget — the next snapshot fetch carries the ledger anyway.
 				onCommit: (positions) => {
-					void fetch("/api/graph/positions", {
+					void fetch(`/api/graph/positions${classQuery(activeClassId)}`, {
 						method: "PUT",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify(positions),

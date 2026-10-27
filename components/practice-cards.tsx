@@ -25,6 +25,7 @@ import { createPortal } from "react-dom";
 
 import { ThinkingBlock } from "@/components/thinking-block";
 import { usePopoverDismiss } from "@/components/popover-dismiss";
+import { classQuery, useClasses } from "@/components/class-context";
 
 /* TARGET NAMES (owner round 17, 2026-10-06): targets are normalized to
  * opaque node ids at the record seam (owner round 9 — the mastery trace
@@ -32,9 +33,14 @@ import { usePopoverDismiss } from "@/components/popover-dismiss";
  * lazy module-cached fetch of the graph view (the id → name map is a
  * few KB); failures degrade to raw ids — observability never breaks the
  * card. */
-let nodeNameMapPromise: Promise<Record<string, string>> | null = null;
-function nodeNameMap(): Promise<Record<string, string>> {
-	nodeNameMapPromise ??= fetch("/api/graph")
+// Classes wave (2026-10-26): one cached map per class graph — names come
+// from the class the window shows (where the lesson lives).
+const nodeNameMapPromises = new Map<string, Promise<Record<string, string>>>();
+function nodeNameMap(classId: string | null): Promise<Record<string, string>> {
+	const key = classId ?? "none";
+	const cached = nodeNameMapPromises.get(key);
+	if (cached) return cached;
+	const nodeNameMapPromise = fetch(`/api/graph${classQuery(classId)}`)
 		.then((r) => (r.ok ? r.json() : { nodes: [] }))
 		.then((g: { nodes?: Array<{ id?: unknown; name?: unknown }> }) =>
 			Object.fromEntries(
@@ -44,6 +50,7 @@ function nodeNameMap(): Promise<Record<string, string>> {
 			),
 		)
 		.catch(() => ({}));
+	nodeNameMapPromises.set(key, nodeNameMapPromise);
 	return nodeNameMapPromise;
 }
 
@@ -185,6 +192,7 @@ function MetadataPopover({
 	// box, so there is nothing to track.
 	const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
 	const [names, setNames] = useState<Record<string, string> | null>(null);
+	const { active: activeClassId } = useClasses();
 	const targets = Array.isArray(problemInput.target)
 		? problemInput.target.filter((t): t is string => typeof t === "string")
 		: [];
@@ -192,7 +200,7 @@ function MetadataPopover({
 	useEffect(() => {
 		if (!open || targets.length === 0 || names) return;
 		let alive = true;
-		void nodeNameMap().then((m) => {
+		void nodeNameMap(activeClassId).then((m) => {
 			if (alive) setNames(m);
 		});
 		return () => {

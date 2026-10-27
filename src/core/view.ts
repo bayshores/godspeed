@@ -381,6 +381,17 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			});
 			return;
 		}
+		case "class-context": {
+			// The lesson's class card (classes wave, 2026-10-26): user-side
+			// scaffolding like the graph-context card — a collapsible card,
+			// never a text bubble.
+			out.push({
+				id: marker.id,
+				role: "user",
+				parts: [{ type: "data-class-context", id: `cc_${marker.id}`, data: marker.details }],
+			});
+			return;
+		}
 		case "probe-handoff": {
 			out.push({
 				id: marker.id,

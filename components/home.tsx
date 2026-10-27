@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeftIcon, DumbbellIcon } from "lucide-react";
 import { GraphView } from "@/components/graph-view";
+import { useClasses } from "@/components/class-context";
 import { MinimalHome } from "@/components/minimal-home";
 import { SetupDialog } from "@/components/setup-dialog";
 import { ComposerActions, NodePickerControl } from "@/components/composer-actions";
@@ -30,6 +31,7 @@ export function Home({
 	rendering?: boolean;
 }) {
 	const router = useRouter();
+	const { active: activeClassId } = useClasses();
 	const [topic, setTopic] = useState("");
 	/* The topic MIRROR: the send reads the ref, kept current at every
 	 * write, so a closure never sees a stale draft. */
@@ -68,6 +70,8 @@ export function Home({
 	 *  Not enforcing any input format — the picks are a convenience. */
 	const [mode, setMode] = useState<"teach" | "practice">("teach");
 	const [practiceProps, setPracticeProps] = useState<{ id: string; name: string; statement: string }[]>([]);
+	// Picks belong to one class's graph — switching class clears them.
+	useEffect(() => setPracticeProps([]), [activeClassId]);
 	const [chainSelectOpen, setChainSelectOpen] = useState(false);
 	// The chain table is CONTROLLED off this id set (the lifted pick).
 	const pickedIds = useMemo(() => new Set(practiceProps.map((p) => p.id)), [practiceProps]);
@@ -106,6 +110,8 @@ export function Home({
 					title: t,
 					...(mode === "practice" ? { kind: "practice" } : {}),
 					...(practiceProps.length > 0 ? { graphContext: { propositions: practiceProps } } : {}),
+					// Classes wave: the lesson starts in the active class.
+					...(activeClassId ? { classId: activeClassId } : {}),
 				}),
 			});
 			const { id } = (await res.json()) as { id: string };
@@ -141,6 +147,7 @@ export function Home({
 			<main className="absolute inset-0">
 				{rendering ? (
 					<GraphView
+						key={activeClassId ?? "none"}
 						chainSelectOpen={chainSelectOpen}
 						practiceSelection={pickedIds}
 						onPracticeSelectionChange={setPracticeProps}
@@ -148,6 +155,7 @@ export function Home({
 					/>
 				) : (
 					<MinimalHome
+						key={activeClassId ?? "none"}
 						chainSelectOpen={chainSelectOpen}
 						practiceSelection={pickedIds}
 						onPracticeSelectionChange={setPracticeProps}

@@ -1,4 +1,4 @@
-import { deleteGraphNode } from "@/src/server";
+import { deleteGraphNode, requestClassScope } from "@/src/server";
 
 /**
  * DELETE /api/graph/nodes/[id] — single-node deletion, FULL DEATH (owner
@@ -17,9 +17,11 @@ import { deleteGraphNode } from "@/src/server";
  * synchronous end to end — nothing interleaves. The response carries what
  * was removed plus the new graphRevision (the refetch signal).
  */
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
-	const outcome = deleteGraphNode(id);
+	const scope = requestClassScope(req);
+	if (scope === undefined) return Response.json({ error: "No such class" }, { status: 404 });
+	const outcome = deleteGraphNode(id, scope);
 	if (!outcome.ok) {
 		return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
 	}

@@ -4,7 +4,7 @@ import { coverageOf } from "../core/coverage.ts";
 import { deleteChatTraces, type ChatDeleteMode, type ChatDeletionStats } from "../core/graph-deletion.ts";
 import { titleFromPrompt } from "../core/contracts.ts";
 import { graphRevision } from "./graph.ts";
-import { stores } from "./stores.ts";
+import { graphStoreFor, stores } from "./stores.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
 import { discardChatDeliveries } from "./jobs.ts";
@@ -95,10 +95,11 @@ function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, { status
 	return null;
 }
 
-export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): Promise<ChatDeleteOutcome> {
-	if (!stores.chatStore.getChat(chatId)) {
-		return { ok: false, status: 404, code: "not_found", error: "No such session" };
-	}
+/** Quiesce one lesson before a synchronous graph rewrite (deletion, or a
+ *  class move — classes wave 2026-10-26): refuse while a turn or job runs,
+ *  abort and wait out its extraction. Null = safe to run the sync block
+ *  NOW (no await may sit between this and the rewrite). */
+export async function quiesceChatForRewrite(chatId: string): Promise<Extract<ChatDeleteOutcome, { ok: false }> | null> {
 	const blocker = runningWorkBlocker(chatId);
 	if (blocker) return blocker;
 	if (extractionStatuses().some((run) => run.chatId === chatId)) {
@@ -119,18 +120,27 @@ export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): P
 
 	// A result wake or a worker may have started during extraction wind-down.
 	// Recheck immediately before the synchronous purge, with no await gap.
-	const lateBlocker = runningWorkBlocker(chatId);
-	if (lateBlocker) return lateBlocker;
+	return runningWorkBlocker(chatId);
+}
+
+export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): Promise<ChatDeleteOutcome> {
+	const record = stores.chatStore.getChat(chatId);
+	if (!record) {
+		return { ok: false, status: 404, code: "not_found", error: "No such session" };
+	}
+	const blocker = await quiesceChatForRewrite(chatId);
+	if (blocker) return blocker;
 
 	// THE SYNC BLOCK — no awaits below (see the doc comment). Order:
-	// ledgers → jobs → the chat record.
-	const stats = deleteChatTraces(stores.graphStore, chatId, mode);
+	// ledgers → jobs → the chat record. The lesson's OWN class graph.
+	const scope = record.classId ?? null;
+	const stats = deleteChatTraces(graphStoreFor(scope), chatId, mode);
 	const jobsRemoved = stores.jobStore.deleteJobsForChat(chatId);
 	if (stores.chatStore.deleteChat(chatId)) {
 		discardChatDeliveries(chatId);
 		clearTurnFailure(chatId);
 	}
-	return { ok: true, mode, stats, jobsRemoved, graphRevision: graphRevision() };
+	return { ok: true, mode, stats, jobsRemoved, graphRevision: graphRevision(scope) };
 }
 
 /** One session's coverage read (extraction-UX redesign, owner dispatch
@@ -160,7 +170,7 @@ export interface SessionCoverage {
 export function sessionCoverage(chatId: string): SessionCoverage | null {
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) return null;
-	const entries = stores.graphStore.readCoverage();
+	const entries = graphStoreFor(record.classId ?? null).readCoverage();
 	// Wave B: the record is native history — coverage reads through the
 	// projection (same view the extraction pipeline folds).
 	const cov = coverageOf(record.messages, entries, chatId);

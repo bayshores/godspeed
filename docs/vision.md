@@ -10,6 +10,8 @@ Prior art: `knowledge graph design.md` in the Obsidian vault (2025-08-20 ideatio
 
 ## 1. The knowledge graph — the centerpiece
 
+> **Classes (owner ruling 2026-10-26, supersedes "one graph" below):** the learner can organize learning by class (a university course). Each class has its **own** persistent graph (`data/classes/<id>/graph/`); lessons and notes without a class keep the original graph (`data/graph/`, "No class"). Facts never merge across classes. **Reads may cross classes, writes never do:** the prober's map tools read every class's graph, so a strand held solid in one class is not re-probed in another; extraction, the auditor's identity search, and practice targets stay inside the lesson's own class. A class also carries the learner's description and files (study material → extracted into the class graph; course info → readable by the teacher, never extracted). Lessons in a class open with a `[Class context]` card; how agents use it is `src/agent/prompts/shared/12-class-context.md`. The teaching method is unchanged.
+
 Everything the learner learns accumulates into one persistent, cross-domain graph. It is the home page of the app and the heart of the system: structure builds out visibly over time, and the data supports frontier expansion, what-next queries, repairs, unlock-value (per the original design doc).
 
 **Node theory + construction redesigned 2026-09-02** — the subsections below from "What the graph is" through "Understanding is derived" are the current philosophy, superseding both the original design doc's epistemic model in part and the 2026-08-22 live-emission construction decision (see the amendments table).
