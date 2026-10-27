@@ -83,15 +83,34 @@ export function canRemove(file: ClassFile): boolean {
 	return file.origin === "copied";
 }
 
-/** "1 fact" / "24 facts". */
-export function factsLabel(n: number): string {
-	return `${n} ${n === 1 ? "fact" : "facts"}`;
+/** The coverage bar's fill: the share of the file's facts that came up in
+ *  a lesson (0 when it has none yet). */
+export function studiedFill(state: { facts: number; inLessons: number }): number {
+	return state.facts > 0 ? Math.min(1, state.inLessons / state.facts) : 0;
 }
 
-/** The coverage bar: a file with facts that never came up in a lesson is
- *  white (the Overview's "unstudied" look); otherwise the fill is the share
- *  that came up. */
-export function coverageBar(state: { facts: number; inLessons: number; share: number | null }): { unstudied: boolean; fill: number } {
-	if (state.facts > 0 && state.inLessons === 0) return { unstudied: true, fill: 0 };
-	return { unstudied: false, fill: state.share ?? 0 };
+/** The drag payload type for a file row moved between the two sections. */
+export const FILE_DRAG_TYPE = "application/x-godspeed-class-file";
+
+/** A section's name. */
+export function kindTitle(kind: "study" | "info"): string {
+	return kind === "study" ? "Study material" : "Course info";
+}
+
+/** What a section's drop target says while something is dragged over it:
+ *  - files from Finder → "Drop to add 2 files as study material"
+ *  - a row from the other section → "Move to Course info" and what that does */
+export function dropCopy(
+	kind: "study" | "info",
+	drag: { type: "finder"; count: number } | { type: "row"; facts: number | null },
+): { title: string; detail?: string } {
+	if (drag.type === "finder") {
+		const what = drag.count > 0 ? `${drag.count} ${drag.count === 1 ? "file" : "files"}` : "files";
+		return { title: `Drop to add ${what} as ${kindTitle(kind).toLowerCase()}` };
+	}
+	if (kind === "info") {
+		const facts = drag.facts ? `Its ${drag.facts} ${drag.facts === 1 ? "fact leaves" : "facts leave"} the graph.` : "Its facts leave the graph.";
+		return { title: "Move to Course info", detail: `${facts} The teacher can still read it.` };
+	}
+	return { title: "Move to Study material", detail: "It gets turned into facts for the graph." };
 }

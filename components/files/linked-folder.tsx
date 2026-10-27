@@ -1,36 +1,83 @@
-import { useState } from "react";
-import { FolderIcon } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { FolderIcon, FolderSyncIcon, UnlinkIcon } from "lucide-react";
+import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { shortenHome } from "./files-model";
+import { useMenuDismiss } from "./use-menu-dismiss";
 
 /**
- * THE LINKED FOLDER ROW (Files page): the folder's path, "New files are
- * added as study material", and Unlink. Outside the desktop app (no
- * folder picker) "Link folder" opens this row as a path field instead.
+ * THE LINKED FOLDER (Files page, in the Study material header): a chip
+ * with the folder's short path. Clicking it opens a small box with the
+ * full path, "New files in it are added as study material." and Unlink.
+ * (Tooltips here can't hold buttons, so the box opens on click.)
  */
-export function LinkedFolderRow({ path, disabled, onUnlink }: { path: string; disabled?: boolean; onUnlink: () => void }) {
-	const short = shortenHome(path);
+export function LinkedFolderChip({ path, disabled, onUnlink }: { path: string; disabled?: boolean; onUnlink: () => void }) {
+	const [open, setOpen] = useState(false);
+	const anchorRef = useRef<HTMLButtonElement>(null);
+	const close = useCallback(() => setOpen(false), []);
+	useMenuDismiss(open, close, anchorRef);
 	return (
-		<div data-testid="class-folder" className="flex w-full items-center gap-3 bg-panel px-3.5 py-3">
-			<FolderIcon className="size-4 shrink-0 text-ink-2" aria-hidden />
-			<div className="flex min-w-0 flex-1 items-center gap-2.5">
-				<Tip title="Linked folder" body={<span className="break-all">{path}</span>} disabled={short === path} side="bottom" align="start">
-					<span data-testid="class-folder-path" tabIndex={short === path ? undefined : 0} className="min-w-0 truncate text-sm font-semibold text-ink outline-none">
-						{short}
+		<>
+			<Tip title="Linked folder" hint="Click to see the folder or unlink it" side="bottom" align="end">
+				<button
+					ref={anchorRef}
+					type="button"
+					data-testid="class-folder"
+					aria-haspopup="dialog"
+					aria-expanded={open}
+					onClick={() => setOpen((o) => !o)}
+					className={cn("lh-press flex min-w-0 items-center gap-[7px] px-2 py-1.5 hover:bg-tone", open && "bg-tone")}
+				>
+					<FolderSyncIcon className="size-[13px] shrink-0 text-ink-3" aria-hidden />
+					<span data-testid="class-folder-path" className="min-w-0 truncate text-[13px] text-ink-2">
+						{shortenHome(path)}
 					</span>
-				</Tip>
-				<span className="shrink-0 truncate text-[13px] text-ink-3">New files are added as study material</span>
-			</div>
-			<button
-				type="button"
-				data-testid="class-unlink-folder"
-				disabled={disabled}
-				onClick={onUnlink}
-				className="lh-press shrink-0 text-[13.5px] font-bold text-ink-2 hover:text-ink disabled:opacity-50"
+				</button>
+			</Tip>
+			<MenuShell
+				open={open}
+				anchorRef={anchorRef}
+				testid="class-folder-box"
+				preferredSide="down"
+				menuClass="flex w-[300px] flex-col gap-2 border border-tone-2 bg-tip px-[13px] py-[11px] shadow-[0_0_28px_#000000e6]"
 			>
-				Unlink
-			</button>
-		</div>
+				<div className="text-sm font-bold text-ink">Linked folder</div>
+				<div className="break-all font-mono text-xs leading-[1.4] text-ink-2">{path}</div>
+				<div className="text-[12.5px] text-ink-2">New files in it are added as study material.</div>
+				<div className="pt-1">
+					<button
+						type="button"
+						data-testid="class-unlink-folder"
+						disabled={disabled}
+						onClick={() => {
+							setOpen(false);
+							onUnlink();
+						}}
+						className="lh-press flex items-center gap-1.5 bg-tone px-2.5 py-1.5 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-50"
+					>
+						<UnlinkIcon className="size-[13px]" aria-hidden />
+						Unlink
+					</button>
+				</div>
+			</MenuShell>
+		</>
+	);
+}
+
+/** "Link folder" (no folder linked yet): a quiet header button. */
+export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; onClick: () => void }) {
+	return (
+		<button
+			type="button"
+			data-testid="class-pick-folder"
+			disabled={disabled}
+			onClick={onClick}
+			className="lh-press flex items-center gap-1.5 px-2.5 py-1.5 text-[13.5px] font-bold text-ink-2 hover:bg-tone hover:text-ink disabled:opacity-60"
+		>
+			<FolderSyncIcon className="size-[13px]" aria-hidden />
+			Link folder
+		</button>
 	);
 }
 
@@ -51,7 +98,7 @@ export function LinkFolderField({
 	return (
 		<form
 			data-testid="class-folder-form"
-			className="flex w-full items-center gap-3 bg-panel px-3.5 py-2.5"
+			className="flex w-full items-center gap-3 px-3 pb-2.5"
 			onSubmit={(e) => {
 				e.preventDefault();
 				if (ready) onLink(value);
@@ -72,7 +119,7 @@ export function LinkFolderField({
 				}}
 				placeholder="/Users/you/School/MATH20C"
 				autoFocus
-				className="min-w-0 flex-1 bg-black px-2.5 py-1.5 text-sm text-ink border border-tone-2 placeholder:text-ink-3 focus:border-ink-3"
+				className="min-w-0 flex-1 border border-tone-2 bg-black px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-3 focus:border-ink-3"
 			/>
 			<button type="button" onClick={onCancel} className="lh-press shrink-0 text-[13.5px] font-bold text-ink-2 hover:text-ink">
 				Cancel

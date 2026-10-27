@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FolderSyncIcon, PlusIcon } from "lucide-react";
-import type { FileCoverage } from "@/src/core";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ClassFile, FileCoverage } from "@/src/core";
 import { useClasses } from "@/components/class-context";
-import { MenuShell } from "@/components/menu-shell";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
 import {
@@ -18,19 +16,20 @@ import {
 	type WriteResult,
 } from "./class-files-api";
 import type { FileRowActions } from "./file-row";
-import { FileSection } from "./files-sections";
-import { CLASS_FILE_ACCEPT, fileAnchorId, fileIdFromHash, splitByKind } from "./files-model";
-import { LinkFolderField, LinkedFolderRow } from "./linked-folder";
-import { useMenuDismiss } from "./use-menu-dismiss";
+import { FileSection, type SectionDrag } from "./files-sections";
+import { fileAnchorId, fileIdFromHash, splitByKind } from "./files-model";
+import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
 
 /** How long a row a "#file-<id>" link landed on stays outlined. */
 const FLASH_MS = 1600;
 
 /**
- * THE FILES PAGE (redesign plan, Phase 6 — design/exports/files.html): the
- * active class's files. Top bar: "Link folder" and "Add files" (as study
- * material or course info). Body: the linked folder with Unlink, then
- * "Study material" and "Course info" rows (files-sections.tsx).
+ * THE FILES PAGE (design/godspeed-redesign.pen, "Files — panels"): the
+ * active class's files in two stacked panels, "Study material" and
+ * "Course info" (files-sections.tsx). Each panel has its own Add and is a
+ * drop zone for files from Finder; dragging a row into the other panel
+ * (or its ⋯ menu's "Move to …") switches its kind. The linked folder (or
+ * Link folder) sits in the Study material header.
  *
  * Coverage per file comes from the shared progress payload; the record
  * re-reads on classes-changed, so statuses update as files are built.
@@ -98,109 +97,118 @@ export function FilesPage() {
 	const flashId = useHashFlash(record !== null);
 	const disabled = busy > 0;
 
+	// Drag and drop: a row being moved, and what is over which panel.
+	const [rowDrag, setRowDrag] = useState<ClassFile | null>(null);
+	const [over, setOver] = useState<{ kind: "study" | "info"; drag: SectionDrag } | null>(null);
+	const onDrag = useCallback((file: ClassFile | null) => {
+		setRowDrag(file);
+		if (!file) setOver(null);
+	}, []);
+	const rowActions = useMemo(() => (actions ? { ...actions, onDrag } : null), [actions, onDrag]);
+	const onDragOverSection = useCallback(
+		(kind: "study" | "info", drag: { type: "finder"; count: number } | { type: "row" }): boolean => {
+			if (drag.type === "row") {
+				if (!rowDrag || rowDrag.kind === kind) return false;
+				setOver((prev) => (prev?.kind === kind && prev.drag.type === "row" ? prev : { kind, drag: { type: "row", file: rowDrag } }));
+				return true;
+			}
+			setOver((prev) => (prev?.kind === kind && prev.drag.type === "finder" && prev.drag.count === drag.count ? prev : { kind, drag }));
+			return true;
+		},
+		[rowDrag],
+	);
+	const onDragLeaveSection = useCallback((kind: "study" | "info") => setOver((prev) => (prev?.kind === kind ? null : prev)), []);
+	const onMoveHere = useCallback(
+		(kind: "study" | "info") => {
+			if (rowDrag && rowDrag.kind !== kind) actions?.onKind(rowDrag.id, kind);
+			setRowDrag(null);
+			setOver(null);
+		},
+		[rowDrag, actions],
+	);
+	const addStudy = useCallback(
+		(files: File[]) => {
+			if (classId) void run(() => uploadClassFiles(classId, files, "study"));
+		},
+		[classId, run],
+	);
+	const addInfo = useCallback(
+		(files: File[]) => {
+			if (classId) void run(() => uploadClassFiles(classId, files, "info"));
+		},
+		[classId, run],
+	);
+	const overFor = (kind: "study" | "info") => (over?.kind === kind ? over.drag : null);
+	const finderOver = over?.drag.type === "finder" ? over.kind : null;
+
 	return (
-		<div className="flex h-full flex-col" data-testid="files-page">
+		<div
+			className="flex h-full flex-col"
+			data-testid="files-page"
+			// Files dropped outside the two panels do nothing.
+			onDragOver={(e) => {
+				if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+				e.preventDefault();
+				e.dataTransfer.dropEffect = "none";
+			}}
+			onDrop={(e) => {
+				e.preventDefault();
+				setOver(null);
+			}}
+		>
 			<TopBar>
 				<h1 className="pl-4 text-[15px] font-bold text-ink">Files</h1>
-				<div className="flex-1" />
-				{classId && (
-					<div className="flex items-center gap-0.5">
-						<button
-							type="button"
-							data-testid="class-pick-folder"
-							disabled={disabled}
-							onClick={onLinkFolder}
-							className="lh-press flex items-center gap-[7px] bg-tone px-3 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-60"
-						>
-							<FolderSyncIcon className="size-3.5" aria-hidden />
-							Link folder
-						</button>
-						<AddFilesButton disabled={disabled} onFiles={(files, kind) => void run(() => uploadClassFiles(classId, files, kind))} />
-					</div>
-				)}
 			</TopBar>
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				{record && actions && (
-					<div className="flex w-full flex-col gap-7 px-7 py-5">
+				{record && rowActions && (
+					<div className="flex w-full flex-col gap-6 px-7 pt-2 pb-7">
 						{error && (
 							<div role="alert" data-testid="class-files-error" className="whitespace-pre-wrap border border-ans-wrong/50 px-3 py-2 text-[13px] text-ans-wrong">
 								{error}
 							</div>
 						)}
-						{linking ? (
-							<LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} />
-						) : (
-							record.linkedFolder && (
-								<LinkedFolderRow path={record.linkedFolder} disabled={disabled} onUnlink={() => void run(() => unlinkClassFolder(record.id))} />
-							)
-						)}
-						<FileSection kind="study" files={sections.study} coverage={coverage} disabled={disabled} flashId={flashId} actions={actions} />
-						<FileSection kind="info" files={sections.info} coverage={coverage} disabled={disabled} flashId={flashId} actions={actions} />
+						<FileSection
+							kind="study"
+							files={sections.study}
+							coverage={coverage}
+							disabled={disabled}
+							flashId={flashId}
+							actions={rowActions}
+							headerExtra={
+								record.linkedFolder ? (
+									<LinkedFolderChip path={record.linkedFolder} disabled={disabled} onUnlink={() => void run(() => unlinkClassFolder(record.id))} />
+								) : (
+									!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
+								)
+							}
+							beforeRows={linking ? <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} /> : null}
+							draggingId={rowDrag?.id ?? null}
+							over={overFor("study")}
+							dim={finderOver === "info"}
+							onAddFiles={addStudy}
+							onDragOverSection={onDragOverSection}
+							onDragLeaveSection={onDragLeaveSection}
+							onMoveHere={onMoveHere}
+						/>
+						<FileSection
+							kind="info"
+							files={sections.info}
+							coverage={coverage}
+							disabled={disabled}
+							flashId={flashId}
+							actions={rowActions}
+							draggingId={rowDrag?.id ?? null}
+							over={overFor("info")}
+							dim={finderOver === "study"}
+							onAddFiles={addInfo}
+							onDragOverSection={onDragOverSection}
+							onDragLeaveSection={onDragLeaveSection}
+							onMoveHere={onMoveHere}
+						/>
 					</div>
 				)}
 			</div>
 		</div>
-	);
-}
-
-/** "Add files": a small menu — as study material or as course info — then
- *  the system file picker. */
-function AddFilesButton({ disabled, onFiles }: { disabled?: boolean; onFiles: (files: File[], kind: "study" | "info") => void }) {
-	const [open, setOpen] = useState(false);
-	const anchorRef = useRef<HTMLButtonElement>(null);
-	const inputRef = useRef<HTMLInputElement>(null);
-	const kindRef = useRef<"study" | "info">("study");
-	const close = useCallback(() => setOpen(false), []);
-	useMenuDismiss(open, close, anchorRef);
-	const choose = (kind: "study" | "info") => {
-		kindRef.current = kind;
-		setOpen(false);
-		inputRef.current?.click();
-	};
-	const item = "lh-press flex items-center px-2.5 py-1.5 text-left text-ink hover:bg-tone";
-	return (
-		<>
-			<input
-				ref={inputRef}
-				type="file"
-				multiple
-				accept={CLASS_FILE_ACCEPT}
-				className="hidden"
-				data-testid="class-file-input"
-				onChange={(e) => {
-					const files = Array.from(e.target.files ?? []);
-					e.target.value = "";
-					if (files.length > 0) onFiles(files, kindRef.current);
-				}}
-			/>
-			<button
-				ref={anchorRef}
-				type="button"
-				data-testid="class-add-files"
-				aria-haspopup="menu"
-				aria-expanded={open}
-				disabled={disabled}
-				onClick={() => setOpen((o) => !o)}
-				className="lh-press flex items-center gap-[7px] bg-ink px-3 py-2 text-[13.5px] font-bold text-black hover:bg-white disabled:opacity-60"
-			>
-				<PlusIcon className="size-3.5" aria-hidden />
-				Add files
-			</button>
-			<MenuShell
-				open={open}
-				anchorRef={anchorRef}
-				testid="class-add-kind"
-				preferredSide="down"
-				menuClass="flex w-44 flex-col gap-0.5 border border-tone-2 bg-panel p-1.5 text-[13px] shadow-xl"
-			>
-				<button type="button" data-testid="class-add-study" onClick={() => choose("study")} className={item}>
-					Study material
-				</button>
-				<button type="button" data-testid="class-add-info" onClick={() => choose("info")} className={item}>
-					Course info
-				</button>
-			</MenuShell>
-		</>
 	);
 }
 
