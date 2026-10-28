@@ -18,7 +18,8 @@ import { useLessonStart } from "@/components/home/use-lesson-start";
 import { useLessonStep } from "@/components/home/use-lesson-step";
 
 /**
- * HOME — "New lesson" (redesign Phase 6): where new lessons start
+ * NEW LESSON (redesign Phase 6; at "/new" since Home took "/" on
+ * 2026-10-28): where new lessons start
  * (the sidebar's New lesson and Practice buttons and ⌘N open it), in the
  * active class. Teach / Practice, the topic box ("Start from facts" picks facts
  * from the chain table; Enter or "Start lesson" starts), then
@@ -26,7 +27,7 @@ import { useLessonStep } from "@/components/home/use-lesson-step";
  * earliest unstudied file) and Work on next (weak or untested topics).
  * The top bar keeps the graph-cost control.
  */
-export function Home() {
+export function NewLesson() {
 	const { active: activeClassId, activeClass } = useClasses();
 	const lesson = useLessonStart();
 	const { data } = useProgress();
@@ -37,12 +38,12 @@ export function Home() {
 	/* The topic MIRROR: the start reads the ref, kept current at every
 	 * write, so a closure never sees a stale draft. */
 	const topicRef = useRef("");
-	// The mode lives in the URL ("/?mode=practice" is the sidebar's
+	// The mode lives in the URL ("/new?mode=practice" is the sidebar's
 	// Practice button), so the sidebar always lands on the right one; the
 	// switch rewrites it in place (no navigation, no history entry).
 	const mode: HomeMode = useSearchParams().get("mode") === "practice" ? "practice" : "teach";
 	const setMode = useCallback((m: HomeMode) => {
-		window.history.replaceState(null, "", m === "practice" ? "/?mode=practice" : "/");
+		window.history.replaceState(null, "", m === "practice" ? "/new?mode=practice" : "/new");
 	}, []);
 	const [picks, setPicks] = useState<GraphContextPick[]>([]);
 	const [pickerOpen, setPickerOpen] = useState(false);

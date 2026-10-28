@@ -2,31 +2,34 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { PencilIcon } from "lucide-react";
-import type { FileCoverage } from "@/core";
+import type { DeadlineProgress, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
+import { useMinute } from "@/components/countdown";
+import { usePracticeStart } from "@/components/graph/practice";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
 import { OverviewBody } from "./overview-body";
-import { displayName } from "./overview-model";
 
 /**
  * THE CLASS OVERVIEW (redesign plan, Phase 4) — opened from the sidebar's
  * Overview row. The top bar holds "Edit class" (the existing class
  * dialog); the body reads the active class's progress (useProgress).
  *
- * "Learn this" starts a lesson on the Next-up file the way Home starts
- * lessons (useLessonStart: the file name is the lesson's title and first
- * message, in the active class).
+ * The runway's rings start practice on a deadline's topics (the Graph
+ * page's "Practice these N" path); "Most needed" → Learn this starts a
+ * lesson on that topic the way the New lesson screen starts lessons
+ * (useLessonStart: the topic name is the lesson's title and first message,
+ * in the active class).
  */
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
 	const { data } = useProgress();
 	const [editing, setEditing] = useState(false);
 	const lesson = useLessonStart();
-	const { start } = lesson;
-	const learn = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
+	const practice = usePracticeStart();
+	const nowMs = useMinute();
 
 	// The dialog compares its mode by identity: one object per open.
 	const editId = activeClass?.id ?? null;
@@ -34,6 +37,24 @@ export function ClassOverview() {
 
 	// Progress for a class the window just left is never shown.
 	const current = data && data.classId === active ? data : null;
+
+	const { start } = lesson;
+	const learn = useCallback(
+		(topicId: string) => {
+			const topic = current?.topics.find((t) => t.id === topicId);
+			if (topic) void start({ title: topic.name });
+		},
+		[current, start],
+	);
+	const startPractice = practice.start;
+	const practiceDeadline = useCallback(
+		(d: DeadlineProgress) => {
+			if (!current) return;
+			const topics = d.topics.map((t) => current.topics.find((x) => x.id === t.id)).filter((t): t is TopicProgress => !!t);
+			void startPractice(topics, current.facts);
+		},
+		[current, startPractice],
+	);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -58,7 +79,9 @@ export function ClassOverview() {
 					description={activeClass?.description ?? ""}
 					hasClass={!!activeClass}
 					data={current}
-					busy={lesson.busy}
+					nowMs={nowMs}
+					busy={lesson.busy || practice.busy}
+					onPractice={practiceDeadline}
 					onLearn={learn}
 				/>
 			</div>

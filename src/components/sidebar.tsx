@@ -13,7 +13,9 @@ import { kbdEventForAction } from "@/core";
 import { ClassSwitcher } from "@/components/class-switcher";
 import { useClasses } from "@/components/class-context";
 import { replayRise } from "@/components/sidebar/motion";
-import { ClassNav } from "@/components/sidebar/class-nav";
+import { ClassNav, HomeRow } from "@/components/sidebar/class-nav";
+import { DueSoon } from "@/components/sidebar/due-soon";
+import { useOpenDeadlines } from "@/components/use-open-deadlines";
 import { LessonsSection } from "@/components/sidebar/lessons-section";
 import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
 
@@ -225,14 +227,16 @@ const NEW_BUTTON =
 
 /**
  * THE SIDEBAR (redesign 2026-10-27, the same on every screen): the window
- * row (traffic lights + close), the class switcher, the class nav
- * (Overview / Graph / Files), "New lesson" and "Practice", the lessons,
- * and the footer (outside agent · jobs, settings).
+ * row (traffic lights + close), Home, the class switcher, the class nav
+ * (Overview / Graph / Files), "New lesson" and "Practice", Due soon
+ * (2026-10-28), the lessons, and the footer (outside agent · jobs,
+ * settings).
  */
 function SessionsSidebar() {
 	const { open, toggle } = useSidebar();
 	const pathname = usePathname();
 	const { active: activeClassId, activeClass } = useClasses();
+	const due = useOpenDeadlines();
 
 	return (
 		<aside
@@ -258,21 +262,25 @@ function SessionsSidebar() {
 					</Hint>
 				</div>
 
+				<HomeRow pathname={pathname} />
+
 				<ClassSwitcher />
 
 				<ClassNav pathname={pathname} hasClass={activeClass !== null} fileCount={activeClass?.fileCount ?? 0} />
 
-				{/* New lessons start on Home ("/"), in Teach or Practice mode. */}
+				{/* New lessons start on the New lesson screen ("/new"), in Teach or Practice mode. */}
 				<div className="flex w-full gap-0.5">
-					<Link href="/" data-testid="new-session" className={NEW_BUTTON}>
+					<Link href="/new" data-testid="new-session" className={NEW_BUTTON}>
 						<PlusIcon className="size-3.5" aria-hidden />
 						New lesson
 					</Link>
-					<Link href="/?mode=practice" data-testid="new-session-practice" className={NEW_BUTTON}>
+					<Link href="/new?mode=practice" data-testid="new-session-practice" className={NEW_BUTTON}>
 						<DumbbellIcon className="size-3.5" aria-hidden />
 						Practice
 					</Link>
 				</div>
+
+				<DueSoon deadlines={due.deadlines} leaving={due.leaving} onDone={due.markDone} />
 
 				<LessonsSection open={open} toggle={toggle} pathname={pathname} activeClassId={activeClassId} />
 

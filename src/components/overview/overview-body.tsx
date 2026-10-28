@@ -1,14 +1,15 @@
 import { memo, useMemo } from "react";
-import type { FileCoverage, ProgressPayload } from "@/core";
-import { CoverageCard } from "./coverage-card";
+import type { DeadlineProgress, ProgressPayload } from "@/core";
 import { ConfidenceCard } from "./confidence-card";
 import { LessonsCard } from "./lessons-card";
 import { answeredLessons, hasCalibration } from "./overview-model";
+import { RunwayCard } from "./runway-card";
+import { studiedFacts } from "./runway-model";
 
 /**
  * The Overview page below the top bar (pure view — the render-test seam):
- * the header (class name in CMU, its description), then Coverage (classes
- * only) and the How-lessons-went / confidence row. Each card shows only
+ * the header (class name in CMU, its description), then Ready for what's
+ * due (classes only) and the How-lessons-went / confidence row. Each card shows only
  * once it has something to show; while loading the cards are absent.
  */
 export const OverviewBody = memo(function OverviewBody({
@@ -16,18 +17,26 @@ export const OverviewBody = memo(function OverviewBody({
 	description,
 	hasClass,
 	data,
+	nowMs,
 	busy,
+	onPractice,
 	onLearn,
 }: {
 	name: string;
 	description: string;
 	hasClass: boolean;
 	data: ProgressPayload | null;
+	/** The window's clock (null before the first client render). */
+	nowMs: number | null;
 	busy: boolean;
-	onLearn: (file: FileCoverage) => void;
+	/** A runway ring: practice that deadline's topics. */
+	onPractice: (deadline: DeadlineProgress) => void;
+	/** "Most needed" → Learn this. */
+	onLearn: (topicId: string) => void;
 }) {
 	const lessons = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
-	const showCoverage = hasClass && !!data && data.files.length > 0;
+	const facts = useMemo(() => studiedFacts(data?.facts ?? []), [data?.facts]);
+	const showRunway = hasClass && !!data && nowMs !== null;
 	const showConfidence = !!data && hasCalibration(data.calibration.levels);
 	return (
 		<div data-testid="class-overview" className="@container flex w-full flex-col pb-8">
@@ -38,7 +47,17 @@ export const OverviewBody = memo(function OverviewBody({
 				{description && <p className="text-base text-ink-2">{description}</p>}
 			</header>
 			<div className="flex flex-col gap-4 px-[52px]">
-				{showCoverage && <CoverageCard files={data.files} nextUp={data.nextUp} busy={busy} onLearn={onLearn} />}
+				{showRunway && (
+					<RunwayCard
+						deadlines={data.deadlines}
+						today={data.today}
+						nowMs={nowMs}
+						facts={facts}
+						busy={busy}
+						onPractice={onPractice}
+						onLearn={onLearn}
+					/>
+				)}
 				{(lessons.length > 0 || showConfidence) && (
 					<div className="flex flex-col items-start gap-4 @4xl:flex-row">
 						{lessons.length > 0 && (

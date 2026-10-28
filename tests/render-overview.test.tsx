@@ -1,10 +1,10 @@
 /**
  * The Class Overview (redesign plan, Phase 4): the page body rendered from a
- * fixture ProgressPayload — coverage blocks (width by facts, fill by share,
- * unstudied white, file links), Next up, How lessons went (one block per
+ * fixture ProgressPayload — Ready for what's due (the runway's stops,
+ * rings, lines, "+N later", Most needed), How lessons went (one block per
  * answer, score, lesson links), the confidence chart (target lines, red
  * where a sure level falls short, takeaway, sure-but-wrong links into the
- * lesson), the No-class variant, and the "Learn this" click.
+ * lesson), the No-class variant, and the runway's clicks.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -14,7 +14,7 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { AnswerOutcome, AnswerRef, CalibrationLevel, FileCoverage, LessonProgress, ProgressPayload } from "../src/core/index.ts";
+import type { AnswerOutcome, AnswerRef, CalibrationLevel, DeadlineProgress, FileCoverage, LessonProgress, ProgressPayload } from "../src/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -89,7 +89,17 @@ const PAYLOAD = {
 
 function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) {
 	return renderToStaticMarkup(
-		<OverviewBody name="ML Foundations" description="Optimization and learning theory" hasClass data={PAYLOAD} busy={false} onLearn={() => {}} {...props} />,
+		<OverviewBody
+			name="ML Foundations"
+			description="Optimization and learning theory"
+			hasClass
+			data={PAYLOAD}
+			nowMs={NOW}
+			busy={false}
+			onPractice={() => {}}
+			onLearn={() => {}}
+			{...props}
+		/>,
 	);
 }
 
@@ -122,56 +132,143 @@ describe("Overview header", () => {
 	});
 });
 
-// ─── coverage ───────────────────────────────────────────────────────────────
+// ─── ready for what's due ───────────────────────────────────────────────────
 
-describe("Coverage", () => {
-	it("one block per study file, in order, each linking to the file on the Files page", () => {
-		const html = render();
-		const ids = [...html.matchAll(/data-testid="coverage-file-(f\d)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, ["f1", "f2", "f3", "f4", "f5"]);
-		assert.match(tag(html, "coverage-file-f3"), /href="\/class\/files#file-f3"/);
+/** Local noon on the fixture's day (the runway compares against the window's clock). */
+const NOW = new Date(2026, 9, 27, 12, 0).getTime();
+
+function deadline(id: string, name: string, date: string, extra: Partial<DeadlineProgress> = {}): DeadlineProgress {
+	return {
+		id,
+		kind: "homework",
+		name,
+		date,
+		done: false,
+		daysUntil: 0,
+		files: [{ id: "f1", name: "Lecture 1 — Intro.pdf" }],
+		topicIds: ["t1", "t2"],
+		counts: { strong: 0, shaky: 0, weak: 0, untested: 0 },
+		workOnNext: [],
+		ready: 0.38,
+		topics: [
+			{ id: "t1", name: "Convexity", rate: 0.1 },
+			{ id: "t2", name: "Sets", rate: 0.66 },
+		],
+		...extra,
+	};
+}
+
+const DEADLINES = [
+	deadline("d1", "HW 5", "2026-10-29", { time: "23:59" }),
+	deadline("d2", "Midterm 2", "2026-11-05", { kind: "exam", time: "19:00", ready: 0.72 }),
+	deadline("d3", "Reading", "2026-11-06", { files: [], topicIds: [], topics: [], ready: null }),
+	deadline("d0", "Old quiz", "2026-10-20"),
+	deadline("dx", "Done one", "2026-10-30", { done: true }),
+];
+
+const FACTS = [true, true, false, false, false].map((inLessons, i) => ({
+	id: `p${i}`,
+	name: `fact ${i}`,
+	statement: "",
+	topicId: "t1",
+	born: null,
+	inLessons,
+	answers: [],
+}));
+
+function renderRunway(deadlines: DeadlineProgress[] = DEADLINES, props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) {
+	return render({ data: { ...PAYLOAD, deadlines, facts: FACTS }, ...props });
+}
+
+describe("Ready for what's due", () => {
+	it("Today first, then the open deadlines still ahead, soonest first (no overdue, no done)", () => {
+		const html = renderRunway();
+		const stops = [...html.matchAll(/data-testid="runway-(today|stop-[a-z0-9]+)"/g)].map((m) => m[1]);
+		assert.deepEqual(stops, ["today", "stop-d1", "stop-d2", "stop-d3"]);
+		assert.match(section(html, "runway-today", "</div></div></div>"), /Today<\/span><span[^>]*>Tue Oct 27</);
 	});
 
-	it("width follows the fact count (a file with no facts yet keeps a sliver)", () => {
-		const html = render();
-		assert.match(tag(html, "coverage-file-f4"), /flex:22 1 0/);
-		assert.match(tag(html, "coverage-file-f1"), /flex:14 1 0/);
-		assert.match(tag(html, "coverage-file-f5"), /flex:1 1 0/);
+	it("the head counts facts studied in the whole class", () => {
+		const head = section(renderRunway(), "runway-facts", "</span></h2>");
+		assert.match(head, />2<\/span> of <span[^>]*>5<\/span> facts studied in/);
 	});
 
-	it("a studied file is dark with a fill for the share that came up; an unstudied one is white", () => {
-		const html = render();
-		const f3 = section(html, "coverage-file-f3", "</a>");
-		assert.match(f3, /bg-tone-2/);
-		assert.match(f3, /data-testid="coverage-fill"[^>]*style="height:67%"/);
-		assert.match(tag(html, "coverage-file-f3"), /data-studied="true"/);
-		const f4 = section(html, "coverage-file-f4", "</a>");
-		assert.match(f4, /bg-ink/);
-		assert.doesNotMatch(f4, /coverage-fill/);
-		assert.doesNotMatch(tag(html, "coverage-file-f4"), /data-studied/);
+	it("rings show the ready % in mono; a deadline with no files shows an empty ring with —", () => {
+		const html = renderRunway();
+		assert.match(section(html, "runway-ring-d1", "</button>"), /font-mono[^>]*>38%</);
+		assert.match(section(html, "runway-ring-d2", "</button>"), />72%</);
+		const empty = section(html, "runway-ring-d3", "</button>");
+		assert.match(empty, />—</);
+		assert.doesNotMatch(empty, /runway-arc/);
+		assert.match(tag(html, "runway-ring-d3"), /disabled=""/);
 	});
 
-	it("the summary counts studied files: 3 of 5 files studied", () => {
-		const html = render();
-		assert.match(html, /data-testid="coverage-studied"[^>]*>3<\/span>/);
-		assert.ok(html.includes("of 5 files studied"));
+	it("every ring is 88px; the arc uses the ramp color", () => {
+		const html = renderRunway();
+		for (const id of ["d1", "d2", "d3"]) assert.match(tag(html, `runway-ring-${id}`), /width:88px;height:88px/);
+		assert.match(section(html, "runway-ring-d2", "</button>"), /data-testid="runway-arc"[^>]*stroke="#9BD35A"/);
 	});
 
-	it("Next up names the earliest unstudied file (no extension) with its fact count and Learn this", () => {
-		const next = section(render(), "overview-next-up", "</button>");
-		assert.ok(next.includes("Lecture 4 — Convexity<"));
-		assert.ok(!next.includes(".pdf"));
-		assert.match(next, />22<\/span> facts · earliest gap/);
-		assert.match(next, /data-testid="overview-learn-this"/);
+	it("names and meta: exams read 'Exam · Thu Nov 5', others the date", () => {
+		const html = renderRunway();
+		assert.ok(section(html, "runway-stop-d2", "</div></div></div>").includes("Exam · Thu Nov 5"));
+		assert.ok(section(html, "runway-stop-d1", "</div></div></div>").includes(">Thu Oct 29<"));
 	});
 
-	it("no Next up when every file is studied", () => {
-		assert.ok(!render({ data: { ...PAYLOAD, nextUp: null } }).includes("overview-next-up"));
+	it("lines join the stops only between them, with the days above each", () => {
+		const html = renderRunway();
+		const lines = [...html.matchAll(/data-testid="runway-line"/g)];
+		assert.equal(lines.length, 3, "Today→d1, d1→d2, d2→d3");
+		assert.ok(html.includes(">2 days<"));
+		assert.ok(html.includes(">7 days<"));
+		assert.ok(html.includes(">1 day<"));
+		// The line leaves 10px at each mark: 6px dot + 10, 44px ring + 10.
+		assert.match(html, /left:calc\(50% \+ 16px\);right:calc\(-50% \+ 54px\)/);
 	});
 
-	it("No class: the same page without the coverage card", () => {
+	it("tags each stop for Halley", () => {
+		assert.match(tag(renderRunway(), "runway-stop-d1"), /data-halley-target="deadline:d1"/);
+	});
+
+	it("more than 5 open deadlines: 4 rings and '+N later' to Home", () => {
+		const many = ["a", "b", "c", "d", "e", "f", "g"].map((id, i) => deadline(id, `HW ${id}`, `2026-11-${String(i + 1).padStart(2, "0")}`));
+		const html = renderRunway(many);
+		assert.equal([...html.matchAll(/data-testid="runway-stop-/g)].length, 4);
+		assert.match(section(html, "runway-later", "</a>"), /\+3 later/);
+		assert.match(tag(html, "runway-later"), /href="\/"/);
+	});
+
+	it("exactly 5: all five rings, no '+N later'", () => {
+		const five = ["a", "b", "c", "d", "e"].map((id, i) => deadline(id, `HW ${id}`, `2026-11-0${i + 1}`));
+		const html = renderRunway(five);
+		assert.equal([...html.matchAll(/data-testid="runway-stop-/g)].length, 5);
+		assert.ok(!html.includes("runway-later"));
+	});
+
+	it("no open deadlines: just Today and a plain line", () => {
+		const html = renderRunway([]);
+		assert.ok(html.includes('data-testid="runway-today"'));
+		assert.ok(!html.includes("runway-stop-"));
+		assert.ok(!html.includes("runway-line"));
+		assert.match(section(html, "runway-empty", "</p>"), /No deadlines yet\. Your agent can add them from the syllabus, or you can add them in Edit class\./);
+		assert.ok(!html.includes("runway-most-needed"));
+	});
+
+	it("Most needed: the weakest topic and the deadlines that cover it", () => {
+		const row = section(renderRunway(), "runway-most-needed", "</button>");
+		assert.match(row, />Convexity</);
+		assert.match(row, /on HW 5 and Midterm 2/);
+		assert.match(row, /data-testid="runway-learn-this"/);
+	});
+
+	it("No class or loading: no runway", () => {
+		assert.ok(!renderRunway(DEADLINES, { hasClass: false }).includes("overview-runway"));
+		assert.ok(!render({ data: null }).includes("overview-runway"));
+		assert.ok(!renderRunway(DEADLINES, { nowMs: null }).includes("overview-runway"));
+	});
+
+	it("No class: the same page without the runway", () => {
 		const html = render({ hasClass: false, name: "No class", description: "" });
-		assert.ok(!html.includes("overview-coverage"));
 		assert.ok(html.includes('data-testid="overview-lessons"'));
 		assert.ok(html.includes('data-testid="overview-confidence"'));
 		assert.ok(html.includes(">No class</h1>"));
@@ -254,10 +351,10 @@ describe("loading and empty", () => {
 	it("loading: the header alone", () => {
 		const html = render({ data: null });
 		assert.ok(html.includes(">ML Foundations</h1>"));
-		for (const id of ["overview-coverage", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		for (const id of ["overview-runway", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
 	});
 
-	it("no lessons, no answers, no study files: no cards", () => {
+	it("no lessons, no answers: only the runway", () => {
 		const empty = {
 			...PAYLOAD,
 			files: [],
@@ -266,7 +363,8 @@ describe("loading and empty", () => {
 			calibration: { levels: PAYLOAD.calibration.levels.map((l) => level(l.level, 0, 0)), sureButWrong: [] },
 		};
 		const html = render({ data: empty });
-		for (const id of ["overview-coverage", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		for (const id of ["overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		assert.ok(html.includes('data-testid="overview-runway"'));
 	});
 });
 
@@ -282,23 +380,45 @@ afterEach(async () => {
 	host = null;
 });
 
-describe("Learn this", () => {
-	it("starts a lesson on the Next-up file", async () => {
-		const learned: FileCoverage[] = [];
+describe("runway clicks", () => {
+	async function mount(onPractice: (d: DeadlineProgress) => void, onLearn: (id: string) => void) {
 		host = document.createElement("div");
 		document.body.appendChild(host);
 		root = createRoot(host);
 		await act(async () => {
-			root!.render(<OverviewBody name="ML Foundations" description="" hasClass data={PAYLOAD} busy={false} onLearn={(f) => learned.push(f)} />);
+			root!.render(
+				<OverviewBody
+					name="ML Foundations"
+					description=""
+					hasClass
+					data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
+					nowMs={NOW}
+					busy={false}
+					onPractice={onPractice}
+					onLearn={onLearn}
+				/>,
+			);
 		});
-		const button = host.querySelector('[data-testid="overview-learn-this"]') as HTMLButtonElement;
-		await act(async () => {
-			button.click();
-		});
-		assert.deepEqual(learned.map((f) => f.fileId), ["f4"]);
+		return host;
+	}
+
+	it("a ring practices that deadline's topics", async () => {
+		const practiced: string[] = [];
+		const el = await mount((d) => practiced.push(d.id), () => {});
+		await act(async () => (el.querySelector('[data-testid="runway-ring-d2"]') as HTMLButtonElement).click());
+		assert.deepEqual(practiced, ["d2"]);
 	});
 
-	it("is disabled while a lesson is starting", () => {
-		assert.match(tag(render({ busy: true }), "overview-learn-this"), /disabled=""/);
+	it("Learn this starts a lesson on the Most needed topic", async () => {
+		const learned: string[] = [];
+		const el = await mount(() => {}, (id) => learned.push(id));
+		await act(async () => (el.querySelector('[data-testid="runway-learn-this"]') as HTMLButtonElement).click());
+		assert.deepEqual(learned, ["t1"]);
+	});
+
+	it("rings and Learn this are disabled while a lesson is starting", () => {
+		const html = renderRunway(DEADLINES, { busy: true });
+		assert.match(tag(html, "runway-learn-this"), /disabled=""/);
+		assert.match(tag(html, "runway-ring-d1"), /disabled=""/);
 	});
 });

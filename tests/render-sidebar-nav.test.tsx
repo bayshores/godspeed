@@ -1,7 +1,7 @@
 /**
- * The redesigned sidebar's chrome (2026-10-27): the class nav (active row,
- * the Files count, Files hidden under "No class"), the footer line, and
- * the class mark's initials.
+ * The redesigned sidebar's chrome (2026-10-27): the Home row (2026-10-28),
+ * the class nav (active row, the Files count, Files hidden under "No
+ * class"), the footer line, and the class mark's initials.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -9,7 +9,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ClassNav, activeNavHref } from "../src/components/sidebar/class-nav.tsx";
+import { ClassNav, HomeRow, activeNavHref } from "../src/components/sidebar/class-nav.tsx";
 import { footerLabel } from "../src/components/agent-status.tsx";
 import { classInitials } from "../src/components/class-switcher.tsx";
 
@@ -23,6 +23,29 @@ function tag(html: string, testid: string): string {
 	assert.ok(m, `expected ${testid}`);
 	return m[0];
 }
+
+describe("HomeRow", () => {
+	it("links to / with the house icon, styled like the class-nav rows", () => {
+		const html = renderToStaticMarkup(<HomeRow pathname="/class" />);
+		const row = tag(html, "nav-home");
+		assert.match(row, /href="\/"/);
+		assert.ok(html.includes("lucide-house"));
+		assert.ok(html.includes(">Home</span>"));
+		assert.match(row, /text-ink-2/);
+		assert.doesNotMatch(row, /data-active|aria-current/);
+		// Same row look as Overview.
+		const overview = tag(nav("/"), "nav-overview").match(/class="([^"]*)"/)![1];
+		assert.equal(row.match(/class="([^"]*)"/)![1], overview);
+	});
+
+	it("is active on / only", () => {
+		const row = tag(renderToStaticMarkup(<HomeRow pathname="/" />), "nav-home");
+		assert.match(row, /data-active="true"/);
+		assert.match(row, /aria-current="page"/);
+		assert.match(row, /bg-tone font-bold text-ink/);
+		assert.doesNotMatch(tag(renderToStaticMarkup(<HomeRow pathname="/new" />), "nav-home"), /data-active/);
+	});
+});
 
 describe("ClassNav — Overview / Graph / Files", () => {
 	it("routes: Overview → /class, Graph → /graph, Files → /class/files", () => {

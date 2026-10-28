@@ -1,6 +1,6 @@
 import { memo } from "react";
 import Link from "next/link";
-import { FilesIcon, LayoutGridIcon, WaypointsIcon, type LucideIcon } from "lucide-react";
+import { FilesIcon, HouseIcon, LayoutGridIcon, WaypointsIcon, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,6 +28,31 @@ export function activeNavHref(pathname: string): string | null {
 	return CLASS_NAV.find((n) => n.href === pathname)?.href ?? null;
 }
 
+/** The nav rows' look (Home and the class nav). */
+export function navRowClass(active: boolean): string {
+	return cn(
+		"lh-press flex w-full items-center gap-2.5 px-2.5 py-2 text-[14.5px] hover:bg-tone hover:text-ink",
+		active ? "bg-tone font-bold text-ink" : "text-ink-2",
+	);
+}
+
+/** THE HOME ROW (plan 2026-10-28): above the class switcher, active on "/". */
+export const HomeRow = memo(function HomeRow({ pathname }: { pathname: string }) {
+	const active = pathname === "/";
+	return (
+		<Link
+			href="/"
+			data-testid="nav-home"
+			data-active={active || undefined}
+			aria-current={active ? "page" : undefined}
+			className={navRowClass(active)}
+		>
+			<HouseIcon className="size-4 shrink-0" aria-hidden />
+			<span className="min-w-0 flex-1 truncate">Home</span>
+		</Link>
+	);
+});
+
 export const ClassNav = memo(function ClassNav({
 	pathname,
 	hasClass,
@@ -51,10 +76,7 @@ export const ClassNav = memo(function ClassNav({
 						data-testid={item.testid}
 						data-active={active || undefined}
 						aria-current={active ? "page" : undefined}
-						className={cn(
-							"lh-press flex w-full items-center gap-2.5 px-2.5 py-2 text-[14.5px] hover:bg-tone hover:text-ink",
-							active ? "bg-tone font-bold text-ink" : "text-ink-2",
-						)}
+						className={navRowClass(active)}
 					>
 						<Icon className="size-4 shrink-0" aria-hidden />
 						<span className="min-w-0 flex-1 truncate">{item.label}</span>

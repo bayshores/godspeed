@@ -21,7 +21,9 @@ import { deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
 import type { ClassDeadline, ClassRecord } from "@/core";
 
-type Mode = { kind: "create" } | { kind: "edit"; classId: string };
+/** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
+export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
+type Mode = ClassDialogMode;
 
 /** Exit motion (motion wave, owner 2026-10-26): the dialog stays mounted
  *  with its last `value` while it fades out. */
@@ -64,9 +66,15 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			seeded.current = true;
 			setName(record.name);
 			setDescription(record.description);
-			setDrafts(draftsFrom(record.deadlines));
+			const drafts = draftsFrom(record.deadlines);
+			if (mode.kind === "edit" && mode.newDeadline) {
+				const key = `new-${++newCount.current}`;
+				drafts.push({ key, kind: "exam", name: "", date: "", time: "", fileIds: [], done: false });
+				setOpenDeadline(key);
+			}
+			setDrafts(drafts);
 		}
-	}, [record]);
+	}, [record, mode]);
 
 	const backdropDismiss = useBackdropDismiss(() => {
 		if (!busy) onClose();
