@@ -71,6 +71,9 @@ export interface FeedExtraction {
 export interface ActivityFeed {
 	jobs: FeedJob[];
 	extractions: FeedExtraction[];
+	/** When the oldest background job no outside agent has taken was
+	 *  asked (ms epoch); null/absent = none waiting. */
+	agentWaitingSince?: number | null;
 }
 
 const EMPTY_FEED: ActivityFeed = { jobs: [], extractions: [] };
@@ -110,7 +113,11 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 				if (res.ok) {
 					const data = (await res.json()) as Partial<ActivityFeed>;
 					if (alive)
-						setFeed({ jobs: data.jobs ?? [], extractions: data.extractions ?? [] });
+						setFeed({
+							jobs: data.jobs ?? [],
+							extractions: data.extractions ?? [],
+							agentWaitingSince: data.agentWaitingSince ?? null,
+						});
 				}
 			} catch {
 				// transport blip: keep the last feed, announce again next event
@@ -256,6 +263,16 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 	return blobs;
 }
 
+/** A job left untaken this long means no outside agent is listening (a
+ *  listening agent takes one within seconds). */
+const AGENT_WAIT_NOTICE_MS = 30_000;
+
+/** True when background jobs are stuck waiting for an outside agent. */
+export function agentWaiting(feed: ActivityFeed, now: number): boolean {
+	const since = feed.agentWaitingSince;
+	return typeof since === "number" && now - since >= AGENT_WAIT_NOTICE_MS;
+}
+
 /** Elapsed as a compact ticking string: 45s / 3m 04s / 1h 12m. */
 export function formatElapsed(ms: number): string {
 	const s = Math.max(0, Math.floor(ms / 1000));
@@ -354,6 +371,11 @@ export function ActivitySection({ feed: feedProp }: { feed?: ActivityFeed }) {
 				</span>
 				)}
 			</div>
+			{agentWaiting(feed, now) && (
+				<p data-testid="activity-agent-waiting" className="mb-1 px-2 text-xs text-muted-foreground">
+					<span className="text-foreground">Waiting for outside agent.</span> Run /godspeed:teach in Claude Code to start one.
+				</p>
+			)}
 			{blobs.length > 0 && (
 				<div className="flex max-h-[40dvh] flex-col gap-1 overflow-y-auto">
 					{blobs.map((blob) => (

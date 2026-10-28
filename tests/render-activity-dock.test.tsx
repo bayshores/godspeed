@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
+import { ActivitySection, agentWaiting, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
 import { formatTokens, formatUsd } from "../src/components/usage-format.ts";
 import { jobCost } from "../src/server/pricing.ts";
 
@@ -167,6 +167,14 @@ describe("activity dock pure layer", () => {
 		})[0]!;
 		assert.equal(blob.cost, null);
 		assert.equal(blob.context, null);
+	});
+
+	it("says an outside agent is missing only after a job sits untaken for 30s", () => {
+		const now = 1_000_000;
+		assert.equal(agentWaiting({ jobs: [], extractions: [] }, now), false);
+		assert.equal(agentWaiting({ jobs: [], extractions: [], agentWaitingSince: null }, now), false);
+		assert.equal(agentWaiting({ jobs: [], extractions: [], agentWaitingSince: now - 29_000 }, now), false);
+		assert.equal(agentWaiting({ jobs: [], extractions: [], agentWaitingSince: now - 30_000 }, now), true);
 	});
 
 	it("formatElapsed ticks compactly", () => {

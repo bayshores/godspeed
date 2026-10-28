@@ -28,6 +28,8 @@ import {
 	type JsonObject,
 } from "@earendil-works/pi-ai";
 import { OUTSIDE_AGENT_PROVIDER } from "../core/settings.ts";
+import { CHAT_ID_PREFIX } from "../core/contracts.ts";
+import { emit } from "../core/events.ts";
 
 export const AGENT_PROVIDER = OUTSIDE_AGENT_PROVIDER;
 export const AGENT_MODEL_ID = "outside-agent";
@@ -206,23 +208,54 @@ function view(item: WorkItem, forceFull: boolean): WorkView {
 
 // ─── The MCP-facing operations ──────────────────────────────────────────────
 
-function nextUnclaimed(now: number): WorkItem | undefined {
+/** Lessons use their chat id as the conversation; everything else
+ *  (extraction, topic grouping, helpers) is a background job. */
+function isBackground(item: WorkItem): boolean {
+	return !item.conversation.startsWith(CHAT_ID_PREFIX);
+}
+
+function claimable(item: WorkItem, now: number): boolean {
+	return item.claimedAt === undefined || now - item.claimedAt > CLAIM_TIMEOUT_MS;
+}
+
+/** Oldest first, so jobs are answered in the order they were asked. */
+function oldestClaimable(now: number, keep: (i: WorkItem) => boolean): WorkItem | undefined {
 	const items = [...state().items.values()].sort((a, b) => a.createdAt - b.createdAt);
-	return items.find((i) => i.claimedAt === undefined || now - i.claimedAt > CLAIM_TIMEOUT_MS);
+	return items.find((i) => keep(i) && claimable(i, now));
+}
+
+/** Pick the next item. With a conversation, that conversation's item;
+ *  `andBackground` also allows background jobs, so an agent staying on one
+ *  lesson still does the file reading and graph work nobody else would. */
+function pick(now: number, opts: { conversation?: string; andBackground?: boolean }): WorkItem | undefined {
+	if (!opts.conversation) return oldestClaimable(now, () => true);
+	return (
+		oldestClaimable(now, (i) => i.conversation === opts.conversation) ??
+		(opts.andBackground ? oldestClaimable(now, isBackground) : undefined)
+	);
+}
+
+/** When the oldest background job no agent has taken was asked (ms
+ *  epoch), or null. The activity dock says "Waiting for outside agent"
+ *  once this is old enough. */
+export function oldestUnclaimedBackgroundAt(now = Date.now()): number | null {
+	return oldestClaimable(now, isBackground)?.createdAt ?? null;
 }
 
 /** Wait up to `timeoutMs` for a request, claim it, and present it. */
-export async function waitForWork(timeoutMs: number, opts: { full?: boolean; conversation?: string } = {}): Promise<WorkView | null> {
+export async function waitForWork(
+	timeoutMs: number,
+	opts: { full?: boolean; conversation?: string; andBackground?: boolean } = {},
+): Promise<WorkView | null> {
 	const s = state();
 	const deadline = Date.now() + timeoutMs;
 	for (;;) {
 		const now = Date.now();
 		s.lastPoll = now;
-		const item = opts.conversation
-			? [...s.items.values()].find((i) => i.conversation === opts.conversation && (i.claimedAt === undefined || now - i.claimedAt > CLAIM_TIMEOUT_MS))
-			: nextUnclaimed(now);
+		const item = pick(now, opts);
 		if (item) {
 			item.claimedAt = now;
+			if (isBackground(item)) emit("activity-changed", {});
 			return view(item, !!opts.full);
 		}
 		const remaining = deadline - now;
@@ -294,11 +327,12 @@ function awaitAgent(context: TranscriptContext, sessionId: string | undefined, s
 		const conversation = sessionId ?? id;
 		const onAbort = () => {
 			state().items.delete(id);
+			if (!conversation.startsWith(CHAT_ID_PREFIX)) emit("activity-changed", {});
 			resolve(fauxAssistantMessage(""));
 		};
 		if (signal?.aborted) return onAbort();
 		signal?.addEventListener("abort", onAbort, { once: true });
-		state().items.set(id, {
+		const item: WorkItem = {
 			id,
 			conversation,
 			createdAt: Date.now(),
@@ -307,7 +341,9 @@ function awaitAgent(context: TranscriptContext, sessionId: string | undefined, s
 				signal?.removeEventListener("abort", onAbort);
 				resolve(message);
 			},
-		});
+		};
+		state().items.set(id, item);
+		if (isBackground(item)) emit("activity-changed", {});
 		wake();
 	});
 }

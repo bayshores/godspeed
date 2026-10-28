@@ -113,6 +113,38 @@ describe("outside agent as the model", () => {
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 	});
 
+	it("an agent staying on one lesson also takes background jobs, but not other lessons", async () => {
+		const lesson = agentChat("Stay here");
+		const other = agentChat("Other lesson");
+		await handleChatInput(other.id, { type: "text", text: "hi" });
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "other lesson parked");
+
+		// A background job (extraction, topic grouping...) uses a non-lesson session id.
+		const before = Date.now();
+		const stream = bridge.agentStream(
+			bridge.agentModel(),
+			{ messages: [{ role: "user", content: "Read this file", timestamp: Date.now() }] } as never,
+			{ sessionId: "job_background_test" },
+		);
+		const finished = (async () => { for await (const _ of stream) { /* drain */ } })();
+		await waitFor(() => bridge.pendingWorkCount() === 2, 5000, "background job parked");
+		const waitingSince = bridge.oldestUnclaimedBackgroundAt();
+		assert.ok(waitingSince !== null && waitingSince >= before, "the dock can see the untaken job");
+
+		const work = await bridge.waitForWork(1000, { conversation: lesson.id, andBackground: true });
+		assert.ok(work, "the background job comes to the lesson's agent");
+		assert.equal(work.conversation, "job_background_test");
+		assert.equal(bridge.oldestUnclaimedBackgroundAt(), null, "taken jobs no longer count as waiting");
+		assert.equal(await bridge.waitForWork(50, { conversation: lesson.id, andBackground: true }), null, "another lesson's turn does not");
+		assert.equal(await bridge.waitForWork(50, { conversation: lesson.id }), null, "without andBackground, only the lesson's own work");
+
+		assert.ok(bridge.respondToWork(work.workId, { text: "Done." }).ok);
+		await finished;
+		abortTurn(other.id);
+		await waitFor(() => !isTurnRunning(other.id), 8000, "other lesson settle");
+		assert.equal(bridge.pendingWorkCount(), 0);
+	});
+
 	it("stopping the turn withdraws the parked request", async () => {
 		const chat = agentChat("Abort");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });

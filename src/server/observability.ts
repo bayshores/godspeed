@@ -20,6 +20,7 @@
  */
 
 import { extractionStatuses, type ExtractionPhase } from "../agent/subagents/extraction.ts";
+import { oldestUnclaimedBackgroundAt } from "../agent/agent-bridge.ts";
 import { chatStore } from "../store/chats.ts";
 import { graphRevision } from "./graph.ts";
 import { catalogContextLimits } from "./model-catalog.ts";
@@ -70,6 +71,9 @@ export function activityFeed(): {
 	jobs: ActivityJob[];
 	extractions: ActivityExtraction[];
 	graphRevision: number;
+	/** When the oldest background job no outside agent has taken was
+	 *  asked (ms epoch), or null. */
+	agentWaitingSince: number | null;
 } {
 	const chats = chatStore.listChats();
 	const limits = catalogContextLimits();
@@ -105,5 +109,6 @@ export function activityFeed(): {
 		jobs,
 		extractions: extractions.sort((a, b) => a.startedAt - b.startedAt),
 		graphRevision: graphRevision(),
+		agentWaitingSince: oldestUnclaimedBackgroundAt(),
 	};
 }

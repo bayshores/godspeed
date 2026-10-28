@@ -27,6 +27,10 @@ import type { EmissionStats } from "./graph.ts";
  *  practice agent, its two tools, no extraction, no graph writes. */
 export type ChatKind = "teach" | "practice";
 
+/** Every lesson id starts with this (store/chats.ts makes them). The
+ *  outside-agent bridge uses it to tell lesson work from background jobs. */
+export const CHAT_ID_PREFIX = "chat_";
+
 export interface ChatRecord {
 	id: string;
 	title: string;
