@@ -1,9 +1,10 @@
 /**
- * /api/mcp-access — Settings → Agents: outside-agent access status and
- * controls (turn on, rotate the token, turn off). Desktop-window only like
- * every /api route except /api/mcp itself (proxy.ts).
+ * /api/mcp-access — Settings → Outside agents: the access status and the
+ * token (always present — outside-agent access is always on), plus
+ * rotating the token. Desktop-window only like every /api route except
+ * /api/mcp itself (proxy.ts).
  */
-import { disableMcpAccess, enableMcpAccess, mcpAccessStatus, rotateMcpToken } from "@/src/server";
+import { mcpAccessStatus, rotateMcpToken } from "@/src/server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
 	const body = (await req.json().catch(() => ({}))) as { action?: unknown };
-	if (body.action === "enable") enableMcpAccess();
-	else if (body.action === "rotate") rotateMcpToken();
-	else if (body.action === "disable") disableMcpAccess();
-	else return Response.json({ error: 'action must be "enable", "rotate", or "disable"' }, { status: 400 });
+	if (body.action === "rotate") rotateMcpToken();
+	else return Response.json({ error: 'action must be "rotate"' }, { status: 400 });
 	return Response.json(view(req), { headers: { "Cache-Control": "no-store" } });
 }

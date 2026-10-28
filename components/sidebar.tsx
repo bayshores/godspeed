@@ -10,7 +10,6 @@ import { Hint } from "@/components/ui/hint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { kbdEventForAction } from "@/src/core";
-import { notifySettingsSaved } from "@/components/settings-signal";
 import { ClassSwitcher } from "@/components/class-switcher";
 import { useClasses } from "@/components/class-context";
 import { replayRise } from "@/components/sidebar/motion";
@@ -46,7 +45,6 @@ const STORAGE_KEY = "lh:sidebar-open";
  *
  * Mirrors SIDEBAR_AUTOCLOSE in electron/main.cjs — keep in sync.
  */
-import type { ChatGPTControlBridge, NativeSubscriptionControlBridge } from "@/src/core";
 import type { UpdateState } from "@/components/settings/update-settings.tsx";
 const SIDEBAR_AUTOCLOSE = 928;
 
@@ -61,11 +59,8 @@ declare global {
 			platform?: string;
 			/** Native folder picker (classes wave): absolute path or null. */
 			pickFolder?: () => Promise<string | null>;
-			/** External Next desktop-dev uses the server's web connections. */
-			subscriptionTransport?: "desktop" | "web";
-			openSubscriptionBrowser?: (action: string) => Promise<void>;
-			chatgpt?: ChatGPTControlBridge;
-			subscriptions?: NativeSubscriptionControlBridge;
+			/** A dropped file's or folder's absolute path (onboarding drop zone). */
+			pathForFile?: (file: File) => string;
 			expandWindow: () => void;
 			/** The zoom truth (owner round 7): subscribes to "lh:zoom" pushes; returns unsubscribe. */
 			onZoom?: (cb: (factor: number) => void) => () => void;
@@ -91,13 +86,6 @@ export function useSidebar() {
 }
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-	useEffect(() => {
-		const bridge = window.lh?.chatgpt;
-		if (!bridge) return;
-		const off = bridge.onChange(() => notifySettingsSaved("providers"));
-		notifySettingsSaved("providers"); // cover changes missed before this root-lifetime subscription
-		return off;
-	}, []);
 	// Start closed so server and client first-render agree (no hydration
 	// mismatch); the stored value is applied after mount.
 	const [open, setOpen] = useState(false);

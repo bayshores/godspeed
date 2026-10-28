@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { FileCoverage, GraphContextPick, GraphCostSummary, TopicProgress } from "@/src/core";
 import { classQuery, useClasses } from "@/components/class-context";
-import { SetupDialog } from "@/components/setup-dialog";
-import { ConnectPill } from "@/components/setup-cta";
 import { useFieldCycle } from "@/components/field-cycle";
 import { useRiseOnChange } from "@/components/sidebar";
 import { TopBar } from "@/components/top-bar";
@@ -26,11 +24,11 @@ import { useLessonStep } from "@/components/home/use-lesson-step";
  * from the chain table; Enter or "Start lesson" starts), then
  * "Suggested for <class>": Continue the latest lesson, Next up (the
  * earliest unstudied file) and Work on next (weak or untested topics).
- * The top bar keeps the setup prompt and the graph-cost control.
+ * The top bar keeps the graph-cost control.
  */
-export function Home({ initialConfigured }: { initialConfigured: boolean }) {
+export function Home() {
 	const { active: activeClassId, activeClass } = useClasses();
-	const lesson = useLessonStart(initialConfigured);
+	const lesson = useLessonStart();
 	const { data } = useProgress();
 	// Progress for a class the window just left is never shown.
 	const progress = data && data.classId === activeClassId ? data : null;
@@ -80,20 +78,6 @@ export function Home({ initialConfigured }: { initialConfigured: boolean }) {
 			<TopBar>
 				<h1 className="text-[15px] font-bold text-ink">New lesson</h1>
 				<div className="flex-1" />
-				{lesson.noConnection ? (
-					<ConnectPill inline onOpen={lesson.openSetup} />
-				) : (
-					!lesson.configured && (
-						<button
-							type="button"
-							data-testid="setup-cta"
-							onClick={lesson.openSetup}
-							className="lh-press bg-panel px-2.5 py-2 text-sm text-ink hover:bg-tone"
-						>
-							Set up your models
-						</button>
-					)
-				)}
 				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
 			</TopBar>
 
@@ -137,7 +121,6 @@ export function Home({ initialConfigured }: { initialConfigured: boolean }) {
 				</div>
 			</div>
 
-			<SetupDialog open={lesson.setupOpen} onClose={lesson.closeSetup} onDone={lesson.setupDone} />
 			{/* Full-bleed overlay with its own top bar: LAST in the tree, so
 			    its window-drag band isn't punched through by earlier controls. */}
 			<FactsPicker

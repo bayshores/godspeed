@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/src/core";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { OUTSIDE_AGENT_CONTEXT_WINDOW, subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/src/core";
 import { formatTokens, formatUsd, planCostLabel, prettyModel } from "@/components/usage-format";
-import { ModelControl, catalogLimits, useModelCatalog } from "@/components/model-picker";
 import { usePresence } from "@/components/presence";
 
 export function formatContextMeasurement(tokens: number | null, limit: number | null): string {
@@ -12,19 +11,19 @@ export function formatContextMeasurement(tokens: number | null, limit: number | 
 /**
  * The below-composer stats bar (wave 4 observability): the session's
  * money/context footprint as one quiet row beneath the composer —
- * LEFT-aligned: context window + session cost; RIGHT-aligned: model +
- * thinking level. Clicking the left side opens the per-turn detail popover.
+ * context window + session cost. Clicking it opens the per-turn detail
+ * popover.
  *
  *  Without a session yet there is NO left side at all (owner,
  *  wave 7 sweep: the knowledge-context budget slider that used to live
  *  there died with the injection; a "— · —" summary over an empty
  *  popover is pure noise).
  *
- * Spending arrives already priced by the server through Pi's catalog and
- * calculator. Missing cost stays "—", never fake zero. Context is a separate
+ * Lessons run on the outside agent's own plan, so cost reads as the plan's
+ * label; missing cost stays "—", never fake zero. Context is a separate
  * completed-conversation measurement, never a money-log/summarizer fold or
- * transcript estimate. Its catalog denominator follows the selected model;
- * model changes preserve the numerator. Successful compaction clears it to ?.
+ * transcript estimate; its denominator is the agent's context budget.
+ * Successful compaction clears it to ?.
  */
 export function StatsBar({
 	turns,
@@ -36,10 +35,7 @@ export function StatsBar({
 	turns: TurnUsage[];
 	contextTokens?: number | null;
 	pricing?: SessionPricing;
-	/** The bound session (per-session models, owner 2026-09-28): present
-	 *  on the in-session bar — the model control binds THE SESSION'S own
-	 *  record; absent on the draft surfaces, where it binds the strong
-	 *  slot (the new-session default). */
+	/** The bound session: present on the in-session bar. */
 	chatId?: string;
 	/** The row's LEFT edge (practice sessions, 2026-10-04): the home
 	 *  composer's teach | practice switch rides here — before the session
@@ -48,9 +44,7 @@ export function StatsBar({
 }) {
 	const [open, setOpen] = useState(false);
 	const detail = usePresence(open);
-	const [selectedModel, setSelectedModel] = useState<string | undefined>();
-	// Same dropdown discipline as the model control (owner, df4433f treatment,
-	// stats round 1): close on any pointerdown outside the bar or on Escape.
+	// Dropdown discipline: close on any pointerdown outside the bar or on Escape.
 	const barRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
 		if (!open) return;
@@ -73,12 +67,7 @@ export function StatsBar({
 			document.removeEventListener("keydown", onKeyDown);
 		};
 	}, [open]);
-	// Catalog-only denominator; the picker reports its effective selection.
-	// Missing/pending catalog means usage-only, never a hardcoded maximum.
-	const { catalog } = useModelCatalog();
-	const limits = useMemo(() => (catalog ? catalogLimits(catalog) : undefined), [catalog]);
-	const limit = selectedModel ? limits?.get(selectedModel) ?? null : null;
-	const contextLabel = formatContextMeasurement(contextTokens, limit);
+	const contextLabel = formatContextMeasurement(contextTokens, OUTSIDE_AGENT_CONTEXT_WINDOW);
 	const { cost = 0, unpriced = turns.length, subscription = 0 } = pricing ?? {};
 	// Honest cost: show dollars only when at least one turn priced;
 	// otherwise "—" (never a fake $0.0000).
@@ -145,7 +134,6 @@ export function StatsBar({
 								<span>{subscription ? "Usage" : "Total cost"}</span>
 								<span className="font-mono tabular-nums text-card-foreground">{costLabel}</span>
 							</div>
-							{providers.includes("ChatGPT") && <a href="https://chatgpt.com/settings/usage" target="_blank" rel="noreferrer" className="underline underline-offset-2">Manage ChatGPT usage</a>}
 							{unpriced > 0 && (
 								<div className="flex justify-between gap-2">
 									<span>Unpriced turns</span>
@@ -180,13 +168,6 @@ export function StatsBar({
 				)}
 			</div>
 			)}
-			{/* The middle spacer: pushes the model control to the right edge
-			    whatever the left side holds. */}
-			<div aria-hidden className="min-w-0 flex-1" />
-			{/* The model + thinking control — one controller for the conversation
-			    agents (prober/teacher); the record's `turns` above still folds
-			    the ACTUAL models billed, regardless of what the picker says. */}
-			<ModelControl chatId={chatId} onModelChange={setSelectedModel} />
 		</div>
 	);
 }

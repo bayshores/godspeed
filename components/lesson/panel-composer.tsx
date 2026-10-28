@@ -25,7 +25,7 @@ export function PanelComposer({
 	nextProblem = false,
 	onNext,
 	queuedSteers,
-	setupCta,
+	notice,
 	footer,
 }: {
 	busy: boolean;
@@ -37,7 +37,8 @@ export function PanelComposer({
 	nextProblem?: boolean;
 	onNext?: () => void;
 	queuedSteers: QueuedSteerLine[];
-	setupCta?: React.ReactNode;
+	/** A line under the box (the "Waiting for your agent" notice). */
+	notice?: React.ReactNode;
 	footer?: React.ReactNode;
 }) {
 	const act = () => {
@@ -76,7 +77,7 @@ export function PanelComposer({
 					}
 				/>
 				{busy && <div className="pt-3 text-sm leading-5 text-ink-2">Sends when the teacher finishes.</div>}
-				{setupCta && <div className="pt-3">{setupCta}</div>}
+				{notice && <div className="pt-3">{notice}</div>}
 				{queuedSteers.length > 0 && (
 					<div className="pt-3">
 						<QueuedSteersBody steers={queuedSteers} />

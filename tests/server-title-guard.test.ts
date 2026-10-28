@@ -128,7 +128,7 @@ describe("backend-only preload wiring and packaging", () => {
 			assert.equal(launch.options.env.PORT, "54321");
 			assert.equal(launch.options.env.HOSTNAME, "127.0.0.1");
 			assert.equal(launch.options.env.FIXTURE, "kept");
-			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe", "ipc"]);
+			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe"], "no IPC channel: the sign-in bridge was removed");
 		});
 	}
 

@@ -8,8 +8,7 @@ import { desktopAPIAuthorized } from "../src/server/desktop-access.ts";
 import { proxy, config } from "../proxy.ts";
 import { browserServiceSpawnEnv } from "../src/agent/subagents/headless.ts";
 const require = createRequire(import.meta.url);
-const { desktopAPIHeaders, HEADER } = require("../electron/desktop-api.cjs");
-const { trustedSender, chatGPTControl } = require("../electron/chatgpt-ipc.cjs");
+const { desktopAPIHeaders, HEADER, trustedSender } = require("../electron/desktop-api.cjs");
 const secret = "a".repeat(64);
 const origin = "http://127.0.0.1:12345";
 
@@ -52,7 +51,7 @@ test("all methods fail closed for desktop missing/wrong secret; API-only matcher
 		assert(!desktopAPIAuthorized(new Headers(value === undefined ? {} : { [HEADER]: value }), { LH_DESKTOP_SERVER: "1", LH_DESKTOP_API_SECRET: secret }));
 	}
 	assert(desktopAPIAuthorized(new Headers({ [HEADER]: secret }), { LH_DESKTOP_SERVER: "1", LH_DESKTOP_API_SECRET: secret }));
-	for (const pathname of ["/api/events", "/api/chat", "/api/settings/models", "/api/chats/scratch/markdown"]) assert(unstable_doesProxyMatch({ config, nextConfig: {}, url: origin + pathname }));
+	for (const pathname of ["/api/events", "/api/chat", "/api/settings/agent", "/api/chats/scratch/markdown"]) assert(unstable_doesProxyMatch({ config, nextConfig: {}, url: origin + pathname }));
 	assert(!unstable_doesProxyMatch({ config, nextConfig: {}, url: origin + "/chat/new" }));
 	const originalMarker = process.env.LH_DESKTOP_SERVER;
 	const originalSecret = process.env.LH_DESKTOP_API_SECRET;
@@ -69,21 +68,7 @@ test("all methods fail closed for desktop missing/wrong secret; API-only matcher
 	}
 });
 
-test("renderer controls route explicit account forgetting and account-independent boolean consent only", async () => {
-	const forgotten: string[] = [], changes: boolean[] = [];
-	const connection = { disconnect: async (id: string) => { forgotten.push(id); return { ok: true }; }, consent: async (enabled: boolean) => { changes.push(enabled); return { ok: true }; } };
-	assert.deepEqual(await chatGPTControl({ op: "disconnect", id: "fixture-account" }, connection), { ok: true });
-	assert.deepEqual(await chatGPTControl({ op: "consent", enabled: false }, connection), { ok: true });
-	assert.deepEqual(forgotten, ["fixture-account"]); assert.deepEqual(changes, [false]);
-	for (const command of [{ op: "disconnect" }, { op: "disconnect", id: 7 }, { op: "consent", enabled: "false" }]) assert.deepEqual(await chatGPTControl(command, connection), { error: "Unsupported ChatGPT control." });
-	assert.deepEqual(changes, [false]);
-});
-
-test("renderer controls have no lease or general token bridge, and require the trusted main frame", async () => {
-	let leased = false;
-	const connection = { lease: async () => { leased = true; return { accessToken: "scratch-private-token" }; } };
-	assert.deepEqual(await chatGPTControl({ op: "lease", background: false }, connection), { error: "Unsupported ChatGPT control." });
-	assert.equal(leased, false);
+test("IPC senders must be the trusted app main frame", () => {
 	const { contents, mainFrame, win } = fixture();
 	const BrowserWindow = { fromWebContents: (value: unknown) => value === contents ? win : null };
 	assert(trustedSender({ sender: contents, senderFrame: mainFrame }, origin, BrowserWindow));

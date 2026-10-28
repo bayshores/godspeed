@@ -5,20 +5,18 @@ import dynamic from "next/dynamic";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useChatSession } from "@/components/session";
 import { visibleQueuedSteers } from "@/components/session-core";
-import { SetupDialog } from "@/components/setup-dialog";
-import { ConnectPill, useNoConnection } from "@/components/setup-cta";
 import { prefersReducedMotion, usePresence } from "@/components/presence";
 import { cn } from "@/lib/utils";
 import { useFieldCycle } from "@/components/field-cycle";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { JobsContext } from "@/components/jobs-context";
 import { StatsBar } from "@/components/stats-bar";
+import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
 import { latestTree } from "@/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/components/session-overlay";
 import { AbortTurnDialog, type AbortMode } from "@/components/abort-turn-dialog";
 import { SessionFind } from "@/components/session-find";
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/components/thinking-block";
-import { useSettingsSaved } from "@/components/settings-signal";
 import {
 	activeProblemOf,
 	dismissedAnswer,
@@ -27,13 +25,11 @@ import {
 	phaseTimeline,
 	planStepBar,
 	questionNeedsReveal,
-	slotsConfigured,
 	toolQuestionKind,
 	type LhMessage,
-	type ModelsSettings,
 	type QuestionAnswerData,
 } from "@/src/core";
-import { parseModelsRefusal, parseProviderNotConnectedRefusal, escAbortTarget, initialPromptOwed } from "@/components/lesson/chat-helpers";
+import { escAbortTarget, initialPromptOwed } from "@/components/lesson/chat-helpers";
 import { useArrivals } from "@/components/lesson/arrivals";
 import { LessonStepsContext, answerAnchorSelector } from "@/components/lesson/step-context";
 import { practiceProgress } from "@/components/lesson/practice-progress";
@@ -49,8 +45,6 @@ const PlanPopup = dynamic(() => import("@/components/plan-block").then((m) => m.
 export {
 	escAbortTarget,
 	initialPromptOwed,
-	parseModelsRefusal,
-	parseProviderNotConnectedRefusal,
 	revealArrival,
 	type EscAbortTarget,
 } from "@/components/lesson/chat-helpers";
@@ -58,14 +52,12 @@ export {
 /**
  * Server-sync channel for artifact renderers: the jobs fetch calls
  * syncFromServer() when a background job settles; sendText feeds the demo
- * error-fix loop; openSetup deep-links refused job cards into the setup
- * dialog. (contracts.ts "THE ASYNC PROTOCOL" §4.)
+ * error-fix loop. (contracts.ts "THE ASYNC PROTOCOL" §4.)
  */
 export const ChatActionsContext = createContext<{
 	chatId: string;
 	syncFromServer: () => Promise<void>;
 	sendText: (text: string) => void;
-	openSetup: () => void;
 } | null>(null);
 
 /**
@@ -82,7 +74,6 @@ export function Chat({
 	initialPrompt,
 	initiallyInFlight,
 	initiallyCompacting = false,
-	initialConfigured = false,
 	kind = "teach",
 }: {
 	chatId: string;
@@ -97,8 +88,6 @@ export function Chat({
 	initiallyInFlight?: boolean;
 	/** A compaction holds the chat's model gate at mount. */
 	initiallyCompacting?: boolean;
-	/** slotsConfigured(server record) — decides whether the setup prompt shows. */
-	initialConfigured?: boolean;
 }) {
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
@@ -148,6 +137,10 @@ export function Chat({
 	activeProblemRef.current = activeProblem;
 
 	const busy = status === "submitted" || status === "streaming" || turnInFlight;
+	// The turn is waiting on the outside agent and none is connected: say so
+	// in the composer (it starts by itself once the agent connects).
+	const agentStatus = useAgentStatus();
+	const waitingForAgent = busy && agentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
 
@@ -193,7 +186,7 @@ export function Chat({
 		return () => window.removeEventListener(kbdEventForAction("toggle-user-thinking"), onToggle);
 	}, []);
 
-	// ── overlays: plan map, mermaid and figure focus, setup, abort confirm ──
+	// ── overlays: plan map, mermaid and figure focus, abort confirm ──
 	const [planOpen, setPlanOpen] = useState(false);
 	const planPresence = usePresence(planOpen);
 	const openPlan = useCallback(() => setPlanOpen(true), []);
@@ -206,14 +199,13 @@ export function Chat({
 	if (mermaidFocus !== null) lastMermaidRef.current = mermaidFocus;
 	const lastFigureRef = useRef(figureFocus);
 	if (figureFocus !== null) lastFigureRef.current = figureFocus;
-	const [setupOpen, setSetupOpen] = useState(false);
 
 	// THE LAYERED ESC (owner, 2026-10-04): an open overlay claims Esc first;
 	// then the abort chain opens its confirm (question → problem → turn).
 	// The handler reads refs — the window listener is mount-scoped.
 	const [abortAsk, setAbortAsk] = useState<AbortMode | null>(null);
-	const escStateRef = useRef({ abortAsk, mermaid: false, planOpen, setupOpen });
-	escStateRef.current = { abortAsk, mermaid: mermaidFocus !== null || figureFocus !== null, planOpen, setupOpen };
+	const escStateRef = useRef({ abortAsk, mermaid: false, planOpen });
+	escStateRef.current = { abortAsk, mermaid: mermaidFocus !== null || figureFocus !== null, planOpen };
 	useEffect(() => {
 		const onAbort = () => {
 			const s = escStateRef.current;
@@ -221,7 +213,6 @@ export function Chat({
 				abortAsk: s.abortAsk !== null,
 				mermaidFocus: s.mermaid,
 				planOpen: s.planOpen,
-				setupOpen: s.setupOpen,
 				pending: pendingRef.current !== null,
 				problem: activeProblemRef.current !== null,
 				busy: busyRef.current,
@@ -269,48 +260,6 @@ export function Chat({
 		textRef.current = v;
 		setText(v);
 	}, []);
-	const [configured, setConfigured] = useState(initialConfigured);
-	const noConnection = useNoConnection();
-	// Another surface's models write re-reads the record, so the setup
-	// prompt appears and disappears live.
-	useSettingsSaved((section) => {
-		if (section !== "models") return;
-		fetch("/api/settings")
-			.then((r) => r.json() as Promise<{ settings?: { models?: ModelsSettings } | null } | null>)
-			.then((body) => setConfigured(slotsConfigured(body?.settings?.models)))
-			.catch(() => {});
-	});
-	/** The last explicitly-sent draft: the refusal flow puts it back. */
-	const draftRef = useRef<string | null>(null);
-
-	// THE BYOK REFUSAL (owner, 2026-09-22): a send refused for missing
-	// models (or an unconnected provider) becomes the setup flow, never the
-	// error banner — refetch the record (dropping the orphaned optimistic
-	// message), restore the draft, open the dialog. All together after the
-	// refetch: clearError() flips this effect's own dependency.
-	useEffect(() => {
-		if (!error) return;
-		if (!parseModelsRefusal(error.message) && !parseProviderNotConnectedRefusal(error.message)) return;
-		let cancelled = false;
-		void (async () => {
-			const res = await fetch(`/api/chats/${encodeURIComponent(chatId)}`);
-			if (!cancelled && res.ok) {
-				const record = (await res.json().catch(() => null)) as { messages?: LhMessage[] } | null;
-				if (Array.isArray(record?.messages)) setMessages(record.messages);
-			}
-			if (cancelled) return;
-			if (draftRef.current !== null) {
-				applyText(draftRef.current);
-				draftRef.current = null;
-			}
-			clearError();
-			setSetupOpen(true);
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [error, chatId]);
-
 	// Tab cycles the lesson's fields in visual order (owner, 2026-10-06).
 	const cycleChatFields = useCallback((): readonly HTMLElement[] => {
 		const pick = (sel: string) => Array.from(document.querySelectorAll<HTMLElement>(sel));
@@ -369,7 +318,6 @@ export function Chat({
 			void steer(t);
 			return;
 		}
-		draftRef.current = t; // the refusal flow's restore seam
 		void send({ type: "text", text: t });
 	};
 
@@ -407,7 +355,6 @@ export function Chat({
 			chatId,
 			syncFromServer,
 			sendText: (t: string) => void send({ type: "text", text: t }),
-			openSetup: () => setSetupOpen(true),
 		}),
 		[chatId, syncFromServer, send],
 	);
@@ -415,19 +362,6 @@ export function Chat({
 		() => ({ openMermaid: setMermaidFocus, openFigure: (svg: string, inverted: boolean) => setFigureFocus({ svg, inverted }) }),
 		[],
 	);
-
-	const setupCta = noConnection ? (
-		<ConnectPill onOpen={() => setSetupOpen(true)} />
-	) : !configured ? (
-		<button
-			type="button"
-			data-testid="setup-cta"
-			onClick={() => setSetupOpen(true)}
-			className="lh-press w-full bg-tone px-3 py-2 text-left font-ui text-[13px] font-bold text-ink hover:bg-tone-2"
-		>
-			Set up your models
-		</button>
-	) : null;
 
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
@@ -475,7 +409,11 @@ export function Chat({
 										nextProblem: nextReady,
 										onNext: sendNext,
 										queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
-										setupCta,
+										notice: waitingForAgent ? (
+											<p data-testid="composer-waiting" className="text-xs text-ink-2">
+												{WAITING_NOTICE}
+											</p>
+										) : undefined,
 									}}
 									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} chatId={chatId} />}
 								/>
@@ -499,17 +437,6 @@ export function Chat({
 					</LessonStepsContext.Provider>
 				</JobsContext.Provider>
 			</SessionMermaidContext.Provider>
-			{/* The BYOK setup flow: one mount for the setup prompt, the refused
-			    send and the job cards' deep link. Save only saves — the draft
-			    waits in the message box (owner ruling 2026-10-09). */}
-			<SetupDialog
-				open={setupOpen}
-				onClose={() => setSetupOpen(false)}
-				onDone={() => {
-					setSetupOpen(false);
-					setConfigured(true);
-				}}
-			/>
 		</ChatActionsContext.Provider>
 	);
 }

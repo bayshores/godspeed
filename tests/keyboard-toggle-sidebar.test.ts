@@ -51,9 +51,10 @@ describe("the ⌘B chain — keypress → binding → action → event", () => {
 	});
 });
 
-describe("the thinking pill suffix — ⇧⇥ via the registry", () => {
-	it("shift+tab uses the platform's modifier label and maps to cycle-thinking", () => {
-		assert.equal(actionForBinding("shift+tab"), "cycle-thinking");
+describe("shift+tab and mod+k bind to nothing (the model controls were removed 2026-10-27)", () => {
+	it("no action fires, and the label still formats per platform", () => {
+		assert.equal(actionForBinding("shift+tab") ?? null, null);
+		assert.equal(actionForBinding("mod+k") ?? null, null);
 		assert.equal(formatBinding("shift+tab"), IS_MAC ? "⇧⇥" : "Shift+⇥");
 	});
 });

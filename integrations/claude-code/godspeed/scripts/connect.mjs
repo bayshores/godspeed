@@ -6,7 +6,7 @@
  * dependencies — Node 18+.
  */
 import readline from "node:readline";
-import { ACCESS_OFF, target } from "./target.mjs";
+import { NO_TOKEN, target } from "./target.mjs";
 
 function send(message) {
 	process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -26,7 +26,7 @@ async function forward(line) {
 	}
 	const { url, token } = target();
 	if (!token) {
-		replyError(message.id, ACCESS_OFF);
+		replyError(message.id, NO_TOKEN);
 		return;
 	}
 	let res;

@@ -44,6 +44,13 @@ export function className(classes: readonly ClassSummary[], id: string | null | 
 export function ClassProvider({ children, initialActive }: { children: ReactNode; initialActive: string | null }) {
 	const [classes, setClasses] = useState<ClassSummary[]>([]);
 	const [active, setActiveState] = useState<string | null>(initialActive);
+	// Follow the server's value when it changes on a refresh (e.g. onboarding
+	// finishing with a new class), without overriding client switches.
+	const [serverActive, setServerActive] = useState(initialActive);
+	if (initialActive !== serverActive) {
+		setServerActive(initialActive);
+		setActiveState(initialActive);
+	}
 
 	const refresh = useCallback(async () => {
 		try {

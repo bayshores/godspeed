@@ -25,7 +25,7 @@ export function probeEnv(env, home) {
 		HOME: home, USERPROFILE: home,
 		APPDATA: path.join(home, "config"), LOCALAPPDATA: path.join(home, "local"),
 		XDG_CONFIG_HOME: path.join(home, "config"), XDG_CACHE_HOME: path.join(home, "cache"),
-		LH_DATA_DIR: path.join(home, "data"), LH_CREDENTIALS_DIR: home,
+		LH_DATA_DIR: path.join(home, "data"),
 		NODE_ENV: "production",
 	};
 }

@@ -1,10 +1,8 @@
 /**
- * The BIRTH STAMP (per-session models, owner ruling 2026-09-28): every
- * session owns its model + thinking level from birth — POST /api/chats
- * stamps the newborn chat verbatim from the settings record's STRONG
- * slot, the new-session default. From then on the strong slot never
- * reaches the session again (in-session picks write the session's own
- * record; resolveConversationSpec prefers chat.settings.model).
+ * The BIRTH STAMP: POST /api/chats stamps every newborn lesson with the
+ * outside agent's model (agent:outside-agent) — the only model since the
+ * built-in sign-ins were removed (owner, 2026-10-27). Old model settings
+ * in the record never reach a new lesson.
  *
  * This pin drives the actual route handler (framework-free
  * Request/Response) under an isolated LH_DATA_DIR — the seam must be set
@@ -23,7 +21,6 @@ const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-birth-stamp-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
 const { POST } = await import("../app/api/chats/route.ts");
-const { readSettings, writeSettings } = await import("../src/store/settings.ts");
 const { chatStore } = await import("../src/store/chats.ts");
 
 after(() => {
@@ -39,70 +36,21 @@ function post(): Promise<Response> {
 }
 
 describe("POST /api/chats — the birth stamp", () => {
-	it("stamps the newborn verbatim from the strong slot (model + thinking level)", async () => {
-		writeSettings({
-			version: 1,
-			models: {
-				strong: {
-					model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" },
-					thinkingLevel: "low",
-				},
-			},
-		});
+	it("stamps the newborn with the outside agent's model", async () => {
 		const res = await post();
 		assert.equal(res.status, 200);
 		const { id } = (await res.json()) as { id: string };
 		const record = chatStore.getChat(id);
 		assert.ok(record);
-		assert.deepEqual(record.settings, {
-			model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" },
-			thinkingLevel: "low",
-		});
+		assert.deepEqual(record.settings, { model: { provider: "agent", id: "outside-agent" } });
 	});
 
-	it("no strong slot configured (fresh BYOK boot) → NO stamp; the turn gate refuses downstream", async () => {
-		fs.rmSync(path.join(TMP_DATA, "settings.json"), { force: true });
-		assert.equal(readSettings(), null);
-		const res = await post();
-		assert.equal(res.status, 200);
-		const { id } = (await res.json()) as { id: string };
-		const record = chatStore.getChat(id);
-		assert.ok(record);
-		assert.equal(record.settings, undefined, "nothing stamped — nothing to lie about");
-	});
-
-	it("an unset thinking level rides as-is — the session's level resolves (strong's, then the model's ladder)", async () => {
-		writeSettings({
-			version: 1,
-			models: { strong: { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } } },
-		});
-		const res = await post();
-		const { id } = (await res.json()) as { id: string };
-		const record = chatStore.getChat(id);
-		assert.ok(record);
-		assert.equal(record.settings?.thinkingLevel, undefined);
-		assert.deepEqual(record.settings, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
-	});
-
-	it("changing the strong slot afterward NEVER touches existing sessions — the stamp is a copy, not a live view", async () => {
-		writeSettings({
-			version: 1,
-			models: { strong: { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" }, thinkingLevel: "low" } },
-		});
-		const first = (await (await post()).json()) as { id: string };
-		writeSettings({
-			version: 1,
-			models: { strong: { model: { provider: "openai", id: "gpt-6-luna" }, thinkingLevel: "low" } },
-		});
-		const second = (await (await post()).json()) as { id: string };
-		// The pre-change session keeps its stamp; the post-change session
-		// carries the new default. This is the regression pin for the
-		// reported bug (2026-09-28): both UIs showed the strong slot while
-		// every chat ran a fossil stamp.
-		const firstRecord = chatStore.getChat(first.id);
-		const secondRecord = chatStore.getChat(second.id);
-		assert.ok(firstRecord && secondRecord);
-		assert.equal(firstRecord.settings?.model?.id, "z-ai/glm-5.3-flash");
-		assert.equal(secondRecord.settings?.model?.id, "gpt-6-luna");
+	it("an old record's model slots are ignored", async () => {
+		fs.writeFileSync(
+			path.join(TMP_DATA, "settings.json"),
+			JSON.stringify({ version: 1, models: { strong: { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" }, thinkingLevel: "low" } } }),
+		);
+		const { id } = (await (await post()).json()) as { id: string };
+		assert.deepEqual(chatStore.getChat(id)?.settings, { model: { provider: "agent", id: "outside-agent" } });
 	});
 });

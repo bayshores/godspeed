@@ -13,8 +13,7 @@
  *    grouped.
  *  - The run shows in the activity dock (the extraction registry, kind
  *    "topics", label "Topic grouping · <class>"); the dock's abort stops it.
- *  - The model is the auditor's setting (background "cheap" slot), so an
- *    outside agent (MCP) gets it as a labeled work item.
+ *  - It runs on the outside agent (MCP) as a labeled work item.
  *  - Result: one full snapshot appended to the graph's topics.jsonl.
  *
  * groupTopicsNow(scope) is the manual trigger (for the UI / later MCP).
@@ -22,13 +21,11 @@
 import { abortExtraction, finishBackgroundGraphRun, startBackgroundGraphRun } from "../agent/subagents/extraction.ts";
 import { groupTopics } from "../agent/subagents/topic-grouper.ts";
 import { withBgLlmSlot } from "../agent/subagents/bg-llm-semaphore.ts";
-import { piEngineForSpec, type PiEngine } from "../agent/models.ts";
-import { connectionBackgroundAllowed } from "../agent/subscription-connections.ts";
+import { agentEngine, type PiEngine } from "../agent/models.ts";
 import type { ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
-import { extractionEnabled, resolveRoleSpec } from "../core/settings-resolution.ts";
+import { extractionEnabled } from "../core/settings-resolution.ts";
 import { MIN_FACTS_FOR_TOPICS, resolveTopics, sameFactSet } from "../core/topics.ts";
-import { providerConnected } from "./connections.ts";
 import { effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 
 /** How long the scheduler waits for more graph writes before running. */
@@ -37,11 +34,11 @@ export const TOPIC_GROUPING_DEBOUNCE_MS = 20_000;
 export type TopicGroupingOutcome =
 	| { status: "grouped"; topics: number; facts: number }
 	| { status: "queued" }
-	| { status: "skipped"; reason: "too_few_facts" | "unchanged" | "graph_off" | "no_model" | "not_connected" | "no_class" }
+	| { status: "skipped"; reason: "too_few_facts" | "unchanged" | "graph_off" | "no_class" }
 	| { status: "aborted" }
 	| { status: "failed"; error: string };
 
-/** Test seams: a scripted engine (skips the settings/connection checks),
+/** Test seams: a scripted engine (in place of the outside agent),
  *  and permission to schedule under NODE_ENV=test (off by default so the
  *  real pipeline's hook never leaves timers in unrelated tests). */
 export const topicGroupingSeams: { engine?: PiEngine; enabledInTests?: boolean; debounceMs?: number } = {};
@@ -140,18 +137,8 @@ function runSingleFlight(key: string, force: boolean): Promise<TopicGroupingOutc
 	return run;
 }
 
-function backgroundEngine(): { engine?: PiEngine; refusal?: "no_model" | "not_connected" } {
-	if (topicGroupingSeams.engine) return { engine: topicGroupingSeams.engine };
-	const spec = resolveRoleSpec("auditor", stores.settingsStore.readSettings());
-	if (!spec) return { refusal: "no_model" };
-	let engine: PiEngine;
-	try {
-		engine = piEngineForSpec(spec);
-	} catch {
-		return { refusal: "no_model" };
-	}
-	if (!providerConnected(engine.model.provider) || !connectionBackgroundAllowed(engine.model.provider)) return { refusal: "not_connected" };
-	return { engine };
+function backgroundEngine(): PiEngine {
+	return topicGroupingSeams.engine ?? agentEngine();
 }
 
 async function groupOnce(scope: ClassScope, force: boolean): Promise<TopicGroupingOutcome> {
@@ -165,11 +152,7 @@ async function groupOnce(scope: ClassScope, force: boolean): Promise<TopicGroupi
 	const factIds = facts.map((f) => f.id);
 	const last = store.readTopics();
 	if (!force && sameFactSet(last, factIds)) return { status: "skipped", reason: "unchanged" };
-	const { engine, refusal } = backgroundEngine();
-	if (refusal) {
-		console.info(`[topics ${keyOf(scope)}] skipped: ${refusal}`);
-		return { status: "skipped", reason: refusal };
-	}
+	const engine = backgroundEngine();
 
 	const runKey = topicRunKey(scope);
 	const controller = startBackgroundGraphRun(runKey, `Topic grouping · ${className}`);

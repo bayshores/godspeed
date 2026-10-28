@@ -35,11 +35,6 @@ import { PATHS } from "../config.ts";
 import { CONCLUDE_ACK_TEXT } from "../src/core/contracts/chat.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
-import { connectProviderForTests } from "../src/server/connections.ts";
-
-// The connection turn gate: scripted turns pin openrouter (a faux engine
-// stands in), so the test process marks it connected.
-connectProviderForTests("openrouter");
 
 /** A valid problem pose — the slim schema: statement, mode, target,
  *  modelSolution (the commitment, which is also the reveal). */

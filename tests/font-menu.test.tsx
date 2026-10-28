@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
-import { FontMenuList, customFamilyFor, fontMenuResults } from "../components/settings/model-menu";
+import { FontMenuList, customFamilyFor, fontMenuResults } from "../components/settings/font-menu";
 import {
 	CURATED_FALLBACK_FONTS,
 	DEFAULT_READING_FONT,

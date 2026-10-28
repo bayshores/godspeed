@@ -3,14 +3,12 @@
  * the same path as Home's practice mode — POST /api/chats with
  * kind "practice" and the facts as graphContext picks (the server writes
  * them into the lesson's opening context), then open the lesson with the
- * title as its first message. Not ready to send (no models / no
- * connection) opens the setup dialog instead, like Home.
+ * title as its first message.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FactProgress, GraphContextPick, TopicProgress } from "@/src/core";
 import { useClasses } from "@/components/class-context";
-import { useNoConnection, useStrongDisconnected } from "@/components/setup-cta";
 import { topicFacts } from "./derive.ts";
 
 /** The server keeps at most 64 picks. */
@@ -37,21 +35,13 @@ export function practiceTitle(topics: readonly Pick<TopicProgress, "name">[]): s
 	return `Practice: ${topics.map((t) => t.name).join(", ")}`;
 }
 
-export function usePracticeStart(initialConfigured: boolean) {
+export function usePracticeStart() {
 	const router = useRouter();
 	const { active } = useClasses();
-	const noConnection = useNoConnection();
-	const strongDisconnected = useStrongDisconnected();
-	const [configured, setConfigured] = useState(initialConfigured);
-	const [setupOpen, setSetupOpen] = useState(false);
 	const [busy, setBusy] = useState(false);
 
 	const start = async (topics: readonly TopicProgress[], facts: readonly FactProgress[]) => {
 		if (busy || topics.length === 0) return;
-		if (!configured || noConnection || strongDisconnected) {
-			setSetupOpen(true);
-			return;
-		}
 		const title = practiceTitle(topics);
 		setBusy(true);
 		try {
@@ -73,14 +63,5 @@ export function usePracticeStart(initialConfigured: boolean) {
 		}
 	};
 
-	return {
-		start,
-		busy,
-		setupOpen,
-		closeSetup: () => setSetupOpen(false),
-		setupDone: () => {
-			setConfigured(true);
-			setSetupOpen(false);
-		},
-	};
+	return { start, busy };
 }

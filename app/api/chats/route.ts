@@ -1,5 +1,6 @@
 import { type GraphContextPick, parseClassScope } from "@/src/core";
-import { compactionInFlight, createLesson, isTurnRunning, listChats, readSettingsRecord, startClassScanner } from "@/src/server";
+import { compactionInFlight, createLesson, isTurnRunning, listChats, startClassScanner } from "@/src/server";
+import { OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "@/src/core";
 import type { ChatListItem } from "@/src/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
@@ -36,14 +37,6 @@ export async function POST(req: Request) {
 	// Classes wave: the lesson's class (absent/"none" = No class).
 	const classId = parseClassScope(typeof body.classId === "string" ? body.classId : undefined);
 	if (classId === undefined) return Response.json({ error: "bad classId" }, { status: 400 });
-	// PER-SESSION MODELS (owner, 2026-09-28): a session owns its model +
-	// thinking level from birth — stamped verbatim from the STRONG slot,
-	// the new-session default. From here the strong slot never reaches
-	// this session again: in-session picks write the session's own record
-	// (PUT /api/chats/:id/settings). No strong slot configured (fresh BYOK
-	// boot) → no stamp; the turn gate's 503 models_not_configured envelope
-	// refuses honestly until the setup flow fills the slot.
-	const strong = readSettingsRecord()?.models?.strong;
 	// The session's map context (owner, 2026-10-04): the picked
 	// propositions ride the CREATION as a graph-context marker (a separate
 	// custom message BEFORE the learner's first user message), carrying
@@ -66,9 +59,9 @@ export async function POST(req: Request) {
 		kind,
 		classId,
 		picks,
-		...(strong?.model
-			? { settings: { model: { provider: strong.model.provider, id: strong.model.id }, thinkingLevel: strong.thinkingLevel } }
-			: {}),
+		// Every lesson runs on the outside agent (owner, 2026-10-27) — the
+		// same stamp MCP start_lesson writes.
+		settings: { model: { provider: OUTSIDE_AGENT_PROVIDER, id: OUTSIDE_AGENT_MODEL_ID } },
 	});
 	if (!created.ok) return Response.json({ error: created.error, code: created.code }, { status: created.status });
 	return Response.json({ id: created.chat.id, title: created.chat.title });

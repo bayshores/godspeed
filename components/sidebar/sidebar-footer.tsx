@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { SettingsIcon } from "lucide-react";
 import { ActivitySection, useActivity } from "@/components/activity-dock";
 import { MenuShell } from "@/components/menu-shell";
-import { useServerResync } from "@/components/server-events";
+import { WAITING_NOTICE, agentWaiting, footerLabel, useAgentStatus } from "@/components/agent-status";
 import { useSettingsDialog } from "@/components/settings/settings-dialog.tsx";
 import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
@@ -11,62 +11,14 @@ import { cn } from "@/lib/utils";
  * THE SIDEBAR FOOTER (redesign 2026-10-27): a dot and one line — the
  * outside agent and how many background jobs run ("Claude Code · 1 job")
  * — plus the settings icon. The dot is green while an outside agent is
- * connected over MCP. Clicking the line opens the background-jobs list
- * (the activity section) above it.
+ * connected over MCP (components/agent-status.tsx). Clicking the line
+ * opens the background-jobs list (the activity section) above it.
  */
-
-export interface AgentStatus {
-	/** Outside-agent access is turned on (Settings → Agents). */
-	enabled: boolean;
-	/** An agent asked for work recently. */
-	connected: boolean;
-	/** The agent's name, when the server knows it. */
-	name?: string;
-}
-
-/** The footer line. Pure — exported for tests. */
-export function footerLabel(agent: AgentStatus | null, jobs: number): string {
-	const who = agent?.connected ? agent.name?.trim() || "Outside agent" : "No agent connected";
-	return jobs > 0 ? `${who} · ${jobs} job${jobs === 1 ? "" : "s"}` : who;
-}
-
-/** The outside-agent status, read when activity moves (agent work starts
- *  and ends as jobs), on reconnect, and when the window comes back. */
-function useAgentStatus(activityKey: unknown): AgentStatus | null {
-	const [status, setStatus] = useState<AgentStatus | null>(null);
-	const [nonce, setNonce] = useState(0);
-	useServerResync(() => setNonce((n) => n + 1));
-	useEffect(() => {
-		const onVisible = () => {
-			if (document.visibilityState === "visible") setNonce((n) => n + 1);
-		};
-		document.addEventListener("visibilitychange", onVisible);
-		return () => document.removeEventListener("visibilitychange", onVisible);
-	}, []);
-	useEffect(() => {
-		let alive = true;
-		fetch("/api/mcp-access", { cache: "no-store" })
-			.then((r) => (r.ok ? r.json() : null))
-			.then((body: { enabled?: unknown; agentConnected?: unknown; agentName?: unknown } | null) => {
-				if (!alive || !body) return;
-				setStatus({
-					enabled: body.enabled === true,
-					connected: body.agentConnected === true,
-					name: typeof body.agentName === "string" ? body.agentName : undefined,
-				});
-			})
-			.catch(() => {/* keep the last status */});
-		return () => {
-			alive = false;
-		};
-	}, [activityKey, nonce]);
-	return status;
-}
 
 export function SidebarFooter() {
 	const { feed } = useActivity();
 	const jobs = feed.jobs.length + feed.extractions.length;
-	const agent = useAgentStatus(feed);
+	const agent = useAgentStatus();
 	const { open: openSettings } = useSettingsDialog();
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
@@ -103,6 +55,7 @@ export function SidebarFooter() {
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
+				title={agentWaiting(agent) ? WAITING_NOTICE : undefined}
 				className="lh-press flex min-w-0 items-center gap-[7px] text-[12.5px] text-ink-2 hover:text-ink"
 			>
 				<span

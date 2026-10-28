@@ -15,7 +15,7 @@
  * persist but resolve inert — the switch shows stored, the dim effective).
  *
  * Reading font (appearance wave, 2026-09-26, owner ruling): a searchable
- * dropdown of the user's INSTALLED fonts (FontMenuList over model-menu's
+ * dropdown of the user's INSTALLED fonts (FontMenuList over font-menu's
  * machine) fed by window.queryLocalFonts() in the desktop shell — the
  * enumeration is click-bound (the API requires user activation), deduped
  * to unique families, the factory family excluded (the DEFAULT row is
@@ -39,7 +39,7 @@ import {
 import { MenuShell } from "@/components/menu-shell";
 import { Hint } from "@/components/ui/hint";
 import { useAppearance } from "./appearance.tsx";
-import { FontMenuList } from "./model-menu";
+import { FontMenuList } from "./font-menu";
 import { CommitInput, SettingsRow, ThinSelect, Toggle } from "./controls.tsx";
 
 /** The factory reading family — the DEFAULT row's identity (unset =

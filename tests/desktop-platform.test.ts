@@ -61,22 +61,9 @@ describe("desktop window chrome", () => {
 		});
 	}
 
-	it("only the external dev shell receives the web subscription transport marker", () => {
+	it("no window receives a sign-in transport marker (built-in sign-ins removed 2026-10-27)", () => {
 		assert.equal(windowOptions("darwin").webPreferences.additionalArguments, undefined);
-		assert.deepEqual(windowOptions("darwin", { LH_DEV_URL: "http://localhost:3000" }).webPreferences.additionalArguments, ["--lh-web-subscriptions"]);
-	});
-
-	it("dev preload routes opaque sign-in actions through its narrow external-browser channel", async () => {
-		let bridge!: { subscriptionTransport: string; openSubscriptionBrowser(action: string): Promise<void> };
-		const invoked: unknown[][] = [];
-		runInNewContext(readFileSync(new URL("../electron/preload.cjs", import.meta.url), "utf8"), {
-			process: { platform: "darwin", argv: ["--lh-web-subscriptions"] },
-			require: () => ({ contextBridge: { exposeInMainWorld: (_: string, value: typeof bridge) => { bridge = value; } }, ipcRenderer: { on() {}, invoke: async (...args: unknown[]) => { invoked.push(args); } } }),
-		});
-		assert.equal(bridge.subscriptionTransport, "web");
-		const action = "/api/subscriptions/browser?id=00000000-0000-4000-8000-000000000001";
-		await bridge.openSubscriptionBrowser(action);
-		assert.deepEqual(invoked, [["lh:subscriptions:web-browser", action]]);
+		assert.equal(windowOptions("darwin", { LH_DEV_URL: "http://localhost:3000" }).webPreferences.additionalArguments, undefined);
 	});
 
 	it("preload exposes OS identity without exposing Node/Electron to the renderer", () => {
@@ -96,9 +83,8 @@ describe("desktop window chrome", () => {
 		runInNewContext(readFileSync(new URL("../electron/preload.cjs", import.meta.url), "utf8"), context);
 		assert.equal(bridge.platform, "win32");
 		assert.deepEqual(Object.keys(bridge).sort(), [
-			"chatgpt", "checkForUpdates", "expandWindow", "getUpdateState", "getZoom", "installUpdate", "onOpenSettings", "onUpdateStatus", "onZoom", "pickFolder", "platform", "subscriptions",
+			"checkForUpdates", "expandWindow", "getUpdateState", "getZoom", "installUpdate", "onOpenSettings", "onUpdateStatus", "onZoom", "pathForFile", "pickFolder", "platform",
 		]);
-		assert.deepEqual(Object.keys(bridge.subscriptions as object).sort(), ["cancel", "consent", "disconnect", "login", "onChange", "open", "respond", "retry", "status"]);
 	});
 });
 

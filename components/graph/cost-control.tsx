@@ -33,6 +33,8 @@ function timeAgo(startedAt: number): string {
 function fmtRunCost(dollars: number | null, providers: readonly string[] = []): string {
 	return planCostLabel(dollars, providers, (value) => `$${value.toFixed(3)}`);
 }
+/** Plan labels for a stage; records written before provider names were
+ *  stored were all ChatGPT runs (the only plan at the time). */
 function graphProviders(value: { subscriptionRuns?: number; subscriptionProviders?: string[] }): string[] {
 	return value.subscriptionProviders ?? ((value.subscriptionRuns ?? 0) > 0 ? ["ChatGPT"] : []);
 }

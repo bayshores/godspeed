@@ -15,7 +15,6 @@ import { useProgress } from "@/components/use-progress";
 import { useActivity } from "@/components/activity-dock";
 import { ChainTableOverlay } from "@/components/chain-table";
 import { NotesImportErrors, useNotesImport } from "@/components/notes-import";
-import { SetupDialog } from "@/components/setup-dialog";
 import { GraphTopBar } from "./graph-top-bar.tsx";
 import { usePracticeStart } from "./practice.ts";
 
@@ -23,12 +22,12 @@ import { usePracticeStart } from "./practice.ts";
 // progress data has arrived.
 const GraphBody = dynamic(() => import("./graph-body.tsx").then((m) => m.GraphBody), { ssr: false });
 
-export function GraphScreen({ initialConfigured }: { initialConfigured: boolean }) {
+export function GraphScreen() {
 	const { active } = useClasses();
-	return <GraphScreenBody key={active ?? "none"} initialConfigured={initialConfigured} />;
+	return <GraphScreenBody key={active ?? "none"} />;
 }
 
-function GraphScreenBody({ initialConfigured }: { initialConfigured: boolean }) {
+function GraphScreenBody() {
 	const { active } = useClasses();
 	const progress = useProgress();
 	const { refresh } = progress;
@@ -59,7 +58,7 @@ function GraphScreenBody({ initialConfigured }: { initialConfigured: boolean }) 
 
 	const refreshActivity = useActivity().refresh;
 	const notesImport = useNotesImport({ onStart: refreshActivity, onFinish: refresh });
-	const practice = usePracticeStart(initialConfigured);
+	const practice = usePracticeStart();
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
@@ -103,7 +102,6 @@ function GraphScreenBody({ initialConfigured }: { initialConfigured: boolean }) 
 					onClose={() => setChainsOpen(false)}
 				/>
 			</div>
-			<SetupDialog open={practice.setupOpen} onClose={practice.closeSetup} onDone={practice.setupDone} />
 		</div>
 	);
 }

@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FactProgress, GraphContextPick, TopicProgress } from "@/src/core";
 import { useClasses } from "@/components/class-context";
-import { useNoConnection, useStrongDisconnected } from "@/components/setup-cta";
 import { practicePicks, practiceTitle } from "@/components/graph/practice";
 
 export interface LessonRequest {
@@ -16,29 +15,19 @@ export interface LessonRequest {
 
 /**
  * Every lesson Home starts (the topic box, Learn this, Practice) goes
- * through here: in the active class, behind the setup checks. Not ready
- * to send (no models picked, no subscription signed in, or the strong
- * model's provider signed out) opens the setup dialog instead; checking
- * before the create means a refused start never leaves an empty lesson
- * behind. The draft in the topic box is untouched either way.
+ * through here, in the active class. The lesson runs on the outside agent;
+ * with no agent connected it waits in the agent queue (the lesson shows
+ * "Waiting for your agent").
  */
-export function useLessonStart(initialConfigured: boolean) {
+export function useLessonStart() {
 	const router = useRouter();
 	const { active } = useClasses();
-	const noConnection = useNoConnection();
-	const strongDisconnected = useStrongDisconnected();
-	const [configured, setConfigured] = useState(initialConfigured);
-	const [setupOpen, setSetupOpen] = useState(false);
 	const [busy, setBusy] = useState(false);
 
 	const start = useCallback(
 		async (req: LessonRequest) => {
 			const title = req.title.trim();
 			if (!title || busy) return;
-			if (!configured || noConnection || strongDisconnected) {
-				setSetupOpen(true);
-				return;
-			}
 			setBusy(true);
 			try {
 				const res = await fetch("/api/chats", {
@@ -58,7 +47,7 @@ export function useLessonStart(initialConfigured: boolean) {
 				setBusy(false);
 			}
 		},
-		[busy, configured, noConnection, strongDisconnected, active, router],
+		[busy, active, router],
 	);
 
 	/** "Practice" on a Work-on-next topic: the same lesson the Graph's
@@ -73,16 +62,5 @@ export function useLessonStart(initialConfigured: boolean) {
 		start,
 		practiceTopic,
 		busy,
-		/** Nothing is connected: the top bar offers sign-in. */
-		noConnection,
-		configured,
-		setupOpen,
-		openSetup: () => setSetupOpen(true),
-		closeSetup: () => setSetupOpen(false),
-		/** Save only saves: a draft in the topic box waits for the learner. */
-		setupDone: () => {
-			setConfigured(true);
-			setSetupOpen(false);
-		},
 	};
 }

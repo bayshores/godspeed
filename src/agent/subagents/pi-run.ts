@@ -1,9 +1,7 @@
 import { Agent, type AgentEvent, type AgentMessage, type AgentTool } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
-import { APP_IDENTITY, piEngineFor, type PiEngine } from "../models.ts";
-import { usageWasAdmitted } from "../subscription-request-cycle.ts";
-import { providerEventObserver } from "../provider-events.ts";
+import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
 import type { ModelRole } from "../../../config.ts";
 import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
 
@@ -41,9 +39,7 @@ export interface SubagentRunOptions {
 	onAssistantMessage?: (message: AssistantMessage, step: number) => void;
 	/** Extra stop rule (extractor: stop after a clean submit). */
 	shouldStop?: (message: AssistantMessage, toolResults: ToolResultMessage[]) => boolean;
-	/** Debug: when set AND LH_PROVIDER_EVENTS=1, raw provider stream
-	 *  events append to data/debug/provider-events/<chatId>.jsonl (context
-	 *  "job:<role>"). Absent or env-off → no observer. */
+	/** The job's chat, when the run belongs to one. */
 	chatId?: string;
 	/** A short name for the task ("Topic grouping · CSE 21"). An outside
 	 *  agent (MCP) sees it on the run's work items, so it can tell which
@@ -59,17 +55,14 @@ export interface SubagentRunResult {
 }
 
 export function subagentEngine(role: ModelRole, override?: PiEngine): PiEngine {
-	// BYOK (owner, 2026-09-22): no factory pins — the override is the only
-	// real path (the runner injects settings-resolved engines); a missed
-	// injection hits the honest thrower in models.ts instead of a guess.
-	return override ?? piEngineFor(role);
+	// The runner injects the engine; without one, the outside agent runs it.
+	void role;
+	return override ?? agentEngine();
 }
 
 export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRunOptions): Promise<SubagentRunResult> {
 	const engine = subagentEngine(opts.role, opts.engine);
 	let turns = 0;
-	// Debug recorder (owner, 2026-10-04): raw provider events per job run.
-	const providerEvents = opts.chatId ? providerEventObserver(opts.chatId, `job:${opts.role}`) : undefined;
 	// One unsaved conversation per invocation, stable through every turn.
 	const sessionId = randomUUID();
 	if (opts.taskLabel) labelConversation(sessionId, opts.taskLabel);
@@ -84,7 +77,6 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,
-		...(providerEvents ? { onProviderStreamEvent: providerEvents } : {}),
 		// 0.87.1: shouldStopAfterTurn → finishTurn (same call point; "end"
 		// exits before the steering poll, exactly the old boolean-true).
 		finishTurn: (turn) => {
@@ -115,7 +107,6 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 								aborted = true;
 							break;
 						}
-						if (!usageWasAdmitted(m.usage)) { if (m.stopReason === "error") errorMessage = m.errorMessage; break; }
 						step++;
 						opts.onUsage?.(m.usage);
 						opts.onAssistantMessage?.(m, step);

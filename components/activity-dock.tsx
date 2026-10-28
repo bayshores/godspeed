@@ -5,9 +5,10 @@ import { ActivityIcon, BotIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon,
 import { cn } from "@/lib/utils";
 import { useFold } from "@/components/use-fold";
 import type { CallUsage, JobKind, JobRecord } from "@/src/core";
-import { isModelsRefusal, isProviderNotConnectedRefusal, subscriptionLabel, subscriptionLabels } from "@/src/core";
+import { subscriptionLabel, subscriptionLabels } from "@/src/core";
 import { formatTokens, planCostLabel } from "@/components/usage-format";
 import { useServerEvent, useServerResync } from "@/components/server-events";
+import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
 
 /**
  * THE BACKGROUND-AGENTS SECTION (owner, sidebar round — the successor of
@@ -225,16 +226,7 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 			startedAt: Date.parse(job.createdAt) || 0,
 			cost: job.costUsd ?? null,
 			context,
-			// BYOK (owner, 2026-09-22): a refusal is info, not failure —
-			// the honest line the runner left ("failed") reads as setup
-			// needed, matching the dispatch card's quiet tone. The
-			// connection refusal twin: a pinned model whose provider is not
-			// connected reads as sign-in needed, same quiet tone.
-			activity: isModelsRefusal(job.error)
-				? "needs model setup"
-				: isProviderNotConnectedRefusal(job.error)
-					? "needs a sign-in"
-					: (job.activity ?? ""),
+			activity: job.activity ?? "",
 			model: usage?.model,
 			steps: usage?.steps,
 		};
@@ -288,8 +280,12 @@ const KIND_ICON: Record<JobKind, typeof SearchIcon> = {
 /** Abort states per blob id: pending (fired) / failed (backend absent). */
 type AbortState = "pending" | "failed";
 
-export function ActivitySection({ feed: feedProp }: { feed?: ActivityFeed }) {
+export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed?: ActivityFeed; waiting?: boolean }) {
 	const ctx = useContext(ActivityContext);
+	// Work is queued and no agent is connected: say so (it starts by itself
+	// once the agent connects — agent-bridge.ts waits with no time limit).
+	const agent = useAgentStatus();
+	const waiting = waitingProp ?? agentWaiting(agent);
 	const feed = feedProp ?? ctx.feed;
 	const refresh = ctx.refresh;
 	const blobs = useMemo(() => toBlobs(feed), [feed]);
@@ -354,6 +350,11 @@ export function ActivitySection({ feed: feedProp }: { feed?: ActivityFeed }) {
 				</span>
 				)}
 			</div>
+			{waiting && (
+				<p data-testid="activity-waiting" className="mb-1 px-2 text-xs text-ink-2">
+					{WAITING_NOTICE}
+				</p>
+			)}
 			{blobs.length > 0 && (
 				<div className="flex max-h-[40dvh] flex-col gap-1 overflow-y-auto">
 					{blobs.map((blob) => (

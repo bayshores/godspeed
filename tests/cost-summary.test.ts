@@ -13,12 +13,14 @@ import {
 	type GraphCostSummary,
 } from "../src/core/cost-summary.ts";
 import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
-import { callCost } from "../src/server/pricing.ts";
+/** A fixture price: one priced model at $1 / $2 per million tokens; any
+ *  other model is unpriced. (The app itself prices nothing — the outside
+ *  agent bills its own plan — so the fold is tested with its own pricer.) */
+const PRICED = "fixture:priced";
+function callCost(call: Partial<CallUsage>, model: string): number | null {
+	return model === PRICED ? ((call.inputTokens ?? 0) * 1 + (call.outputTokens ?? 0) * 2) / 1e6 : null;
+}
 const graphCostSummary = (input: CostSummaryInput) => foldGraphCostSummary(input, callCost);
-
-/** A model with full published pricing (from the generated registry). */
-const PRICED = "openrouter:z-ai/glm-5.3-flash";
-assert.notEqual(callCost({ inputTokens: 1, outputTokens: 1 }, PRICED), null);
 
 const step = (input: number, output: number): CallUsage => ({
 	inputTokens: input,

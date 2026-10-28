@@ -5,16 +5,10 @@
  * discipline, same as the per-chat and defaults routes); sections are
  * independent, so partial writes can never clobber each other.
  *
- *   section ∈ general | chat | agent | appearance | graph | compaction
+ *   section ∈ general | agent | appearance | graph | compaction
  *   Body: the complete desired section object. Parse + validate strictly
  *   (server/settings-body.ts): a bad shape/type is a 400 carrying the
- *   supported list where one exists. The chat and models sections
- *   additionally pass the catalog gate (validateChatSettings /
- *   validateModelsSettings — unknown provider/model = 400). Thinking
- *   levels never reject a write (owner, interlude 2026-09-22): a pinned
- *   level CLAMPS to the named model's nearest supported level and the
- *   clamped value is stored — model swaps just work, same as the
- *   defaults route. The agent section additionally validates prompt
+ *   supported list where one exists. The agent section additionally validates prompt
  *   switches — under the orphan-heal contract (interlude 2026-09-26): an
  *   ON switch with its override file present is valid as-is; an ON whose
  *   file is gone (deleted outside the app, a disk wipe, or a record from
@@ -29,17 +23,12 @@
  * lands here.
  */
 
-import type { AgentSettings, ChatSettings, ModelsSettings } from "@/src/core";
+import type { AgentSettings } from "@/src/core";
 import {
 	SETTINGS_SECTIONS,
 	allSegmentPaths,
-	clampChatLevel,
-	clampModelsLevels,
-	effectiveSettings,
 	promptOverrides,
 	readSettingsRecord,
-	validateChatSettings,
-	validateModelsSettings,
 	writeSettingsRecord,
 	type SettingsBodyResult,
 } from "@/src/server";
@@ -65,23 +54,8 @@ export async function PUT(request: Request, ctx: { params: Promise<{ section: st
 	}
 	let agentHealed: AgentSettings | undefined;
 
-	// Section-specific cross-validation (against the catalog / the prompt
-	// store) — the parsers only see shapes.
-	if (section === "chat") {
-		const verdict = validateChatSettings(parsed.settings as ChatSettings);
-		if (!verdict.ok) {
-			return Response.json({ error: verdict.error, supported: verdict.supported }, { status: 400 });
-		}
-	}
-	// Model slots wave (2026-09-20): the models section gets the same
-	// catalog gate the chat section gets — a slot must name a real
-	// provider+model and a thinking level it supports.
-	if (section === "models") {
-		const verdict = validateModelsSettings(parsed.settings as ModelsSettings);
-		if (!verdict.ok) {
-			return Response.json({ error: verdict.error, supported: verdict.supported }, { status: 400 });
-		}
-	}
+	// Section-specific cross-validation (against the prompt store) — the
+	// parsers only see shapes.
 	if (section === "agent") {
 		// Orphan-heal (contract fix, interlude 2026-09-26): an ON switch
 		// whose override file is gone (or whose segment left the source
@@ -103,24 +77,10 @@ export async function PUT(request: Request, ctx: { params: Promise<{ section: st
 		}
 	}
 
-	// Clamp-on-write (owner ruling, interlude 2026-09-22): a model swap
-	// with a pinned thinking level NEVER errors — the pin clamps to the
-	// new model's nearest supported level (pi's nearest-clamp, the same
-	// translation piEngineForSpec applies at runtime) and the clamped
-	// value is what lands in the record. The chat section's bare levels
-	// clamp against the record's resolved strong slot (the chain's
-	// fallback); the models section's slots each carry their own model.
 	// The agent section lands HEALED when orphaned prompt switches were
 	// found above (the healed copy) — after every write the record and
 	// file reality agree.
-	const sectionOut =
-		section === "chat"
-			? clampChatLevel(parsed.settings as ChatSettings, effectiveSettings().models.strong)
-			: section === "models"
-				? clampModelsLevels(parsed.settings as ModelsSettings)
-				: section === "agent" && agentHealed
-					? agentHealed
-					: parsed.settings;
+	const sectionOut = section === "agent" && agentHealed ? agentHealed : parsed.settings;
 
 	// Read-modify-write ONE section of the record; everything else rides
 	// along untouched (other sections, unknown keys — sanitize preserves).

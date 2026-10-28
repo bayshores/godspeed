@@ -39,7 +39,7 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 	it("preserves all secret exclusions exactly", () => {
 		assert.deepEqual(patterns, ["**/data/**/*", "auth.json", "chatgpt-credentials.json*", "github-copilot-credentials.json*", "xai-credentials.json*", ".env*"]);
 	});
-	it("retains exactly the narrow native-Turbopack closure workaround and existing runtime includes", () => {
+	it("retains exactly the runtime includes (the native-provider closure was removed with the sign-ins, 2026-10-27)", () => {
 		assert.deepEqual(nextConfig.outputFileTracingIncludes!["*"], [
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
@@ -47,18 +47,8 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			"node_modules/@napi-rs/canvas-*/**/*",
 			"node_modules/@resvg/resvg-js-*/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/providers/data/**/*",
-			"node_modules/@earendil-works/pi-ai/dist/auth/oauth/{load,github-copilot,xai,device-code}.js",
 			"node_modules/@earendil-works/pi-ai/dist/utils/sleep.js",
 			"node_modules/@earendil-works/pi-agent-core/dist/**/*.json",
-			"node_modules/gcp-metadata/**/*",
-			"node_modules/json-bigint/**/*",
-			"node_modules/bignumber.js/**/*",
 		]);
-	});
-	it("limits the workaround to its three packages, never learner data or unrelated dependencies", () => {
-		const closure = nextConfig.outputFileTracingIncludes!["*"]!.slice(-3);
-		const included = picomatch(closure, { dot: true });
-		for (const file of ["node_modules/gcp-metadata/build/src/index.js", "node_modules/json-bigint/lib/parse.js", "node_modules/bignumber.js/bignumber.js"]) assert.equal(included(file), true, file);
-		for (const file of ["data/private.json", "nested/data/private.json", "auth.json", ".env.local", "node_modules/unrelated/runtime.js", "node_modules/gcp-metadata-lookalike/index.js"]) assert.equal(included(file), false, file);
 	});
 });

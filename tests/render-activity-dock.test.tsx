@@ -3,7 +3,28 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../components/activity-dock.tsx";
 import { formatTokens, formatUsd } from "../components/usage-format.ts";
-import { jobCost } from "../src/server/pricing.ts";
+import { WAITING_NOTICE, agentWaiting, parseAgentStatus } from "../components/agent-status.tsx";
+
+describe("the waiting-for-your-agent notice", () => {
+	it("shows only while work waits and no agent is connected", () => {
+		assert.equal(agentWaiting({ connected: false, pendingWork: 1 }), true);
+		assert.equal(agentWaiting({ connected: true, pendingWork: 1 }), false);
+		assert.equal(agentWaiting({ connected: false, pendingWork: 0 }), false);
+		assert.equal(agentWaiting(null), false);
+	});
+	it("reads the /api/mcp-access body", () => {
+		assert.deepEqual(parseAgentStatus({ agentConnected: true, agentName: "Claude Code", pendingWork: 2 }), { connected: true, name: "Claude Code", pendingWork: 2 });
+		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), { connected: false, pendingWork: 0 });
+		assert.equal(parseAgentStatus(null), null);
+	});
+	it("the activity panel shows the notice text", () => {
+		const html = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} waiting />);
+		assert.ok(html.includes('data-testid="activity-waiting"'));
+		assert.ok(html.includes(WAITING_NOTICE));
+		assert.equal(WAITING_NOTICE, "Waiting for your agent — run /godspeed:teach");
+		assert.ok(!renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} />).includes("activity-waiting"));
+	});
+});
 
 // The section's pure layer: folds, formatting, and blob order — then the SSR
 // render (blobs, "—" doctrine, the abort affordance, the always-present
@@ -28,7 +49,7 @@ function job(over: Partial<ActivityFeed["jobs"][number]> = {}): ActivityFeed["jo
 		updatedAt: new Date(NOW - 1000).toISOString(),
 		title: "Limits lesson",
 		contextLimit: null,
-		costUsd: jobCost({ usage: over.usage }),
+		costUsd: null,
 		...over,
 	};
 }
@@ -59,7 +80,7 @@ describe("activity dock pure layer", () => {
 		assert.ok(blobs.every((b) => b.chatId === "src_a"), "abort/link identity stays source-scoped");
 	});
 
-	it("uses the server's Pi price projection; absent pricing is null, never zero", () => {
+	it("uses the server's price projection; absent pricing is null, never zero", () => {
 		const priced = job({
 			usage: {
 				model: "openrouter:z-ai/glm-5.3-flash",
@@ -70,36 +91,17 @@ describe("activity dock pure layer", () => {
 				reasoningTokens: 0,
 				steps: 2,
 			},
+			costUsd: 0.00215,
 		});
 		const blob = toBlobs({ jobs: [priced], extractions: [] })[0]!;
-		// Pi-normalized fresh input is priced directly, never reduced by reads.
-		assert.equal(blob.cost, 0.00215);
+		assert.equal(blob.cost, 0.00215, "the server's projection, verbatim");
 		const missingProjection = toBlobs({ jobs: [{ ...priced, costUsd: undefined }], extractions: [] })[0]!;
 		assert.equal(missingProjection.cost, null, "the browser must not invent a fallback price");
 		const absent = toBlobs({ jobs: [job()], extractions: [] })[0]!;
 		assert.equal(absent.cost, null);
 	});
 
-	it("a connection-refused job reads as info — 'needs a sign-in'", () => {
-		const refused = job({
-			status: "error",
-			activity: "failed",
-			// the runner composes the envelope's error verbatim (invariant tail)
-			error: "ChatGPT is not connected — sign in under Settings → Providers",
-		});
-		const blob = toBlobs({ jobs: [refused], extractions: [] })[0]!;
-		assert.equal(blob.activity, "needs a sign-in");
-	});
-
-	it("a models-refused job reads as info — 'needs model setup', not 'failed' (BYOK, 2026-09-22)", () => {
-		const refused = job({
-			status: "error",
-			activity: "failed",
-			error: "No model configured — set up your models first (missing: vision)",
-		});
-		const blob = toBlobs({ jobs: [refused], extractions: [] })[0]!;
-		assert.equal(blob.activity, "needs model setup");
-		// A real failure keeps the runner's honest wording.
+	it("a failed job reads 'failed' with the runner's honest wording", () => {
 		const crashed = job({ status: "error", activity: "failed", error: "FAILED: headless crashed" });
 		const real = toBlobs({ jobs: [crashed], extractions: [] })[0]!;
 		assert.equal(real.activity, "failed");
@@ -239,15 +241,14 @@ describe("activity section render", () => {
 			<ActivitySection
 				feed={{
 					jobs: [
-						job({ id: "a", usage }),
-						job({ id: "b", usage, createdAt: new Date(NOW - 20_000).toISOString() }),
+						job({ id: "a", usage, costUsd: 0.002 }),
+						job({ id: "b", usage, costUsd: 0.002, createdAt: new Date(NOW - 20_000).toISOString() }),
 					],
 					extractions: [],
 				}}
 			/>,
 		);
-		// two identical priced jobs → 2 × $0.002 = $0.0040 total (pi prices,
-		// glm-5.3-flash drifted in pi-ai 0.87.1)
+		// two priced jobs → 2 × $0.002 = $0.0040 total
 		assert.match(html, /activity-total-cost[^>]*>\$0\.0040</);
 	});
 });

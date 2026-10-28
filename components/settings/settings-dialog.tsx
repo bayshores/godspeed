@@ -43,17 +43,14 @@ import { useAppearance } from "./appearance.tsx";
 import { SettingsGroup, SettingsSection } from "./controls.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 import { AgentSection } from "./agent-section.tsx";
-import type { ModelsSettings } from "@/src/core";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { Hint } from "@/components/ui/hint";
 import { Tip } from "@/components/ui/tooltip";
-import { BotIcon, InfoIcon, KeyRoundIcon, KeyboardIcon, PaletteIcon, PlugIcon, SettingsIcon, XIcon } from "lucide-react";
+import { BotIcon, InfoIcon, KeyboardIcon, PaletteIcon, PlugIcon, SettingsIcon, XIcon } from "lucide-react";
 import { AppearanceSection, GraphSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
 import { AGENTS_SECTION_HINT, AgentsSection } from "./agents-section.tsx";
-import { ChatGPTUIProvider } from "./chatgpt-connection.tsx";
-import { NativeSubscriptionUIProvider, SubscriptionConnections } from "./subscription-connections.tsx";
 
 /** The left nav, in the redesign's order (design/exports/settings.html).
  *  A section's hint shows as a tooltip on the info icon by its title.
@@ -61,7 +58,6 @@ import { NativeSubscriptionUIProvider, SubscriptionConnections } from "./subscri
 const SECTIONS = [
 	{ id: "agents", label: "Outside agents", icon: PlugIcon, hint: AGENTS_SECTION_HINT },
 	{ id: "agent", label: "Agent", icon: BotIcon },
-	{ id: "providers", label: "Providers", icon: KeyRoundIcon },
 	{ id: "appearance", label: "Appearance", icon: PaletteIcon },
 	{ id: "keyboard", label: "Keyboard", icon: KeyboardIcon, hint: "Stored on this device" },
 	{ id: "general", label: "General", icon: SettingsIcon },
@@ -94,11 +90,11 @@ export function SettingsDialogProvider({
 	}, []);
 	useEffect(() => window.lh?.onOpenSettings?.((section) => open(section)), [open]);
 	return (
-		<ChatGPTUIProvider><NativeSubscriptionUIProvider><DialogContext.Provider value={{ open }}>
+		<DialogContext.Provider value={{ open }}>
 			{children}
 			{/* Rendered always; `open` lets it fade out (motion wave). */}
 			<SettingsDialog open={show} onClose={() => setShow(false)} initialSection={landOn} />
-		</DialogContext.Provider></NativeSubscriptionUIProvider></ChatGPTUIProvider>
+		</DialogContext.Provider>
 	);
 }
 
@@ -233,7 +229,7 @@ export function SettingsDialogBody({
 	 *  schema mistake caught by the validation surface). */
 	const write = useCallback(
 		async (
-			section: "general" | "agent" | "models" | "appearance" | "graph" | "compaction",
+			section: "general" | "agent" | "appearance" | "graph" | "compaction",
 			body: object,
 		) => {
 			setError(null);
@@ -249,11 +245,9 @@ export function SettingsDialogBody({
 				setError(`${section}: ${detail.error ?? res.status}`);
 				return;
 			}
-			// Server truth, never the request body (fix wave, owner repro):
-			// the models section clamps pinned thinking levels on write
-			// (bd68486) — a swap that rides an unsupported level lands
-			// CLAMPED in the record, and the writing surface must show the
-			// stored value in this same interaction, not the optimistic one.
+			// Server truth, never the request body: the route may heal what
+			// it stores (orphaned prompt switches), and the writing surface
+			// must show the stored value in this same interaction.
 			const stored = (
 				(await res.json().catch(() => null)) as { settings?: UserSettings } | null
 			)?.settings;
@@ -390,13 +384,6 @@ export function SettingsDialogBody({
 									</SettingsGroup>
 								</SettingsSection>
 							)}
-							{active === "providers" && (
-								<SettingsSection title="Providers" testid="section-providers">
-									<SettingsGroup label="Subscriptions" testid="group-subscriptions">
-										<SubscriptionConnections />
-									</SettingsGroup>
-								</SettingsSection>
-							)}
 							{active === "agent" && (
 								<SettingsSection
 									title="Agent"
@@ -404,12 +391,8 @@ export function SettingsDialogBody({
 								>
 									<AgentSection
 										agent={record.agent}
-										models={record.models}
 										graph={record.graph}
 										compaction={record.compaction}
-										onModelsChange={(next: ModelsSettings) =>
-											void write("models", next)
-										}
 										onSectionChange={(next: AgentSettings) =>
 											void write("agent", next)
 										}

@@ -5,8 +5,16 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { GraphCostControl } from "../components/graph/cost-control.tsx";
 import { graphCostSummary } from "../src/core/cost-summary.ts";
-import { callCost } from "../src/server/pricing.ts";
 import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
+
+/** A fixture pricer (the app itself prices nothing now — the outside agent
+ *  bills its own plan): the default model is priced unless cache writes
+ *  lack their one-hour split (an unknown historical split stays unpriced). */
+function callCost(call: Partial<CallUsage>, model: string): number | null {
+	if (model !== "anthropic:claude-haiku-4-5") return null;
+	if ((call.cacheWriteTokens ?? 0) > 0 && call.cacheWrite1hTokens === undefined) return null;
+	return ((call.inputTokens ?? 0) + (call.outputTokens ?? 0) * 5 + (call.cacheWriteTokens ?? 0)) / 1e6;
+}
 
 const usage = (over: Partial<CallUsage> = {}): CallUsage => ({ inputTokens: 1000, outputTokens: 100, cacheReadTokens: 0, cacheWriteTokens: 20_000, reasoningTokens: 0, ...over });
 const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): ExtractionRunUsage => ({ startedAt: at, at: "fixture", durationMs: 1, stages: { extractor: { model, steps }, auditor: { model, steps } } });
@@ -33,9 +41,9 @@ test("known zero, mixed priced/unknown, and subscription headline semantics stay
 	assert.equal(mixed.unpricedRuns, 1);
 	assert.ok(mixed.totalDollars > 0);
 	assert.match(headline([priced, historical]), new RegExp(`>\\$${mixed.totalDollars.toFixed(2).replace(".", "\\.")}<\\/button>`));
-	const plan = run([usage()], "chatgpt:fixture");
-	assert.match(headline([plan]), />ChatGPT<\/button>/);
-	assert.match(headline([plan, zero]), />\$0\.00 \+ ChatGPT<\/button>/);
+	const plan = run([usage()], "agent:outside-agent");
+	assert.match(headline([plan]), />Outside agent<\/button>/);
+	assert.match(headline([plan, zero]), />\$0\.00 \+ Outside agent<\/button>/);
 });
 
 test("graph stage and recent-run aggregates preserve known one-hour cache writes", () => {

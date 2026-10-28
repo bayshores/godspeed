@@ -11,7 +11,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	parseAgentSettingsBody,
-	parseModelsSettingsBody,
 	parseAppearanceSettingsBody,
 	parseGeneralSettingsBody,
 	parseCompactionSettingsBody,
@@ -36,25 +35,6 @@ describe("parseGeneralSettingsBody", () => {
 });
 
 describe("parseAgentSettingsBody", () => {
-	it("models: valid roles with model pair and/or thinkingLevel; unknown role is a 400 with the list", () => {
-		const r = parseAgentSettingsBody({
-			models: {
-				researcher: { model: { provider: "openrouter", id: "qwen/qwen3.8-flash" } },
-				auditor: { thinkingLevel: "high" },
-			},
-		});
-		assert.ok(r.ok);
-		assert.deepEqual(r.settings.models, {
-			researcher: { model: { provider: "openrouter", id: "qwen/qwen3.8-flash" } },
-			auditor: { thinkingLevel: "high" },
-		});
-		const bad = parseAgentSettingsBody({ models: { teacher: {} } });
-		assert.equal(bad.ok, false);
-		if (!bad.ok) assert.match(bad.error, /unknown role "teacher" \(supported: researcher, demoBuilder, visualMaker, extractor, auditor\)/);
-		const malformed = parseAgentSettingsBody({ models: { researcher: { model: { provider: 1, id: "x" } } } });
-		assert.equal(malformed.ok, false);
-	});
-
 	it("tools and prompts: boolean maps; non-boolean values are 400s", () => {
 		const r = parseAgentSettingsBody({ tools: { research: false }, prompts: { "system-prompt.md": true } });
 		assert.ok(r.ok);
@@ -218,58 +198,12 @@ describe("parseCompactionSettingsBody (owner round 14)", () => {
 });
 
 describe("SETTINGS_SECTIONS (the route's section map)", () => {
-	it("maps exactly the seven record sections", () => {
+	it("maps exactly the five record sections", () => {
 		// compaction joined (owner round 14): its own section PUT — the
 		// threshold is engine behavior, not an agent-section key.
 		assert.deepEqual(
 			Object.keys(SETTINGS_SECTIONS),
-			["general", "chat", "agent", "appearance", "graph", "compaction", "models"],
+			["general", "agent", "appearance", "graph", "compaction"],
 		);
-	});
-});
-
-describe("parseModelsSettingsBody (model slots wave, 2026-09-20)", () => {
-	it("parses the three slot tiers — model required, level rides (BYOK, owner 2026-09-22)", () => {
-		const r = parseModelsSettingsBody({
-			strong: { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } },
-			cheap: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "high" },
-			vision: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "low" },
-		});
-		assert.ok(r.ok);
-		assert.deepEqual(r.settings, {
-			strong: { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } },
-			cheap: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "high" },
-			vision: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "low" },
-		});
-		// a thinkingLevel WITHOUT a model can never run (no factory floor)
-		const levelOnly = parseModelsSettingsBody({ cheap: { thinkingLevel: "high" } });
-		assert.equal(levelOnly.ok, false);
-		if (!levelOnly.ok) {
-			assert.match(levelOnly.error, /slot "cheap" must set a model/);
-		}
-	});
-
-	it("{} is the legal clear-slots write", () => {
-		const r = parseModelsSettingsBody({});
-		assert.ok(r.ok);
-		assert.deepEqual(r.settings, {});
-	});
-
-	it("unknown slots are 400s with the supported list", () => {
-		const bad = parseModelsSettingsBody({ mega: { thinkingLevel: "high" } });
-		assert.equal(bad.ok, false);
-		if (!bad.ok) assert.match(bad.error, /unknown slot "mega" \(supported: strong, cheap, vision\)/);
-	});
-
-	it("a present-but-empty slot object is rejected (absent slot = unset)", () => {
-		const bad = parseModelsSettingsBody({ strong: {} });
-		assert.equal(bad.ok, false);
-		if (!bad.ok) assert.match(bad.error, /slot "strong" must set a model/);
-	});
-
-	it("malformed slot shapes are 400s", () => {
-		assert.equal(parseModelsSettingsBody({ cheap: { model: { provider: "x" } } }).ok, false);
-		assert.equal(parseModelsSettingsBody({ vision: { thinkingLevel: 7 } }).ok, false);
-		assert.equal(parseModelsSettingsBody("nope").ok, false);
 	});
 });

@@ -28,8 +28,8 @@ describe("settings-signal — the seam's contract", () => {
 	it("a writer's notify reaches a reader with the section", () => {
 		const got: string[] = [];
 		const off = onSettingsSaved((section) => got.push(section));
-		notifySettingsSaved("models");
-		assert.deepEqual(got, ["models"]);
+		notifySettingsSaved("graph");
+		assert.deepEqual(got, ["graph"]);
 		off();
 	});
 
@@ -37,20 +37,20 @@ describe("settings-signal — the seam's contract", () => {
 		const got: string[] = [];
 		const off = onSettingsSaved((section) => got.push(section));
 		off();
-		notifySettingsSaved("models");
+		notifySettingsSaved("graph");
 		assert.deepEqual(got, []);
 	});
 
-	it("readers filter their own section — general doesn't reach a models reader", () => {
+	it("readers filter their own section — general doesn't reach a graph reader", () => {
 		const got: string[] = [];
 		const off = onSettingsSaved((s) => {
-			if (s === "models") got.push(s);
+			if (s === "graph") got.push(s);
 		});
 		notifySettingsSaved("general");
 		notifySettingsSaved("appearance");
 		assert.deepEqual(got, []);
-		notifySettingsSaved("models");
-		assert.deepEqual(got, ["models"]);
+		notifySettingsSaved("graph");
+		assert.deepEqual(got, ["graph"]);
 		off();
 	});
 

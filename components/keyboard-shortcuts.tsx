@@ -3,10 +3,9 @@
  * keydown listener. Owns the pieces that belong to no surface in particular:
  *
  * - Tab is DEAD: browser tab-focus navigation is abandoned by owner decision
- *   (2026-09-17). Tab is suppressed everywhere (preventDefault, no-op) and
- *   Shift+Tab cycles the thinking level instead.
+ *   (2026-09-17). Tab is suppressed everywhere (preventDefault, no-op).
  * - Esc is a layered dismiss: topmost popover first (popovers stopPropagation
- *   on their own Esc — usePopoverDismiss + ModelControl), then abort of an
+ *   on their own Esc — usePopoverDismiss), then abort of an
  *   in-flight turn.
  * - Global actions dispatch lh:kbd-<action> window events; surfaces that are
  *   mounted listen (the lh:chat-renamed pattern). A surface that isn't
@@ -61,13 +60,12 @@ export function KeyboardShortcuts() {
 			// works from any focus.
 			if (e.key === "Tab") {
 				e.preventDefault();
-				if (e.shiftKey) window.dispatchEvent(new CustomEvent("lh:kbd-cycle-thinking"));
 				// Plain Tab cycles the active surface's text fields (owner,
 				// keyboard round 2026-10-06) — forward-only, wrapping; each
 				// composer-bearing page answers with its own chain. The quiz
 				// dock's rows↔thinking claim stops propagation at document
 				// level, so a claimed Tab never reaches this dispatch.
-				else if (!e.metaKey && !e.ctrlKey && !e.altKey)
+				if (!e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey)
 					window.dispatchEvent(new CustomEvent("lh:kbd-cycle-fields"));
 				return;
 			}

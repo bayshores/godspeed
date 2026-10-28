@@ -25,6 +25,7 @@ export {
 	settingsStore,
 } from "../store/settings.ts";
 export { promptOverrides } from "../store/prompt-overrides.ts";
+export { onboardingNeeded } from "./onboarding.ts";
 export { isValidSegmentPath } from "../core/prompt-segments.ts";
 // The canonical segment discovery/resolution lives in the agent layer
 // (composition is an agent concern); the barrel re-exports it for the
@@ -38,8 +39,6 @@ export * from "./dismissal-park.ts";
 export * from "./compaction.ts";
 export { runPiTurn, piTurnResponse, type PiTurnHandle, type PiTurnSpec } from "./pi/ui-stream.ts";
 export * from "./observability.ts";
-export * from "./model-catalog.ts";
-export { subscriptionControlsResponse, subscriptionBrowserResponse } from "./web-subscription-http.ts";
 export { sessionCost } from "./pricing.ts";
 
-export { handleMcpRequest, mcpAccessStatus, enableMcpAccess, rotateMcpToken, disableMcpAccess } from "./mcp.ts";
+export { handleMcpRequest, mcpAccessStatus, ensureMcpAccess, rotateMcpToken } from "./mcp.ts";

@@ -30,24 +30,17 @@ export const PATHS = {
 	 *  classes/<id>/class.json (the record), files/ (copied class files),
 	 *  graph/ (that class's own graph family, same files as PATHS.graph). */
 	classes: path.join(DATA_ROOT, "classes"),
-	/** Debug artifacts (env-gated): data/debug/provider-events/<chatId>.jsonl
-	 * raw provider stream recordings (src/agent/provider-events.ts). */
+	/** Debug artifacts (env-gated). */
 	debug: path.join(DATA_ROOT, "debug"),
 } as const;
 
 // ─── Models ────────────────────────────────────────────────────────────────
-// NO DEFAULTS ALL THE WAY DOWN (owner, 2026-09-22): there are NO factory default
-// models. Every engine resolves from the user's model slots (settings.json
-// models section: strong/cheap/vision) over per-role/ChatSettings overrides,
-// and a chain that ends empty REFUSES honestly (503 models_not_configured).
-// What remains here are ENGINE
-// CONSTRUCTION FACTS: the thinking-level scale and the default order.
+// There are no model settings: every engine is the outside agent (MCP),
+// which picks its own model in its own harness (owner, 2026-10-27).
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
-/** Every agent role in the app. The conversation pair (prober/teacher)
- *  resolves chat.model → strong slot; background roles resolve their own
- *  override → tier slot (core/settings-resolution.ts ROLE_SLOT). */
+/** Every agent role in the app (each one's work goes to the outside agent). */
 export type ModelRole =
 	| "prober"
 	| "teacher"
@@ -118,18 +111,15 @@ export const GRAPH_FORMAT_FILE = NO_CLASS_GRAPH.format;
 /**
  * THE USER SETTINGS RECORD (settings-storage wave, 2026-09-19): one
  * versioned, DELTA-shaped JSON blob at the data-dir seam holding every
- * non-secret product preference — general, agent (background
- * model/thinking overrides + tool toggles + prompt-override switches),
- * appearance, graph. Explicit user choices only: ABSENT keys resolve to the
+ * non-secret product preference — general, agent (tool toggles +
+ * prompt-override switches), appearance, graph. Explicit user choices only: ABSENT keys resolve to the
  * factory defaults compiled into src/core/settings.ts (FACTORY_SETTINGS), so
  * a software update that adds a knob (new tool, new role, new appearance
  * field) needs no migration — old records simply lack the new keys. The
  * version field is a PRIVATE schema counter for breaking shape changes
  * only (field renamed/meaning changed), unrelated to the app release
- * version. Secrets (login tokens) NEVER live here — the subscription
- * credential files keep that role. (The `chat` default-settings section died
- * with per-session models, owner 2026-09-28 — sessions own their model
- * from birth, stamped from the strong slot.)
+ * version. Secrets NEVER live here. (The `chat` and `models` sections
+ * died with the built-in sign-ins, owner 2026-10-27.)
  */
 export const SETTINGS_FILE = path.join(DATA_ROOT, "settings.json");
 
@@ -147,15 +137,3 @@ export const SETTINGS_FILE = path.join(DATA_ROOT, "settings.json");
  * a vanished segment stops composing but stays on disk.
  */
 export const PROMPTS_OVERRIDE_DIR = path.join(DATA_ROOT, "prompts");
-
-/**
- * The web/dev subscription credential directory: ChatGPT, GitHub Copilot
- * and xAI sign-ins save their owner-only credential files here
- * (src/server/web-subscriptions.ts). LH_CREDENTIALS_DIR overrides it (the
- * fresh-user script and the smoke probes point it at a scratch dir); the
- * default is the repo root (the files are gitignored). Secrets NEVER go
- * in settings.json.
- */
-export const CREDENTIALS_DIR = process.env.LH_CREDENTIALS_DIR
-	? path.resolve(process.env.LH_CREDENTIALS_DIR)
-	: ROOT;

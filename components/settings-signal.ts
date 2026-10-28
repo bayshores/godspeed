@@ -1,9 +1,8 @@
 /**
  * THE cross-surface settings signal (fix wave, owner ruling 2026-09-22):
  * every WRITER dispatches after a successful PUT, every READER re-reads —
- * the composer reflects the strong slot the instant setup saves, the
- * settings section reflects the composer's pick on its next mount... and
- * so on, by construction. CustomEvent on the window, the lh:chat-renamed
+ * a section changed in one surface shows up in every other, by
+ * construction. CustomEvent on the window, the lh:chat-renamed
  * pattern: writers and readers live in different component subtrees
  * (portaled dialogs included), and the app already speaks this dialect.
  *
@@ -15,10 +14,7 @@ import { useEffect, useRef } from "react";
 export const SETTINGS_SAVED_EVENT = "lh:settings-saved";
 
 /** The settings sections a writer can land (the write seam's union). */
-// "providers": a subscription signed in or out (the subscription controls
-// dispatch it on every connection change) — the no-connection pill and
-// the setup dialog's auto-advance re-read on it.
-export type SettingsSection = "general" | "providers" | "agent" | "models" | "appearance" | "graph" | "compaction";
+export type SettingsSection = "general" | "agent" | "appearance" | "graph" | "compaction";
 
 /** Writers call this after the PUT resolves ok — never before (a failed
  *  write notifies nothing; the record is unchanged). */

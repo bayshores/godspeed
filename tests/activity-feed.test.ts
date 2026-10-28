@@ -60,7 +60,7 @@ test("activityFeed: running jobs across ALL chats, running-only, title-joined, o
 	}
 });
 
-test("activityFeed: contextLimit is the server's live-catalog join (owner amendment, 2026-09-23)", () => {
+test("activityFeed: outside-agent jobs carry the agent's context budget; nothing has an API price", () => {
 	const chat = chatStore.createChat("limit join chat");
 	const createdJobs: string[] = [];
 	const usageFor = (model: string) => ({
@@ -77,17 +77,15 @@ test("activityFeed: contextLimit is the server's live-catalog join (owner amendm
 		const unknown = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "tc_unknown" });
 		const bare = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "tc_bare" });
 		createdJobs.push(known.id, unknown.id, bare.id);
-		jobStore.updateJob(known.id, { usage: usageFor("openrouter:z-ai/glm-5.3-flash") });
+		jobStore.updateJob(known.id, { usage: usageFor("agent:outside-agent") });
 		jobStore.updateJob(unknown.id, { usage: usageFor("nope/unknown") });
 
 		const feed = activityFeed();
 		const knownJob = feed.jobs.find((j) => j.id === known.id)!;
-		// The live-limits index covers connected subscriptions only: an
-		// API-key provider's model has no window to join (null, never guessed).
-		assert.equal(knownJob.contextLimit, null, "outside the subscription catalog → null");
-		assert.ok(knownJob.costUsd !== null && Math.abs(knownJob.costUsd - 0.0002) < 1e-12, "Pi's price is projected on the server");
+		assert.equal(knownJob.contextLimit, 200_000, "the outside agent's context budget");
+		assert.equal(knownJob.costUsd, null, "the agent bills its own plan — no API price");
 		const unknownJob = feed.jobs.find((j) => j.id === unknown.id)!;
-		assert.equal(unknownJob.contextLimit, null, "missing from the live catalog → null, never a guessed window");
+		assert.equal(unknownJob.contextLimit, null, "another model → null, never a guessed window");
 		assert.equal(unknownJob.costUsd, null);
 		const bareJob = feed.jobs.find((j) => j.id === bare.id)!;
 		assert.equal(bareJob.contextLimit, null, "no usage yet → no context line");

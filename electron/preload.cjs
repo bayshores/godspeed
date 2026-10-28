@@ -29,7 +29,7 @@
  *
  * Channel names are mirrored in electron/main.cjs — keep them in sync.
  */
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 let openSettingsListener = null;
 let pendingOpenSettings = null;
@@ -40,40 +40,10 @@ ipcRenderer.on("lh:open-settings", (_event, section) => {
 
 contextBridge.exposeInMainWorld("lh", {
 	platform: process.platform,
-	...(process.argv?.includes("--lh-web-subscriptions") ? {
-		subscriptionTransport: "web",
-		openSubscriptionBrowser: (action) => ipcRenderer.invoke("lh:subscriptions:web-browser", action),
-	} : {}),
-	chatgpt: {
-		status: () => ipcRenderer.invoke("lh:chatgpt:control", { op: "status" }),
-		login: (id) => ipcRenderer.invoke("lh:chatgpt:control", { op: "login", id }),
-		cancel: () => ipcRenderer.invoke("lh:chatgpt:control", { op: "cancel" }),
-		select: (id) => ipcRenderer.invoke("lh:chatgpt:control", { op: "select", id }),
-		disconnect: (id) => ipcRenderer.invoke("lh:chatgpt:control", { op: "disconnect", id }),
-		logout: (id) => ipcRenderer.invoke("lh:chatgpt:control", { op: "logout", id }),
-		consent: (enabled) => ipcRenderer.invoke("lh:chatgpt:control", { op: "consent", enabled }),
-		onChange: (cb) => {
-			const listener = () => cb();
-			ipcRenderer.on("lh:chatgpt:changed", listener);
-			return () => ipcRenderer.removeListener("lh:chatgpt:changed", listener);
-		},
-	},
-	subscriptions: {
-		status: () => ipcRenderer.invoke("lh:subscriptions:control", { op: "status" }),
-		login: (providerId, enabled) => ipcRenderer.invoke("lh:subscriptions:control", { op: "login", providerId, enabled }),
-		cancel: (providerId) => ipcRenderer.invoke("lh:subscriptions:control", { op: "cancel", providerId }),
-		respond: (providerId, attemptId, promptId, value) => ipcRenderer.invoke("lh:subscriptions:control", { op: "respond", providerId, attemptId, promptId, value }),
-		open: (providerId, attemptId, actionId) => ipcRenderer.invoke("lh:subscriptions:control", { op: "open", providerId, attemptId, actionId }),
-		retry: (providerId) => ipcRenderer.invoke("lh:subscriptions:control", { op: "retry", providerId }),
-		disconnect: (providerId) => ipcRenderer.invoke("lh:subscriptions:control", { op: "disconnect", providerId }),
-		consent: (providerId, enabled) => ipcRenderer.invoke("lh:subscriptions:control", { op: "consent", providerId, enabled }),
-		onChange: (cb) => {
-			const listener = () => cb();
-			ipcRenderer.on("lh:subscriptions:changed", listener);
-			return () => ipcRenderer.removeListener("lh:subscriptions:changed", listener);
-		},
-	},
 	pickFolder: () => ipcRenderer.invoke("lh:pick-folder"),
+	// A dropped file's or folder's path (onboarding's drop zone links a
+	// dropped folder). Path only — no file access crosses the bridge.
+	pathForFile: (file) => webUtils.getPathForFile(file),
 	expandWindow: () => ipcRenderer.send("lh:expand-window"),
 	onZoom: (cb) => {
 		const listener = (_event, factor) => cb(factor);

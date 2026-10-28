@@ -801,3 +801,172 @@ body {
 		transform: none;
 	}
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Onboarding (owner, 2026-10-27 — components/onboarding/). The intro is
+   ~2.5s: a spark at the bottom-left (0s), the comet streaks in dropping
+   topic dots (0.6s), brakes at the center while the dots link and light
+   red → green (1.3s), then the constellation dims to a faint backdrop as
+   the name and button rise in (2.0s). Every element's BASE style is its
+   final state, so .ob-skip (Return during the intro) and reduced motion
+   just switch the animations off.
+   ───────────────────────────────────────────────────────────────────────── */
+.ob-sky .ob-stars {
+	opacity: 0.12;
+	transition: opacity 600ms var(--lh-ease-out);
+}
+.ob-sky .ob-link {
+	stroke: #ffffff;
+	stroke-opacity: 0.35;
+	stroke-width: 1.2;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 0;
+}
+.ob-sky .ob-dot {
+	transform-box: fill-box;
+	transform-origin: center;
+}
+.ob-sky .ob-comet {
+	transform: translate(740px, 330px) scale(0.7);
+	transition: opacity 400ms var(--lh-ease-in);
+}
+.ob-sky[data-mode="intro"] .ob-stars {
+	animation: ob-dim 500ms 2s var(--lh-ease-out) both;
+}
+.ob-sky[data-mode="intro"] .ob-link {
+	animation: ob-link-draw 350ms var(--d) var(--lh-ease-out) both;
+}
+.ob-sky[data-mode="intro"] .ob-dot {
+	animation:
+		ob-dot-pop 250ms var(--d) var(--lh-ease-out) both,
+		ob-dot-lit 500ms calc(var(--d) + 0.3s) ease both;
+}
+.ob-sky[data-mode="intro"] .ob-comet {
+	animation: ob-comet 2.5s both;
+}
+.ob-sky[data-mode="intro"] .ob-tail {
+	animation: ob-tail 2.5s both;
+}
+.ob-sky:not([data-mode="intro"]) .ob-comet {
+	opacity: 0;
+}
+.ob-sky[data-mode="bright"] .ob-stars {
+	opacity: 0.2;
+}
+/* "Start learning": the sky brightens for a beat, then fades out. */
+.ob-sky[data-mode="gone"] .ob-stars {
+	opacity: 0;
+	animation: ob-flash 600ms ease both;
+}
+@keyframes ob-flash {
+	0% {
+		opacity: 0.2;
+	}
+	30% {
+		opacity: 0.45;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+@keyframes ob-dim {
+	from {
+		opacity: 1;
+	}
+}
+@keyframes ob-link-draw {
+	from {
+		stroke-dashoffset: 1;
+	}
+}
+@keyframes ob-dot-pop {
+	from {
+		opacity: 0;
+		transform: scale(0);
+	}
+}
+@keyframes ob-dot-lit {
+	from {
+		fill: var(--color-ans-wrong);
+	}
+}
+@keyframes ob-comet {
+	0% {
+		opacity: 0;
+		transform: translate(130px, 752px) scale(0.6);
+	}
+	10% {
+		opacity: 1;
+		transform: translate(130px, 752px) scale(1);
+	}
+	24% {
+		transform: translate(130px, 752px) scale(1);
+		animation-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1);
+	}
+	52% {
+		transform: translate(740px, 400px) scale(1);
+	}
+	80% {
+		transform: translate(740px, 400px) scale(1);
+		animation-timing-function: var(--lh-ease-out);
+	}
+	100% {
+		transform: translate(740px, 330px) scale(0.7);
+	}
+}
+@keyframes ob-tail {
+	0%,
+	24% {
+		transform: scale(1);
+	}
+	32% {
+		transform: scale(9);
+	}
+	52% {
+		transform: scale(2);
+	}
+	70%,
+	100% {
+		transform: scale(1);
+	}
+}
+/* The name and button rise in as the constellation dims (2.0s). */
+.ob-rise {
+	animation: ob-rise 600ms 2s var(--lh-ease-out) both;
+}
+.ob-step {
+	animation: ob-rise 360ms var(--lh-ease-out) both;
+}
+.ob-leave {
+	opacity: 0;
+	transform: translateY(-6px);
+	transition:
+		opacity 400ms var(--lh-ease-in),
+		transform 400ms var(--lh-ease-in);
+}
+@keyframes ob-rise {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+}
+/* The live "Waiting for …" dot breathes. */
+.ob-pulse {
+	animation: ob-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ob-pulse {
+	50% {
+		opacity: 0.35;
+	}
+}
+.ob-skip *,
+.ob-skip {
+	animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ob-root *,
+	.ob-root {
+		animation: none !important;
+		transition: none !important;
+	}
+}

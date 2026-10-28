@@ -84,12 +84,12 @@ describe("the Your-turn panel's states", () => {
 		assert.match(html, /data-testid="composer-send"[^>]*class="[^"]*bg-tone-2[\s\S]*?Send when ready/);
 	});
 
-	it("queued messages and the setup prompt sit in the panel", () => {
+	it("queued messages and the notice slot sit in the panel", () => {
 		const html = panel({
-			composer: composer({ busy: true, queuedSteers: [{ id: "s1", text: "and the variance?" }], setupCta: <button type="button" data-testid="setup-cta">Set up your models</button> }),
+			composer: composer({ busy: true, queuedSteers: [{ id: "s1", text: "and the variance?" }], notice: <p data-testid="composer-notice">Waiting for your agent</p> }),
 		});
 		assert.match(html, /data-testid="queued-steers"[\s\S]*?and the variance\?/);
-		assert.match(html, /data-testid="setup-cta"/);
+		assert.match(html, /data-testid="composer-notice"/);
 	});
 
 	it("a practice pause turns the bar into Next problem", () => {

@@ -87,11 +87,6 @@ function testRunner() {
 	return { steers, runner };
 }
 import { artifactRenderers } from "../components/artifacts/index.ts";
-import { connectProviderForTests } from "../src/server/connections.ts";
-
-// The connection turn gate: scripted turns pin openrouter per chat (a faux
-// engine stands in), so the test process marks it connected.
-connectProviderForTests("openrouter");
 
 
 

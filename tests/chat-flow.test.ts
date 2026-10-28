@@ -28,7 +28,6 @@ import {
 import { createTeacherAgent } from "../src/agent/teacher-agent.ts";
 import { createTeacherTools } from "../src/agent/tools.ts";
 import { handleChatInput, handleChatRequest } from "../src/server/chat-handler.ts";
-import { effectiveSettings } from "../src/server/stores.ts";
 import { isTurnRunning } from "../src/server/turn-liveness.ts";
 import { deliverJobResult, registerLiveAgent, setTurnRunner, steerLiveChat, unregisterLiveAgent } from "../src/server/jobs.ts";
 import { SessionModel } from "../components/session-core.ts";
@@ -50,11 +49,6 @@ const steerRoute = await import("../app/api/chats/[id]/steer/route.ts");
 const streamRoute = await import("../app/api/chats/[id]/stream/route.ts");
 const recordRoute = await import("../app/api/chats/[id]/route.ts");
 import { PATHS } from "../config.ts";
-import { connectProviderForTests } from "../src/server/connections.ts";
-
-// The connection turn gate: scripted turns pin openrouter per chat (a faux
-// engine stands in), so the test process marks it connected.
-connectProviderForTests("openrouter");
 
 const QUIZ_INPUT = {
 	question: "Which planet is closest to the sun?",
@@ -241,13 +235,11 @@ function dismissPost(chatId: string, toolCallId: string, kind: "quiz" | "ask" | 
 	);
 }
 
-/** BYOK turn gate (owner, 2026-09-22): no factory floor — a chat needs a
- *  conversation model before any turn streams. The scripted tests give
- *  each chat a per-chat pin exactly like the setup flow does in
- *  production (the injected faux engine still runs the loop). */
+/** A scripted test chat: stamped with the outside agent's model like
+ *  POST /api/chats does (the injected faux engine still runs the loop). */
 function createConfiguredChat(title: string) {
 	const chat = chatStore.createChat(title);
-	chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
+	chatStore.saveSettings(chat.id, { model: { provider: "agent", id: "outside-agent" } });
 	// nodeId is required on teach quizzes (owner ruling 2026-09-26) — the
 	// scripted lessons quiz against this seeded tree.
 	chatStore.saveTree(chat.id, {
@@ -1023,84 +1015,6 @@ describe("renameChat (the header's click-to-edit title)", () => {
 		createdChats.push(chat.id);
 		const renamed = chatStore.renameChat(chat.id, "   ");
 		assert.equal(renamed.title, "Untitled session");
-	});
-});
-
-describe("the BYOK turn gate (no factory floor — owner, 2026-09-22)", () => {
-	it("a chat with no model refuses the turn with the 503 envelope — nothing lingers", async () => {
-		const chat = chatStore.createChat("Test: unconfigured chat");
-		createdChats.push(chat.id);
-
-		// The record's strong slot belongs to settings-store.test.ts (the
-		// one-fs-owner policy) — READ the resolved truth, never write it.
-		// Refusal holds when the chain is empty; a record-carried strong
-		// slot legitimately opens the gate (the chain is honest both ways).
-		const expectRefusal = effectiveSettings().models.strong === null;
-
-		const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(scriptedTeacher(defaultLesson).engine));
-
-		if (expectRefusal) {
-			assert.equal(res.status, 503, "the universal turn gate refuses before beginTurn");
-			const body = (await res.json()) as { error: string; code: string; missing: string[] };
-			assert.equal(body.code, "models_not_configured");
-			assert.deepEqual(body.missing, ["strong"]);
-			assert.match(body.error, /No model configured/);
-		} else {
-			assert.equal(res.status, 200, "the record's strong slot satisfies the conversation chain");
-			await drainRunning(chat.id);
-		}
-
-		// Either way: no phantom liveness, nothing durable from a refused turn.
-		if (expectRefusal) {
-			assert.equal(isTurnRunning(chat.id), false, "the refusal never registers a live turn");
-			const saved = chatStore.getChat(chat.id)!;
-			assert.equal(saved.messages.length, 0, "no write-ahead persist before the gate");
-		}
-	});
-
-	it("a per-chat model alone opens the gate (the setup flow's exact write)", async () => {
-		const chat = createConfiguredChat("Test: per-chat pin only");
-		createdChats.push(chat.id);
-		const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(scriptedTeacher(defaultLesson).engine));
-		assert.equal(res.status, 200, "chat.settings.model satisfies the chain without any record slot");
-		await drainRunning(chat.id);
-	});
-});
-
-// ─── the connection turn gate (subscriptions only — API keys removed) ────────
-
-describe("the connection turn gate", () => {
-	it("a pinned provider that is not connected refuses with 503 provider_not_connected — nothing lingers", async () => {
-		const chat = chatStore.createChat("Test: disconnected provider");
-		createdChats.push(chat.id);
-		// The chat's own model pins the provider — the same chain the strong
-		// slot rides. The gate fires BEFORE the engine build.
-		chatStore.saveSettings(chat.id, { model: { provider: "together", id: "no-such-model" } });
-		const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me something" }), agentFactory(scriptedTeacher(defaultLesson).engine));
-
-		assert.equal(res.status, 503, "the connection gate refuses before beginTurn");
-		const body = (await res.json()) as { error: string; code: string; provider: string; slots: string[] };
-		assert.equal(body.code, "provider_not_connected");
-		assert.equal(body.provider, "together", "the envelope names the disconnected provider");
-		assert.deepEqual(body.slots, ["strong"], "the conversation tier is the affected slot");
-		assert.equal(body.error, "together is not connected — sign in under Settings → Providers");
-		assert.equal(isTurnRunning(chat.id), false, "the refusal never registers a live turn");
-		assert.equal(chatStore.getChat(chat.id)!.messages.length, 0, "no write-ahead persist before the gate");
-	});
-
-	it("an API key in the environment does NOT open the gate", async () => {
-		const chat = chatStore.createChat("Test: env key ignored");
-		createdChats.push(chat.id);
-		const saved = process.env.OPENAI_API_KEY;
-		process.env.OPENAI_API_KEY = "test-key-must-be-ignored";
-		try {
-			chatStore.saveSettings(chat.id, { model: { provider: "openai", id: "gpt-4" } });
-			const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me something" }), agentFactory(scriptedTeacher(defaultLesson).engine));
-			assert.equal(res.status, 503, "keys are never a connection");
-		} finally {
-			if (saved !== undefined) process.env.OPENAI_API_KEY = saved;
-			else delete process.env.OPENAI_API_KEY;
-		}
 	});
 });
 

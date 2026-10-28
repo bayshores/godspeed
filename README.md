@@ -24,7 +24,7 @@ godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharne
 
 | | LearnHarness | godspeed |
 |---|---|---|
-| **Who teaches** | Models from 30+ providers, through your API keys | Your subscription sign-ins (ChatGPT, GitHub Copilot, Grok) or an outside agent: Claude Code, Codex, any MCP app |
+| **Who teaches** | Models from 30+ providers, through your API keys | An agent you already use: Claude Code, Codex, or any MCP app |
 | **API keys** | Required | None. There is nowhere to paste one |
 | **Organization** | One graph for everything | Classes, each with its own lessons, knowledge graph, files and exams |
 | **Course files** | Import notes | Add PDFs, notes, transcripts and recordings (transcribed locally with whisper.cpp), or link a folder that's rescanned every minute |
@@ -59,28 +59,27 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 The app checks for updates once a day and installs them when you quit. **Settings → General → Check for updates** checks right away.
 
-Then pick a teacher. Sign in to a subscription under **Settings → Providers**, or connect an outside agent (below).
+The first launch walks you through connecting your agent (below). You can find the same steps later under **Settings → Outside agents**.
 
 To build it yourself instead: `npm install`, then `npm run desktop:local` (an unsigned Mac app in `dist/`) or `npm run dev` (http://localhost:3000).
 
 ## Outside agents (MCP)
 
-While godspeed is open it runs an MCP server, so an agent you already use can be its teacher. It can also do the background jobs: research, diagrams, PDF reading and building your knowledge graph.
+While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is connected, that work waits and starts when one connects.
 
-1. Open **Settings → Outside agents** and turn on access.
-2. Connect your agent:
+1. Connect your agent:
    - **Claude Code:** `/plugin marketplace add bayshores/godspeed`, then `/plugin install godspeed@godspeed`, then `/godspeed:teach` (add a topic to start a new lesson). `/godspeed:setup-classes` builds your classes from your course files.
-   - **Codex:** paste the config snippet from that settings screen into `~/.codex/config.toml`.
-   - **Other MCP apps:** use the address and token shown there (Streamable HTTP, `Authorization: Bearer <token>`).
-3. Choose **Outside agent (MCP)** as a lesson's model. You answer in the godspeed window and the agent teaches.
+   - **Codex:** paste the config snippet from **Settings → Outside agents** into `~/.codex/config.toml`.
+   - **Other MCP apps:** use the address and token shown under **Settings → Outside agents** (Streamable HTTP, `Authorization: Bearer <token>`).
+2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
 While you think, the Claude Code plugin waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph, import notes, and manage classes and exams. Only programs on your computer that hold the token can connect.
 
 ## Your plans, your data
 
-- Models run on subscriptions you already have, or on your own agent. godspeed has no subscription or markup of its own.
+- The AI is your own agent, on the plan you already pay for. godspeed has no subscription or markup of its own.
 - Lessons, graphs, class files and settings stay on your machine as plain files you can read.
-- Model requests send the context a task needs to the model you picked, and web research fetches pages. Local storage doesn't mean offline.
+- Each task sends the context it needs to your agent, and web research fetches pages. Local storage doesn't mean offline.
 - System prompts are visible and editable.
 
 ## Development

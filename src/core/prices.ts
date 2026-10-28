@@ -1,7 +1,6 @@
 /** Client-safe accounting folds. Rates and calculation live on the server,
  * using Pi's catalog and calculateCost; no copied pricing table lives here. */
 import type { CallUsage, ChatRecord, JobRecord, TurnUsage } from "./contracts.ts";
-import { NATIVE_SUBSCRIPTIONS } from "./contracts/subscriptions.ts";
 
 export type CallPricer = (usage: Partial<CallUsage>, model: string) => number | null;
 export interface SessionPricing {
@@ -13,14 +12,18 @@ export interface SessionPricing {
 	turnCosts: Record<string, number | null>;
 }
 
-export function isChatGPTPlan(model: string | undefined): boolean {
-	return model?.startsWith("chatgpt:") === true;
-}
+/** Plan-billed model ids → the plan's label. The outside agent (MCP) runs
+ *  on the agent's own plan: no per-token price here. The other prefixes
+ *  only appear in records from before the built-in sign-ins were removed
+ *  (owner, 2026-10-27) and keep their historical labels. */
+const PLAN_LABELS: readonly (readonly [prefix: string, label: string])[] = [
+	["agent:", "Outside agent"],
+	["chatgpt:", "ChatGPT"],
+	["github-copilot-subscription:", "GitHub Copilot"],
+	["xai-subscription:", "Grok"],
+];
 export function subscriptionLabel(model: string | undefined): string | undefined {
-	if (isChatGPTPlan(model)) return "ChatGPT";
-	// The outside agent (MCP) runs on the agent's own plan: no per-token price here.
-	if (model?.startsWith("agent:")) return "Outside agent";
-	return NATIVE_SUBSCRIPTIONS.find((p) => model?.startsWith(`${p.logicalId}:`))?.label;
+	return PLAN_LABELS.find(([prefix]) => model?.startsWith(prefix))?.[1];
 }
 export function isSubscriptionModel(model: string | undefined): boolean { return subscriptionLabel(model) !== undefined; }
 export function subscriptionLabels(models: readonly (string | undefined)[]): string[] {

@@ -28,7 +28,6 @@ import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
 import type { ClassExam, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
 import { ClassExamError, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
-import { ModelsNotConfiguredError, ProviderNotConnectedError } from "../core/settings.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
 import { emit } from "../core/events.ts";
@@ -485,9 +484,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
 	} catch (err) {
 		const message =
-			err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError
-				? `${err.message} Then retry this file.`
-				: err instanceof NotesImportError
+			err instanceof NotesImportError
 					? `${err.outcome}: ${err.message}`
 					: err instanceof Error
 						? err.message
