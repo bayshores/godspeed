@@ -9,7 +9,7 @@ import type { LhViewMessage } from "@/core";
  *  Priority is stacking order: the abort confirm (claims via its own
  *  dialog), the session overlays (mermaid above plan), then question →
  *  problem → turn. */
-export type EscAbortTarget = "mermaid" | "plan" | "question" | "problem" | "turn" | null;
+type EscAbortTarget = "mermaid" | "plan" | "question" | "problem" | "turn" | null;
 
 export function escAbortTarget(s: {
 	abortAsk: boolean;

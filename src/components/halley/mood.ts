@@ -33,7 +33,7 @@ export const REACTION_MS: Record<HalleyReaction, number> = {
 	dizzy: 2400,
 };
 
-export interface MoodInputs {
+interface MoodInputs {
 	/** The reaction showing right now, if any. */
 	reaction: HalleyReaction | null;
 	/** A teacher message is being written. */

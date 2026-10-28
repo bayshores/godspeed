@@ -38,7 +38,7 @@ import {
 	newUserMessage,
 	pendingProblemDismissalOf,
 } from "./native-messages.ts";
-import { QUESTION_TOOLS, toolQuestionKind } from "./pending.ts";
+import { toolQuestionKind } from "./pending.ts";
 
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
@@ -72,7 +72,7 @@ export type TurnInput = ChatInput | SteerInput;
  *  BE a dismissal: the silent path must never inject a live answer
  *  wake-free. Parallel question calls each get their own dismiss event;
  *  results reference their calls by id, so the appends stay independent. */
-export type DismissInput =
+type DismissInput =
 	| { type: "dismiss"; toolCallId: string; answer: QuestionAnswerData }
 	/** The problem discard (practice, owner 2026-10-04): ask-style — the
 	 *  silent route appends the UI-only marker and wakes nothing; the
@@ -110,7 +110,7 @@ export function parseDismissInput(input: unknown): DismissInput {
  *  (a send with no live turn is a plain text send, which already exists).
  *  The id is client-minted (steer_<localid>): the queued indicator keys on
  *  it, and the drain's message events upsert the real card by the same id. */
-export type UserSteerInput = { type: "steer"; id: string; text: string };
+type UserSteerInput = { type: "steer"; id: string; text: string };
 
 /** Parse and validate a steer event off a request body. */
 export function parseUserSteerInput(input: unknown): UserSteerInput {
@@ -243,7 +243,3 @@ function dismissalConclusion(record: { messages: LhMessage[] }): LhMessage[] {
 	return problemCallId ? concludedByDismissalPair(problemCallId) : [];
 }
 
-/** Is this tool name a question tool (dock-owned, answer-gated)? */
-export function isQuestionTool(name: string): boolean {
-	return (QUESTION_TOOLS as readonly string[]).includes(name);
-}

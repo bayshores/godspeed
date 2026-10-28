@@ -99,7 +99,7 @@ export const SERVER_EVENT_TYPES = [
  *  so checking `type` narrows it). */
 export type ServerEvent<K extends ServerEventType = ServerEventType> = K extends ServerEventType ? { type: K } & ServerEvents[K] : never;
 
-export type ServerEventListener = (event: ServerEvent) => void;
+type ServerEventListener = (event: ServerEvent) => void;
 
 interface LhEventsGlobal {
 	__lhEventBus?: Set<ServerEventListener>;

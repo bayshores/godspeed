@@ -17,7 +17,7 @@ interface NavItem {
 	testid: string;
 }
 
-export const CLASS_NAV: readonly NavItem[] = [
+const CLASS_NAV: readonly NavItem[] = [
 	{ href: "/class", label: "Overview", icon: LayoutGridIcon, testid: "nav-overview" },
 	{ href: "/graph", label: "Graph", icon: WaypointsIcon, testid: "nav-graph" },
 	{ href: "/class/files", label: "Files", icon: FilesIcon, testid: "nav-files" },
@@ -29,7 +29,7 @@ export function activeNavHref(pathname: string): string | null {
 }
 
 /** The nav rows' look (Home and the class nav). */
-export function navRowClass(active: boolean): string {
+function navRowClass(active: boolean): string {
 	return cn(
 		"lh-press flex w-full items-center gap-2.5 px-2.5 py-2 text-[14.5px] hover:bg-tone hover:text-ink",
 		active ? "bg-tone font-bold text-ink" : "text-ink-2",

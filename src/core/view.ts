@@ -78,7 +78,7 @@ export interface LiveExecution {
 }
 
 /** The live turn's execution layer, maintained by the session hook. */
-export interface LiveTurnState {
+interface LiveTurnState {
 	/** toolCallId → its execution outcome seen so far. */
 	executions: ReadonlyMap<string, LiveExecution>;
 	/** True while the turn runs — calls with no execution yet render

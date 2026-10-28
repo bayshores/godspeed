@@ -27,8 +27,6 @@ import { grepTool } from "./tools/grep.ts";
 import { healToolRecord } from "./tools/heal.ts";
 import type { GraphStore } from "../core/ports.ts";
 
-export { jobTools };
-export type { ProbeDoneContext } from "./tools/probe.ts";
 
 /**
  * The agent-split tool composition (docs/probe-teach-split.md §1): the
@@ -425,7 +423,7 @@ export interface TeacherToolContext extends PlanToolContext {
  *  managed, NOT individually toggleable: quiz/explain never pass through
  *  filterEnabledTools (the 2026-09-19 wedge ruling stands — a quiz-less
  *  prober collapses its assessment flow). */
-export function quizMechanics(enabled?: EnabledTools): "choice" | "free" {
+function quizMechanics(enabled?: EnabledTools): "choice" | "free" {
 	return enabled?.explain === true ? "free" : "choice";
 }
 

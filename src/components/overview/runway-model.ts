@@ -10,7 +10,7 @@ import { deadlineFilesText } from "@/components/graph/derive";
 import { displayName } from "./overview-model";
 
 /** Deadline stops after "Today". */
-export const RUNWAY_STOPS = 5;
+const RUNWAY_STOPS = 5;
 
 type Due = Pick<DeadlineProgress, "id" | "kind" | "name" | "date" | "time" | "done">;
 

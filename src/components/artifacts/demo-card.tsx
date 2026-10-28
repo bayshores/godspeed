@@ -50,7 +50,7 @@ export function buildDemoSrcDoc(html: string): string {
 	return `${html}${DEMO_BRIDGE_SCRIPT}`;
 }
 
-export interface DemoBridgeState {
+interface DemoBridgeState {
 	height: number | null;
 	error: string | null;
 }
@@ -233,7 +233,7 @@ function DemoFrame({
 	);
 }
 
-export function DemoErrorChip({
+function DemoErrorChip({
 	message,
 	onSend,
 }: {

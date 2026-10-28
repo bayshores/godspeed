@@ -7,8 +7,8 @@ import {
 import { scrollSessionTarget, type SessionScrollContext } from "@/components/session-navigation";
 import { usePresence } from "@/components/presence";
 
-export const SESSION_FIND_HIGHLIGHT = "lh-session-find";
-export const SESSION_FIND_ACTIVE_HIGHLIGHT = "lh-session-find-active";
+const SESSION_FIND_HIGHLIGHT = "lh-session-find";
+const SESSION_FIND_ACTIVE_HIGHLIGHT = "lh-session-find-active";
 
 /** ::highlight() rules live OUTSIDE globals.css on purpose: the PostCSS/
  *  Tailwind v4 pipeline rejects the Custom Highlight pseudo-element as a

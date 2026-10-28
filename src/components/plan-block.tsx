@@ -57,7 +57,7 @@ import { latestTree, type PopupMessage } from "@/components/plan-latest";
  * single-line text gets in NODE_H (owner: "the horizontal padding
  * should be the same as the vertical one"): (44 − 11) / 2 ≈ 16 (the
  * prose font renders text-xs at 11px). */
-export const PAD_X = 16;
+const PAD_X = 16;
 export const NODE_W_MIN = 96;
 export const NODE_H = 44;
 
@@ -84,9 +84,9 @@ export function estimateLineWidth(line: string): number {
 	return w;
 }
 /** Baseline-to-baseline distance of node titles. */
-export const LINE_H = 13;
+const LINE_H = 13;
 export const GAP_X = 24;
-export const GAP_Y = 48;
+const GAP_Y = 48;
 
 /** A node for layout purposes — the payload's shape and the tree's shape agree. */
 export interface LayoutNode {
@@ -289,20 +289,20 @@ export function nodeWidth(lines: readonly string[]): number {
 /** SVG-unit padding around the layout extent: strokes are centered on the
  *  geometry (half bleeds outside the extent) and the glow halo reaches −4 —
  *  without this pad the outermost node borders clip at the svg edge. */
-export const GRAPH_PAD = 8;
+const GRAPH_PAD = 8;
 /** The current node's yellow glow: a fill blurred so it bleeds over the
  *  node's edges (owner). A Gaussian's visible spread is ≈3σ, so the glow
  *  reaches GLOW_MARGIN + 3·GLOW_BLUR past the node — any surface that
  *  shows the glow must pad its viewBox by GLOW_REACH or the blur clips
  *  at the frame edge (owner: extend the container padding to fit it). */
-export const GLOW_MARGIN = 8;
-export const GLOW_BLUR = 5;
-export const GLOW_REACH = GLOW_MARGIN + 3 * GLOW_BLUR;
+const GLOW_MARGIN = 8;
+const GLOW_BLUR = 5;
+const GLOW_REACH = GLOW_MARGIN + 3 * GLOW_BLUR;
 /** Node titles render at text-xs (12.5px) in svg units. The in-chat block
  *  scales up to fill the column but NEVER past the chat prose size
  *  (--lh-prose-size, 16px — the ladder's reading rung) — the width cap
  *  that makes that hold. */
-export const TEXT_CAP_SCALE = 16 / 12.5;
+const TEXT_CAP_SCALE = 16 / 12.5;
 
 // ─── The owner's arrowhead (plan-graph round 5) ──────────────────────────────
 
@@ -310,10 +310,10 @@ export const TEXT_CAP_SCALE = 16 / 12.5;
  *  collapsed: viewBox 0 0 50.2 104, tip at (50.2, 52), notch mouth at
  *  x 27.2 with a 9.6-tall opening — at full height 104 the tail opening
  *  is ≈10, per the owner's spec. Solid white fill, no padding. */
-export const ARROW_HEAD = "M48,55.2C49.4,54.6 50.2,53.4 50.2,52C50.2,50.6 49.4,49.4 48,48.8C38.2,45.6 29.2,38.8 21,28.4C15.2,21.4 11.4,13.2 9.6,3.8C9,1.2 7.4,0 4.8,0C1.6,0 0,1.6 0,5L0.2,5.6C3.6,23 12.6,36.8 27.2,47.2L27.2,56.8C12.6,67.2 3.6,81 0.2,98.4L0,99C0,102.4 1.6,104 4.8,104C7.4,104 9,102.8 9.6,100.2C11.4,90.8 15.2,82.6 21,75.6C29.2,65.2 38.2,58.4 48,55.2Z";
+const ARROW_HEAD = "M48,55.2C49.4,54.6 50.2,53.4 50.2,52C50.2,50.6 49.4,49.4 48,48.8C38.2,45.6 29.2,38.8 21,28.4C15.2,21.4 11.4,13.2 9.6,3.8C9,1.2 7.4,0 4.8,0C1.6,0 0,1.6 0,5L0.2,5.6C3.6,23 12.6,36.8 27.2,47.2L27.2,56.8C12.6,67.2 3.6,81 0.2,98.4L0,99C0,102.4 1.6,104 4.8,104C7.4,104 9,102.8 9.6,100.2C11.4,90.8 15.2,82.6 21,75.6C29.2,65.2 38.2,58.4 48,55.2Z";
 /** Lines + outlines run at the app's standard border weight (owner,
  *  2026-09-26 — same 1px the UI borders use; was 1.5). */
-export const STROKE_W = 1;
+const STROKE_W = 1;
 /** The heads scale by the SAME factor the lines thinned by (owner,
  *  2026-09-26): 16 was the height tuned for 1.5-wide lines, so both sides
  *  of the head:shaft proportion shrink together — the LaTeX ratio (tail
@@ -469,7 +469,7 @@ const MONO_TEXT = "fill-foreground text-xs";
  *  font, not the mono UI font (owner, 2026-09-26) — and the runtime var
  *  rides the Appearance reading-font override (the utility can't: @theme
  *  inline bakes literals — the --font-title trap). */
-export function PlanDiagram({
+function PlanDiagram({
 	nodes,
 	edges,
 	statusOf,
@@ -708,7 +708,7 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 
 // latestTree lives in plan-latest.ts (no dagre) so the lesson can read
 // the plan without loading this module; re-exported for existing callers.
-export { latestTree, type PopupMessage } from "@/components/plan-latest";
+export { type PopupMessage } from "@/components/plan-latest";
 
 /** The popup shows the glow, so its frame pads by the glow's reach —
  *  the in-chat block (monochrome, no glow) stays tight at GRAPH_PAD. */

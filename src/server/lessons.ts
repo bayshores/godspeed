@@ -14,7 +14,7 @@ import { newClassContextMessage, newGraphContextMessage, type GraphContextPick, 
 import { classCardFor } from "./class-card.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 
-export interface CreateLessonInput {
+interface CreateLessonInput {
 	title: string;
 	kind?: "practice";
 	classId: ClassScope;
@@ -24,7 +24,7 @@ export interface CreateLessonInput {
 	settings?: ChatSettings;
 }
 
-export type CreateLessonOutcome = { ok: true; chat: ChatRecord } | { ok: false; status: 404; code: "class_not_found"; error: string };
+type CreateLessonOutcome = { ok: true; chat: ChatRecord } | { ok: false; status: 404; code: "class_not_found"; error: string };
 
 export function createLesson(input: CreateLessonInput): CreateLessonOutcome {
 	const cls = input.classId === null ? null : stores.classStore.getClass(input.classId);

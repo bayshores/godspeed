@@ -14,7 +14,7 @@ import { countdownText, deadlineDateText, deadlineFilesText, pickableDeadlines, 
 import { MENU_CLASS, MENU_ITEM_CLASS, useMenuDismiss } from "./menu.tsx";
 
 /** "Work on next" shows this many (the design's "Practice these 4"). */
-export const WORK_ON_NEXT_LIMIT = 4;
+const WORK_ON_NEXT_LIMIT = 4;
 
 const HEAD = "text-[13px] font-bold text-ink-3";
 

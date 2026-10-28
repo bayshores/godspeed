@@ -44,7 +44,7 @@ export type Phase3 = "probe" | "plan" | "teach";
  * a state, an input (a tool call's parsed arguments), and (for concluded
  * calls) an output.
  */
-export interface PhaseMessage {
+interface PhaseMessage {
 	parts: ReadonlyArray<{ type: string; state?: string; input?: unknown; output?: unknown }>;
 }
 

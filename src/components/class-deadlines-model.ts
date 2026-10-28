@@ -57,7 +57,7 @@ export function draftProblem(drafts: readonly DeadlineDraft[]): string | null {
 	return null;
 }
 
-export interface DeadlineAddBody {
+interface DeadlineAddBody {
 	kind: DeadlineKind;
 	name: string;
 	date: string;
@@ -65,7 +65,7 @@ export interface DeadlineAddBody {
 	fileIds: string[];
 }
 
-export interface DeadlineUpdateBody {
+interface DeadlineUpdateBody {
 	kind?: DeadlineKind;
 	name?: string;
 	date?: string;
@@ -75,7 +75,7 @@ export interface DeadlineUpdateBody {
 	done?: boolean;
 }
 
-export type DeadlineWrite =
+type DeadlineWrite =
 	/** `done`: the new deadline was ticked before its first save (POST
 	 *  never takes done, so the dialog follows up with a PUT). */
 	| { op: "add"; key: string; body: DeadlineAddBody; done: boolean }

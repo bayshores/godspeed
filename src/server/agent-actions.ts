@@ -31,7 +31,7 @@ function state(): ActionsState {
 export type AgentActionInput = Omit<AgentAction, "id" | "at" | "agent"> & { agent?: string };
 
 /** A label cut to a readable length. */
-export function shortLabel(text: string): string {
+function shortLabel(text: string): string {
 	const one = text.replace(/\s+/g, " ").trim();
 	return one.length > LABEL_MAX ? `${one.slice(0, LABEL_MAX - 1).trimEnd()}…` : one;
 }

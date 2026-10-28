@@ -155,7 +155,7 @@ export function quizInputProblems(input: {
 // and reasoning happens BEFORE the answer is chosen — models emit tool
 // args in schema order, so explanation sits immediately BEFORE correctAnswer.
 // (All consumers read by key; the order is authoring guidance, nothing else.)
-export const quizInputBase = Type.Object({
+const quizInputBase = Type.Object({
 	question: Type.String({
 		description:
 			"The single quiz question to ask. ONE question per turn: ask, then end your turn — the answer determines the next question.",
@@ -206,7 +206,7 @@ export const quizInputBase = Type.Object({
 // path accepts) runs at the CALL BOUNDARY in the tool's execute:
 // quizInputProblems here, the per-session plan-nodeId validation in
 // tools.ts (it reads the live chat record, which this core never touches).
-export const QUIZ_QUESTION_TYPES = ["predict", "check"] as const;
+const QUIZ_QUESTION_TYPES = ["predict", "check"] as const;
 export type QuizQuestionType = (typeof QUIZ_QUESTION_TYPES)[number];
 
 /** Normalize a persisted quiz `type` (display seam): old records carry
@@ -356,14 +356,6 @@ export function explainInputProblems(input: { correctAnswer: string }): string[]
 	return [];
 }
 
-/** The tool names that carry the quizzing mechanic — the teach seam
- *  (phases), the plan-position fold, and the pending gate all recognize
- *  whichever is armed. */
-export const QUIZ_TOOL_NAMES = ["quiz", "explain"] as const;
-
-/** The TEACHER's quiz declaration (base + the position field). */
-export const quizInputSchema = quizInputObject;
-
 export const askInputSchema = Type.Object({
 	// No `mode` param — the pi original has none: the mode is inferred from
 	// whether options are present (the dock does exactly this). One less
@@ -394,7 +386,6 @@ export const askInputSchema = Type.Object({
 export type QuizToolInput = Static<typeof quizInputObject>;
 export type AskToolInput = Static<typeof askInputSchema>;
 export type ExplainToolInput = Static<typeof explainInputObject>;
-export type ProbeExplainToolInput = Static<typeof explainInputBase>;
 
 
 /** A real selected answer, in the order the options were displayed. */
@@ -472,7 +463,7 @@ export interface QuestionAnswerData {
 }
 
 /** Client-facing question payload — deliberately omits the answer. */
-export interface ClientQuestion {
+interface ClientQuestion {
 	id: string;
 	kind: QuestionKind;
 	question: string;

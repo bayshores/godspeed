@@ -15,7 +15,7 @@ import { InlineMath } from "@/components/overview/inline-math";
 import { factMark, PANEL_ANSWER_COLOR } from "./derive.ts";
 import { MENU_CLASS, MENU_ITEM_CLASS, useMenuDismiss } from "./menu.tsx";
 
-export const FACTS_SHOWN = 4;
+const FACTS_SHOWN = 4;
 
 export function FactList({
 	facts,

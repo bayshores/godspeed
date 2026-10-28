@@ -42,7 +42,7 @@ import { OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PRO
 
 export const AGENT_PROVIDER = OUTSIDE_AGENT_PROVIDER;
 export const AGENT_MODEL_ID = OUTSIDE_AGENT_MODEL_ID;
-export const AGENT_MODEL_NAME = "Outside agent (MCP)";
+const AGENT_MODEL_NAME = "Outside agent (MCP)";
 const AGENT_API = "godspeed-agent";
 
 const AGENT_CONTEXT_WINDOW = OUTSIDE_AGENT_CONTEXT_WINDOW;
@@ -83,7 +83,7 @@ interface WorkItem {
 }
 
 /** What the agent sends back for one work item. */
-export interface AgentReply {
+interface AgentReply {
 	text?: string;
 	toolCalls?: { name: string; arguments: JsonObject }[];
 }

@@ -25,12 +25,12 @@ import { healToolRecord } from "../tools/heal.ts";
  * The job wrapper treats html === "" as failure and marks the job error.
  */
 
-export interface DemoBuilderInput {
+interface DemoBuilderInput {
 	title: string;
 	brief: string;
 }
 
-export interface DemoBuilderOptions {
+interface DemoBuilderOptions {
 	/** Test seam: scripted engine; production uses the demoBuilder role. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
@@ -96,7 +96,7 @@ const runDemoInput = Type.Object({
 	),
 });
 
-export function createDemoBuilderTools(
+function createDemoBuilderTools(
 	state: BuilderState,
 	headless: HeadlessApi,
 	onActivity?: (line: string) => void,

@@ -179,7 +179,7 @@ export function useActivity(): { feed: ActivityFeed; refresh: () => void } {
 // ─── Pure presentation helpers (exported for tests) ──────────────────────────
 
 /** One dock blob: the unified view of a job or an extraction run. */
-export interface ActivityBlob {
+interface ActivityBlob {
 	/** job.id, or the extraction job's row id (source id, or "src#i" for
 	 *  chunk jobs — unique per row, per-chunk jobs owner 2026-09-28). */
 	id: string;

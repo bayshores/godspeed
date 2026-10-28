@@ -4,7 +4,7 @@ import type { FactProgress, GraphContextPick, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { practicePicks, practiceTitle } from "@/components/graph/practice";
 
-export interface LessonRequest {
+interface LessonRequest {
 	/** The lesson's title and first message. */
 	title: string;
 	kind?: "teach" | "practice";

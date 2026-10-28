@@ -17,7 +17,7 @@ import { MapTooltip } from "./map-tooltip.tsx";
 
 const TOOLTIP_WIDTH = 232;
 
-export interface TopicMapProps {
+interface TopicMapProps {
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
 	/** The topics that stay bright (on the picked deadline, matching the

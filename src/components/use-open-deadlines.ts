@@ -13,9 +13,9 @@ import { useServerEvent, useServerResync } from "@/components/server-events";
 import { byDue, type OpenDeadline } from "@/components/deadlines-model";
 
 /** How long a ticked row fades before it leaves (just over --lh-dur). */
-export const LEAVE_MS = 200;
+const LEAVE_MS = 200;
 
-export interface OpenDeadlinesState {
+interface OpenDeadlinesState {
 	/** null until the first response. Rows fading out stay in it. */
 	deadlines: OpenDeadline[] | null;
 	/** Ids fading out after a done tick. */

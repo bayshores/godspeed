@@ -31,7 +31,7 @@ function isToolUIPart(part: UIMessage["parts"][number]): boolean {
  * contracts/jobs.ts "THE ASYNC PROTOCOL"), so job tools are NOT returned
  * here. This file carries only the question gate and the shared scan helper.
  */
-export interface PendingToolCall {
+interface PendingToolCall {
 	toolCallId: string;
 	tool: string;
 	/** Tool input (quiz/ask args) — lets the composer pick note vs answer mode. */
@@ -56,9 +56,6 @@ export const QUESTION_TOOLS = [
 export function toolQuestionKind(tool: string): "quiz" | "ask" | "explain" {
 	return tool === "quiz" || tool === "probe" ? "quiz" : tool === "explain" || tool === "recall" ? "explain" : "ask";
 }
-
-/** Tools fulfilled by background sub-agent jobs (W2/W6). */
-export const JOB_TOOLS = ["research", "demo", "visual"] as const;
 
 // ─── Tool availability (2026-09 settings seam) ─────────────────────────────
 

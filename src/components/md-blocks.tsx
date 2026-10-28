@@ -81,7 +81,7 @@ async function copyText(text: string): Promise<boolean> {
  *  group-hover/md:opacity-100). Copies getText() on click; the icon flips
  *  to a check for a beat — enough feedback on its own (a "Copied" pill was
  *  tried and removed by owner ask, 2026-09-19). */
-export function CopyCorner({
+function CopyCorner({
 	getText,
 	label,
 	className,
@@ -232,7 +232,7 @@ function MermaidInline({ chart }: { chart: string }) {
  *  hover-copy wrapper, with NO children so its sticky button row never
  *  mounts. The container/look is CSS-melted in globals.css
  *  (data-streamdown="code-block"…). */
-export function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
+function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const incomplete = useIsCodeFenceIncomplete();
 	const { children, className, node, ...rest } = props;
 
@@ -279,7 +279,7 @@ export function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
  *  design, callout round 2026-10-07). */
 const ALERT_MARKER_RE = /^\[!(note|tip|important|warning|caution)\][ \t]*(?:\n|$)/i;
 
-export interface ParsedAlert {
+interface ParsedAlert {
 	kind: string;
 	/** The blockquote children with the marker line stripped — prose intact. */
 	children: ReactNode;
@@ -336,7 +336,7 @@ export function parseAlertMarker(children: ReactNode): ParsedAlert | null {
  *  stroke, NO background, NO label, NO icon — just the outline. The box
  *  hugs its text (width: fit-content, capped at the column) instead of
  *  stretching full-width into empty space. */
-export function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
+function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
 	const { children, node, ...rest } = props;
 	const alert = parseAlertMarker(children);
 	if (!alert) {
@@ -372,7 +372,7 @@ export function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraPr
  *  rules live in globals.css on the data-streamdown attributes) inside a
  *  horizontal-scroller for wide ones, with the corner copy. The copy
  *  serializes the REAL DOM table (the library's own extractor → Markdown). */
-export function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
+function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 	const { children, node, ...rest } = props;
 	const ref = useRef<HTMLTableElement>(null);
 	return (
@@ -412,7 +412,7 @@ export function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
  *  static render). They gain the corner copy (the raw TeX — KaTeX embeds it
  *  in the MathML <annotation>; read from the DOM on click, no re-parse).
  *  Every other span passes through untouched. */
-export function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
+function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 	const { children, className, node, ...rest } = props;
 	const ref = useRef<HTMLSpanElement>(null);
 	if (!className?.includes("katex-display")) {
@@ -453,7 +453,7 @@ export function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
  *  `em` native). Rendering the semantic element restores screen-reader
  *  emphasis AND lets the designed token rule apply unmodified — color
  *  --lh-ink-strong, weight 700 (beating the old 600 utility). */
-export function MarkdownStrong(props: ComponentProps<"strong"> & ExtraProps) {
+function MarkdownStrong(props: ComponentProps<"strong"> & ExtraProps) {
 	const { children, className, node, ...rest } = props;
 	return (
 		<strong data-streamdown="strong" className={className} {...rest}>

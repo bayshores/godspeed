@@ -69,7 +69,7 @@ export function graphRevision(scope: ClassScope = null): number {
 // ─── single-node deletion (node interlude, owner-locked full-death) ──────────
 
 /** What deleteGraphNode did — the route maps it straight to HTTP. */
-export type NodeDeleteOutcome =
+type NodeDeleteOutcome =
 	| { ok: false; status: 404; code: "not_found"; error: string }
 	| { ok: false; status: 409; code: "extraction_running"; error: string }
 	| { ok: true; stats: NodeDeletionStats; graphRevision: number };

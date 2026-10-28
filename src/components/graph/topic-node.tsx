@@ -15,12 +15,12 @@ import { OVERCONFIDENT_COLOR, scoreText } from "./derive.ts";
 export const FADED_OPACITY = 0.22;
 
 /** The halo gradient id for a ramp color (defs live in the map). */
-export function haloId(color: string): string | null {
+function haloId(color: string): string | null {
 	const i = (RAMP_COLORS as readonly string[]).indexOf(color);
 	return i < 0 ? null : `topic-halo-${i}`;
 }
 
-export function topicAriaLabel(t: Pick<TopicProgress, "name" | "right" | "answered" | "overconfident" | "members">): string {
+function topicAriaLabel(t: Pick<TopicProgress, "name" | "right" | "answered" | "overconfident" | "members">): string {
 	const facts = `${t.members.length} ${t.members.length === 1 ? "fact" : "facts"}`;
 	if (t.answered === 0) return `${t.name}, not tested, ${facts}`;
 	return `${t.name}, ${t.right} of ${t.answered} right${t.overconfident ? ", overconfident" : ""}, ${facts}`;

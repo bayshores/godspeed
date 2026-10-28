@@ -37,7 +37,7 @@ import type { ToolResultMessage } from "@earendil-works/pi-ai";
  *  commits at POSE time. The markdown blocks join them the same way the
  *  view seam folds cards (clean-only: a refused pose's result is errored
  *  and renders nothing before this join is ever reached). */
-export interface MarkdownContext {
+interface MarkdownContext {
 	messages: ReadonlyArray<LhMessage>;
 	/** toolCallId → the call part's name + arguments. */
 	calls: Map<string, { name: string; args: Record<string, unknown> | undefined }>;

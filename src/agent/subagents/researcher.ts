@@ -61,7 +61,7 @@ Numbered findings with inline source citations:
 ## Gaps
 What couldn't be answered. Suggested next steps.`;
 
-export interface ResearcherRunOptions {
+interface ResearcherRunOptions {
 	engine?: PiEngine;
 	/** The researcher's PDF dir (PDF wave, 2026-10-07): when present, the
 	 *  toolset gains web_fetch_pdf + pdf_info/pdf_extract/pdf_search scoped
@@ -97,4 +97,3 @@ export async function runResearcherAgent(prompt: string, opts: ResearcherRunOpti
 	return text;
 }
 
-export type ResearcherAgent = ReturnType<typeof runResearcherAgent>;

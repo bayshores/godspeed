@@ -70,7 +70,7 @@ export function lessonWaiting(chat: ChatListItem): boolean {
 }
 
 /** The meta line's text. */
-export function sessionMeta(chat: ChatListItem, now = new Date()): string {
+function sessionMeta(chat: ChatListItem, now = new Date()): string {
 	if (chat.compacting) return "Compacting context…";
 	if (chat.busy) return "Working…";
 	return shortAgo(chat.updatedAt, now);

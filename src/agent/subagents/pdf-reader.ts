@@ -62,7 +62,7 @@ const RENDER_BATCH_CAP = 6;
 /** Extract output ceiling — narrow the spec instead of dumping a book. */
 const EXTRACT_CAP = 24_000;
 
-export interface PdfReaderOptions {
+interface PdfReaderOptions {
 	engine?: PiEngine;
 	abortSignal?: AbortSignal;
 	onUsage?: (usage: Usage) => void;
@@ -73,7 +73,7 @@ export interface PdfReaderOptions {
 	chatId?: string;
 }
 
-export interface PdfReaderInput extends PdfToolInput {}
+interface PdfReaderInput extends PdfToolInput {}
 
 /** The wire declarations (pi-ai Tool, TypeBox parameters). This loop owns
  *  execution itself — pdf_info/pdf_extract run via the plain pdfInfoText/

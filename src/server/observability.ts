@@ -27,7 +27,7 @@ import { listJobs } from "./jobs.ts";
 import { jobCost } from "./pricing.ts";
 import type { JobRecord } from "../core/contracts.ts";
 
-export { abortExtraction, extractionStatuses, type ExtractionPhase, type RunningExtraction } from "../agent/subagents/extraction.ts";
+export { abortExtraction, extractionStatuses } from "../agent/subagents/extraction.ts";
 export { chatStore } from "../store/chats.ts";
 
 /** A running sub-agent job, joined with its chat's title for the dock.
@@ -36,7 +36,7 @@ export { chatStore } from "../store/chats.ts";
  *  reads it off the feed instead of any client-side table. Null when the
  *  model is missing from the catalog (the blob then renders no context
  *  line — never a fake window). */
-export interface ActivityJob extends JobRecord {
+interface ActivityJob extends JobRecord {
 	costUsd: number | null;
 	title: string;
 	contextLimit: number | null;
@@ -47,7 +47,7 @@ export interface ActivityJob extends JobRecord {
  *  is the unique job key (source id, or "src#i"), chatId stays the SOURCE
  *  id (abort + chat links are source-scoped), and the title carries the
  *  "· i/N" part suffix. */
-export interface ActivityExtraction {
+interface ActivityExtraction {
 	id: string;
 	chatId: string;
 	part?: { i: number; n: number };
@@ -68,7 +68,7 @@ export interface ActivityExtraction {
  *  returns the same stamp. */
 /** A job that ended with an error lately (Halley's @_@ and the panel's
  *  error line). */
-export interface ActivityFailedJob {
+interface ActivityFailedJob {
 	id: string;
 	kind: JobRecord["kind"];
 	chatId: string;
@@ -79,7 +79,7 @@ export interface ActivityFailedJob {
 }
 
 /** Failed jobs stay in the feed this long. */
-export const FAILED_JOB_WINDOW_MS = 10 * 60_000;
+const FAILED_JOB_WINDOW_MS = 10 * 60_000;
 
 export function activityFeed(now = Date.now()): {
 	jobs: ActivityJob[];

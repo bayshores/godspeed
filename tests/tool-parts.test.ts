@@ -18,7 +18,7 @@ import {
 	parseQuizInput,
 	parseExplainInput,
 } from "../src/core/tool-parts.ts";
-import { quizInputSchema, probeQuizInputSchema } from "../src/core/question-core.ts";
+import { quizInputObject, probeQuizInputSchema } from "../src/core/question-core.ts";
 import { probeDoneInputSchema } from "../src/core/contracts/probe.ts";
 
 const TEACHER_QUIZ = {
@@ -64,7 +64,7 @@ describe("parseQuizInput", () => {
 	});
 
 	it("boundary parity: anything the TEACH schema accepts, the display parse accepts", () => {
-		assert.ok(Value.Check(quizInputSchema, TEACHER_QUIZ), "fixture must be boundary-valid for this pin to mean anything");
+		assert.ok(Value.Check(quizInputObject, TEACHER_QUIZ), "fixture must be boundary-valid for this pin to mean anything");
 		assert.ok(parseQuizInput(TEACHER_QUIZ));
 	});
 

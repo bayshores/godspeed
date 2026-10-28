@@ -57,7 +57,7 @@ function firstTextParts(parts: readonly LhViewPart[]): Set<string> {
 	return out;
 }
 
-export interface MessageRowProps {
+interface MessageRowProps {
 	message: LhViewMessage;
 	/** The message's position — arrival slots and the step-boundary rule. */
 	index: number;

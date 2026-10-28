@@ -20,7 +20,7 @@ import {
 	type TrailPoint,
 } from "./geometry";
 
-export interface EngineParts {
+interface EngineParts {
 	root: HTMLElement;
 	look: SVGGElement;
 	bubble: HTMLElement;
@@ -36,7 +36,7 @@ export interface Home {
 	corner: boolean;
 }
 
-export interface EngineHooks {
+interface EngineHooks {
 	home: () => Home;
 	/** The content area (for corner snapping). */
 	area: () => Box;

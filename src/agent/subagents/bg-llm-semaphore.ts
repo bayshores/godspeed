@@ -29,7 +29,7 @@
  *  extraction chunks). */
 const PERMIT_COUNT = 3;
 
-export interface LlmSlots {
+interface LlmSlots {
 	active: number;
 	queue: { resolve: () => void; dead: boolean }[];
 }
@@ -41,7 +41,7 @@ interface LhLlmSemaphoreGlobal {
 /** The process's single permit pool (globalThis — Next dev compiles each
  *  route entry as its own module instance; a module-level object would
  *  split the pool per route. One process, one truth). */
-export function bgLlmSlots(): LlmSlots {
+function bgLlmSlots(): LlmSlots {
 	const g = globalThis as typeof globalThis & LhLlmSemaphoreGlobal;
 	return (g.__lhLlmSlots ??= { active: 0, queue: [] });
 }

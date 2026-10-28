@@ -29,12 +29,12 @@
  */
 import type { PlanEdge, PlanNode } from "@/core";
 
-export interface ParsedPlan {
+interface ParsedPlan {
 	nodes: PlanNode[];
 	edges: PlanEdge[];
 }
 
-export interface PlanParseResult {
+interface PlanParseResult {
 	ok: boolean;
 	/** All problems, each prefixed with its 1-based line number. */
 	problems: string[];

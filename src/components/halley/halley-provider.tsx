@@ -72,20 +72,20 @@ import {
 } from "./dom";
 
 /** The latest change counts as "what it's doing now" this long. */
-export const NOW_WINDOW_MS = 20_000;
+const NOW_WINDOW_MS = 20_000;
 /** A run of visits waits this long first, so changes made together are
  *  seen together. */
 const GATHER_MS = 250;
 const RECENT_LIMIT = 20;
 
-export interface LessonPresence {
+interface LessonPresence {
 	/** A teacher message is being written. */
 	streaming: boolean;
 	/** A turn is in flight. */
 	working: boolean;
 }
 
-export interface HalleyApi {
+interface HalleyApi {
 	name: string;
 	mood: HalleyMood;
 	follow: boolean;

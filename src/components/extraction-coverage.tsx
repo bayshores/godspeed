@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/components/activity-dock";
-import { usePopoverDismiss } from "@/components/popover-dismiss";
-import { useSettingsSaved } from "@/components/settings-signal";
 import { formatTokens } from "@/components/usage-format";
-import { Hint } from "@/components/ui/hint";
-import { usePresence } from "@/components/presence";
 import { timeAgo } from "@/components/sidebar/session-row";
 import { resolveSettings } from "@/core";
 
@@ -59,7 +55,7 @@ async function fetchCoverage(chatId: string): Promise<SessionCoverage | null> {
  *  for — the old hand-rolled `?? 4096` fallback drifted from the factory
  *  default (8192) and the ring filled at half the truth. Null on fetch
  *  failure → no ring. */
-export interface GraphRead {
+interface GraphRead {
 	enabled: boolean;
 	chunkTokens: number;
 }
@@ -223,111 +219,6 @@ export function CoverageMenuBody({
 export function ringFill(uncoveredTokens: number, chunkTokens: number): number {
 	if (!(chunkTokens > 0)) return 0;
 	return Math.min(1, Math.max(0, uncoveredTokens / chunkTokens));
-}
-
-/**
- * The ring meter (owner-locked: "a donut next to the PhaseChip"): how
- * close this session is to its next extraction run. Click → the exact
- * numbers (covered/uncovered tokens, messages, the threshold, the last
- * fold). Vanishes entirely while the graph is disabled or before the
- * first successful read. While a run is in flight the ring PULSES (the
- * implementer's visual call per the dispatch — motion is the honest
- * state signal in this app's quiet register; no new chrome).
- *
- * Refresh chains: mount + `refreshKey` (the chat view bumps it at turn
- * settle, riding the existing refetch chains) + a 2s poll while running
- * (resets as the fold drains coverage) + the settings signal (the
- * threshold/kill-switch re-read live).
- */
-export function CoverageRing({ chatId, refreshKey = 0 }: { chatId: string; refreshKey?: number }) {
-	const [graph, setGraph] = useState<GraphRead | null>(null);
-	const [coverage, setCoverage] = useState<SessionCoverage | null>(null);
-	const [open, setOpen] = useState(false);
-	const [nonce, setNonce] = useState(0);
-	const rootRef = useRef<HTMLDivElement>(null);
-	usePopoverDismiss(rootRef, open, () => setOpen(false));
-	// The numbers popover pops in and out (motion wave, owner 2026-10-26).
-	const popover = usePresence(open);
-
-	// The activity/refresh chain (the dispatch's seam): runs can fire from
-	// OTHER surfaces (the sidebar menu's Extract, the turn pipeline, another
-	// tab) — no turn-settle bump announces those to this page. The dock's
-	// feed knows; a run for THIS session appearing or settling in it
-	// re-reads coverage (same runs-empty-transition the graph view rides).
-	const feed = useActivity().feed;
-	const runHere = feed.extractions.some((run) => run.chatId === chatId);
-
-	useSettingsSaved((section) => {
-		if (section === "graph") setNonce((n) => n + 1);
-	});
-
-	useEffect(() => {
-		let alive = true;
-		void fetchGraphRead().then((g) => alive && setGraph(g));
-		return () => {
-			alive = false;
-		};
-	}, [nonce]);
-
-	useEffect(() => {
-		let alive = true;
-		void fetchCoverage(chatId).then((c) => alive && setCoverage(c));
-		return () => {
-			alive = false;
-		};
-	}, [chatId, refreshKey, nonce, runHere]);
-
-	// While a run is in flight: poll at 2s so the ring DRAINS as folds land
-	// and settles at zero when the run completes (the "resets on
-	// completion" requirement — coverage re-derives per request).
-	// ACCEPTED BY DESIGN (owner, 2026-10-02): the ring drains per fold,
-	// and the events channel is per phase — that granularity gap is why
-	// this bounded, run-scoped poll stays.
-	useEffect(() => {
-		if (coverage?.running !== true) return;
-		const timer = setInterval(() => {
-			void fetchCoverage(chatId).then((c) => {
-				if (c !== null) setCoverage(c);
-			});
-		}, 2000);
-		return () => clearInterval(timer);
-	}, [chatId, coverage?.running]);
-
-	// Vanishes entirely when the graph is off, or before the first honest
-	// read (no fake zeros — the doctrine).
-	if (graph === null || !graph.enabled || coverage === null) return null;
-
-	const fill = ringFill(coverage.uncoveredTokens, graph.chunkTokens);
-	return (
-		<div ref={rootRef} className="lh-no-drag relative shrink-0">
-			<Hint
-				// Trimmed (owner, subtlety round 2026-09-25).
-				label="How much of this session isn't mapped yet"
-				side="bottom"
-			>
-				<button
-					type="button"
-					data-testid="coverage-ring"
-					onClick={() => setOpen((o) => !o)}
-					aria-expanded={open}
-					className="lh-press relative flex size-5 cursor-pointer items-center justify-center hover:opacity-80"
-				>
-					{/* The donut: track + fill. The whole ring pulses while a run
-					    is in flight (motion = the working-state signal). */}
-					<CoverageRingGlyph fill={fill} running={coverage.running} />
-				</button>
-			</Hint>
-			{popover.mounted && (
-				<div
-					data-testid="coverage-ring-popover"
-					data-state={popover.state}
-					className="lh-pop absolute top-full right-0 z-40 mt-1.5 w-64 border bg-card p-3 text-xs shadow-xl"
-				>
-					<CoverageRingDetail coverage={coverage} chunkTokens={graph.chunkTokens} />
-				</div>
-			)}
-		</div>
-	);
 }
 
 /** The donut itself (exported for static-render tests): a hairline track

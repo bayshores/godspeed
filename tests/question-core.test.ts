@@ -8,7 +8,6 @@ import { Value } from "typebox/value";
 import type { TSchema } from "typebox";
 import {
 	askInputSchema,
-	quizInputBase,
 	askOptionProblems,
 	buildAnswer,
 	compactAnswerForModel,
@@ -24,7 +23,7 @@ import {
 	explainInputBase,
 	explainInputObject,
 	explainInputProblems,
-	quizInputSchema,
+	quizInputObject,
 	probeQuizInputSchema,
 	quizDisplayInputSchema,
 	normalizeQuizType,
@@ -64,20 +63,20 @@ describe("the schema's argument order (reasoning before the pick)", () => {
 		// trailed every long content field (the tools_fails_2 drops).
 		// Models emit tool args in schema order: commit to the role and the
 		// target first, reason, then pick.
-		for (const schema of [quizInputSchema, probeQuizInputSchema]) {
+		for (const schema of [quizInputObject, probeQuizInputSchema]) {
 			const keys = Object.keys((schema as { properties: Record<string, unknown> }).properties);
 			assert.ok(
 				keys.indexOf("explanation") < keys.indexOf("correctAnswer"),
 				`explanation must precede correctAnswer in the emitted schema (got: ${keys.join(", ")})`,
 			);
-			assert.deepEqual(keys, schema === quizInputSchema
+			assert.deepEqual(keys, schema === quizInputObject
 				? ["type", "nodeId", "question", "options", "multiSelect", "explanation", "correctAnswer", "details"]
 				: ["question", "options", "multiSelect", "explanation", "correctAnswer", "details"]);
 		}
 	});
 });
 
-describe("quizInputSchema / quizInputProblems (the authoring contract)", () => {
+describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 	const valid = {
 		question: "Which planet is closest to the Sun?",
 		options: [{ label: "Venus" }, { label: "Mercury" }, { label: "Mars" }],
@@ -88,7 +87,7 @@ describe("quizInputSchema / quizInputProblems (the authoring contract)", () => {
 	};
 
 	it("accepts a valid single-select quiz (label as correctAnswer)", () => {
-		assert.equal(boundaryOk(quizInputSchema, valid, quizInputProblems(valid)), true);
+		assert.equal(boundaryOk(quizInputObject, valid, quizInputProblems(valid)), true);
 		assert.deepEqual(quizInputProblems(valid), []);
 	});
 
@@ -103,10 +102,10 @@ describe("quizInputSchema / quizInputProblems (the authoring contract)", () => {
 			correctAnswer: ["a", "b"],
 			multiSelect: true,
 		};
-		assert.equal(boundaryOk(quizInputSchema, multi, quizInputProblems(multi)), true);
+		assert.equal(boundaryOk(quizInputObject, multi, quizInputProblems(multi)), true);
 		// The union lists String first, so providers sometimes stringify arrays.
 		const stringified = { ...multi, correctAnswer: JSON.stringify(multi.correctAnswer) };
-		assert.equal(boundaryOk(quizInputSchema, stringified, quizInputProblems(stringified)), true);
+		assert.equal(boundaryOk(quizInputObject, stringified, quizInputProblems(stringified)), true);
 		assert.deepEqual(quizInputProblems(stringified), []);
 	});
 
@@ -122,7 +121,7 @@ describe("quizInputSchema / quizInputProblems (the authoring contract)", () => {
 			correctAnswer: "cultural-diagnosis",
 			explanation: "...",
 		};
-		assert.equal(boundaryOk(quizInputSchema, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
 		const problems = quizInputProblems(bad);
 		assert.equal(problems.length, 1);
 		assert.match(problems[0]!, /does not match any option value/);
@@ -131,7 +130,7 @@ describe("quizInputSchema / quizInputProblems (the authoring contract)", () => {
 
 	it("rejects multiple correct answers without multiSelect (ungradeable single-select)", () => {
 		const bad = { ...valid, correctAnswer: ["Venus", "Mercury"] };
-		assert.equal(boundaryOk(quizInputSchema, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
 		assert.match(quizInputProblems(bad).join(" "), /multiSelect/);
 	});
 
@@ -143,19 +142,19 @@ describe("quizInputSchema / quizInputProblems (the authoring contract)", () => {
 				{ label: "Venus", value: "same" },
 			],
 		};
-		assert.equal(boundaryOk(quizInputSchema, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
 		assert.match(quizInputProblems(bad).join(" "), /same value/);
 	});
 
 	it("rejects an empty option label", () => {
 		const bad = { ...valid, options: [{ label: "  " }, { label: "Mercury" }, { label: "Mars" }] };
-		assert.equal(boundaryOk(quizInputSchema, bad, quizInputProblems(bad)), false);
+		assert.equal(boundaryOk(quizInputObject, bad, quizInputProblems(bad)), false);
 		assert.match(quizInputProblems(bad).join(" "), /label is empty/);
 	});
 
 	it("requires a resolvable correctAnswer", () => {
-		assert.equal(boundaryOk(quizInputSchema, { ...valid, correctAnswer: "" }, quizInputProblems({ ...valid, correctAnswer: "" })), false);
-		assert.equal(boundaryOk(quizInputSchema, { ...valid, correctAnswer: "[]" }, quizInputProblems({ ...valid, correctAnswer: "[]" })), false);
+		assert.equal(boundaryOk(quizInputObject, { ...valid, correctAnswer: "" }, quizInputProblems({ ...valid, correctAnswer: "" })), false);
+		assert.equal(boundaryOk(quizInputObject, { ...valid, correctAnswer: "[]" }, quizInputProblems({ ...valid, correctAnswer: "[]" })), false);
 		assert.match(quizInputProblems({ ...valid, correctAnswer: "" }).join(" "), /required/);
 	});
 });
@@ -219,7 +218,7 @@ it("quiz options carry NO description field; ask keeps it (owner nuke, 2026-09-2
 	// ("that's not the gradient") in every quiz of the gradient-descent
 	// session — the field is gone from BOTH quiz schemas; ask (ungraded,
 	// nothing to leak) keeps it.
-	const quizOption = (quizInputBase.properties.options as { items?: { properties?: Record<string, unknown> } })
+	const quizOption = (probeQuizInputSchema.properties.options as { items?: { properties?: Record<string, unknown> } })
 		.items!.properties!;
 	assert.ok(!("description" in quizOption), "quiz option schema has no description");
 	const askOption = (askInputSchema.properties.options as { items?: { properties?: Record<string, unknown> } })
@@ -749,9 +748,9 @@ describe("the quiz role field (predict | check)", () => {
 		nodeId: "planet-order",
 	};
 	it("the teach schema REQUIRES type; the probe schema has no such field", () => {
-		assert.equal(Value.Check(quizInputSchema, valid), true, "fixture (type: check) is boundary-valid");
+		assert.equal(Value.Check(quizInputObject, valid), true, "fixture (type: check) is boundary-valid");
 		assert.equal(
-			Value.Check(quizInputSchema, { ...valid, type: undefined }),
+			Value.Check(quizInputObject, { ...valid, type: undefined }),
 			false,
 			"a teach quiz without a role is rejected at the boundary",
 		);

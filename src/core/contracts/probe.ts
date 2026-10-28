@@ -18,7 +18,7 @@
 import { Type, type Static } from "typebox";
 
 /** One dependency strand the planned lesson will rest on. */
-export interface ProbeStrand {
+interface ProbeStrand {
 	/** Name/description of the strand (e.g. "the derivative as a limit"). */
 	strand: string;
 	/** Free-form: where the learner's edge sits on this strand — floor,
@@ -74,7 +74,7 @@ export const probeDoneInputSchema = Type.Object({
 /** Schema ↔ interface lock (the old `satisfies z.ZodType` guarantee): the
  *  declaration and ProbeDoneInput can never drift apart — this only compiles
  *  when the schema's static shape IS the interface. */
-export const probeDoneSchemaLock = (v: Static<typeof probeDoneInputSchema>): ProbeDoneInput => v;
+void ((v: Static<typeof probeDoneInputSchema>): ProbeDoneInput => v);
 
 /** probe_done tool output. */
 export interface ProbeDoneResult {

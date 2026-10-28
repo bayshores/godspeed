@@ -2,7 +2,6 @@ import { abortExtraction, extractionStatuses } from "../agent/subagents/extracti
 import { isJobLive } from "../agent/subagents/aborts.ts";
 import { coverageOf } from "../core/coverage.ts";
 import { deleteChatTraces, type ChatDeleteMode, type ChatDeletionStats } from "../core/graph-deletion.ts";
-import { titleFromPrompt } from "../core/contracts.ts";
 import { graphRevision } from "./graph.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
@@ -22,8 +21,7 @@ import { discardChatDeliveries } from "./jobs.ts";
  */
 
 export const { createChat, getChat, listChats } = stores.chatStore;
-export { titleFromPrompt };
-export type { ChatDeleteMode, ChatDeletionStats } from "../core/graph-deletion.ts";
+export type { ChatDeleteMode } from "../core/graph-deletion.ts";
 
 /** How long the wind-down wait may take before the caller gets a retryable
  *  503 (an aborted extraction ends at its next model-call boundary —
@@ -33,7 +31,7 @@ const WIND_DOWN_TIMEOUT_MS = 10_000;
 const WIND_DOWN_POLL_MS = 50;
 
 /** What deleteChatSession did — the route maps it straight to HTTP. */
-export type ChatDeleteOutcome =
+type ChatDeleteOutcome =
 	| { ok: false; status: 404; code: "not_found"; error: string }
 	| { ok: false; status: 409; code: "turn_in_flight" | "jobs_running"; error: string; jobIds: string[] }
 	| { ok: false; status: 503; code: "extraction_winding_down"; error: string }
@@ -153,7 +151,7 @@ export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): P
  *  lastFoldedAt: the newest coverage row's fold timestamp — a cheap single
  *  pass over the chat's ledger rows (the ring popover's "last extraction"
  *  line); null before the session's first fold. */
-export interface SessionCoverage {
+interface SessionCoverage {
 	totalMessages: number;
 	coveredCount: number;
 	uncoveredCount: number;

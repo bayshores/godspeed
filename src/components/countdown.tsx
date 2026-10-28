@@ -93,7 +93,7 @@ function parseKey(key: string): CountdownValue {
 }
 
 /** A live countdown to `due`; null until the window's first render. */
-export function useCountdown(due: { date: string; time?: string }): CountdownValue | null {
+function useCountdown(due: { date: string; time?: string }): CountdownValue | null {
 	const dueMs = dueAtMs(due);
 	const subscribe = useCallback((notify: () => void) => subscribeTo(dueMs, notify), [dueMs]);
 	const key = useSyncExternalStore(

@@ -79,7 +79,7 @@ import type { Agent } from "@earendil-works/pi-agent-core";
 export type TurnRunner = (chatId: string, input: TurnInput) => Promise<number>;
 
 /** Re-runs a job's sub-agent loop (crash recovery for orphaned jobs). */
-export type JobRespawn = (jobId: string) => void;
+type JobRespawn = (jobId: string) => void;
 
 interface QueuedSteer {
 	steer: SteerMessage;
@@ -291,7 +291,7 @@ export function registerLiveAgent(chatId: string, agent: Agent, allowDeferred = 
 /** A parked user steer: the message plus the agent it was last handed to
  *  (the double-handoff guard — a reconcile keeps it only when its id
  *  never landed in the persisted record). */
-export interface UserSteerEntry {
+interface UserSteerEntry {
 	message: LhMessage;
 	handedTo?: Agent;
 }
@@ -374,7 +374,7 @@ export function settleSteers(chatId: string, persisted: { id?: string }[], faile
 }
 
 /** Result of an abort attempt — the endpoint maps these to HTTP. */
-export interface AbortOutcome {
+interface AbortOutcome {
 	ok: boolean;
 	reason?: "not_found" | "not_running";
 }

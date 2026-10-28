@@ -48,7 +48,7 @@ export {
 	escAbortTarget,
 	initialPromptOwed,
 	revealArrival,
-	type EscAbortTarget,
+	
 } from "@/components/lesson/chat-helpers";
 
 /**

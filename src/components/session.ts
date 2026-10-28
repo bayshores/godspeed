@@ -20,7 +20,7 @@ import { SessionModel, type SessionState } from "@/components/session-core";
  *  hidden window): the update still lands within this many ms. */
 const STREAM_FRAME_FALLBACK_MS = 100;
 
-export interface UseChatSessionOptions {
+interface UseChatSessionOptions {
 	chatId: string;
 	/** The native record seed (server-rendered page or a full sync). */
 	initialMessages: LhMessage[];

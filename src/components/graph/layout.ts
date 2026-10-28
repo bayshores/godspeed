@@ -18,7 +18,7 @@ export const COLUMN_GAP = 160;
 export const ROW_GAP = 116;
 export const MAX_PER_COLUMN = 6;
 /** Label block width under a ring (design: 160px). */
-export const LABEL_WIDTH = 160;
+const LABEL_WIDTH = 160;
 /** Space under a ring for the name + score lines. */
 const LABEL_HEIGHT = 48;
 const ARROW_LENGTH = 6;
@@ -26,14 +26,14 @@ const ARROW_HALF = 3.5;
 const LINK_GAP_START = 4;
 const LINK_GAP_END = 3;
 
-export interface LayoutTopic {
+interface LayoutTopic {
 	id: string;
 	column: number;
 	/** Fact count (ring size). */
 	size: number;
 }
 
-export interface LayoutLink {
+interface LayoutLink {
 	from: string;
 	to: string;
 }

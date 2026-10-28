@@ -11,9 +11,9 @@ import { dueAtMs } from "./countdown-model";
 export type OpenDeadline = ClassDeadline & { classId: string; className: string };
 
 /** How many rows the sidebar's Due soon shows. */
-export const DUE_SOON_ROWS = 4;
+const DUE_SOON_ROWS = 4;
 /** Home's "Later" group: more than this many days away. */
-export const LATER_DAYS = 14;
+const LATER_DAYS = 14;
 
 /** The calendar day of a local moment, YYYY-MM-DD. */
 export function localDayOf(ms: number): string {
@@ -36,7 +36,7 @@ export function isOverdue(d: { date: string; time?: string }, nowMs: number): bo
 }
 
 /** "Fri" for a YYYY-MM-DD date. */
-export function weekdayLabel(date: string): string {
+function weekdayLabel(date: string): string {
 	return deadlineDateLabel(date).split(" ")[0] ?? "";
 }
 
@@ -65,7 +65,7 @@ export function dueUnderLabel(d: { date: string; time?: string }, overdue: boole
 	return d.time ? `was due ${day} ${clockLabel(d.time)}` : `was due ${day}`;
 }
 
-export interface ComingUpGroup<T> {
+interface ComingUpGroup<T> {
 	key: string;
 	label: string;
 	overdue: boolean;

@@ -29,9 +29,9 @@ import { MIN_FACTS_FOR_TOPICS, resolveTopics, sameFactSet } from "../core/topics
 import { effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 
 /** How long the scheduler waits for more graph writes before running. */
-export const TOPIC_GROUPING_DEBOUNCE_MS = 20_000;
+const TOPIC_GROUPING_DEBOUNCE_MS = 20_000;
 
-export type TopicGroupingOutcome =
+type TopicGroupingOutcome =
 	| { status: "grouped"; topics: number; facts: number }
 	| { status: "queued" }
 	| { status: "skipped"; reason: "too_few_facts" | "unchanged" | "graph_off" | "no_class" }

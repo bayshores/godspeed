@@ -38,11 +38,11 @@ import {
 export type SessionStatus = "ready" | "submitted" | "streaming" | "error";
 
 /** How often to poll turnInFlight while a racing turn runs (409 retry). */
-export const TURN_POLL_MS = 500;
+const TURN_POLL_MS = 500;
 /** Give up waiting (a wake turn can run long) and surface the 409. */
-export const TURN_WAIT_MAX_MS = 30_000;
+const TURN_WAIT_MAX_MS = 30_000;
 
-export interface SessionModelDeps {
+interface SessionModelDeps {
 	/** Injectable fetch (tests); defaults to the global. */
 	fetch?: typeof globalThis.fetch;
 	/** Injectable retry timing (tests). */
@@ -208,7 +208,7 @@ export function visibleQueuedSteers(
 	return queue.filter((s) => !ids.has(s.id));
 }
 
-export interface SessionModelOptions extends SessionModelDeps {
+interface SessionModelOptions extends SessionModelDeps {
 	chatId: string;
 	initialMessages: LhMessage[];
 	/** Retained, memory-only server failure when reopening a session. */

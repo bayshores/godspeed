@@ -62,7 +62,7 @@ export const pdfModelOverride: { current?: PiEngine } = {};
 /** The dispatch-time tool input (from src/agent/tools/jobs.ts schemas). */
 type JobToolInput = ResearchToolInput | DemoToolInput | VisualToolInput | PdfToolInput;
 
-export interface JobRunnerDeps {
+interface JobRunnerDeps {
 	chatStore: ChatStore;
 	jobStore: JobStore;
 	/**
@@ -77,7 +77,7 @@ export interface JobRunnerDeps {
 	engineFor?: (role: ModelRole) => PiEngine | undefined;
 }
 
-export interface JobRunner {
+interface JobRunner {
 	/** Run one job's sub-agent loop to completion (background; never throws).
 	 *  The tool input rides along from dispatch (the spawn fires mid-stream,
 	 *  before the tool part is persisted). Recovery reads saved job input,

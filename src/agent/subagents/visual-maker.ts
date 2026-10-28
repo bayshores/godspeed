@@ -30,11 +30,11 @@ import { getHeadless, type HeadlessApi } from "./headless.ts";
  * Failure semantics mirror the demo-builder: { svg: "", notes: "FAILED: …" }.
  */
 
-export interface VisualMakerInput {
+interface VisualMakerInput {
 	brief: string;
 }
 
-export interface VisualMakerOptions {
+interface VisualMakerOptions {
 	/** Test seam: scripted engine; production uses the visualMaker role. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
@@ -96,7 +96,7 @@ that in your final message and why.`;
 /** The wire declarations (pi-ai Tool, TypeBox parameters): this loop owns
  *  execution itself — write/edit dispatch inline below, render feeds the
  *  image-in-the-loop message — so the declarations carry no execute. */
-export function createVisualTools(): Record<string, Tool> {
+function createVisualTools(): Record<string, Tool> {
 	return {
 		write_svg: {
 			name: "write_svg",

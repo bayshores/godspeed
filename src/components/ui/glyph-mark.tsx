@@ -10,7 +10,7 @@
  * downward, font y grows upward).
  */
 
-export type MarkKind = "check" | "x";
+type MarkKind = "check" | "x";
 
 const GLYPHS: Record<MarkKind, { d: string; x: number; y: number; w: number; h: number }> = {
 	// ✓ U+2713 (LaTeX \ding{51}) — bounds (78, -20, 1470, 1444)

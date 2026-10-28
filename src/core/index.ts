@@ -60,7 +60,7 @@ export * from "./settings.ts";
 // two type-only things from it: the ChatDeleteMode union (the delete
 // dialog's two-option design + the DELETE query param) and the stats
 // shape its success line describes, hence this type-only re-export.
-export type { ChatDeleteMode, ChatDeletionStats } from "./graph-deletion.ts";
+export type { ChatDeleteMode } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
 export * from "./session-find.ts";
 export * from "./session-navigation.ts";

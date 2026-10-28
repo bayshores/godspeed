@@ -93,7 +93,7 @@ const CHROME_CANDIDATES = [
 	"/usr/bin/chromium-browser",
 ];
 
-export function resolveChromeExecutablePath(): string | null {
+function resolveChromeExecutablePath(): string | null {
 	const candidates = [process.env.CHROME_PATH, ...CHROME_CANDIDATES].filter(
 		(p): p is string => typeof p === "string" && p.length > 0,
 	);
@@ -146,7 +146,7 @@ export function browserServiceSpawnEnv(
 /** The helper binary: inside the packaged app the server runs under
  *  ELECTRON_RUN_AS_NODE so process.execPath IS the app binary; in dev
  *  (plain node) the electron package resolves to the dev binary path. */
-export function browserServiceBinary(): string | null {
+function browserServiceBinary(): string | null {
 	if (process.versions.electron) return process.execPath;
 	try {
 		const req = createRequire(import.meta.url);

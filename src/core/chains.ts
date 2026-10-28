@@ -11,7 +11,7 @@ import { stripModelValueDebris } from "./value-debris.ts";
 /** One reasoning chain — a selection-facing VIEW of stored follows-edges:
  *  all edges into one conclusion, as premises → that conclusion. Singleton
  *  chains (premises: []) carry edge-less nodes. */
-export interface ReasoningChain {
+interface ReasoningChain {
 	/** The chain's identity — the CONCLUSION node's id (chains group by
 	 *  conclusion, so the two are one). */
 	id: string;

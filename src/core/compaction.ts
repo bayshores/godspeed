@@ -52,9 +52,6 @@ export const KEEP_RECENT_TOKENS = 20_000;
  * (not the user's threshold) is the binding constraint (pi's default). */
 export const COMPACTION_RESERVE_TOKENS = 16_384;
 
-/** Factory default for the settings threshold (owner ruling: 150k). */
-export const DEFAULT_COMPACTION_THRESHOLD_TOKENS = 150_000;
-
 /** Tool-result truncation when serializing the span for the summarizer
  * (pi's mirror: long job/research results don't need verbatim inclusion
  * in the SUMMARY INPUT — the kept tail carries them whole). */
@@ -132,7 +129,7 @@ function textCharsOfContent(content: unknown): number {
  * so pre-marker usage is not a valid anchor (pi's "don't trust usage
  * captured before a later compaction" law). Index into messages, or
  * null. */
-export function lastAssistantUsageIndex(
+function lastAssistantUsageIndex(
 	messages: readonly (LhMessage | AgentMessage)[],
 ): number | null {
 	for (let i = messages.length - 1; i >= 0; i--) {
@@ -147,7 +144,7 @@ export function lastAssistantUsageIndex(
 	return null;
 }
 
-export interface ContextTokenEstimate {
+interface ContextTokenEstimate {
 	/** The estimate the trigger should compare against the threshold. */
 	tokens: number;
 	/** Provider-reported tokens from the usage anchor (0 when unanchored). */

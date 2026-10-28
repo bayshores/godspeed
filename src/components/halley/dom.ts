@@ -8,8 +8,8 @@ import type { Box } from "./geometry";
 import { targetKey } from "./tour";
 
 /** Glow: tone fill and a 2px white left edge, then a fade. */
-export const GLOW_HOLD_MS = 900;
-export const GLOW_FADE_MS = 600;
+const GLOW_HOLD_MS = 900;
+const GLOW_FADE_MS = 600;
 /** A removed item's fade after the visit. */
 export const REMOVE_FADE_MS = 400;
 

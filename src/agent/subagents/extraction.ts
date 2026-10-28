@@ -608,7 +608,7 @@ export type ExtractionPhase = "queued" | "extracting" | "waiting" | "auditing" |
 
 /** One in-flight pipeline run. Module-level: one process, one registry.
  *  Exported for the status payload's consumer typing (the dock). */
-export interface RunningExtraction {
+interface RunningExtraction {
 	/** The SOURCE id (chat id / notes src id) — the payload's identity and
 	 *  the abort key. The registry KEY adds "#i" for chunk jobs (a
 	 *  multi-chunk source owns several entries); this field stays the
@@ -716,7 +716,7 @@ export function abortExtraction(chatId: string): boolean {
 }
 // ─── the pipeline ───────────────────────────────────────────────────────────
 
-export interface ExtractionModels {
+interface ExtractionModels {
 	/** Test seam: a scripted engine per stage — checked FIRST, ahead of the
 	 *  engineFor chain (production wires no direct values). */
 	extractor?: PiEngine;
@@ -736,7 +736,7 @@ export class NoEngineError extends Error {
 	}
 }
 
-export interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
+interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
 	/** The chunk budget — the transcript-token share of the extractor's
 	 *  context; batches fill to it (the trigger fires on the same number,
 	 *  read fresh per turn by the composition root). OPTIONAL with the
@@ -799,7 +799,7 @@ export interface ExtractionPipeline {
  *  (the money channel's capture shape, contracts/chat.ts). Exported for
  *  the cluster namer — the same capture shape (2026-09 graph cost
  *  metrics wave). Module scope: no closure deps, pure projection. */
-export function callUsage(usage: Usage): CallUsage {
+function callUsage(usage: Usage): CallUsage {
 	return {
 		inputTokens: usage.input,
 		outputTokens: usage.output,

@@ -61,7 +61,7 @@ export function reasonText(item: Pick<WorkOnNextItem, "reason">): string {
 }
 
 /** Wrong answers given at confidence 4–5. */
-export function sureMisses(answers: readonly Pick<AnswerRef, "outcome" | "level">[]): number {
+function sureMisses(answers: readonly Pick<AnswerRef, "outcome" | "level">[]): number {
 	return answers.filter((a) => a.outcome === "wrong" && a.level !== undefined && a.level >= 4).length;
 }
 

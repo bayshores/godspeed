@@ -7,7 +7,7 @@ import { FileRow, type FileRowActions } from "./file-row";
 import { CLASS_FILE_ACCEPT, dropCopy, FILE_DRAG_TYPE, kindTitle } from "./files-model";
 
 /** The two sections' help tooltips (on the section title). */
-export const SECTION_HELP = {
+const SECTION_HELP = {
 	study: { title: "Study material", body: "Turned into facts for the graph. Course info is only read by the teacher." },
 	info: { title: "Course info", body: "Syllabus, assignments and other class details. Only read by the teacher; never turned into facts." },
 } as const;

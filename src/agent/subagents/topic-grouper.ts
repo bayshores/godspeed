@@ -56,13 +56,13 @@ function healTopicsString(raw: unknown): unknown {
 	return out;
 }
 
-export interface TopicFact {
+interface TopicFact {
 	id: string;
 	name: string;
 	statement: string;
 }
 
-export interface TopicGrouperInput {
+interface TopicGrouperInput {
 	/** The class's display name (prompt context + the work-item label). */
 	className: string;
 	facts: readonly TopicFact[];
@@ -79,7 +79,7 @@ export interface TopicGrouperInput {
 const defaultNewId = () => `tpc_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
 
 /** The prompt: facts one per line, then the current topics as JSON. */
-export function topicGrouperPrompt(input: Pick<TopicGrouperInput, "className" | "facts" | "current">): string {
+function topicGrouperPrompt(input: Pick<TopicGrouperInput, "className" | "facts" | "current">): string {
 	const facts = input.facts.map((f) => `${f.id} | ${f.name} | ${f.statement.replace(/\s+/g, " ")}`).join("\n");
 	const current =
 		input.current.length > 0

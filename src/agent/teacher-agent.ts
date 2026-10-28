@@ -44,7 +44,7 @@ import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts
 
 /** Which agent's prompt directory to compose. Practice (2026-10-04)
  *  composes ONLY its own directory — see prompt-segments.ts. */
-export type AgentKind = "prober" | "teacher" | "practice";
+type AgentKind = "prober" | "teacher" | "practice";
 
 // P2 (2026-09-19): segment discovery + override resolution live in ONE
 // canonical place now — src/store/prompt-overrides.ts (listSourceSegments

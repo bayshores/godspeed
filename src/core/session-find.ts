@@ -1,6 +1,6 @@
 /** Literal, case-insensitive session Find (owner, 2026-10-13). The DOM seam
  * supplies only displayed text; no transcript/Markdown/TeX indexing lives here. */
-export interface SessionTextMatch {
+interface SessionTextMatch {
 	start: number;
 	end: number;
 }

@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/components/presence";
 import { cn } from "@/lib/utils";
-import type { LhViewMessage } from "@/core";
-import { ArrowDownIcon, DownloadIcon } from "lucide-react";
+import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
-export type ConversationProps = ComponentProps<typeof StickToBottom>;
+type ConversationProps = ComponentProps<typeof StickToBottom>;
 
 export const Conversation = ({ className, ...props }: ConversationProps) => (
   <StickToBottom
@@ -19,7 +18,7 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
   />
 );
 
-export type ConversationContentProps = ComponentProps<
+type ConversationContentProps = ComponentProps<
   typeof StickToBottom.Content
 >;
 
@@ -33,7 +32,7 @@ export const ConversationContent = ({
   />
 );
 
-export type ConversationEmptyStateProps = ComponentProps<"div"> & {
+type ConversationEmptyStateProps = ComponentProps<"div"> & {
   title?: string;
   description?: string;
   icon?: React.ReactNode;
@@ -68,7 +67,7 @@ export const ConversationEmptyState = ({
   </div>
 );
 
-export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
+type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 
 export const ConversationScrollButton = ({
   className,
@@ -102,69 +101,3 @@ export const ConversationScrollButton = ({
   );
 };
 
-const getMessageText = (message: LhViewMessage): string =>
-  message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
-
-export type ConversationDownloadProps = Omit<
-  ComponentProps<typeof Button>,
-  "onClick"
-> & {
-  messages: LhViewMessage[];
-  filename?: string;
-  formatMessage?: (message: LhViewMessage, index: number) => string;
-};
-
-const defaultFormatMessage = (message: LhViewMessage): string => {
-  const roleLabel =
-    message.role.charAt(0).toUpperCase() + message.role.slice(1);
-  return `**${roleLabel}:** ${getMessageText(message)}`;
-};
-
-export const messagesToMarkdown = (
-  messages: LhViewMessage[],
-  formatMessage: (
-    message: LhViewMessage,
-    index: number
-  ) => string = defaultFormatMessage
-): string => messages.map((msg, i) => formatMessage(msg, i)).join("\n\n");
-
-export const ConversationDownload = ({
-  messages,
-  filename = "conversation.md",
-  formatMessage = defaultFormatMessage,
-  className,
-  children,
-  ...props
-}: ConversationDownloadProps) => {
-  const handleDownload = useCallback(() => {
-    const markdown = messagesToMarkdown(messages, formatMessage);
-    const blob = new Blob([markdown], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }, [messages, filename, formatMessage]);
-
-  return (
-    <Button
-      className={cn(
-        "absolute top-4 right-4 dark:bg-background dark:hover:bg-muted",
-        className
-      )}
-      onClick={handleDownload}
-      size="icon"
-      type="button"
-      variant="outline"
-      {...props}
-    >
-      {children ?? <DownloadIcon className="size-4" />}
-    </Button>
-  );
-};

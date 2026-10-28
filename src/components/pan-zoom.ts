@@ -12,7 +12,7 @@
  *  reading node titles closely, owner, plan-graph round 3). */
 export const ZOOM_MAX = 4;
 /** Viewport breathing room subtracted by the fit. */
-export const FIT_PAD = 16;
+const FIT_PAD = 16;
 /** The fit never zooms IN past this — a tiny diagram must not blow up. */
 export const FIT_ZOOM_MAX = 1.5;
 

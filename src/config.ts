@@ -38,8 +38,6 @@ export const PATHS = {
 // There are no model settings: every engine is the outside agent (MCP),
 // which picks its own model in its own harness (owner, 2026-10-27).
 
-export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
-
 /** Every agent role in the app (each one's work goes to the outside agent). */
 export type ModelRole =
 	| "prober"

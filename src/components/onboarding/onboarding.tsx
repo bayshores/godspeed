@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { Constellation, type ConstellationMode } from "./constellation";
 
 type Step = "intro" | "agent" | "class" | "done";
-export type AgentTab = "claude" | "codex" | "other";
+type AgentTab = "claude" | "codex" | "other";
 
 /** How long the intro runs before Return / the button continue. */
 const INTRO_MS = 2500;

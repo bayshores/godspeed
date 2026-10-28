@@ -76,8 +76,6 @@ export function allGraphScopes(): { scope: ClassScope; name: string }[] {
 	];
 }
 
-export type Stores = typeof stores;
-
 /**
  * The resolved view of the settings record (core/settings-resolution.ts):
  * every knob concrete over its factory default — EXCEPT MODELS (BYOK all

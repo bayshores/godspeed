@@ -285,4 +285,3 @@ export const SETTINGS_SECTIONS = {
 	compaction: parseCompactionSettingsBody,
 } as const;
 
-export type SettingsSectionName = keyof typeof SETTINGS_SECTIONS;

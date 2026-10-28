@@ -5,7 +5,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { mathFromMarkdown } from "mdast-util-math";
 import { math } from "micromark-extension-math";
 
-export type ContentSpan =
+type ContentSpan =
 	| { kind: "prose" | "code"; raw: string }
 	| { kind: "math"; raw: string; open: string; body: string; close: string; display: boolean };
 const blankLine = /^\r?\n[ \t]*\r?\n/;
@@ -109,7 +109,7 @@ export function canParseTex(body: string, display: boolean): boolean {
 	catch { return false; }
 }
 
-export interface TexRange { start: number; end: number; kind: "row" | "encoded" | "comment"; factor?: number }
+interface TexRange { start: number; end: number; kind: "row" | "encoded" | "comment"; factor?: number }
 export function numericPercentEscape(inner: string, percent: number): boolean {
 	let start = percent; while (start > 0 && inner[start - 1] === "\\") start--;
 	if (percent - start < 2 || (percent - start) % 2 !== 0 || !/\d[ \t]*$/.test(inner.slice(0, start))) return false;

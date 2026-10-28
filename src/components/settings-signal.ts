@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
 export const SETTINGS_SAVED_EVENT = "lh:settings-saved";
 
 /** The settings sections a writer can land (the write seam's union). */
-export type SettingsSection = "general" | "agent" | "appearance" | "graph" | "compaction";
+type SettingsSection = "general" | "agent" | "appearance" | "graph" | "compaction";
 
 /** Writers call this after the PUT resolves ok — never before (a failed
  *  write notifies nothing; the record is unchanged). */

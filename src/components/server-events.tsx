@@ -35,7 +35,7 @@ export interface NotifySource {
 	onEvent(name: string, cb: (data: string) => void): void;
 }
 
-export function openEventsChannel(): NotifySource {
+function openEventsChannel(): NotifySource {
 	const es = new EventSource("/api/events");
 	return {
 		close: () => es.close(),
@@ -115,9 +115,6 @@ export function wireSource(source: NotifySource, hub: ReturnType<typeof createNo
 // ── the React glue ──────────────────────────────────────────────────────────
 
 const EventsContext = createContext<ReturnType<typeof createNotifyHub> | null>(null);
-
-/** Transport adapters may also be mounted in isolation with an injected bridge. */
-export function useNotifyHub() { return useContext(EventsContext); }
 
 export function ServerEventsProvider({ children, connect }: { children: ReactNode; connect?: () => NotifySource }) {
 	const hub = useMemo(() => createNotifyHub(), []);

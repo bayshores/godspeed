@@ -42,7 +42,7 @@ import { clearTurnFailure } from "./turn-runs.ts";
 import { applyClassCard } from "./class-card.ts";
 import { cancelTopicGrouping } from "./topics.ts";
 
-export type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
+type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
 
 const fail = (status: number, code: string, error: string): { ok: false; status: number; code: string; error: string } => ({
 	ok: false,
@@ -80,7 +80,7 @@ export function classFilePath(record: ClassRecord, file: ClassFile): string | nu
 
 /** Where a recording's transcript is kept (inside the app's own class
  *  folder — a linked folder is never written to). */
-export function transcriptPathOf(classId: string, fileId: string): string {
+function transcriptPathOf(classId: string, fileId: string): string {
 	return path.join(stores.classStore.filesDir(classId), "transcripts", `${fileId}.txt`);
 }
 
@@ -224,7 +224,7 @@ export function removeClassDeadline(classId: string, deadlineId: string): ClassO
 }
 
 /** One open deadline with the class it belongs to (GET /api/deadlines). */
-export type OpenDeadline = ClassDeadline & { classId: string; className: string };
+type OpenDeadline = ClassDeadline & { classId: string; className: string };
 
 /** Every deadline not yet done, across every class that is not archived,
  *  soonest due first (Home and the sidebar's Due soon). */
@@ -568,7 +568,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 
 /** Re-check every class: linked folders rescanned, never-processed files
  *  queued (app start). */
-export function scanAllClasses(): void {
+function scanAllClasses(): void {
 	for (const summary of stores.classStore.listClasses()) {
 		if (summary.archived) continue;
 		const record = stores.classStore.getClass(summary.id);

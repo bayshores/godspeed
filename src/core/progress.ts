@@ -57,7 +57,7 @@ export function topicStatus(rate: number | null): TopicStatus {
 export type AnswerOutcome = "right" | "wrong" | "dontKnow";
 
 /** One graded quiz/probe answer from a lesson. */
-export interface AnsweredQuestion {
+interface AnsweredQuestion {
 	chatId: string;
 	/** The assistant message that asked (holds the quiz tool call). */
 	messageId: string;
@@ -357,7 +357,7 @@ const fromLesson = (p: ProvenancePoint) => !p.chatId.startsWith("src_");
 
 // ─── files ──────────────────────────────────────────────────────────────────
 
-export interface ProgressFileInput {
+interface ProgressFileInput {
 	id: string;
 	name: string;
 	kind: ClassFileKind;
@@ -377,7 +377,7 @@ export interface FileCoverage {
 }
 
 /** Coverage for every STUDY file, in the class's file order. */
-export function fileCoverage(
+function fileCoverage(
 	files: readonly ProgressFileInput[],
 	facts: ReadonlyArray<{ id: string; provenance: ProvenancePoint[] }>,
 ): FileCoverage[] {
@@ -400,13 +400,13 @@ export function fileCoverage(
 
 /** "Next up": the earliest study file (class file order) that has facts
  *  but none of them came up in a lesson yet. */
-export function nextUpFile(coverage: readonly FileCoverage[]): FileCoverage | null {
+function nextUpFile(coverage: readonly FileCoverage[]): FileCoverage | null {
 	return coverage.find((f) => f.facts > 0 && f.inLessons === 0) ?? null;
 }
 
 // ─── lessons + calibration ──────────────────────────────────────────────────
 
-export interface ProgressLessonInput {
+interface ProgressLessonInput {
 	id: string;
 	title: string;
 	kind?: "teach" | "practice";
@@ -454,7 +454,7 @@ export interface Calibration {
 	sureButWrong: SureButWrong[];
 }
 
-export function calibration(answers: readonly AnsweredQuestion[], titleOf: (chatId: string) => string): Calibration {
+function calibration(answers: readonly AnsweredQuestion[], titleOf: (chatId: string) => string): Calibration {
 	const levels: CalibrationLevel[] = ([1, 2, 3, 4, 5] as const).map((level) => {
 		const at = answers.filter((a) => a.level === level && a.outcome !== "dontKnow");
 		const right = at.filter((a) => a.outcome === "right").length;
@@ -531,7 +531,7 @@ export function daysBetween(today: string, date: string): number {
 	return Math.round((utc(date) - utc(today)) / 86_400_000);
 }
 
-export function statusCounts(topics: ReadonlyArray<Pick<TopicProgress, "status">>): StatusCounts {
+function statusCounts(topics: ReadonlyArray<Pick<TopicProgress, "status">>): StatusCounts {
 	const counts: StatusCounts = { strong: 0, shaky: 0, weak: 0, untested: 0 };
 	for (const t of topics) counts[t.status]++;
 	return counts;
@@ -588,7 +588,7 @@ export function workOnNext(
 
 // ─── the whole payload ──────────────────────────────────────────────────────
 
-export interface ProgressInput {
+interface ProgressInput {
 	classId: string | null;
 	/** The learner's calendar day, YYYY-MM-DD (days-until counts from it). */
 	today: string;
@@ -757,7 +757,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 // ─── the lesson plan's step bar ─────────────────────────────────────────────
 
 /** The view-message slice the step bar reads (core/view.ts LhViewMessage). */
-export interface StepBarMessage {
+interface StepBarMessage {
 	parts: Array<{ type: string; state?: string; toolCallId?: string; input?: unknown; output?: unknown }>;
 }
 
@@ -783,7 +783,7 @@ export interface PlanStepBar {
 }
 
 /** Plan nodes in learning order: prerequisites first, ties in authored order. */
-export function orderedPlanNodes(tree: PlanTree): PlanTree["nodes"] {
+function orderedPlanNodes(tree: PlanTree): PlanTree["nodes"] {
 	const index = new Map(tree.nodes.map((n, i) => [n.id, i]));
 	const indegree = new Map(tree.nodes.map((n) => [n.id, 0]));
 	const next = new Map<string, string[]>();

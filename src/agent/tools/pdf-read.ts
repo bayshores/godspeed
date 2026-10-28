@@ -66,7 +66,7 @@ function pdfFileName(url: string): string {
 }
 
 /** The download + triage summary the researcher sees from web_fetch_pdf. */
-export interface PdfFetchSummary {
+interface PdfFetchSummary {
 	path: string;
 	url: string;
 	page_count: number;

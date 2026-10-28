@@ -70,7 +70,7 @@ export function clearOf(spot: Point, size: number, obstacle: Box | null, gap = 1
 // ─── targets ────────────────────────────────────────────────────────────────
 
 /** Gap between a target and Halley beside it. */
-export const BESIDE_GAP = 10;
+const BESIDE_GAP = 10;
 
 /** Halley's center beside a target: just past its right end, vertically
  *  centered. A target that reaches the window's right edge (a full-width
@@ -81,13 +81,6 @@ export function besideTarget(rect: Box, size: number, viewport: { width: number;
 	const right = rect.left + rect.width + BESIDE_GAP + half;
 	if (right + half + 8 <= viewport.width) return { x: right, y: cy };
 	return { x: clamp(rect.left + rect.width - BESIDE_GAP - half, half + 8, viewport.width - half - 8), y: cy };
-}
-
-/** Whether a target's center lies inside the visible region. */
-export function inView(rect: Box, region: Box): boolean {
-	const cx = rect.left + rect.width / 2;
-	const cy = rect.top + rect.height / 2;
-	return cx >= region.left && cx <= region.left + region.width && cy >= region.top && cy <= region.top + region.height;
 }
 
 /** For a target outside the visible region: Halley's center at the
@@ -135,7 +128,7 @@ export function settled(p: Point, v: Point, target: Point): boolean {
 // ─── the trail ──────────────────────────────────────────────────────────────
 
 /** How much recent path the trail shows. */
-export const TRAIL_MS = 130;
+const TRAIL_MS = 130;
 
 export interface TrailPoint extends Point {
 	t: number;

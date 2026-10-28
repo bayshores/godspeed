@@ -38,7 +38,7 @@ import type { GraphChain, GraphNode } from "./contracts.ts";
  *  ids born in it. The shape is deliberately the { members } contract
  *  the layout consumer takes; `id` rides along for consumers that need
  *  the session identity (the snapshot's cluster id + label join). */
-export interface BirthSessionCluster {
+interface BirthSessionCluster {
 	/** The birth session's id — a chatId or a notes source id ("src_…"). */
 	id: string;
 	/** Node ids born in this session, sorted. */

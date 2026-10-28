@@ -23,7 +23,7 @@ export function formatTokens(n: number): string {
 /** Split a provider-qualified stamp "provider:id" (the usage contracts'
  *  qualification, model-slots wave 2026-09-20) into its two coordinates.
  *  No colon = no provider qualification (a bare catalog id). */
-export function splitQualified(id: string): { provider: string | null; id: string } {
+function splitQualified(id: string): { provider: string | null; id: string } {
 	const colon = id.indexOf(":");
 	if (colon === -1) return { provider: null, id };
 	return { provider: id.slice(0, colon), id: id.slice(colon + 1) };

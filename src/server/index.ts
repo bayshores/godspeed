@@ -8,8 +8,7 @@ export * from "./chat-handler.ts";
 export * from "./events-stream.ts";
 export * from "./chats.ts";
 export * from "./classes.ts";
-export { classCardFor, applyClassCard } from "./class-card.ts";
-export { createLesson, type CreateLessonInput } from "./lessons.ts";
+export { createLesson } from "./lessons.ts";
 export * from "./graph.ts";
 export * from "./topics.ts";
 export * from "./progress.ts";
@@ -25,21 +24,20 @@ export {
 	settingsStore,
 } from "../store/settings.ts";
 export { promptOverrides } from "../store/prompt-overrides.ts";
-export { onboardingNeeded } from "./onboarding.ts";
 export { isValidSegmentPath } from "../core/prompt-segments.ts";
 // The canonical segment discovery/resolution lives in the agent layer
 // (composition is an agent concern); the barrel re-exports it for the
 // routes — server→agent is the lawful direction (chat-handler precedent).
-export { effectivePromptSegments, allSegmentPaths, readPromptOverride } from "../agent/prompt-segments.ts";
+export { effectivePromptSegments, allSegmentPaths } from "../agent/prompt-segments.ts";
 
 export * from "./settings-body.ts";
 export * from "./turn-liveness.ts";
 export * from "./turn-runs.ts";
 export * from "./dismissal-park.ts";
 export * from "./compaction.ts";
-export { runPiTurn, piTurnResponse, type PiTurnHandle, type PiTurnSpec } from "./pi/ui-stream.ts";
+export { piTurnResponse } from "./pi/ui-stream.ts";
 export * from "./observability.ts";
 export { recentAgentActions } from "./agent-actions.ts";
 export { sessionCost } from "./pricing.ts";
 
-export { handleMcpRequest, mcpAccessStatus, ensureMcpAccess, rotateMcpToken } from "./mcp.ts";
+export { handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";

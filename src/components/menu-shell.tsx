@@ -56,11 +56,11 @@ export const MENU_OPEN_EVENT = "lh:menu-open";
 export const MENU_CLOSE_EVENT = "lh:menu-close";
 
 export type MenuSide = "up" | "down";
-export type MenuAlign = "left" | "right";
+type MenuAlign = "left" | "right";
 
 /** One placement decision. `style` is the fixed-position payload; the side
  *  rides back for the flip assertion in tests. */
-export interface MenuPlacement {
+interface MenuPlacement {
 	side: MenuSide;
 	style: Record<string, string | number>;
 	maxHeight: number;

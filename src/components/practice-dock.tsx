@@ -14,7 +14,7 @@ import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } 
  * renders here — only the statement is the learner's. Esc dismisses the
  * problem through the page's layered-Esc chain, not here.
  */
-export interface PracticeDockProps {
+interface PracticeDockProps {
 	/** The active problem's tool-call id (submissions target it). */
 	problemCallId: string;
 	/** The pose's arguments — only the statement is the learner's. */

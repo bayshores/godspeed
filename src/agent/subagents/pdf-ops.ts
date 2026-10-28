@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
  * agent (pdf-reader.ts) drives them through its own tool loop.
  */
 
-export interface PdfPageInfo {
+interface PdfPageInfo {
 	page: number;
 	text_length: number;
 	image_count: number;
@@ -29,7 +29,7 @@ export interface PdfPageInfo {
 	math_density: number;
 }
 
-export interface PdfInfo {
+interface PdfInfo {
 	path: string;
 	page_count: number;
 	/** Mean chars/page — the size class the strategy branches on. */
@@ -173,7 +173,7 @@ export async function pdfExtract(filePath: string, pageSpec: string): Promise<st
 	return out.join("\n");
 }
 
-export interface PdfSearchHit {
+interface PdfSearchHit {
 	page: number;
 	line: number;
 	/** contextLines around the hit, `>>>` marking the hit line. */
@@ -226,14 +226,3 @@ function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Where rendered pages land (mirrors the skill's /tmp convention). */
-export function renderDir(filePath: string): string {
-	// FNV-1a short hash of the absolute path — stable per file, no deps.
-	const abs = path.resolve(filePath);
-	let h = 0x811c9dc5;
-	for (let i = 0; i < abs.length; i++) {
-		h ^= abs.charCodeAt(i);
-		h = Math.imul(h, 0x01000193) >>> 0;
-	}
-	return path.join("/tmp", `lh-pdf-${h.toString(16).padStart(8, "0")}`);
-}

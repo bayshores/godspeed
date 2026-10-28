@@ -26,7 +26,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** The wall clock in `timeZone` at `now`. */
-export interface WallClock {
+interface WallClock {
 	/** YYYY-MM-DD */
 	day: string;
 	/** HH:MM:SS, 24h */

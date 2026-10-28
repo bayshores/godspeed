@@ -21,7 +21,7 @@ import * as path from "node:path";
 import { PATHS } from "../config.ts";
 
 /** Shown on a file's badge when the programs are missing. */
-export const WHISPER_INSTALL_HINT = "Recordings need whisper.cpp and ffmpeg. Run `brew install whisper-cpp ffmpeg`, then retry the file.";
+const WHISPER_INSTALL_HINT = "Recordings need whisper.cpp and ffmpeg. Run `brew install whisper-cpp ffmpeg`, then retry the file.";
 
 export class WhisperMissingError extends Error {
 	constructor(public readonly missing: string[]) {
@@ -30,8 +30,8 @@ export class WhisperMissingError extends Error {
 	}
 }
 
-export const WHISPER_MODEL_NAME = "ggml-base.en.bin";
-export const WHISPER_MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_NAME}`;
+const WHISPER_MODEL_NAME = "ggml-base.en.bin";
+const WHISPER_MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${WHISPER_MODEL_NAME}`;
 
 /** Apps opened from the Dock don't inherit the shell's PATH, so the
  *  Homebrew prefixes are searched explicitly. */
@@ -55,13 +55,13 @@ export function findProgram(name: string, env: Record<string, string | undefined
 	return null;
 }
 
-export interface TranscriberTools {
+interface TranscriberTools {
 	whisper: string;
 	ffmpeg: string;
 }
 
 /** Both programs, or a WhisperMissingError naming what's missing. */
-export function locateTranscriber(): TranscriberTools {
+function locateTranscriber(): TranscriberTools {
 	const whisper = findProgram("whisper-cli") ?? findProgram("whisper-cpp");
 	const ffmpeg = findProgram("ffmpeg");
 	const missing = [...(whisper ? [] : ["whisper-cpp"]), ...(ffmpeg ? [] : ["ffmpeg"])];
@@ -82,7 +82,7 @@ function run(program: string, args: string[], signal?: AbortSignal): Promise<voi
 
 /** The speech model's path, downloading it once (tmp + rename, so a broken
  *  download never leaves a half model behind). */
-export async function ensureWhisperModel(signal?: AbortSignal): Promise<string> {
+async function ensureWhisperModel(signal?: AbortSignal): Promise<string> {
 	const dir = path.join(PATHS.data, "models");
 	const file = path.join(dir, WHISPER_MODEL_NAME);
 	if (fs.existsSync(file)) return file;

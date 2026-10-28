@@ -19,7 +19,7 @@ import { pastLabel } from "./tour";
 
 /** Recent rows the panel shows (the server keeps more). */
 const RECENT_ROWS = 8;
-export const PANEL_WIDTH = 360;
+const PANEL_WIDTH = 360;
 const PANEL_GAP = 16;
 
 /** The agent line under the name. */
@@ -29,7 +29,7 @@ export function agentLine(agent: AgentStatus | null): string {
 }
 
 /** "4:11 PM". */
-export function actionTime(at: string): string {
+function actionTime(at: string): string {
 	const d = new Date(at);
 	return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }

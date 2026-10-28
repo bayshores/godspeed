@@ -20,7 +20,7 @@ import { LessonsSection } from "@/components/sidebar/lessons-section";
 import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
 import { HalleyProvider } from "@/components/halley/halley-provider";
 
-export { replayRise, useRiseOnChange } from "@/components/sidebar/motion";
+export { useRiseOnChange } from "@/components/sidebar/motion";
 export { timeAgo, SessionRow, RenameRow } from "@/components/sidebar/session-row";
 
 /**
@@ -84,7 +84,7 @@ const SidebarContext = createContext<{ open: boolean; toggle: () => void }>({
 	toggle: () => {},
 });
 
-export function useSidebar() {
+function useSidebar() {
 	return useContext(SidebarContext);
 }
 

@@ -65,7 +65,7 @@ interface PartsCarrier {
 	parts: Array<{ type: string; state?: string; input?: unknown; output?: unknown }>;
 }
 
-export interface DerivedPlanStatuses {
+interface DerivedPlanStatuses {
 	/** The node the most recent tagged quiz call is about; null before any. */
 	current: string | null;
 	/** Nodes referenced by earlier tagged calls — been there, monotonic. */

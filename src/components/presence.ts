@@ -16,7 +16,7 @@
 import { useEffect, useState } from "react";
 
 /** Matches --lh-dur-fast in src/app/globals.css. */
-export const EXIT_MS = 110;
+const EXIT_MS = 110;
 
 export function prefersReducedMotion(): boolean {
 	return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

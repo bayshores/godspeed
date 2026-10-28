@@ -60,7 +60,7 @@ export function followReady(s: FollowState, busyNow: boolean, now: number): bool
 }
 
 /** Pages that show one class (the window's class must match first). */
-export function classScopedPage(page: string): boolean {
+function classScopedPage(page: string): boolean {
 	return page === "/class" || page.startsWith("/class/") || page === "/graph";
 }
 

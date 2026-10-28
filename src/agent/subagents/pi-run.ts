@@ -18,7 +18,7 @@ import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
  * `signal.aborted` early-return keeps working unchanged.
  */
 
-export interface SubagentRunOptions {
+interface SubagentRunOptions {
 	/** The role whose engine (model + thinking level) this run uses. */
 	role: ModelRole;
 	/** Test seam: a scripted engine replaces the role's production one. */
@@ -48,14 +48,14 @@ export interface SubagentRunOptions {
 	taskLabel?: string;
 }
 
-export interface SubagentRunResult {
+interface SubagentRunResult {
 	/** The messages this run added (assistant + tool results). */
 	newMessages: AgentMessage[];
 	/** The final assistant text (the deliverable). */
 	text: string;
 }
 
-export function subagentEngine(role: ModelRole, override?: PiEngine): PiEngine {
+function subagentEngine(role: ModelRole, override?: PiEngine): PiEngine {
 	// The runner injects the engine; without one, the outside agent runs it.
 	void role;
 	return override ?? agentEngine();

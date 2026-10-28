@@ -61,7 +61,7 @@ export interface ClassFile {
 /** What a deadline is (plan 2026-10-28: exams become general deadlines). */
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
 
-export const DEADLINE_KINDS: readonly DeadlineKind[] = ["exam", "homework", "quiz", "project"];
+const DEADLINE_KINDS: readonly DeadlineKind[] = ["exam", "homework", "quiz", "project"];
 
 /** One deadline of a class: added by the learner (Edit class) or by an
  *  outside agent from the syllabus (MCP add_class_deadline). Its topics are
@@ -167,7 +167,7 @@ export interface ClassSummary {
 }
 
 /** The "No class" space's wire name (query strings, MCP inputs). */
-export const NO_CLASS = "none";
+const NO_CLASS = "none";
 
 /** A class-scope value as the server sees it: a class id, or null for
  *  "No class". */
@@ -191,9 +191,9 @@ export function parseClassScope(raw: string | null | undefined): ClassScope | un
 export const TEXT_EXTENSIONS = [".md", ".markdown", ".txt"] as const;
 export const DOCUMENT_EXTENSIONS = [".pdf"] as const;
 export const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;
-export const RECORDING_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"] as const;
+const RECORDING_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"] as const;
 
-export const SUPPORTED_CLASS_FILE_EXTENSIONS: readonly string[] = [
+const SUPPORTED_CLASS_FILE_EXTENSIONS: readonly string[] = [
 	...TEXT_EXTENSIONS,
 	...DOCUMENT_EXTENSIONS,
 	...TRANSCRIPT_EXTENSIONS,

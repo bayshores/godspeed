@@ -25,7 +25,7 @@ export function localDay(now: Date = new Date()): string {
 
 const REFRESH_DEBOUNCE_MS = 400;
 
-export interface ProgressState {
+interface ProgressState {
 	/** null until the first response (or after an error with no data yet). */
 	data: ProgressPayload | null;
 	error: string | null;

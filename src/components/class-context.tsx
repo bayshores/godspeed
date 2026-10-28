@@ -15,7 +15,7 @@ import type { ClassSummary } from "@/core";
 import { useServerEvent } from "@/components/server-events";
 import { notifySettingsSaved } from "@/components/settings-signal";
 
-export interface ClassesState {
+interface ClassesState {
 	/** Every class, archived included (most recently updated first). */
 	classes: ClassSummary[];
 	/** The active class id, or null for "No class". */

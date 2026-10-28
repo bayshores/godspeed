@@ -18,20 +18,20 @@ import type { GraphChain, GraphTopic, TopicSnapshot } from "./contracts.ts";
 /** The pseudo-topic that holds facts no snapshot has placed yet. Never
  *  stored — derived on read. */
 export const UNGROUPED_TOPIC_ID = "ungrouped";
-export const UNGROUPED_TOPIC_NAME = "Ungrouped";
+const UNGROUPED_TOPIC_NAME = "Ungrouped";
 
 /** The repair's catch-all for facts with no grouped neighbor. Stored like
  *  any other topic (the grouper may rename or split it next run). */
-export const OTHER_TOPIC_NAME = "Other";
+const OTHER_TOPIC_NAME = "Other";
 
 /** Topic names: 1–4 words (the approved grouper instruction). */
-export const MAX_TOPIC_NAME_WORDS = 4;
+const MAX_TOPIC_NAME_WORDS = 4;
 
 /** Below this many facts the grouper does not run. */
 export const MIN_FACTS_FOR_TOPICS = 4;
 
 /** A topic as readers see it: members are live facts only. */
-export interface ResolvedTopic extends GraphTopic {
+interface ResolvedTopic extends GraphTopic {
 	/** True for the derived "Ungrouped" bucket. */
 	ungrouped?: true;
 }
@@ -56,7 +56,7 @@ export function resolveTopics(snapshot: TopicSnapshot | null, factIds: readonly 
 }
 
 /** Every fact id a snapshot names (raw — dead ids included). */
-export function snapshotFactIds(snapshot: TopicSnapshot | null): Set<string> {
+function snapshotFactIds(snapshot: TopicSnapshot | null): Set<string> {
 	const ids = new Set<string>();
 	for (const topic of snapshot?.topics ?? []) for (const id of topic.members) ids.add(id);
 	return ids;
@@ -74,7 +74,7 @@ export function sameFactSet(snapshot: TopicSnapshot | null, factIds: readonly st
 }
 
 /** Collapse whitespace; "" when nothing is left. */
-export function cleanTopicName(name: string): string {
+function cleanTopicName(name: string): string {
 	return name.trim().replace(/\s+/g, " ");
 }
 

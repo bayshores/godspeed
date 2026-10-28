@@ -19,7 +19,7 @@ import katex from "katex";
 const cache = new Map<string, string>();
 
 /** The raw katex HTML for a LaTeX command (pure, sync — SSR-safe). */
-export function latexGlyphHtml(cmd: string): string {
+function latexGlyphHtml(cmd: string): string {
 	let html = cache.get(cmd);
 	if (html === undefined) {
 		html = katex.renderToString(cmd, { throwOnError: false, output: "html" });

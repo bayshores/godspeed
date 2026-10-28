@@ -16,7 +16,7 @@ export const BURST_LIMIT = 5;
 /** How long the summary bubble shows. */
 export const BURST_MS = 1600;
 
-export type TourStep =
+type TourStep =
 	| { step: "visit"; action: AgentAction; rest: AgentAction[] }
 	| { step: "burst"; actions: AgentAction[]; summary: string }
 	| { step: "done" };

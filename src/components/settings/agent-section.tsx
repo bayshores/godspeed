@@ -68,7 +68,7 @@ export function composeQuizMechanics(agent: AgentSettings | undefined, mechanics
  *  agent section — never in the tool-toggles map (owner ruling). Absent =
  *  ON (the toggle discipline); the write is explicit either way, so an
  *  explicit-off record stays visible as stored. Pure — exported for tests. */
-export function composeGraphTools(agent: AgentSettings | undefined, on: boolean): AgentSettings {
+function composeGraphTools(agent: AgentSettings | undefined, on: boolean): AgentSettings {
 	return { ...agent, graphTools: { enabled: on } };
 }
 
@@ -82,7 +82,7 @@ export const PROMPT_IN_USE_HINT = "Your version is in use";
 
 /** One section of the prompt view — the owner's ruled order: Teacher,
  *  Prober, then Shared last. */
-export interface PromptSection {
+interface PromptSection {
 	id: "teacher" | "prober" | "shared";
 	label: string;
 	/** The one header that earns a hint: "Shared" alone is not

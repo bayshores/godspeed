@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { confidenceLevel, type ConfidenceLevel } from "@/core";
+import { type ConfidenceLevel } from "@/core";
 
 /**
  * CONFIDENCE, 1–5 (redesign 2026-10-27). The learner picks a level; it is
@@ -10,15 +10,10 @@ import { confidenceLevel, type ConfidenceLevel } from "@/core";
 
 /** The confidence ramp, level 1 red → level 5 emerald (Tailwind; the
  *  conf-1…5 tokens in globals.css), indexed by level − 1. */
-export const CONFIDENCE_COLORS: readonly string[] = ["#EF4444", "#F97316", "#EAB308", "#84CC16", "#10B981"];
+const CONFIDENCE_COLORS: readonly string[] = ["#EF4444", "#F97316", "#EAB308", "#84CC16", "#10B981"];
 
 /** What each level means, in the learner's words. */
-export const CONFIDENCE_WORDS: readonly string[] = ["Guessing", "Unsure", "Somewhat sure", "Fairly sure", "Certain"];
-
-/** A stored percentage's level color (old-grid values at their nearest level). */
-export function confidenceColor(percent: number): string {
-	return CONFIDENCE_COLORS[confidenceLevel(percent) - 1]!;
-}
+const CONFIDENCE_WORDS: readonly string[] = ["Guessing", "Unsure", "Somewhat sure", "Fairly sure", "Certain"];
 
 /** Bar heights (px), rising with the level. */
 const BAR_HEIGHTS = [14, 21, 28, 35, 42];
