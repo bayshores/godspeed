@@ -39,6 +39,8 @@ export default defineConfig([
 		plugins: { "@next/next": nextPlugin, import: importPlugin },
 		settings: {
 			"import/resolver": { typescript: { alwaysTryTypes: true } },
+			// Lets the import rules read .ts/.tsx dependencies (no-cycle needs it).
+			"import/parsers": { "@typescript-eslint/parser": [".ts", ".tsx"] },
 		},
 		rules: {
 			...nextPlugin.configs.recommended.rules,
@@ -94,5 +96,10 @@ export default defineConfig([
 				},
 			],
 		},
+	},
+	// No import cycles in src/ (the code quality contract in AGENTS.md).
+	{
+		files: ["src/**/*.{js,mjs,ts,tsx}"],
+		rules: { "import/no-cycle": "error" },
 	},
 ]);

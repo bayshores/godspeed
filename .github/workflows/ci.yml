@@ -21,7 +21,7 @@ env:
 
 jobs:
   quality:
-    name: Typecheck, tests, lint
+    name: Typecheck, tests, lint, dead code
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -34,6 +34,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run lint
+      - run: npm run deadcode
 
   standalone:
     name: Standalone (${{ matrix.platform }})
