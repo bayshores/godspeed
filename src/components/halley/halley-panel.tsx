@@ -16,6 +16,9 @@ import type { Home } from "./engine";
 import { safePage } from "./follow";
 import { pastLabel } from "./tour";
 
+
+/** Recent rows the panel shows (the server keeps more). */
+const RECENT_ROWS = 8;
 export const PANEL_WIDTH = 360;
 const PANEL_GAP = 16;
 
@@ -124,7 +127,7 @@ export function HalleyPanel({
 			<div data-testid="halley-recent" className="flex flex-col gap-0.5">
 				<span className="text-[12.5px] font-bold text-ink-3">Recent</span>
 				{recent.length === 0 && <span className="py-1.5 text-[13px] text-ink-3">Nothing yet</span>}
-				{recent.map((a) => {
+				{recent.slice(0, RECENT_ROWS).map((a) => {
 					// A class's own row doesn't repeat its name.
 					const cls = a.target?.kind === "class" ? null : classNameOf(a.classId);
 					const canGo = safePage(a.page) !== null;

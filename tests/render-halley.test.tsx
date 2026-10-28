@@ -111,6 +111,11 @@ describe("the panel", () => {
 		assert.ok(rows[0]!.querySelector("svg"), "arrow");
 		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
 	});
+	it("Recent shows at most 8 rows", () => {
+		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
+		const el = mount(panel({ recent: many }));
+		assert.equal(el.querySelectorAll("[data-testid='halley-recent-row']").length, 8);
+	});
 	it("clicking a Recent row goes there; the switch turns Follow on", () => {
 		const picked: string[] = [];
 		const follows: boolean[] = [];
