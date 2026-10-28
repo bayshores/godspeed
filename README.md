@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<p align="center"><strong>An agent harness for learning, taught by the AI you already pay for.</strong></p>
+<p align="center"><strong>A free, open-source AI tutor for your classes, taught by the AI you already pay for.</strong></p>
 
 <p align="center">
   <a href="https://github.com/bayshores/godspeed/releases/latest"><strong>Download</strong></a> ·
@@ -17,7 +17,9 @@
   <a href="https://github.com/bayshores/godspeed/issues">Issues</a>
 </p>
 
-godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist. The teaching method is the same: measure what you know, plan a path to your goal, teach one reasoning step at a time, then practice. The fork changes who does the teaching and what you study with it. Claude Code, Codex or any MCP app can be your teacher on your own plan, and your courses get their own files, graphs, exams and progress.
+godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or exam, teaches one step at a time, then quizzes you. Every class gets its own lessons, files (PDFs, notes, lecture recordings), knowledge graph and exam prep. It runs on Mac, Windows and Linux, and needs no API keys.
+
+godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist, and keeps its teaching method. The fork changes who teaches (an agent you already use) and adds classes, files, graphs and exams.
 
 ![A godspeed lesson: the plan step bar on top, the reading column on the left, and the Your turn panel on the right](docs/design/exports/lesson.png)
 
