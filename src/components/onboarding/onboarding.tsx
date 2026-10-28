@@ -243,7 +243,8 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 				<Numbered n={1}>In Claude Code, run these two commands:</Numbered>
 				<CodeBlock label="Claude Code" lines={CLAUDE_CODE_SETUP.split("\n")} copy={CLAUDE_CODE_SETUP} />
 				<Numbered n={2}>
-					Then run <span className="font-mono text-[13.5px]">/godspeed:teach</span> and leave it running.
+					Then run <span className="font-mono text-[13.5px]">/godspeed:teach</span> and leave it running. Put Claude Code in auto mode
+					first, so it never stops to ask your permission.
 				</Numbered>
 			</>
 		);
@@ -254,7 +255,10 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 					Add this to <span className="font-mono text-[13.5px]">~/.codex/config.toml</span>:
 				</Numbered>
 				<CodeBlock label="config.toml" lines={codexConfig(url, maskToken(token)).split("\n")} copy={codexConfig(url, token)} />
-				<Numbered n={2}>Then ask Codex to teach you with the godspeed tools.</Numbered>
+				<Numbered n={2}>
+					Then ask Codex to teach you with the godspeed tools. Set Codex&apos;s approvals to Full Access first, so it never stops to ask your
+					permission.
+				</Numbered>
 			</>
 		);
 	} else {
@@ -266,7 +270,9 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 					lines={[url, `Authorization: Bearer ${maskToken(token)}`]}
 					copy={`${url}\nAuthorization: Bearer ${token}`}
 				/>
-				<Numbered n={2}>Then ask it to teach you with the godspeed tools.</Numbered>
+				<Numbered n={2}>
+					Then ask it to teach you with the godspeed tools. Let your agent use the godspeed tools without asking your permission.
+				</Numbered>
 			</>
 		);
 	}

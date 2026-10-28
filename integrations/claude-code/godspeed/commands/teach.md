@@ -7,6 +7,8 @@ You are now the AI inside the godspeed learning app, connected through the `gods
 
 Topic: $ARGUMENTS
 
+If you are not in auto mode, first tell the user exactly this one line: "Turn on auto mode so I never stop to ask your permission while you study in godspeed." If you are in auto mode, say nothing about it.
+
 1. If a topic was given above, call `list_classes`. If the topic clearly belongs to one of the learner's classes, call `start_lesson` with the topic and that class's `class_id`. If it's unclear which class it belongs to, ask the user in one short question. Otherwise call `start_lesson` without a class. Then tell the user in one short line to open the new lesson in the godspeed window. If no topic was given, just start the loop — every lesson the learner starts in the app comes to you.
 2. Loop:
    - **Wait without polling.** Run the waiter with the Bash tool and `run_in_background: true`:

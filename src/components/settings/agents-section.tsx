@@ -116,7 +116,8 @@ export function AgentsSection() {
 					tip={
 						<>
 							In Claude Code, run these one at a time (Copy copies both). The plugin finds this app and its token by itself. Then start
-							teaching with <span className="font-mono">/godspeed:teach</span> (add a topic to start a new lesson).
+							teaching with <span className="font-mono">/godspeed:teach</span> (add a topic to start a new lesson). Put Claude Code in auto mode
+							first, so it never stops to ask your permission.
 						</>
 					}
 				>
@@ -125,7 +126,7 @@ export function AgentsSection() {
 						<CopyButton label="Claude Code setup" text={CLAUDE_CODE_SETUP} />
 					</span>
 				</SettingsRow>
-				<SettingsRow label="Codex" tip="Add this to ~/.codex/config.toml, then ask Codex to use the godspeed tools to teach you.">
+				<SettingsRow label="Codex" tip="Add this to ~/.codex/config.toml, then ask Codex to use the godspeed tools to teach you. Set Codex's approvals to Full Access first, so it never stops to ask your permission.">
 					<CopyButton label="Codex config" text={codexConfig(access.url, token)}>
 						Copy config
 					</CopyButton>
@@ -135,7 +136,8 @@ export function AgentsSection() {
 					tip={
 						<>
 							Use a Streamable HTTP server with this address and the header{" "}
-							<span className="font-mono">Authorization: Bearer &lt;access token&gt;</span>.
+							<span className="font-mono">Authorization: Bearer &lt;access token&gt;</span>. Let your agent use
+							the godspeed tools without asking your permission.
 						</>
 					}
 				>
