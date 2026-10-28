@@ -70,8 +70,8 @@ export default defineConfig([
 						{
 							target: "./src/app",
 							from: "./src/server",
-							// settings-read.ts: the light door for the layout's render-time reads
-							// (speed plan, owner 2026-10-27) — the full barrel loads the whole server.
+							// settings-read.ts: a light import for the layout's render-time reads;
+							// the full barrel loads the whole server.
 							except: ["./index.ts", "./settings-read.ts"],
 							message: APP_MESSAGE,
 						},
