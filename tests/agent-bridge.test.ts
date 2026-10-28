@@ -331,3 +331,57 @@ describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
 		}
 	});
 });
+
+describe("the [Today] note and the outside agent (plan 2026-10-28, Phase 2)", () => {
+	mcp.ensureMcpAccess();
+
+	async function turn(chatId: string, text: string) {
+		const ack = await handleChatInput(chatId, { type: "text", text });
+		assert.equal(ack.status, 200, await ack.clone().text());
+		const work = await bridge.waitForWork(5000, { conversation: chatId });
+		assert.ok(work, "the turn parked a request");
+		assert.ok(bridge.respondToWork(work.workId, { text: "Okay." }).ok);
+		await waitFor(() => !isTurnRunning(chatId), 8000, "turn settle");
+		return work;
+	}
+	const userTexts = (work: { messages: { role: string }[] }) =>
+		work.messages.filter((m) => m.role === "user").map((m) => ("text" in m ? (m as { text: string }).text : ""));
+
+	it("goes before the learner's first message, is skipped when nothing changed, and a new one keeps continued: true", async () => {
+		const { classStore } = await import("../src/store/classes.ts");
+		const cls = classStore.createClass({ name: "CSE 21" });
+		const chat = chatStore.createChat("Counting", undefined, cls.id);
+		chatStore.saveSettings(chat.id, { model: { provider: bridge.AGENT_PROVIDER, id: bridge.AGENT_MODEL_ID } });
+
+		const first = await turn(chat.id, "teach me counting");
+		assert.equal(first.continued, false);
+		const firstUsers = userTexts(first);
+		assert.match(firstUsers.at(-2) ?? "", /^\[Today\] \w{3} \w{3} \d{1,2} \d{4}, \d{1,2}:\d{2} [AP]M \(.+\)$/, "only the date line: no deadlines yet");
+		assert.equal(firstUsers.at(-1), "teach me counting");
+
+		const second = await turn(chat.id, "go on");
+		assert.equal(second.continued, true);
+		assert.deepEqual(userTexts(second), ["go on"], "same day, same deadlines: no new note");
+
+		classStore.addDeadline(cls.id, { kind: "homework", name: "HW 9", date: "2099-01-01", time: "23:59", fileIds: [] });
+		const third = await turn(chat.id, "and now?");
+		assert.equal(third.continued, true, "an appended note still sends only the new messages");
+		const [note, learner] = userTexts(third);
+		assert.match(note ?? "", /\n\nComing up in this class \(not marked done\):\n- HW 9 \(homework\), due Thu Jan 1 11:59 PM, in \d+ days\.$/);
+		assert.equal(learner, "and now?");
+
+		const record = chatStore.getChat(chat.id)!;
+		const notes = record.messages.filter((m) => m.role === "custom" && m.customType === "today-context");
+		assert.equal(notes.length, 2, "two notes in the record, the first never rewritten");
+		assert.ok(notes.every((n) => n.role === "custom" && n.display === false));
+	});
+
+	it("a practice lesson gets the note too; a lesson with no class gets only the date", async () => {
+		const practice = chatStore.createChat("Practice", "practice");
+		chatStore.saveSettings(practice.id, { model: { provider: bridge.AGENT_PROVIDER, id: bridge.AGENT_MODEL_ID } });
+		const work = await turn(practice.id, "practice counting");
+		const users = userTexts(work);
+		assert.match(users.at(-2) ?? "", /^\[Today\] [^\n]+$/);
+		assert.equal(users.at(-1), "practice counting");
+	});
+});

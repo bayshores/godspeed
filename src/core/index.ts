@@ -38,6 +38,7 @@ export * from "./math-delims.ts";
 // and the input-events contract — all
 // pure logic, browser-safe.
 export * from "./native-messages.ts";
+export * from "./today-note.ts";
 export * from "./compaction.ts";
 export * from "./input-events.ts";
 // Wave D (owner-approved 2026-09-26): the client view model — the grouping

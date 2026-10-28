@@ -47,6 +47,7 @@ export interface PracticeToolContext {
 	jobs?: JobToolContext;
 	/** The lesson's class card reader (classes wave): present = read_class. */
 	classCard?: ClassToolContext["classCard"];
+	todayNote?: ClassToolContext["todayNote"];
 }
 
 /** TURN-SCOPED GATE STATE (the BKT incident, 2026-10-05): the gates used
@@ -248,6 +249,6 @@ export function practiceTools(ctx: PracticeToolContext): Record<string, AgentToo
 		...(jobs?.research ? { research: jobs.research } : {}),
 		...(jobs ? { pdf: jobs.pdf! } : {}),
 		...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
-		...(ctx.classCard ? classTools({ classCard: ctx.classCard }) : {}),
+		...(ctx.classCard ? classTools({ classCard: ctx.classCard, ...(ctx.todayNote ? { todayNote: ctx.todayNote } : {}) }) : {}),
 	});
 }

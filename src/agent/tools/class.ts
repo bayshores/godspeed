@@ -17,6 +17,9 @@ import { classCardText, type ClassCardDetails } from "../../core/native-messages
 export interface ClassToolContext {
 	/** The lesson's class card as it stands now; null = the class is gone. */
 	classCard: () => ClassCardDetails | null;
+	/** The current [Today] note text (date, time, open deadlines), added
+	 *  after the card. */
+	todayNote?: () => string;
 }
 
 const readClassInput = Type.Object({});
@@ -32,7 +35,8 @@ export function classTools(ctx: ClassToolContext): Record<string, AgentTool<any>
 			parameters: readClassInput,
 			execute: serverExecute("read_class", readClassInput, async (): Promise<string> => {
 				const card = ctx.classCard();
-				return card ? classCardText(card) : "This lesson's class no longer exists.";
+				if (!card) return "This lesson's class no longer exists.";
+				return ctx.todayNote ? `${classCardText(card)}\n\n${ctx.todayNote()}` : classCardText(card);
 			}),
 		},
 	};

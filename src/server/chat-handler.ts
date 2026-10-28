@@ -26,6 +26,7 @@ import { collectToolCallIds } from "./pi/call-ids.ts";
 import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, scopeOfGraphStore, stores } from "./stores.ts";
 import { scheduleTopicGrouping } from "./topics.ts";
 import { classCardFor } from "./class-card.ts";
+import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { extractionEnabled, graphToolsEnabled } from "../core/settings-resolution.ts";
 import { beginTurn, endTurn } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
@@ -202,6 +203,17 @@ export async function handleChatInput(
 		throw err;
 	}
 
+	// THE [Today] NOTE (plan 2026-10-28): when the lesson has none yet, the
+	// day changed, the open deadlines changed, or a compaction cut the last
+	// one, a fresh note goes right before the learner's message. Appended
+	// only, so the outside agent still gets just the new tail. Learner
+	// messages only (text, thinking, next): an answer must stay next to its
+	// question call, and a wake or a continue carries no learner message.
+	if (input.type === "text" || input.type === "thinking" || input.type === "next") {
+		const note = todayNoteFor(record);
+		if (note) appends = [...appends.slice(0, -1), note, ...appends.slice(-1)];
+	}
+
 	// THE PARALLEL-QUESTION GATE (owner, 2026-10-03 — the deepseek parallel
 	// batch incident): an answer that leaves a SIBLING question dangling
 	// defers its wake. The dock advances to the next question (the client's
@@ -322,6 +334,8 @@ export async function handleChatInput(
 					const cls = stores.classStore.getClass(lessonScope);
 					return cls ? classCardFor(cls) : null;
 				};
+	// read_class ends with the current [Today] note (built at call time).
+	const todayNote = () => currentTodayNote(lessonScope ?? undefined);
 	// The agent engine loads on the first turn, not at server start.
 	if (!buildAgent) await loadAgentCore();
 	const constructed: TeachingAgent = buildAgent
@@ -350,7 +364,7 @@ export async function handleChatInput(
 						...(graphToolsEnabled(effective)
 							? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
 							: {}),
-						...(classCard ? { classCard } : {}),
+						...(classCard ? { classCard, todayNote } : {}),
 					},
 					agentOpts,
 				)
@@ -361,7 +375,7 @@ export async function handleChatInput(
 						chatStore: stores.chatStore,
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						...(classCard ? { classCard } : {}),
+						...(classCard ? { classCard, todayNote } : {}),
 						// The registry drop's signal (2026-09-20): no live engine
 						// = no research tool in the teacher's registry.
 					},
@@ -381,7 +395,7 @@ export async function handleChatInput(
 						// knowledge graph through tools when the gate opens —
 						// graph master switch AND the agent.graphTools toggle.
 						...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
-						...(classCard ? { classCard } : {}),
+						...(classCard ? { classCard, todayNote } : {}),
 					},
 					agentOpts,
 				);

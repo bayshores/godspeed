@@ -68,6 +68,7 @@ export interface LhMarkerMessage {
 	customType:
 		| "graph-context"
 		| "class-context"
+		| "today-context"
 		| "probe-handoff"
 		| "subagent-steer"
 		| "subagent-abort"
@@ -332,6 +333,23 @@ export function newClassContextMessage(card: ClassCardDetails): LhMarkerMessage 
 		content: classCardText(card),
 		display: true,
 		details: card,
+		timestamp: Date.now(),
+	};
+}
+
+/** The [Today] note (plan 2026-10-28): today's date and the class's open
+ *  deadlines, for the model only (`display: false`; the view renders
+ *  nothing). Bracket-labelled per the PREAMBLE LAW. `details.day` is the
+ *  local day it was written for (core/today-note.ts decides when a new one
+ *  is due). */
+export function newTodayContextMessage(text: string, day: string): LhMarkerMessage {
+	return {
+		id: newMessageId(),
+		role: "custom",
+		customType: "today-context",
+		content: text,
+		display: false,
+		details: { day },
 		timestamp: Date.now(),
 	};
 }
@@ -783,7 +801,7 @@ export function nativeInputCause(message: AgentMessage, history: readonly AgentM
 	if (message.role === "custom") {
 		if (["probe-handoff", "subagent-steer", "subagent-abort"].includes(message.customType)) return "automatic";
 		if (["practice-thinking", "practice-next"].includes(message.customType)) return "learner";
-		return ["graph-context", "class-context", "plan-block", "problem-dismissed", "compaction"].includes(message.customType) ? "neutral" : "unrecognizable";
+		return ["graph-context", "class-context", "today-context", "plan-block", "problem-dismissed", "compaction"].includes(message.customType) ? "neutral" : "unrecognizable";
 	}
 	if (message.role === "toolResult") {
 		if (!(QUESTION_TOOLS as readonly string[]).includes(message.toolName) || message.isError || message.details == null || (message.details as { dismissed?: boolean }).dismissed) return "neutral";

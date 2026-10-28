@@ -278,10 +278,12 @@ describe("teacher chat flow (scripted model)", () => {
 		await drainTurn(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
 
 		const saved1 = chatStore.getChat(chat.id)!;
-		// Native record: user + assistant (fork 1 — the clean question's
-		// placeholder result never persists, so the record ends at the call).
-		assert.equal(saved1.messages.length, 2, "user message + assistant response persisted");
-		const assistantMsg = saved1.messages[1]!;
+		// Native record: [Today] note + user + assistant (fork 1 — the clean
+		// question's placeholder result never persists, so the record ends at
+		// the call).
+		assert.equal(saved1.messages.length, 3, "note + user message + assistant response persisted");
+		assert.equal((saved1.messages[0] as { customType?: string }).customType, "today-context", "the first turn opens with the [Today] note");
+		const assistantMsg = saved1.messages[2]!;
 		assert.equal(assistantMsg.role, "assistant");
 
 		const thinking = assistantMsg.content.find((b) => b.type === "thinking");
@@ -320,9 +322,9 @@ describe("teacher chat flow (scripted model)", () => {
 		// grouping canon: consecutive assistant/toolResult messages bounded
 		// by user messages form one group). ──
 		const saved2 = chatStore.getChat(chat.id)!;
-		// Native: user, assistant, answer toolResult, reaction assistant.
-		assert.equal(saved2.messages.length, 4, "the answer + reaction append natively");
-		assert.equal((saved2.messages[2] as { role?: string }).role, "toolResult", "the graded answer is the call's tool result");
+		// Native: note, user, assistant, answer toolResult, reaction assistant.
+		assert.equal(saved2.messages.length, 5, "the answer + reaction append natively");
+		assert.equal((saved2.messages[3] as { role?: string }).role, "toolResult", "the graded answer is the call's tool result");
 		const view2 = projectView(saved2.messages);
 		assert.equal(view2.length, 2, "the reaction continues the same assistant message (one group)");
 		const finalParts = view2[1]!.parts;
@@ -641,7 +643,7 @@ describe("teacher chat flow (scripted model)", () => {
 		release();
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle after view cancel");
 		const saved = chatStore.getChat(chat.id)!;
-		assert.equal(saved.messages.length, 2, "complete turn persisted — not a partial");
+		assert.equal(saved.messages.length, 3, "complete turn persisted — not a partial (note, user, assistant)");
 		assert.equal(runningTurn(chat.id), undefined, "handle unregistered at settle");
 	});
 
@@ -976,17 +978,17 @@ describe("mid-turn navigation (turn liveness + write-ahead)", () => {
 		// on disk — a remount (or crash) mid-turn sees the answered quiz, never
 		// the stale pre-answer question.
 		const res = await handleChatRequest(post(chat.id, { type: "answer", toolCallId: "call-1", answer }), agentFactory(engine));
-		const midTurn = chatStore.getChat(chat.id)!;		assert.equal(midTurn.messages.length, 3, "write-ahead appended the answer tool result before finish");
-		assert.equal((midTurn.messages[2] as { role?: string }).role, "toolResult");
+		const midTurn = chatStore.getChat(chat.id)!;		assert.equal(midTurn.messages.length, 4, "write-ahead appended the answer tool result before finish");
+		assert.equal((midTurn.messages[3] as { role?: string }).role, "toolResult");
 		const midQuiz = projectView(midTurn.messages)[1]!.parts.find((p) => p.type === "tool-quiz");
 		assert.ok(midQuiz && midQuiz.type === "tool-quiz");
 		assert.equal((midQuiz as { state?: string }).state, "output-available", "write-ahead persisted the answer before finish");
 
 		await drainRunning(chat.id); // finish → persist the full turn → endTurn
 		const saved2 = chatStore.getChat(chat.id)!;
-		// Native: user, assistant, answer result, reaction — one append-only
-		// history; the projection still renders ONE assistant group.
-		assert.equal(saved2.messages.length, 4, "full turn persisted as usual at finish");
+		// Native: note, user, assistant, answer result, reaction — one
+		// append-only history; the projection still renders ONE assistant group.
+		assert.equal(saved2.messages.length, 5, "full turn persisted as usual at finish");
 		assert.equal(projectView(saved2.messages).length, 2, "the projection groups the answered quiz + reaction");
 		assert.equal(isTurnRunning(chat.id), false, "registry cleared at finish");
 	});
@@ -1191,7 +1193,7 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 			assert.ok(text.includes("Gated reply."), `chat ${chat.id} view replayed its own turn`);
 			assert.ok(text.endsWith("data: [DONE]\n\n"), `chat ${chat.id} view closed at settle`);
 			await waitFor(() => !isTurnRunning(chat.id), 8000, `chat ${chat.id} settle`);
-			assert.equal(chatStore.getChat(chat.id)!.messages.length, 2, `chat ${chat.id} persisted its full turn`);
+			assert.equal(chatStore.getChat(chat.id)!.messages.length, 3, `chat ${chat.id} persisted its full turn`);
 		}
 	});
 });
@@ -1233,7 +1235,7 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	await drainTurn(post(chat.id, { type: "text", text: "teach me the solar system" }), factory);
 
 	const saved1 = chatStore.getChat(chat.id)!;
-	const savedContent1 = (saved1.messages[1] as { content: unknown }).content as Array<{ type: string; name?: string }>;
+	const savedContent1 = (saved1.messages[2] as { content: unknown }).content as Array<{ type: string; name?: string }>;
 	const call = savedContent1.find((b) => b.type === "toolCall" && b.name === "explain");
 	assert.ok(call, "explain tool call persisted");
 
@@ -1402,7 +1404,7 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 		await drainTurn(post(chat.id, { type: "answer", toolCallId: "call-1", answer: quizAns }), agentFactory(engine));
 		assert.equal(calls.length, 1, "the sibling answer woke NOTHING (the gate deferred)");
 		saved = chatStore.getChat(chat.id)!;
-		assert.equal((saved.messages[2] as { toolCallId?: string }).toolCallId, "call-1", "quiz result adjacent to the batch");
+		assert.equal((saved.messages[3] as { toolCallId?: string }).toolCallId, "call-1", "quiz result adjacent to the batch");
 		pending = danglingQuestionOf(saved.messages);
 		assert.equal(pending?.toolCallId, "call-2", "the dock advances to the ask immediately — no turn ran");
 
@@ -1426,7 +1428,7 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 		// The shape law: both results sit directly after the batch's assistant
 		// message, before the reaction — nothing intervenes.
 		const roles = saved.messages.map((m) => (m as { role?: string }).role);
-		assert.deepEqual(roles.slice(1, 5), ["assistant", "toolResult", "toolResult", "assistant"], "batch → both results → reaction");
+		assert.deepEqual(roles.slice(2, 6), ["assistant", "toolResult", "toolResult", "assistant"], "batch → both results → reaction (after the note and the user message)");
 	});
 });
 
@@ -1562,8 +1564,8 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 		// The record persists the user steer in its true position.
 		const saved = chatStore.getChat(chat.id)!;
 		const roles = saved.messages.map((m) => (m as { role?: string }).role);
-		assert.deepEqual(roles, ["user", "assistant", "user", "assistant"], "text → teaching → STEER → steered reply");
-		const steerMsg = saved.messages[2] as { id?: string; content?: unknown };
+		assert.deepEqual(roles, ["custom", "user", "assistant", "user", "assistant"], "note → text → teaching → STEER → steered reply");
+		const steerMsg = saved.messages[3] as { id?: string; content?: unknown };
 		assert.equal(steerMsg.id, "steer_live1", "the client-minted id survived to the record");
 		assert.equal(steerMsg.content, "also cover Venus");
 	});
