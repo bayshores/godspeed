@@ -1,7 +1,7 @@
 {
   "name": "godspeed",
   "version": "0.2.0",
-  "description": "Teach in godspeed: Claude becomes the app's teacher, helper and knowledge-graph builder through the app's MCP server.",
+  "description": "Study app that keeps track of what you've actually learned, so your agent doesn't start from scratch every chat. Works with Claude Code, Codex or anything that speaks MCP.",
   "author": { "name": "godspeed fork (bayshores)" },
   "repository": "https://github.com/bayshores/godspeed",
   "license": "AGPL-3.0-only",
