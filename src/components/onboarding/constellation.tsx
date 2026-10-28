@@ -60,8 +60,13 @@ export function dotDelay(x: number): number {
 	return 1.3 + 0.4 * Math.min(1, (x - STOP[0]) / (1300 - STOP[0]));
 }
 
-/** The comet's tail, from the app icon (build/icon.icon), head at 0,0. */
-const TAIL = "M7.6,7.8 L-7.6,-7.8 Q-20.2,12.9 -37,36.3 Q-13.3,20 7.6,7.8 Z";
+/** The comet's head radius. */
+const HEAD_R = 10.9;
+/** The tail at rest: as wide as the head where they meet, about three
+ *  head-widths long, pointing along +x (rotated to trail the path). */
+const TAIL = `M0,${-HEAD_R} Q26,-4 66,0 Q26,4 0,${HEAD_R} Z`;
+/** The tail points back down the path, from STOP toward START. */
+const TAIL_ANGLE = (Math.atan2(START[1] - STOP[1], START[0] - STOP[0]) * 180) / Math.PI;
 
 export type ConstellationMode = "intro" | "backdrop" | "bright" | "gone";
 
@@ -80,10 +85,13 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 					<stop offset="0" stopColor="#fff" stopOpacity="0.16" />
 					<stop offset="1" stopColor="#fff" stopOpacity="0" />
 				</radialGradient>
-				<linearGradient id="ob-tail" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="-37" y2="36">
-					<stop offset="0" stopColor="#fff" stopOpacity="0.9" />
+				<linearGradient id="ob-tail">
+					<stop offset="0" stopColor="#fff" stopOpacity="0.85" />
 					<stop offset="1" stopColor="#fff" stopOpacity="0" />
 				</linearGradient>
+				<filter id="ob-tail-blur" x="-20%" y="-100%" width="140%" height="300%">
+					<feGaussianBlur stdDeviation="3" />
+				</filter>
 			</defs>
 			<g className="ob-stars">
 				{LINKS.map(([a, b]) => {
@@ -116,8 +124,10 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 			</g>
 			<g className="ob-comet">
 				<circle r="90" fill="url(#ob-glow)" />
-				<path className="ob-tail" d={TAIL} fill="url(#ob-tail)" />
-				<circle r="10.9" fill="#fff" />
+				<g transform={`rotate(${TAIL_ANGLE.toFixed(1)})`}>
+					<path className="ob-tail" d={TAIL} fill="url(#ob-tail)" filter="url(#ob-tail-blur)" />
+				</g>
+				<circle r={HEAD_R} fill="#fff" />
 			</g>
 		</svg>
 	);
