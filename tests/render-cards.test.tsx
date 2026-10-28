@@ -20,7 +20,7 @@ import { QuestionDock } from "../src/components/question-dock.tsx";
 import { ProbeDoneCard } from "../src/components/artifacts/probe-done-card.tsx";
 import { DispatchCard } from "../src/components/artifacts/dispatch-card.tsx";
 import { JobsContext } from "../src/components/jobs-context.ts";
-import { ChatActionsContext } from "../src/components/chat.tsx";
+import { ChatActionsContext } from "../src/components/chat-actions-context.ts";
 import type { JobRecord } from "../src/core/contracts.ts";
 import { AnsweredCard } from "../src/components/answered-card.tsx";
 import { LessonStepsContext } from "../src/components/lesson/step-context.ts";

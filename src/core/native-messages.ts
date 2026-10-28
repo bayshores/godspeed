@@ -44,6 +44,7 @@ import {
 } from "./contracts/chat.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
+import { newMessageId } from "./message-id.ts";
 
 /** The hard-invariant wording for an aborted turn's unanswered calls —
  *  carried over verbatim from the pre-native era so the model's view
@@ -147,13 +148,6 @@ export function failedOutputCallIds(messages: readonly LhMessage[]): ReadonlySet
 		}
 	}
 	return failed;
-}
-
-// ─── id minting ──────────────────────────────────────────────────────────────
-
-/** The app-wide message id shape (same as the UIMessage-era mint). */
-export function newMessageId(): string {
-	return `msg_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 // ─── constructors (the input-event → native append mapping lives in

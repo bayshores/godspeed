@@ -13,9 +13,9 @@ import {
 	todayNoteToAppend,
 	type TodayNoteClass,
 } from "../src/core/today-note.ts";
+import { newMessageId } from "../src/core/message-id.ts";
 import {
 	nativeInputCause,
-	newMessageId,
 	newTodayContextMessage,
 	newUserMessage,
 	toLlmMessages,

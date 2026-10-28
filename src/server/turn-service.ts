@@ -18,7 +18,7 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMessage } from "../core/native-messages.ts";
-import { newMessageId } from "../core/native-messages.ts";
+import { newMessageId } from "../core/message-id.ts";
 import { QUESTION_TOOLS } from "../core/pending.ts";
 import { planBlocksFor } from "../core/plan-blocks.ts";
 import { coverageOf } from "../core/coverage.ts";

@@ -34,7 +34,7 @@ const {
 	danglingQuestionOf,
 	dismissedAnswer,
 } = await import("../src/core/index.ts");
-const newMessageId = (await import("../src/core/native-messages.ts")).newMessageId;
+const newMessageId = (await import("../src/core/message-id.ts")).newMessageId;
 
 after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });

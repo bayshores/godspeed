@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useChatSession } from "@/components/session";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useFieldCycle } from "@/components/field-cycle";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { JobsContext } from "@/components/jobs-context";
+import { ChatActionsContext } from "@/components/chat-actions-context";
 import { StatsBar } from "@/components/stats-bar";
 import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
 import { latestTree } from "@/components/plan-latest";
@@ -48,19 +49,7 @@ export {
 	escAbortTarget,
 	initialPromptOwed,
 	revealArrival,
-	
 } from "@/components/lesson/chat-helpers";
-
-/**
- * Server-sync channel for artifact renderers: the jobs fetch calls
- * syncFromServer() when a background job settles; sendText feeds the demo
- * error-fix loop. (contracts.ts "THE ASYNC PROTOCOL" §4.)
- */
-export const ChatActionsContext = createContext<{
-	chatId: string;
-	syncFromServer: () => Promise<void>;
-	sendText: (text: string) => void;
-} | null>(null);
 
 /**
  * THE LESSON (redesign, layout B): the plan step bar on top, the reading
