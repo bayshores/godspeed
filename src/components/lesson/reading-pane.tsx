@@ -47,6 +47,7 @@ export function ReadingPane({
 	scrollContextRef: RefObject<StickToBottomContext | null>;
 }) {
 	const last = messages.length - 1;
+	const newestTeacher = messages.findLastIndex((m) => m.role === "assistant" && m.parts.length > 0);
 	return (
 		<Conversation className="h-full min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
 			<SessionMessageNavigation />
@@ -66,6 +67,7 @@ export function ReadingPane({
 							streamingLast={status === "streaming" && mi === last}
 							arrive={arrive}
 							onOpenPlan={onOpenPlan}
+							halleySlot={mi === newestTeacher}
 						/>
 					))}
 					{/* Compaction holds the model gate: a visible session-wide state,

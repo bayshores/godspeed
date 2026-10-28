@@ -59,6 +59,7 @@ export const FileRow = memo(function FileRow({
 		<li
 			id={fileAnchorId(file.id)}
 			data-testid={`class-file-${file.id}`}
+			data-halley-target={`file:${file.id}`}
 			data-flash={flash || undefined}
 			draggable={!disabled}
 			onDragStart={onDragStart}

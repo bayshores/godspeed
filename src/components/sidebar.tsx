@@ -18,6 +18,7 @@ import { DueSoon } from "@/components/sidebar/due-soon";
 import { useOpenDeadlines } from "@/components/use-open-deadlines";
 import { LessonsSection } from "@/components/sidebar/lessons-section";
 import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
+import { HalleyProvider } from "@/components/halley/halley-provider";
 
 export { replayRise, useRiseOnChange } from "@/components/sidebar/motion";
 export { timeAgo, SessionRow, RenameRow } from "@/components/sidebar/session-row";
@@ -309,14 +310,17 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 	);
 }
 
-/** The app frame: sidebar inline + content. Rendered once in the root layout. */
-export function AppShell({ children }: { children: React.ReactNode }) {
+/** The app frame: sidebar inline + content, and Halley over both.
+ *  Rendered once in the root layout. */
+export function AppShell({ children, teacherName }: { children: React.ReactNode; teacherName?: string }) {
 	return (
 		<SettingsDialogProvider>
+			<HalleyProvider initialName={teacherName}>
 			<SessionsSidebar />
 			<main className="min-w-0 flex-1">
 				<ViewSwap>{children}</ViewSwap>
 			</main>
+			</HalleyProvider>
 			{/* The single document-level keydown listener (keyboard wave A) —
 			    after the content in the tree, but it's window-level so order only
 			    matters for the events it dispatches, never for DOM priority. */}

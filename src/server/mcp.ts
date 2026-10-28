@@ -53,6 +53,7 @@ import {
 } from "./classes.ts";
 import { localToday } from "./progress.ts";
 import { createLesson } from "./lessons.ts";
+import { recordAgentAction, type AgentActionInput } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 
@@ -125,6 +126,23 @@ function refuse(req: Request): Response | null {
 }
 
 // ─── Tool helpers ───────────────────────────────────────────────────────────
+
+/** Tell the window what the agent just changed (Halley). Never fails a tool. */
+function act(input: AgentActionInput): void {
+	try {
+		recordAgentAction({ ...input, agent: agentName() ?? undefined });
+	} catch (err) {
+		console.error("[mcp] agent-action failed:", err);
+	}
+}
+
+function deadlineName(classId: string, deadlineId: string): string {
+	return stores.classStore.getClass(classId)?.deadlines?.find((d) => d.id === deadlineId)?.name ?? "a deadline";
+}
+
+function folderName(path: string | undefined): string {
+	return path?.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "a folder";
+}
 
 function result(value: unknown) {
 	return { content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] };
@@ -207,6 +225,8 @@ function buildServer(): McpServer {
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
 			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined });
 			if (!answered.ok) return failure(answered.error);
+			const lesson = stores.chatStore.getChat(answered.conversation);
+			if (lesson) act({ label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
 			const next = await waitForWork(Math.min(wait_seconds ?? 30, MAX_WAIT_S) * 1000, { conversation: answered.conversation });
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
@@ -327,8 +347,10 @@ function buildServer(): McpServer {
 				}
 				const added = addCopiedFile(scope, fileName, new TextEncoder().encode(text), "study");
 				if (!added.ok) return failure(added.error);
+				act({ label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: added.value.id }, page: "/class/files" });
 				return result({ status: "started", fileId: added.value.id, note: "Import started. Check progress with read_class." });
 			}
+			act({ label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
 				console.error(`[mcp] import of ${name} failed:`, err);
 			});
@@ -359,6 +381,7 @@ function buildServer(): McpServer {
 			});
 			if (!created.ok) return failure(created.error);
 			const chat = created.chat;
+			act({ label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });
 			const started = await handleChatInput(chat.id, { type: "text", text: topic });
 			if (!started.ok) {
 				const body = await started.text();
@@ -470,7 +493,11 @@ function registerClassTools(server: McpServer): void {
 				description: z.string().optional().describe("What the teacher should know about the course, in the learner's terms."),
 			},
 		},
-		async ({ name, description }) => result({ class: classView(createClass({ name, description }).id) }),
+		async ({ name, description }) => {
+			const created = createClass({ name, description });
+			act({ label: `Creating ${created.name}`, classId: created.id, target: { kind: "class", id: created.id }, page: "/class" });
+			return result({ class: classView(created.id) });
+		},
 	);
 
 	server.registerTool(
@@ -487,7 +514,11 @@ function registerClassTools(server: McpServer): void {
 		},
 		async ({ class_id, name, description, archived }) => {
 			const outcome = updateClass(class_id, { name, description, archived });
-			return outcome.ok ? result({ class: classView(class_id) }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			const cls = stores.classStore.getClass(class_id);
+			const verb = archived === true ? "Archiving" : archived === false ? "Unarchiving" : "Updating";
+			act({ label: `${verb} ${cls?.name ?? "a class"}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class" });
+			return result({ class: classView(class_id) });
 		},
 	);
 
@@ -504,7 +535,9 @@ function registerClassTools(server: McpServer): void {
 		},
 		async ({ class_id, path, kind }) => {
 			const outcome = addFileFromPath(class_id, path, kind);
-			return outcome.ok ? result({ file: outcome.value, note: "Added. Check progress with read_class." }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "file", id: outcome.value.id }, page: "/class/files" });
+			return result({ file: outcome.value, note: "Added. Check progress with read_class." });
 		},
 	);
 
@@ -517,7 +550,9 @@ function registerClassTools(server: McpServer): void {
 		},
 		async ({ class_id, file_id, kind }) => {
 			const outcome = setFileKind(class_id, file_id, kind);
-			return outcome.ok ? result({ file: outcome.value }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			act({ label: `Marking ${outcome.value.name} as ${kind === "study" ? "study material" : "course info"}`, classId: class_id, target: { kind: "file", id: file_id }, page: "/class/files" });
+			return result({ file: outcome.value });
 		},
 	);
 
@@ -538,7 +573,9 @@ function registerClassTools(server: McpServer): void {
 		},
 		async ({ class_id, kind, name, date, time, file_ids }) => {
 			const outcome = addClassDeadline(class_id, { kind, name, date, ...(time !== undefined ? { time } : {}), ...(file_ids ? { fileIds: file_ids } : {}) });
-			return outcome.ok ? result({ deadline: outcome.value }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "deadline", id: outcome.value.id }, page: "/" });
+			return result({ deadline: outcome.value });
 		},
 	);
 
@@ -568,7 +605,11 @@ function registerClassTools(server: McpServer): void {
 				...(file_ids !== undefined ? { fileIds: file_ids } : {}),
 				...(done !== undefined ? { done } : {}),
 			});
-			return outcome.ok ? result({ deadline: outcome.value }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && done === undefined;
+			const label = done === true ? `Marking ${outcome.value.name} done` : done === false ? `Marking ${outcome.value.name} not done` : `${moved ? "Moving" : "Changing"} ${outcome.value.name}`;
+			act({ label, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/" });
+			return result({ deadline: outcome.value });
 		},
 	);
 
@@ -580,8 +621,11 @@ function registerClassTools(server: McpServer): void {
 			inputSchema: { class_id: z.string(), deadline_id: z.string() },
 		},
 		async ({ class_id, deadline_id }) => {
+			const removedName = deadlineName(class_id, deadline_id);
 			const outcome = removeClassDeadline(class_id, deadline_id);
-			return outcome.ok ? result({ removed: deadline_id }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			act({ label: `Removing ${removedName}`, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/", removed: true });
+			return result({ removed: deadline_id });
 		},
 	);
 
@@ -594,7 +638,9 @@ function registerClassTools(server: McpServer): void {
 		},
 		async ({ class_id, path }) => {
 			const outcome = linkFolder(class_id, path);
-			return outcome.ok ? result({ class: classView(class_id) }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			act({ label: `Linking ${folderName(path)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			return result({ class: classView(class_id) });
 		},
 	);
 
@@ -606,8 +652,11 @@ function registerClassTools(server: McpServer): void {
 			inputSchema: { class_id: z.string() },
 		},
 		async ({ class_id }) => {
+			const before = stores.classStore.getClass(class_id)?.linkedFolder;
 			const outcome = unlinkFolder(class_id);
-			return outcome.ok ? result({ class: classView(class_id) }) : failure(outcome.error);
+			if (!outcome.ok) return failure(outcome.error);
+			act({ label: `Unlinking ${folderName(before)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			return result({ class: classView(class_id) });
 		},
 	);
 }

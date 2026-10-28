@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIcon, BotIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
+import { BotIcon, CircleAlertIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFold } from "@/components/use-fold";
 import type { CallUsage, JobKind, JobRecord } from "@/core";
@@ -11,9 +11,10 @@ import { useServerEvent, useServerResync } from "@/components/server-events";
 import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
 
 /**
- * THE BACKGROUND-AGENTS SECTION (owner, sidebar round — the successor of
- * the retired bottom-right floating dock): the bottom strip of the LEFT
- * SIDEBAR, one blob per running BACKGROUND process — session sub-agents
+ * THE BACKGROUND-JOBS SECTION (owner, sidebar round — the successor of
+ * the retired bottom-right floating dock; since 2026-10-28 it lives in
+ * Halley's panel, with recently failed jobs and their errors on top):
+ * one blob per running BACKGROUND process — session sub-agents
  * (research/demo/visual) and global extraction runs. Teaching turns are
  * deliberately NOT here: the section exists to give background processes
  * the observability the learner can't otherwise see; an in-flight teaching
@@ -69,12 +70,24 @@ export interface FeedExtraction {
 	startedAt: number;
 }
 
+/** A job that failed lately (server/observability.ts ActivityFailedJob). */
+export interface FeedFailedJob {
+	id: string;
+	kind: JobKind;
+	chatId: string;
+	title: string;
+	error: string;
+	at: string;
+}
+
 export interface ActivityFeed {
 	jobs: FeedJob[];
 	extractions: FeedExtraction[];
+	/** Jobs that failed in the last few minutes (absent on older payloads). */
+	failed?: FeedFailedJob[];
 }
 
-const EMPTY_FEED: ActivityFeed = { jobs: [], extractions: [] };
+const EMPTY_FEED: ActivityFeed = { jobs: [], extractions: [], failed: [] };
 
 // ─── The activity feed (composition root: the root layout) ───────────────────
 
@@ -111,7 +124,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 				if (res.ok) {
 					const data = (await res.json()) as Partial<ActivityFeed>;
 					if (alive)
-						setFeed({ jobs: data.jobs ?? [], extractions: data.extractions ?? [] });
+						setFeed({ jobs: data.jobs ?? [], extractions: data.extractions ?? [], failed: data.failed ?? [] });
 				}
 			} catch {
 				// transport blip: keep the last feed, announce again next event
@@ -340,10 +353,9 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	// rows match the session rows' hover. Empty means empty: the header sits
 	// alone (the cost span is population, not decoration).
 	return (
-		<section data-testid="activity-section" className="border-t border-border px-3 pb-3 pt-2">
-			<div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground/70">
-				<ActivityIcon className="size-3" />
-				Background agents
+		<section data-testid="activity-section" className="flex flex-col gap-1.5 border-t border-tone-2 pt-2.5">
+			<div className="flex items-center gap-1.5 text-[12.5px] font-bold text-ink-3">
+				Background jobs
 				{blobs.length > 0 && (
 					<span className="ml-auto font-mono tabular-nums" data-testid="activity-total-cost" title="Total running cost (inferred)">
 						{planCostLabel(totalCost, subscriptionLabels(blobs.map((blob) => blob.model)))}
@@ -351,12 +363,23 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 				)}
 			</div>
 			{waiting && (
-				<p data-testid="activity-waiting" className="mb-1 px-2 text-xs text-ink-2">
+				<p data-testid="activity-waiting" className="text-xs text-ink-2">
 					{WAITING_NOTICE}
 				</p>
 			)}
+			{(feed.failed ?? []).map((f) => (
+				<div key={f.id} data-testid="activity-failed" className="flex items-start gap-2.5 py-1">
+					<CircleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-ans-wrong" aria-hidden />
+					<span className="min-w-0 flex-1">
+						<span className="block truncate text-[13.5px] text-ink" title={f.title}>
+							{f.title}
+						</span>
+						<span className="block break-words text-xs text-ans-wrong">Failed: {f.error}</span>
+					</span>
+				</div>
+			))}
 			{blobs.length > 0 && (
-				<div className="flex max-h-[40dvh] flex-col gap-1 overflow-y-auto">
+				<div className="flex max-h-[40dvh] flex-col gap-0.5 overflow-y-auto">
 					{blobs.map((blob) => (
 						<ActivityBlobRow
 							key={blob.id}
@@ -409,23 +432,23 @@ function ActivityBlobRow({
 			data-testid={`activity-blob-${blob.process}`}
 			// A new background agent rises in once (keyed by id, so the
 			// once-a-second clock re-render never replays it).
-			className="lh-rise relative px-2 py-1.5 text-xs transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-accent"
+			className="lh-rise relative py-1.5 text-xs transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:bg-tone"
 		>
 			<button
 				type="button"
 				onClick={onToggleDetail}
 				aria-expanded={detailOpen}
-				className="flex w-full items-center gap-2 pr-7 text-left"
+				className="flex w-full items-center gap-2.5 pr-7 text-left"
 			>
-				<Icon className="size-3.5 shrink-0 text-muted-foreground" />
+				<Icon className="size-3.5 shrink-0 text-ink-2" />
 				<span className="min-w-0 flex-1">
-					<span className="block truncate font-medium text-card-foreground">{blob.title}</span>
+					<span className="block truncate text-[13.5px] text-ink">{blob.title}</span>
 					{blob.activity ? (
-						<span className="block truncate text-muted-foreground" title={blob.activity}>
+						<span className="block truncate text-xs text-ink-2" title={blob.activity}>
 							{blob.activity}
 						</span>
 					) : (
-						<span className="block truncate text-muted-foreground/80">{label}</span>
+						<span className="block truncate text-xs text-ink-2">{label}</span>
 					)}
 				</span>
 				<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-muted-foreground">

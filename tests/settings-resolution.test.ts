@@ -16,7 +16,7 @@ import type { UserSettings } from "../src/core/settings.ts";
 describe("resolveSettings", () => {
 	it("null record (first boot): every knob lands on its factory default", () => {
 		const eff = resolveSettings(null);
-		assert.deepEqual(eff.general, { autoUpdate: true, activeClass: "none" });
+		assert.deepEqual(eff.general, { autoUpdate: true, activeClass: "none", teacherName: "Halley" });
 		assert.deepEqual(eff.agent.tools, {});
 		assert.deepEqual(eff.agent.prompts, {});
 		assert.equal(eff.appearance.mode, "dark");

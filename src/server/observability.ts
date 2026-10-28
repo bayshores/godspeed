@@ -66,9 +66,25 @@ export interface ActivityExtraction {
  *  graph changed underneath me" (a merge landed, a deletion purged) and
  *  refetch clusters/layout. Reads never move it; the DELETE response
  *  returns the same stamp. */
-export function activityFeed(): {
+/** A job that ended with an error lately (Halley's @_@ and the panel's
+ *  error line). */
+export interface ActivityFailedJob {
+	id: string;
+	kind: JobRecord["kind"];
+	chatId: string;
+	title: string;
+	error: string;
+	/** When it failed (the job's last update, ISO). */
+	at: string;
+}
+
+/** Failed jobs stay in the feed this long. */
+export const FAILED_JOB_WINDOW_MS = 10 * 60_000;
+
+export function activityFeed(now = Date.now()): {
 	jobs: ActivityJob[];
 	extractions: ActivityExtraction[];
+	failed: ActivityFailedJob[];
 	graphRevision: number;
 } {
 	const chats = chatStore.listChats();
@@ -76,8 +92,12 @@ export function activityFeed(): {
 	const agentWindow = agentModel().contextWindow;
 	const agentModelId = `${agentModel().provider}:${agentModel().id}`;
 	const jobs: ActivityJob[] = [];
+	const failed: ActivityFailedJob[] = [];
 	for (const chat of chats) {
 		for (const job of listJobs(chat.id)) {
+			if (job.status === "error" && now - Date.parse(job.updatedAt) < FAILED_JOB_WINDOW_MS) {
+				failed.push({ id: job.id, kind: job.kind, chatId: job.chatId, title: chat.title ?? chat.id, error: job.error?.trim() || "Something went wrong", at: job.updatedAt });
+			}
 			if (job.status === "running") {
 				jobs.push({
 					...job,
@@ -106,6 +126,7 @@ export function activityFeed(): {
 	return {
 		jobs,
 		extractions: extractions.sort((a, b) => a.startedAt - b.startedAt),
+		failed: failed.sort((a, b) => b.at.localeCompare(a.at)),
 		graphRevision: graphRevision(),
 	};
 }

@@ -22,6 +22,25 @@
  * server, store, and agent may all depend on.
  */
 
+/** What an outside agent changed (Halley, 2026-10-28): every MCP tool
+ *  that changes something reports one, so the window can show it. */
+export interface AgentAction {
+	id: string;
+	/** ISO time. */
+	at: string;
+	/** The agent's display name ("Claude Code"). */
+	agent: string;
+	/** Short and plain: "Adding HW 5", "Reading syllabus.pdf". */
+	label: string;
+	classId: string | null;
+	/** The thing that changed, as tagged in the page (data-halley-target). */
+	target: { kind: "deadline" | "file" | "class" | "lesson"; id: string } | null;
+	/** The app path where it shows ("/", "/class", "/class/files", "/chat/<id>"). */
+	page: string;
+	/** The target was removed (it fades out after the visit). */
+	removed?: true;
+}
+
 /** The full event vocabulary — fixed from day one (slice plan, 2026-10-02). */
 export interface ServerEvents {
 	/** A teach turn began server-side (beginTurn) — client-initiated sends,
@@ -54,6 +73,8 @@ export interface ServerEvents {
 	 *  the chat; the client mirrors it by disabling the composer/dock
 	 *  submit. */
 	"compaction-changed": { chatId: string; running: boolean };
+	/** An outside agent changed something (the payload is the action). */
+	"agent-action": AgentAction;
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -71,12 +92,12 @@ export const SERVER_EVENT_TYPES = [
 	"agent-changed",
 	"record-changed",
 	"compaction-changed",
+	"agent-action",
 ] as const satisfies readonly ServerEventType[];
 
-/** One notification: the type discriminates the payload. */
-export type ServerEvent<K extends ServerEventType = ServerEventType> = {
-	type: K;
-} & ServerEvents[K];
+/** One notification: the type discriminates the payload (a real union,
+ *  so checking `type` narrows it). */
+export type ServerEvent<K extends ServerEventType = ServerEventType> = K extends ServerEventType ? { type: K } & ServerEvents[K] : never;
 
 export type ServerEventListener = (event: ServerEvent) => void;
 

@@ -60,6 +60,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 		general: {
 			autoUpdate: record?.general?.autoUpdate ?? FACTORY_SETTINGS.general.autoUpdate,
 			activeClass: record?.general?.activeClass ?? FACTORY_SETTINGS.general.activeClass,
+			teacherName: record?.general?.teacherName || FACTORY_SETTINGS.general.teacherName,
 		},
 		agent: {
 			tools: agent.tools ?? {},

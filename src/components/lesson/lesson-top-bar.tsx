@@ -1,5 +1,6 @@
 import { DumbbellIcon, SearchIcon } from "lucide-react";
 import { SidebarToggle } from "@/components/sidebar";
+import { FollowChip } from "@/components/halley/follow-chip";
 import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
 import { kbdEventForAction, type PlanStepBar } from "@/core";
@@ -46,6 +47,7 @@ export function LessonTopBar({
 		>
 			<div className="flex min-w-0 flex-1 items-center gap-3">
 				<SidebarToggle />
+				<FollowChip />
 				{renaming ? (
 					<RenameInput rename={rename} />
 				) : kind === "practice" ? (

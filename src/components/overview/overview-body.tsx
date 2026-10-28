@@ -16,6 +16,7 @@ export const OverviewBody = memo(function OverviewBody({
 	name,
 	description,
 	hasClass,
+	classId,
 	data,
 	nowMs,
 	busy,
@@ -25,6 +26,8 @@ export const OverviewBody = memo(function OverviewBody({
 	name: string;
 	description: string;
 	hasClass: boolean;
+	/** The class shown (Halley flies to its header). */
+	classId?: string | null;
 	data: ProgressPayload | null;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
@@ -40,7 +43,7 @@ export const OverviewBody = memo(function OverviewBody({
 	const showConfidence = !!data && hasCalibration(data.calibration.levels);
 	return (
 		<div data-testid="class-overview" className="@container flex w-full flex-col pb-8">
-			<header className="flex flex-col gap-2 px-[52px] py-6">
+			<header data-halley-target={classId ? `class:${classId}` : undefined} className="flex flex-col gap-2 px-[52px] py-6">
 				<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">
 					{name}
 				</h1>

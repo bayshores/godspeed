@@ -39,6 +39,7 @@
 
 import type { ReactNode } from "react";
 import { SidebarToggle } from "@/components/sidebar";
+import { FollowChip } from "@/components/halley/follow-chip";
 
 export function TopBar({
 	drag = true,
@@ -55,6 +56,8 @@ export function TopBar({
 			className={`${drag ? "lh-drag " : ""}lh-wco-gutter flex h-15 select-none items-center gap-3 px-3`}
 		>
 			<SidebarToggle />
+			{/* 28px from the edge, like the page titles (px-3 + 16). */}
+			<FollowChip className="ml-4" />
 			{children}
 		</header>
 	);

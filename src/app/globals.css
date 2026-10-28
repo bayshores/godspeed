@@ -970,3 +970,254 @@ body {
 		transition: none !important;
 	}
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Halley (plan 2026-10-28, Phase 4 — src/components/halley/): the logo's
+   comet as the on-screen teacher. Ported from
+   docs/design/home/halley-preview.html and teacher-preview.html: bobbing,
+   blinking, one face per mood (data-mood on the svg). SVG lengths here are
+   in the face's own units (the dot is 200 across).
+   ───────────────────────────────────────────────────────────────────────── */
+.lh-halley-face .hy-bob {
+	transform-origin: 120px 210px;
+	animation: hy-bob 3.2s ease-in-out infinite;
+}
+@keyframes hy-bob {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-8px);
+	}
+}
+.lh-halley[data-flying] .hy-bob {
+	animation: none;
+}
+.lh-halley-face .hy-look {
+	transition: transform 0.15s ease-out;
+}
+.lh-halley-face .hy-blink {
+	transform-origin: 120px 108px;
+	animation: hy-blink 4.6s infinite;
+}
+@keyframes hy-blink {
+	0%,
+	94%,
+	100% {
+		transform: scaleY(1);
+	}
+	96% {
+		transform: scaleY(0.08);
+	}
+}
+.lh-halley-face .hy-face > g,
+.lh-halley-face .hy-mouth {
+	display: none;
+}
+.lh-halley-face[data-mood="idle"] .hy-m-idle,
+.lh-halley-face[data-mood="talking"] .hy-m-idle,
+.lh-halley-face[data-mood="happy"] .hy-m-happy,
+.lh-halley-face[data-mood="sparkle"] .hy-m-sparkle,
+.lh-halley-face[data-mood="thinking"] .hy-m-thinking,
+.lh-halley-face[data-mood="oops"] .hy-m-oops,
+.lh-halley-face[data-mood="shocked"] .hy-m-shocked,
+.lh-halley-face[data-mood="dizzy"] .hy-m-dizzy,
+.lh-halley-face[data-mood="embarrassed"] .hy-m-embarrassed,
+.lh-halley-face[data-mood="sleepy"] .hy-m-sleepy {
+	display: inline;
+}
+.lh-halley-face .hy-mouth {
+	transform-box: fill-box;
+	transform-origin: center;
+}
+.lh-halley-face[data-mood="talking"] .hy-mouth {
+	display: inline;
+	animation: hy-mouth 0.17s ease-in-out infinite alternate;
+}
+@keyframes hy-mouth {
+	from {
+		transform: scaleY(0.25);
+	}
+	to {
+		transform: scaleY(1);
+	}
+}
+.lh-halley-face[data-mood="talking"] .hy-bob {
+	animation: hy-talk 0.34s ease-in-out infinite alternate;
+}
+@keyframes hy-talk {
+	from {
+		transform: scale(1.03, 0.97);
+	}
+	to {
+		transform: scale(0.98, 1.03);
+	}
+}
+.lh-halley-face[data-mood="happy"] .hy-bob,
+.lh-halley-face[data-mood="sparkle"] .hy-bob {
+	animation: hy-hop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) infinite;
+}
+@keyframes hy-hop {
+	0%,
+	100% {
+		transform: translateY(0) scale(1, 1);
+	}
+	30% {
+		transform: translateY(-22px) scale(0.96, 1.05);
+	}
+	60% {
+		transform: translateY(0) scale(1.06, 0.94);
+	}
+}
+.lh-halley-face[data-mood="sleepy"] .hy-bob {
+	animation: hy-breathe 4s ease-in-out infinite;
+}
+@keyframes hy-breathe {
+	0%,
+	100% {
+		transform: translateY(6px) scale(1.02, 0.97);
+	}
+	50% {
+		transform: translateY(8px) scale(1.04, 0.95);
+	}
+}
+.lh-halley-face[data-mood="shocked"] .hy-bob {
+	animation: hy-jolt 0.5s ease-out 1;
+}
+@keyframes hy-jolt {
+	0% {
+		transform: scale(1);
+	}
+	30% {
+		transform: scale(0.92, 1.1) translateY(-10px);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+.lh-halley-face[data-mood="dizzy"] .hy-bob {
+	animation: hy-wobble 1s ease-in-out infinite;
+}
+@keyframes hy-wobble {
+	0%,
+	100% {
+		transform: rotate(-5deg);
+	}
+	50% {
+		transform: rotate(5deg);
+	}
+}
+.lh-halley-face .hy-spin {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hy-spin 1.2s linear infinite;
+}
+@keyframes hy-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.lh-halley-face .hy-pulse {
+	animation: hy-pulse 1.2s ease-in-out infinite;
+}
+.lh-halley-face .hy-pulse:nth-child(2) {
+	animation-delay: 0.2s;
+}
+.lh-halley-face .hy-pulse:nth-child(3) {
+	animation-delay: 0.4s;
+}
+@keyframes hy-pulse {
+	0%,
+	100% {
+		opacity: 0.25;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+.lh-halley-face .hy-drip {
+	animation: hy-drip 1.6s ease-in infinite;
+}
+@keyframes hy-drip {
+	0% {
+		transform: translateY(0);
+		opacity: 1;
+	}
+	80% {
+		transform: translateY(10px);
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(12px);
+		opacity: 0;
+	}
+}
+.lh-halley-face .hy-twinkle {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hy-twinkle 0.9s ease-in-out infinite;
+}
+@keyframes hy-twinkle {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(0.7);
+	}
+}
+.lh-halley-face .hy-zz {
+	animation: hy-zz 2.4s ease-in-out infinite;
+}
+.lh-halley-face .hy-zz:nth-of-type(2) {
+	animation-delay: 0.8s;
+}
+@keyframes hy-zz {
+	0% {
+		transform: translate(0, 0);
+		opacity: 0;
+	}
+	30% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(14px, -26px);
+		opacity: 0;
+	}
+}
+/* The resting shadow breathes with the bob; it hides while flying. */
+.lh-halley .hy-shadow {
+	animation: hy-shadow 3.2s ease-in-out infinite;
+	transition: opacity 0.15s ease-out;
+}
+@keyframes hy-shadow {
+	0%,
+	100% {
+		transform: scaleX(1);
+	}
+	50% {
+		transform: scaleX(0.88);
+	}
+}
+.lh-halley[data-flying] .hy-shadow,
+.lh-halley:not([data-corner]) .hy-shadow {
+	opacity: 0;
+}
+.lh-halley-bubble {
+	transition: opacity 0.2s ease-out;
+}
+.lh-halley-face.hy-still *,
+.lh-halley-face.hy-still {
+	animation: none !important;
+	transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+	.lh-halley *,
+	.lh-halley,
+	.lh-halley-face *,
+	.lh-halley-bubble {
+		animation: none !important;
+		transition: none !important;
+	}
+}

@@ -33,6 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	// The active class (classes wave, 2026-10-26) renders server-side so the
 	// first paint already shows the right class's lessons and graph.
 	let initialActive: string | null = null;
+	// Halley's name (Settings → General), so the first paint has it.
+	let teacherName: string | undefined;
 	// First launch (owner, 2026-10-27): the onboarding replaces the app
 	// shell until it is finished. Deciding also makes the outside-agent
 	// access token (always on), so the Claude Code plugin can find it.
@@ -51,8 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		/* unwritable data dir: skip the notes this launch */
 	}
 	try {
-		const raw = readSettingsRecord()?.general?.activeClass;
+		const general = readSettingsRecord()?.general;
+		const raw = general?.activeClass;
 		initialActive = raw && raw !== "none" ? raw : null;
+		teacherName = general?.teacherName;
 	} catch {
 		/* unreadable settings: No class */
 	}
@@ -67,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<AppearanceProvider>
 					<SidebarProvider>
 						<ActivityProvider>
-							{onboarding ? <Onboarding /> : <AppShell>{children}</AppShell>}
+							{onboarding ? <Onboarding /> : <AppShell teacherName={teacherName}>{children}</AppShell>}
 						</ActivityProvider>
 					</SidebarProvider>
 				</AppearanceProvider>

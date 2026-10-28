@@ -31,6 +31,7 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import {
 	CURRENT_SETTINGS_VERSION,
+	DEFAULT_TEACHER_NAME,
 	type AgentSettings,
 	type AppearanceSettings,
 	type CompactionSettings,
@@ -38,7 +39,7 @@ import {
 	type UserSettings,
 } from "@/core";
 import { useAppearance } from "./appearance.tsx";
-import { SettingsGroup, SettingsSection } from "./controls.tsx";
+import { CommitInput, SettingsGroup, SettingsRow, SettingsSection } from "./controls.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 import { AgentSection } from "./agent-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
@@ -341,6 +342,18 @@ export function SettingsDialogBody({
 									title="General"
 									testid="section-general"
 								>
+									<SettingsRow label="Teacher name" hint="Shown in the window only" testid="teacher-name-row">
+										<CommitInput
+											value={record.general?.teacherName ?? ""}
+											placeholder={DEFAULT_TEACHER_NAME}
+											ariaLabel="Teacher name"
+											testid="teacher-name"
+											onCommit={(next) => {
+												const { teacherName: _old, ...rest } = record.general ?? {};
+												void write("general", next ? { ...rest, teacherName: next } : rest);
+											}}
+										/>
+									</SettingsRow>
 									<UpdateSettings
 										autoUpdate={record.general?.autoUpdate ?? true}
 										onAutoUpdateChange={(on) =>

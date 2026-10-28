@@ -71,6 +71,7 @@ export function ClassSwitcher() {
 				ref={anchorRef}
 				type="button"
 				data-testid="class-switcher"
+				data-halley-target={activeClass ? `class:${activeClass.id}` : undefined}
 				onClick={() => setOpen((v) => !v)}
 				aria-haspopup="menu"
 				aria-expanded={open}

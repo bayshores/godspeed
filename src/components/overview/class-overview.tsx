@@ -78,6 +78,7 @@ export function ClassOverview() {
 					name={activeClass?.name ?? "No class"}
 					description={activeClass?.description ?? ""}
 					hasClass={!!activeClass}
+					classId={activeClass?.id ?? null}
 					data={current}
 					nowMs={nowMs}
 					busy={lesson.busy || practice.busy}

@@ -39,6 +39,7 @@ export * from "./dismissal-park.ts";
 export * from "./compaction.ts";
 export { runPiTurn, piTurnResponse, type PiTurnHandle, type PiTurnSpec } from "./pi/ui-stream.ts";
 export * from "./observability.ts";
+export { recentAgentActions } from "./agent-actions.ts";
 export { sessionCost } from "./pricing.ts";
 
 export { handleMcpRequest, mcpAccessStatus, ensureMcpAccess, rotateMcpToken } from "./mcp.ts";

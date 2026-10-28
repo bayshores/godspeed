@@ -59,6 +59,21 @@ export interface GeneralSettings {
 	/** The newest version whose "What's new" the learner has been shown
 	 *  ("0.4.1"). Absent = not recorded yet (src/server/whats-new.ts). */
 	lastSeenVersion?: string;
+	/** The on-screen teacher's name (Halley, 2026-10-28). Only shown in
+	 *  the window; the agent's prompts never use it. Default "Halley". */
+	teacherName?: string;
+}
+
+/** The teacher's name when none is set. */
+export const DEFAULT_TEACHER_NAME = "Halley";
+/** The longest teacher name kept. */
+export const TEACHER_NAME_MAX = 40;
+
+/** A teacher name made safe to show: one line, no control characters,
+ *  at most TEACHER_NAME_MAX characters. "" = use the default. */
+export function sanitizeTeacherName(raw: string): string {
+	const one = raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim();
+	return [...one].slice(0, TEACHER_NAME_MAX).join("").trim();
 }
 
 /** Agent settings — everything about the non-conversation machinery. */
@@ -202,7 +217,7 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeClass: "none" },
+	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME },
 	appearance: {
 		mode: "dark",
 		background: null, // the dark default (#141414) lives in the mode's derivation curve
@@ -254,6 +269,10 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 	if (onboarded !== undefined) out.onboarded = onboarded;
 	if (typeof raw.lastSeenVersion === "string" && /^\d+\.\d+\.\d+$/.test(raw.lastSeenVersion)) {
 		out.lastSeenVersion = raw.lastSeenVersion;
+	}
+	if (typeof raw.teacherName === "string") {
+		const name = sanitizeTeacherName(raw.teacherName);
+		if (name) out.teacherName = name;
 	}
 	return out;
 }

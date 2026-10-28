@@ -128,6 +128,7 @@ export const SessionRow = memo(function SessionRow({
 				onClick={() => onOpen(chat.id)}
 				onContextMenu={onContextMenu ? (e) => onContextMenu(e, chat) : undefined}
 				data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
+				data-halley-target={`lesson:${chat.id}`}
 				data-active={active || undefined}
 				aria-current={active ? "page" : undefined}
 				className={cn(

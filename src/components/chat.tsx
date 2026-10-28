@@ -19,6 +19,7 @@ import { SessionFind } from "@/components/session-find";
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/components/thinking-block";
 import {
 	activeProblemOf,
+	answerOutcome,
 	dismissedAnswer,
 	findPendingToolCall,
 	kbdEventForAction,
@@ -38,6 +39,7 @@ import { useTitleRename } from "@/components/lesson/use-title-rename";
 import { LessonTopBar } from "@/components/lesson/lesson-top-bar";
 import { ReadingPane } from "@/components/lesson/reading-pane";
 import { YourTurnPanel } from "@/components/lesson/your-turn-panel";
+import { useHalley, useHalleyLesson } from "@/components/halley/halley-provider";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = dynamic(() => import("@/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
@@ -143,6 +145,10 @@ export function Chat({
 	const waitingForAgent = busy && agentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
+	// Halley sits beside the newest teacher message: Talking while it is
+	// written, Thinking while the turn runs.
+	useHalleyLesson(status === "streaming", busy);
+	const halley = useHalley();
 
 	// The abort is always the remote kill (turns are server processes); a
 	// local view also detaches at once and keeps the partial.
@@ -328,6 +334,10 @@ export function Chat({
 		saveQuestionDraft(pending.toolCallId, { readingThinking: readingThinkingRef.current });
 		const reading = readingThinkingRef.current.trim() || undefined;
 		submitAnswer(pending.tool, pending.toolCallId, reading ? { ...output, readingThinking: reading } : output);
+		// Graded right or wrong: Halley reacts for a moment.
+		const outcome = answerOutcome(output);
+		if (outcome === "right") halley?.react("happy");
+		else if (outcome === "wrong") halley?.react("oops");
 	};
 
 	// ── the top bar's data ──

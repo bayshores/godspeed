@@ -18,7 +18,7 @@ import type {
 	GeneralSettings,
 	GraphSettings,
 } from "../core/settings.ts";
-import { COMPACTION_THRESHOLD_FLOOR, EXTRACTION_CHUNK_TOKENS_FLOOR } from "../core/settings.ts";
+import { COMPACTION_THRESHOLD_FLOOR, EXTRACTION_CHUNK_TOKENS_FLOOR, sanitizeTeacherName } from "../core/settings.ts";
 import { WRITABLE_TOOL_KEYS } from "../core/pending.ts";
 
 /** Parsed-or-rejected — `ok: false` carries the 400's error message. */
@@ -36,7 +36,7 @@ function asRecord(body: unknown): Record<string, unknown> | null {
 	return body as Record<string, unknown>;
 }
 
-/** general: { autoUpdate?: boolean; activeClass?: string; onboarded?: boolean; lastSeenVersion?: string } */
+/** general: { autoUpdate?: boolean; activeClass?: string; onboarded?: boolean; lastSeenVersion?: string; teacherName?: string } */
 export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<GeneralSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -64,6 +64,14 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 			return { ok: false, error: 'lastSeenVersion must be a version like "0.4.1"' };
 		}
 		settings.lastSeenVersion = raw.lastSeenVersion;
+	}
+	if (raw.teacherName !== undefined) {
+		if (typeof raw.teacherName !== "string") {
+			return { ok: false, error: "teacherName must be a string" };
+		}
+		// "" (or only spaces) clears it back to the default name.
+		const name = sanitizeTeacherName(raw.teacherName);
+		if (name) settings.teacherName = name;
 	}
 	return { ok: true, settings };
 }
