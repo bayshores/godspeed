@@ -1,0 +1,14 @@
+[
+	{
+		"version": "0.4.0",
+		"date": "2026-10-27",
+		"changes": [
+			"godspeed is the new name. Claude Code, Codex or any MCP app can now be your teacher, on the plan you already pay for.",
+			"Classes: each class has its own lessons, files, knowledge graph and exams.",
+			"A new lesson layout: a step bar on top, a reading column, and an always-open Your turn panel.",
+			"The class Overview and the topic Graph show what you've covered and what to work on before each exam.",
+			"The Files page: drag files in, link a folder, and see which files you've studied.",
+			"Updates download on their own, and the Mac app is signed and notarized by Apple."
+		]
+	}
+]

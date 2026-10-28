@@ -56,6 +56,9 @@ export interface GeneralSettings {
 	 *  (existing users); false = in progress (shown until finished);
 	 *  absent = not decided yet (src/server/onboarding.ts decides). */
 	onboarded?: boolean;
+	/** The newest version whose "What's new" the learner has been shown
+	 *  ("0.4.1"). Absent = not recorded yet (src/server/whats-new.ts). */
+	lastSeenVersion?: string;
 }
 
 /** Agent settings — everything about the non-conversation machinery. */
@@ -180,7 +183,7 @@ export interface UserSettings {
  *  absence here. */
 export interface FactorySettings {
 	version: number;
-	general: Required<Omit<GeneralSettings, "onboarded">>;
+	general: Required<Omit<GeneralSettings, "onboarded" | "lastSeenVersion">>;
 	appearance: {
 		mode: "dark" | "light";
 		background: string | null;
@@ -249,6 +252,9 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 	}
 	const onboarded = boolOrDrop(raw.onboarded);
 	if (onboarded !== undefined) out.onboarded = onboarded;
+	if (typeof raw.lastSeenVersion === "string" && /^\d+\.\d+\.\d+$/.test(raw.lastSeenVersion)) {
+		out.lastSeenVersion = raw.lastSeenVersion;
+	}
 	return out;
 }
 

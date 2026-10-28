@@ -55,6 +55,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Only the changelog: the release page shows the same notes as the
+      # app's "What's new" dialog.
+      - uses: actions/checkout@v7
+        if: github.event_name == 'push'
+        with:
+          sparse-checkout: src/changelog.json
+          sparse-checkout-cone-mode: false
       # This job succeeds without creating anything on manual rehearsals.
       # Preparing once avoids the publisher's list-miss/create race between OS jobs.
       - name: Create or reuse the tag's draft
@@ -65,6 +72,13 @@ jobs:
             const {owner, repo} = context.repo;
             const tag = context.ref.replace(/^refs\/tags\//, "");
             const version = tag.slice(1);
+            // A release needs notes: stop here when src/changelog.json has none.
+            const changelog = JSON.parse(require("fs").readFileSync("src/changelog.json", "utf8"));
+            const entry = changelog.find(e => e.version === version);
+            if (!entry || !Array.isArray(entry.changes) || entry.changes.length === 0) {
+              throw new Error(`src/changelog.json has no notes for ${version}; add them before releasing.`);
+            }
+            const body = "## What's new\n\n" + entry.changes.map(c => `- ${c}`).join("\n") + "\n";
             const releases = await github.paginate(github.rest.repos.listReleases, {
               owner, repo, per_page: 100,
             });
@@ -77,11 +91,12 @@ jobs:
               if (!matches[0].draft) {
                 throw new Error(`${tag} is already published; refusing to modify it.`);
               }
+              await github.rest.repos.updateRelease({owner, repo, release_id: matches[0].id, body});
               core.info(`Reusing draft ${matches[0].id} for ${tag}`);
               return;
             }
             const {data} = await github.rest.repos.createRelease({
-              owner, repo, tag_name: tag, name: version, draft: true,
+              owner, repo, tag_name: tag, name: version, draft: true, body,
             });
             core.info(`Created draft ${data.id} for ${tag}`);
 

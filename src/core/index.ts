@@ -74,3 +74,6 @@ export * from "./progress.ts";
 // ONE session→markdown formatter — the extractor's view and the user-facing
 // export share it. Pure, browser-safe.
 export * from "./session-markdown.ts";
+// changelog.ts (owner, 2026-10-27): the release notes (src/changelog.json)
+// and the version math the "What's new" dialog uses. Pure, browser-safe.
+export * from "./changelog.ts";

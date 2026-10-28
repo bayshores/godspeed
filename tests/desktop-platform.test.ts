@@ -203,19 +203,32 @@ describe("desktop release workflow", () => {
 	const draft = workflow.jobs.draft;
 	const packaging = workflow.jobs.package;
 	assert.ok(draft && packaging);
-	const prepare = draft.steps[0];
+	const prepare = draft.steps.find((step) => step.uses === "actions/github-script@v9");
 	assert.ok(prepare?.with);
 	const script = prepare.with.script;
 	assert.ok(script);
 	type Release = { id: number; tag_name: string; draft: boolean };
 
+	const NOTES = [{ version: "0.3.0", date: "2026-10-27", changes: ["First change.", "Second change."] }];
+	const BODY = "## What's new\n\n- First change.\n- Second change.\n";
+
 	/** Execute the REAL action script with an in-memory GitHub API. */
-	async function prepareDraft(releases: Release[]) {
+	async function prepareDraft(releases: Release[], changelog: unknown = NOTES) {
 		const created: Record<string, unknown>[] = [];
+		const updated: Record<string, unknown>[] = [];
 		const listReleases = () => {};
 		await runInNewContext(`(async () => { ${script} })()`, {
 			context: { repo: { owner: "test-owner", repo: "test-repo" }, ref: "refs/tags/v0.3.0" },
 			core: { info() {} },
+			require: (name: string) => {
+				assert.equal(name, "fs");
+				return {
+					readFileSync: (path: string) => {
+						assert.equal(path, "src/changelog.json");
+						return JSON.stringify(changelog);
+					},
+				};
+			},
 			github: {
 				paginate: async (method: unknown, options: unknown) => {
 					assert.equal(method, listReleases);
@@ -230,10 +243,14 @@ describe("desktop release workflow", () => {
 						created.push(JSON.parse(JSON.stringify(options)));
 						return { data: { id: 123 } };
 					},
+					updateRelease: async (options: Record<string, unknown>) => {
+						updated.push(JSON.parse(JSON.stringify(options)));
+						return { data: {} };
+					},
 				} },
 			},
 		});
-		return created;
+		return { created, updated };
 	}
 
 	it("prepares once in parallel with the gates, never on rehearsals, before parallel packaging", () => {
@@ -275,15 +292,22 @@ describe("desktop release workflow", () => {
 	});
 
 	it("creates exactly one unpublished draft when none matches", async () => {
-		assert.deepEqual(await prepareDraft([{ id: 9, tag_name: "v0.2.0", draft: false }]), [{
-			owner: "test-owner", repo: "test-repo", tag_name: "v0.3.0", name: "0.3.0", draft: true,
+		assert.deepEqual((await prepareDraft([{ id: 9, tag_name: "v0.2.0", draft: false }])).created, [{
+			owner: "test-owner", repo: "test-repo", tag_name: "v0.3.0", name: "0.3.0", draft: true, body: BODY,
 		}]);
 	});
 
 	it("reuses an existing draft without creating another", async () => {
-		assert.deepEqual(await prepareDraft([{ id: 10, tag_name: "v0.3.0", draft: true }]), []);
+		const reused = await prepareDraft([{ id: 10, tag_name: "v0.3.0", draft: true }]);
+		assert.deepEqual(reused.created, []);
+		assert.deepEqual(reused.updated, [{ owner: "test-owner", repo: "test-repo", release_id: 10, body: BODY }], "the draft gets the current notes");
 		// Match the publisher's support for legacy unprefixed tags too.
-		assert.deepEqual(await prepareDraft([{ id: 10, tag_name: "0.3.0", draft: true }]), []);
+		assert.deepEqual((await prepareDraft([{ id: 10, tag_name: "0.3.0", draft: true }])).created, []);
+	});
+
+	it("refuses to release a version with no changelog notes", async () => {
+		await assert.rejects(prepareDraft([], [{ version: "0.2.9", date: "2026-10-01", changes: ["Old."] }]), /no notes for 0\.3\.0/);
+		await assert.rejects(prepareDraft([], [{ version: "0.3.0", date: "2026-10-27", changes: [] }]), /no notes for 0\.3\.0/);
 	});
 
 	it("refuses to modify an already-published release", async () => {

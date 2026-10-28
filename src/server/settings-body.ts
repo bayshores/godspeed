@@ -36,7 +36,7 @@ function asRecord(body: unknown): Record<string, unknown> | null {
 	return body as Record<string, unknown>;
 }
 
-/** general: { autoUpdate?: boolean; activeClass?: string } */
+/** general: { autoUpdate?: boolean; activeClass?: string; onboarded?: boolean; lastSeenVersion?: string } */
 export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<GeneralSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -58,6 +58,12 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 			return { ok: false, error: "onboarded must be a boolean" };
 		}
 		settings.onboarded = raw.onboarded;
+	}
+	if (raw.lastSeenVersion !== undefined) {
+		if (typeof raw.lastSeenVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(raw.lastSeenVersion)) {
+			return { ok: false, error: 'lastSeenVersion must be a version like "0.4.1"' };
+		}
+		settings.lastSeenVersion = raw.lastSeenVersion;
 	}
 	return { ok: true, settings };
 }

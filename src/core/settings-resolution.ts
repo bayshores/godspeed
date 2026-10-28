@@ -30,7 +30,7 @@ export type EffectiveAppearance = FactorySettings["appearance"];
 
 /** The concrete view: every knob resolved, no absent fields. */
 export interface EffectiveSettings {
-	general: Required<Omit<GeneralSettings, "onboarded">>;
+	general: Required<Omit<GeneralSettings, "onboarded" | "lastSeenVersion">>;
 	agent: {
 		/** Delta map as stored — consumers resolve absent key → enabled. */
 		tools: Record<string, boolean>;

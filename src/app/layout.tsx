@@ -11,8 +11,9 @@ import UpdateBanner from "@/components/update-banner";
 import { ClassProvider } from "@/components/class-context";
 // The light server door — the @/server barrel would load the whole server
 // (agent engine, MCP, extraction) just for these two render-time reads.
-import { onboardingNeeded, readSettingsRecord } from "@/server/settings-read";
+import { onboardingNeeded, readSettingsRecord, whatsNewSince } from "@/server/settings-read";
 import { Onboarding } from "@/components/onboarding/onboarding";
+import { WhatsNew } from "@/components/whats-new";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
 // Serif (the bundled lh-cmu @font-face in globals.css — no CDN).
@@ -41,6 +42,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	} catch {
 		/* unwritable data dir: show the app; /api/mcp retries the token */
 	}
+	// After an update (owner, 2026-10-27): the versions whose notes the
+	// learner hasn't seen. Decided after onboarding, which marks existing users.
+	let whatsNew: string | null = null;
+	try {
+		whatsNew = whatsNewSince();
+	} catch {
+		/* unwritable data dir: skip the notes this launch */
+	}
 	try {
 		const raw = readSettingsRecord()?.general?.activeClass;
 		initialActive = raw && raw !== "none" ? raw : null;
@@ -67,6 +76,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			</ServerEventsProvider>
 			{/* Auto-update banner (Wave C): fixed card, Electron-only pushes. */}
 			<UpdateBanner />
+			{/* "What's new" after an update; Settings reopens it. */}
+			{!onboarding && <WhatsNew since={whatsNew} />}
 		</body>
 		</html>
 	);
