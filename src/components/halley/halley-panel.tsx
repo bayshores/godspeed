@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * Halley's panel (board 7 D): click Halley or the sidebar's agent line.
+ * Halley's panel: click Halley or the sidebar's agent line.
  * The head (name, the agent's state, the Follow switch), "Now", "Recent"
  * (the agent's last changes; click one to go there) and "Background
- * jobs" (the jobs list that used to be the sidebar's popup).
+ * jobs".
  */
 import { ArrowRightIcon } from "lucide-react";
 import type { AgentAction } from "@/core";

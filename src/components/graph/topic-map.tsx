@@ -1,5 +1,5 @@
 /**
- * THE TOPIC MAP (redesign plan, Phase 5): an SVG of the class's topics on
+ * THE TOPIC MAP: an SVG of the class's topics on
  * a dot grid, foundations on the left. Pan and zoom with d3-zoom (the
  * camera is applied straight to the DOM — panning never re-renders React).
  * The layout is computed once per data change (layout.ts, cached by its

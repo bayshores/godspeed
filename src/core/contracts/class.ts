@@ -1,23 +1,23 @@
 /**
- * Class contracts (classes wave, owner-approved 2026-10-26).
+ * Class contracts.
  *
  * A class is a university course the learner is taking. Each class owns:
  *  - its lessons (ChatRecord.classId),
- *  - its OWN knowledge graph (data/classes/<id>/graph — owner ruling:
- *    separate graph per class; reads may cross classes, writes never do),
+ *  - its OWN knowledge graph (data/classes/<id>/graph; reads may cross
+ *    classes, writes never do),
  *  - its files: copied into data/classes/<id>/files, or found in a linked
  *    folder on the learner's computer,
  *  - a free-text description the learner writes.
  *
- * Lessons with no class keep using today's graph (data/graph) — the
- * "No class" space (owner ruling: classes are optional; no migration).
+ * Lessons with no class use the shared graph (data/graph) — the
+ * "No class" space (classes are optional).
  *
  * Pure types + tiny pure helpers.
  */
 
 /** "study" files are turned into graph facts by the extraction pipeline;
  *  "info" files (syllabus, assignments) are never extracted — the teacher
- *  can only read them (owner ruling 2026-10-26: per-file choice). */
+ *  can only read them. */
 export type ClassFileKind = "study" | "info";
 
 /** Where a class file lives: "copied" = the app's own copy under
@@ -45,7 +45,7 @@ export interface ClassFile {
 	kind: ClassFileKind;
 	/** sha256 (hex, 16 chars) of the file's bytes when last processed —
 	 *  a different fingerprint means the file changed and its facts are
-	 *  rebuilt (owner ruling: rebuild automatically). */
+	 *  rebuilt automatically. */
 	contentFp: string;
 	/** Cheap change pre-check for linked files: "<mtimeMs>:<size>" at the
 	 *  last fingerprint (the 60 s folder scan only re-hashes on a change). */
@@ -58,7 +58,6 @@ export interface ClassFile {
 	addedAt: string;
 }
 
-/** What a deadline is (plan 2026-10-28: exams become general deadlines). */
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
 
 const DEADLINE_KINDS: readonly DeadlineKind[] = ["exam", "homework", "quiz", "project"];
@@ -92,7 +91,7 @@ export interface ClassRecord {
 	description: string;
 	createdAt: string;
 	updatedAt: string;
-	/** Hidden from the switcher, kept on disk (owner ruling: archive + delete). */
+	/** Hidden from the switcher, kept on disk. */
 	archived: boolean;
 	/** Absolute path of a folder on the learner's computer (optional). */
 	linkedFolder?: string;
@@ -105,10 +104,10 @@ export interface ClassRecord {
 }
 
 /** The class record format this build writes and understands.
- *  v2 (2026-10-27): adds `exams`. A v1 record reads unchanged; the bump
+ *  v2: adds `exams`. A v1 record reads unchanged; the bump
  *  makes an older build REFUSE a v2 record rather than drop its exams on
  *  its next write (its reader rebuilds the record field by field).
- *  v3 (2026-10-28): exams become deadlines (`deadlines`; a v2 record's
+ *  v3: exams become deadlines (`deadlines`; a v2 record's
  *  `exams` read as deadlines of kind "exam"). */
 export const CURRENT_CLASS_VERSION = 3;
 
@@ -187,7 +186,7 @@ export function parseClassScope(raw: string | null | undefined): ClassScope | un
 	return isClassId(raw) ? raw : undefined;
 }
 
-/** File types the pipeline can turn into text (Phase 3 + recordings). */
+/** File types the pipeline can turn into text. */
 export const TEXT_EXTENSIONS = [".md", ".markdown", ".txt"] as const;
 export const DOCUMENT_EXTENSIONS = [".pdf"] as const;
 export const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;

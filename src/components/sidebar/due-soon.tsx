@@ -7,7 +7,7 @@ import { dueSoon, localDayOf, sidebarWhenLabel, type OpenDeadline } from "@/comp
 import { cn } from "@/lib/utils";
 
 /**
- * DUE SOON (sidebar, plan 2026-10-28 Phase 3; board 6): the 4 most urgent
+ * DUE SOON (sidebar): the 4 most urgent
  * open deadlines from every class, overdue first. Each row: the done box
  * (red once overdue), the name with "CSE 21 · 5:00 PM" (or "Thu 7:00 PM", "Thu Nov 12") under it, and the
  * live countdown. "All" opens Home. Hidden while there is nothing open.

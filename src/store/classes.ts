@@ -1,5 +1,5 @@
 /**
- * ClassStore — the fs adapter for classes (classes wave, 2026-10-26).
+ * ClassStore — the fs adapter for classes.
  *
  *   data/classes/<id>/class.json   the ClassRecord
  *   data/classes/<id>/files/       copied class files (the app's own copies)
@@ -110,7 +110,8 @@ function getClass(id: string): ClassRecord | null {
 		return null;
 	}
 	if (!isRecord(parsed)) return null;
-	// Honest refusal (same ruling as chats, 2026-10-10).
+	// Honest refusal, as in chats.ts: a newer record reads as absent so a
+	// later write never rewrites what this build doesn't understand.
 	if (typeof parsed.version === "number" && parsed.version > CURRENT_CLASS_VERSION) {
 		console.error(`[class ${id}] record stamped with schema version ${parsed.version} > ${CURRENT_CLASS_VERSION} — refusing to read it`);
 		return null;
@@ -207,7 +208,7 @@ function saveFiles(id: string, files: ClassFile[]): ClassRecord {
 	return record;
 }
 
-// ─── deadlines (plan 2026-10-28; exams before that) ─────────────────────────
+// ─── deadlines ──────────────────────────────────────────────────────────────
 
 function deadlineName(name: unknown): string {
 	const clean = typeof name === "string" ? name.trim().replace(/\s+/g, " ").slice(0, 120) : "";

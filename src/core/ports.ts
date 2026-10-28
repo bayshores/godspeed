@@ -36,21 +36,20 @@ import type { UserSettings } from "./settings.ts";
 // ─── ChatStore — the session record's home (data/chats) ─────────────────────
 
 export interface ChatStore {
-	/** Create a session record (persisted immediately). */
-	/** Create a session record; kind "practice" marks a practice session
-	 *  (absent = teach, the default). */
+	/** Create a session record (persisted immediately); kind "practice"
+	 *  marks a practice session (absent = teach, the default). */
 	createChat(title: string, kind?: "practice", classId?: string): ChatRecord;
 	/** The full record, or null if unknown id / corrupt file. */
 	getChat(id: string): ChatRecord | null;
 	/** All sessions, newest activity first (the sidebar's list view). */
 	listChats(): ChatSummary[];
 	/** Persist the full native message list (the record IS the agent
-	 * state — Wave B, owner-approved 2026-09-26). */
+	 * state). */
 	saveMessages(id: string, messages: LhMessage[]): void;
 	/** Persist the session plan tree (plan tools call this in execute). */
 	saveTree(id: string, tree: PlanTree): void;
-	/** Append one usage entry to the record's turn log (the money channel,
-	 * 2026-09): idempotent per turn id — each request carries its own, so
+	/** Append one usage entry to the record's turn log (the money
+	 * channel): idempotent per turn id — each request carries its own, so
 	 * a turn persisted twice appends once while continuation turns (which
 	 * share a response message id) each keep their usage. */
 	appendTurnUsage(id: string, entry: TurnUsage): void;
@@ -59,12 +58,11 @@ export interface ChatStore {
 	/** Persist the per-chat model/thinking settings (the model control).
 	 *  Replace-whole: the picker sends the complete settings object. */
 	saveSettings(id: string, settings: ChatSettings): void;
-	/** Rename a session (the header's click-to-edit title, 2026-09-17).
+	/** Rename a session (the header's click-to-edit title).
 	 * Like saveSettings: a rename is NOT conversation activity — updatedAt
 	 * stays put, so sidebar order never churns on a rename. */
 	renameChat(id: string, title: string): ChatRecord;
-	/** Delete the session record entirely (session-deletion wave 6, owner
-	 *  2026-09-22). False when the id is unknown. The graph-ledger purge and
+	/** Delete the session record entirely. False when the id is unknown. The graph-ledger purge and
 	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +
 	 *  the DELETE route), not the store's. */
 	deleteChat(id: string): boolean;
@@ -75,7 +73,7 @@ export interface ChatStore {
 }
 
 // ─── GraphStore — the append-only evidence ledgers (data/graph) ──────────────
-// Chains are the stored truth (owner, 2026-09-30): nodes + reasoning
+// Chains are the stored truth: nodes + reasoning
 // chains; edges are a DERIVED view (core/graph.ts) and never touch this
 // seam. Reads return the raw append-order lines; merging chain assertions
 // by (premises, conclusion) is DERIVED in core/graph.ts — the store never
@@ -96,22 +94,18 @@ export interface GraphStore {
 	/** Append one emission checkpoint. */
 	appendCheckpoint(checkpoint: SessionCheckpoint): void;
 	readCheckpoints(): SessionCheckpoint[];
-	/** Message-granular extraction coverage (vision-extraction-coverage.md):
-	 *  append-only; one line per covered message. The chat-extraction
+	/** Message-granular extraction coverage: append-only; one line per covered message. The chat-extraction
 	 *  checkpoint — "uncovered" is derived from these, never tracked. */
 	appendCoverage(entry: CoverageEntry): void;
 	readCoverage(): CoverageEntry[];
-
-	/** Append one cluster-naming run's usage (graph-global money channel) —
-	 *  idempotent per startedAt. */
 
 	/** Upsert one imported-notes source record (config.SOURCES_FILE — a
 	 *  JSON map, not a ledger; an upsert keeps the existing usage log). */
 	upsertSource(source: NotesSource): void;
 	/** Every notes source record, by id order-insensitive. */
 	readSources(): NotesSource[];
-	/** Remove one notes source record (classes wave, 2026-10-26: a class
-	 *  file's facts are rebuilt or removed — core/graph-deletion.ts
+	/** Remove one notes source record (a class file's facts are rebuilt
+	 *  or removed — core/graph-deletion.ts
 	 *  deleteSourceTraces owns the ledgers, this only drops the record).
 	 *  False when unknown. */
 	removeSource(id: string): boolean;
@@ -119,14 +113,6 @@ export interface GraphStore {
 	 *  startedAt, mirroring ChatRecord.extractions. */
 	appendSourceUsage(id: string, entry: ExtractionRunUsage): void;
 
-	/** THE DESTRUCTIVE SEAM (session-deletion wave 6, owner 2026-09-22 —
-	 *  the first non-append operation on these ledgers): atomically
-	 *  replace the full contents of any subset of the six rewritable
-	 *  ledgers. Each provided array is written to a temp file and renamed
-	 *  over the ledger (crash-safe: a torn write never replaces the
-	 *  original); absent keys leave their ledger untouched. The pure
-	 *  computation is core/graph-deletion.ts — the store only makes the
-	 *  replacement atomic. */
 	/** The topic grouper's snapshots (topics.jsonl — append-only, each line
 	 *  a full snapshot). The LAST valid line, or null when none. Members
 	 *  are raw: readers drop ids that are no longer facts. */
@@ -134,6 +120,13 @@ export interface GraphStore {
 	/** Append one full topic snapshot. */
 	appendTopics(snapshot: TopicSnapshot): void;
 
+	/** THE DESTRUCTIVE SEAM (the one non-append operation on these
+	 *  ledgers): atomically replace the full contents of any subset of the
+	 *  rewritable ledgers. Each provided array is written to a temp file
+	 *  and renamed over the ledger (crash-safe: a torn write never replaces
+	 *  the original); absent keys leave their ledger untouched. The pure
+	 *  computation is core/graph-deletion.ts — the store only makes the
+	 *  replacement atomic. */
 	rewriteLedgers(next: {
 		nodes?: GraphNode[];
 		chains?: GraphChain[];
@@ -227,14 +220,14 @@ export interface JobStore {
 	listJobs(chatId: string): JobRecord[];
 	/** The job fulfilling a given tool part, if any (spawn-hook dedup). */
 	findJobByToolCallId(chatId: string, toolCallId: string): JobRecord | null;
-	/** Delete every job record for a chat — running or finished (session-
-	 *  deletion wave 6). Returns how many files were removed. The deletion
+	/** Delete every job record for a chat — running or finished.
+	 *  Returns how many files were removed. The deletion
 	 *  route refuses while jobs are still running, so by the time this
 	 *  fires every record is terminal. */
 	deleteJobsForChat(chatId: string): number;
 }
 
-// ─── SettingsStore — THE user settings record (settings-storage wave, 2026-09-19) ──
+// ─── SettingsStore — THE user settings record ────────────────────────────────
 
 /**
  * The one record for every non-secret product preference (core/settings.ts
@@ -242,8 +235,7 @@ export interface JobStore {
  * replace-whole on the RECORD; per-section scoping is a server-band concern
  * (single process, no stale-client hazard to defend against at this seam).
  * Schema-version lazy migration happens inside readSettings, never in
- * the callers. (The legacy default-settings.json fold died with the chat
- * section — per-session models, owner 2026-09-28.)
+ * the callers.
  */
 export interface SettingsStore {
 	/** The sanitized record, or null when none exists yet (first boot). */
@@ -252,7 +244,7 @@ export interface SettingsStore {
 	writeSettings(settings: UserSettings): void;
 }
 
-// ─── PromptOverrideStore — per-segment system-prompt overrides (2026-09-19) ──
+// ─── PromptOverrideStore — per-segment system-prompt overrides ───────────────
 
 /**
  * User text overriding ONE source prompt segment (the shared base or one

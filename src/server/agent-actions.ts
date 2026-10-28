@@ -1,5 +1,5 @@
 /**
- * WHAT THE AGENT CHANGED (Halley, 2026-10-28): every MCP tool that changes
+ * WHAT THE AGENT CHANGED (Halley): every MCP tool that changes
  * something records one action here. The last 20 are kept in memory for
  * the panel's "Recent" (GET /api/agent-actions; a restart clears them),
  * and each new one goes out as the "agent-action" event so the window can

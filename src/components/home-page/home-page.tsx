@@ -17,7 +17,7 @@ import { ComingUp } from "./coming-up";
 import { useClassesProgress } from "./use-classes-progress";
 
 /**
- * HOME ("/", plan 2026-10-28 Phase 3; board 6): the title and today's
+ * HOME ("/"): the title and today's
  * date, "Coming up" (every open deadline from every class) and one block
  * per class. The top bar's "Add deadline" opens a class's Edit class with
  * a new deadline row (a menu picks the class when there are several).

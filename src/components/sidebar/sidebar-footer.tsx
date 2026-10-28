@@ -7,11 +7,11 @@ import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
 
 /**
- * THE SIDEBAR FOOTER (redesign 2026-10-27): a dot and one line — the
+ * THE SIDEBAR FOOTER: a dot and one line — the
  * outside agent and how many background jobs run ("Claude Code · 1 job")
  * — plus the settings icon. The dot is green while an outside agent is
  * connected over MCP (src/components/agent-status.tsx). Clicking the line
- * opens Halley's panel (Now, Recent, Background jobs; plan 2026-10-28).
+ * opens Halley's panel (Now, Recent, Background jobs).
  */
 
 export function SidebarFooter() {

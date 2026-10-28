@@ -1,7 +1,7 @@
 /**
- * Pure helpers for the topic Graph's panels and map (redesign plan,
- * Phase 5): status colors, score lines, the topic takeaway, fact order,
- * the deadline picker's choices and default, search matches. Browser-safe, unit-tested.
+ * Pure helpers for the topic Graph's panels and map: status colors, score
+ * lines, the topic takeaway, fact order, the deadline picker's choices and
+ * default, search matches. Browser-safe, unit-tested.
  */
 import {
 	RAMP_COLORS,

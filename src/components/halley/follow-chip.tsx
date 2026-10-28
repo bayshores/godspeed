@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The top bar's Follow chip (board 7 C): white, "Following Halley" with
+ * The top bar's Follow chip: white, "Following Halley" with
  * Stop, while Follow is on. After you go somewhere yourself it says
  * "Stopped following" for a moment. Renders nothing otherwise.
  */

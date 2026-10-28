@@ -1,5 +1,5 @@
 /**
- * Follow (plan 2026-10-28, Phase 4). Pure.
+ * Follow mode. Pure.
  *
  * With Follow on, Halley takes you to the page of each change. Going to a
  * page yourself turns it off ("Stopped following"). While you type or a

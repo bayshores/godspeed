@@ -7,7 +7,7 @@ import { dueLabel, filesLabel, KIND_OPTIONS, kindLabel, toggleFile, type Deadlin
 type DraftPatch = Partial<Pick<DeadlineDraft, "kind" | "name" | "date" | "time" | "fileIds" | "done">>;
 
 /**
- * DEADLINES (Edit class dialog; exams before 2026-10-28): the class's
+ * DEADLINES (Edit class dialog): the class's
  * deadlines as rows ("Homework 5 · Homework · Fri Oct 30, 11:59 PM · 3
  * files"). One opens at a time: its kind, name, date and time become
  * fields, then a checkbox per study file, Done and "Remove deadline". Edits

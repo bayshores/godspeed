@@ -4,7 +4,7 @@ import { FilesIcon, HouseIcon, LayoutGridIcon, WaypointsIcon, type LucideIcon } 
 import { cn } from "@/lib/utils";
 
 /**
- * THE CLASS NAV (redesign 2026-10-27): Overview / Graph / Files for the
+ * THE CLASS NAV: Overview / Graph / Files for the
  * active class. Files shows the class's file count and is hidden under
  * "No class" (there are no class files then); Overview and Graph still
  * apply to the lessons without a class.
@@ -36,7 +36,7 @@ function navRowClass(active: boolean): string {
 	);
 }
 
-/** THE HOME ROW (plan 2026-10-28): above the class switcher, active on "/". */
+/** THE HOME ROW: above the class switcher, active on "/". */
 export const HomeRow = memo(function HomeRow({ pathname }: { pathname: string }) {
 	const active = pathname === "/";
 	return (

@@ -1,9 +1,7 @@
 /**
- * THE CLASS DIALOG (classes wave 2026-10-26; redesigned 2026-10-27 —
- * docs/design/exports/edit-class-exams.html; exams became deadlines
- * 2026-10-28): create a class (name and description) or edit one — name,
- * description and its Deadlines — with Archive and Delete class in the
- * footer. The class's files live on the Files page (src/components/files/*).
+ * THE CLASS DIALOG (docs/design/exports/edit-class-exams.html): create a
+ * class (name and description) or edit one — name, description and its
+ * Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/components/files/*).
  *
  * Deadline edits are drafts until Save (src/components/class-deadlines-model.ts
  * turns them into the deadline routes' writes). Every write goes to /api/classes/*;
@@ -25,7 +23,7 @@ import type { ClassDeadline, ClassRecord } from "@/core";
 export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
 type Mode = ClassDialogMode;
 
-/** Exit motion (motion wave, owner 2026-10-26): the dialog stays mounted
+/** Exit motion: the dialog stays mounted
  *  with its last `value` while it fades out. */
 function useLastWhileClosing<T>(value: T | null) {
 	const presence = usePresence(value !== null);
@@ -318,8 +316,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	);
 }
 
-/** "Move to class…" (owner ruling: lessons can move). The lesson's facts
- *  leave the old class graph and are rebuilt in the new one. */
+/** "Move to class…": the lesson's facts leave the old class graph and
+ *  are rebuilt in the new one. */
 export function MoveLessonDialog({
 	lesson,
 	onClose,

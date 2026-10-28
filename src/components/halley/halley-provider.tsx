@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * HALLEY (plan 2026-10-28, Phase 4): the logo's comet as the on-screen
+ * HALLEY: the logo's comet as the on-screen
  * teacher. One provider in the app shell:
  *
  *  - Presence: it rests in a corner of the content area (bottom-right by

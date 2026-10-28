@@ -14,7 +14,7 @@ import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow } from "./message-row";
 
 /**
- * THE READING PANE (redesign, lesson layout B): the lesson as one
+ * THE READING PANE: the lesson as one
  * document in a 640px column at the left of the pane — teacher text at
  * 17/1.6 with CMU headings (.lh-reading in globals.css), answered cards
  * inline. Each message is a memoized row, so streaming redraws only the

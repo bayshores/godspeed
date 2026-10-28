@@ -1,9 +1,8 @@
 /**
- * Keyboard shortcuts (shortcut wave A, 2026-09-17) — the single document-level
- * keydown listener. Owns the pieces that belong to no surface in particular:
+ * Keyboard shortcuts — the single document-level keydown listener. Owns the pieces that belong to no surface in particular:
  *
- * - Tab is DEAD: browser tab-focus navigation is abandoned by owner decision
- *   (2026-09-17). Tab is suppressed everywhere (preventDefault, no-op).
+ * - Browser tab-focus navigation is off: plain Tab never moves focus
+ *   (preventDefault); it only cycles the active surface's text fields.
  * - Esc is a layered dismiss: topmost popover first (popovers stopPropagation
  *   on their own Esc — usePopoverDismiss), then abort of an
  *   in-flight turn.
@@ -11,8 +10,7 @@
  *   mounted listen (the lh:chat-renamed pattern). A surface that isn't
  *   mounted simply doesn't listen — an F2 on the graph view is a no-op, not
  *   an error. Actions live in src/core/keyboard.ts (registry + persisted
- *   overrides), the ONE table the settings milestone will render as its
- *   editor.
+ *   overrides), the ONE table.
  *
  * Listeners attach at the WINDOW level (bubble's last stop) so every
  * component-level handler — popovers' own Esc, the composer's Esc — gets the
@@ -35,7 +33,7 @@ import { useSettingsDialog } from "@/components/settings/settings-dialog-provide
 
 // Re-exported for the contract pin (tests/keyboard-toggle-sidebar.test.ts):
 // the dispatcher composes event names through the ONE helper — a second
-// spelling here is how the ⌘B bug happened.
+// spelling here would drift (it broke ⌘B once).
 export { kbdEventForAction };
 
 export function KeyboardShortcuts() {
@@ -54,17 +52,16 @@ export function KeyboardShortcuts() {
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
-			// ── Tab is dead (owner, 2026-09-17): preventDefault even when
-			// nothing is bound to it — browser tab-focus is abandoned, and
-			// the default action runs after dispatch, so suppressing it here
-			// works from any focus.
+			// ── Tab: preventDefault even when nothing is bound to it —
+			// browser tab-focus is off, and the default action runs after
+			// dispatch, so suppressing it here works from any focus.
 			if (e.key === "Tab") {
 				e.preventDefault();
-				// Plain Tab cycles the active surface's text fields (owner,
-				// keyboard round 2026-10-06) — forward-only, wrapping; each
-				// composer-bearing page answers with its own chain. The quiz
-				// dock's rows↔thinking claim stops propagation at document
-				// level, so a claimed Tab never reaches this dispatch.
+				// Plain Tab cycles the active surface's text fields —
+				// forward-only, wrapping; each composer-bearing page answers
+				// with its own chain. The quiz dock's rows↔thinking claim stops
+				// propagation at document level, so a claimed Tab never reaches
+				// this dispatch.
 				if (!e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey)
 					window.dispatchEvent(new CustomEvent("lh:kbd-cycle-fields"));
 				return;
@@ -77,11 +74,10 @@ export function KeyboardShortcuts() {
 					e.preventDefault();
 					return;
 				}
-				// THE ONE-ESC LAW (owner, keyboard round 2026-10-06): one
-				// Esc, one action, on the topmost active layer. Field-level
-				// handlers claim at their element (focus in a field: the
-				// field's action); every SURFACED layer (popovers, plan,
-				// overlays, dialogs) claims at the DOCUMENT level, which
+				// THE ONE-ESC LAW: one Esc, one action, on the topmost active
+				// layer. Field-level handlers claim at their element (focus in
+				// a field: the field's action); every SURFACED layer (popovers,
+				// plan, overlays, dialogs) claims at the DOCUMENT level, which
 				// fires before this window listener — so reaching here means
 				// NOTHING is surfaced and no field is focused. The fallback
 				// aborts the turn (a server-side turn has no client request
@@ -107,8 +103,8 @@ export function KeyboardShortcuts() {
 					handlersRef.current.router.push("/new");
 					break;
 				case "open-settings":
-					// Settings-app wave: the dialog is the surface, the URL is
-					// gone — /settings redirects to Home.
+					// The dialog is the settings surface; /settings redirects
+					// to Home.
 					handlersRef.current.openSettings();
 					break;
 				case "jump-graph":
@@ -134,9 +130,8 @@ export function KeyboardShortcuts() {
 	return <CheatSheet open={cheatOpen} onClose={() => setCheatOpen(false)} />;
 }
 
-/** The ? overlay — the registry rendered as a table (grouped by scope).
- *  Until the settings milestone ships an editor, this is how shortcuts
- *  stay discoverable. */
+/** The ? overlay — the registry rendered as a table (grouped by scope),
+ *  so shortcuts stay discoverable. */
 function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
 	if (!open) return null;

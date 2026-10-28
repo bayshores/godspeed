@@ -1,5 +1,5 @@
 /**
- * useProgress (redesign plan, owner-approved 2026-10-27): the active
+ * useProgress: the active
  * class's ProgressPayload from GET /api/progress — shared by the class
  * Overview and the topic Graph page.
  *

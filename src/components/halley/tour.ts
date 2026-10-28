@@ -1,5 +1,5 @@
 /**
- * Halley's visits (plan 2026-10-28, Phase 4). Pure.
+ * Halley's visits. Pure.
  *
  * Each change the agent makes is visited about STEP_MS apart. When more
  * than BURST_LIMIT are waiting, Halley stops touring and shows one summary

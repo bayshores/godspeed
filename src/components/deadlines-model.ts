@@ -1,5 +1,5 @@
 /**
- * Open deadlines across classes (plan 2026-10-28, Phase 3): the sidebar's
+ * Open deadlines across classes: the sidebar's
  * Due soon, Home's Coming up groups and their short labels. Pure and
  * unit-tested. The list comes from GET /api/deadlines (open deadlines of
  * non-archived classes, soonest first).

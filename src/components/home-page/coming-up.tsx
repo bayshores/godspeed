@@ -11,7 +11,7 @@ import { CARD, CARD_TITLE } from "@/components/overview/styles";
 import { cn } from "@/lib/utils";
 
 /**
- * COMING UP (Home, plan 2026-10-28 Phase 3; board 6): every open deadline
+ * COMING UP (Home): every open deadline
  * from every class, grouped Overdue / Today / Tomorrow / each date / Later.
  * A row: the done box, the name and its kind, what it covers with a ready
  * bar (deadlines with files), the class, and the live countdown with the

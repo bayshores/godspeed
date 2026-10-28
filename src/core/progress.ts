@@ -1,6 +1,6 @@
 /**
- * PROGRESS — every number the Overview and the topic Graph show (redesign
- * plan, owner-approved 2026-10-27). Nothing here is saved: it is all
+ * PROGRESS — every number the Overview and the topic Graph show. Nothing
+ * here is saved: it is all
  * derived from what the app already records (lesson answers, graph facts
  * and chains, class files and deadlines) plus the topic grouper's snapshot.
  *

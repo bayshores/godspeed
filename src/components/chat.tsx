@@ -52,7 +52,7 @@ export {
 } from "@/components/lesson/chat-helpers";
 
 /**
- * THE LESSON (redesign, layout B): the plan step bar on top, the reading
+ * THE LESSON: the plan step bar on top, the reading
  * pane on the left, the Your-turn panel on the right (below the text in
  * narrow windows). This component owns the lesson's state and wiring; the
  * pieces live in src/components/lesson/.
@@ -158,7 +158,7 @@ export function Chat({
 	// A teach-phase check waits behind "Check your understanding".
 	const requiresReveal = pending !== null && questionNeedsReveal(pending.tool, pending.input, phase);
 
-	/* The reading-thinking channel (owner 2026-10-03): thoughts noted while
+	/* The reading-thinking channel: thoughts noted while
 	 * reading, riding the check's answer (or its dismissal) as the separate
 	 * readingThinking field. Reset per pending question. */
 	const [readingThinking, setReadingThinking] = useState("");
@@ -195,7 +195,7 @@ export function Chat({
 	const lastFigureRef = useRef(figureFocus);
 	if (figureFocus !== null) lastFigureRef.current = figureFocus;
 
-	// THE LAYERED ESC (owner, 2026-10-04): an open overlay claims Esc first;
+	// THE LAYERED ESC: an open overlay claims Esc first;
 	// then the abort chain opens its confirm (question → problem → turn).
 	// The handler reads refs — the window listener is mount-scoped.
 	const [abortAsk, setAbortAsk] = useState<AbortMode | null>(null);
@@ -255,7 +255,7 @@ export function Chat({
 		textRef.current = v;
 		setText(v);
 	}, []);
-	// Tab cycles the lesson's fields in visual order (owner, 2026-10-06).
+	// Tab cycles the lesson's fields in visual order.
 	const cycleChatFields = useCallback((): readonly HTMLElement[] => {
 		const pick = (sel: string) => Array.from(document.querySelectorAll<HTMLElement>(sel));
 		return [
@@ -271,7 +271,7 @@ export function Chat({
 	// waiting question or problem owns the panel; compaction gates sends.
 	const canSend = text.trim().length > 0 && !pending && !activeProblem && !compacting;
 
-	/* THE PRACTICE PAUSE (owner round 16): between problems, once a problem
+	/* THE PRACTICE PAUSE: between problems, once a problem
 	 * has ever been posed — Enter on an empty box (or anywhere) asks for the
 	 * next one. */
 	const posedAny = useMemo(
@@ -301,7 +301,7 @@ export function Chat({
 		[send],
 	);
 
-	/* STEER VS SEND (owner arc 2026-10-03): a send while a turn runs (ours or
+	/* STEER VS SEND: a send while a turn runs (ours or
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
 	 * falls back to exactly that). */
 	const onSend = () => {

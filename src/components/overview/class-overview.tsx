@@ -13,7 +13,7 @@ import { useProgress } from "@/components/use-progress";
 import { OverviewBody } from "./overview-body";
 
 /**
- * THE CLASS OVERVIEW (redesign plan, Phase 4) — opened from the sidebar's
+ * THE CLASS OVERVIEW — opened from the sidebar's
  * Overview row. The top bar holds "Edit class" (the existing class
  * dialog); the body reads the active class's progress (useProgress).
  *

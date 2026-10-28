@@ -1,5 +1,5 @@
 /**
- * THE [Today] NOTE (plan 2026-10-28, Phase 2): a hidden lesson message that
+ * THE [Today] NOTE: a hidden lesson message that
  * tells the agent today's date, time and time zone, then the class's open
  * deadlines. It is appended (never rewritten) right before the learner's
  * message when the lesson has none yet, the day changed, the deadline part

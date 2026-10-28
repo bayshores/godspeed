@@ -1,5 +1,5 @@
 /**
- * Home's "Suggested for <class>" rows (redesign Phase 6), derived from the
+ * Home's "Suggested for <class>" rows, derived from the
  * class's ProgressPayload (src/core/progress.ts). Pure, unit-tested.
  *
  *  - Continue: the class's most recently active lesson (lessons come

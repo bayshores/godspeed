@@ -1,9 +1,8 @@
 /**
- * THE CLASS SWITCHER (classes wave 2026-10-26; redesign 2026-10-27): the
- * block at the top of the sidebar — a white square with the class's
- * initials, the class name, and the up/down chevrons. Picking a class
- * switches the whole window to it — the sidebar's lessons, the graph,
- * where new lessons start. Menu entries: every active class, "No class",
+ * THE CLASS SWITCHER: the block at the top of the sidebar — a white
+ * square with the class's initials, the class name, and the up/down
+ * chevrons. Picking a class switches the whole window to it — the
+ * sidebar's lessons, the graph, where new lessons start. Menu entries: every active class, "No class",
  * the archived classes (folded under "Archived"), "Edit class…" for the
  * active one, and "New class…".
  */
@@ -120,7 +119,7 @@ export function ClassSwitcher() {
 						>
 							Archived ({archived.length}) {showArchived ? "▴" : "▾"}
 						</button>
-						{/* The fold slides open (motion wave): always mounted, inert
+						{/* The fold slides open: always mounted, inert
 						    while folded so Tab and the arrows skip it. */}
 						<div className="lh-collapse" data-state={showArchived ? "open" : "closed"} data-testid="class-archived-fold">
 							<div className="flex flex-col gap-0.5" inert={!showArchived}>

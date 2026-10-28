@@ -20,30 +20,27 @@ export * from "./ports.ts";
 export * from "./chains.ts";
 
 export * from "./question-core.ts";
-// The event bus (push architecture, 2026-10-02): vocabulary + emit/subscribe
+// The event bus: vocabulary + emit/subscribe
 // for every layer; the browser shell consumes the types + the runtime names
 // through this barrel (shell law: pure core via @/core only).
 export * from "./events.ts";
 // clusters.ts (Louvain) is deliberately NOT re-exported: nothing in the
 // shell runs community detection — the snapshot carries the partition
 // from the server. Keeping it out keeps the heavy clustering deps out of the
-// client bundle (verified 2026-09-13: chunks contained it while this
-// line existed).
+// client bundle.
 export * from "./plan-tree.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
 export * from "./prompt-segments.ts";
 export * from "./math-delims.ts";
-// Wave B (owner-approved 2026-09-26): the native record (LhMessage), the
-// and the input-events contract — all
-// pure logic, browser-safe.
+// The native record (LhMessage) and the input-events contract — pure,
+// browser-safe.
 export * from "./native-messages.ts";
 export * from "./today-note.ts";
 export * from "./compaction.ts";
 export * from "./input-events.ts";
-// Wave D (owner-approved 2026-09-26): the client view model — the grouping
-// canon (one continuous assistant document, step separators) ported from
-// the deleted server projection to the client side. Pure, browser-safe.
+// The client view model — the grouping canon (one continuous assistant
+// document, step separators). Pure, browser-safe.
 export * from "./view.ts";
 export * from "./tool-parts.ts";
 export * from "./answer-presentation.ts";
@@ -51,15 +48,14 @@ export * from "./prices.ts";
 export * from "./context-usage.ts";
 export * from "./cost-summary.ts";
 export * from "./fuzzy.ts";
-// settings.ts + settings-resolution.ts (settings-storage wave, 2026-09-19):
-// the user-settings record's shape/sanitizer (pure) and its fully-resolved
-// view. Browser-safe — the Wave-4 panel imports these directly.
+// settings.ts + settings-resolution.ts: the user-settings record's
+// shape/sanitizer (pure) and its fully-resolved view. Browser-safe — the
+// settings panel imports these directly.
 export * from "./settings.ts";
-// graph-deletion.ts (wave 6): the whole module is PURE but storage-port
-// driven — the deletion RUNS server-side only. The shell needs exactly one
-// two type-only things from it: the ChatDeleteMode union (the delete
-// dialog's two-option design + the DELETE query param) and the stats
-// shape its success line describes, hence this type-only re-export.
+// graph-deletion.ts is PURE but storage-port driven — the deletion RUNS
+// server-side only. The shell needs only the ChatDeleteMode union (the
+// delete dialog's options + the DELETE query param), hence this type-only
+// re-export.
 export type { ChatDeleteMode } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
 export * from "./session-find.ts";
@@ -67,14 +63,13 @@ export * from "./session-navigation.ts";
 // keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).
 export * from "./keyboard.ts";
 export * from "./coverage.ts";
-// Redesign (2026-10-27): topics (the grouper's read/repair rules) and the
-// derived progress numbers — pure, browser-safe.
+// Topics (the grouper's read/repair rules) and the derived progress
+// numbers — pure, browser-safe.
 export * from "./topics.ts";
 export * from "./progress.ts";
-// session-markdown.ts (2026-09-27 engine; first consumer 2026-10-06): the
-// ONE session→markdown formatter — the extractor's view and the user-facing
+// session-markdown.ts: the ONE session→markdown formatter — the extractor's view and the user-facing
 // export share it. Pure, browser-safe.
 export * from "./session-markdown.ts";
-// changelog.ts (owner, 2026-10-27): the release notes (src/changelog.json)
+// changelog.ts: the release notes (src/changelog.json)
 // and the version math the "What's new" dialog uses. Pure, browser-safe.
 export * from "./changelog.ts";

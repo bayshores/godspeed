@@ -1,8 +1,7 @@
 /**
- * The Edit class dialog's deadline drafts (plan 2026-10-28; exams before
- * that). The dialog edits a copy of the class's deadlines; Save turns the
- * differences into the deadline routes' writes (POST new, PUT changed,
- * DELETE removed). Pure and unit-tested.
+ * The Edit class dialog's deadline drafts. The dialog edits a copy of the
+ * class's deadlines; Save turns the differences into the deadline routes'
+ * writes (POST new, PUT changed, DELETE removed). Pure and unit-tested.
  */
 import { isCalendarDate, isClockTime, type ClassDeadline, type DeadlineKind } from "@/core";
 

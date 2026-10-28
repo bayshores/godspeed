@@ -1,5 +1,5 @@
 /**
- * The deadline countdown's text and color (plan 2026-10-28, Phase 3).
+ * The deadline countdown's text and color.
  * Pure and unit-tested; src/components/countdown.tsx ticks it.
  *
  *  - more than 24h left: "in N days" (whole days, rounded down), muted;

@@ -1,12 +1,12 @@
 /**
- * THE USER SETTINGS RECORD's shape + sanitizer (settings-storage wave,
- * 2026-09-19): one versioned, DELTA-shaped record at the data-dir seam
- * (config.SETTINGS_FILE) holding every non-secret product preference.
+ * THE USER SETTINGS RECORD's shape + sanitizer: one versioned, DELTA-shaped
+ * record at the data-dir seam (config.SETTINGS_FILE) holding every
+ * non-secret product preference.
  *
- * DELTA SEMANTICS (owner decision, 2026-09-19): the record stores EXPLICIT
+ * DELTA SEMANTICS: the record stores EXPLICIT
  * user choices only — ABSENT keys resolve to the factory defaults compiled
  * into this module (FACTORY_SETTINGS). There are no model settings: the
- * outside agent (MCP) is the only model (owner, 2026-10-27). A
+ * outside agent (MCP) is the only model. A
  * software update that ADDS a knob (new
  * tool, new role, new appearance field) therefore needs no migration: old
  * records simply lack the new keys. `version` is a PRIVATE schema counter
@@ -32,8 +32,7 @@
 export const CURRENT_SETTINGS_VERSION = 1;
 
 /** The outside agent's provider id (MCP bridge, src/agent/agent-bridge.ts) —
- *  the ONLY model provider (owner, 2026-10-27: the built-in ChatGPT /
- *  Copilot / Grok sign-ins were removed). Every lesson and background job
+ *  the ONLY model provider. Every lesson and background job
  *  runs through the agent that connects over /api/mcp. Browser-safe home
  *  so the UI can recognise it. */
 export const OUTSIDE_AGENT_PROVIDER = "agent";
@@ -45,21 +44,21 @@ export const OUTSIDE_AGENT_MODEL_ID = "outside-agent";
 export const OUTSIDE_AGENT_CONTEXT_WINDOW = 200_000;
 
 /** General settings — app-level behavior. Version DISPLAY and plans login
- *  live outside the record (package.json / credential files) by owner decision. */
+ *  live outside the record (package.json / credential files). */
 export interface GeneralSettings {
 	/** Automatic startup/24h update checks (default ON). Manual checks bypass this. */
 	autoUpdate?: boolean;
-	/** The class the window shows (classes wave, 2026-10-26): a class id,
+	/** The class the window shows: a class id,
 	 *  or "none" = No class (the default). */
 	activeClass?: string;
-	/** First-launch onboarding (owner, 2026-10-27): true = done or skipped
+	/** First-launch onboarding: true = done or skipped
 	 *  (existing users); false = in progress (shown until finished);
 	 *  absent = not decided yet (src/server/onboarding.ts decides). */
 	onboarded?: boolean;
 	/** The newest version whose "What's new" the learner has been shown
 	 *  ("0.4.1"). Absent = not recorded yet (src/server/whats-new.ts). */
 	lastSeenVersion?: string;
-	/** The on-screen teacher's name (Halley, 2026-10-28). Only shown in
+	/** The on-screen teacher's name. Only shown in
 	 *  the window; the agent's prompts never use it. Default "Halley". */
 	teacherName?: string;
 }
@@ -79,9 +78,9 @@ export function sanitizeTeacherName(raw: string): string {
 /** Agent settings — everything about the non-conversation machinery. */
 export interface AgentSettings {
 	/** Tool toggles keyed by tool id (absent key = enabled). User-level
-	 *  only — no per-chat override (owner decision 2026-09-19). */
+	 *  only — no per-chat override. */
 	tools?: Record<string, boolean>;
-	/** Prober graph tools (wave 7, owner ruling 2026-09-23): read-only
+	/** Prober graph tools: read-only
 	 *  knowledge-graph views for the prober agent — a session list +
 	 *  per-session propositions with understanding levels. Its SUBJECT
 	 *  is the graph but its MECHANISM is agent capability (tool
@@ -92,11 +91,11 @@ export interface AgentSettings {
 	/** System-prompt override SWITCHES keyed by segment path (absent key =
 	 *  off). Switch-on requires the override file to exist (enforced by the
 	 *  route); the switch is explicit so users keep a file on disk but run
-	 *  the source default to compare (owner decision 2026-09-19). */
+	 *  the source default to compare. */
 	prompts?: Record<string, boolean>;
 }
 
-/** Markdown-rendering knobs — the bare-bones set (owner decision). */
+/** Markdown-rendering knobs — the bare-bones set. */
 export interface MdRenderingSettings {
 	/** Heading font weight (100–900, default 900). CSS resolves the nearest
 	 *  available weight of the chosen font — no font introspection needed. */
@@ -125,35 +124,26 @@ export interface AppearanceSettings {
 	mdRendering?: MdRenderingSettings;
 }
 
-/** Knowledge-graph settings — a strict dependency ladder (owner decision
- *  2026-09-19): graph → embedding → clustering → labeling, each rung only
- *  meaningful when its parent is on (the UI grays dependents out; stored
- *  values persist but resolve inert). All default true. */
+/** Knowledge-graph settings. */
 export interface GraphSettings {
-	/** MASTER (and, since wave 7, ONLY): off = no extraction, no auditor.
-	 *  The wave-7 collapse (owner ruling 2026-09-23) deleted the three
-	 *  subordinate rungs — embedding/clustering/labeling — and the BYOK
-	 *  embeddingModel: clustering is the free birth-session partition
-	 *  derived on read (core/session-clusters.ts), labels ARE session
-	 *  names, and the prober graph tools read the ledgers directly — there
-	 *  is nothing left to configure. Data stays stored either way. */
+	/** The master switch: off = no extraction, no auditor. Clustering is
+	 *  the free birth-session partition derived on read
+	 *  (core/session-clusters.ts), labels ARE session names, and the prober
+	 *  graph tools read the ledgers directly — so there is nothing else to
+	 *  configure. Data stays stored either way. */
 	enabled?: boolean;
-	/** The chunk budget (extraction-UX redesign, owner 2026-09-24): the
-	 *  transcript-token share of the extractor's context — a run fires
+	/** The chunk budget: the transcript-token share of the extractor's context — a run fires
 	 *  when a chat's UNCOVERED tokens reach it, and the run batches the
 	 *  oldest uncovered messages into runs of ≤ this many tokens. It
 	 *  bounds both cost and chunk size (the extractor prompt also
 	 *  carries the whole graph + instructions, so a smaller budget means
 	 *  more, smaller runs — each paying that fixed overhead).
 	 *
-	 *  FACTORY DEFAULT 4096 (owner, 2026-10-13: halved back from the
-	 *  digest-era 8192 — the labeled passages + message anchors made
-	 *  smaller batches worth their overhead again; the pre-setting
-	 *  constant was 4096, vision-extraction-coverage.md, 2026-09-15).
-	 *  Only the FACTORY moves: an explicit user value always wins.
+	 *  FACTORY DEFAULT 4096: the labeled passages + message anchors make
+	 *  smaller batches worth their overhead. Only the FACTORY moves: an
+	 *  explicit user value always wins.
 	 *
-	 *  FLOOR 500 (EXTRACTION_CHUNK_TOKENS_FLOOR, the implementer's call
-	 *  per the owner's dispatch): every run pays the graph-carrying
+	 *  FLOOR 500 (EXTRACTION_CHUNK_TOKENS_FLOOR): every run pays the graph-carrying
 	 *  prompt overhead out of the write channel's money — a budget below
 	 *  ~500 tokens would fire penny-batches that cost more per extracted
 	 *  token than the content is worth, so the sanitizer clamps and the
@@ -164,15 +154,15 @@ export interface GraphSettings {
 }
 
 /**
- * COMPACTION (owner round 14, 2026-10-05): the context-fitting mechanic's
+ * COMPACTION: the context-fitting mechanic's
  * user-facing knob. One number — the trigger threshold in context tokens.
- * The effective trigger is min(this, model contextWindow − 16k reserve)
- * (owner ruling: on big models the setting rules; on small ones the
- * window rules before the provider overflows).
+ * The effective trigger is min(this, model contextWindow − 16k reserve):
+ * on big models the setting rules; on small ones the
+ * window rules before the provider overflows.
  *
- * FACTORY DEFAULT 150_000 (owner ruling).
+ * FACTORY DEFAULT 150_000.
  *
- * FLOOR 32_000 (implementer's call, the chunk-budget discipline): below
+ * FLOOR 32_000: below
  * the kept tail (20k) + a summary the chat would re-compact every turn —
  * a burn, not a preference. NO CEILING: a huge threshold just means "fit
  * everything" until the window rule binds.
@@ -193,9 +183,8 @@ export interface UserSettings {
 	[key: string]: unknown;
 }
 
-/** Factory defaults for everything core can pin (owner decisions
- *  2026-09-19). Tools default on; prompts default off — hence their
- *  absence here. */
+/** Factory defaults for everything core can pin. Tools default on;
+ *  prompts default off — hence their absence here. */
 export interface FactorySettings {
 	version: number;
 	general: Required<Omit<GeneralSettings, "onboarded" | "lastSeenVersion">>;
@@ -292,7 +281,7 @@ function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	if (tools) out.tools = tools;
 	const prompts = sanitizeBooleanMap(raw.prompts);
 	if (prompts) out.prompts = prompts;
-	// Prober graph tools (wave 7): its own agent-section subsection —
+	// Prober graph tools: its own agent-section subsection —
 	// lenient read side (a bad shape drops the key and the default ON
 	// resumes; the write side's parser is strict).
 	if (raw.graphTools !== null && typeof raw.graphTools === "object" && !Array.isArray(raw.graphTools)) {
@@ -332,15 +321,12 @@ function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 }
 
 function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
-	// Wave 7 collapse (owner ruling 2026-09-23): the section is the master
-	// switch ONLY. The dead rungs' keys (embedding/clustering/labeling/
-	// embeddingModel) in existing records are simply UNREAD and DROPPED by
-	// this reconstruction — the migration story: the next graph-section
-	// write (PUT is replace-whole) persists the collapsed shape, and no
-	// active code ever looks at the stale fields.
+	// Dead keys in older records (embedding/clustering/labeling/
+	// embeddingModel) are UNREAD and DROPPED by this reconstruction: the
+	// next graph-section write (PUT is replace-whole) persists the clean
+	// shape, and no active code ever looks at the stale fields.
 	//
-	// extractionChunkTokens (extraction-UX redesign, 2026-09-24): the chunk
-	// budget — clamp-never-reject (the bd68486 discipline): a finite
+	// extractionChunkTokens: the chunk budget — clamp-never-reject: a finite
 	// positive number floors to EXTRACTION_CHUNK_TOKENS_FLOOR (fractions
 	// floor to integers), anything else drops to the factory default at
 	// resolution. A disk record below the floor (older app, hand edit)
@@ -358,7 +344,7 @@ function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
 /** clamp-never-reject (the sanitizer's discipline): a finite positive
  *  number floors to COMPACTION_THRESHOLD_FLOOR, anything else drops (the
  *  factory default resolves at read time). Exported for the PUT parser's
- *  reject-with-rationale (the graph chunk-budget precedent). */
+ *  reject-with-rationale. */
 export const COMPACTION_THRESHOLD_FLOOR = 32_000;
 
 function sanitizeCompaction(raw: Record<string, unknown>): CompactionSettings {
@@ -398,11 +384,10 @@ export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 		}
 	}
 	// Unknown top-level keys ride along untouched (forward-compat). Known-
-	// DEAD keys are stripped instead of riding: `chat` (the old default-
-	// settings section) died with per-session models (owner, 2026-09-28),
-	// and `models` (the strong/cheap/vision slots) died with the built-in
-	// sign-ins (owner, 2026-10-27) — a fossil copy on disk must never
-	// resurrect through reads (and any later write flushes it for good).
+	// DEAD keys are stripped instead of riding: `chat` (a removed default-
+	// settings section) and `models` (removed model slots) — a fossil copy
+	// on disk must never resurrect through reads (and any later write
+	// flushes it for good).
 	for (const [key, value] of Object.entries(r)) {
 		if (key === "chat" || key === "models") continue;
 		if (!(key in out)) out[key] = value;

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * THE SHARED CLOCK (plan 2026-10-28, Phase 3): one clock for every
+ * THE SHARED CLOCK: one clock for every
  * countdown on screen (the sidebar's Due soon, Home) and Home's date line.
  * It ticks only as fast as what is mounted needs:
  *  - every animation frame while a deadline in its last hour is shown

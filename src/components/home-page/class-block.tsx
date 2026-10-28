@@ -6,7 +6,7 @@ import { studiedFacts } from "@/components/overview/runway-model";
 import { CARD } from "@/components/overview/styles";
 
 /**
- * A CLASS BLOCK (Home's right column, plan 2026-10-28 Phase 3; board 6):
+ * A CLASS BLOCK (Home's right column):
  * the class name and the first line of its description, the facts studied
  * with a bar, the next deadline, then Continue (the latest lesson; "New
  * lesson" when there is none) and Open class.

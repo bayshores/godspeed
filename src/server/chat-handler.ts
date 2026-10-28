@@ -51,7 +51,7 @@ import type {CallUsage} from "../core/contracts.ts";
  * Request/Response) so tests can drive it directly with a scripted faux
  * engine — the Next route handler in src/app/api/chat is a one-line wrapper.
  *
- * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26): POST /api/chat
+ * THE INPUT-EVENTS CONTRACT: POST /api/chat
  * carries {chatId, input} — one explicit event (text / answer / verdict /
  * continue), never a client transcript. The server owns the record; this
  * module is the TURN COMPOSITION ROOT: it turns the event into native
@@ -73,7 +73,7 @@ const jobRunner = createJobRunner({
 	chatStore: stores.chatStore,
 	jobStore: stores.jobStore,
 	deliver: deliverJobResult,
-	// Every job runs on the outside agent (owner, 2026-10-27).
+	// Every job runs on the outside agent.
 	engineFor: () => agentEngine(),
 });
 /** The app's ONE extraction pipeline instance — both front doors share it:
@@ -81,15 +81,15 @@ const jobRunner = createJobRunner({
  *  (/api/graph/import) hit the same single-flight registry. */
 export const extraction = createExtractionPipeline({
 	...stores,
-	// Classes wave (2026-10-26): a lesson's facts land in ITS class's graph.
+	// A lesson's facts land in ITS class's graph.
 	graphStoreForChat,
-	// Topics (redesign 2026-10-27): a run that wrote a CLASS graph queues a
+	// Topics: a run that wrote a CLASS graph queues a
 	// debounced topic-grouping run for that class ("No class" has none).
 	onGraphWritten: (store) => {
 		const scope = scopeOfGraphStore(store);
 		if (typeof scope === "string") scheduleTopicGrouping(scope);
 	},
-	// Every stage runs on the outside agent (owner, 2026-10-27).
+	// Every stage runs on the outside agent.
 	engineFor: () => agentEngine(),
 });
 
@@ -147,20 +147,18 @@ export async function handleChatInput(
 		return Response.json({ error: "Unknown chat" }, { status: 404 });
 	}
 
-	// The outside agent is the only model (owner, 2026-10-27): no model or
+	// The outside agent is the only model: no model or
 	// connection gate. With no agent connected the turn simply waits in the
 	// agent queue until one polls (the UI shows "Waiting for your agent").
 	const effective = effectiveSettings();
 
-	// THE COMPACTION GATE (owner round 14, 2026-10-05 — the structural
-	// ruling: NOTHING model-facing for this chat interleaves with a
-	// running compaction): await any in-flight compaction (the settle
-	// kick usually finished inside the learner's answer pause), and if
-	// the record is STILL over threshold, compact synchronously — this
-	// request waits. Skipped under tests (the extraction precedent);
-	// placement mirrors the BYOK/key gates — BEFORE appends and
-	// beginTurn, no liveness effects — and the record re-reads after
-	// because compaction appends the marker.
+	// THE COMPACTION GATE: NOTHING model-facing for this chat interleaves
+	// with a running compaction. Await any in-flight compaction (the settle
+	// kick usually finished inside the learner's answer pause), and if the
+	// record is STILL over threshold, compact synchronously — this request
+	// waits. Skipped under tests (the extraction precedent). It runs BEFORE
+	// appends and beginTurn, so it has no liveness effects, and the record
+	// re-reads after because compaction appends the marker.
 	const conversationEngine = agentEngine();
 	const modelIdForCompaction = `${conversationEngine.model.provider}:${conversationEngine.model.id}`;
 	await ensureCompacted(
@@ -184,11 +182,10 @@ export async function handleChatInput(
 
 	// The input's native appends (pure; the honest 400 for an answer with no
 	// pending question call). Computed BEFORE beginTurn so a refused input
-	// leaves no liveness effects; read against the CURRENT record. Wave C:
-	// the idle wake carries EVERY queued marker (steerDelivered filters a
-	// re-fire of an already-landed one) - with claimSteers gone, this wake
-	// input is the only steer appender; in-run delivery rides pi's own
-	// follow-up queue and never builds an input event at all.
+	// leaves no liveness effects; read against the CURRENT record. The idle
+	// wake carries EVERY queued marker (steerDelivered filters a re-fire of an
+	// already-landed one) - this wake input is the only steer appender; in-run
+	// delivery rides pi's own follow-up queue and never builds an input event.
 	let appends;
 	try {
 		appends =
@@ -202,7 +199,7 @@ export async function handleChatInput(
 		throw err;
 	}
 
-	// THE [Today] NOTE (plan 2026-10-28): when the lesson has none yet, the
+	// THE [Today] NOTE: when the lesson has none yet, the
 	// day changed, the open deadlines changed, or a compaction cut the last
 	// one, a fresh note goes right before the learner's message. Appended
 	// only, so the outside agent still gets just the new tail. Learner
@@ -213,16 +210,15 @@ export async function handleChatInput(
 		if (note) appends = [...appends.slice(0, -1), note, ...appends.slice(-1)];
 	}
 
-	// THE PARALLEL-QUESTION GATE (owner, 2026-10-03 — the deepseek parallel
-	// batch incident): an answer that leaves a SIBLING question dangling
-	// defers its wake. The dock advances to the next question (the client's
-	// optimistic result + record-changed carry the view); the LAST answer
-	// fires the one reaction turn with every result ADJACENT to its calling
-	// assistant message — the provider shape law (a tool result appended
-	// after an intervening assistant message is rejected, which stranded
-	// the sibling question permanently pre-fix). Nothing else can generate
-	// while a question dangles (job wakes wait, continuation folds refuse,
-	// the composer gates), so adjacency holds by construction.
+	// THE PARALLEL-QUESTION GATE: an answer that leaves a SIBLING question
+	// dangling defers its wake. The dock advances to the next question (the
+	// client's optimistic result + record-changed carry the view); the LAST
+	// answer fires the one reaction turn with every result ADJACENT to its
+	// calling assistant message — the provider shape law (a tool result
+	// appended after an intervening assistant message is rejected, which
+	// would strand the sibling question). Nothing else can generate while a
+	// question dangles (job wakes wait, continuation folds refuse, the
+	// composer gates), so adjacency holds by construction.
 	if (input.type === "answer" && danglingQuestionOf([...record.messages, ...appends]) !== null) {
 		const merged = [...record.messages, ...appends];
 		try { stores.chatStore.saveMessages(chatId, merged); }
@@ -245,7 +241,7 @@ export async function handleChatInput(
 	// Write-ahead persistence: the input's native appends go on disk BEFORE
 	// the turn starts - the learner's answer is durable the instant the
 	// request arrives, and any remount, second tab, or server crash reads
-	// truth instead of the pre-answer record. (Wave C: the wake's markers
+	// truth instead of the pre-answer record. (The wake's markers
 	// ride this same write-ahead - the pump de-queued them at fire, so this
 	// is the ONLY copy ever appended.)
 	const merged = [...record.messages, ...appends];
@@ -265,7 +261,7 @@ export async function handleChatInput(
 		console.error(`[chat ${chatId}] input visibility bookkeeping failed:`, err);
 	}
 
-	// MONEY CHANNEL (wave 4): one collector per request, fed by the agent's
+	// MONEY CHANNEL: one collector per request, fed by the agent's
 	// message_end events. Every model call's usage lands in the chat record's
 	// append-only turns log at onFinish — idempotent per turn id.
 	const turnUsageId = crypto.randomUUID();
@@ -291,35 +287,34 @@ export async function handleChatInput(
 	const teaching = hasProbeDone(merged);
 	// (Built once above the compaction gate; reused verbatim.)
 	const engine = conversationEngine;
-	// Provider-qualified stamp (model slots wave): matches the price table's
+	// Provider-qualified stamp: matches the price table's
 	// provider:id keys.
 	const modelId = `${engine.model.provider}:${engine.model.id}`;
 	// Tests inject a factory: the agent is stateless per turn, so each
 	// request builds a fresh one off the record — the factory mirrors that
-	// seam exactly. Wave B: the record IS the agent state (native messages;
+	// seam exactly. The record IS the agent state (native messages;
 	// the record's id field strips at the wire in toLlmMessages).
-	// CROSS-STREAM SEAM (P2 reconciliation, 2026-09-19): `toolToggles`
-	// rides the build opts as the user-level DELTA map (absent key =
-	// enabled). The definitive toggleable set is TOGGLEABLE_TOOLS — the
-	// sub-agent JOB tools (research/demo/visual/pdf; adjudicated with the
-	// user: quiz/ask/fs/plan/probe_done are always-on).
+	// CROSS-STREAM SEAM: `toolToggles` rides the build opts as the user-level
+	// DELTA map (absent key = enabled). The definitive toggleable set is
+	// TOGGLEABLE_TOOLS — the sub-agent JOB tools (research/demo/visual/pdf;
+	// quiz/ask/fs/plan/probe_done are always-on).
 	const agentOpts: AgentBuildOptions = {
 		engine,
 		messages: asAgentMessages(merged),
 		onUsage: collectUsage,
 		toolToggles: effective.agent.tools,
 		chatId,
-		// The prompt-override switches (P2, 2026-09-19): same resolution
+		// The prompt-override switches: same resolution
 		// point as the tool delta — the agent layer composes the system
 		// prompt fresh per turn, swapping in any enabled override segments.
 		promptSwitches: effective.agent.prompts,
 	};
-	// PRACTICE BRANCH (owner design, 2026-10-04): a kind:"practice"
+	// PRACTICE BRANCH: a kind:"practice"
 	// session builds the practitioner from turn 1 — no prober→teacher
 	// split, no plan/question/job tools; the whole registry is
 	// problem + conclude. buildAgent stays honored (the test seam is
 	// uniform across kinds).
-	// CLASSES WAVE (owner-approved 2026-10-26): the lesson's class scope.
+	// CLASS SCOPE: the lesson's class.
 	// Writes (extraction, practice targets) stay in its OWN graph; the map
 	// readers see every class (reads may cross classes, writes never do);
 	// read_class serves its live card (lessons in a class only).
@@ -344,14 +339,14 @@ export async function handleChatInput(
 					{
 						chatId,
 						chatStore: stores.chatStore,
-						// TARGET VALIDATION (owner round 9): the practice tools read the
+						// TARGET VALIDATION: the practice tools read the
 						// WHOLE graph fresh per pose — targets validate against every
 						// proposition, not just the session's picks (pickless sessions
 						// and future graph-tools poses stay valid).
-						// Classes wave: targets are the lesson's OWN class graph
-						// (owner ruling: writes never cross classes).
+						// Targets are the lesson's OWN class graph (writes never cross
+						// classes).
 						graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
-						// THE RARELY-NEEDED SET (owner round 10): research + pdf jobs
+						// THE RARELY-NEEDED SET: research + pdf jobs
 						// (same runner/gating as the teacher's — research honestly
 						// absent when no engine is live) and the map readers behind
 						// the SAME settings gate as the prober's.
@@ -375,7 +370,7 @@ export async function handleChatInput(
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
 						...(classCard ? { classCard, todayNote } : {}),
-						// The registry drop's signal (2026-09-20): no live engine
+						// The registry drop's signal: no live engine
 						// = no research tool in the teacher's registry.
 					},
 					agentOpts,
@@ -385,12 +380,11 @@ export async function handleChatInput(
 						chatId,
 						chatStore: stores.chatStore,
 						deliver: (steer) => void deliverJobResult(steer),
-						// Fix wave (2026-09-20): the prober carries research + pdf
-						// dispatch (owner ruling — phase-omnipresent), so its ctx
+						// The prober carries research + pdf dispatch too, so its ctx
 						// needs the same job wiring as the teacher's.
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						// The map reader (wave 7): the prober reads the learner's
+						// The map reader: the prober reads the learner's
 						// knowledge graph through tools when the gate opens —
 						// graph master switch AND the agent.graphTools toggle.
 						...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
@@ -403,28 +397,26 @@ export async function handleChatInput(
 	// transcript, not the money channel); when it's ours, usage flows through
 	// the factory's subscription (wired above via onUsage).
 	try {
-		// THE TURN AS A BACKGROUND OBJECT (owner ruling, 2026-09-25):
-		// runPiTurn executes decoupled from this response — the POST stream
-		// is just the FIRST subscriber (a view). A client disconnect can no
-		// longer abort the turn; the remote kill is the abort channel, and
-		// late views reattach via GET /api/chats/[id]/stream.
-		// Wave C (owner correction, 2026-09-26 — steering): register the live
-		// agent BEFORE runPiTurn — the loop's start steering-poll drains the
-		// queue SYNCHRONOUSLY inside that call, so a later registration would
-		// miss it. Registration also steers any pending registry markers into
-		// this run: a marker parked behind a just-answered quiz rides THIS
-		// run's first LLM call (the native replacement for continuation
-		// coalescing). Settlement still cannot beat the flow below: it needs
-		// a streamed response, which never happens inside the constructor.
+		// THE TURN AS A BACKGROUND OBJECT: runPiTurn executes decoupled from
+		// this response — the POST stream is just the FIRST subscriber (a view).
+		// A client disconnect cannot abort the turn; the remote kill is the abort
+		// channel, and late views reattach via GET /api/chats/[id]/stream.
+		// Steering: register the live agent BEFORE runPiTurn — the loop's start
+		// steering-poll drains the queue SYNCHRONOUSLY inside that call, so a later
+		// registration would miss it. Registration also steers any pending
+		// registry markers into this run: a marker parked behind a just-answered
+		// quiz rides THIS run's first LLM call. Settlement still cannot beat the
+		// flow below: it needs a streamed response, which never happens inside
+		// the constructor.
 		registerLiveAgent(chatId, constructed, input.type !== "steers" && input.type !== "continue",
 			input.type === "steers" ? new Set(appends.map((message) => message.id)) : undefined);
 		const handle = runPiTurn({
 			agent: constructed,
-			// The coalescing window seam (COMPACTION LAW, 2026-10-09): tests
+			// The coalescing window seam (COMPACTION LAW): tests
 			// tighten it via LH_UPDATE_FLUSH_MS; production rides the 100ms
 			// default in ui-stream.
 			...(process.env.LH_UPDATE_FLUSH_MS ? { updateFlushMs: Number(process.env.LH_UPDATE_FLUSH_MS) } : {}),
-			// THE LACAN FIX (2026-10-04): seed the uniquifier with every
+			// THE LACAN FIX: seed the uniquifier with every
 			// tool-call id the record already holds — a provider that resets
 			// ids per response (DeepSeek) then gets fresh unique ids for this
 			// turn's calls at the wire boundary, on the wire, in the record,
@@ -454,7 +446,7 @@ export async function handleChatInput(
 				settleSteers(chatId, persisted, true, constructed);
 			},
 			onFinish: (turnMessages, isAborted) => {
-				// Wave B: the record write is the agent's own final state —
+				// The record write is the agent's own final state —
 				// the new messages are the slice past the merged base.
 				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, turnMessages, isAborted);
 				noteSteersDurable(chatId, stores.chatStore.getChat(chatId)?.messages ?? stamped);
@@ -471,15 +463,14 @@ export async function handleChatInput(
 						steps,
 					});
 				}
-				// GRAPH GATE (settings-storage wave, 2026-09-19): the write channel —
+				// GRAPH GATE: the write channel —
 				// extraction, its auditor — dies with the master switch.
-				// PRACTICE (owner, 2026-10-04): practice sessions write nothing —
-				// no extraction, no graph, no coverage (v1: the session itself
+				// PRACTICE: practice sessions write nothing —
+				// no extraction, no graph, no coverage (the session itself
 				// is the deliverable).
 				if (record.kind !== "practice" && extractionEnabled(effective.graph)) {
-					// Fresh per-turn read of the graph section's chunk budget
-					// (extraction-UX redesign, 2026-09-24): the trigger compares
-					// against it and the pipeline's batches share it.
+					// Fresh per-turn read of the graph section's chunk budget: the
+					// trigger compares against it and the pipeline's batches share it.
 					triggerExtraction(
 						{ chatStore: stores.chatStore, graphStore: graphStoreFor(record.classId ?? null) },
 						extraction,
@@ -487,7 +478,7 @@ export async function handleChatInput(
 						effective.graph.extractionChunkTokens,
 					);
 				}
-				// PARKED DISMISSAL (owner, 2026-10-04): a dismissal that arrived
+				// PARKED DISMISSAL: a dismissal that arrived
 				// mid-turn was parked by the dismiss route (202); now that
 				// persistTurn has landed the turn's messages, apply it against
 				// real truth — BEFORE endTurn, so "turn-settled" guarantees a
@@ -497,23 +488,22 @@ export async function handleChatInput(
 				// LAST: a poller that sees not-in-flight must read an already-persisted
 				// record — endTurn only after persistTurn has done its job.
 				endTurn(chatId);
-				// And only then does the turn stop being a running object
-				// (background-turn wave, 2026-09-25): a reattach that finds
-				// nothing must find the persisted record current — the same
-				// ordering rule as endTurn.
+				// And only then does the turn stop being a running object: a
+				// reattach that finds nothing must find the persisted record current —
+				// the same ordering rule as endTurn.
 				unregisterTurn(chatId);
-				// Wave C steer settlement: the live agent is dead (no more
+				// Steer settlement: the live agent is dead (no more
 				// followUp handoffs) - reconcile the steer registry against
 				// what this run actually persisted (in-run injections
 				// resolve; stranded markers return to pending), then let
 				// the pump take any stragglers down the idle wake.
 				unregisterLiveAgent(chatId);
 				settleSteers(chatId, stamped, false, constructed);
-				// Composer steers (2026-10-03): delivered ids dropped, stranded
+				// Composer steers: delivered ids dropped, stranded
 				// ones stay parked for the chat's next run (the registry is the
 				// stranding safety net — the agent's undrained copy died above).
 				reconcileUserSteers(chatId, stamped);
-				// THE SETTLE KICK (owner round 14): the turn settled — if the
+				// THE SETTLE KICK: the turn settled — if the
 				// projection is now over threshold, the summary starts in the
 				// background, INSIDE the learner's reading/answering pause
 				// (question/problem poses end runs, so this moment is always a
@@ -550,21 +540,19 @@ export async function handleChatInput(
 		// runPiTurn call is race-free: the agent loop only ticks in later
 		// microtasks, so settle (and thus unregister) cannot beat us here.
 		registerTurn(chatId, handle);
-		// CONNECTION DIET B (owner, 2026-10-10 — the parallel-session freeze
-		// postmortem): the POST no longer holds the turn's SSE stream open for
-		// its whole duration. It acknowledges acceptance and CLOSES; the
-		// submitter attaches through GET /api/chats/[id]/stream — the same
-		// universal reattach wire a returning visitor uses. The browser's
-		// 6-connections-per-origin pool is the scarce resource: a submission
-		// must cost zero permanently-held slots beyond the one live view. The
-		// turn itself is a server-side process (ruling 2026-09-25) — it never
+		// The POST does not hold the turn's SSE stream open: it acknowledges
+		// acceptance and CLOSES; the submitter attaches through GET
+		// /api/chats/[id]/stream — the same universal reattach wire a returning
+		// visitor uses. The browser's 6-connections-per-origin pool is the scarce
+		// resource: a submission must cost zero permanently-held slots beyond the
+		// one live view. The turn itself is a server-side process — it never
 		// needed this connection, only a view did.
 		return Response.json({ ok: true });
 	} catch (err) {
 		// The stream never started, so no onFinish will fire — clear the registry
 		// or a malformed request would lock the chat until the TTL eviction.
 		endTurn(chatId);
-		// Wave C: the live-agent registration (if it happened) dies with the
+		// The live-agent registration (if it happened) dies with the
 		// turn here too - nothing was handed (the loop never ticked).
 		unregisterLiveAgent(chatId);
 		console.error(`[chat ${chatId}] turn failed to start:`, err);

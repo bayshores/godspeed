@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { ChatListItem } from "@/core";
 
 /**
- * ONE LESSON ROW (redesign 2026-10-27): the title (14.5px), then a short
+ * ONE LESSON ROW: the title (14.5px), then a short
  * meta line — "now", "5m", "1d", or "Working…" while the teacher writes.
  * A 6×6 white square in front of the meta means the lesson is waiting
  * for the learner's answer; hovering (or focusing) the row then explains
@@ -101,7 +101,7 @@ interface SessionRowProps {
 	kbdSelected?: boolean;
 	/** Right-click opens the lesson menu. */
 	onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>, chat: ChatListItem) => void;
-	/** A lesson that just appeared rises in once (motion wave). */
+	/** A lesson that just appeared rises in once. */
 	fresh?: boolean;
 }
 

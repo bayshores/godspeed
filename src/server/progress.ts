@@ -1,8 +1,7 @@
 /**
- * PROGRESS — the server half of GET /api/progress (redesign plan,
- * owner-approved 2026-10-27): reads one class scope's graph, topic
- * snapshot, files, deadlines and lessons, and hands them to the pure
- * derivation (core/progress.ts deriveProgress). Nothing is written.
+ * PROGRESS — the server half of GET /api/progress: reads one class scope's
+ * graph, topic snapshot, files, deadlines and lessons, and hands them to the
+ * pure derivation (core/progress.ts deriveProgress). Nothing is written.
  */
 import type { ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";

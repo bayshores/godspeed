@@ -1,5 +1,5 @@
 /**
- * /api/classes/[id]/deadlines (plan 2026-10-28; was /exams).
+ * /api/classes/[id]/deadlines
  *  GET  — the class's deadlines, soonest due first
  *  POST — add one { kind, name, date: "YYYY-MM-DD", time?: "HH:MM", fileIds?: string[] }
  */

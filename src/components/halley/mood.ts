@@ -1,5 +1,5 @@
 /**
- * Halley's mood from the app's state (plan 2026-10-28, Phase 4). Pure.
+ * Halley's mood from the app's state. Pure.
  *
  * A brief reaction (a graded answer, a deadline under an hour away, a
  * failed job) shows on top of everything for a moment. Otherwise:

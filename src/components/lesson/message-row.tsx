@@ -72,7 +72,7 @@ interface MessageRowProps {
 }
 
 /**
- * ONE transcript row (redesign, Phase 7): memoized, so while a reply
+ * ONE transcript row: memoized, so while a reply
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */

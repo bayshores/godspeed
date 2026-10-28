@@ -1,5 +1,5 @@
 /**
- * /api/classes/[id]/deadlines/[deadlineId] (plan 2026-10-28; was /exams).
+ * /api/classes/[id]/deadlines/[deadlineId]
  *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, done? }
  *  DELETE — remove the deadline
  */

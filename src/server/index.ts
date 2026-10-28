@@ -15,7 +15,7 @@ export * from "./progress.ts";
 export { NotesImportError } from "../agent/subagents/extraction.ts";
 export * from "./jobs.ts";
 export * from "./stores.ts";
-// The settings record + prompt overrides (settings-storage wave, 2026-09-19).
+// The settings record + prompt overrides.
 // The *Record aliases keep the src/app/api/settings routes explicit about which
 // seam they touch (the raw record, not the chat-section convenience view).
 export {

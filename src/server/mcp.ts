@@ -4,16 +4,15 @@
  * guarded by a bearer token (data/mcp-token — always present, shown in
  * Settings → Outside agents).
  *
- * Two kinds of tools:
+ * Three kinds of tools:
  *  - THE WORK LOOP (wait_for_work / respond): every lesson turn, helper
  *    job, and graph-fact run parks its model request in agent-bridge.ts;
  *    the agent takes it, answers it, repeats.
  *  - DIRECT ACCESS: list/read lessons, search the knowledge graph, import
  *    notes, start a lesson.
- *  - CLASSES (classes wave, owner-approved 2026-10-26): agents set up the
- *    learner's classes — create/edit/archive, add files, link folders,
- *    read them, start lessons inside them. Deleting a class is app-only
- *    on purpose (owner ruling): no tool here can wipe a class.
+ *  - CLASSES: agents set up the learner's classes — create/edit/archive,
+ *    add files, link folders, read them, start lessons inside them.
+ *    Deleting a class is app-only on purpose: no tool here can wipe a class.
  */
 import { timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -76,10 +75,8 @@ Classes: the learner can organize learning by class (a university course). Each 
 
 // ─── Class arguments ────────────────────────────────────────────────────────
 
-/** A tool's class_id argument: absent / "none" = No class; otherwise the
- *  class must exist. A string = the error to report. */
-/** A tool's class_id argument, checked: the scope, or the refusal text.
- *  (A class id is itself a string, so the two are kept apart.) */
+/** A tool's class_id argument, checked: absent / "none" = No class;
+ *  otherwise the class must exist. Returns the scope or the refusal text. */
 function classArg(classId: string | undefined): { scope: ClassScope } | { error: string } {
 	const scope = parseClassScope(classId);
 	if (scope === undefined) return { error: `"${classId}" is not a class id. Use list_classes.` };

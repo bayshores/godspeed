@@ -1,23 +1,20 @@
 /**
- * THE SETTINGS DIALOG (settings-app wave, 2026-09-20): the thin settings
- * page graduated into the designed surface — a centered modal over
- * everything, left section nav + one scrolling content column.
+ * THE SETTINGS DIALOG: a centered modal over everything, left section nav
+ * + one scrolling content column.
  *
- * Owner decisions this wave:
  * - Dialog, not a page: opens over whatever screen you're on (the payoff:
  *   appearance edits restyle the chat LIVE behind the dialog). Escape,
  *   backdrop, and ✕ all close. Modal-only — /settings redirects, so
  *   nothing links into a dead surface.
- * - Left section nav (restyled 2026-10-27 to docs/design/exports/settings.html):
- *   920×720, "Settings" over icon + name rows (the open one lit), the
- *   section's title and ✕ over the scrolling content.
+ * - Left section nav (docs/design/exports/settings.html): 920×720,
+ *   "Settings" over icon + name rows (the open one lit), the section's
+ *   title and ✕ over the scrolling content.
  * - The dialog is surface-agnostic by construction: the sections talk to
  *   /api/settings* and localStorage only, so this shell can be re-mounted
- *   as a true OS window in the Electron round with near-zero churn.
+ *   as a true OS window with near-zero churn.
  *
- * The record + the single `write` seam moved here from the thin page:
- * one record instance for the whole dialog, sections write through it,
- * switching sections never refetches.
+ * One record instance for the whole dialog, sections write through the
+ * single `write` seam, switching sections never refetches.
  */
 
 import {
@@ -51,9 +48,9 @@ import { AppearanceSection, GraphSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
 import { AGENTS_SECTION_HINT, AgentsSection } from "./agents-section.tsx";
 
-/** The left nav, in the redesign's order (docs/design/exports/settings.html).
+/** The left nav, in the design's order (docs/design/exports/settings.html).
  *  A section's hint shows as a tooltip on the info icon by its title.
- *  The old Graph section's rows live in General now. */
+ *  The graph settings rows live in General. */
 const SECTIONS = [
 	{ id: "agents", label: "Outside agents", icon: PlugIcon, hint: AGENTS_SECTION_HINT },
 	{ id: "agent", label: "Agent", icon: BotIcon },
@@ -64,15 +61,15 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 const DEFAULT_SECTION: SectionId = "agents";
 
-/** A requested section id → the section that shows it ("graph" moved
- *  into General; unknown ids land on the default). */
+/** A requested section id → the section that shows it ("graph" lives
+ *  in General; unknown ids land on the default). */
 export function sectionFor(id: string | undefined): SectionId {
 	if (id === "graph") return "general";
 	return SECTIONS.some((s) => s.id === id) ? (id as SectionId) : DEFAULT_SECTION;
 }
 
 /** The modal (portal + backdrop + body). Loaded on demand by
- *  settings-dialog-provider.tsx (speed plan, 2026-10-27): this module and
+ *  settings-dialog-provider.tsx: this module and
  *  every section stay out of each page's startup code. `section` is the
  *  requested id; sectionFor resolves it. */
 export function SettingsDialog({
@@ -86,7 +83,7 @@ export function SettingsDialog({
 }) {
 	const initialSection = sectionFor(section);
 	const backdropDismiss = useBackdropDismiss(onClose);
-	// Exit motion (motion wave, owner 2026-10-26): mounted through its fade-out.
+	// Exit motion: mounted through its fade-out.
 	const presence = usePresence(open);
 	if (!presence.mounted) return null;
 	// Plain dim backdrop (no blur — nothing decorative); a genuine
@@ -114,7 +111,7 @@ export function SettingsDialogBody({
 }: {
 	onClose: () => void;
 	initialSection?: SectionId;
-	/** Motion (motion wave): "closed" while the exit plays — Esc is free. */
+	/** "closed" while the exit plays — Esc is free. */
 	state?: "open" | "closed";
 }) {
 	const { onAppearanceChange } = useAppearance();
@@ -125,8 +122,8 @@ export function SettingsDialogBody({
 	// MenuShell open-count — drives the content column's scroll lock.
 	const [openMenus, setOpenMenus] = useState(0);
 	const contentRef = useRef<HTMLDivElement | null>(null);
-	// Scroll-lock (fix wave, owner ruling: the scrollbar MAY stay,
-	// scrolling must NOT happen, nothing may move): the content column
+	// Scroll-lock (the scrollbar MAY stay, scrolling must NOT happen,
+	// nothing may move): the content column
 	// keeps overflow-y-auto — the scrollbar and every width stay exactly
 	// as they are — and while any MenuShell is open, non-passive wheel +
 	// touchmove listeners on the column preventDefault. React attaches
@@ -156,9 +153,7 @@ export function SettingsDialogBody({
 	}, []);
 	const [active, setActive] = useState<SectionId>(initialSection);
 	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
-	// A deep-link fired while the dialog is ALREADY open (first exercised by
-	// the wave-6 embedding picker's "Add a provider key first…" link — the
-	// picker itself died with wave 7, the mechanism is general) changes
+	// A deep-link fired while the dialog is ALREADY open changes
 	// initialSection under our feet — follow it, or the link silently does
 	// nothing.
 	useEffect(() => {
@@ -186,7 +181,7 @@ export function SettingsDialogBody({
 		if (state === "closed") return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// THE ONE-ESC LAW (owner, keyboard round 2026-10-06): claim
+				// THE ONE-ESC LAW: claim
 				// at the document level — the window chain (abort) must
 				// not also act. One Esc, one action.
 				e.preventDefault();
@@ -308,8 +303,8 @@ export function SettingsDialogBody({
 				</header>
 
 				{/* Content column — one section at a time, this scrolls — and
-				    LOCKS while any MenuShell is open (owner ruling: no
-				    scrolling with a dropdown down; MenuShell announces
+				    LOCKS while any MenuShell is open (no scrolling with a
+				    dropdown down; MenuShell announces
 				    open/close, the count keeps overlap honest). The lock
 				    intercepts wheel/touch instead of hiding the scrollbar —
 				    nothing may shift when the lock engages. */}

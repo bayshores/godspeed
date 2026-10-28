@@ -1,5 +1,5 @@
 /**
- * "Ready for what's due" (Class Overview, plan 2026-10-28 Phase 3): which
+ * "Ready for what's due" (Class Overview): which
  * deadlines the runway shows, the labels around its rings and the "Most
  * needed" topic. Pure and unit-tested.
  */

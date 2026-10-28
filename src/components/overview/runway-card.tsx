@@ -9,8 +9,8 @@ import { gapLabel, joinAnd, mostNeeded, percent, ringMeta, ringTitle, runwayStop
 import { CARD, CARD_TITLE } from "./styles";
 
 /**
- * "READY FOR WHAT'S DUE" (Class Overview, plan 2026-10-28 Phase 3; board
- * 3c): a runway from Today through the next 5 open deadlines. Every stop
+ * "READY FOR WHAT'S DUE" (Class Overview): a runway from Today through
+ * the next 5 open deadlines. Every stop
  * is a 120px column on one strict grid; deadline stops are 88px rings of
  * their ready % (empty with "—" when nothing is covered). A 2px line joins
  * the stops through their centers, stopping 10px short of each, with the

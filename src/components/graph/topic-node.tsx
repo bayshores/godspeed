@@ -1,5 +1,5 @@
 /**
- * One topic on the map (redesign plan, Phase 5): a ring sized by fact
+ * One topic on the map: a ring sized by fact
  * count, an arc + glow colored by % right (gray track only when
  * untested), the fact count in the middle, and the name + score under it.
  * Memoized — hovering one topic redraws only the topics whose state

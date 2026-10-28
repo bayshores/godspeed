@@ -9,7 +9,7 @@ import { StepBar } from "./step-bar";
 import type { useTitleRename } from "./use-title-rename";
 
 /**
- * THE LESSON TOP BAR (redesign, lesson layout B): a 56px window-drag band
+ * THE LESSON TOP BAR: a 56px window-drag band
  * over the reading pane and the Your-turn panel.
  * - Teaching with a plan: the plan step bar.
  * - Practice: the lesson name, one block per problem and "2 of 3 solved".

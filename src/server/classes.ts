@@ -1,5 +1,5 @@
 /**
- * CLASS ORCHESTRATION (classes wave, owner-approved 2026-10-26).
+ * CLASS ORCHESTRATION.
  *
  * The cross-store choreography behind every class action: the routes
  * (src/app/api/classes/*), the MCP tools, and the folder scanner all come
@@ -10,10 +10,10 @@
  *  - add, re-kind, retry, remove files; link / unlink a folder
  *  - the FILE PIPELINE: file → text (class-files.ts, transcribe.ts) → the
  *    existing notes pipeline into THE CLASS'S OWN graph. "study" files
- *    become facts; "info" files never do (owner ruling: per-file choice).
+ *    become facts; "info" files never do.
  *    A changed file rebuilds its facts; a removed one loses them.
- *  - the linked-folder scan: new files are added as study material
- *    (owner ruling: auto-add), every 60 s while the app runs
+ *  - the linked-folder scan: new files are added as study material,
+ *    every 60 s while the app runs
  *  - moving a lesson between classes (its facts leave the old graph and
  *    are rebuilt in the new one)
  *
@@ -84,9 +84,9 @@ function transcriptPathOf(classId: string, fileId: string): string {
 	return path.join(stores.classStore.filesDir(classId), "transcripts", `${fileId}.txt`);
 }
 
-/** Saved PDF text (speed plan, owner 2026-10-27): the extracted text of one
- *  version of a file, named by its content fingerprint, so a relaunch that
- *  re-processes an unfinished file skips re-reading an unchanged PDF. */
+/** Saved PDF text: the extracted text of one version of a file, named by
+ *  its content fingerprint, so a relaunch that re-processes an unfinished
+ *  file skips re-reading an unchanged PDF. */
 function isDocumentFile(name: string): boolean {
 	return (DOCUMENT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
@@ -184,7 +184,7 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 	return { ok: true, value: { lessonsRemoved } };
 }
 
-// ─── deadlines (plan 2026-10-28; exams before that) ─────────────────────────
+// ─── deadlines ──────────────────────────────────────────────────────────────
 // Added by the learner (Edit class) or an outside agent from the syllabus
 // (MCP add_class_deadline). The store validates; these map its refusals.
 
@@ -393,9 +393,9 @@ export function unlinkFolder(classId: string): ClassOutcome<ClassRecord> {
 }
 
 /**
- * One scan of a class's linked folder (owner rulings: new files are added
- * as study material; edited files rebuild; deleted files lose their
- * facts). Sync except for the queued processing.
+ * One scan of a class's linked folder: new files are added as study
+ * material; edited files rebuild; deleted files lose their facts. Sync
+ * except for the queued processing.
  */
 export function scanLinkedFolder(classId: string): void {
 	const record = stores.classStore.getClass(classId);
@@ -545,8 +545,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		return;
 	}
 
-	// REBUILD (owner ruling: edited files rebuild automatically): the old
-	// version's facts go first — shared facts survive by the deletion law.
+	// REBUILD: the old version's facts go first — shared facts survive by the deletion law.
 	const sourceId = sourceIdFor(classId, fileId);
 	if (stores.classStore.getClass(classId) === null) return;
 	deleteSourceTraces(store, sourceId);
@@ -595,8 +594,7 @@ export function startClassScanner(): void {
 	}, 60_000);
 	G.__lhClassScanTimer.unref?.();
 	// App start: catch up on files left pending by a previous run — 10 s
-	// later (speed plan, owner 2026-10-27), so it never competes with the
-	// window's first load.
+	// later, so it never competes with the window's first load.
 	setTimeout(() => {
 		try {
 			scanAllClasses();

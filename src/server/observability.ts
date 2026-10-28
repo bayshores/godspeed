@@ -1,21 +1,21 @@
 /**
- * Server-side observability surface — the barrel-approved exports the
- * transport layer (src/app/api/*) reads for background-process status.
+ * Server-side observability surface — what the transport layer
+ * (src/app/api/*) reads for background-process status.
  *
- * THE ACTIVITY FEED (2026-09 observability design): the bottom-right dock is
+ * THE ACTIVITY FEED: the bottom-right dock is
  * visible in every view, so it needs the complete running-process picture —
  * sub-agent jobs across ALL chats (not just the open one) plus the global
- * extraction runs — in one poll. The dock is BACKGROUND PROCESSES ONLY
- * (user decision, 2026-09-11): teaching sessions already have their own
- * observability, so in-flight teacher turns are deliberately NOT in the
- * feed. /api/jobs stays chat-scoped untouched: it is the transcript
+ * extraction runs — in one poll. The dock is BACKGROUND PROCESSES ONLY:
+ * teaching sessions already have their own observability, so in-flight
+ * teacher turns are deliberately NOT in the feed. /api/jobs stays
+ * chat-scoped: it is the transcript
  * machinery's poll and carries turnInFlight for the re-attach seam
  * (chat-transport); the dock is a different consumer with a different
  * shape, served here. Single sources of truth are unchanged: the job
  * store and the pipeline registry — this file only composes them.
  *
  * The extraction side of the dock's controls also surfaces here:
- * abortExtraction (true mid-run cancellation, user-decided) is exported
+ * abortExtraction (true mid-run cancellation) is exported
  * from the pipeline's module for the abort route to call.
  */
 
@@ -31,7 +31,7 @@ export { abortExtraction, extractionStatuses } from "../agent/subagents/extracti
 export { chatStore } from "../store/chats.ts";
 
 /** A running sub-agent job, joined with its chat's title for the dock.
- *  contextLimit (context-meter amendment, owner 2026-09-23): the model's
+ *  contextLimit: the model's
  *  live catalog limit, resolved SERVER-SIDE from pi's catalog — the dock
  *  reads it off the feed instead of any client-side table. Null when the
  *  model is missing from the catalog (the blob then renders no context
@@ -43,7 +43,7 @@ interface ActivityJob extends JobRecord {
 }
 
 /** One extraction-pipeline JOB (title joined), oldest first. Per-chunk
- *  jobs (owner, 2026-09-28): a multi-chunk source owns SEVERAL rows — id
+ *  jobs: a multi-chunk source owns SEVERAL rows — id
  *  is the unique job key (source id, or "src#i"), chatId stays the SOURCE
  *  id (abort + chat links are source-scoped), and the title carries the
  *  "· i/N" part suffix. */
@@ -56,16 +56,6 @@ interface ActivityExtraction {
 	startedAt: number;
 }
 
-/** The dock's whole world in one payload: every running process, every view.
- *  Jobs are RUNNING-ONLY — finished jobs belong to their chat's transcript;
- *  the blob disappears when the process ends. Costs are joined here through
- *  the server-side Pi pricing adapter; clients never reconstruct rates. */
-/** The dock's whole world + the graph's version stamp (wave 6 session
- *  deletion): the payload carries graphRevision (max mtime across the
- *  graph data files — see server/graph.ts) so any view can detect "the
- *  graph changed underneath me" (a merge landed, a deletion purged) and
- *  refetch clusters/layout. Reads never move it; the DELETE response
- *  returns the same stamp. */
 /** A job that ended with an error lately (Halley's @_@ and the panel's
  *  error line). */
 interface ActivityFailedJob {
@@ -81,6 +71,13 @@ interface ActivityFailedJob {
 /** Failed jobs stay in the feed this long. */
 const FAILED_JOB_WINDOW_MS = 10 * 60_000;
 
+/** The dock's whole world in one payload: every running process, every view.
+ *  Jobs are RUNNING-ONLY — finished jobs belong to their chat's transcript;
+ *  the blob disappears when the process ends. Costs are joined here through
+ *  the server-side Pi pricing adapter; clients never reconstruct rates.
+ *  graphRevision (max mtime across the graph data files — see
+ *  server/graph.ts) lets any view detect "the graph changed underneath me"
+ *  and refetch. Reads never move it. */
 export function activityFeed(now = Date.now()): {
 	jobs: ActivityJob[];
 	extractions: ActivityExtraction[];

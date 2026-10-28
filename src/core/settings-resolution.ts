@@ -1,13 +1,13 @@
 /**
- * THE SETTINGS RESOLUTION LAYER (settings-storage wave, 2026-09-19): pure
+ * THE SETTINGS RESOLUTION LAYER: pure
  * projection of the delta record (core/settings.ts UserSettings) into
  * EffectiveSettings — every field CONCRETE, ready for consumers with no
  * delta-walking of their own.
  *
- * Resolution rule (owner decision): explicit value in the record wins;
+ * Resolution rule: explicit value in the record wins;
  * absent key resolves to the compiled factory default. There are no model
- * settings to resolve: the outside agent (MCP) is the only model (owner,
- * 2026-10-27). This module stays browser-safe/pure.
+ * settings to resolve: the outside agent (MCP) is the only model.
+ * This module stays browser-safe/pure.
  *
  * Deliberately NOT resolved here (see settings.ts module doc):
  * - tool toggles: passed through as the delta map; consumers look up by
@@ -36,13 +36,13 @@ export interface EffectiveSettings {
 		tools: Record<string, boolean>;
 		/** Delta map as stored — absent key → override off. */
 		prompts: Record<string, boolean>;
-		/** Prober graph tools (wave 7): passthrough delta as stored —
+		/** Prober graph tools: passthrough delta as stored —
 		 * absent/undefined enabled = ON; consumers use graphToolsEnabled. */
 		graphTools: { enabled?: boolean };
 	};
 	appearance: EffectiveAppearance;
 	graph: Required<GraphSettings>;
-	/** Compaction (owner round 14): resolved concrete — absent record
+	/** Compaction: resolved concrete — absent record
 	 *  section resolves to the factory 150k. */
 	compaction: Required<CompactionSettings>;
 }
@@ -80,13 +80,10 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 			},
 		},
 		graph: {
-			// Wave 7 collapse (owner ruling 2026-09-23): the master switch ONLY —
-			// the embedding/clustering/labeling rungs and the BYOK embeddingModel
-			// are gone (stale record keys are simply never read here).
 			enabled: graph.enabled ?? FACTORY_SETTINGS.graph.enabled,
-			// The chunk budget (extraction-UX redesign, 2026-09-24): absent
-			// (pre-redesign record, fresh install) resolves to the factory
-			// 4096; the sanitizer has already clamped/floored any stored value.
+			// The chunk budget: absent (older record, fresh install) resolves
+			// to the factory 4096; the sanitizer has already clamped/floored
+			// any stored value.
 			extractionChunkTokens: graph.extractionChunkTokens ?? FACTORY_SETTINGS.graph.extractionChunkTokens,
 		},
 		compaction: {
@@ -95,12 +92,11 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 	};
 }
 
-// ─── Graph channel gates (the settings wave's seam honoring) ─────────────────
+// ─── Graph channel gates ─────────────────────────────────────────────────────
 
 /**
  * The WRITE channel gate (extraction + its auditor): dies with the master
- * switch. Used by the chat-handler's post-turn trigger. (Wave 7: the master
- * switch is the ONLY graph setting left — the section collapsed.)
+ * switch. Used by the chat-handler's post-turn trigger.
  */
 export function extractionEnabled(graph: { enabled: boolean }): boolean {
 	return graph.enabled;
@@ -108,7 +104,7 @@ export function extractionEnabled(graph: { enabled: boolean }): boolean {
 
 
 /**
- * The PROBER GRAPH TOOLS gate (wave 7, owner ruling 2026-09-23): the
+ * The PROBER GRAPH TOOLS gate: the
  * toggle is an agent-capability switch (it gates tool registration), but
  * the tools only mean anything when the graph itself runs — so the
  * effective gate composes the graph master switch AND the toggle.

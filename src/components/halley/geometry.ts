@@ -1,5 +1,5 @@
 /**
- * Halley's geometry (plan 2026-10-28, Phase 4). Pure: corners and
+ * Halley's geometry. Pure: corners and
  * snapping, where to sit beside a target, the screen-edge point for an
  * off-screen target, the spring step, and the comet trail's shape.
  */

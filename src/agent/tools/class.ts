@@ -4,10 +4,9 @@ import { serverExecute } from "../tool-execute.ts";
 import { classCardText, type ClassCardDetails } from "../../core/native-messages.ts";
 
 /**
- * read_class (classes wave, owner-approved 2026-10-26): the CURRENT class
- * card of the lesson's class — name, the learner's description, and the
- * class files with the paths to open them (text with `read`, PDFs with the
- * pdf job). The lesson's opening card is a snapshot from when it started;
+ * read_class: the CURRENT class card of the lesson's class — name, the
+ * learner's description, and the class files with the paths to open them
+ * (text with `read`, PDFs with the pdf job). The lesson's opening card is a snapshot from when it started;
  * this is the live version (new files, an edited description).
  *
  * Registered only for lessons in a class (the composition root passes the

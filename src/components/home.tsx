@@ -18,8 +18,7 @@ import { useLessonStart } from "@/components/home/use-lesson-start";
 import { useLessonStep } from "@/components/home/use-lesson-step";
 
 /**
- * NEW LESSON (redesign Phase 6; at "/new" since Home took "/" on
- * 2026-10-28): where new lessons start
+ * NEW LESSON ("/new"): where new lessons start
  * (the sidebar's New lesson and Practice buttons and ⌘N open it), in the
  * active class. Teach / Practice, the topic box ("Start from facts" picks facts
  * from the chain table; Enter or "Start lesson" starts), then

@@ -55,7 +55,7 @@ import type { GraphStore } from "../core/ports.ts";
  *   only.
  */
 
-/** GLM wobble guard (owner-approved, 2026-09-26): models sometimes emit
+/** GLM wobble guard: models sometimes emit
  *  `options` as a JSON-encoded string instead of an array; pi runs this
  *  BEFORE schema validation, so a double-encoded call lands instead of
  *  bouncing back as a validation error + wasted retry turn. NOTE: pi
@@ -95,28 +95,25 @@ export const askUserQuestionTool: AgentTool<typeof askInputSchema> = {
 
 // ─── the question tools ───────────────────────────────────────────────────────
 //
-// MECHANICAL DESCRIPTIONS ONLY (owner 2026-10-03): a tool's description
-// carries what the tool DOES and how its fields work — nothing about what
-// the questions should BE. The craft (option-building, free-recall
-// grading, question roles) lives in the system prompt — a single-sourced
-// chunk both agents compose (prompts/shared/20-question-tools.md and the
-// teacher's question fragments), reversing the 2026-09-27 placement now
-// that the question family has grown (predict/check roles, future
-// quiz variants): duplicates stay honest by sharing SCHEMA ATOMS
+// MECHANICAL DESCRIPTIONS ONLY: a tool's description carries what the
+// tool DOES and how its fields work — nothing about what the questions
+// should BE. The craft (option-building, free-recall grading, question
+// roles) lives in the system prompt — a single-sourced chunk both agents
+// compose (prompts/shared/20-question-tools.md and the teacher's question
+// fragments). Duplicates stay honest by sharing SCHEMA ATOMS
 // (question-core) + PROMPT CHUNKS, and each tool declares only its
 // mechanical delta.
 //
-// ONE sanctioned exception (owner, 2026-10-12): each quiz tool's
-// description ends with a COMPLETE example call — compact, phase-correct
-// (probe carries no phase metadata; quiz leads with type+nodeId), doubling
-// as the JSON-escaping exemplar (LaTeX backslashes double inside JSON
-// strings). Placement ruling: WITH THE TOOL, beside its exact schema — a
-// shared-prompt example is phase-ambiguous (the models fumbled exactly
-// these metadata fields), per-agent prompt copies would drift. Serialized
-// from ONE canonical body so the variants cannot disagree; craft doctrine
-// stays in the prompts.
+// ONE exception: each quiz tool's description ends with a COMPLETE
+// example call — compact, phase-correct (probe carries no phase metadata;
+// quiz leads with type+nodeId), doubling as the JSON-escaping exemplar
+// (LaTeX backslashes double inside JSON strings). It sits WITH THE TOOL,
+// beside its exact schema — a shared-prompt example is phase-ambiguous
+// (the models fumbled exactly these metadata fields), per-agent prompt
+// copies would drift. Serialized from ONE canonical body so the variants
+// cannot disagree; craft doctrine stays in the prompts.
 
-/** The canonical example body (owner-approved content, 2026-10-12): a
+/** The canonical example body: a
  *  compact applied question whose fields exercise the escaping hazards —
  *  braced commands (\frac, \cos), inline and display math, newlines —
  *  while doubling as an exemplar of good craft: uniform options, stable
@@ -137,8 +134,8 @@ export const quizExampleBody = {
 
 /** The quiz mechanics every variant shares; `delta` appends the variant's
  *  own fields (its NAME among them — the probe-phase tools self-reference
- *  as probe/recall, owner 2026-10-09). All mechanics, zero doctrine — plus
- *  the one sanctioned example (above). */
+ *  as probe/recall). All mechanics, zero doctrine — plus the one example
+ *  (above). */
 function quizDescription(delta: { name: "quiz" | "probe"; nodeId: boolean; types: boolean }): string {
 	const base =
 		"Ask the learner a GRADED question with a known correct answer, then instantly grade and give feedback. " +
@@ -160,7 +157,7 @@ function quizDescription(delta: { name: "quiz" | "probe"; nodeId: boolean; types
 		delta.name +
 		", then end your turn — his answer determines the next.";
 	// Phase-correct shape: the teach example LEADS with the required pair
-	// (type, nodeId — the 2026-10-09 drop-order ruling); the probe example
+	// (type, nodeId — the fields models drop most); the probe example
 	// carries no phase metadata at all, exactly like the probe schema.
 	const example = delta.nodeId ? { type: "check" as const, nodeId: "chain-rule", ...quizExampleBody } : quizExampleBody;
 	return (
@@ -176,7 +173,7 @@ function quizDescription(delta: { name: "quiz" | "probe"; nodeId: boolean; types
  *  the GRADING CONTRACT — mechanics, not doctrine. The softer doctrine
  *  (near-miss reading, genuine gaps) lives in the shared prompt chunk.
  *  `name`: the teach tool self-references as explain, the probe variant
- *  as recall (owner 2026-10-09). */
+ *  as recall. */
 function explainDescription(name: "explain" | "recall", nodeId: boolean): string {
 	return (
 		"Ask the learner to EXPLAIN something in his own words — a graded check with NO options: he types a free-text " +
@@ -194,13 +191,12 @@ function explainDescription(name: "explain" | "recall", nodeId: boolean): string
 }
 
 /** The prober's multiple-choice quizzing tool — named `probe`, not
- *  `quiz` (owner, 2026-10-09): the probe and teach schemas differ
- *  (neither `type` nor `nodeId` exists while probing), and a shared name
- *  invited the model to carry its probe-phase call shape into teaching
- *  — the first teach quiz after plan_init dropped `nodeId` on exactly
- *  that habit (the tools_fails_2 incident). Distinct names make the
- *  phase boundary visible in the transcript itself: history written by
- *  `probe` never lies about what `quiz` requires. */
+ *  `quiz`: the probe and teach schemas differ (neither `type` nor
+ *  `nodeId` exists while probing), and a shared name invites the model to
+ *  carry its probe-phase call shape into teaching (dropping `nodeId`).
+ *  Distinct names make the phase boundary visible in the transcript
+ *  itself: history written by `probe` never lies about what `quiz`
+ *  requires. */
 export const probeQuizTool: AgentTool<typeof probeQuizInputSchema> = {
 	name: "probe",
 	label: "probe",
@@ -237,14 +233,10 @@ export function teachExplainToolFor(
 	};
 }
 
-/** The prober's free-recall variant (no nodeId — same pattern as the
- *  probe quiz). */
-/** The prober's free-recall variant — named `recall`, not `explain`
- *  (owner, 2026-10-09), for the same phase-boundary reason as `probe`:
- *  the teach explain adds `type` and `nodeId`; a shared name carried the
- *  probe call shape into teaching. Old probe-phase records keep the
- *  `explain` name and parse identically (the display seam accepts
- *  both). */
+/** The prober's free-recall variant (no nodeId) — named `recall`, not
+ *  `explain`, for the same phase-boundary reason as `probe`. Old
+ *  probe-phase records keep the `explain` name and parse identically (the
+ *  display seam accepts both). */
 export const probeExplainTool: AgentTool<typeof explainInputBase> = {
 	name: "recall",
 	label: "recall",
@@ -260,23 +252,23 @@ export const probeExplainTool: AgentTool<typeof explainInputBase> = {
 };
 
 /** The prober's registry context: the probe's own needs (probe_done —
- *  ProbeDoneContext) PLUS the job-dispatch wiring, since the owner ruling
- *  (2026-09-20) puts research + pdf in the probe phase's registry too. */
+ *  ProbeDoneContext) PLUS the job-dispatch wiring, since research + pdf
+ *  are in the probe phase's registry too. */
 export interface ProberToolContext extends ProbeDoneContext {
 	/** Creates the job record (deduped by toolCallId). */
 	jobStore: JobStore;
 	/** Fire the background runner for a freshly created job. */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** The prober's graph-map reader (wave 7): present = the two map tools
+	/** The prober's graph-map reader: present = the two map tools
 	 *  (list_sessions / list_propositions) are registered. The composition
 	 *  root passes it only when graphToolsEnabled(effective) — the graph
 	 *  master switch AND the agent.graphTools toggle (settings-resolution).
 	 *  Absent = the gate is closed, no map tools (tests drive this seam). */
 	graphStore?: GraphStore;
-	/** Cross-class map reading (classes wave, owner ruling 2026-10-26:
-	 *  reads may cross classes, writes never do) — see GraphToolContext. */
+	/** Cross-class map reading (reads may cross classes, writes never
+	 *  do) — see GraphToolContext. */
 	graphs?: GraphToolContext["graphs"];
-	/** The lesson's class card reader (classes wave): present = read_class
+	/** The lesson's class card reader: present = read_class
 	 *  is registered (lessons in a class only). */
 	classCard?: ClassToolContext["classCard"];
 	todayNote?: ClassToolContext["todayNote"];
@@ -284,7 +276,7 @@ export interface ProberToolContext extends ProbeDoneContext {
 
 /** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
  *  set + probe_done + the two phase-omnipresent job dispatch tools +
- *  (wave 7, gated) the graph-map reader. `enabled` is the resolved
+ *  (gated) the graph-map reader. `enabled` is the resolved
  *  settings seam (core/pending.ts): any tool explicitly false is dropped
  *  from the registry. probe_done stays always-on regardless — it is how
  *  the phase ENDS; a prober that can never conclude is a lockout. */
@@ -302,11 +294,11 @@ export function createProberTools(
 		jobStore: ctx.jobStore,
 		spawn: ctx.spawn,
 	});
-	// Quizzing mechanics (owner 2026-09-27): free-recall swaps the probe
-	// quiz for the probe explain — one quizzing tool at a time, whichever
-	// the settings arm. ask stays always-on. The registry keys are the
-	// PHASE names (probe/recall, owner 2026-10-09) — distinct from the
-	// teach tools so the schema boundary is visible to the model.
+	// Quizzing mechanics: free-recall swaps the probe quiz for the probe
+	// explain — one quizzing tool at a time, whichever the settings arm.
+	// ask stays always-on. The registry keys are the PHASE names
+	// (probe/recall) — distinct from the teach tools so the schema
+	// boundary is visible to the model.
 	const mechanics = quizMechanics(enabled);
 	// The armed quizzing tool, widened to the registry's heterogeneous
 	// AgentTool record BEFORE the filter (a conditional spread of two
@@ -314,30 +306,27 @@ export function createProberTools(
 	// unusable as Record<string, AgentTool<any>> downstream).
 	const quizzing: Record<string, AgentTool<any>> =
 		mechanics === "free" ? { recall: probeExplainTool } : { probe: probeQuizTool };
-	// healToolRecord (owner, 2026-10-09 — the whitehead generalization):
-	// the standard argument heal over the WHOLE registry — every tool,
-	// not just the one the latest wobble incident landed on.
+	// healToolRecord: the standard argument heal over the WHOLE registry —
+	// every tool, not just the one a past wobble landed on.
 	return healToolRecord({
 		...filterEnabledTools(
 			{
 				...quizzing,
 				ask_user_question: askUserQuestionTool,
-				// The learner-filesystem set is always-on (user-decided 2026-09,
-				// sources v1): the prober inspects and LOCATES learner-referenced
-				// files while assessing the edge. Read-only by construction.
+				// The learner-filesystem set is always-on: the prober inspects
+				// and LOCATES learner-referenced files while assessing the edge.
+				// Read-only by construction.
 				read: readTool,
 				ls: lsTool,
 				find: findTool,
 				grep: grepTool,
-				// Job dispatch in the probe phase (owner ruling, 2026-09-20):
-				// research + pdf are ALWAYS available in every phase — the
+				// Job dispatch in the probe phase: research + pdf are ALWAYS available in every phase — the
 				// prober can verify facts or read learner PDFs while assessing.
 				// demo/visual stay teach-phase-only (they need the lesson's plan
 				// context). Same user-toggle filtering as the teacher.
 				...(jobs.research ? { research: jobs.research } : {}),
 				pdf: jobs.pdf!,
-				// The map reader (wave 7): present only when the settings gate
-				// opened.
+				// The map reader: present only when the settings gate opened.
 				...(ctx.graphStore
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
@@ -353,7 +342,7 @@ export function createProberTools(
 // ─── the teacher's question tools (quiz carries the position field) ──────────
 
 /** The nodeId-against-live-tree check the teacher's quiz chains after the
- *  shared authoring contract (the old superRefine, verbatim). */
+ *  shared authoring contract. */
 function nodeIdProblem(ctx: Pick<PlanToolContext, "chatId" | "chatStore">, nodeId: string): string | null {
 	const record = ctx.chatStore.getChat(ctx.chatId);
 	const known = record?.tree?.nodes.map((n) => n.id) ?? [];
@@ -372,9 +361,8 @@ function nodeIdProblem(ctx: Pick<PlanToolContext, "chatId" | "chatStore">, nodeI
  *  + the per-session plan-nodeId validation (both run in execute — the
  *  grading contract is untouched). Reads the LIVE chat record, so rewrites
  *  mid-turn are honored, and with no tree yet every nodeId is rejected.
- *  nodeId is REQUIRED (owner ruling 2026-09-26): the untagged ad-hoc quiz is
- *  gone — off-map checks route through ask_user_question, and the teach
- *  seam (first tagged quiz) is structurally guaranteed. */
+ *  nodeId is REQUIRED: off-map checks route through ask_user_question, so
+ *  the teach seam (first tagged quiz) is structurally guaranteed. */
 export function teachQuizToolFor(ctx: Pick<PlanToolContext, "chatId" | "chatStore">): AgentTool<typeof quizInputObject> {
 	return {
 		name: "quiz",
@@ -401,7 +389,7 @@ export interface TeacherToolContext extends PlanToolContext {
 	 *  rides along — the spawn fires mid-stream, before the tool part is
 	 *  persisted to the transcript (a transcript scan would race it). */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** The lesson's class card reader (classes wave): present = read_class. */
+	/** The lesson's class card reader: present = read_class. */
 	classCard?: ClassToolContext["classCard"];
 	todayNote?: ClassToolContext["todayNote"];
 }
@@ -414,15 +402,14 @@ export interface TeacherToolContext extends PlanToolContext {
  * Platform's chat-handler wiring passes it through from settings). Today
  * only the sub-agent tools (research/demo/visual) are user-toggleable, but
  * the filtering is GENERIC: any name explicitly false is dropped, so
- * future toggleables (question-tool variants, …) need no change here.
+ * future toggleables need no change here.
  * Absent/undefined = enabled — tests and old records see today's set.
  */
-/** The quizzing mechanics (owner 2026-09-27): `tools.explain === true` in
- *  the resolved settings ⇒ free-recall checks (explain armed, quiz dropped)
- *  — anything else ⇒ multiple choice, exactly today's set. Mechanics-
- *  managed, NOT individually toggleable: quiz/explain never pass through
- *  filterEnabledTools (the 2026-09-19 wedge ruling stands — a quiz-less
- *  prober collapses its assessment flow). */
+/** The quizzing mechanics: `tools.explain === true` in the resolved
+ *  settings ⇒ free-recall checks (explain armed, quiz dropped) — anything
+ *  else ⇒ multiple choice. Mechanics-managed, NOT individually
+ *  toggleable: quiz/explain never pass through filterEnabledTools (a
+ *  quiz-less prober collapses its assessment flow). */
 function quizMechanics(enabled?: EnabledTools): "choice" | "free" {
 	return enabled?.explain === true ? "free" : "choice";
 }
@@ -439,7 +426,7 @@ export function createTeacherTools(
 	ctx: TeacherToolContext,
 	enabled?: EnabledTools,
 ): Record<string, AgentTool<any>> {
-	// Quizzing mechanics (owner 2026-09-27): free-recall swaps the teach
+	// Quizzing mechanics: free-recall swaps the teach
 	// quiz for the teach explain — one quizzing tool at a time, whichever
 	// the settings arm. ask stays always-on.
 	const mechanics = quizMechanics(enabled);
@@ -453,10 +440,9 @@ export function createTeacherTools(
 			{
 			...quizzing,
 			ask_user_question: askUserQuestionTool,
-			// The learner-filesystem set is always-on (user-decided 2026-09,
-			// sources v1): the teacher locates and reads learner-referenced
-			// files on its own terms — nothing auto-injects. Read-only by
-			// construction (fs-shared.ts).
+			// The learner-filesystem set is always-on: the teacher locates and
+			// reads learner-referenced files on its own terms — nothing
+			// auto-injects. Read-only by construction (fs-shared.ts).
 			read: readTool,
 			ls: lsTool,
 			find: findTool,

@@ -1,7 +1,6 @@
 /**
  * The shared settings-PUT body parsers — one seam per settings surface.
- * The section parsers (settings-storage wave, 2026-09-19) share one set of
- * house rules.
+ * The section parsers share one set of house rules.
  *
  * Replace-whole semantics: the client sends the complete desired SECTION;
  * absent fields are absent overrides ({} clears everything). No merges, so
@@ -26,7 +25,7 @@ export type SettingsBodyResult<T> =
 	| { ok: true; settings: T }
 	| { ok: false; error: string };
 
-// ─── Section parsers (settings-storage wave, 2026-09-19) ────────────────────
+// ─── Section parsers ────────────────────────────────────────────────────────
 // One parser per settings.json section; the route maps the URL section to
 // its parser via SETTINGS_SECTIONS below. Strict on every known field (a bad type/shape is a
 // 400, never a silent clamp/drop), unknown keys dropped.
@@ -98,12 +97,10 @@ export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentS
 	const tools = parseBooleanMap(raw.tools, "tools");
 	if (tools.error) return { ok: false, error: tools.error };
 	if (tools.map) {
-		// Unknown tool keys are rejected at WRITE time (user decision
-		// 2026-09-19): the delta is inert while unread, but once the bridge
-		// honors it a persisted bogus key would drift. The writable set is
-		// the job tools + the quizzing-mechanics switch (explain, owner
-		// 2026-09-27). The read-side sanitizer stays lenient for
-		// forward-compat.
+		// Unknown tool keys are rejected at WRITE time: once the bridge honors
+		// the delta, a persisted bogus key would drift. The writable set is
+		// the job tools + the quizzing-mechanics switch (explain). The
+		// read-side sanitizer stays lenient for forward-compat.
 		const supported = WRITABLE_TOOL_KEYS as readonly string[];
 		for (const key of Object.keys(tools.map)) {
 			if (!supported.includes(key)) {
@@ -115,7 +112,7 @@ export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentS
 	const prompts = parseBooleanMap(raw.prompts, "prompts");
 	if (prompts.error) return { ok: false, error: prompts.error };
 	if (prompts.map) settings.prompts = prompts.map;
-	// Prober graph tools (wave 7, owner ruling 2026-09-23): an agent-section
+	// Prober graph tools: an agent-section
 	// subsection, not a tool-toggles key — the mechanism is agent capability
 	// (tool registration), the subject is the graph. Strict write side:
 	// object shape only; `enabled` boolean when present. Absent = ON.
@@ -209,20 +206,14 @@ export function parseAppearanceSettingsBody(body: unknown): SettingsBodyResult<A
 	return { ok: true, settings };
 }
 
-/** graph: the collapsed section { enabled? } (wave 7, owner ruling
- *  2026-09-23): the master switch ONLY — the embedding/clustering/labeling
- *  rungs and the BYOK embeddingModel died with the provider embedder
- *  (clustering is the free birth-session partition, labels are session
- *  names). Old-shape keys in a body are ignored, not rejected. */
+/** graph: { enabled?, extractionChunkTokens? } — the master switch and the
+ *  extraction chunk budget. */
 export function parseGraphSettingsBody(body: unknown): SettingsBodyResult<GraphSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
-	// Wave 7 collapse (owner ruling 2026-09-23) + the extraction-UX
-	// redesign (2026-09-24): the section is the master switch and the
-	// chunk budget. PUT is replace-whole — a body like {enabled: true} IS
-	// the whole section (extractionChunkTokens absent = factory default at
-	// resolution); the dead rungs' keys in old records are unread (the
-	// sanitizer drops them; see sanitizeGraph).
+	// PUT is replace-whole — a body like {enabled: true} IS the whole section
+	// (extractionChunkTokens absent = factory default at resolution). Keys
+	// that older records carry are unread (see sanitizeGraph).
 	const settings: GraphSettings = {};
 	if (raw.enabled !== undefined) {
 		if (typeof raw.enabled !== "boolean") return { ok: false, error: "enabled must be a boolean" };
@@ -247,7 +238,7 @@ export function parseGraphSettingsBody(body: unknown): SettingsBodyResult<GraphS
 	return { ok: true, settings };
 }
 
-/** compaction (owner round 14): the context-compaction threshold — the
+/** compaction: the context-compaction threshold — the
  *  projected-token budget over which a session summarizes its own history
  *  into the compaction marker. Strict write side: a present
  *  thresholdTokens must be a number at or above the floor (the floor is

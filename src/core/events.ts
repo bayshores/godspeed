@@ -1,6 +1,5 @@
 /**
- * THE EVENT BUS (push-architecture slice 1, owner ruling 2026-10-02: go
- * directly to the endgame — notify → fetch, no standing polls).
+ * THE EVENT BUS: notify → fetch, no standing polls.
  *
  * One bus, every layer: server emits turn lifecycle here, the store
  * adapters emit job/chat mutations, the agent layer's background
@@ -22,7 +21,7 @@
  * server, store, and agent may all depend on.
  */
 
-/** What an outside agent changed (Halley, 2026-10-28): every MCP tool
+/** What an outside agent changed: every MCP tool
  *  that changes something reports one, so the window can show it. */
 export interface AgentAction {
 	id: string;
@@ -41,7 +40,7 @@ export interface AgentAction {
 	removed?: true;
 }
 
-/** The full event vocabulary — fixed from day one (slice plan, 2026-10-02). */
+/** The full event vocabulary. */
 export interface ServerEvents {
 	/** A teach turn began server-side (beginTurn) — client-initiated sends,
 	 *  wake turns, other-tab turns: every origin rides the same event. */
@@ -58,7 +57,7 @@ export interface ServerEvents {
 	/** The session list changed (create, delete, title). */
 	"chats-changed": Record<string, never>;
 	/** The class list or a class record changed (create, edit, archive,
-	 *  delete, files) — classes wave, 2026-10-26. */
+	 *  delete, files). */
 	"classes-changed": Record<string, never>;
 	/** The outside agent's status changed: it checked in, went quiet, or
 	 *  a request started or stopped waiting for it (agent-bridge.ts). */
@@ -67,8 +66,8 @@ export interface ServerEvents {
 	 *  Same notify-then-fetch contract as the turn events: open views of
 	 *  the chat refetch and adopt the durable record. */
 	"record-changed": { chatId: string };
-	/** A compaction started/finished for the chat (owner round 14,
-	 *  2026-10-05). running=true is the SEND GATE: while a compaction is
+	/** A compaction started/finished for the chat. running=true is the
+	 *  SEND GATE: while a compaction is
 	 *  in flight the server structurally refuses model interaction for
 	 *  the chat; the client mirrors it by disabling the composer/dock
 	 *  submit. */

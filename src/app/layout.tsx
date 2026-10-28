@@ -20,7 +20,7 @@ import { WhatsNew } from "@/components/whats-new";
 const ui = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 const prose = Source_Sans_3({ subsets: ["latin"], variable: "--font-sans3" });
 
-// Request-time render (classes wave, 2026-10-26): the active class is read
+// Request-time render: the active class is read
 // from the live settings record on every load, never baked in at build.
 export const dynamic = "force-dynamic";
 
@@ -30,12 +30,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-	// The active class (classes wave, 2026-10-26) renders server-side so the
+	// The active class renders server-side so the
 	// first paint already shows the right class's lessons and graph.
 	let initialActive: string | null = null;
 	// Halley's name (Settings → General), so the first paint has it.
 	let teacherName: string | undefined;
-	// First launch (owner, 2026-10-27): the onboarding replaces the app
+	// First launch: the onboarding replaces the app
 	// shell until it is finished. Deciding also makes the outside-agent
 	// access token (always on), so the Claude Code plugin can find it.
 	let onboarding = false;
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	} catch {
 		/* unwritable data dir: show the app; /api/mcp retries the token */
 	}
-	// After an update (owner, 2026-10-27): the versions whose notes the
+	// After an update: the versions whose notes the
 	// learner hasn't seen. Decided after onboarding, which marks existing users.
 	let whatsNew: string | null = null;
 	try {
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		<html lang="en" className={`dark ${ui.variable} ${prose.variable}`}>
 			<body className="min-h-dvh antialiased">
 			{/* The notification channel rides OUTSIDE everything: sidebar, dock,
-				 and pages all subscribe as the polls retire (push S3, 2026-10-02). */}
+				 and pages all subscribe. */}
 			<ServerEventsProvider>
 				<AgentStatusProvider>
 				<ClassProvider initialActive={initialActive}>
@@ -78,7 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				</ClassProvider>
 				</AgentStatusProvider>
 			</ServerEventsProvider>
-			{/* Auto-update banner (Wave C): fixed card, Electron-only pushes. */}
+			{/* Auto-update banner: fixed card, Electron-only pushes. */}
 			<UpdateBanner />
 			{/* "What's new" after an update; Settings reopens it. */}
 			{!onboarding && <WhatsNew since={whatsNew} />}

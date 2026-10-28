@@ -13,8 +13,7 @@ function localTimeZone(): string {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-/** The class part of the note. Archived classes show no deadlines (plan
- *  default 11). */
+/** The class part of the note. Archived classes show no deadlines. */
 function noteClass(classId: string | undefined): TodayNoteClass | null {
 	if (!classId) return null;
 	const cls = stores.classStore.getClass(classId);

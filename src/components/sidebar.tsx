@@ -33,12 +33,11 @@ export { timeAgo, SessionRow, RenameRow } from "@/components/sidebar/session-row
 const STORAGE_KEY = "lh:sidebar-open";
 
 /*
- * Narrow-window behavior (owner, 2026-09-17): below SIDEBAR_AUTOCLOSE the
- * sidebar would squeeze the page below the 640px window floor (the two
- * numbers compose: 640 + 288 sidebar = 928), so it auto-closes — and
- * auto-RESTORES when the window widens again (owner choice: the sidebar
- * pops back, not a manual re-open). The whole behavior is one expression:
- * rendered = pref && !narrow, where pref is the persisted user choice.
+ * Narrow-window behavior: below SIDEBAR_AUTOCLOSE the sidebar would
+ * squeeze the page below the 640px window floor (the two numbers compose:
+ * 640 + 288 sidebar = 928), so it auto-closes — and auto-RESTORES when the
+ * window widens again (no manual re-open). The whole behavior is one
+ * expression: rendered = pref && !narrow, where pref is the persisted user choice.
  * Manual closes persist and stay closed; auto-close does not touch the
  * preference. Opening the sidebar while narrow asks the Electron shell to
  * widen the window to the threshold (window.lh.expandWindow, IPC in
@@ -60,12 +59,12 @@ declare global {
 		lh?: {
 			/** Read-only host OS; determines the native-control gutter. */
 			platform?: string;
-			/** Native folder picker (classes wave): absolute path or null. */
+			/** Native folder picker: absolute path or null. */
 			pickFolder?: () => Promise<string | null>;
 			/** A dropped file's or folder's absolute path (onboarding drop zone). */
 			pathForFile?: (file: File) => string;
 			expandWindow: () => void;
-			/** The zoom truth (owner round 7): subscribes to "lh:zoom" pushes; returns unsubscribe. */
+			/** The zoom truth: subscribes to "lh:zoom" pushes; returns unsubscribe. */
 			onZoom?: (cb: (factor: number) => void) => () => void;
 			getZoom?: () => Promise<number>;
 			/** Observational update events and a snapshot for late subscribers. */
@@ -96,9 +95,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
-		// Electron shell detection (merged chrome, 2026-09-17): keys the
-		// .lh-electron CSS (src/app/globals.css) that turns the header bands
-		// into the window's drag surface. Post-mount only — server HTML
+		// Electron shell detection: keys the .lh-electron CSS
+		// (src/app/globals.css) that turns the header bands into the
+		// window's drag surface. Post-mount only — server HTML
 		// and first client render must agree (no hydration mismatch),
 		// and in the plain browser the class never appears.
 		if (IS_ELECTRON) {
@@ -106,8 +105,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 			document.documentElement.dataset.lhPlatform = window.lh?.platform ?? "";
 		}
 
-		// THE ZOOM TRUTH (owner round 7, 2026-10-05): ⌘±/⌘0 zoom the UI
-		// (Electron zoomFactor) while the native traffic lights stay
+		// THE ZOOM TRUTH: ⌘±/⌘0 zoom the UI (Electron zoomFactor) while the native traffic lights stay
 		// physical-fixed — the CSS gutter lengths divide by this factor so
 		// their RENDERED size never moves. getZoom covers the first-paint
 		// race; every later change arrives as an lh:zoom push.
@@ -154,11 +152,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, [narrow, open]);
 
 	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
-	// and the context answers on exactly that name — the shared spelling
-	// is the fix for the interlude bug (the listener sat on the pre-
-	// convention name "lh:toggle-sidebar" while the dispatcher sent
-	// "lh:kbd-toggle-sidebar", so ⌘B silently did nothing; owner
-	// 2026-09-25).
+	// and the context answers on exactly that name — one shared spelling,
+	// so the listener and the dispatcher can't drift apart.
 	useEffect(() => {
 		const event = kbdEventForAction("toggle-sidebar");
 		const onToggle = () => toggle();
@@ -169,28 +164,24 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
 			{/* transitions gated on mount: no slide-in flash on page load;
-			    motion-safe: reduced motion opens/closes at once (motion wave,
-			    owner 2026-10-26) */}
+			    motion-safe: reduced motion opens/closes at once */}
 			<div className={cn("flex h-dvh", mounted && "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
 		</SidebarContext.Provider>
 	);
 }
 
-/** The sidebar slide's timing — the motion tokens (motion wave, owner
- *  2026-10-26; was duration-200 + the default ease). Shared by the
+/** The sidebar slide's timing — the motion tokens. Shared by the
  *  sidebar and its header toggle so the two stay in lockstep. */
 const SIDEBAR_MOTION = "duration-[var(--lh-dur-slow)] ease-[var(--lh-ease-out)]";
 
 /** Hamburger for page headers — only visible when the sidebar is closed.
  *
- *  Owner, round 6c: the toggle is ALWAYS MOUNTED, owning a slot whose
- *  width+margin animate in LOCKSTEP with the sidebar's own width
- *  transition (same duration-200, same easing, both gated on mount) —
- *  before, it mounted/unmounted in one frame, so its 48px footprint
- *  (button + gap) popped and dragged the title and chips sideways while
- *  the sidebar was still mid-slide. When open the slot is exactly zero
- *  (w-0 -mr-3: width 0, the negative margin cancels the header's gap-3),
- *  so resting layouts are pixel-identical to the old conditional render.
+ *  The toggle is ALWAYS MOUNTED, owning a slot whose width+margin animate
+ *  in LOCKSTEP with the sidebar's own width transition (SIDEBAR_MOTION,
+ *  both gated on mount) — mounting it in one frame would pop its 48px
+ *  footprint (button + gap) and drag the title and chips sideways while
+ *  the sidebar is still mid-slide. When open the slot is exactly zero
+ *  (w-0 -mr-3: width 0, the negative margin cancels the header's gap-3).
  *  The icon fades with the slot and is clipped by it as it collapses —
  *  no popping in either direction. */
 export function SidebarToggle() {
@@ -212,9 +203,8 @@ export function SidebarToggle() {
 				onClick={toggle}
 				className={cn("sidebar-motion", SIDEBAR_MOTION, open ? "pointer-events-none opacity-0" : "opacity-100")}
 			>
-				{/* Owner, round 6: size-4, SAME as the close glyph — the toggle
-				    must not grow when the sidebar is closed (it did: size-5 here).
-				    The small look is the standard, both directions. */}
+				{/* size-4, SAME as the close glyph — the toggle must not grow
+				    when the sidebar is closed. */}
 				<PanelLeftOpenIcon className="size-4" />
 			</Button>
 			</Hint>
@@ -227,11 +217,10 @@ const NEW_BUTTON =
 	"lh-press flex flex-1 items-center justify-center gap-[7px] bg-tone py-[9px] text-[13.5px] font-bold text-ink hover:bg-tone-2";
 
 /**
- * THE SIDEBAR (redesign 2026-10-27, the same on every screen): the window
- * row (traffic lights + close), Home, the class switcher, the class nav
- * (Overview / Graph / Files), "New lesson" and "Practice", Due soon
- * (2026-10-28), the lessons, and the footer (outside agent · jobs,
- * settings).
+ * THE SIDEBAR (the same on every screen): the window row (traffic
+ * lights + close), Home, the class switcher, the class nav (Overview /
+ * Graph / Files), "New lesson" and "Practice", Due soon, the lessons, and
+ * the footer (outside agent · jobs, settings).
  */
 function SessionsSidebar() {
 	const { open, toggle } = useSidebar();
@@ -291,7 +280,7 @@ function SessionsSidebar() {
 	);
 }
 
-/** The view swap (motion wave, owner 2026-10-26): switching between
+/** The view swap: switching between
  *  pages (Home, a lesson, Overview…) rises the incoming page in once. */
 function ViewSwap({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
@@ -321,7 +310,7 @@ export function AppShell({ children, teacherName }: { children: React.ReactNode;
 				<ViewSwap>{children}</ViewSwap>
 			</main>
 			</HalleyProvider>
-			{/* The single document-level keydown listener (keyboard wave A) —
+			{/* The single document-level keydown listener —
 			    after the content in the tree, but it's window-level so order only
 			    matters for the events it dispatches, never for DOM priority. */}
 			<KeyboardShortcuts />

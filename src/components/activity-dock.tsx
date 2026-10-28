@@ -10,41 +10,36 @@ import { useServerEvent, useServerResync } from "@/components/server-events";
 import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
 
 /**
- * THE BACKGROUND-JOBS SECTION (owner, sidebar round — the successor of
- * the retired bottom-right floating dock; since 2026-10-28 it lives in
- * Halley's panel, with recently failed jobs and their errors on top):
- * one blob per running BACKGROUND process — session sub-agents
- * (research/demo/visual) and global extraction runs. Teaching turns are
- * deliberately NOT here: the section exists to give background processes
- * the observability the learner can't otherwise see; an in-flight teaching
- * turn is fully visible where it happens (user decision, 2026-09).
+ * THE BACKGROUND-JOBS SECTION (in Halley's panel, recently failed jobs and
+ * their errors on top): one blob per running BACKGROUND process — session
+ * sub-agents (research/demo/visual) and global extraction runs. Teaching
+ * turns are deliberately NOT here: the section exists to give background
+ * processes the observability the learner can't otherwise see; an
+ * in-flight teaching turn is fully visible where it happens.
  *
  * Data: ONE feed of GET /api/activity (jobs across ALL chats, title-joined,
  * oldest-first + extraction runs), fetched when truth moves (events
- * channel, S5) and folded client-side with core/prices.ts.
- * Cost is INFERRED server-side through Pi; the context line is the LAST model call's
- * input+output against the model's limit (JobUsage.lastStep — pending
- * contract) — never a cumulative sum, which would be the wrong number.
- * Absent data renders "—", never zero (the doctrine).
+ * channel) and folded client-side with core/prices.ts.
+ * Cost is INFERRED server-side through Pi; the context line is the LAST
+ * model call's input+output against the model's limit (JobUsage.lastStep)
+ * — never a cumulative sum, which would be the wrong number.
+ * Absent data renders "—", never zero.
  *
- * Quiet/ambient by design: no entry animations, stable keys, updates land
- * in place — refreshes never flicker. ALWAYS present (owner, sidebar round):
- * empty means EMPTY — the header sits alone, nothing hides; it populates and
- * GROWS when processes run (max-h + internal scroll so a pile never crowds
- * the session list). The sidebar's closed state means the learner opted
- * out — no ambient signal while closed (user decision: invisibility until
- * a clearer observability story wants building). Per blob: kind icon,
+ * Quiet/ambient by design: stable keys, updates land in place — refreshes
+ * never flicker. ALWAYS present: empty means EMPTY — the header sits
+ * alone, nothing hides; it populates and GROWS when processes run (max-h +
+ * internal scroll so a pile never crowds the rest). Per blob: kind icon,
  * elapsed, cost, activity line, an explicit END button (POST
- * /api/activity/abort — the wave-4 backend is live): 404/409 mean the
- * process is already gone (refresh, no error); real failures degrade to
- * an inline "Abort failed", never a dead control. Detail (context, model,
- * steps, session link) EXPANDS INLINE — the section scrolls, so a
- * floating popover would clip at its bounds.
+ * /api/activity/abort): 404/409 mean the process is already gone
+ * (refresh, no error); real failures degrade to an inline "Abort failed",
+ * never a dead control. Detail (context, model, steps, session link)
+ * EXPANDS INLINE — the section scrolls, so a floating popover would clip
+ * at its bounds.
  */
 
 // ─── Wire shapes (client-safe mirrors of server/observability.ts) ────────────
 
-/** JobUsage extended by the pending lastStep contract (the context line). */
+/** JobUsage extended by lastStep (the context line). */
 interface FeedUsage extends NonNullable<JobRecord["usage"]> {
 	lastStep?: CallUsage;
 }
@@ -54,7 +49,7 @@ export interface FeedJob extends JobRecord {
 	costUsd?: number | null;
 	title: string;
 	usage?: FeedUsage;
-	/** Server-joined live catalog limit (owner amendment 2026-09-23) —
+	/** Server-joined live catalog limit —
 	 *  null when the model is missing from pi's catalog (no context line). */
 	contextLimit: number | null;
 }
@@ -96,13 +91,12 @@ const ActivityContext = createContext<{ feed: ActivityFeed; refresh: () => void 
 });
 
 /**
- * THE ACTIVITY FEED, PUSH-DRIVEN (architecture S5, 2026-10-02): the
- * adaptive poll is RETIRED — the dock refetches exactly when truth moves.
- * Every cause is announced on the events channel: extraction phase
+ * THE ACTIVITY FEED, PUSH-DRIVEN: the dock refetches exactly when truth
+ * moves, never on a poll. Every cause is announced on the events channel: extraction phase
  * transitions (activity-changed), job writes
  * (jobs-changed — the running-jobs blobs), and channel resync (reconnect /
- * dev-restart catch-up) — plus the one client-local cause that predates
- * the channel: visibility, a tab becoming visible refetches at once.
+ * dev-restart catch-up) — plus the one client-local cause: visibility, a
+ * tab becoming visible refetches at once.
  * Announced fetches ride a 250ms trailing debounce (extraction phase
  * bursts); resync and visibility are immediate. A failed
  * fetch keeps the last feed (the dock never flickers to empty on a blip).
@@ -134,7 +128,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 		};
 	}, [nonce]);
 
-	// Announcements → one trailing fetch per burst (the S4 debounce law).
+	// Announcements → one trailing fetch per burst.
 	const scheduleAnnouncedFetch = () => {
 		if (debounceRef.current) clearTimeout(debounceRef.current);
 		debounceRef.current = setTimeout(() => {
@@ -171,7 +165,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 /** The activity feed seam for the rest of the shell: the dock's data +
  *  its refresh nudge. The remaining nudgers are client-visible causes
  *  (the extract/import buttons — extraction-coverage, graph-view); every
- *  server-side cause announces itself on the events channel now. */
+ *  server-side cause announces itself on the events channel. */
 export function useActivity(): { feed: ActivityFeed; refresh: () => void } {
 	return useContext(ActivityContext);
 }
@@ -181,7 +175,7 @@ export function useActivity(): { feed: ActivityFeed; refresh: () => void } {
 /** One dock blob: the unified view of a job or an extraction run. */
 interface ActivityBlob {
 	/** job.id, or the extraction job's row id (source id, or "src#i" for
-	 *  chunk jobs — unique per row, per-chunk jobs owner 2026-09-28). */
+	 *  chunk jobs — unique per row). */
 	id: string;
 	process: "job" | "extraction";
 	/** Sub-agent kind for jobs (extraction blobs have none). */
@@ -210,14 +204,13 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 		const usage = job.usage;
 		let context: ActivityBlob["context"] = null;
 		const lastStep = usage?.lastStep;
-		// Context-meter amendment (owner 2026-09-23): the limit comes off
-		// the FEED (server-joined from pi's live catalog) — no client-side
+		// The limit comes off the FEED (server-joined from pi's live catalog) — no client-side
 		// table. Null limit = no context line (usage-only render is the
 		// blob shape's call — here the line simply hides).
 		const limit = job.contextLimit;
 		if (usage && lastStep && limit !== null && lastStep.inputTokens !== undefined) {
-			// Same metric as the session meter (four normalized buckets — the
-			// context-meter audit, owner 2026-09-23): all four directions.
+			// Same metric as the session meter (four normalized buckets): all
+			// four directions.
 			// Provider "input" EXCLUDES cacheRead/cacheWrite, so input+output
 			// alone reads wildly low on cache-heavy jobs.
 			context = {
@@ -251,7 +244,7 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 			title: run.title,
 			chatId: run.chatId,
 			startedAt: run.startedAt,
-			cost: null, // extraction runs don't ride the money channel (v1)
+			cost: null, // extraction runs don't ride the money channel
 			context: null,
 			activity: "",
 		});
@@ -269,7 +262,7 @@ export function formatElapsed(ms: number): string {
 	return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
 }
 
-// ─── The section (the sidebar's bottom strip) ─────────────────────────────────
+// ─── The section ─────────────────────────────────────────────────────────────
 
 /** A 1s heartbeat while the section is populated — elapsed lines tick. */
 function useNow(active: boolean): number {
@@ -286,7 +279,7 @@ const KIND_ICON: Record<JobKind, typeof SearchIcon> = {
 	research: SearchIcon,
 	demo: PlayIcon,
 	visual: PenToolIcon,
-	pdf: FileTextIcon, // sources v0 — type-forced entry (JobKind grew "pdf")
+	pdf: FileTextIcon,
 };
 
 /** Abort states per blob id: pending (fired) / failed (backend absent). */
@@ -346,11 +339,9 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 		}
 	}, []);
 
-	// Sidebar-native skin (owner, sidebar round): part of the sidebar's
-	// surface, not a floating card — the border-t separator matches the
-	// sidebar's own edge line, the header matches the "Sessions" label, the
-	// rows match the session rows' hover. Empty means empty: the header sits
-	// alone (the cost span is population, not decoration).
+	// Part of the surrounding surface, not a floating card. Empty means
+	// empty: the header sits alone (the cost span is population, not
+	// decoration).
 	return (
 		<section data-testid="activity-section" className="flex flex-col gap-1.5 border-t border-tone-2 pt-2.5">
 			<div className="flex items-center gap-1.5 text-[12.5px] font-bold text-ink-3">
@@ -412,7 +403,7 @@ function ActivityBlobRow({
 	abortState: AbortState | undefined;
 	onAbort: () => void;
 }) {
-	const detail = useFold(detailOpen); // eases open/shut (motion wave, owner 2026-10-26)
+	const detail = useFold(detailOpen); // eases open/shut
 	const Icon = blob.process === "extraction" ? WaypointsIcon : (blob.jobKind && KIND_ICON[blob.jobKind]) || BotIcon;
 	const label =
 		blob.process === "extraction"
