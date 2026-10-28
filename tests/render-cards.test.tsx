@@ -28,7 +28,6 @@ import {
 	buildAnswer,
 	normalizeOptions,
 	resolveCorrect,
-	questionNeedsReveal,
 	type QuestionData,
 } from "../src/core/question-core.ts";
 

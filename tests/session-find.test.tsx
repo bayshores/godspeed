@@ -151,10 +151,6 @@ describe("sessionFindHasForegroundLayer — the one-Esc law", () => {
 });
 
 describe("injectFindStyles — ::highlight rules ship outside the PostCSS pipeline", () => {
-	const mount = (html: string): void => {
-		document.body.innerHTML = html;
-	};
-
 	it("injects both rules once, idempotently", () => {
 		document.head.innerHTML = "";
 		injectFindStyles();

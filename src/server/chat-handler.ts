@@ -18,7 +18,6 @@ import {
 	setJobRespawn,
 	setTurnRunner,
 	settleSteers,
-	steerLiveChat,
 	unregisterLiveAgent,
 } from "./jobs.ts";
 import { runPiTurn } from "./pi/ui-stream.ts";

@@ -61,7 +61,7 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 			// The core-owned schema (contracts/probe.ts) — the SAME schema the UI
 			// parse seam (tool-parts.ts) runs, so boundary-valid ⇔ consumer-parseable.
 			parameters: probeDoneInputSchema,
-			execute: serverExecute("probe_done", probeDoneInputSchema, async (input) => {
+			execute: serverExecute("probe_done", probeDoneInputSchema, async () => {
 				const record = ctx.chatStore.getChat(ctx.chatId);
 				if (!record) return { ok: false, error: `Chat not found: ${ctx.chatId}` };
 

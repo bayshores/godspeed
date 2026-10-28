@@ -18,7 +18,7 @@ import {
 	type LhMessage,
 	type LhMarkerMessage,
 } from "../src/core/index.ts";
-import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
+import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import { projectView } from "../src/core/view.ts";
 
 /**

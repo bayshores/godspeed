@@ -39,7 +39,6 @@ import {
 	type JobUsage,
 	type PdfResult,
 	type ResearchResult,
-	type SubagentArtifactData,
 	type SteerMessage,
 	type VisualResult,
 	buildProbeHandoffSteer,
@@ -64,8 +63,8 @@ import {
 	steerLiveChat,
 	unregisterLiveAgent,
 } from "../src/server/jobs.ts";
-import { isJobLive, registerJobAbort, unregisterJobAbort } from "../src/agent/subagents/aborts.ts";
-import { beginTurn, endTurn, isTurnRunning } from "../src/server/turn-liveness.ts";
+import { registerJobAbort, unregisterJobAbort } from "../src/agent/subagents/aborts.ts";
+import { beginTurn, endTurn } from "../src/server/turn-liveness.ts";
 import { persistTurn } from "../src/server/turn-service.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { jobStore } from "../src/store/jobs.ts";
@@ -75,7 +74,7 @@ import { PATHS } from "../src/config.ts";
 import { projectView as projectNative } from "../src/core/view.ts";
 import { subscribe } from "../src/core/events.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
-import type { SteerInput, TurnInput } from "../src/core/input-events.ts";
+import type { SteerInput } from "../src/core/input-events.ts";
 // The agent engine loads on first use in the app; agent-building tests load it up front.
 await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
@@ -196,13 +195,6 @@ function abortableFactory(): FauxResponseStep {
 			sig?.addEventListener("abort", () => resolve(fauxAssistantMessage("late")), { once: true });
 		});
 	return factory as unknown as FauxResponseStep;
-}
-
-async function drain(res: Response): Promise<string> {
-	if (res.status !== 200) {
-		assert.fail(`expected 200, got ${res.status}: ${await res.text()}`);
-	}
-	return res.text();
 }
 
 /** CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes; drain
@@ -1842,7 +1834,7 @@ describe("composer steering: steerLiveChat + the deliver-or-requeue lifecycle", 
 		const chatId = chatStore.createChat("steer: reconcile").id;
 		const delivered = { id: "steer_d1", role: "user", content: "delivered", timestamp: 1 };
 		const stranded = { id: "steer_s1", role: "user", content: "stranded behind a question", timestamp: 2 };
-		const { handed, agent } = fakeAgent();
+		const { agent } = fakeAgent();
 		registerLiveAgent(chatId, agent as never);
 		assert.equal(steerLiveChat(chatId, delivered as never), true);
 		assert.equal(steerLiveChat(chatId, stranded as never), true);

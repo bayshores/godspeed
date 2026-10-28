@@ -18,7 +18,7 @@
  */
 // ─── Knowledge graph (vision §1 — global, cross-session) ────────────────────
 
-import type { CallUsage, ExtractionRunUsage } from "./chat.ts";
+import type { ExtractionRunUsage } from "./chat.ts";
 
 /** One relation of the DERIVED view — chains are the stored truth (owner,
  *  2026-09-30: "the graph is a lossy image of what is truly stored"), and

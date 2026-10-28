@@ -201,7 +201,6 @@ function DemoFrame({
 			</div>
 			{state.error && (
 				<DemoErrorChip
-					title={title}
 					message={state.error}
 					onSend={actions ? () => actions.sendText(`The demo "${title}" threw an error: ${state.error}`) : undefined}
 				/>
@@ -235,11 +234,9 @@ function DemoFrame({
 }
 
 export function DemoErrorChip({
-	title,
 	message,
 	onSend,
 }: {
-	title: string;
 	message: string;
 	onSend?: () => void;
 }) {

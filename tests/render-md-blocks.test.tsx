@@ -17,7 +17,7 @@ import { MessageResponse } from "../src/components/ai-elements/message.tsx";
 import { ThinkingBlock, setAllUserThinkingOpen } from "@/components/thinking-block";
 import { MermaidOverlay, SessionMermaidContext, chartSize } from "../src/components/session-overlay.tsx";
 import { PlanPopup } from "../src/components/plan-block.tsx";
-import { MarkdownCode, codeSource } from "../src/components/md-blocks.tsx";
+import { codeSource } from "../src/components/md-blocks.tsx";
 
 function render(md: string): string {
 	return renderToStaticMarkup(<MessageResponse mode="static">{md}</MessageResponse>);

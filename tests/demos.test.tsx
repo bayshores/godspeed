@@ -36,7 +36,6 @@ import {
 	buildDemoSrcDoc,
 	DEMO_BRIDGE_SCRIPT,
 	DemoCard,
-	DemoErrorChip,
 	INITIAL_DEMO_BRIDGE_STATE,
 	reduceDemoBridgeState,
 } from "../src/components/artifacts/demo-card.tsx";
@@ -44,7 +43,6 @@ import { svgNaturalWidth, VisualCard, VisualOutputCard } from "../src/components
 import { slugFilename } from "../src/components/artifacts/download.ts";
 import { chartSize } from "../src/components/session-overlay.tsx";
 import { SubagentSteerCard } from "../src/components/artifacts/steer-card.tsx";
-import { DispatchCard } from "../src/components/artifacts/dispatch-card.tsx";
 import { JobCard, PdfJobCard } from "../src/components/artifacts/job-card.tsx";
 import { ToolCallCard } from "../src/components/artifacts/tool-call-card.tsx";
 import { JobsContext } from "../src/components/jobs-context.ts";
@@ -240,10 +238,6 @@ describe("demo bridge", () => {
 // ─── 2. card rendering ───────────────────────────────────────────────────────
 
 const DEMO_HTML = "<!doctype html><html><body><h1>oscillator</h1><script>let t=0;</script></body></html>";
-
-function part(state: string, output?: unknown) {
-	return { type: "tool-demo", state, toolCallId: "call-1", input: { title: "Oscillator", brief: "b" }, output };
-}
 
 describe("dispatch card rendering (the tool-call ack box)", () => {
 	const ackPart = { type: "tool-research", state: "output-available", toolCallId: "call-1", input: { question: "q" }, output: "Dispatched (job j1)." };
@@ -768,11 +762,6 @@ function waitFor(cond: () => boolean, timeoutMs = 5000, what = "condition"): Pro
 		};
 		tick();
 	});
-}
-
-async function drain(res: Response): Promise<string> {
-	if (res.status !== 200) assert.fail(`expected 200, got ${res.status}: ${await res.text()}`);
-	return res.text();
 }
 
 /** CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes; drain

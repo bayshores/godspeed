@@ -14,7 +14,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { TOGGLE_TOOLS, AgentSection } from "../src/components/settings/agent-section.tsx";
 import { AppearanceSection, GraphSection } from "../src/components/settings/appearance-section.tsx";
 import { KeyboardSection } from "../src/components/settings/keyboard-section.tsx";
-import type { GraphSettings } from "../src/core/index.ts";
 import { SettingsDialogBody } from "../src/components/settings/settings-dialog.tsx";
 import { SettingsDialogProvider } from "../src/components/settings/settings-dialog-provider.tsx";
 import { KEYBOARD_ACTIONS } from "../src/core/index.ts";

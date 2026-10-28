@@ -4,7 +4,6 @@ import type { ClassScope, GraphSnapshot } from "../core/contracts.ts";
 import type { GraphCostSummary } from "../core/cost-summary.ts";
 import { graphCostSummary } from "../core/cost-summary.ts";
 import { graphSnapshot } from "../core/graph.ts";
-import { birthSessionPartition } from "../core/session-clusters.ts";
 import {
 	deleteNodeTraces,
 	type NodeDeletionStats,

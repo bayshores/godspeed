@@ -54,12 +54,7 @@
  * together close every corrupt/resurrect path.
  */
 
-import type {
-	CoverageEntry,
-	GraphChain,
-	GraphNode,
-	SessionCheckpoint,
-} from "./contracts.ts";
+import type { GraphChain, GraphNode } from "./contracts.ts";
 import type { GraphStore } from "./ports.ts";
 
 /** The two deletion modes (owner-locked 2026-09-22). Machine-checkable on
@@ -269,10 +264,6 @@ export interface NodeDeletionStats {
 
 function nodeLinesOf(graphStore: GraphStore, nodeId: string): GraphNode[] {
 	return graphStore.readNodes().filter((line) => line.id === nodeId);
-}
-
-function chainLinesOf(graphStore: GraphStore, chainId: string): GraphChain[] {
-	return graphStore.readChains().filter((line) => line.id === chainId);
 }
 
 /**

@@ -156,7 +156,7 @@ describe("postInputEvent (the 409 identity-retry)", { skip: process.env.NO_SLOW 
 		// Node's undici doesn't care, so every test passed while the app was
 		// dead). Pin the browser's receiver discipline with a strict stub.
 		let receiverWasGlobal = false;
-		globalThis.fetch = (function (this: unknown, ...args: Parameters<typeof fetch>) {
+		globalThis.fetch = (function (this: unknown) {
 			if (this !== globalThis) throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
 			receiverWasGlobal = true;
 			return Promise.resolve(sseResponse("[DONE]"));
@@ -450,7 +450,6 @@ it("Wave C: markers injected mid-run (custom role, follow-up delivery) append to
 	m.applyWireEvent({ type: "message_end", message: marker } as never);
 
 	const state = m.getState();
-	const ids = state.messages.map((v) => v.parts.length);
 	assert.ok(state.messages.length >= 2, "the marker produced a view message");
 	const tail = state.messages.at(-1)!;
 	assert.equal(tail.role, "user", "a steer marker projects as a user-role view message");

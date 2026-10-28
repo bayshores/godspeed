@@ -26,7 +26,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSettingsSaved } from "@/components/settings-signal";
-import type React from "react";
 import {
 	COMPACTION_THRESHOLD_FLOOR,
 	resolveSettings,

@@ -12,7 +12,6 @@ import { describe, it } from "node:test";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import { messageMarkdown, sessionMarkdown } from "../src/core/session-markdown.ts";
 import { messageViewLines } from "../src/core/coverage.ts";
-import { coverageSlots } from "../src/core/coverage.ts";
 
 function user(id: string, text: string): LhMessage {
 	return { id, role: "user", content: text, timestamp: Date.now() } as never;

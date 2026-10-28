@@ -82,13 +82,6 @@ function post(chatId: string, input: unknown): Request {
 	});
 }
 
-async function drain(res: Response): Promise<string> {
-	if (res.status !== 200) {
-		assert.fail(`expected 200, got ${res.status}: ${await res.text()}`);
-	}
-	return res.text();
-}
-
 /** CONNECTION DIET B (owner, 2026-10-10): POST acks and closes; the turn's
  *  wire is the reattach stream. Mirrors drain(): 200-ack assert + the fully
  *  drained SSE body via runningTurn + subscribe (subscribe immediately —

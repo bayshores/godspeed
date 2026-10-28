@@ -1,4 +1,3 @@
-import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { Usage } from "@earendil-works/pi-ai";
 import { webTools } from "../tools/web.ts";
 import { createPdfReadTools } from "../tools/pdf-read.ts";

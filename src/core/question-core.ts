@@ -716,11 +716,6 @@ export function toClientQuestion(qd: QuestionData): ClientQuestion {
 	};
 }
 
-function formatOptionRef(options: QuizOption[], index: number): string {
-	const opt = options.find((o, i) => i + 1 === index);
-	return `${index}. ${opt ? opt.label : "(unknown)"}`;
-}
-
 /**
  * Turn an AnswerRequest into the full answer record + the user message the
  * agent will see. Quiz answers are graded here; ask answers are not.

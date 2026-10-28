@@ -52,7 +52,7 @@ function overThresholdChat(label: string): string {
 }
 
 let summarizeCalls = 0;
-const depsOf = (chatId: string, thresholdTokens: number): CompactionDeps => ({
+const depsOf = (thresholdTokens: number): CompactionDeps => ({
 	chatStore,
 	// The engine is never touched when summarize is injected (only its
 	// identity rides the marker's provenance) — a minimal stand-in.
@@ -77,14 +77,14 @@ describe("the compaction service", () => {
 	it("background eligibility skips both entrypoints without writes, but still awaits an existing structural run", async () => {
 		const chatId = overThresholdChat("compact: consent off");
 		const before = summarizeCalls;
-		const denied = { ...depsOf(chatId, 40_000), canStart: () => false };
+		const denied = { ...depsOf(40_000), canStart: () => false };
 		await ensureCompacted(denied, chatId); kickCompaction(() => denied, chatId);
 		assert.equal(summarizeCalls, before);
 		assert.equal(activeCompactionOf(chatStore.getChat(chatId)!.messages), null);
 		let release!: () => void, entered!: () => void;
 		const gate = new Promise<void>((done) => { release = done; });
 		const started = new Promise<void>((done) => { entered = done; });
-		const allowed = { ...depsOf(chatId, 40_000), summarize: async (prompt: string) => { entered(); await gate; return depsOf(chatId, 40_000).summarize!(prompt, denied.engine); } };
+		const allowed = { ...depsOf(40_000), summarize: async (prompt: string) => { entered(); await gate; return depsOf(40_000).summarize!(prompt, denied.engine); } };
 		kickCompaction(() => allowed, chatId); await started;
 		let finished = false;
 		const waiter = ensureCompacted(denied, chatId).then(() => { finished = true; });
@@ -99,7 +99,7 @@ describe("the compaction service", () => {
 			if (e.type === "compaction-changed" && c === chatId) events.push(`${running}`);
 			if (e.type === "record-changed" && c === chatId) events.push("record");
 		});
-		await ensureCompacted(depsOf(chatId, 40_000), chatId);
+		await ensureCompacted(depsOf(40_000), chatId);
 		off();
 
 		const record = chatStore.getChat(chatId)!;
@@ -119,7 +119,7 @@ describe("the compaction service", () => {
 	it("under-threshold record → a no-op (no marker, no summary call)", async () => {
 		const chatId = overThresholdChat("compact: under");
 		const before = summarizeCalls;
-		await ensureCompacted(depsOf(chatId, 10_000_000), chatId);
+		await ensureCompacted(depsOf(10_000_000), chatId);
 		assert.equal(summarizeCalls, before);
 		assert.equal(activeCompactionOf(chatStore.getChat(chatId)!.messages), null);
 	});
@@ -127,7 +127,7 @@ describe("the compaction service", () => {
 	it("the registry is a mutex: concurrent ensureCompacted → ONE summary", async () => {
 		const chatId = overThresholdChat("compact: mutex");
 		const before = summarizeCalls;
-		const deps = depsOf(chatId, 40_000);
+		const deps = depsOf(40_000);
 		await Promise.all([ensureCompacted(deps, chatId), ensureCompacted(deps, chatId), ensureCompacted(deps, chatId)]);
 		assert.equal(summarizeCalls, before + 1, "exactly one summary however many gates race");
 	});
@@ -139,7 +139,7 @@ describe("the compaction service", () => {
 			const { chatId: c, running } = e as { chatId?: string; running?: boolean };
 			if (e.type === "compaction-changed" && c === chatId) events.push(`${running}`);
 		});
-		const p = ensureCompacted(depsOf(chatId, 40_000), chatId);
+		const p = ensureCompacted(depsOf(40_000), chatId);
 		await awaitCompaction(chatId); // rides the same promise
 		await p;
 		off();
@@ -150,7 +150,7 @@ describe("the compaction service", () => {
 		const chatId = overThresholdChat("compact: chained");
 		let seenPrompt = "";
 		const deps: CompactionDeps = {
-			...depsOf(chatId, 40_000),
+			...depsOf(40_000),
 			summarize: async (prompt) => {
 				seenPrompt = prompt;
 				return {
@@ -160,7 +160,7 @@ describe("the compaction service", () => {
 			},
 		};
 		// first compaction
-		await ensureCompacted({ ...depsOf(chatId, 40_000) }, chatId);
+		await ensureCompacted({ ...depsOf(40_000) }, chatId);
 		// grow the record past the threshold again (post-markers + new tail)
 		chatStore.saveMessages(chatId, [...chatStore.getChat(chatId)!.messages, big("m9"), big("m10"), big("m11")]);
 		// second compaction — the span must open with the FIRST summary
@@ -186,7 +186,7 @@ describe("the compaction service", () => {
 		let built = 0;
 		kickCompaction(() => {
 			built++;
-			return depsOf(chatId, 40_000);
+			return depsOf(40_000);
 		}, chatId);
 		assert.equal(built, 1, "deps built once");
 		await awaitCompaction(chatId);
@@ -197,7 +197,7 @@ describe("the compaction service", () => {
 		const afterFirst = summarizeCalls;
 		kickCompaction(() => {
 			built++;
-			return depsOf(chatId, 40_000);
+			return depsOf(40_000);
 		}, chatId);
 		assert.equal(summarizeCalls, afterFirst, "post-compaction record is under threshold — no run");
 		// a null deps build (engineless) is a silent no-op
@@ -209,7 +209,7 @@ describe("the compaction service", () => {
 		const assistant = { id: "measured", role: "assistant", content: [{ type: "text", text: "ok" }], stopReason: "stop", usage: { input: 120_000, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 120_001 }, timestamp: 1 } as LhMessage;
 		chatStore.saveMessages(chat.id, [newUserMessage("tiny visible history"), assistant]);
 		const before = summarizeCalls;
-		await ensureCompacted(depsOf(chat.id, 40_000), chat.id);
+		await ensureCompacted(depsOf(40_000), chat.id);
 		assert.equal(summarizeCalls, before);
 		assert.equal(activeCompactionOf(chatStore.getChat(chat.id)!.messages), null);
 		assert.equal(measuredContextTokens(chatStore.getChat(chat.id)!.messages), 120_001);
@@ -221,7 +221,7 @@ describe("the compaction service", () => {
 		chatStore.saveMessages(id, [...chatStore.getChat(id)!.messages, assistant]);
 		let release!: () => void;
 		const gate = new Promise<void>((done) => { release = done; });
-		const deps = depsOf(id, 40_000);
+		const deps = depsOf(40_000);
 		const running = ensureCompacted({ ...deps, summarize: async () => {
 			await gate;
 			throw new Error("fixture failure");
@@ -239,7 +239,7 @@ describe("the compaction service", () => {
 		const chatId = overThresholdChat("compact: fail");
 		const before = summarizeCalls;
 		const failing: CompactionDeps = {
-			...depsOf(chatId, 40_000),
+			...depsOf(40_000),
 			summarize: async () => {
 				throw new Error("boom");
 			},
@@ -247,7 +247,7 @@ describe("the compaction service", () => {
 		await ensureCompacted(failing, chatId);
 		assert.equal(activeCompactionOf(chatStore.getChat(chatId)!.messages), null, "no marker on failure");
 		// the next gate retries cleanly
-		await ensureCompacted(depsOf(chatId, 40_000), chatId);
+		await ensureCompacted(depsOf(40_000), chatId);
 		assert.ok(activeCompactionOf(chatStore.getChat(chatId)!.messages));
 		assert.equal(summarizeCalls, before + 1);
 	});

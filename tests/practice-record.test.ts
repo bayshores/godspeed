@@ -19,7 +19,6 @@ import {
 	newNextMessage,
 	newThinkingMessage,
 	needsContinuation,
-	newUserMessage,
 	pendingProblemDismissalOf,
 	toLlmMessages,
 	PRACTICE_CONCLUDE_TOOL,

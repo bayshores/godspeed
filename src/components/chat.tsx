@@ -94,7 +94,7 @@ export function Chat({
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
-	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, questionDraft, saveQuestionDraft, setMessages, status, error, stop, clearError } = session;
+	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, questionDraft, saveQuestionDraft, status, error, stop } = session;
 	const { turnInFlight, localStreamRef, syncFromServer, jobs, turns, pricing, compacting } = useLessonServer({
 		chatId,
 		session,

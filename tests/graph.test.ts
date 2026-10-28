@@ -22,7 +22,6 @@ import { after, describe, it } from "node:test";
 import type { AuditVerdicts, GraphChain, GraphNode, SessionFindings } from "../src/core/contracts.ts";
 import type { QuestionAnswerData } from "../src/core/question-core.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
-import { projectView as projectNative } from "../src/core/view.ts";
 import { deriveView, getGraph, graphSnapshot, mergeFindings, type GraphDeps } from "../src/core/graph.ts";
 import { coverageSlots } from "../src/core/coverage.ts";
 import { graphStore } from "../src/store/graph.ts";
@@ -262,7 +261,6 @@ const chat1 = fixtureChat("Graph fixture", fixtureMessages());
 
 /** Set by the cross-session tests; the snapshot test (which runs after) reads them. */
 let chat2Id = "";
-let chat3Id = "";
 
 // ─── the merger ──────────────────────────────────────────────────────────────
 
@@ -552,7 +550,6 @@ describe("the merger (mergeFindings)", () => {
 
 	it("never string-matches without a verdict — an identical statement without linkTo is a NEW node", () => {
 		const chat3 = fixtureChat("Graph fixture 3", [user("u1", "third")].flat());
-		chat3Id = chat3.id;
 		const stats = mergeFindings(
 			chat3.id,
 			{

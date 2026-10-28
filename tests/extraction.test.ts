@@ -29,7 +29,6 @@ import { createFauxCore, fauxAssistantMessage, fauxToolCall, type FauxResponseSt
 import type { PiEngine } from "../src/agent/models.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import { newPlanBlockMessage } from "../src/core/native-messages.ts";
-import { projectView as projectNative } from "../src/core/view.ts";
 import type {
 	AuditVerdicts,
 	CoverageEntry,

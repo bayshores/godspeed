@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import * as fs from "node:fs";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import { newAnswerResult, newPlanBlockMessage, newUserMessage } from "../src/core/native-messages.ts";
-import type { ToolResultMessage } from "@earendil-works/pi-ai";
 
 import {
 	batchRuns,

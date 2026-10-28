@@ -3,7 +3,6 @@ import { LightbulbIcon } from "lucide-react";
 import { PracticeDock } from "@/components/practice-dock";
 import { QuestionDock, questionKindLabel, type QuestionDockProps } from "@/components/question-dock";
 import { ReadingThinkingField } from "@/components/reading-thinking";
-import type { QueuedSteerLine } from "@/components/queued-steers";
 import type { findPendingToolCall, QuestionAnswerData, QuestionFormDraft } from "@/core";
 import { revealArrival } from "./chat-helpers";
 import { PanelComposer } from "./panel-composer";

@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { BotIcon, CircleAlertIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useFold } from "@/components/use-fold";
 import type { CallUsage, JobKind, JobRecord } from "@/core";
 import { subscriptionLabel, subscriptionLabels } from "@/core";

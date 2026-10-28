@@ -2,14 +2,12 @@ import { agentCore } from "./engine-load.ts";
 import type { AgentEvent, AgentMessage, AgentTool } from "@earendil-works/pi-agent-core";
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
 import type { Usage } from "@earendil-works/pi-ai";
-import { PATHS } from "../config.ts";
 import { APP_IDENTITY, agentEngine, type PiEngine } from "./models.ts";
 import { effectivePromptSegments } from "./prompt-segments.ts";
 import {
 	askUserQuestionTool,
 	createProberTools,
 	createTeacherTools,
-	type ProbeDoneContext,
 	type ProberToolContext,
 	type TeacherToolContext,
 } from "./tools.ts";

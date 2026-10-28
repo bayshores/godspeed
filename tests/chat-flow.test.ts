@@ -947,7 +947,7 @@ describe("mid-turn navigation (turn liveness + write-ahead)", () => {
 		const chat = createConfiguredChat("Test: turn guard");
 		createdChats.push(chat.id);
 
-		const res1 = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine)); // acked; the turn runs as a background object (Diet B: no stream to hold)
+		await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine)); // acked; the turn runs as a background object (Diet B: no stream to hold)
 		assert.equal(isTurnRunning(chat.id), true, "turn registered as in flight");
 		const view1 = drainRunning(chat.id); // a live view — the turn would run on with none
 
@@ -977,7 +977,7 @@ describe("mid-turn navigation (turn liveness + write-ahead)", () => {
 		// NOT drained: the teacher turn is streaming, but the answer is already
 		// on disk — a remount (or crash) mid-turn sees the answered quiz, never
 		// the stale pre-answer question.
-		const res = await handleChatRequest(post(chat.id, { type: "answer", toolCallId: "call-1", answer }), agentFactory(engine));
+		await handleChatRequest(post(chat.id, { type: "answer", toolCallId: "call-1", answer }), agentFactory(engine));
 		const midTurn = chatStore.getChat(chat.id)!;		assert.equal(midTurn.messages.length, 4, "write-ahead appended the answer tool result before finish");
 		assert.equal((midTurn.messages[3] as { role?: string }).role, "toolResult");
 		const midQuiz = projectView(midTurn.messages)[1]!.parts.find((p) => p.type === "tool-quiz");
@@ -1541,7 +1541,7 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 		createdChats.push(chat.id);
 
 		// The turn starts and holds at the first model call.
-		const turnRes = await handleChatRequest(post(chat.id, { type: "text", text: "teach me" }), agentFactory(engine as never));
+		await handleChatRequest(post(chat.id, { type: "text", text: "teach me" }), agentFactory(engine as never));
 		await waitFor(() => calls.length === 1, 8000, "first model call started");
 
 		// The steer lands mid-turn: 200, handed to the live agent.

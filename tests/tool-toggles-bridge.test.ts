@@ -11,7 +11,6 @@
  * question-tools.test.ts.
  */
 import assert from "node:assert/strict";
-import { z } from "zod";
 import { describe, it } from "node:test";
 import { Type } from "typebox";
 import { questionResult } from "../src/agent/tool-execute.ts";

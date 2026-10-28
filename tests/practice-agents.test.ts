@@ -13,8 +13,6 @@ import { describe, it } from "node:test";
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 
 import {
-	activeProblemOf,
-	PRACTICE_CONCLUDE_TOOL,
 	PRACTICE_PROBLEM_TOOL,
 	type LhMessage,
 } from "../src/core/native-messages.ts";

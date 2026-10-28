@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { usePresence } from "@/components/presence";
 import { cn } from "@/lib/utils";
-import type { LhViewMessage, LhViewPart } from "@/core";
+import type { LhViewMessage } from "@/core";
 import { ArrowDownIcon, DownloadIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback } from "react";

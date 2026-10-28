@@ -195,15 +195,15 @@ export interface ToolExecuteContext {
  */
 export function serverExecute<P extends TSchema>(
 	toolName: string,
-	schema: P,
+	_schema: P,
 	run: (input: Static<P>, ctx: ToolExecuteContext) => unknown,
 ): AgentTool<any>["execute"] {
 	// The returned execute is deliberately typed loose (params: unknown) so
 	// it satisfies every AgentTool slot — heterogeneous registries type
 	// AgentTool<any>, whose Static is unknown, and strictFunctionTypes
 	// rejects a params-narrower function against it. The loop has already
-	// validated arguments against `schema` (runtime) and `run` keeps the
-	// precise Static<P> input; `schema` exists in the signature precisely so
+	// validated arguments against the schema (runtime) and `run` keeps the
+	// precise Static<P> input; `_schema` exists in the signature precisely so
 	// P infers from the call site, not the loose surface.
 	return async (toolCallId, input: unknown, signal) =>
 		toToolResult(

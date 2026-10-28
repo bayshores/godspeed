@@ -13,7 +13,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { derivePlanStatuses, derivedNodeStatus, type PlanTree, type PlanToolResult } from "../src/core/contracts.ts";
-import { createTree, emptyTree, PlanTreeError } from "../src/core/plan-tree.ts";
+import { createTree, PlanTreeError } from "../src/core/plan-tree.ts";
 import { planTools } from "../src/agent/tools/plan.ts";
 import { parseMermaidPlan } from "../src/agent/tools/mermaid-plan.ts";
 import { chatStore } from "../src/store/chats.ts";
@@ -21,13 +21,6 @@ import { PATHS } from "../src/config.ts";
 
 const N = (id: string, title = id, summary?: string) => ({ id, title, ...(summary ? { summary } : {}) });
 const E = (from: string, to: string) => ({ from, to });
-
-function tree(ids: string[], edges: Array<[string, string]> = []): PlanTree {
-	return createTree(
-		ids.map((id) => N(id)),
-		edges.map(([from, to]) => E(from, to)),
-	);
-}
 
 /** Assert the op throws a PlanTreeError matching the given regex. */
 function assertReject(fn: () => unknown, needle: RegExp): void {

@@ -7,7 +7,7 @@ import { resolveSourcePath } from "../tools/fs-shared.ts";
 import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
 import type { PdfResult, PdfToolInput } from "../../core/contracts.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
-import { pdfExtract, pdfInfo, pdfProbe, pdfSearch, type PdfSearchHit } from "./pdf-ops.ts";
+import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "./pdf-ops.ts";
 
 /**
  * The pdf-reader sub-agent (sources v0, 2026-09): reads a learner-provided
