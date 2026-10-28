@@ -12,22 +12,26 @@
  * builder (app-builder-lib 26.15.3) — these are the artifacts it actually
  * emits for this repo's electron/electron-builder.yml, not pattern guesses:
  *
- *   mac (dmg + zip, arm64; no user artifactName there):
- *     dmg    godspeed-<v>-arm64.dmg       + .blockmap (createBlockmap)
+ * The download files carry no version (owner ruling, 2026-10-28), so the
+ * README can link to releases/latest/download/<name>:
+ *
+ *   mac (dmg + zip, arm64; dmg.artifactName "${productName}-mac-apple-silicon.${ext}",
+ *        the zip keeps its default name):
+ *     dmg    godspeed-mac-apple-silicon.dmg + .blockmap (createBlockmap)
  *     zip    godspeed-<v>-arm64-mac.zip   + .blockmap (createBlockmap;
  *            Squirrel.Mac updates from the ZIP — it IS the updater payload)
  *     feed   latest-mac.yml — files[0] is the ZIP (writeUpdateInfoFiles
  *            sorts zip first) and the legacy top-level path/sha512 point
  *            at it.
- *   win (nsis x64; artifactName "${productName}-${version}-${arch}-setup.${ext}"):
- *     exe    godspeed-<v>-x64-setup.exe   + .blockmap (createBlockmap)
+ *   win (nsis x64; artifactName "${productName}-windows-x64-setup.${ext}"):
+ *     exe    godspeed-windows-x64-setup.exe + .blockmap (createBlockmap)
  *     feed   latest.yml — a single file entry, the exe.
- *   linux (AppImage + deb, x64; artifactName "${productName}-${version}-${arch}.${ext}"
+ *   linux (AppImage + deb, x64; artifactName "${productName}-linux-x64.${ext}"
  *            is user-forced at the linux level, so it overrides BOTH targets'
- *            default name formats, and ${arch} expands per target ext:
- *            x64→x86_64 for AppImage, x64→amd64 for deb):
- *     image  godspeed-<v>-x86_64.AppImage (no blockmap in 26.15.3)
- *     deb    godspeed-<v>-amd64.deb       (no blockmap)
+ *            default name formats; "x64" is literal because ${arch} would
+ *            expand to x86_64 for AppImage and amd64 for deb):
+ *     image  godspeed-linux-x64.AppImage (no blockmap in 26.15.3)
+ *     deb    godspeed-linux-x64.deb      (no blockmap)
  *     feed   latest-linux.yml — the AppImage and deb entries merged by
  *            writeUpdateInfoFiles (order not deterministic; checked as a set).
  *
@@ -119,17 +123,17 @@ export function checkVersion(version: unknown): { ok: true; version: string } | 
 /** The exact asset set the installed builder emits for this repo's config. */
 export function expectedAssets(version: string): ExpectedAssets {
 	const mac = {
-		dmg: `${PRODUCT_NAME}-${version}-arm64.dmg`,
+		dmg: `${PRODUCT_NAME}-mac-apple-silicon.dmg`,
 		zip: `${PRODUCT_NAME}-${version}-arm64-mac.zip`,
 		feed: "latest-mac.yml",
 	};
 	const win = {
-		exe: `${PRODUCT_NAME}-${version}-x64-setup.exe`,
+		exe: `${PRODUCT_NAME}-windows-x64-setup.exe`,
 		feed: "latest.yml",
 	};
 	const linux = {
-		appImage: `${PRODUCT_NAME}-${version}-x86_64.AppImage`,
-		deb: `${PRODUCT_NAME}-${version}-amd64.deb`,
+		appImage: `${PRODUCT_NAME}-linux-x64.AppImage`,
+		deb: `${PRODUCT_NAME}-linux-x64.deb`,
 		feed: "latest-linux.yml",
 	};
 	// Sidecar differential-update blockmaps: emitted for dmg, mac zip and
@@ -274,9 +278,12 @@ export function verifyConfigAssumptions(config: unknown, pkg: unknown): { ok: tr
 			bad(`mac.target changed (${JSON.stringify(config.mac.target)}) — expected names no longer hold`);
 		}
 	}
+	if (!isPlainObject(config.dmg) || config.dmg.artifactName !== "${productName}-mac-apple-silicon.${ext}") {
+		bad(`dmg.artifactName changed (${JSON.stringify(isPlainObject(config.dmg) ? config.dmg.artifactName : undefined)}) — expected names no longer hold`);
+	}
 	if (!isPlainObject(config.win)) bad("win section missing");
 	else {
-		if (config.win.artifactName !== "${productName}-${version}-${arch}-setup.${ext}") {
+		if (config.win.artifactName !== "${productName}-windows-x64-setup.${ext}") {
 			bad(`win.artifactName changed (${JSON.stringify(config.win.artifactName)}) — expected names no longer hold`);
 		}
 		if (!sameTargets(config.win.target, [{ target: "nsis", arch: ["x64"] }])) {
@@ -285,7 +292,7 @@ export function verifyConfigAssumptions(config: unknown, pkg: unknown): { ok: tr
 	}
 	if (!isPlainObject(config.linux)) bad("linux section missing");
 	else {
-		if (config.linux.artifactName !== "${productName}-${version}-${arch}.${ext}") {
+		if (config.linux.artifactName !== "${productName}-linux-x64.${ext}") {
 			bad(`linux.artifactName changed (${JSON.stringify(config.linux.artifactName)}) — expected names no longer hold`);
 		}
 		if (!sameTargets(config.linux.target, [{ target: "AppImage", arch: ["x64"] }, { target: "deb", arch: ["x64"] }])) {

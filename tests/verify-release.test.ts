@@ -66,18 +66,26 @@ function healthyFeeds(version: string, release: ReleaseRecord): Record<string, s
 describe("release gate — expected asset inventory", () => {
 	it("is exactly the 11 verified builder outputs for the version", () => {
 		assert.deepEqual(expectedAssets(VERSION).files, [
-			"godspeed-0.2.0-arm64.dmg",
+			"godspeed-mac-apple-silicon.dmg",
 			"godspeed-0.2.0-arm64-mac.zip",
-			"godspeed-0.2.0-x64-setup.exe",
-			"godspeed-0.2.0-x86_64.AppImage",
-			"godspeed-0.2.0-amd64.deb",
-			"godspeed-0.2.0-arm64.dmg.blockmap",
+			"godspeed-windows-x64-setup.exe",
+			"godspeed-linux-x64.AppImage",
+			"godspeed-linux-x64.deb",
+			"godspeed-mac-apple-silicon.dmg.blockmap",
 			"godspeed-0.2.0-arm64-mac.zip.blockmap",
-			"godspeed-0.2.0-x64-setup.exe.blockmap",
+			"godspeed-windows-x64-setup.exe.blockmap",
 			"latest-mac.yml",
 			"latest.yml",
 			"latest-linux.yml",
 		]);
+	});
+
+	it("matches the download links on the release page", () => {
+		const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "release.yml"), "utf8");
+		const { mac, win, linux } = expectedAssets(VERSION);
+		for (const name of [mac.dmg, win.exe, linux.appImage, linux.deb]) {
+			assert.ok(workflow.includes(`link("${name}")`), `release.yml should link ${name}`);
+		}
 	});
 
 	it("accepts plain semver versions and nothing else", () => {
@@ -160,6 +168,7 @@ describe("release gate — packaging-config drift guard", () => {
 	const drifts: Array<[string, (config: Record<string, unknown>) => void]> = [
 		["linux artifactName", (config) => { (config.linux as Record<string, unknown>).artifactName = "${name}-${version}-${arch}.${ext}"; }],
 		["win artifactName", (config) => { (config.win as Record<string, unknown>).artifactName = "${productName}-${version}-setup.${ext}"; }],
+		["dmg artifactName", (config) => { (config.dmg as Record<string, unknown>).artifactName = "${productName}-${version}.${ext}"; }],
 		["mac artifactName", (config) => { (config.mac as Record<string, unknown>).artifactName = "${productName}-${version}.${ext}"; }],
 		["top-level artifactName", (config) => { config.artifactName = "${name}-${version}.${ext}"; }],
 		["productName", (config) => { config.productName = "Godspeed"; }],
@@ -185,15 +194,15 @@ describe("release gate — asset inventory", () => {
 	it("passes a complete draft and names every deviation", () => {
 		assert.ok(verifyAssets(healthyRelease(VERSION), expectedAssets(VERSION)).ok);
 		const release = healthyRelease(VERSION);
-		release.assets = release.assets.filter((entry) => entry.name !== "godspeed-0.2.0-x64-setup.exe.blockmap");
+		release.assets = release.assets.filter((entry) => entry.name !== "godspeed-windows-x64-setup.exe.blockmap");
 		release.assets.push(asset(9999, "godspeed-0.2.0-x64.AppImage"));
 		release.assets.push(asset(9998, "godspeed-0.1.0-x64-setup.exe"));
-		release.assets.push(asset(9997, "godspeed-0.2.0-arm64.dmg", { size: 0 }));
-		release.assets.push(asset(9996, "godspeed-0.2.0-arm64.dmg", { state: "starter" }));
+		release.assets.push(asset(9997, "godspeed-mac-apple-silicon.dmg", { size: 0 }));
+		release.assets.push(asset(9996, "godspeed-mac-apple-silicon.dmg", { state: "starter" }));
 		const verdict = verifyAssets(release, expectedAssets(VERSION));
 		assert.ok(!verdict.ok);
 		const joined = verdict.errors.join("\n");
-		assert.match(joined, /x64-setup\.exe\.blockmap: missing/);
+		assert.match(joined, /windows-x64-setup\.exe\.blockmap: missing/);
 		assert.match(joined, /x64\.AppImage: unexpected/);
 		assert.match(joined, /0\.1\.0-x64-setup\.exe: unexpected/);
 		assert.match(joined, /duplicate asset name/);
@@ -204,7 +213,7 @@ describe("release gate — asset inventory", () => {
 
 describe("release gate — updater reference hygiene", () => {
 	it("accepts bare asset names only", () => {
-		assert.ok(isPlainAssetName("godspeed-0.2.0-arm64.dmg"));
+		assert.ok(isPlainAssetName("godspeed-mac-apple-silicon.dmg"));
 		for (const bad of ["", ".", "..", "../godspeed.zip", "dist/godspeed.zip", "https://evil.example/app.zip",
 			"http://evil.example/app.zip", "file:///etc/passwd", "C:\\app.zip", "~x/app.zip", "app.zip?q=1", "app.zip#x"]) {
 			assert.equal(isPlainAssetName(bad), false, bad);
@@ -419,12 +428,12 @@ describe("release gate — CLI (offline, repo config)", () => {
 		const { root } = workspace();
 		try {
 			const release = healthyRelease(VERSION);
-			release.assets = release.assets.filter((entry) => entry.name !== `godspeed-${VERSION}-arm64.dmg.blockmap`);
+			release.assets = release.assets.filter((entry) => entry.name !== "godspeed-mac-apple-silicon.dmg.blockmap");
 			release.assets.push(asset(9999, "godspeed-0.1.0-x64-setup.exe"));
 			fs.writeFileSync(path.join(root, "releases.json"), JSON.stringify([release]));
 			const result = run(["verify", path.join(root, "releases.json"), path.join(root, "metadata"), "--tag", TAG]);
 			assert.equal(result.status, 1);
-			assert.match(result.stderr, /arm64\.dmg\.blockmap: missing from the release/);
+			assert.match(result.stderr, /mac-apple-silicon\.dmg\.blockmap: missing from the release/);
 			assert.match(result.stderr, /0\.1\.0-x64-setup\.exe: unexpected asset/);
 			assert.match(result.stderr, /do not publish/);
 		} finally {

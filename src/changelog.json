@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.4.2",
+		"date": "2026-10-28",
+		"changes": [
+			"The download files have plain names, like godspeed-mac-apple-silicon.dmg, and the release page starts with a table that shows which one to download."
+		]
+	},
+	{
 		"version": "0.4.1",
 		"date": "2026-10-28",
 		"changes": [

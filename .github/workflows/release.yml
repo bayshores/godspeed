@@ -78,7 +78,25 @@ jobs:
             if (!entry || !Array.isArray(entry.changes) || entry.changes.length === 0) {
               throw new Error(`src/changelog.json has no notes for ${version}; add them before releasing.`);
             }
-            const body = "## What's new\n\n" + entry.changes.map(c => `- ${c}`).join("\n") + "\n";
+            // Download links first, for people new to GitHub. These names
+            // match the artifactName settings in electron/electron-builder.yml.
+            const link = name => `[${name}](https://github.com/${owner}/${repo}/releases/download/${tag}/${name})`;
+            const body = [
+              "## Download",
+              "",
+              "| Your computer | Download |",
+              "|---|---|",
+              `| Mac with an Apple chip (M1 or newer) | ${link("godspeed-mac-apple-silicon.dmg")} |`,
+              `| Windows | ${link("godspeed-windows-x64-setup.exe")} |`,
+              `| Linux | ${link("godspeed-linux-x64.AppImage")} (or ${link("godspeed-linux-x64.deb")} for Ubuntu and Debian) |`,
+              "",
+              "You only need one file. The other files below are for automatic updates. Ignore them.",
+              "",
+              "## What's new",
+              "",
+              ...entry.changes.map(c => `- ${c}`),
+              "",
+            ].join("\n");
             const releases = await github.paginate(github.rest.repos.listReleases, {
               owner, repo, per_page: 100,
             });

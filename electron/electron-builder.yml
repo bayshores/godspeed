@@ -141,6 +141,12 @@ mac:
   # codesign --verify --deep / spctl --assess / stapler validate.
   notarize: true
 dmg:
+  # Download names (owner ruling, 2026-10-28): the files people download
+  # carry no version, so the README can link to
+  # releases/latest/download/<name> and it always gets the newest one.
+  # The updater's own files (the mac zip, blockmaps, latest*.yml) keep
+  # their default names.
+  artifactName: "${productName}-mac-apple-silicon.${ext}"
   title: "${productName} ${version}"
   # Owner artwork: 540×380 at 1×; the sibling background@2x.png is
   # combined into a Retina TIFF by dmg-builder. Centres use 1× coordinates.
@@ -161,7 +167,7 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: "${productName}-${version}-${arch}-setup.${ext}"
+  artifactName: "${productName}-windows-x64-setup.${ext}"
   # Unsigned Windows release (owner ruling): preserve icon/version metadata,
   # skip signing, and do not require a publisher signature for updates.
   signExecutable: false
@@ -178,7 +184,8 @@ linux:
     - target: deb
       arch:
         - x64
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # "x64" is spelled out: ${arch} would say x86_64 or amd64 here.
+  artifactName: "${productName}-linux-x64.${ext}"
   category: Education
   # Match Electron's app_id/WM_CLASS to the installed desktop launcher.
   syncDesktopName: true

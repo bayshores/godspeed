@@ -210,7 +210,24 @@ describe("desktop release workflow", () => {
 	type Release = { id: number; tag_name: string; draft: boolean };
 
 	const NOTES = [{ version: "0.3.0", date: "2026-10-27", changes: ["First change.", "Second change."] }];
-	const BODY = "## What's new\n\n- First change.\n- Second change.\n";
+	const download = (name: string) => `[${name}](https://github.com/test-owner/test-repo/releases/download/v0.3.0/${name})`;
+	const BODY = [
+		"## Download",
+		"",
+		"| Your computer | Download |",
+		"|---|---|",
+		`| Mac with an Apple chip (M1 or newer) | ${download("godspeed-mac-apple-silicon.dmg")} |`,
+		`| Windows | ${download("godspeed-windows-x64-setup.exe")} |`,
+		`| Linux | ${download("godspeed-linux-x64.AppImage")} (or ${download("godspeed-linux-x64.deb")} for Ubuntu and Debian) |`,
+		"",
+		"You only need one file. The other files below are for automatic updates. Ignore them.",
+		"",
+		"## What's new",
+		"",
+		"- First change.",
+		"- Second change.",
+		"",
+	].join("\n");
 
 	/** Execute the REAL action script with an in-memory GitHub API. */
 	async function prepareDraft(releases: Release[], changelog: unknown = NOTES) {

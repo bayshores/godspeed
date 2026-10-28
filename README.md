@@ -51,11 +51,13 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 ## Get started
 
-**[Download the latest release](https://github.com/bayshores/godspeed/releases/latest)**
+Download godspeed for your computer:
 
-- **Mac (Apple Silicon):** open the `.dmg` and drag godspeed to Applications. It's signed and notarized, so it opens like any other app.
-- **Windows:** run the `setup.exe`. It isn't signed, so Windows may warn about an unknown publisher. Click **More info → Run anyway**.
-- **Linux:** make the `.AppImage` executable and open it, or install the `.deb`.
+- **[Mac with an Apple chip (M1 or newer)](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg):** open the file, then drag godspeed into Applications.
+- **[Windows](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe):** open the file. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**. (The app isn't signed on Windows.)
+- **Linux:** [AppImage](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage) (most computers) or [.deb](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.deb) (Ubuntu, Debian). Make the AppImage executable, then open it.
+
+Each link downloads the newest version directly.
 
 The app checks for updates once a day and installs them when you quit. **Settings → General → Check for updates** checks right away.
 

@@ -60,14 +60,14 @@ The three jobs upload distinct updater feeds: `latest-mac.yml`, `latest.yml`, `l
 
 | Asset | Role |
 |---|---|
-| `godspeed-<v>-arm64.dmg` + `.blockmap` | macOS installer |
+| `godspeed-mac-apple-silicon.dmg` + `.blockmap` | macOS installer |
 | `godspeed-<v>-arm64-mac.zip` + `.blockmap` | macOS updater payload (Squirrel.Mac installs from the ZIP) |
-| `godspeed-<v>-x64-setup.exe` + `.blockmap` | Windows NSIS installer |
-| `godspeed-<v>-x86_64.AppImage` | Linux AppImage (no sidecar blockmap) |
-| `godspeed-<v>-amd64.deb` | Linux deb (no sidecar blockmap) |
+| `godspeed-windows-x64-setup.exe` + `.blockmap` | Windows NSIS installer |
+| `godspeed-linux-x64.AppImage` | Linux AppImage (no sidecar blockmap) |
+| `godspeed-linux-x64.deb` | Linux deb (no sidecar blockmap) |
 | `latest-mac.yml` / `latest.yml` / `latest-linux.yml` | updater feeds |
 
-  (The Linux names are deliberate: the user-set `linux.artifactName` applies to both Linux targets, and `${arch}` expands per target — `x86_64` inside the AppImage, `amd64` in the deb — exactly what the installed app-builder-lib 26.15.3 emits. The script's expectations fail closed if `electron/electron-builder.yml` drifts from these shapes.);
+  (The four download files carry no version, so the README links to `releases/latest/download/<name>` and always gets the newest one. `linux.artifactName` spells `x64` literally because `${arch}` would expand to `x86_64` for the AppImage and `amd64` for the deb. The release page's Download table in `release.yml` links the same four names. The script's expectations fail closed if `electron/electron-builder.yml` drifts from these shapes.);
 - downloads the three feeds from the draft and fails unless each parses, carries the `package.json` version, and references **exactly** the uploaded assets — by bare file name only (no paths, traversal, or URLs), with sizes matching the API-reported asset sizes, the ZIP first in `latest-mac.yml`, and the legacy top-level `path`/`sha512` backed by that first entry.
 
 The job only reads (release list + asset downloads); it never creates, edits, publishes, or deletes anything.
