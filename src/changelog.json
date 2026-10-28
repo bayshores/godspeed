@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.0",
+		"date": "2026-10-28",
+		"changes": [
+			"Home is the new start page. It lists every class's deadlines in one place, with a live countdown that turns red during the last day.",
+			"Exams are now deadlines. Each one has a kind (exam, homework, quiz or project), a date, an optional time and a box to mark it done. Your agent can add them from the syllabus.",
+			"Due soon in the sidebar shows the next deadlines from every class.",
+			"The class Overview shows how ready you are for each upcoming deadline.",
+			"Your agent always knows today's date and what's due.",
+			"Halley, a small comet, shows what your agent is changing in the app. Turn on Follow to go where it goes. You can rename it in Settings."
+		]
+	},
+	{
 		"version": "0.4.2",
 		"date": "2026-10-28",
 		"changes": [
