@@ -12,6 +12,7 @@ import {
 	itemsSummary,
 	longDateLine,
 	nextDueText,
+	sidebarWhenLabel,
 	whenLabel,
 	type OpenDeadline,
 } from "../src/components/deadlines-model.ts";
@@ -96,5 +97,22 @@ describe("labels", () => {
 	it("Home's date line", () => {
 		assert.equal(longDateLine(NOW), "Wednesday, October 28 · 4:12 PM");
 		assert.equal(longDateLine(new Date(2026, 9, 28, 0, 5).getTime()), "Wednesday, October 28 · 12:05 AM");
+	});
+});
+
+describe("sidebarWhenLabel", () => {
+	const today = "2026-10-28";
+	it("shows only the time today", () => {
+		assert.equal(sidebarWhenLabel({ date: today, time: "17:00" }, today), "5:00 PM");
+	});
+	it("adds the weekday within a week", () => {
+		assert.equal(sidebarWhenLabel({ date: "2026-11-03", time: "19:00" }, today), "Tue 7:00 PM");
+		assert.equal(sidebarWhenLabel({ date: "2026-10-30" }, today), "Fri");
+	});
+	it("shows the date beyond a week", () => {
+		assert.equal(sidebarWhenLabel({ date: "2026-11-12", time: "09:00" }, today), "Thu Nov 12");
+	});
+	it("shows the date once overdue", () => {
+		assert.equal(sidebarWhenLabel({ date: "2026-10-23", time: "23:59" }, today), "Fri Oct 23");
 	});
 });

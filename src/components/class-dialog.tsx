@@ -69,7 +69,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			const drafts = draftsFrom(record.deadlines);
 			if (mode.kind === "edit" && mode.newDeadline) {
 				const key = `new-${++newCount.current}`;
-				drafts.push({ key, kind: "exam", name: "", date: "", time: "", fileIds: [], done: false });
+				drafts.push({ key, kind: "homework", name: "", date: "", time: "", fileIds: [], done: false });
 				setOpenDeadline(key);
 			}
 			setDrafts(drafts);
@@ -109,7 +109,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	}, []);
 	const addDeadline = useCallback(() => {
 		const key = `new-${++newCount.current}`;
-		setDrafts((ds) => [...ds, { key, kind: "exam", name: "", date: "", time: "", fileIds: [], done: false }]);
+		setDrafts((ds) => [...ds, { key, kind: "homework", name: "", date: "", time: "", fileIds: [], done: false }]);
 		setOpenDeadline(key);
 	}, []);
 	const removeDeadline = useCallback((key: string) => {

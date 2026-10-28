@@ -6,7 +6,7 @@ import type { DeadlineProgress, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
 import { useMinute } from "@/components/countdown";
-import { usePracticeStart } from "@/components/graph/practice";
+import { practicePicks, usePracticeStart } from "@/components/graph/practice";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
@@ -21,7 +21,7 @@ import { OverviewBody } from "./overview-body";
  * page's "Practice these N" path); "Most needed" → Learn this starts a
  * lesson on that topic the way the New lesson screen starts lessons
  * (useLessonStart: the topic name is the lesson's title and first message,
- * in the active class).
+ * in the active class, and the topic's facts are its opening picks).
  */
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
@@ -42,7 +42,7 @@ export function ClassOverview() {
 	const learn = useCallback(
 		(topicId: string) => {
 			const topic = current?.topics.find((t) => t.id === topicId);
-			if (topic) void start({ title: topic.name });
+			if (topic) void start({ title: topic.name, picks: practicePicks([topic], current?.facts ?? []) });
 		},
 		[current, start],
 	);

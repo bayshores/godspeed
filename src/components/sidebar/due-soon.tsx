@@ -3,13 +3,13 @@ import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 import { Countdown, useIsOverdue } from "@/components/countdown";
 import { DoneBox } from "@/components/done-box";
-import { dueSoon, whenLabel, type OpenDeadline } from "@/components/deadlines-model";
+import { dueSoon, localDayOf, sidebarWhenLabel, type OpenDeadline } from "@/components/deadlines-model";
 import { cn } from "@/lib/utils";
 
 /**
  * DUE SOON (sidebar, plan 2026-10-28 Phase 3; board 6): the 4 most urgent
  * open deadlines from every class, overdue first. Each row: the done box
- * (red once overdue), the name with "CSE 21 · 5:00 PM" under it, and the
+ * (red once overdue), the name with "CSE 21 · 5:00 PM" (or "Thu 7:00 PM", "Thu Nov 12") under it, and the
  * live countdown. "All" opens Home. Hidden while there is nothing open.
  */
 export const DueSoon = memo(function DueSoon({
@@ -79,7 +79,7 @@ function DueSoonRow({
 			<span className="flex min-w-0 flex-1 flex-col">
 				<span className="truncate text-[14px] leading-5 text-ink">{d.name}</span>
 				<span className="truncate text-[12px] leading-4 text-ink-2">
-					{d.className} · {whenLabel(d)}
+					{d.className} · {sidebarWhenLabel(d, localDayOf(fixedNow ?? Date.now()))}
 				</span>
 			</span>
 			<span className="flex h-5 shrink-0 items-center">

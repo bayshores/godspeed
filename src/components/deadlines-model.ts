@@ -46,6 +46,17 @@ export function whenLabel(d: { date: string; time?: string }): string {
 	return d.time ? clockLabel(d.time) : weekdayLabel(d.date);
 }
 
+/** The sidebar's line under a title: the time today ("5:00 PM"), the
+ *  weekday and time within a week ("Thu 7:00 PM"), the date beyond that
+ *  ("Thu Nov 12"); a deadline with no time drops the time part. */
+export function sidebarWhenLabel(d: { date: string; time?: string }, today: string): string {
+	const days = daysBetween(today, d.date);
+	const time = d.time ? clockLabel(d.time) : "";
+	if (days === 0) return time || weekdayLabel(d.date);
+	if (days > 0 && days <= 7) return time ? `${weekdayLabel(d.date)} ${time}` : weekdayLabel(d.date);
+	return deadlineDateLabel(d.date);
+}
+
 /** Under Home's countdown: "11:59 PM", or "was due Fri 11:59 PM" once
  *  overdue ("Fri" / "was due Fri" with no time). */
 export function dueUnderLabel(d: { date: string; time?: string }, overdue: boolean): string {
