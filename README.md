@@ -21,7 +21,7 @@ godspeed is a study app for students and self-learners. Claude Code, Codex or an
 
 godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist, and keeps its teaching method. The fork changes who teaches (an agent you already use) and adds classes, files, graphs and exams.
 
-![A godspeed lesson: the plan step bar on top, the reading column on the left, and the Your turn panel on the right](docs/design/exports/lesson.png)
+![The old LearnHarness lesson and graph turning into the new godspeed lesson and topic graph as a before/after line slides across](docs/assets/learnharness-to-godspeed.gif)
 
 ## What's different from LearnHarness
 
