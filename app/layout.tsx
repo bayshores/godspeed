@@ -8,7 +8,9 @@ import { ServerEventsProvider } from "@/components/server-events";
 import { AppearanceProvider } from "@/components/settings/appearance";
 import UpdateBanner from "@/components/update-banner";
 import { ClassProvider } from "@/components/class-context";
-import { readSettingsRecord } from "@/src/server";
+// The settings store alone — the @/src/server barrel would load the whole
+// server (agent engine, MCP, extraction) just to read one field.
+import { readSettingsRecord } from "@/src/server/settings-read";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
 // Serif (the bundled lh-cmu @font-face in globals.css — no CDN).

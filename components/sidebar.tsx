@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
-import { SettingsDialogProvider } from "@/components/settings/settings-dialog.tsx";
+import { SettingsDialogProvider } from "@/components/settings/settings-dialog-provider.tsx";
 import { Hint } from "@/components/ui/hint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

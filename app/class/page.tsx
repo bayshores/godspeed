@@ -1,6 +1,8 @@
 import { ClassOverview } from "@/components/overview/class-overview";
 import { slotsConfigured } from "@/src/core";
-import { readSettingsRecord } from "@/src/server";
+// The settings store alone — the @/src/server barrel would load the whole
+// server (agent engine, MCP, extraction) just to read one field.
+import { readSettingsRecord } from "@/src/server/settings-read";
 
 // Dynamic: "Learn this" needs the configured state on the first frame
 // (the same first-run gate the new-lesson draft reads).

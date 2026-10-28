@@ -72,6 +72,9 @@ const nextConfig: NextConfig = {
 			// in 0.3.0, so importing puppeteer-core failed before browser startup.
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
+			// Speed plan (2026-10-27): the class-PDF text worker, loaded by path
+			// (src/server/class-files.ts pdfTextWorkerPath) — the tracer can't see it.
+			"src/server/workers/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			// Wave E (2026-10-10): pdf_render paints via @napi-rs/canvas — its
 			// platform binary (@napi-rs/canvas-<platform>-<arch>) is a dynamic

@@ -50,9 +50,11 @@ export default defineConfig([
 						{
 							target: "./app",
 							from: "./src",
-							except: ["./core/index.ts", "./server/index.ts"],
+							// settings-read.ts: the light door for render-time settings reads
+							// (speed plan, owner 2026-10-27) — the full barrel loads the whole server.
+							except: ["./core/index.ts", "./server/index.ts", "./server/settings-read.ts"],
 							message:
-								"app/ (transport + server components) imports ONLY the barrels: `@/src/core` and `@/src/server` (architecture: docs/architecture.md).",
+								"app/ (transport + server components) imports ONLY the barrels: `@/src/core` and `@/src/server` (plus `@/src/server/settings-read` for settings reads) (architecture: docs/architecture.md).",
 						},
 						{
 							target: "./src/core",

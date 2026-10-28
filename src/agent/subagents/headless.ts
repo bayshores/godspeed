@@ -160,6 +160,40 @@ export function browserServiceBinary(): string | null {
 const BROWSER_SERVICE_TIMEOUT_MS = 15_000;
 let browserServiceProc: import("node:child_process").ChildProcess | null = null;
 
+/** Close something after it has been unused for `delayMs` (speed plan,
+ *  owner 2026-10-27). busy() when a use starts, done() when it ends; the
+ *  countdown runs only while nothing is using it. */
+export function createIdleCloser(delayMs: number, close: () => void): { busy(): void; done(): void } {
+	let users = 0;
+	let timer: ReturnType<typeof setTimeout> | null = null;
+	return {
+		busy() {
+			users++;
+			if (timer) clearTimeout(timer);
+			timer = null;
+		},
+		done() {
+			users = Math.max(0, users - 1);
+			if (users > 0) return;
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(() => {
+				timer = null;
+				if (users === 0) close();
+			}, delayMs);
+			timer.unref?.();
+		},
+	};
+}
+
+/** The helper browser closes 5 minutes after its last job (it used to stay
+ *  until the app quit); the next job starts it again. */
+const BROWSER_SERVICE_IDLE_MS = 5 * 60_000;
+const helperIdle = createIdleCloser(BROWSER_SERVICE_IDLE_MS, () => {
+	const proc = browserServiceProc;
+	browserServiceProc = null;
+	if (proc && proc.exitCode === null) proc.kill();
+});
+
 async function connectBrowserService(): Promise<import("puppeteer-core").Browser | null> {
 	const puppeteer = (await import("puppeteer-core")).default;
 	const { spawn } = await import("node:child_process");
@@ -237,7 +271,15 @@ let helperPageChain: Promise<unknown> = Promise.resolve();
 async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => Promise<T>): Promise<T> {
 	// Helper first (owner ruling 2026-10-10: the app's own Chromium primary,
 	// system Chrome fallback) — deterministic across users, zero install.
-	const helper = await connectBrowserService();
+	// The idle countdown pauses for the whole job, connect included.
+	helperIdle.busy();
+	let helper: import("puppeteer-core").Browser | null;
+	try {
+		helper = await connectBrowserService();
+	} catch (err) {
+		helperIdle.done();
+		throw err;
+	}
 	if (helper) {
 		const run = async (): Promise<T> => {
 			const pages = await helper.pages();
@@ -252,8 +294,9 @@ async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => P
 		};
 		const next = helperPageChain.then(run, run);
 		helperPageChain = next.catch(() => {});
-		return next;
+		return next.finally(() => helperIdle.done());
 	}
+	helperIdle.done();
 
 	// Chrome fallback: per-job launch, close on the way out (old semantics).
 	const puppeteer = (await import("puppeteer-core")).default;

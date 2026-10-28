@@ -43,6 +43,8 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 		assert.deepEqual(nextConfig.outputFileTracingIncludes!["*"], [
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
+			// Speed plan (2026-10-27): the class-PDF text worker, loaded by path.
+			"src/server/workers/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			"node_modules/@napi-rs/canvas-*/**/*",
 			"node_modules/@resvg/resvg-js-*/**/*",

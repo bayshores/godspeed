@@ -13,7 +13,8 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { pdfExtract } from "../agent/subagents/pdf-ops.ts";
+import { Worker } from "node:worker_threads";
+import { pdfExtract, standardFontsDir } from "../agent/subagents/pdf-ops.ts";
 import {
 	DOCUMENT_EXTENSIONS,
 	TEXT_EXTENSIONS,
@@ -23,9 +24,53 @@ import {
 	isSupportedClassFile,
 } from "../core/contracts.ts";
 
-/** sha256 of the file's bytes, 16 hex chars — the change detector. */
-export function fingerprintFile(absPath: string): string {
-	return createHash("sha256").update(fs.readFileSync(absPath)).digest("hex").slice(0, 16);
+/** sha256 of the file's bytes, 16 hex chars — the change detector.
+ *  Streamed (speed plan, 2026-10-27): a whole-file sync read of a big PDF
+ *  blocked every other request while it hashed. */
+export function fingerprintFile(absPath: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const hash = createHash("sha256");
+		fs.createReadStream(absPath)
+			.on("data", (chunk) => hash.update(chunk))
+			.on("error", reject)
+			.on("end", () => resolve(hash.digest("hex").slice(0, 16)));
+	});
+}
+
+/** The PDF text worker (plain .mjs, traced into the standalone build by
+ *  next.config.ts). Found from the server's working directory: the repo
+ *  root in dev and tests, the standalone dir when packaged. */
+export function pdfTextWorkerPath(): string {
+	return path.join(process.cwd(), "src", "server", "workers", "pdf-text-worker.mjs");
+}
+
+/** pdfExtract(file, "all") on a worker thread, so a big PDF never stalls the
+ *  server. Falls back to the in-process extractor if the worker can't start
+ *  (logged — a build missing the worker file must still work). */
+export async function pdfTextOffThread(absPath: string): Promise<string> {
+	let started = false;
+	try {
+		return await new Promise<string>((resolve, reject) => {
+			const worker = new Worker(pdfTextWorkerPath(), {
+				workerData: { filePath: absPath, standardFontDataUrl: standardFontsDir() },
+			});
+			worker.once("online", () => {
+				started = true;
+			});
+			worker.once("message", (msg: { ok: boolean; text?: string; error?: string }) => {
+				void worker.terminate();
+				if (msg.ok) resolve(msg.text ?? "");
+				else reject(new Error(msg.error ?? "PDF text extraction failed"));
+			});
+			worker.once("error", reject);
+			worker.once("exit", (code) => reject(new Error(`PDF text worker exited (code ${code})`)));
+		});
+	} catch (err) {
+		// The worker ran and the PDF itself failed: that error, as before.
+		if (started) throw err;
+		console.error(`[class-files] PDF worker unavailable (${err instanceof Error ? err.message : String(err)}) — reading in-process`);
+		return pdfExtract(absPath, "all");
+	}
 }
 
 /** Strip a WebVTT / SRT transcript down to its spoken text: no header, no
@@ -62,7 +107,7 @@ export async function fileToText(absPath: string): Promise<string> {
 	if ((DOCUMENT_EXTENSIONS as readonly string[]).includes(ext)) {
 		// pdfjs text, page-headed ("--- Page N ---") — the headings keep the
 		// extractor oriented in long readings.
-		return pdfExtract(absPath, "all");
+		return pdfTextOffThread(absPath);
 	}
 	if (isRecordingFile(absPath)) throw new RecordingNeedsTranscriptError();
 	throw new Error(`Unsupported file type: ${ext || "(none)"}`);

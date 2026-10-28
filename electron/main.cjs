@@ -139,6 +139,13 @@ let subscriptionChild = null;
 let desktopAPISecret = null;
 let reopenWindow = null;
 const trustedAppWindows = new Set();
+// Packaged launch: resolves when the server first answers (null in dev).
+let serverUp = null;
+let serverReady = false;
+// Resolves once the first window is on screen (or gone): heavy main-process
+// work waits for it so it never delays first paint.
+let markWindowShown;
+const windowShown = new Promise((resolve) => { markWindowShown = resolve; });
 
 // A GUI shell must never die to a stray exception (EPIPE dialogs, a race
 // in an event handler): the window + child server are the product, and
@@ -229,6 +236,9 @@ function startServer(port) {
 					LH_DATA_DIR: DATA_DIR(),
 					LH_DESKTOP_SERVER: "1",
 					LH_DESKTOP_API_SECRET: desktopAPISecret,
+					// Node's on-disk compile cache: later launches skip re-compiling
+					// the server's code (measured: first page 1366 → 1157 ms).
+					NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
 				},
 				stdio: ["ignore", "pipe", "pipe", "ipc"],
 			},
@@ -253,21 +263,46 @@ function startServer(port) {
 	});
 }
 
-/** No "ready" event exists — poll until the server answers (docs-confirmed). */
-function waitUntilUp(url, tries = 150) {
+/** No "ready" event exists — poll until the server answers (docs-confirmed).
+ *  The probe hits an /api path WITHOUT the desktop secret: proxy.ts answers
+ *  403 at once, so a probe never renders a page (polling "/" rendered the
+ *  whole home page per probe). Any answer means the server listens.
+ *  50 ms × 600 = the same 30 s budget as before. */
+function waitUntilUp(url, tries = 600) {
+	const probe = new URL("/api/ready", url);
 	return new Promise((resolve, reject) => {
 		const attempt = (n) => {
-			const req = http.get(url, (res) => {
+			const req = http.get(probe, (res) => {
 				res.resume();
 				resolve(res.statusCode !== undefined);
 			});
 			req.on("error", () => {
 				if (n <= 0) reject(new Error(`server never answered on ${url}`));
-				else setTimeout(() => attempt(n - 1), 200);
+				else setTimeout(() => attempt(n - 1), 50);
 			});
 		};
 		attempt(tries);
 	});
+}
+
+/** The launch splash (speed plan, owner 2026-10-27): "godspeed" in the
+ *  CMU title font on the app background, shown the instant the window
+ *  exists, replaced by the app once the server answers. A data: URL with
+ *  the font inlined — a file:// page can't reliably load a font from
+ *  another directory, and the font ships with the server's public/. */
+function splashURL() {
+	let fontFace = "";
+	try {
+		const font = fs.readFileSync(path.join(path.dirname(serverEntry()), "public", "fonts", "cmunbx.ttf")).toString("base64");
+		fontFace = `@font-face{font-family:lh-cmu;src:url(data:font/ttf;base64,${font}) format("truetype");font-weight:700}`;
+	} catch {
+		/* no font: the serif fallback below */
+	}
+	const html = `<!doctype html><html><head><meta charset="utf-8"><title>${PRODUCT_NAME}</title><style>${fontFace}
+html,body{margin:0;height:100%;background:#141414;-webkit-app-region:drag;-webkit-user-select:none;cursor:default}
+body{display:flex;align-items:center;justify-content:center}
+h1{margin:0;font:700 40px lh-cmu,serif;color:#e5e5e5}</style></head><body><h1>${PRODUCT_NAME}</h1></body></html>`;
+	return `data:text/html;base64,${Buffer.from(html).toString("base64")}`;
 }
 
 function killServer() {
@@ -292,7 +327,7 @@ function killServer() {
  *    (Electron auto-approves by default, we do not);
  *  - will-navigate pinned to the app origin; window.open always denied —
  *    external links go to the real browser via shell.openExternal. */
-function createWindow(url) {
+function createWindow(url, serverUp = null) {
 	const win = new BrowserWindow({
 		width: 1440,
 		height: 900,
@@ -376,7 +411,17 @@ function createWindow(url) {
 		return { action: "deny" };
 	});
 
-	void win.loadURL(url);
+	// serverUp (packaged launch while the server still boots): the splash
+	// first, the app the moment the server answers.
+	if (serverUp) {
+		void win.loadURL(splashURL());
+		serverUp.then(
+			() => { if (!win.isDestroyed()) void win.loadURL(url); },
+			() => { /* logged by main(); the splash stays */ },
+		);
+	} else {
+		void win.loadURL(url);
+	}
 	// Zoom truth reaches the renderer for EVERY load (reload, nav): the
 	// renderer's --lh-zoom must never go stale. The fallback catcher below
 	// covers ⌘= / layout variants the menu's ⌘Plus may not claim — menu-
@@ -673,23 +718,39 @@ async function main() {
 		});
 		subscriptions = createSubscriptions({
 			directory: app.getPath("userData"),
-			loadSDK: () => loadSubscriptionSDK(path.dirname(serverEntry())),
+			// Speed plan (2026-10-27): the SDK import blocks this process for
+			// 0.5–0.9 s, so it waits until the window is on screen and no
+			// longer delays the server spawn. The server's requests simply
+			// wait on subscriptions.ready, exactly as before.
+			loadSDK: async () => {
+				await windowShown;
+				return loadSubscriptionSDK(path.dirname(serverEntry()));
+			},
 			openExternal: (target) => shell.openExternal(target),
 			onChange: (snapshot) => {
 				subscriptionChild?.send(snapshot);
 				for (const win of BrowserWindow.getAllWindows()) win.webContents.send("lh:subscriptions:changed");
 			},
 		});
-		await subscriptions.ready;
 		log(`starting server: ${serverEntry()}`);
 		log(`data dir: ${DATA_DIR()}`);
 		await startServer(new URL(url).port);
-		await waitUntilUp(url);
-		log(`server up: ${url}`);
+		serverUp = waitUntilUp(url).then(
+			() => {
+				serverReady = true;
+				log(`server up: ${url}`);
+				writeMcpEndpoint(url);
+			},
+			(err) => {
+				log(`${err?.message ?? err}`);
+				throw err;
+			},
+		);
 	} else {
 		log(`dev mode: ${devUrl}`);
+		serverReady = true;
+		writeMcpEndpoint(url);
 	}
-	writeMcpEndpoint(url);
 
 	// Renderer controls contain no token/URL/code operation. The separate server
 	// child is the only recipient of credential leases over inherited IPC.
@@ -756,11 +817,13 @@ async function main() {
 		const target = SIDEBAR_AUTOCLOSE;
 		if (width < target) win.setBounds({ x, y, width: target, height });
 	});
-	reopenWindow = () => { chatgpt?.resume(); subscriptions?.resume(); return createWindow(url); };
+	reopenWindow = () => { chatgpt?.resume(); subscriptions?.resume(); return createWindow(url, serverReady ? null : serverUp); };
 	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) reopenWindow();
 	});
-	createWindow(url);
+	const firstWindow = createWindow(url, serverReady ? null : serverUp);
+	firstWindow.once("show", markWindowShown);
+	firstWindow.once("closed", markWindowShown);
 	log(`window open: ${url}`);
 	// Startup + 24h checks stay main-owned and read the current preference.
 	// No renderer subscription is required; late loads retrieve the snapshot.

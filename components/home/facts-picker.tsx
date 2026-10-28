@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GraphContextPick, GraphSnapshot } from "@/src/core";
 import { classQuery } from "@/components/class-context";
-import { ChainTableOverlay } from "@/components/chain-table.tsx";
+import { LazyChainTableOverlay as ChainTableOverlay } from "@/components/chain-table-lazy.tsx";
 
 /** The class's graph, read once per class (the picker's rows). */
 export function useGraphSnapshot(classId: string | null): GraphSnapshot | null {

@@ -32,7 +32,7 @@ import {
 	kbdEventForAction,
 	KEYBOARD_ACTIONS,
 } from "@/src/core";
-import { useSettingsDialog } from "@/components/settings/settings-dialog.tsx";
+import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
 
 // Re-exported for the contract pin (tests/keyboard-toggle-sidebar.test.ts):
 // the dispatcher composes event names through the ONE helper — a second

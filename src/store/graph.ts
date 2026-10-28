@@ -57,10 +57,42 @@ import type { GraphStore } from "../core/ports.ts";
 function appendLine<T>(files: GraphFiles, file: string, record: T): void {
 	fs.mkdirSync(path.dirname(file), { recursive: true });
 	ensureGraphFormat(files.format); // the lazy format stamp (graph-format.ts)
+	ledgerCache.delete(file);
 	fs.appendFileSync(file, `${JSON.stringify(record)}\n`, "utf-8");
 }
 
-function readRawLines(file: string): unknown[] {
+/** Parsed ledgers kept in memory (speed plan, owner 2026-10-27): every graph
+ *  read re-parsed whole JSONL files. A cached parse is reused while the
+ *  file's size and modified-time are unchanged; this module's own writes
+ *  also drop it. Cached records are SHARED — callers must never mutate
+ *  them (frozen under tests so a mutation fails loudly). */
+const ledgerCache = new Map<string, { mtimeMs: number; size: number; lines: readonly unknown[] }>();
+
+function deepFreeze<T>(value: T): T {
+	if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
+		Object.freeze(value);
+		for (const v of Object.values(value)) deepFreeze(v);
+	}
+	return value;
+}
+
+function readRawLines(file: string): readonly unknown[] {
+	let st: fs.Stats;
+	try {
+		st = fs.statSync(file);
+	} catch {
+		ledgerCache.delete(file);
+		return []; // no ledger yet — nothing has ever been emitted
+	}
+	const hit = ledgerCache.get(file);
+	if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.lines;
+	const lines = parseRawLines(file);
+	if (process.env.NODE_ENV === "test") deepFreeze(lines);
+	ledgerCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, lines });
+	return lines;
+}
+
+function parseRawLines(file: string): unknown[] {
 	let raw: string;
 	try {
 		raw = fs.readFileSync(file, "utf-8");
@@ -236,6 +268,7 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 				const file = ledgers[key];
 				fs.mkdirSync(path.dirname(file), { recursive: true });
 				const tmp = `${file}.tmp-${crypto.randomUUID().slice(0, 8)}`;
+				ledgerCache.delete(file);
 				try {
 					// JSONL: one record per line, trailing newline — a reader
 					// must see exactly what appendLine would have written.

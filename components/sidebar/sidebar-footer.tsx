@@ -3,7 +3,7 @@ import { SettingsIcon } from "lucide-react";
 import { ActivitySection, useActivity } from "@/components/activity-dock";
 import { MenuShell } from "@/components/menu-shell";
 import { useServerResync } from "@/components/server-events";
-import { useSettingsDialog } from "@/components/settings/settings-dialog.tsx";
+import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
 import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
 

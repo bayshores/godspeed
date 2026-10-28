@@ -13,7 +13,7 @@ import type { GraphSnapshot } from "@/src/core";
 import { classQuery, useClasses } from "@/components/class-context";
 import { useProgress } from "@/components/use-progress";
 import { useActivity } from "@/components/activity-dock";
-import { ChainTableOverlay } from "@/components/chain-table";
+import { LazyChainTableOverlay as ChainTableOverlay } from "@/components/chain-table-lazy.tsx";
 import { NotesImportErrors, useNotesImport } from "@/components/notes-import";
 import { SetupDialog } from "@/components/setup-dialog";
 import { GraphTopBar } from "./graph-top-bar.tsx";

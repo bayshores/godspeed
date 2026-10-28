@@ -16,7 +16,8 @@ import { TOGGLE_TOOLS, AgentSection } from "../components/settings/agent-section
 import { AppearanceSection, GraphSection } from "../components/settings/appearance-section.tsx";
 import { KeyboardSection } from "../components/settings/keyboard-section.tsx";
 import type { GraphSettings } from "../src/core/index.ts";
-import { SettingsDialogBody, SettingsDialogProvider } from "../components/settings/settings-dialog.tsx";
+import { SettingsDialogBody } from "../components/settings/settings-dialog.tsx";
+import { SettingsDialogProvider } from "../components/settings/settings-dialog-provider.tsx";
 import { KEYBOARD_ACTIONS } from "../src/core/index.ts";
 
 /** The full opening tag of the element carrying a testid — attribute

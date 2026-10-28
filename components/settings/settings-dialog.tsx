@@ -21,9 +21,7 @@
  */
 
 import {
-	createContext,
 	useCallback,
-	useContext,
 	useEffect,
 	useRef,
 	useState,
@@ -52,8 +50,7 @@ import { BotIcon, InfoIcon, KeyRoundIcon, KeyboardIcon, PaletteIcon, PlugIcon, S
 import { AppearanceSection, GraphSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
 import { AGENTS_SECTION_HINT, AgentsSection } from "./agents-section.tsx";
-import { ChatGPTUIProvider } from "./chatgpt-connection.tsx";
-import { NativeSubscriptionUIProvider, SubscriptionConnections } from "./subscription-connections.tsx";
+import { SubscriptionConnections } from "./subscription-connections.tsx";
 
 /** The left nav, in the redesign's order (design/exports/settings.html).
  *  A section's hint shows as a tooltip on the info icon by its title.
@@ -76,45 +73,20 @@ export function sectionFor(id: string | undefined): SectionId {
 	return SECTIONS.some((s) => s.id === id) ? (id as SectionId) : DEFAULT_SECTION;
 }
 
-/** `open(section?)` — lands the dialog on a section (default Outside agents). */
-const DialogContext = createContext<{ open: (section?: string) => void }>({ open: () => {} });
-
-/** AppShell-level mount: the sidebar row and the mod+, chord call this.
- *  `open(section)` lands the dialog on a specific section. */
-export function SettingsDialogProvider({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
-	const [show, setShow] = useState(false);
-	const [landOn, setLandOn] = useState<SectionId>(DEFAULT_SECTION);
-	const open = useCallback((section?: string) => {
-		setLandOn(sectionFor(section));
-		setShow(true);
-	}, []);
-	useEffect(() => window.lh?.onOpenSettings?.((section) => open(section)), [open]);
-	return (
-		<ChatGPTUIProvider><NativeSubscriptionUIProvider><DialogContext.Provider value={{ open }}>
-			{children}
-			{/* Rendered always; `open` lets it fade out (motion wave). */}
-			<SettingsDialog open={show} onClose={() => setShow(false)} initialSection={landOn} />
-		</DialogContext.Provider></NativeSubscriptionUIProvider></ChatGPTUIProvider>
-	);
-}
-
-export function useSettingsDialog() {
-	return useContext(DialogContext);
-}
-
-function SettingsDialog({
+/** The modal (portal + backdrop + body). Loaded on demand by
+ *  settings-dialog-provider.tsx (speed plan, 2026-10-27): this module and
+ *  every section stay out of each page's startup code. `section` is the
+ *  requested id; sectionFor resolves it. */
+export function SettingsDialog({
 	open,
 	onClose,
-	initialSection,
+	section,
 }: {
 	open: boolean;
 	onClose: () => void;
-	initialSection: SectionId;
+	section: string | undefined;
 }) {
+	const initialSection = sectionFor(section);
 	const backdropDismiss = useBackdropDismiss(onClose);
 	// Exit motion (motion wave, owner 2026-10-26): mounted through its fade-out.
 	const presence = usePresence(open);

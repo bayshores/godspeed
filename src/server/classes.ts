@@ -27,7 +27,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
 import type { ClassExam, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
-import { ClassExamError, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
+import { ClassExamError, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
 import { ModelsNotConfiguredError, ProviderNotConnectedError } from "../core/settings.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
@@ -82,6 +82,51 @@ export function classFilePath(record: ClassRecord, file: ClassFile): string | nu
  *  folder — a linked folder is never written to). */
 export function transcriptPathOf(classId: string, fileId: string): string {
 	return path.join(stores.classStore.filesDir(classId), "transcripts", `${fileId}.txt`);
+}
+
+/** Saved PDF text (speed plan, owner 2026-10-27): the extracted text of one
+ *  version of a file, named by its content fingerprint, so a relaunch that
+ *  re-processes an unfinished file skips re-reading an unchanged PDF. */
+function isDocumentFile(name: string): boolean {
+	return (DOCUMENT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
+}
+function textCacheDir(classId: string): string {
+	return path.join(stores.classStore.filesDir(classId), "texts");
+}
+function textCachePath(classId: string, fileId: string, fp: string): string {
+	return path.join(textCacheDir(classId), `${fileId}.${fp}.txt`);
+}
+function readCachedText(classId: string, fileId: string, fp: string): string | null {
+	try {
+		return fs.readFileSync(textCachePath(classId, fileId, fp), "utf-8");
+	} catch {
+		return null;
+	}
+}
+/** Remove every saved text of one file (all versions). */
+function dropCachedTexts(classId: string, fileId: string): void {
+	let names: string[];
+	try {
+		names = fs.readdirSync(textCacheDir(classId));
+	} catch {
+		return;
+	}
+	for (const name of names) {
+		if (name.startsWith(`${fileId}.`)) fs.rmSync(path.join(textCacheDir(classId), name), { force: true });
+	}
+}
+/** Save one version's text, replacing older versions'. Best effort: a
+ *  failed write only costs a re-read next time. */
+function writeCachedText(classId: string, fileId: string, fp: string, text: string): void {
+	try {
+		dropCachedTexts(classId, fileId);
+		fs.mkdirSync(textCacheDir(classId), { recursive: true });
+		const file = textCachePath(classId, fileId, fp);
+		fs.writeFileSync(`${file}.tmp`, text, "utf-8");
+		fs.renameSync(`${file}.tmp`, file);
+	} catch (err) {
+		console.error(`[classes] could not save text of ${fileId}:`, err);
+	}
 }
 
 /** The notes-source id a class file's facts are born under: unique per
@@ -294,6 +339,7 @@ export function removeFile(classId: string, fileId: string): ClassOutcome<null> 
 function dropFile(record: ClassRecord, file: ClassFile): void {
 	if (file.sourceId) deleteSourceTraces(graphStoreFor(record.id), file.sourceId);
 	fs.rmSync(transcriptPathOf(record.id, file.id), { force: true });
+	dropCachedTexts(record.id, file.id);
 	if (file.origin === "copied") {
 		fs.rmSync(path.join(stores.classStore.filesDir(record.id), file.id), { recursive: true, force: true });
 	}
@@ -397,6 +443,9 @@ interface ClassQueuesGlobal {
 	__lhClassScanTimer?: ReturnType<typeof setInterval>;
 }
 const G = globalThis as typeof globalThis & ClassQueuesGlobal;
+
+/** How long after launch the catch-up of unfinished files waits. */
+const STARTUP_SCAN_DELAY_MS = 10_000;
 const queues = (G.__lhClassQueues ??= new Map());
 const queued = (G.__lhClassQueued ??= new Set());
 /** Classes deleted while work was queued — their queued work is skipped. */
@@ -440,7 +489,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	}
 	const st = fs.statSync(abs);
 	const statSig = `${st.mtimeMs}:${st.size}`;
-	const fp = fingerprintFile(abs);
+	const fp = await fingerprintFile(abs);
 	const store = graphStoreFor(classId);
 
 	if (file.kind === "info") {
@@ -463,6 +512,14 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		if (isRecordingFile(file.name)) {
 			const out = transcriptPathOf(classId, fileId);
 			text = await transcribeRecording(abs, out);
+		} else if (isDocumentFile(file.name)) {
+			const cached = readCachedText(classId, fileId, fp);
+			if (cached !== null) {
+				text = cached;
+			} else {
+				text = await fileToText(abs);
+				writeCachedText(classId, fileId, fp, text);
+			}
 		} else {
 			text = await fileToText(abs);
 		}
@@ -526,14 +583,16 @@ export function startClassScanner(): void {
 		}
 	}, 60_000);
 	G.__lhClassScanTimer.unref?.();
-	// App start: catch up on files left pending by a previous run.
+	// App start: catch up on files left pending by a previous run — 10 s
+	// later (speed plan, owner 2026-10-27), so it never competes with the
+	// window's first load.
 	setTimeout(() => {
 		try {
 			scanAllClasses();
 		} catch (err) {
 			console.error("[classes] startup scan failed:", err);
 		}
-	}, 0).unref?.();
+	}, STARTUP_SCAN_DELAY_MS).unref?.();
 }
 
 // ─── moving a lesson ────────────────────────────────────────────────────────
