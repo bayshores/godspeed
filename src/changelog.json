@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.4.1",
+		"date": "2026-10-28",
+		"changes": [
+			"Reading class files and building the knowledge graph no longer gets stuck while an outside agent is teaching a lesson.",
+			"The Background agents panel tells you when no outside agent is running, and how to start one.",
+			"After an update, a What's new window lists the changes. Settings → General → Release notes shows it again."
+		]
+	},
+	{
 		"version": "0.4.0",
 		"date": "2026-10-27",
 		"changes": [
