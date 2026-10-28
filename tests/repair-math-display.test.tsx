@@ -8,11 +8,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import { validateToolArguments } from "@earendil-works/pi-ai";
 import { problemInputObject } from "../src/agent/tools/practice.ts";
-import { PracticeDock } from "../components/practice-dock.tsx";
-import { QuestionDock } from "../components/question-dock.tsx";
-import { LatexGlyph } from "../components/latex-glyph.tsx";
-import { ProblemCard, ConcludeCard } from "../components/practice-cards.tsx";
-import { MessageResponse, ToolContentResponse } from "../components/ai-elements/message.tsx";
+import { PracticeDock } from "../src/components/practice-dock.tsx";
+import { QuestionDock } from "../src/components/question-dock.tsx";
+import { LatexGlyph } from "../src/components/latex-glyph.tsx";
+import { ProblemCard, ConcludeCard } from "../src/components/practice-cards.tsx";
+import { MessageResponse, ToolContentResponse } from "../src/components/ai-elements/message.tsx";
 import {
 	repairMathForDisplay, healOverescapedCommands, restoreMathEscapes,
 	parseQuizInput, parseAskInput, parseExplainInput, activeProblemOf, projectView,

@@ -26,7 +26,7 @@ let createChat: (title: string, kind?: "practice") => { id: string; title: strin
 let saveMessages: (id: string, messages: unknown[]) => void;
 
 before(async () => {
-	const route = await import("../app/api/chats/[id]/markdown/route.ts");
+	const route = await import("../src/app/api/chats/[id]/markdown/route.ts");
 	GET = route.GET;
 	const server = await import("../src/server/chats.ts");
 	createChat = server.createChat;

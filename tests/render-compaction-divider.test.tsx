@@ -23,7 +23,7 @@ import {
 	CompactionCutDivider,
 	CompactionMomentDivider,
 	type CompactionDividerData,
-} from "../components/compaction-divider.tsx";
+} from "../src/components/compaction-divider.tsx";
 
 const data: CompactionDividerData = {
 	content: "[SESSION HISTORY COMPACTED]\n\nTHE LEARNER'S UNDERSTANDING: …",

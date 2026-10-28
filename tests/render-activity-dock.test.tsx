@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../components/activity-dock.tsx";
-import { formatTokens, formatUsd } from "../components/usage-format.ts";
-import { WAITING_NOTICE, agentWaiting, parseAgentStatus } from "../components/agent-status.tsx";
+import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
+import { formatTokens, formatUsd } from "../src/components/usage-format.ts";
+import { WAITING_NOTICE, agentWaiting, parseAgentStatus } from "../src/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
 	it("shows only while work waits and no agent is connected", () => {

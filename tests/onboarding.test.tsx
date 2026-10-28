@@ -43,11 +43,11 @@ const { readSettings, writeSettings } = await import("../src/store/settings.ts")
 const { readMcpToken, writeNewMcpToken } = await import("../src/store/mcp-token.ts");
 const { sanitizeUserSettings } = await import("../src/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../src/server/settings-body.ts");
-const { agentLine, pickedLabel } = await import("../components/onboarding/onboarding.tsx");
-const { Constellation, DOTS, LINKS, dotDelay } = await import("../components/onboarding/constellation.tsx");
+const { agentLine, pickedLabel } = await import("../src/components/onboarding/onboarding.tsx");
+const { Constellation, DOTS, LINKS, dotDelay } = await import("../src/components/onboarding/constellation.tsx");
 const { createRoot } = await import("react-dom/client");
-const { ServerEventsProvider } = await import("../components/server-events.tsx");
-const { ClassProvider, useClasses } = await import("../components/class-context.tsx");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const { ClassProvider, useClasses } = await import("../src/components/class-context.tsx");
 
 describe("onboardingNeeded (who sees the first-launch onboarding)", () => {
 	beforeEach(() => fs.rmSync(dataDir, { recursive: true, force: true }));

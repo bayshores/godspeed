@@ -27,7 +27,7 @@
  * Bare endpoints register as nodes; forward references are fine; duplicate
  * edges dedupe; the first label a node gets wins.
  */
-import type { PlanEdge, PlanNode } from "@/src/core";
+import type { PlanEdge, PlanNode } from "@/core";
 
 export interface ParsedPlan {
 	nodes: PlanNode[];

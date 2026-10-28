@@ -15,15 +15,15 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageResponse } from "../components/ai-elements/message.tsx";
-import { QuestionDock } from "../components/question-dock.tsx";
-import { ProbeDoneCard } from "../components/artifacts/probe-done-card.tsx";
-import { DispatchCard } from "../components/artifacts/dispatch-card.tsx";
-import { JobsContext } from "../components/jobs-context.ts";
-import { ChatActionsContext } from "../components/chat.tsx";
+import { MessageResponse } from "../src/components/ai-elements/message.tsx";
+import { QuestionDock } from "../src/components/question-dock.tsx";
+import { ProbeDoneCard } from "../src/components/artifacts/probe-done-card.tsx";
+import { DispatchCard } from "../src/components/artifacts/dispatch-card.tsx";
+import { JobsContext } from "../src/components/jobs-context.ts";
+import { ChatActionsContext } from "../src/components/chat.tsx";
 import type { JobRecord } from "../src/core/contracts.ts";
-import { AnsweredCard } from "../components/answered-card.tsx";
-import { LessonStepsContext } from "../components/lesson/step-context.ts";
+import { AnsweredCard } from "../src/components/answered-card.tsx";
+import { LessonStepsContext } from "../src/components/lesson/step-context.ts";
 import {
 	buildAnswer,
 	normalizeOptions,

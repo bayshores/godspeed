@@ -1,14 +1,14 @@
 // Regenerate the Windows/Linux icon set from the flat design source
-// (build/icon-flat.svg — the owner's Affinity export, rounded squircle
+// (electron/build/icon-flat.svg — the owner's Affinity export, rounded squircle
 // with baked transparency, owner ruling 2026-10-13).
 //
-//   build/icon.ico  — Windows (.ico with 16/24/32/48/64/128/256 PNG entries)
-//   build/icon.png  — Linux (512×512; AppImage/deb/desktop entry)
+//   electron/build/icon.ico  — Windows (.ico with 16/24/32/48/64/128/256 PNG entries)
+//   electron/build/icon.png  — Linux (512×512; AppImage/deb/desktop entry)
 //
-// macOS does NOT come from here: build/icon.icon (the Icon Composer
+// macOS does NOT come from here: electron/build/icon.icon (the Icon Composer
 // document) is the mac source of truth, compiled by actool at package
 // time into Assets.car (macOS 26 Liquid Glass) + a fallback icns; the
-// hand-packed build/icon.icns replaces that fallback's 256px cap via
+// hand-packed electron/build/icon.icns replaces that fallback's 256px cap via
 // scripts/after-pack.cjs (pre-Tahoe keeps full-res).
 //
 // Renders each size DIRECTLY from the SVG (resvg) — sharper squircle
@@ -20,11 +20,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const svg = readFileSync(path.join(root, "build", "icon-flat.svg"), "utf8");
+const svg = readFileSync(path.join(root, "electron", "build", "icon-flat.svg"), "utf8");
 
 const render = (size) => new Resvg(svg, { fitTo: { mode: "width", value: size } }).render(size, size).asPng();
 
-// ---- build/icon.ico: ICONDIR + PNG entries ------------------------------
+// ---- electron/build/icon.ico: ICONDIR + PNG entries ------------------------------
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 const pngs = ICO_SIZES.map(render);
 // Header (6) + one 16-byte directory entry per image, then the PNGs.
@@ -46,10 +46,10 @@ ICO_SIZES.forEach((size, i) => {
 	offset += pngs[i].length;
 });
 const ico = Buffer.concat([header, ...pngs]);
-writeFileSync(path.join(root, "build", "icon.ico"), ico);
-console.log(`build/icon.ico  ${ICO_SIZES.join("/")} — ${(ico.length / 1024).toFixed(1)} KB`);
+writeFileSync(path.join(root, "electron", "build", "icon.ico"), ico);
+console.log(`electron/build/icon.ico  ${ICO_SIZES.join("/")} — ${(ico.length / 1024).toFixed(1)} KB`);
 
-// ---- build/icon.png: the Linux icon -------------------------------------
+// ---- electron/build/icon.png: the Linux icon -------------------------------------
 const png512 = render(512);
-writeFileSync(path.join(root, "build", "icon.png"), png512);
-console.log(`build/icon.png  512×512 — ${(png512.length / 1024).toFixed(1)} KB`);
+writeFileSync(path.join(root, "electron", "build", "icon.png"), png512);
+console.log(`electron/build/icon.png  512×512 — ${(png512.length / 1024).toFixed(1)} KB`);

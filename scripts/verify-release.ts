@@ -10,7 +10,7 @@
  *
  * Every expected file name below was verified against the INSTALLED
  * builder (app-builder-lib 26.15.3) — these are the artifacts it actually
- * emits for this repo's electron-builder.yml, not pattern guesses:
+ * emits for this repo's electron/electron-builder.yml, not pattern guesses:
  *
  *   mac (dmg + zip, arm64; no user artifactName there):
  *     dmg    godspeed-<v>-arm64.dmg       + .blockmap (createBlockmap)
@@ -54,7 +54,7 @@
  *
  * The gate checks, and fails closed on any of:
  *   - tag ≠ "v" + package.json version, or a malformed release list;
- *   - electron-builder.yml/package.json drifting from the shapes the
+ *   - electron/electron-builder.yml/package.json drifting from the shapes the
  *     expected names were derived from (update this file's expectations
  *     when the packaging config changes — deliberately strict);
  *   - draft selection problems (above);
@@ -104,7 +104,7 @@ type Issues = Issue[];
 // Version + expected assets
 // ---------------------------------------------------------------------------
 
-/** Verified product name spelled into every artifact (electron-builder.yml productName). */
+/** Verified product name spelled into every artifact (electron/electron-builder.yml productName). */
 const PRODUCT_NAME = "godspeed";
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
@@ -261,7 +261,7 @@ export function verifyConfigAssumptions(config: unknown, pkg: unknown): { ok: tr
 	if (!isPlainObject(pkg) || typeof pkg.version !== "string") bad("package.json has no string version");
 	if (!isPlainObject(pkg) || pkg.name !== "godspeed") bad("package.json name is no longer \"godspeed\"");
 	if (!isPlainObject(config)) {
-		return { ok: false, errors: ["electron-builder.yml did not parse to a mapping", ...errors] };
+		return { ok: false, errors: ["electron/electron-builder.yml did not parse to a mapping", ...errors] };
 	}
 	if (config.productName !== PRODUCT_NAME) bad(`productName is ${JSON.stringify(config.productName)}, expected "${PRODUCT_NAME}"`);
 	if (config.artifactName != null) bad("a top-level artifactName now overrides target defaults — expected names no longer hold");
@@ -486,21 +486,21 @@ function loadReleases(file: string): { ok: true; releases: ReleaseRecord[] } | {
 	return parseReleases(normalized.releases);
 }
 
-/** Reads package.json (version) + electron-builder.yml from the cwd — the
+/** Reads package.json (version) + electron/electron-builder.yml from the cwd — the
  *  workflow checks out the tagged revision before running the gate. */
 function loadRepoConfig(): { ok: true; pkg: unknown; config: unknown } | { ok: false; errors: Issues } {
 	const pkg = readJson("package.json");
 	if (!pkg.ok) return { ok: false, errors: [pkg.error] };
 	let configSource: string;
 	try {
-		configSource = fs.readFileSync("electron-builder.yml", "utf8");
+		configSource = fs.readFileSync("electron/electron-builder.yml", "utf8");
 	} catch (error) {
-		return { ok: false, errors: [`cannot read electron-builder.yml: ${String(error)}`] };
+		return { ok: false, errors: [`cannot read electron/electron-builder.yml: ${String(error)}`] };
 	}
 	try {
 		return { ok: true, pkg: pkg.value, config: yaml.load(configSource) };
 	} catch (error) {
-		return { ok: false, errors: [`electron-builder.yml does not parse as YAML: ${String(error)}`] };
+		return { ok: false, errors: [`electron/electron-builder.yml does not parse as YAML: ${String(error)}`] };
 	}
 }
 

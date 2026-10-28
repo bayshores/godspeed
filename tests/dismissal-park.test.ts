@@ -153,7 +153,7 @@ describe("the dismiss route — the park contract (202)", () => {
 		const chat = chatWithDanglingQuiz("route");
 		const pending = danglingQuestionOf(chatStore.getChat(chat)!.messages);
 		assert.ok(pending);
-		const dismissRoute = await import("../app/api/chats/[id]/dismiss/route.ts");
+		const dismissRoute = await import("../src/app/api/chats/[id]/dismiss/route.ts");
 
 		// Mid-turn: the route cannot validate against stale truth — park.
 		assert.ok(!isTurnRunning(chat));
@@ -186,7 +186,7 @@ describe("the dismiss route — the park contract (202)", () => {
 
 	it("still refuses honestly (400) with no turn and nothing dangling", async () => {
 		const chat = chatStore.createChat("park: nothing dangling").id;
-		const dismissRoute = await import("../app/api/chats/[id]/dismiss/route.ts");
+		const dismissRoute = await import("../src/app/api/chats/[id]/dismiss/route.ts");
 		const res = await dismissRoute.POST(
 			new Request(`http://test/api/chats/${chat}/dismiss`, {
 				method: "POST",

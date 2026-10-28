@@ -3,7 +3,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GraphCostControl } from "../components/graph/cost-control.tsx";
+import { GraphCostControl } from "../src/components/graph/cost-control.tsx";
 import { graphCostSummary } from "../src/core/cost-summary.ts";
 import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
 

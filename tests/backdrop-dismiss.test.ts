@@ -4,8 +4,8 @@ import { act, createElement, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { useBackdropDismiss } from "../components/backdrop-dismiss";
-import { AbortTurnBody } from "../components/abort-turn-dialog";
+import { useBackdropDismiss } from "../src/components/backdrop-dismiss";
+import { AbortTurnBody } from "../src/components/abort-turn-dialog";
 
 /** Mounted React handlers, including portal propagation and the browser's
  * common-ancestor click after a cross-boundary press/release. Linkedom does

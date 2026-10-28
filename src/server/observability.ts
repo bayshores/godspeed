@@ -1,6 +1,6 @@
 /**
  * Server-side observability surface — the barrel-approved exports the
- * transport layer (app/api/*) reads for background-process status.
+ * transport layer (src/app/api/*) reads for background-process status.
  *
  * THE ACTIVITY FEED (2026-09 observability design): the bottom-right dock is
  * visible in every view, so it needs the complete running-process picture —

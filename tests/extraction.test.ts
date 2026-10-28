@@ -62,7 +62,7 @@ import { getGraph, simplifyChains } from "../src/core/graph.ts";
 import { coverageOf, coverageSlots, messageViewLines } from "../src/core/coverage.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { subscribe } from "../src/core/events.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 
 // ─── fixtures ────────────────────────────────────────────────────────────────
 

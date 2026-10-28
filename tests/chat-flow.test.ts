@@ -30,7 +30,7 @@ import { createTeacherTools } from "../src/agent/tools.ts";
 import { handleChatInput, handleChatRequest } from "../src/server/chat-handler.ts";
 import { isTurnRunning } from "../src/server/turn-liveness.ts";
 import { deliverJobResult, registerLiveAgent, setTurnRunner, steerLiveChat, unregisterLiveAgent } from "../src/server/jobs.ts";
-import { SessionModel } from "../components/session-core.ts";
+import { SessionModel } from "../src/components/session-core.ts";
 import { buildSubagentSteer } from "../src/core/contracts.ts";
 import { abortTurn, runningTurn, settledTurnResponse } from "../src/server/turn-runs.ts";
 import { chatStore } from "../src/store/chats.ts";
@@ -44,11 +44,11 @@ import type { LhMessage } from "../src/core/native-messages.ts";
 // Route-level pin (the chat-birth-stamp pattern): the dismiss route's
 // handler, driven directly. Env is the runner's (the same the static
 // store imports already resolved under).
-const dismissRoute = await import("../app/api/chats/[id]/dismiss/route.ts");
-const steerRoute = await import("../app/api/chats/[id]/steer/route.ts");
-const streamRoute = await import("../app/api/chats/[id]/stream/route.ts");
-const recordRoute = await import("../app/api/chats/[id]/route.ts");
-import { PATHS } from "../config.ts";
+const dismissRoute = await import("../src/app/api/chats/[id]/dismiss/route.ts");
+const steerRoute = await import("../src/app/api/chats/[id]/steer/route.ts");
+const streamRoute = await import("../src/app/api/chats/[id]/stream/route.ts");
+const recordRoute = await import("../src/app/api/chats/[id]/route.ts");
+import { PATHS } from "../src/config.ts";
 
 const QUIZ_INPUT = {
 	question: "Which planet is closest to the sun?",

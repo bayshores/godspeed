@@ -18,7 +18,7 @@ import { execFile } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { PATHS } from "../../config.ts";
+import { PATHS } from "../config.ts";
 
 /** Shown on a file's badge when the programs are missing. */
 export const WHISPER_INSTALL_HINT = "Recordings need whisper.cpp and ffmpeg. Run `brew install whisper-cpp ffmpeg`, then retry the file.";

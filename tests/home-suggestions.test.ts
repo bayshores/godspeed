@@ -14,7 +14,7 @@ import {
 	upcomingExam,
 	workOnNextList,
 	WORK_ON_NEXT_ROWS,
-} from "../components/home/suggestions-model.ts";
+} from "../src/components/home/suggestions-model.ts";
 
 function lesson(chatId: string, updatedAt: string): LessonProgress {
 	return { chatId, title: chatId, kind: "teach", updatedAt, answers: [], right: 0, answered: 0, score: null };

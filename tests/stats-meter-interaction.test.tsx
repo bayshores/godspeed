@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { StatsBar } from "../components/stats-bar.tsx";
+import { StatsBar } from "../src/components/stats-bar.tsx";
 import type { TurnUsage } from "../src/core/index.ts";
 
 (globalThis as Record<string, unknown>).React = React;

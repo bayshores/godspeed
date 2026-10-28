@@ -8,7 +8,7 @@ import {
 	kbdEventForAction,
 	KEYBOARD_ACTIONS,
 } from "../src/core/keyboard.ts";
-import { kbdEventForAction as kbdEventForActionFromUi } from "../components/keyboard-shortcuts.tsx";
+import { kbdEventForAction as kbdEventForActionFromUi } from "../src/components/keyboard-shortcuts.tsx";
 
 /**
  * The ⌘B sidebar bug interlude (owner, 2026-09-25): ⌘B did nothing because

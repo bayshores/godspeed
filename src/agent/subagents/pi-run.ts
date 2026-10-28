@@ -2,7 +2,7 @@ import { Agent, type AgentEvent, type AgentMessage, type AgentTool } from "@eare
 import type { AssistantMessage, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
 import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
-import type { ModelRole } from "../../../config.ts";
+import type { ModelRole } from "../../config.ts";
 import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
 
 /**

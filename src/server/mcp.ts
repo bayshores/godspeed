@@ -178,12 +178,12 @@ function buildServer(): McpServer {
 			description: "Wait for the next request from godspeed (a lesson turn, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
 			inputSchema: {
 				timeout_seconds: z.number().int().min(1).max(MAX_WAIT_S).optional().describe(`How long to wait (default ${DEFAULT_WAIT_S}).`),
-				lesson_id: z.string().optional().describe("Only take work from this lesson."),
+				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
 			},
 		},
 		async ({ timeout_seconds, lesson_id, full_context }) => {
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id });
+			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true });
 			return view ? workResult(view) : result(IDLE);
 		},
 	);

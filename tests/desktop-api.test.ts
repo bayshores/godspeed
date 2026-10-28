@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 // Installed Next 16.3.2 retains the old test-helper export despite proxy.md's new name.
 import { unstable_doesMiddlewareMatch as unstable_doesProxyMatch } from "next/experimental/testing/server";
 import { desktopAPIAuthorized } from "../src/server/desktop-access.ts";
-import { proxy, config } from "../proxy.ts";
+import { proxy, config } from "../src/proxy.ts";
 import { browserServiceSpawnEnv } from "../src/agent/subagents/headless.ts";
 const require = createRequire(import.meta.url);
 const { desktopAPIHeaders, HEADER, trustedSender } = require("../electron/desktop-api.cjs");

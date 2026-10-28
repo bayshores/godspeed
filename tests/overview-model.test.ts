@@ -1,5 +1,5 @@
 /**
- * The Class Overview's small derived values (components/overview/
+ * The Class Overview's small derived values (src/components/overview/
  * overview-model.ts) and its inline-math splitter.
  */
 import assert from "node:assert/strict";
@@ -16,8 +16,8 @@ import {
 	lessonHref,
 	mostMissesTakeaway,
 	questionHref,
-} from "../components/overview/overview-model.ts";
-import { splitInlineMath } from "../components/overview/inline-math.tsx";
+} from "../src/components/overview/overview-model.ts";
+import { splitInlineMath } from "../src/components/overview/inline-math.tsx";
 import type { CalibrationLevel, LessonProgress } from "../src/core/index.ts";
 
 const lvl = (level: 1 | 2 | 3 | 4 | 5, right: number, answered: number): CalibrationLevel => ({

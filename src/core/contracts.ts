@@ -7,7 +7,7 @@
  * protocol),  Each domain file is
  * owned outright by its stream; schema changes to a domain you don't own go
  * through master. This barrel keeps every existing import path
- * ("@/src/core" and "./contracts.ts") unchanged.
+ * ("@/core" and "./contracts.ts") unchanged.
  */
 
 export * from "./contracts/plan.ts";

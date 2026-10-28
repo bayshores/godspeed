@@ -4,8 +4,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { RenameRow, SessionRow } from "../components/sidebar.tsx";
-import { DeleteSessionBody, DeleteSessionDialog, TRACES_COPY } from "../components/delete-session-dialog.tsx";
+import { RenameRow, SessionRow } from "../src/components/sidebar.tsx";
+import { DeleteSessionBody, DeleteSessionDialog, TRACES_COPY } from "../src/components/delete-session-dialog.tsx";
 import type { ChatListItem } from "../src/core/index.ts";
 
 /**

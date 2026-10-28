@@ -45,7 +45,7 @@ const { transcriptView } = await import("../src/agent/subagents/extraction.ts");
 const { runSubagent } = await import("../src/agent/subagents/pi-run.ts");
 const { persistTurn } = await import("../src/server/turn-service.ts");
 const { runPiTurn } = await import("../src/server/pi/ui-stream.ts");
-const { SessionModel } = await import("../components/session-core.ts");
+const { SessionModel } = await import("../src/components/session-core.ts");
 const { chatStore } = await import("../src/store/chats.ts");
 const { jobStore } = await import("../src/store/jobs.ts");
 

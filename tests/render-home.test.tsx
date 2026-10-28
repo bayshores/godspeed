@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import type { FileCoverage, LessonProgress, TopicProgress } from "../src/core/index.ts";
-import type { Suggestion } from "../components/home/suggestions-model.ts";
+import type { Suggestion } from "../src/components/home/suggestions-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -28,8 +28,8 @@ Object.assign(globalThis, {
 	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
-const { ModeSwitch, TopicBox, isStartKey } = await import("../components/home/topic-box.tsx");
-const { SuggestionList } = await import("../components/home/suggestions.tsx");
+const { ModeSwitch, TopicBox, isStartKey } = await import("../src/components/home/topic-box.tsx");
+const { SuggestionList } = await import("../src/components/home/suggestions.tsx");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 

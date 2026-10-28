@@ -115,7 +115,7 @@ jobs:
         with:
           node-version: "26"
           cache: npm
-      # The mac icon is the Icon Composer document (build/icon.icon);
+      # The mac icon is the Icon Composer document (electron/build/icon.icon);
       # compiling it needs both macOS 26+ and actool ≥ 26 (Xcode 26+).
       # Xcode 26's asset compiler crashes on macOS 15's older frameworks.
       # Select the latest stable Xcode; no-op for Windows/Linux.
@@ -179,20 +179,20 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder ${{ matrix.builder_args }} --publish always -c.forceCodeSigning=true
+        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish always -c.forceCodeSigning=true
       - name: Windows/Linux release → draft
         if: github.event_name == 'push' && runner.os != 'macOS'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder ${{ matrix.builder_args }} --publish always
+        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish always
       - name: Unsigned macOS rehearsal (no publish, no notarization)
         if: github.event_name == 'workflow_dispatch' && runner.os == 'macOS'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder ${{ matrix.builder_args }} --publish never -c.mac.notarize=false
+        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish never -c.mac.notarize=false
       - name: Windows/Linux rehearsal (no publish)
         if: github.event_name == 'workflow_dispatch' && runner.os != 'macOS'
-        run: npx electron-builder ${{ matrix.builder_args }} --publish never
+        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish never
       - name: Exercise packaged demo runtime (own Electron, no system Chrome)
         run: |
           case "$RUNNER_OS" in

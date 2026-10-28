@@ -88,8 +88,8 @@ const TOKENS = 240;
 const PER_FRAME = 4;
 
 async function main() {
-	const { Chat } = await import("../../components/chat.tsx");
-	const { ServerEventsProvider } = await import("../../components/server-events.tsx");
+	const { Chat } = await import("../../src/components/chat.tsx");
+	const { ServerEventsProvider } = await import("../../src/components/server-events.tsx");
 
 	// The stream body we push SSE frames into.
 	let push: (s: string) => void = () => {};

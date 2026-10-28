@@ -1,12 +1,12 @@
 name: CI
 
-# Docs, README and design-only changes skip the build (nothing to test).
+# Docs (incl. docs/design) and README-only changes skip the build (nothing to test).
 on:
   push:
     branches: [main]
-    paths-ignore: ["**/*.md", "docs/**", "design/**"]
+    paths-ignore: ["**/*.md", "docs/**"]
   pull_request:
-    paths-ignore: ["**/*.md", "docs/**", "design/**"]
+    paths-ignore: ["**/*.md", "docs/**"]
   workflow_dispatch:
 
 permissions:

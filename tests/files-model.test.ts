@@ -9,14 +9,14 @@ import type { ClassFile, FileCoverage } from "../src/core/index.ts";
 import {
 	canRemove,
 	canRetry,
-	coverageBar,
-	factsLabel,
+	dropCopy,
 	fileAnchorId,
 	fileIdFromHash,
 	fileState,
 	shortenHome,
 	splitByKind,
-} from "../components/files/files-model.ts";
+	studiedFill,
+} from "../src/components/files/files-model.ts";
 
 function file(over: Partial<ClassFile>): ClassFile {
 	return { id: "f_1", origin: "copied", name: "L1.pdf", path: "f_1/L1.pdf", kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -35,10 +35,22 @@ describe("files-model", () => {
 		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4)), { kind: "none" }, "course info shows no coverage");
 	});
 
-	it("coverageBar: unstudied files are white, others fill by share", () => {
-		assert.deepEqual(coverageBar({ facts: 22, inLessons: 0, share: 0 }), { unstudied: true, fill: 0 });
-		assert.deepEqual(coverageBar({ facts: 10, inLessons: 4, share: 0.4 }), { unstudied: false, fill: 0.4 });
-		assert.deepEqual(coverageBar({ facts: 0, inLessons: 0, share: null }), { unstudied: false, fill: 0 }, "no facts: an empty bar");
+	it("studiedFill is the share of facts that came up in lessons", () => {
+		assert.equal(studiedFill({ facts: 22, inLessons: 0 }), 0);
+		assert.equal(studiedFill({ facts: 10, inLessons: 4 }), 0.4);
+		assert.equal(studiedFill({ facts: 0, inLessons: 0 }), 0, "no facts: an empty bar");
+	});
+
+	it("dropCopy says what a drop will do", () => {
+		assert.deepEqual(dropCopy("study", { type: "finder", count: 2 }), { title: "Drop to add 2 files as study material" });
+		assert.deepEqual(dropCopy("info", { type: "finder", count: 1 }), { title: "Drop to add 1 file as course info" });
+		assert.deepEqual(dropCopy("study", { type: "finder", count: 0 }), { title: "Drop to add files as study material" });
+		assert.deepEqual(dropCopy("info", { type: "row", facts: 28 }), {
+			title: "Move to Course info",
+			detail: "Its 28 facts leave the graph. The teacher can still read it.",
+		});
+		assert.equal(dropCopy("info", { type: "row", facts: null }).detail, "Its facts leave the graph. The teacher can still read it.");
+		assert.deepEqual(dropCopy("study", { type: "row", facts: null }), { title: "Move to Study material", detail: "It gets turned into facts for the graph." });
 	});
 
 	it("Retry and Remove follow the old dialog's rules", () => {
@@ -65,11 +77,9 @@ describe("files-model", () => {
 		assert.deepEqual(info.map((f) => f.id), ["b"]);
 	});
 
-	it("shortenHome and factsLabel", () => {
+	it("shortenHome", () => {
 		assert.equal(shortenHome("/Users/me/School/CSE 21"), "~/School/CSE 21");
 		assert.equal(shortenHome("/home/me/x"), "~/x");
 		assert.equal(shortenHome("/Volumes/USB/x"), "/Volumes/USB/x");
-		assert.equal(factsLabel(1), "1 fact");
-		assert.equal(factsLabel(24), "24 facts");
 	});
 });

@@ -17,7 +17,7 @@ const { classStore } = await import("../src/store/classes.ts");
 const { chatStore } = await import("../src/store/chats.ts");
 const { graphStoreFor } = await import("../src/server/stores.ts");
 const { sourceIdFor } = await import("../src/server/classes.ts");
-const progressRoute = await import("../app/api/progress/route.ts");
+const progressRoute = await import("../src/app/api/progress/route.ts");
 
 after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
 

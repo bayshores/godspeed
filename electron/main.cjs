@@ -30,7 +30,7 @@ const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
 
-// Mirrors SIDEBAR_AUTOCLOSE in components/sidebar.tsx — keep in sync (the
+// Mirrors SIDEBAR_AUTOCLOSE in src/components/sidebar.tsx — keep in sync (the
 // renderer owns the number; this is the IPC widen target).
 const SIDEBAR_AUTOCLOSE = 928;
 
@@ -50,7 +50,7 @@ const DATA_DIR = () => path.join(app.getPath("userData"), "data");
  *  the window points at the running `next dev` server (full HMR). */
 function serverEntry() {
 	// extraResources ships the whole .next payload under server/standalone/
-	// (copied from .next with an explicit filter — see electron-builder.yml).
+	// (copied from .next with an explicit filter — see electron/electron-builder.yml).
 	return path.join(process.resourcesPath, "server", "standalone", "server.js");
 }
 
@@ -285,8 +285,8 @@ function createWindow(url) {
 		// center (owner ask, 2026-09-17): macOS centers each 12px circle at
 		// y+6.75, and the pill box center measures 29.25 in the running app
 		// (band 0–59.5, pill box 19–39.5) — y 22.5 lands the circles at
-		// 29.25, exactly on the pill. Wordmark gutter: components/sidebar.tsx.
-		// Dragging comes from the renderer's .lh-drag bands (app/globals.css).
+		// 29.25, exactly on the pill. Wordmark gutter: src/components/sidebar.tsx.
+		// Dragging comes from the renderer's .lh-drag bands (src/app/globals.css).
 		...(process.platform === "darwin"
 			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 22.5 } }
 			: {
@@ -318,7 +318,7 @@ function createWindow(url) {
 		// below it even a wrapped chrome row gets cramped and the chat header
 		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
 		// auto-closes below 928 = 640 + 288 (sidebar) in the renderer
-		// (components/sidebar.tsx, SIDEBAR_AUTOCLOSE); its "lh:expand-window"
+		// (src/components/sidebar.tsx, SIDEBAR_AUTOCLOSE); its "lh:expand-window"
 		// IPC widens the window back to that threshold.
 		minWidth: 640,
 		minHeight: 600,
@@ -398,7 +398,7 @@ const ZOOM_LADDER = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 /* ── Auto-update (Wave C, owner 2026-10-10: silent download + restart ─────
  * banner; checks at startup + every 24h) ─────────────────────────────────
  *
- * Feed: GitHub Releases (electron-builder.yml publish → app-update.yml,
+ * Feed: GitHub Releases (electron/electron-builder.yml publish → app-update.yml,
  * baked + signed into the bundle). macOS needs the app signed (it is —
  * Developer ID) and updates ride the zip target (Squirrel.Mac); blockmaps
  * give differential downloads for free. Windows uses NSIS; Linux uses

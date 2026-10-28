@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { StatsBar, formatContextMeasurement } from "../components/stats-bar.tsx";
+import { StatsBar, formatContextMeasurement } from "../src/components/stats-bar.tsx";
 import { sessionCost } from "../src/server/pricing.ts";
-import { prettyModel } from "../components/usage-format.ts";
+import { prettyModel } from "../src/components/usage-format.ts";
 import type { TurnUsage } from "../src/core/contracts.ts";
 
 // The stats bar: folds only (no cost math in the component), the "—"

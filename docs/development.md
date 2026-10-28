@@ -74,7 +74,7 @@ flowchart TB
     end
 
     subgraph ROOM["MACHINE ROOM — host"]
-        HOST["Electron main → standalone Next server ·<br/>config.ts · LH_DATA_DIR · MCP endpoint file"]
+        HOST["Electron main → standalone Next server ·<br/>src/config.ts · LH_DATA_DIR · MCP endpoint file"]
     end
 
     LEARNER -->|"text · graded answers"| UI
@@ -98,11 +98,14 @@ flowchart TB
 ## Layout
 
 ```
-app/                            Next.js App Router — pages + 16 thin API route handlers
-components/                     session + home UI, question dock, plan panel, graph
+src/
+  app/                          Next.js App Router — pages + 16 thin API route handlers
+  components/                   session + home UI, question dock, plan panel, graph
                                 canvas + view, artifact renderers (registry: artifacts/),
                                 activity dock, keyboard machine
-src/
+  lib/utils.ts                  shadcn class-name helper (cn)
+  config.ts                     paths (data dir, prompts) + engine construction facts
+  proxy.ts                      Next proxy: desktop-only /api gate
   agent/
     system-prompt.md            base teaching behavior (the methodology)
     prompts/{prober,teacher}/   composed numbered fragments per role
@@ -126,7 +129,7 @@ src/
   server/observability.ts       the activity feed (running jobs + extraction, abort)
   server/pi/                    the engine bridge: record-adapter (record → pi messages)
                                 · ui-stream (pi events → UIMessage SSE)
-  server/index.ts               the server barrel (the only server import app/ may use)
+  server/index.ts               the server barrel (the only server import src/app/ may use)
   core/contracts/{plan,graph,chat,jobs,probe,models}.ts
                                 the contracts — one file per domain
   core/ports.ts                 storage ports — ChatStore · GraphStore · JobStore
@@ -139,6 +142,10 @@ src/
                                 ledgers · jobs (+ render-settings, default-settings)
 electron/                       desktop launcher + security guard (spawns the standalone
                                 server; 1 IPC channel; LH_DATA_DIR)
+  build/                        packaging inputs: icons, entitlements, dmg background
+  electron-builder.yml          packaging config (pass -c electron/electron-builder.yml)
+integrations/                   Claude Code plugin (claude-code/) + the godspeed skill (skills/)
+docs/                           docs; design mockups + exports live in docs/design/
 scripts/                        build-server.mjs (packaging guards), import-notes,
                                 backfill-graph, replay-layout
 data/                           chats/ · graph/ (nodes/chains/sessions/coverage

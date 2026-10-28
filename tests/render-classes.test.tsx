@@ -7,9 +7,9 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { describe, it } from "node:test";
-import { ClassContextCard } from "../components/graph-context-card.tsx";
-import { FileRow } from "../components/files/file-row.tsx";
-import { classQuery, className } from "../components/class-context.tsx";
+import { ClassContextCard } from "../src/components/graph-context-card.tsx";
+import { FileRow } from "../src/components/files/file-row.tsx";
+import { classQuery, className } from "../src/components/class-context.tsx";
 
 (globalThis as { React?: typeof React }).React = React;
 
@@ -24,17 +24,20 @@ describe("class surfaces", () => {
 		assert.ok(!html.includes("class-context-body"), "collapsed by default");
 	});
 
-	it("a file row shows its kind, Failed + Retry, and the ⋯ menu only when it has actions", () => {
+	it("a file row is draggable, shows Failed + Retry and its studied facts, and always has the ⋯ menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
 		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} actions={actions} />);
 		assert.ok(copied.includes("Failed"));
 		assert.ok(copied.includes('data-testid="class-file-retry-f_1"'));
-		assert.ok(copied.includes('data-testid="class-file-menu-f_1"'), "a copied file can be removed from the ⋯ menu");
-		assert.match(copied, /data-testid="class-file-kind-f_1-study"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-testid="class-file-kind-f_1-study"/);
-		const linked = renderToStaticMarkup(<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={undefined} actions={actions} />);
+		assert.ok(copied.includes('draggable="true"'));
+		assert.ok(!copied.includes("class-file-kind-"), "no Study/Info toggle on the row");
+		const linked = renderToStaticMarkup(
+			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} actions={actions} />,
+		);
 		assert.ok(!linked.includes("Failed"));
-		assert.ok(!linked.includes('data-testid="class-file-menu-f_1"'), "a linked, ready file has no menu actions");
+		assert.match(linked, /12\/31.*facts studied/);
+		assert.ok(linked.includes('data-testid="class-file-menu-f_1"'), "Move to Course info is always in the ⋯ menu");
 	});
 
 	it("class query and name helpers", () => {

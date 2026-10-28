@@ -38,7 +38,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 
 // Imported AFTER the DOM globals: Radix picks its layout-effect hook (and so
 // whether its Portal ever mounts) when the module first loads.
-const { Tip, TooltipCard, TOOLTIP_DELAY_MS } = await import("../components/ui/tooltip.tsx");
+const { Tip, TooltipCard, TOOLTIP_DELAY_MS } = await import("../src/components/ui/tooltip.tsx");
 
 let root: Root | null = null;
 let host: HTMLElement | null = null;

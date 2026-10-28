@@ -7,15 +7,15 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../components/settings/appearance.tsx";
+import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../src/components/settings/appearance.tsx";
 import {
 	PROMPT_IN_USE_HINT,
 	composePromptSwitch,
 	composeTool,
 	composeQuizMechanics,
 	sectionedSegments,
-} from "../components/settings/agent-section.tsx";
-import { nextOverrides } from "../components/settings/keyboard-section.tsx";
+} from "../src/components/settings/agent-section.tsx";
+import { nextOverrides } from "../src/components/settings/keyboard-section.tsx";
 import type { AgentSettings } from "../src/core";
 
 describe("resolveAppearance — delta over factory", () => {

@@ -11,10 +11,10 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { GraphBody } from "../components/graph/graph-body.tsx";
-import { WherePanel } from "../components/graph/where-panel.tsx";
-import { TopicPanel } from "../components/graph/topic-panel.tsx";
-import { TopicMap } from "../components/graph/topic-map.tsx";
+import { GraphBody } from "../src/components/graph/graph-body.tsx";
+import { WherePanel } from "../src/components/graph/where-panel.tsx";
+import { TopicPanel } from "../src/components/graph/topic-panel.tsx";
+import { TopicMap } from "../src/components/graph/topic-map.tsx";
 import { fixture } from "./graph-fixture.ts";
 
 const noop = () => {};

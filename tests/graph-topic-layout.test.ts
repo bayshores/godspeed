@@ -1,6 +1,6 @@
 /**
  * The topic Graph's pure parts (redesign Phase 5): the map layout
- * (components/graph/layout.ts), the panels' helpers (derive.ts) and the
+ * (src/components/graph/layout.ts), the panels' helpers (derive.ts) and the
  * practice picks (practice.ts).
  */
 import assert from "node:assert/strict";
@@ -14,7 +14,7 @@ import {
 	MAX_PER_COLUMN,
 	ringDiameter,
 	ROW_GAP,
-} from "../components/graph/layout.ts";
+} from "../src/components/graph/layout.ts";
 import {
 	countdownText,
 	defaultExamId,
@@ -28,8 +28,8 @@ import {
 	statusLine,
 	takeaway,
 	topicFacts,
-} from "../components/graph/derive.ts";
-import { MAX_PICKS, practicePicks, practiceTitle } from "../components/graph/practice.ts";
+} from "../src/components/graph/derive.ts";
+import { MAX_PICKS, practicePicks, practiceTitle } from "../src/components/graph/practice.ts";
 import { answers, fact, fixture, topic } from "./graph-fixture.ts";
 
 describe("ringDiameter", () => {

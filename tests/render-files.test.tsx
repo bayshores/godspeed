@@ -1,5 +1,5 @@
 /**
- * The Files page (redesign plan, Phase 6 — design/exports/files.html),
+ * The Files page (redesign plan, Phase 6 — docs/design/exports/files.html),
  * mounted over linkedom with a fake fetch: the two sections and counts,
  * the linked folder, each row's state (coverage bar, Building facts…,
  * Failed + Retry), the Study/Info toggle and Unlink writing through the
@@ -23,6 +23,9 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	// The ⋯ menu and the folder box place themselves on the next frame.
+	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
+	cancelAnimationFrame: (id: number) => clearTimeout(id),
 });
 // linkedom has no location: a plain one carries the hash.
 Object.defineProperty(dom.window, "location", { value: { hash: "", pathname: "/class/files", href: "http://localhost/class/files" }, configurable: true });
@@ -36,9 +39,9 @@ const scrolled: string[] = [];
 // to an old-IE way of watching text fields.
 (dom.document as unknown as { oninput: null }).oninput = null;
 const { createRoot } = await import("react-dom/client");
-const { FilesPage } = await import("../components/files/files-page.tsx");
-const { ServerEventsProvider } = await import("../components/server-events.tsx");
-const { ClassProvider } = await import("../components/class-context.tsx");
+const { FilesPage } = await import("../src/components/files/files-page.tsx");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const { ClassProvider } = await import("../src/components/class-context.tsx");
 
 function file(id: string, name: string, over: Partial<ClassFile> = {}): ClassFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -122,43 +125,96 @@ afterEach(async () => {
 });
 
 describe("FilesPage", () => {
-	it("shows the linked folder, both sections with counts, and each row's state", async () => {
+	it("shows the linked folder, both panels with counts and Add, and each row's state", async () => {
 		fakeFetch();
 		await mount();
-		assert.ok(q("class-pick-folder"), "Link folder");
-		assert.ok(q("class-add-files"), "Add files");
+		assert.equal(q("class-pick-folder"), null, "a linked class shows its folder, not Link folder");
+		assert.ok(q("class-add-study"), "Study material's Add");
+		assert.ok(q("class-add-info"), "Course info's Add");
 		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
-		assert.match(q("files-section-study")!.textContent!, /Study material · 4/);
-		assert.match(q("files-section-info")!.textContent!, /Course info · 1/);
-		// Studied: the fill is the share; unstudied: the white bar.
-		assert.match(q("class-file-status-f1")!.textContent!, /31 facts/);
+		assert.equal(q("files-count-study")!.textContent, "4");
+		assert.equal(q("files-count-info")!.textContent, "1");
+		// "studied/facts" with the bar: a fill only when some came up.
+		assert.match(q("class-file-status-f1")!.textContent!, /31\/31\s*facts studied/);
 		assert.ok(q("class-file-f1")!.querySelector('[data-testid="file-coverage-fill"]'));
-		assert.ok(q("class-file-status-f2")!.innerHTML.includes("bg-ink"), "unstudied file: white bar");
+		assert.match(q("class-file-status-f2")!.textContent!, /0\/22\s*facts studied/);
+		assert.equal(q("class-file-f2")!.querySelector('[data-testid="file-coverage-fill"]'), null, "unstudied file: an empty bar");
 		assert.match(q("class-file-status-f3")!.textContent!, /Building facts…/);
 		assert.equal(q("class-file-status-f4")!.textContent, "Failed");
 		assert.ok(q("class-file-retry-f4"));
 		assert.equal(q("class-file-status-f5"), null, "course info shows no state");
-		assert.equal(q("class-file-kind-f5-info")!.getAttribute("aria-pressed"), "true");
+		assert.equal(document.querySelector('[data-testid^="class-file-kind-"]'), null, "no Study/Info toggle");
 	});
 
-	it("the Study/Info toggle, Retry and Unlink write through the class routes", async () => {
+	it("Move to …, Retry and Unlink write through the class routes", async () => {
 		fakeFetch();
 		await mount();
-		await act(async () => q("class-file-kind-f1-info")!.click());
+		await act(async () => q("class-file-menu-f1")!.click());
+		assert.equal(q("class-file-move-f1")!.textContent, "Move to Course info");
+		await act(async () => q("class-file-move-f1")!.click());
+		await act(async () => q("class-file-menu-f5")!.click());
+		assert.equal(q("class-file-move-f5")!.textContent, "Move to Study material");
+		await act(async () => q("class-file-move-f5")!.click());
 		await act(async () => q("class-file-retry-f4")!.click());
+		await act(async () => q("class-folder")!.click());
 		await act(async () => q("class-unlink-folder")!.click());
-		// The lit segment does nothing.
-		await act(async () => q("class-file-kind-f1-study")!.click());
 		assert.deepEqual(calls, [
 			{ method: "PUT", url: "/api/classes/cls_a/files/f1", body: { kind: "info" } },
+			{ method: "PUT", url: "/api/classes/cls_a/files/f5", body: { kind: "study" } },
 			{ method: "PUT", url: "/api/classes/cls_a/files/f4", body: { retry: true } },
 			{ method: "DELETE", url: "/api/classes/cls_a/folder", body: undefined },
 		]);
 	});
 
-	it("Link folder without the desktop picker opens a path field that links the folder", async () => {
+	it("dragging a row into the other panel warns, then moves it; files dropped from Finder are added to that panel", async () => {
 		fakeFetch();
 		await mount();
+		const data = new Map<string, string>();
+		const transfer = (types: string[], files: File[] = []) => ({
+			types,
+			files,
+			items: { length: files.length || 2 },
+			dropEffect: "none",
+			effectAllowed: "all",
+			setData: (t: string, v: string) => data.set(t, v),
+			getData: (t: string) => data.get(t) ?? "",
+		});
+		const fire = async (el: Element, type: string, dataTransfer: unknown) => {
+			await act(async () => {
+				const e = new window.Event(type, { bubbles: true, cancelable: true });
+				Object.assign(e, { dataTransfer });
+				el.dispatchEvent(e);
+			});
+		};
+		const ROW = "application/x-godspeed-class-file";
+		await fire(q("class-file-f1")!, "dragstart", transfer([]));
+		assert.equal(q("class-file-f1")!.className.includes("opacity-30"), true, "the dragged row fades");
+		await fire(q("files-section-info")!, "dragover", transfer([ROW]));
+		assert.match(q("files-drop-target")!.textContent!, /Move to Course info.*Its 31 facts leave the graph/);
+		await fire(q("files-section-info")!, "drop", transfer([ROW]));
+		assert.deepEqual(calls.at(-1), { method: "PUT", url: "/api/classes/cls_a/files/f1", body: { kind: "info" } });
+		assert.equal(q("files-drop-target"), null);
+
+		// Its own panel is not a drop target.
+		await fire(q("class-file-f2")!, "dragstart", transfer([]));
+		await fire(q("files-section-study")!, "dragover", transfer([ROW]));
+		assert.equal(q("files-drop-target"), null);
+		await fire(q("class-file-f2")!, "dragend", transfer([]));
+
+		const pdf = new File(["x"], "Lecture 4.pdf");
+		await fire(q("files-section-study")!, "dragover", transfer(["Files"], [pdf]));
+		assert.equal(q("files-drop-target")!.textContent, "Drop to add 1 file as study material");
+		await fire(q("files-section-study")!, "drop", transfer(["Files"], [pdf]));
+		assert.equal(calls.at(-1)!.method, "POST");
+		assert.equal(calls.at(-1)!.url, "/api/classes/cls_a/files");
+	});
+
+	it("Link folder without the desktop picker opens a path field that links the folder", async () => {
+		fakeFetch();
+		const linked = RECORD.linkedFolder;
+		delete RECORD.linkedFolder;
+		await mount();
+		RECORD.linkedFolder = linked;
 		await act(async () => q("class-pick-folder")!.click());
 		assert.ok(q("class-folder-form"), "the path field replaces the folder row");
 		const input = q("class-folder-input") as HTMLInputElement;

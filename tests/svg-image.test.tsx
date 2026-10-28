@@ -6,9 +6,9 @@ import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { VisualOutputCard } from "../components/artifacts/visual-card.tsx";
-import { svgImageSource } from "../components/artifacts/svg-image.tsx";
-import { MermaidOverlay, SessionMermaidContext } from "../components/session-overlay.tsx";
+import { VisualOutputCard } from "../src/components/artifacts/visual-card.tsx";
+import { svgImageSource } from "../src/components/artifacts/svg-image.tsx";
+import { MermaidOverlay, SessionMermaidContext } from "../src/components/session-overlay.tsx";
 
 // Structure-only checks: linkedom does not load images or implement CSS cascade.
 // No fixture script, link, or external reference is executed by these tests.

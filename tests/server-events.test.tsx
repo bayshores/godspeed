@@ -9,7 +9,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createNotifyHub, wireSource, type NotifySource } from "../components/server-events.tsx";
+import { createNotifyHub, wireSource, type NotifySource } from "../src/components/server-events.tsx";
 
 /** A source the test drives by hand — recordable, closable, honest. */
 function fakeSource() {

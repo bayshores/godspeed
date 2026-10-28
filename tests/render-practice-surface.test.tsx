@@ -17,9 +17,9 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { PracticeDock } from "../components/practice-dock.tsx";
-import { ConcludeCard, ProblemCard, ThinkingCard } from "../components/practice-cards.tsx";
-import { GraphContextCard } from "../components/graph-context-card.tsx";
+import { PracticeDock } from "../src/components/practice-dock.tsx";
+import { ConcludeCard, ProblemCard, ThinkingCard } from "../src/components/practice-cards.tsx";
+import { GraphContextCard } from "../src/components/graph-context-card.tsx";
 import { newGraphContextMessage } from "../src/core/native-messages.ts";
 import { projectView } from "../src/core/view.ts";
 import type { ArtifactPartProps } from "../src/core";

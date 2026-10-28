@@ -1,7 +1,7 @@
-/** The lesson panel's Enter decision (components/lesson/enter-action.ts). */
+/** The lesson panel's Enter decision (src/components/lesson/enter-action.ts). */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { enterAction } from "../components/lesson/enter-action.ts";
+import { enterAction } from "../src/components/lesson/enter-action.ts";
 
 // The Enter decision (composer steering, 2026-10-03): while a turn runs,
 // typed text makes Enter a STEER; Enter with an empty composer stays the

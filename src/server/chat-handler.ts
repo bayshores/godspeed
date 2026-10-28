@@ -48,7 +48,7 @@ import type {CallUsage} from "../core/contracts.ts";
 /**
  * One chat turn over the server-owned native record. Framework-free (plain
  * Request/Response) so tests can drive it directly with a scripted faux
- * engine — the Next route handler in app/api/chat is a one-line wrapper.
+ * engine — the Next route handler in src/app/api/chat is a one-line wrapper.
  *
  * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26): POST /api/chat
  * carries {chatId, input} — one explicit event (text / answer / verdict /

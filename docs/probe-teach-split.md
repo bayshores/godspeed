@@ -146,7 +146,7 @@ live-derived movement.
   as a proper card (data already durable in the transcript; the plain v1
   probe-done card renders the assessment meanwhile).
 - **Model / thinking control** — currently hardcoded per role in
-  `config.ts` MODELS. The split gives natural `MODELS.prober` /
+  `src/config.ts` MODELS. The split gives natural `MODELS.prober` /
   `MODELS.teacher` entries; runtime control comes after.
 - **Graph context, properly designed** — what the global graph should feed
   into sessions (§5).
