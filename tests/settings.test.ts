@@ -12,7 +12,6 @@ import { describe, it } from "node:test";
 import {
 	CURRENT_SETTINGS_VERSION,
 	FACTORY_SETTINGS,
-	BACKGROUND_MODEL_ROLES,
 	isHexColor,
 	sanitizeUserSettings,
 } from "../src/core/settings.ts";
@@ -58,16 +57,8 @@ describe("sanitizeUserSettings", () => {
 			version: 1,
 			general: { autoUpdate: false },
 			agent: {
-				models: {
-					researcher: { model: { provider: "openrouter", id: "qwen/qwen3.8-flash" }, thinkingLevel: "high" },
-					visualMaker: { thinkingLevel: "max" },
-				},
 				tools: { research: false, quiz: true },
 				prompts: { "system-prompt.md": true, "teacher/20-teaching.md": false },
-			},
-			models: {
-				strong: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "low" },
-				cheap: { thinkingLevel: "medium" },
 			},
 			appearance: {
 				mode: "light",
@@ -156,23 +147,16 @@ describe("sanitizeUserSettings", () => {
 		}
 	});
 
-	it("agent roles: unknown roles drop, known roles keep only well-formed overrides", () => {
+	it("legacy model settings (removed 2026-10-27: the outside agent is the only model) are dropped", () => {
 		const out = sanitizeUserSettings({
-			agent: {
-				models: {
-					teacher: { thinkingLevel: "low" }, // NOT a background role — drops
-					researcher: { model: { provider: "openrouter", id: "x/y" } },
-					extractor: { model: { provider: 3, id: "x/y" }, thinkingLevel: "high" }, // bad model, keeps thinking
-					auditor: { thinkingLevel: "banana" }, // invalid level → empty override drops
-				},
-			},
+			version: 1,
+			agent: { models: { researcher: { model: { provider: "openrouter", id: "x/y" } } }, tools: { demo: false } },
+			models: { strong: { model: { provider: "zai", id: "glm-5.3-flash" } } },
 		});
 		assert.ok(out);
-		const models = out.agent?.models ?? {};
-		assert.equal("teacher" in models, false);
-		assert.deepEqual(models.researcher, { model: { provider: "openrouter", id: "x/y" } });
-		assert.deepEqual(models.extractor, { thinkingLevel: "high" });
-		assert.equal("auditor" in models, false);
+		assert.equal("models" in (out.agent ?? {}), false);
+		assert.equal("models" in out, false);
+		assert.deepEqual(out.agent?.tools, { demo: false });
 	});
 
 	it("a legacy search-engine pin is dropped (web search was removed)", () => {
@@ -199,13 +183,4 @@ describe("sanitizeUserSettings", () => {
 		assert.deepEqual(out.agent?.tools, { quiz: false, demo: true });
 	});
 
-	it("BACKGROUND_MODEL_ROLES matches the five background roles (practice trio deleted 2026-10-04)", () => {
-		assert.deepEqual([...BACKGROUND_MODEL_ROLES], [
-			"researcher",
-			"demoBuilder",
-			"visualMaker",
-			"extractor",
-			"auditor",
-		]);
-	});
 });

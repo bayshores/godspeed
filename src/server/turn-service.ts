@@ -24,7 +24,6 @@ import { planBlocksFor } from "../core/plan-blocks.ts";
 import { coverageOf } from "../core/coverage.ts";
 import type { ChatStore, GraphStore } from "../core/ports.ts";
 import type { ExtractionPipeline } from "../agent/subagents/extraction.ts";
-import { ModelsNotConfiguredError, ProviderNotConnectedError } from "../core/settings.ts";
 
 /** Distinguish a failed canonical save from later bookkeeping failures. */
 export class TurnPersistenceError extends Error {
@@ -119,18 +118,6 @@ export function triggerExtraction(
 		const covered = coverageOf(record.messages, deps.graphStore.readCoverage(), chatId);
 		if (covered.uncoveredTokens < chunkTokens) return;
 		void extraction.runExtraction(chatId).catch((err) => {
-			// BYOK (owner, 2026-09-22) + connection gate: an unconfigured OR
-			// unconnected write channel SKIPS (the coverage ledger keeps the
-			// messages uncovered — the next trigger retries once slots are set
-			// and the provider is connected); only real failures log.
-			if (err instanceof ModelsNotConfiguredError) {
-				console.info(`[chat ${chatId}] extraction skipped — ${err.envelope.error} (missing: ${err.envelope.missing.join(", ")})`);
-				return;
-			}
-			if (err instanceof ProviderNotConnectedError) {
-				console.info(`[chat ${chatId}] extraction skipped — ${err.envelope.error} (provider: ${err.envelope.provider})`);
-				return;
-			}
 			console.error(`[chat ${chatId}] extraction pipeline failed:`, err);
 		});
 	} catch (err) {

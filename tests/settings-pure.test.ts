@@ -7,19 +7,16 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../components/settings/appearance.tsx";
+import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../src/components/settings/appearance.tsx";
 import {
 	PROMPT_IN_USE_HINT,
 	composePromptSwitch,
-	composeSlotModel,
 	composeTool,
 	composeQuizMechanics,
 	sectionedSegments,
-} from "../components/settings/agent-section.tsx";
-import { nextOverrides } from "../components/settings/keyboard-section.tsx";
-import type { AgentSettings, ModelsSettings } from "../src/core";
-import { slotsConfigured } from "../src/core";
-import { setupStage } from "../components/setup-dialog.tsx";
+} from "../src/components/settings/agent-section.tsx";
+import { nextOverrides } from "../src/components/settings/keyboard-section.tsx";
+import type { AgentSettings } from "../src/core";
 
 describe("resolveAppearance — delta over factory", () => {
 	it("absent everything = the factory view", () => {
@@ -158,40 +155,6 @@ describe("agent section compose helpers — the replace-whole PUT body", () => {
 		assert.deepEqual(after.prompts, { "system-prompt.md": true }, "prompts untouched");
 	});
 
-	it("composeSlotModel: empty+empty REMOVES the slot (absent = factory pin)", () => {
-		const after = composeSlotModel(
-			{ strong: { model: { provider: "openrouter", id: "x" } }, cheap: {} },
-			"strong",
-			"",
-			"",
-			"",
-		);
-		assert.equal(after.strong, undefined, "slot dropped");
-		assert.deepEqual(after.cheap, {}, "sibling untouched");
-	});
-
-	it("composeSlotModel: model alone, thinking alone, and both — provider rides the swap (federation)", () => {
-		assert.deepEqual(composeSlotModel(undefined, "strong", "zai", "glm-4.7-flash", "").strong, {
-			model: { provider: "zai", id: "glm-4.7-flash" },
-		});
-		assert.deepEqual(composeSlotModel(undefined, "cheap", "", "", "low").cheap, { thinkingLevel: "low" });
-		assert.deepEqual(composeSlotModel(undefined, "vision", "openai", "gpt-5.2", "high").vision, {
-			model: { provider: "openai", id: "gpt-5.2" },
-			thinkingLevel: "high",
-		});
-	});
-
-	it("composeSlotModel: per-field independence — clearing the model keeps the thinking pin", () => {
-		const prev: ModelsSettings = { strong: { model: { provider: "zai", id: "glm-4.7-flash" }, thinkingLevel: "high" } };
-		const after = composeSlotModel(prev, "strong", "", "", "high");
-		assert.deepEqual(after.strong, { model: { provider: "zai", id: "glm-4.7-flash" }, thinkingLevel: "high" }, "model carried, thinking kept");
-		// clearing thinking keeps the model
-		const after2 = composeSlotModel(prev, "strong", "zai", "glm-4.7-flash", "");
-		assert.deepEqual(after2.strong, { model: { provider: "zai", id: "glm-4.7-flash" } }, "thinking dropped, model kept");
-	});
-
-
-
 	it("composePromptSwitch: on = explicit true, off = key REMOVED (absent = off)", () => {
 		assert.deepEqual(composePromptSwitch({ prompts: { a: true } }, "b", true).prompts, { a: true, b: true });
 		assert.deepEqual(composePromptSwitch({ prompts: { a: true, b: true } }, "b", false).prompts, { a: true });
@@ -207,43 +170,6 @@ describe("nextOverrides — the rebind persistence map", () => {
 	it("null = reset that action to its default (key removed)", () => {
 		const next = nextOverrides({ "toggle-sidebar": "mod+b", find: "mod+f" }, "toggle-sidebar", null);
 		assert.deepEqual(next, { find: "mod+f" });
-	});
-});
-
-describe("first-run gate — slotsConfigured + setupStage (model-slots wave)", () => {
-	it("slotsConfigured: all three slot models required — thinking levels are optional", () => {
-		assert.equal(slotsConfigured(undefined), false, "no record = unconfigured");
-		assert.equal(slotsConfigured({}), false, "empty models section");
-		assert.equal(
-			slotsConfigured({
-				strong: { model: { provider: "zai", id: "glm-5.3-flash" } },
-				cheap: { model: { provider: "zai", id: "glm-4.7-flash" } },
-			}),
-			false,
-			"vision missing",
-		);
-		assert.equal(
-			slotsConfigured({
-				strong: { model: { provider: "zai", id: "glm-5.3-flash" } },
-				cheap: { model: { provider: "zai", id: "glm-4.7-flash" } },
-				vision: { model: { provider: "openai", id: "gpt-5.2" } },
-			}),
-			true,
-			"all three picked",
-		);
-		// a thinking-only pin does NOT configure the slot
-		assert.equal(
-			slotsConfigured({ strong: { thinkingLevel: "low" }, cheap: { thinkingLevel: "low" }, vision: { thinkingLevel: "low" } }),
-			false,
-			"thinking pins are not models",
-		);
-	});
-
-	it("setupStage: a connection before models (owner's dependency ordering)", () => {
-		assert.equal(setupStage(null), "connect", "fetch failed → the honest fallback");
-		assert.equal(setupStage([]), "connect", "no providers = connect");
-		assert.equal(setupStage([{ id: "chatgpt", connected: false }]), "connect", "provider listed but signed out");
-		assert.equal(setupStage([{ id: "chatgpt", connected: false }, { id: "xai-subscription", connected: true }]), "pickers", "one connected subscription widens the pickers");
 	});
 });
 
@@ -310,13 +236,10 @@ describe("composeQuizMechanics (the segmented control's write)", () => {
 	});
 });
 
-describe("the outside agent has no thinking control (owner, 2026-10-26)", () => {
-	it("only the outside agent's provider hides the thinking level", async () => {
-		const { providerHidesThinking, OUTSIDE_AGENT_PROVIDER } = await import("../src/core/settings.ts");
+describe("the outside agent's one provider name", () => {
+	it("the UI and the bridge name the same provider", async () => {
+		const { OUTSIDE_AGENT_PROVIDER } = await import("../src/core/settings.ts");
 		const { AGENT_PROVIDER } = await import("../src/agent/agent-bridge.ts");
-		assert.equal(OUTSIDE_AGENT_PROVIDER, AGENT_PROVIDER, "the UI and the bridge name the same provider");
-		assert.equal(providerHidesThinking(AGENT_PROVIDER), true);
-		assert.equal(providerHidesThinking("chatgpt"), false);
-		assert.equal(providerHidesThinking(undefined), false);
+		assert.equal(OUTSIDE_AGENT_PROVIDER, AGENT_PROVIDER);
 	});
 });

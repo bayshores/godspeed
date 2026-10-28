@@ -9,9 +9,9 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ClassNav, activeNavHref } from "../components/sidebar/class-nav.tsx";
-import { footerLabel } from "../components/sidebar/sidebar-footer.tsx";
-import { classInitials } from "../components/class-switcher.tsx";
+import { ClassNav, activeNavHref } from "../src/components/sidebar/class-nav.tsx";
+import { footerLabel } from "../src/components/agent-status.tsx";
+import { classInitials } from "../src/components/class-switcher.tsx";
 
 function nav(pathname: string, hasClass = true, fileCount = 33) {
 	return renderToStaticMarkup(<ClassNav pathname={pathname} hasClass={hasClass} fileCount={fileCount} />);
@@ -68,19 +68,24 @@ describe("ClassNav — Overview / Graph / Files", () => {
 
 describe("footerLabel — '<agent> · N jobs'", () => {
 	it("a connected agent shows its name and the running jobs", () => {
-		assert.equal(footerLabel({ enabled: true, connected: true, name: "Claude Code" }, 1), "Claude Code · 1 job");
-		assert.equal(footerLabel({ enabled: true, connected: true, name: "Claude Code" }, 3), "Claude Code · 3 jobs");
+		assert.equal(footerLabel({ connected: true, name: "Claude Code" }, 1), "Claude Code · 1 job");
+		assert.equal(footerLabel({ connected: true, name: "Claude Code" }, 3), "Claude Code · 3 jobs");
 	});
 	it("no jobs: just the agent", () => {
-		assert.equal(footerLabel({ enabled: true, connected: true, name: "Codex" }, 0), "Codex");
+		assert.equal(footerLabel({ connected: true, name: "Codex" }, 0), "Codex");
 	});
 	it("connected without a known name reads 'Outside agent'", () => {
-		assert.equal(footerLabel({ enabled: true, connected: true }, 0), "Outside agent");
+		assert.equal(footerLabel({ connected: true }, 0), "Outside agent");
 	});
 	it("nobody connected (or access off, or not loaded yet)", () => {
-		assert.equal(footerLabel({ enabled: true, connected: false }, 2), "No agent connected · 2 jobs");
-		assert.equal(footerLabel({ enabled: false, connected: false }, 0), "No agent connected");
+		assert.equal(footerLabel({ connected: false }, 2), "No agent connected · 2 jobs");
+		assert.equal(footerLabel({ connected: false }, 0), "No agent connected");
 		assert.equal(footerLabel(null, 0), "No agent connected");
+	});
+	it("work waiting with no agent reads 'Waiting for your agent'", () => {
+		assert.equal(footerLabel({ connected: false, pendingWork: 1 }, 1), "Waiting for your agent · 1 job");
+		assert.equal(footerLabel({ connected: false, pendingWork: 2 }, 0), "Waiting for your agent");
+		assert.equal(footerLabel({ connected: true, name: "Codex", pendingWork: 2 }, 0), "Codex", "a connected agent is taking it");
 	});
 });
 

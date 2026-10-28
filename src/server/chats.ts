@@ -10,8 +10,8 @@ import { clearTurnFailure } from "./turn-runs.ts";
 import { discardChatDeliveries } from "./jobs.ts";
 
 /**
- * Server-side chat entries for the transport layer (app/api/chats*,
- * app/chat/[id]). Today these delegate straight to the ChatStore port; the
+ * Server-side chat entries for the transport layer (src/app/api/chats*,
+ * src/app/chat/[id]). Today these delegate straight to the ChatStore port; the
  * services stage carves the real orchestration behind this same surface.
  *
  * deleteChatSession (wave 6, session deletion — the FIRST destructive

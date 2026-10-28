@@ -30,7 +30,7 @@ Object.assign(globalThis, {
 	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
-const { OverviewBody } = await import("../components/overview/overview-body.tsx");
+const { OverviewBody } = await import("../src/components/overview/overview-body.tsx");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 

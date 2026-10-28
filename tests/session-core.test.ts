@@ -1,5 +1,5 @@
 /**
- * SESSION MODEL tests (components/session-core.ts — Wave D): the pure state
+ * SESSION MODEL tests (src/components/session-core.ts — Wave D): the pure state
  * machine that replaced useChat + the AI-SDK transport. Everything the old
  * transport/merge suites pinned survives here on the native wire:
  *
@@ -21,7 +21,7 @@
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { absorbed, pendingCallTool, SessionModel } from "../components/session-core.ts";
+import { absorbed, pendingCallTool, SessionModel } from "../src/components/session-core.ts";
 import type { ChatInput } from "../src/core/input-events.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import { newUserMessage, newAnswerResult, newThinkingMessage, needsContinuation, endsInDismissal } from "../src/core/native-messages.ts";

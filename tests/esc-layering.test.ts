@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { escAbortTarget } from "../components/chat.tsx";
+import { escAbortTarget } from "../src/components/chat.tsx";
 
 /**
  * THE LAYERED ESC (owner report, 2026-10-04): Esc over an open overlay —
- * a mermaid focus, the plan popup, the setup dialog — must CLOSE THE
+ * a mermaid focus or the plan popup — must CLOSE THE
  * OVERLAY, never dismiss a pending question (or abort a turn) underneath.
  * KeyboardShortcuts dispatches lh:kbd-abort-turn on every unclaimed Esc
  * and its window listener registers FIRST, so the overlays' own listeners
@@ -12,7 +12,7 @@ import { escAbortTarget } from "../components/chat.tsx";
  * pure) is the defense. Priority = stacking order.
  */
 describe("escAbortTarget (the layered-Esc ruling)", () => {
-	const none = { abortAsk: false, mermaidFocus: false, planOpen: false, setupOpen: false, pending: false, problem: false, busy: false };
+	const none = { abortAsk: false, mermaidFocus: false, planOpen: false, pending: false, problem: false, busy: false };
 
 	it("no overlays: the 2026-10-02 chain stands (question before turn)", () => {
 		assert.equal(escAbortTarget({ ...none, pending: true }), "question");
@@ -28,14 +28,13 @@ describe("escAbortTarget (the layered-Esc ruling)", () => {
 	});
 
 	it("an open overlay claims Esc over a pending question — the owner's report", () => {
-		for (const overlay of ["mermaidFocus", "planOpen", "setupOpen"] as const) {
+		for (const overlay of ["mermaidFocus", "planOpen"] as const) {
 			const target = escAbortTarget({ ...none, [overlay]: true, pending: true });
 			assert.notEqual(target, "question", `${overlay} open must not dismiss the question`);
 			assert.notEqual(target, "turn", `${overlay} open must not abort the turn`);
 		}
 		assert.equal(escAbortTarget({ ...none, mermaidFocus: true, pending: true }), "mermaid");
 		assert.equal(escAbortTarget({ ...none, planOpen: true, pending: true }), "plan");
-		assert.equal(escAbortTarget({ ...none, setupOpen: true, pending: true }), "setup");
 	});
 
 	it("the abort confirm is topmost — its own Esc is claimed by the dialog", () => {

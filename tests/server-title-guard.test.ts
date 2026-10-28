@@ -128,13 +128,13 @@ describe("backend-only preload wiring and packaging", () => {
 			assert.equal(launch.options.env.PORT, "54321");
 			assert.equal(launch.options.env.HOSTNAME, "127.0.0.1");
 			assert.equal(launch.options.env.FIXTURE, "kept");
-			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe", "ipc"]);
+			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe"], "no IPC channel: the sign-in bridge was removed");
 		});
 	}
 
 	it("electron-builder copies the guard outside ASAR only on macOS, retaining shared resources", async () => {
 		const yaml = require("js-yaml");
-		const config = yaml.load(readFileSync(path.join(root, "electron-builder.yml"), "utf8"));
+		const config = yaml.load(readFileSync(path.join(root, "electron", "electron-builder.yml"), "utf8"));
 		const { getFileMatchers, copyFiles } = require("app-builder-lib/out/fileMatcher.js");
 		const destination = mkdtempSync(path.join(tmpdir(), "lh-title-resource-"));
 		try {

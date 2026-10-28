@@ -41,8 +41,9 @@ export interface ServerEvents {
 	/** The class list or a class record changed (create, edit, archive,
 	 *  delete, files) — classes wave, 2026-10-26. */
 	"classes-changed": Record<string, never>;
-	/** Web subscription state changed. No account or credential data on the bus. */
-	"subscriptions-changed": Record<string, never>;
+	/** The outside agent's status changed: it checked in, went quiet, or
+	 *  a request started or stopped waiting for it (agent-bridge.ts). */
+	"agent-changed": Record<string, never>;
 	/** A chat's record changed WITHOUT a turn (the silent dismissal write).
 	 *  Same notify-then-fetch contract as the turn events: open views of
 	 *  the chat refetch and adopt the durable record. */
@@ -67,7 +68,7 @@ export const SERVER_EVENT_TYPES = [
 	"activity-changed",
 	"chats-changed",
 	"classes-changed",
-	"subscriptions-changed",
+	"agent-changed",
 	"record-changed",
 	"compaction-changed",
 ] as const satisfies readonly ServerEventType[];

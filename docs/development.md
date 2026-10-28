@@ -2,7 +2,7 @@
 
 The developer README (split out of the storefront README, 2026-10-10). Everything below is for people working ON godspeed, not using it.
 
-A standalone learning app (web + Electron desktop): a **teacher agent** (Next.js; the Vercel AI SDK's `UIMessage` protocol end-to-end, LLM engine [pi-ai](docs/pi-engine-swap.md) via subscription sign-ins — ChatGPT, GitHub Copilot, Grok), probe→teach lessons with graded quiz/ask interactions, a formal **session plan tree** the teacher authors once (`plan_init`) and whose progress is derived from tagged quiz calls, and a persistent cross-session **knowledge graph** of what the learner knows — the graph is the app's home page.
+A standalone learning app (web + Electron desktop): a **teacher agent** (Next.js; the Vercel AI SDK's `UIMessage` protocol end-to-end, LLM engine [pi-ai](docs/pi-engine-swap.md) driven by an outside agent over MCP — Claude Code, Codex, any MCP app), probe→teach lessons with graded quiz/ask interactions, a formal **session plan tree** the teacher authors once (`plan_init`) and whose progress is derived from tagged quiz calls, and a persistent cross-session **knowledge graph** of what the learner knows — the graph is the app's home page.
 
 Not a chat app with a graph bolted on: sessions are probe→teach lessons, the plan tree is a structured, schema-validated object, sessions accumulate into the graph through the extraction pipeline (propositions + reasoning chains — the stored truth; the canvas renders a derived image), and the teacher reaches back into the graph through read-only prober tools on its own judgment so probing compounds across sessions.
 
@@ -22,7 +22,6 @@ npm start            # serve the production build
 npm test             # the full suite (node:test via tsx; deterministic, no LLM, no network)
 npm run lint         # eslint — includes the import law (architecture §2)
 npm run typecheck    # tsc --noEmit
-node scripts/smoke-web-subscriptions.mjs # after build: offline Next start/dev + reload gate
 
 npm run desktop:dev    # next dev + Electron shell pointed at it
 npm run desktop:dist   # local signed/notarized macOS arm64 build (LH_NOTARY keychain)
@@ -37,24 +36,13 @@ For Windows/Linux packages and the three-OS CI/release flow, see [`desktop-relea
 
 ## Environment (`.env.local`)
 
-Secrets and machine-specific paths only. Model choice and thinking budgets are the user's, not the environment's — model slots live in **settings** (`models` section: strong/cheap/vision, provider + model id + optional thinking level; per-role and per-chat overrides ride on top). The extraction batch threshold is a settings knob too (`graph.extractionChunkTokens`, default 4096, floor 500).
+Secrets and machine-specific paths only. There are no model settings: the outside agent picks its own model and effort in its own harness. The extraction batch threshold is a settings knob too (`graph.extractionChunkTokens`, default 4096, floor 500).
 
 | Variable | Purpose |
 |---|---|
-| `LH_CREDENTIALS_DIR` | optional — where web/dev saves subscription sign-ins (default: the project directory) |
 | `CHROME_PATH` | optional system Chrome fallback for demo verification; the app's own browser helper is primary (nothing is downloaded) |
 
-There are no API keys: models come only from subscription sign-ins (Settings → Providers). PDFs render natively with pdfjs/Skia; SVGs use resvg.
-
-### Subscription connections in web/dev
-
-Ordinary `npm run dev` and `npm start` support the existing **ChatGPT, GitHub Copilot and Grok** connections in Settings → Providers. No separate launcher or change to Next's listening/LAN behavior is required. `npm run desktop:dev` uses these same dev-server connections; the packaged desktop app keeps its separate main-process credentials and private IPC transport.
-
-Web/dev saves `chatgpt-credentials.json`, `github-copilot-credentials.json` and `xai-credentials.json` in the **credential directory**: the project directory by default, or `LH_CREDENTIALS_DIR`. These are owner-only plaintext files, not files under `data/`, desktop Application Support, or a global Pi profile. Git and standalone-build exclusions cover both the files and atomic-write temporary files. Run only one server process per credential directory: refresh serialization is process-local, not a cross-process lock.
-
-Sign-in opens a new tab in the browser that initiated it; permit that tab if your browser blocks popups. **ChatGPT sign-in must be completed in a browser on the server's machine**, because its callback listener remains `127.0.0.1` on that machine. Copilot/Grok use device codes. In the Electron dev shell, provider pages open in the system browser instead. Once connected, credentials and refresh remain server-owned; other browsers using that server share its connections and background-use consent. Disconnect, storage-failure handling, and provider-specific background consent retain the existing behavior; there is no API-key billing to fall back to.
-
-This remains a **trusted developer/shared-server mode**, not multi-user hosting. Subscription controls require same-origin JSON/custom-header requests; browser-opening actions are short-lived, origin-bound and one-use. These checks prevent ordinary cross-origin browser controls, **not user authentication or DNS-rebinding protection**. Do not expose an unprotected dev/server instance to untrusted users or the public Internet; a public deployment needs an independent access/host gate. Remote ChatGPT callback routing, per-user accounts and credential import are not implemented.
+There are no API keys and no sign-ins: the only model is an outside agent connected over MCP (Settings → Outside agents). The server makes the access token `data/mcp-token` on the first page load. PDFs render natively with pdfjs/Skia; SVGs use resvg.
 
 ## Architecture
 
@@ -86,7 +74,7 @@ flowchart TB
     end
 
     subgraph ROOM["MACHINE ROOM — host"]
-        HOST["Electron main → standalone Next server ·<br/>config.ts · LH_DATA_DIR · subscription sign-ins"]
+        HOST["Electron main → standalone Next server ·<br/>src/config.ts · LH_DATA_DIR · MCP endpoint file"]
     end
 
     LEARNER -->|"text · graded answers"| UI
@@ -110,11 +98,14 @@ flowchart TB
 ## Layout
 
 ```
-app/                            Next.js App Router — pages + 16 thin API route handlers
-components/                     session + home UI, question dock, plan panel, graph
+src/
+  app/                          Next.js App Router — pages + 16 thin API route handlers
+  components/                   session + home UI, question dock, plan panel, graph
                                 canvas + view, artifact renderers (registry: artifacts/),
                                 activity dock, keyboard machine
-src/
+  lib/utils.ts                  shadcn class-name helper (cn)
+  config.ts                     paths (data dir, prompts) + engine construction facts
+  proxy.ts                      Next proxy: desktop-only /api gate
   agent/
     system-prompt.md            base teaching behavior (the methodology)
     prompts/{prober,teacher}/   composed numbered fragments per role
@@ -138,7 +129,7 @@ src/
   server/observability.ts       the activity feed (running jobs + extraction, abort)
   server/pi/                    the engine bridge: record-adapter (record → pi messages)
                                 · ui-stream (pi events → UIMessage SSE)
-  server/index.ts               the server barrel (the only server import app/ may use)
+  server/index.ts               the server barrel (the only server import src/app/ may use)
   core/contracts/{plan,graph,chat,jobs,probe,models}.ts
                                 the contracts — one file per domain
   core/ports.ts                 storage ports — ChatStore · GraphStore · JobStore
@@ -151,6 +142,10 @@ src/
                                 ledgers · jobs (+ render-settings, default-settings)
 electron/                       desktop launcher + security guard (spawns the standalone
                                 server; 1 IPC channel; LH_DATA_DIR)
+  build/                        packaging inputs: icons, entitlements, dmg background
+  electron-builder.yml          packaging config (pass -c electron/electron-builder.yml)
+integrations/                   Claude Code plugin (claude-code/) + the godspeed skill (skills/)
+docs/                           docs; design mockups + exports live in docs/design/
 scripts/                        build-server.mjs (packaging guards), import-notes,
                                 backfill-graph, replay-layout
 data/                           chats/ · graph/ (nodes/chains/sessions/coverage

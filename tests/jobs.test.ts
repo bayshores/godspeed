@@ -70,10 +70,8 @@ import { persistTurn } from "../src/server/turn-service.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { createJobRunner, pdfModelOverride, researchModelOverride } from "../src/agent/subagents/runner.ts";
-import { providerNotConnected, type ModelSlotName } from "../src/core/settings.ts";
-import { connectProviderForTests } from "../src/server/connections.ts";
 import type { PiEngine } from "../src/agent/models.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 import { projectView as projectNative } from "../src/core/view.ts";
 import { subscribe } from "../src/core/events.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
@@ -83,9 +81,6 @@ const JOBS_DIR = path.join(PATHS.data, "jobs");
 
 const createdChats: string[] = [];
 
-// The connection turn gate: scripted turns pin openrouter per chat (a
-// faux engine stands in), so the test process marks it connected.
-connectProviderForTests("openrouter");
 const createdJobs: string[] = [];
 
 function trackChat(id: string) {
@@ -1774,9 +1769,9 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 	});
 });
 
-// ─── BYOK: the unresolvable-engine refusal (owner, 2026-09-22) ──────────────
+// ─── the unresolvable-engine refusal ────────────────────────────────────────
 
-describe("BYOK job refusal (no factory floor)", () => {
+describe("job refusal (no engine)", () => {
 	it("runJob with NO resolvable engine lands the job as error — the envelope wording, no phantom run", async () => {
 		const chat = chatStore.createChat("Test: unconfigured spawn");
 		trackChat(chat.id);
@@ -1786,8 +1781,8 @@ describe("BYOK job refusal (no factory floor)", () => {
 		trackJob(job.id);
 
 		const delivery = fakeDeliver();
-		// NO test override, NO engineFor: the chain (override → slot → floor)
-		// comes up empty — the runner must refuse honestly, not fall back.
+		// NO test override, NO engineFor: the runner must refuse honestly,
+		// not fall back.
 		const runner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver });
 		await runner.runJob(job.id);
 
@@ -1798,56 +1793,10 @@ describe("BYOK job refusal (no factory floor)", () => {
 		// stranded waiting for a result that will never come — and
 		// finalizeJob flips the record to error after the delivery.
 		assert.equal(done.status, "error", "the job lands error, never a phantom run");
-		assert.match(done.error ?? "", /No model configured/);
-		assert.match(done.error ?? "", /missing: cheap/);
+		assert.match(done.error ?? "", /No model is available to run this job/);
 		assert.equal(delivery.steers.length, 1, "the refusal STEERED — the teacher is not stranded");
 		assert.ok(
-			delivery.steers[0]!.content.includes("Research failed: No model configured"),
-			"the steer carries the kind's failure shape",
-		);
-		const result = done.result as ResearchResult;
-		assert.equal(result.sources.length, 0, "the failure result matches the research convention");
-	});
-});
-
-// ─── the connection job refusal ─────────────────────────────────────────────
-
-describe("connection job refusal", () => {
-	it("an engine whose provider is not connected refuses the spawn — envelope wording, no phantom run", async () => {
-		const chat = chatStore.createChat("Test: disconnected spawn");
-		trackChat(chat.id);
-		chatStore.saveMessages(chat.id, nativeToolMessages("hi", "research", "call-km1", RESEARCH_INPUT));
-
-		const job = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "call-km1" });
-		trackJob(job.id);
-
-		const delivery = fakeDeliver();
-		// The chain RESOLVES (an engine exists) — the CONNECTION is missing.
-		// The injected check is the server seam's stand-in: it sees the
-		// engine's provider + the kind's slot tier, exactly as wired.
-		const engine = fauxEngine([]);
-		const seen: Array<[string, ModelSlotName]> = [];
-		const runner = createJobRunner({
-			chatStore,
-			jobStore,
-			deliver: delivery.deliver,
-			engineFor: () => engine,
-			providerNotConnected: (provider, tier) => {
-				seen.push([provider, tier]);
-				return providerNotConnected(provider, [tier]);
-			},
-		});
-		await runner.runJob(job.id);
-
-		// The refusal lands through the SAME convention as every failed job:
-		// honest record, kind failure shape steered, terminal flip after.
-		const done = jobStore.getJob(job.id)!;
-		assert.equal(done.status, "error", "the job lands error, never a phantom run");
-		assert.equal(done.error, providerNotConnected(engine.model.provider, ["cheap"]).error, "the envelope's error line verbatim");
-		assert.deepEqual(seen, [[engine.model.provider, "cheap"]], "the check saw the engine's provider + the researcher's tier");
-		assert.equal(delivery.steers.length, 1, "the refusal STEERED — the teacher is not stranded");
-		assert.ok(
-			delivery.steers[0]!.content.includes(`Research failed: ${engine.model.provider} is not connected`),
+			delivery.steers[0]!.content.includes("Research failed: No model is available"),
 			"the steer carries the kind's failure shape",
 		);
 		const result = done.result as ResearchResult;

@@ -43,4 +43,4 @@ export function target() {
 	return { url: url || DEFAULT_URL, token: process.env.GODSPEED_MCP_TOKEN || readText(path.join(dir, "mcp-token")) };
 }
 
-export const ACCESS_OFF = "godspeed access is off. In the godspeed app open Settings → Outside agents and turn on outside-agent access.";
+export const NO_TOKEN = "godspeed's access token was not found. Open the godspeed app once (it makes the token when it starts), then try again.";

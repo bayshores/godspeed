@@ -33,6 +33,7 @@ const { abortTurn } = await import("../src/server/turn-runs.ts");
 const { chatStore } = await import("../src/store/chats.ts");
 const bridge = await import("../src/agent/agent-bridge.ts");
 const mcp = await import("../src/server/mcp.ts");
+const { subscribe } = await import("../src/core/events.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -58,8 +59,7 @@ function textOf(message: unknown): string {
 }
 
 describe("outside agent as the model", () => {
-	// The agent model counts as connected only while agent access is on.
-	mcp.enableMcpAccess();
+	mcp.ensureMcpAccess();
 
 	it("a lesson turn waits for the agent, and the agent's reply is saved", async () => {
 		const chat = agentChat("Photosynthesis");
@@ -113,6 +113,34 @@ describe("outside agent as the model", () => {
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 	});
 
+	it("an agent staying on one lesson also takes background jobs, but not other lessons", async () => {
+		const lesson = agentChat("Stay here");
+		const other = agentChat("Other lesson");
+		await handleChatInput(other.id, { type: "text", text: "hi" });
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "other lesson parked");
+
+		// A background job (extraction, topic grouping...) uses a non-lesson session id.
+		const stream = bridge.agentStream(
+			bridge.agentModel(),
+			{ messages: [{ role: "user", content: "Read this file", timestamp: Date.now() }] } as never,
+			{ sessionId: "job_background_test" },
+		);
+		const finished = (async () => { for await (const _ of stream) { /* drain */ } })();
+		await waitFor(() => bridge.pendingWorkCount() === 2, 5000, "background job parked");
+
+		const work = await bridge.waitForWork(1000, { conversation: lesson.id, andBackground: true });
+		assert.ok(work, "the background job comes to the lesson's agent");
+		assert.equal(work.conversation, "job_background_test");
+		assert.equal(await bridge.waitForWork(50, { conversation: lesson.id, andBackground: true }), null, "another lesson's turn does not");
+		assert.equal(await bridge.waitForWork(50, { conversation: lesson.id }), null, "without andBackground, only the lesson's own work");
+
+		assert.ok(bridge.respondToWork(work.workId, { text: "Done." }).ok);
+		await finished;
+		abortTurn(other.id);
+		await waitFor(() => !isTurnRunning(other.id), 8000, "other lesson settle");
+		assert.equal(bridge.pendingWorkCount(), 0);
+	});
+
 	it("stopping the turn withdraws the parked request", async () => {
 		const chat = agentChat("Abort");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
@@ -139,14 +167,15 @@ describe("the /api/mcp door", () => {
 	}
 	const listTools = { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} };
 
-	it("is closed until access is turned on", async () => {
-		mcp.disableMcpAccess();
+	it("access is always on: a missing token file is made again, and a wrong token is still refused", async () => {
+		fs.rmSync(path.join(scratch, "data", "mcp-token"), { force: true });
 		const res = await mcp.handleMcpRequest(rpc(listTools, { authorization: "Bearer x" }));
-		assert.equal(res.status, 403);
+		assert.equal(res.status, 401);
+		assert.ok(fs.existsSync(path.join(scratch, "data", "mcp-token")), "the token file is back");
 	});
 
 	it("needs the right token, and refuses browsers and other hosts", async () => {
-		const token = mcp.enableMcpAccess();
+		const token = mcp.ensureMcpAccess();
 		assert.equal((await mcp.handleMcpRequest(rpc(listTools))).status, 401);
 		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: "Bearer wrong" }))).status, 401);
 		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: `Bearer ${token}`, origin: "https://evil.example" }))).status, 403);
@@ -154,7 +183,7 @@ describe("the /api/mcp door", () => {
 	});
 
 	it("lists its tools and answers calls", async () => {
-		const token = mcp.enableMcpAccess();
+		const token = mcp.ensureMcpAccess();
 		const auth = { authorization: `Bearer ${token}` };
 		const init = await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } } }, auth));
 		assert.equal(init.status, 200, await init.clone().text());
@@ -192,7 +221,7 @@ describe("the /api/mcp door", () => {
 	});
 
 	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {
-		const token = mcp.enableMcpAccess();
+		const token = mcp.ensureMcpAccess();
 		const auth = { authorization: `Bearer ${token}` };
 		const call = async (name: string, args: Record<string, unknown>) => {
 			const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json();
@@ -230,5 +259,64 @@ describe("the /api/mcp door", () => {
 		assert.equal((await call("remove_class_exam", { class_id: id, exam_id: examId })).error, false);
 		assert.equal((await call("remove_class_exam", { class_id: id, exam_id: examId })).error, true);
 		assert.deepEqual((await call("read_class", { class_id: id })).body.exams, []);
+	});
+});
+
+describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
+	function rpc(body: unknown, token: string) {
+		return new Request("http://127.0.0.1:3000/api/mcp", {
+			method: "POST",
+			headers: { host: "127.0.0.1:3000", "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${token}` },
+			body: JSON.stringify(body),
+		});
+	}
+
+	it("names known clients readably and keeps unknown ones", () => {
+		assert.equal(bridge.displayAgentName({ name: "claude-code" }), "Claude Code");
+		assert.equal(bridge.displayAgentName({ name: "codex-mcp-client" }), "Codex");
+		assert.equal(bridge.displayAgentName({ name: "zed", title: "Zed" }), "Zed");
+		assert.equal(bridge.displayAgentName({ name: "my-agent" }), "my-agent");
+		assert.equal(bridge.displayAgentName(undefined), undefined);
+	});
+
+	it("the initialize handshake names the agent; the status shows it and an event goes out", async () => {
+		const token = mcp.ensureMcpAccess();
+		let events = 0;
+		const off = subscribe((e) => { if (e.type === "agent-changed") events++; });
+		try {
+			const init = await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "claude-code", version: "2" } } }, token));
+			assert.equal(init.status, 200);
+		} finally {
+			off();
+		}
+		const status = mcp.mcpAccessStatus();
+		assert.equal(status.agentConnected, true);
+		assert.equal(status.agentName, "Claude Code");
+		assert.ok(events >= 1, "agent-changed fired for the new name");
+	});
+
+	it("a work item's images go to the agent as real MCP images, marked [image N] in the text", async () => {
+		const token = mcp.ensureMcpAccess();
+		let events = 0;
+		const off = subscribe((e) => { if (e.type === "agent-changed") events++; });
+		const stream = bridge.agentStream(bridge.agentModel(), {
+			messages: [{ role: "user", content: [{ type: "text", text: "What is in this picture?" }, { type: "image", data: "aGVsbG8=", mimeType: "image/png" }], timestamp: 1 }],
+		} as never, { sessionId: "image-conversation" });
+		try {
+			await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "request parked");
+			assert.ok(events >= 1, "parking work fires agent-changed");
+			const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1 } } }, token))).json();
+			const [text, image] = res.result.content;
+			const item = JSON.parse(text.text);
+			assert.equal(item.imageCount, 1);
+			assert.match(item.messages[0].text, /What is in this picture\?\n\[image 1\]/);
+			assert.deepEqual(image, { type: "image", data: "aGVsbG8=", mimeType: "image/png" });
+			assert.equal(bridge.respondToWork(item.workId, { text: "A greeting." }).ok, true);
+			const done = await stream.result();
+			assert.ok(done.content.some((c) => c.type === "text"));
+			assert.equal(bridge.pendingWorkCount(), 0);
+		} finally {
+			off();
+		}
 	});
 });

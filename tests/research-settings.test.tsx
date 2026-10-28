@@ -3,7 +3,7 @@ import React, { act } from "react";
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { parseHTML } from "linkedom";
-import { AgentSection } from "../components/settings/agent-section.tsx";
+import { AgentSection } from "../src/components/settings/agent-section.tsx";
 import type { AgentSettings } from "../src/core/index.ts";
 
 it("Research stays interactive and there is no search-engine row", async () => {
@@ -11,7 +11,6 @@ it("Research stays interactive and there is no search-engine row", async () => {
 	const globals = globalThis as Record<string, unknown>;
 	const previous = new Map<string, PropertyDescriptor | undefined>();
 	const bodies: Record<string, unknown> = {
-		"/api/models": { models: [], slots: { strong: null, cheap: null, vision: null } },
 		"/api/settings/prompts": { prober: [], teacher: [] },
 	};
 	for (const [key, value] of Object.entries({
@@ -35,11 +34,9 @@ it("Research stays interactive and there is no search-engine row", async () => {
 		await act(async () => {
 			root.render(<AgentSection
 				agent={{ tools: { research: true } }}
-				models={undefined}
 				graph={undefined}
 				compaction={undefined}
 				onSectionChange={(next) => { written = next; }}
-				onModelsChange={() => {}}
 				onCompactionChange={() => {}}
 			/>);
 		});

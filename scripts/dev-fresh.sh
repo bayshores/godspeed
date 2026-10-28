@@ -10,9 +10,7 @@
 #   scripts/dev-fresh.sh --keep         # don't wipe between runs
 #                                        (multi-session testing)
 #
-#   LH_DATA_DIR        → .fresh-data/ (wiped each launch unless --keep)
-#   LH_CREDENTIALS_DIR → .fresh-data/ (NEVER the repo root — that holds
-#                        the real subscription sign-ins)
+#   LH_DATA_DIR → .fresh-data/ (wiped each launch unless --keep)
 #
 # Safe to rerun. The data dir is disposable scratch — never copy it back.
 
@@ -76,7 +74,6 @@ fi
 mkdir -p "$DATA_DIR"
 
 export LH_DATA_DIR="$DATA_DIR"
-export LH_CREDENTIALS_DIR="$DATA_DIR"
 export PORT
 
 echo "── fresh-user instance ─────────────────────────────────"

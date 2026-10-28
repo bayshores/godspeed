@@ -6,7 +6,7 @@ Run independently of the application, with Python 3.10+ and no dependencies:
 python3 -B -m unittest discover -s tests/skills -v
 ```
 
-These tests exercise the self-contained readers in `skills/godspeed/` against
+These tests exercise the self-contained readers in `integrations/skills/godspeed/` against
 small synthetic records and the native golden data in `tests/fixtures/golden-data/`.
 They check preservation of learning evidence, graph selection/merging, unsupported
 formats, path boundaries, and unchanged file bytes/mtimes. A portability test copies

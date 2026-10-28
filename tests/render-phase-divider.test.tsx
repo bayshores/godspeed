@@ -1,5 +1,5 @@
 /**
- * Phase presentation render tests — the in-session face (components/
+ * Phase presentation render tests — the in-session face (src/components/
  * phase-divider.tsx), monochrome since the minimal-color round: the header
  * chip (label + the braille spinner in the old dot slot while a turn is in
  * flight) and the dotted transcript boundary rules. Same tsx classic-JSX
@@ -12,7 +12,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PhaseChip, PhaseDivider, planNodeCount } from "../components/phase-divider.tsx";
+import { PhaseChip, PhaseDivider, planNodeCount } from "../src/components/phase-divider.tsx";
 import { teachStepIndex } from "../src/core/phases.ts";
 
 describe("PhaseChip (header)", () => {

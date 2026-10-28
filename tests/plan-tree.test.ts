@@ -17,7 +17,7 @@ import { createTree, emptyTree, PlanTreeError } from "../src/core/plan-tree.ts";
 import { planTools } from "../src/agent/tools/plan.ts";
 import { parseMermaidPlan } from "../src/agent/tools/mermaid-plan.ts";
 import { chatStore } from "../src/store/chats.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 
 const N = (id: string, title = id, summary?: string) => ({ id, title, ...(summary ? { summary } : {}) });
 const E = (from: string, to: string) => ({ from, to });

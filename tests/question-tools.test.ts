@@ -30,7 +30,7 @@ import { TOGGLEABLE_TOOLS } from "../src/core/pending.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { probeQuizInputSchema, quizInputObject, quizInputProblems } from "../src/core/question-core.ts";
 import { chatStore } from "../src/store/chats.ts";
-import { PATHS } from "../config.ts";
+import { PATHS } from "../src/config.ts";
 
 const dataDir = path.join(PATHS.root, "data");
 fs.mkdirSync(dataDir, { recursive: true });

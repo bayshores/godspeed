@@ -22,8 +22,7 @@ import { registerJobAbort, unregisterJobAbort } from "./aborts.ts";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ModelRole } from "../../../config.ts";
-import { ROLE_SLOT, modelsNotConfigured, type ModelSlotName, type ProviderNotConnected } from "../../core/settings.ts";
+import type { ModelRole } from "../../config.ts";
 import type { ChatStore, JobStore } from "../../core/ports.ts";
 import { runDemoBuilder } from "./demo-builder.ts";
 import { runPdfReaderAgent } from "./pdf-reader.ts";
@@ -72,19 +71,10 @@ export interface JobRunnerDeps {
 	 * on it. Its persisted pending obligation survives process restart.
 	 */
 	deliver: (steer: SteerMessage) => Promise<void>;
-	/** Settings-resolved engine per role (model slots wave, 2026-09-20):
-	 *  the role-override → slot chain, read FRESH per job (the server
-	 *  wiring passes effectiveSettings-based resolution). Test overrides
-	 *  (below) still win. BYOK (owner, 2026-09-22): the chain may end
-	 *  EMPTY → undefined; runJob then refuses the spawn honestly instead
-	 *  of guessing a model. */
+	/** The engine per role — production always passes the outside agent
+	 *  (owner, 2026-10-27). Test overrides (below) still win; with neither,
+	 *  runJob refuses the spawn honestly. */
 	engineFor?: (role: ModelRole) => PiEngine | undefined;
-	/** Connection gate: given the resolved engine's provider + the kind's
-	 *  slot tier, return the refusal envelope when the provider is not a
-	 *  connected subscription (null = run). Injected because the agent
-	 *  layer may not read connection state; absent
-	 *  in tests that inject engines directly (test engines never owe a key). */
-	providerNotConnected?: (provider: string, tier: ModelSlotName) => ProviderNotConnected | null;
 }
 
 export interface JobRunner {
@@ -159,8 +149,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 	 *  kind-correct by construction; transcript fallbacks are cast after). */
 	/** The engine one job runs on: test override first (the old seam —
 	 *  tests swap scripted engines without touching deps), then the injected
-	 *  settings-resolved engineFor. undefined = the BYOK chain came up
-	 *  empty (owner, 2026-09-22) — runJob refuses below, honestly. */
+	 *  engineFor. undefined = nothing to run on — runJob refuses below. */
 	function pickEngine(kind: JobKind): PiEngine | undefined {
 		const testOverride: Record<string, { current?: PiEngine } | undefined> = {
 			researcher: researchModelOverride,
@@ -195,8 +184,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			return;
 		}
 		const engine = pickEngine(job.kind);
-		// The per-need refusal guards: no engine for the kind's tier, or the
-		// resolved engine's provider not connected — both refuse through the SAME
+		// The refusal guard (no engine to run on) refuses through the SAME
 		// convention as every other failed job: record the honest error (no
 		// status flip: finalizeJob owns the terminal flip after delivery),
 		// then steer the kind's failure shape through finishJob so the wake
@@ -233,21 +221,8 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			await finishJob(jobId, failure);
 		};
 		if (!engine) {
-			const tier = ROLE_SLOT[KIND_ROLE[job.kind]];
-			const envelope = modelsNotConfigured([tier]);
-			console.info(`[job ${jobId}] refused — ${JSON.stringify(envelope)}`);
-			await refuse(`${envelope.error} (missing: ${tier})`);
-			return;
-		}
-		// Connection: the engine exists, but its provider may not be
-		// connected — refuse the spawn BEFORE the loop, same convention
-		// (the injected check reads connection state; absent in
-		// engine-injecting tests).
-		const keyRefusal =
-			deps.providerNotConnected?.(engine.model.provider, ROLE_SLOT[KIND_ROLE[job.kind]]) ?? null;
-		if (keyRefusal) {
-			console.info(`[job ${jobId}] refused — ${JSON.stringify(keyRefusal)}`);
-			await refuse(keyRefusal.error);
+			console.info(`[job ${jobId}] refused — no engine`);
+			await refuse("No model is available to run this job");
 			return;
 		}
 		try {

@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 sys.dont_write_bytecode = True
-SCRIPTS = Path(__file__).resolve().parents[2] / "skills" / "godspeed" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[2] / "integrations" / "skills" / "godspeed" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import graph
 

@@ -9,10 +9,10 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { UpdateSettings, updateStatusText, MANUAL_UPDATE_HINT, AUTO_UPDATE_HINT, type UpdateState } from "../components/settings/update-settings.tsx";
-import UpdateBanner from "../components/update-banner.tsx";
-import { SettingsDialogBody } from "../components/settings/settings-dialog.tsx";
-import { SettingsDialogProvider } from "../components/settings/settings-dialog-provider.tsx";
+import { UpdateSettings, updateStatusText, MANUAL_UPDATE_HINT, AUTO_UPDATE_HINT, type UpdateState } from "../src/components/settings/update-settings.tsx";
+import UpdateBanner from "../src/components/update-banner.tsx";
+import { SettingsDialogBody } from "../src/components/settings/settings-dialog.tsx";
+import { SettingsDialogProvider } from "../src/components/settings/settings-dialog-provider.tsx";
 import nextConfig from "../next.config.ts";
 
 const dom = parseHTML("<html><body></body></html>");

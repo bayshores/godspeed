@@ -10,10 +10,10 @@ import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { YourTurnPanel } from "../components/lesson/your-turn-panel.tsx";
-import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../components/lesson/step-bar.tsx";
-import { practiceProgress } from "../components/lesson/practice-progress.ts";
-import { QuestionDock } from "../components/question-dock.tsx";
+import { YourTurnPanel } from "../src/components/lesson/your-turn-panel.tsx";
+import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../src/components/lesson/step-bar.tsx";
+import { practiceProgress } from "../src/components/lesson/practice-progress.ts";
+import { QuestionDock } from "../src/components/question-dock.tsx";
 import { CONFIDENCE_STOPS, projectView, reuseUnchangedMessages, type LhMessage, type PlanStepBar, type QuestionAnswerData } from "../src/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
@@ -84,12 +84,12 @@ describe("the Your-turn panel's states", () => {
 		assert.match(html, /data-testid="composer-send"[^>]*class="[^"]*bg-tone-2[\s\S]*?Send when ready/);
 	});
 
-	it("queued messages and the setup prompt sit in the panel", () => {
+	it("queued messages and the notice slot sit in the panel", () => {
 		const html = panel({
-			composer: composer({ busy: true, queuedSteers: [{ id: "s1", text: "and the variance?" }], setupCta: <button type="button" data-testid="setup-cta">Set up your models</button> }),
+			composer: composer({ busy: true, queuedSteers: [{ id: "s1", text: "and the variance?" }], notice: <p data-testid="composer-notice">Waiting for your agent</p> }),
 		});
 		assert.match(html, /data-testid="queued-steers"[\s\S]*?and the variance\?/);
-		assert.match(html, /data-testid="setup-cta"/);
+		assert.match(html, /data-testid="composer-notice"/);
 	});
 
 	it("a practice pause turns the bar into Next problem", () => {

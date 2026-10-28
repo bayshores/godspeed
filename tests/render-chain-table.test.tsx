@@ -27,8 +27,8 @@ import React from "react";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
-import { ChainTableBody, ChainTableOverlay } from "../components/chain-table.tsx";
-import type { ChainSort } from "../components/chain-table.tsx";
+import { ChainTableBody, ChainTableOverlay } from "../src/components/chain-table.tsx";
+import type { ChainSort } from "../src/components/chain-table.tsx";
 import type { GraphChain, GraphNode } from "../src/core/contracts.ts";
 
 /** The fixture graph — two follows-chains + one standalone:

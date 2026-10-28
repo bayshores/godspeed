@@ -1,13 +1,13 @@
 /**
- * THE CORE PUBLIC API — the only module the shell (app/, components/) may
+ * THE CORE PUBLIC API — the only module the shell (src/app/, src/components/) may
  * import. Everything exported here is browser-safe: pure logic + types,
  * no node builtins, no fs, no network.
  *
  * Server-side surfaces (chat streaming, store reads) live behind
  * src/server's barrel instead — the import law (eslint.config.mjs):
  *
- *   components/**  →  "@/src/core"        (this barrel, ONLY)
- *   app/**         →  "@/src/core" + "@/src/server"
+ *   src/components/**  →  "@/core"        (this barrel, ONLY)
+ *   src/app/**         →  "@/core" + "@/server"
  *
  * Server-only core modules (core/graph.ts emission/derivation) are pure
  * but need storage ports passed in by a server caller, so they are
@@ -22,7 +22,7 @@ export * from "./chains.ts";
 export * from "./question-core.ts";
 // The event bus (push architecture, 2026-10-02): vocabulary + emit/subscribe
 // for every layer; the browser shell consumes the types + the runtime names
-// through this barrel (shell law: pure core via @/src/core only).
+// through this barrel (shell law: pure core via @/core only).
 export * from "./events.ts";
 // clusters.ts (Louvain) is deliberately NOT re-exported: nothing in the
 // shell runs community detection — the snapshot carries the partition
@@ -48,9 +48,6 @@ export * from "./tool-parts.ts";
 export * from "./answer-presentation.ts";
 export * from "./prices.ts";
 export * from "./context-usage.ts";
-export type { ChatGPTStatus, ChatGPTControlBridge } from "./contracts/chatgpt.ts";
-export { NATIVE_SUBSCRIPTIONS } from "./contracts/subscriptions.ts";
-export type { NativeSubscriptionProviderId, NativeSubscriptionLogicalId, NativeSubscriptionStatus, NativeSubscriptionSnapshot, NativeSubscriptionScope, NativeSubscriptionControlBridge, SubscriptionInteraction, SubscriptionPrompt } from "./contracts/subscriptions.ts";
 export * from "./cost-summary.ts";
 export * from "./fuzzy.ts";
 // settings.ts + settings-resolution.ts (settings-storage wave, 2026-09-19):

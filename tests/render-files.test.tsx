@@ -1,5 +1,5 @@
 /**
- * The Files page (redesign plan, Phase 6 — design/exports/files.html),
+ * The Files page (redesign plan, Phase 6 — docs/design/exports/files.html),
  * mounted over linkedom with a fake fetch: the two sections and counts,
  * the linked folder, each row's state (coverage bar, Building facts…,
  * Failed + Retry), the Study/Info toggle and Unlink writing through the
@@ -39,9 +39,9 @@ const scrolled: string[] = [];
 // to an old-IE way of watching text fields.
 (dom.document as unknown as { oninput: null }).oninput = null;
 const { createRoot } = await import("react-dom/client");
-const { FilesPage } = await import("../components/files/files-page.tsx");
-const { ServerEventsProvider } = await import("../components/server-events.tsx");
-const { ClassProvider } = await import("../components/class-context.tsx");
+const { FilesPage } = await import("../src/components/files/files-page.tsx");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const { ClassProvider } = await import("../src/components/class-context.tsx");
 
 function file(id: string, name: string, over: Partial<ClassFile> = {}): ClassFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };

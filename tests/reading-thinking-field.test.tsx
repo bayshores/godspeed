@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ReadingThinkingField } from "../components/reading-thinking.tsx";
+import { ReadingThinkingField } from "../src/components/reading-thinking.tsx";
 
 describe("the reading-thinking field (redesign: fills the Your-turn panel)", () => {
 	it("labels the field and lets it fill the panel column", () => {

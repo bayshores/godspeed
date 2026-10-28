@@ -61,22 +61,9 @@ describe("desktop window chrome", () => {
 		});
 	}
 
-	it("only the external dev shell receives the web subscription transport marker", () => {
+	it("no window receives a sign-in transport marker (built-in sign-ins removed 2026-10-27)", () => {
 		assert.equal(windowOptions("darwin").webPreferences.additionalArguments, undefined);
-		assert.deepEqual(windowOptions("darwin", { LH_DEV_URL: "http://localhost:3000" }).webPreferences.additionalArguments, ["--lh-web-subscriptions"]);
-	});
-
-	it("dev preload routes opaque sign-in actions through its narrow external-browser channel", async () => {
-		let bridge!: { subscriptionTransport: string; openSubscriptionBrowser(action: string): Promise<void> };
-		const invoked: unknown[][] = [];
-		runInNewContext(readFileSync(new URL("../electron/preload.cjs", import.meta.url), "utf8"), {
-			process: { platform: "darwin", argv: ["--lh-web-subscriptions"] },
-			require: () => ({ contextBridge: { exposeInMainWorld: (_: string, value: typeof bridge) => { bridge = value; } }, ipcRenderer: { on() {}, invoke: async (...args: unknown[]) => { invoked.push(args); } } }),
-		});
-		assert.equal(bridge.subscriptionTransport, "web");
-		const action = "/api/subscriptions/browser?id=00000000-0000-4000-8000-000000000001";
-		await bridge.openSubscriptionBrowser(action);
-		assert.deepEqual(invoked, [["lh:subscriptions:web-browser", action]]);
+		assert.equal(windowOptions("darwin", { LH_DEV_URL: "http://localhost:3000" }).webPreferences.additionalArguments, undefined);
 	});
 
 	it("preload exposes OS identity without exposing Node/Electron to the renderer", () => {
@@ -96,9 +83,8 @@ describe("desktop window chrome", () => {
 		runInNewContext(readFileSync(new URL("../electron/preload.cjs", import.meta.url), "utf8"), context);
 		assert.equal(bridge.platform, "win32");
 		assert.deepEqual(Object.keys(bridge).sort(), [
-			"chatgpt", "checkForUpdates", "expandWindow", "getUpdateState", "getZoom", "installUpdate", "onOpenSettings", "onUpdateStatus", "onZoom", "pickFolder", "platform", "subscriptions",
+			"checkForUpdates", "expandWindow", "getUpdateState", "getZoom", "installUpdate", "onOpenSettings", "onUpdateStatus", "onZoom", "pathForFile", "pickFolder", "platform",
 		]);
-		assert.deepEqual(Object.keys(bridge.subscriptions as object).sort(), ["cancel", "consent", "disconnect", "login", "onChange", "open", "respond", "retry", "status"]);
 	});
 });
 
@@ -138,7 +124,7 @@ describe("update preload bridge", () => {
 
 describe("desktop packaging policy", () => {
 	const yaml = require("js-yaml") as { load(source: string): Record<string, any> };
-	const config = yaml.load(readFileSync(new URL("../electron-builder.yml", import.meta.url), "utf8"));
+	const config = yaml.load(readFileSync(new URL("../electron/electron-builder.yml", import.meta.url), "utf8"));
 
 	it("configuration is accepted by the INSTALLED electron-builder schema", async () => {
 		const { validateConfiguration } = require("app-builder-lib/out/util/config/config.js");
@@ -176,7 +162,7 @@ describe("workflow action versions", () => {
 	for (const filename of ["ci.yml", "release.yml"]) {
 		it(`${filename} uses supported Action runtimes without changing the app's Node 26`, () => {
 			const workflow = yaml.load(readFileSync(new URL(`../.github/workflows/${filename}`, import.meta.url), "utf8"));
-			const expected = ["actions/checkout@v7", "actions/setup-node@v7"];
+			const expected = ["actions/checkout@v7", "actions/setup-node@v7", "actions/cache@v4"];
 			if (filename === "release.yml") {
 				expected.push("actions/github-script@v9", "actions/upload-artifact@v7", "maxim-lobanov/setup-xcode@v1");
 			}
@@ -250,10 +236,11 @@ describe("desktop release workflow", () => {
 		return created;
 	}
 
-	it("prepares once after gates, never on rehearsals, before parallel packaging", () => {
-		assert.equal(draft.needs, "quality");
+	it("prepares once in parallel with the gates, never on rehearsals, before parallel packaging", () => {
+		assert.equal(draft.needs, undefined, "the draft starts right away, alongside quality");
 		assert.equal(prepare.if, "github.event_name == 'push'");
-		assert.deepEqual(packaging.needs, ["quality", "draft"]);
+		assert.equal(packaging.needs, "draft");
+		assert.deepEqual(workflow.jobs.verify?.needs, ["quality", "package"], "a failed gate still blocks the release");
 		assert.equal(workflow.concurrency.group, "release-${{ github.ref }}");
 		assert.equal(workflow.concurrency["cancel-in-progress"], false);
 		for (const filename of ["ci.yml", "release.yml"]) {

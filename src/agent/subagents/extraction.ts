@@ -3,15 +3,8 @@ import type { Usage } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type Static, type TSchema } from "typebox";
 import { toToolResult } from "../tool-execute.ts";
-import type { ModelRole } from "../../../config.ts";
-import {
-	FACTORY_SETTINGS,
-	ModelsNotConfiguredError,
-	ProviderNotConnectedError,
-	ROLE_SLOT,
-	type ModelSlotName,
-	type ProviderNotConnected,
-} from "../../core/settings.ts";
+import type { ModelRole } from "../../config.ts";
+import { FACTORY_SETTINGS } from "../../core/settings.ts";
 import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
 import { withBgLlmSlot } from "./bg-llm-semaphore.ts";
@@ -731,20 +724,19 @@ export interface ExtractionModels {
 	 *  engineFor chain (production wires no direct values). */
 	extractor?: PiEngine;
 	auditor?: PiEngine;
-	/** Settings-resolved engine per role — the same slot treatment the
-	 *  job runner got, read FRESH per stage call (a settings PUT between
-	 *  stages lands). BYOK (owner, 2026-09-22): the chain (role override →
-	 *  slot → NOTHING) may end EMPTY → undefined; the front doors refuse
-	 *  with ModelsNotConfiguredError before any stage runs. */
+	/** The engine per role — production always passes the outside agent
+	 *  (owner, 2026-10-27). With no engine at all the front doors refuse
+	 *  with NoEngineError before any stage runs. */
 	engineFor?: (role: ModelRole) => PiEngine | undefined;
-	/** Key-presence gate (provider-key interlude, 2026-09-25): given a
-	 *  stage engine's provider + the role's slot tier, the injected check
-	 *  returns the refusal envelope when the provider's key is missing
-	 *  (null = run). Same injection discipline as the job runner's seam
-	 *  (the agent layer may not read the key store); absent in tests that
-	 *  inject engines directly (test engines never owe a key). A keyless
-	 *  stage refuses with ProviderNotConnectedError BEFORE any batch runs. */
-	providerNotConnected?: (provider: string, tier: ModelSlotName) => ProviderNotConnected | null;
+}
+
+/** The pipeline has nothing to run its stages on (only reachable when no
+ *  engineFor is wired — tests and misconfigured callers). */
+export class NoEngineError extends Error {
+	constructor() {
+		super("No model is available for extraction");
+		this.name = "NoEngineError";
+	}
 }
 
 export interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
@@ -826,36 +818,16 @@ export function callUsage(usage: Usage): CallUsage {
 export function createExtractionPipeline(deps: ExtractionPipelineDeps): ExtractionPipeline {
 	const { chatStore, graphStore } = deps;
 	// Stage-engine resolution: a direct test value wins; otherwise the
-	// engineFor chain (role override → slot → nothing, resolved FRESH per
-	// stage call server-side) — the job runner's exact treatment. undefined
-	// = the BYOK chain came up empty; the front-door guards turn that into
-	// an honest refusal.
+	// injected engineFor — the job runner's exact treatment. undefined =
+	// nothing to run on; the front-door guards turn that into a refusal.
 	const stageEngine = (role: ModelRole, override?: PiEngine): PiEngine | undefined =>
 		override ?? deps.engineFor?.(role);
-	/** The per-need refusal guard: which slot tiers the pipeline's stages
-	 *  found unset (test values count as configured — they ARE engines),
-	 *  and whether a configured stage's provider is not connected — both
-	 *  refuse BEFORE any batch runs. */
+	/** The refusal guard: every stage needs an engine — refuse BEFORE any
+	 *  batch runs. */
 	function refuseIfStagesUnready(): void {
-		const stages: readonly [ModelRole, PiEngine | undefined][] = [
-			["extractor", stageEngine("extractor", deps.extractor)],
-			["auditor", stageEngine("auditor", deps.auditor)],
-		];
-		const missing = new Set<ModelSlotName>();
-		for (const [role, engine] of stages) if (!engine) missing.add(ROLE_SLOT[role]);
-		if (missing.size > 0) {
-			console.info(`[extraction] refused — no model configured for: ${[...missing].join(", ")}`);
-			throw new ModelsNotConfiguredError([...missing]);
-		}
-		// Connection parity: first offender surfaces (extractor before
-		// auditor); connecting it re-gates and the next run surfaces the
-		// next offender, if any.
-		for (const [role, engine] of stages) {
-			const refusal = deps.providerNotConnected?.(engine!.model.provider, ROLE_SLOT[role]);
-			if (refusal) {
-				console.info(`[extraction] refused — ${JSON.stringify(refusal)}`);
-				throw new ProviderNotConnectedError(refusal.provider, refusal.slots);
-			}
+		if (!stageEngine("extractor", deps.extractor) || !stageEngine("auditor", deps.auditor)) {
+			console.info("[extraction] refused — no engine");
+			throw new NoEngineError();
 		}
 	}
 	// THE SHARED REGISTRIES (runs() above — globalThis): every pipeline
@@ -1454,7 +1426,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			return stats;
 		} catch (err) {
 			console.error(`[extraction ${id}] notes pipeline failed (${Math.round(performance.now() - t0)}ms):`, err);
-			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError) throw err;
+			if (err instanceof NotesImportError || err instanceof NoEngineError) throw err;
 			throw new NotesImportError(err instanceof Error && err.name === "AbortError" ? "aborted" : "failed", mergedStats,
 				err instanceof Error ? err.message : String(err), { cause: err });
 		} finally {
@@ -1476,7 +1448,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			target.upsertSource({ id, filePath: input.filePath, importedAt });
 			return await runNotesExtraction({ id, filePath: input.filePath, text: input.text, importedAt });
 		} catch (err) {
-			if (err instanceof NotesImportError || err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError) throw err;
+			if (err instanceof NotesImportError || err instanceof NoEngineError) throw err;
 			throw new NotesImportError("failed", { nodes: 0, chains: 0 }, err instanceof Error ? err.message : String(err), { cause: err });
 		} finally {
 			inFlight.delete(id);

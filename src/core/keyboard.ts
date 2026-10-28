@@ -7,7 +7,7 @@
  *
  * Design (owner-approved plan):
  * - Tab is DEAD: browser tab-focus navigation is abandoned entirely. Tab
- *   does nothing; Shift+Tab alone cycles the thinking level.
+ *   does nothing.
  * - Esc is a layered dismiss: topmost popover (each popover stopPropagation's
  *   its own Esc) → abort in-flight turn.
  * - The key map persists overrides in localStorage (`lh:keymap`, overrides
@@ -20,8 +20,6 @@
  */
 
 export type KeyAction =
-	| "open-model-picker"
-	| "cycle-thinking"
 	| "toggle-sidebar"
 	| "sessions-search"
 	| "jump-graph"
@@ -55,8 +53,6 @@ export interface KeyActionDef {
 
 export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "open-settings", label: "Open settings", scope: "global", binding: "mod+," },
-	{ id: "open-model-picker", label: "Model selector", scope: "global", binding: "mod+k" },
-	{ id: "cycle-thinking", label: "Cycle thinking level", scope: "global", binding: "shift+tab" },
 	{ id: "toggle-sidebar", label: "Toggle sessions sidebar", scope: "global", binding: "mod+b" },
 	{ id: "sessions-search", label: "Search sessions", scope: "global", binding: "mod+shift+f" },
 	// (The Alt+↑/↓/↵ session cycle was RETIRED, owner 2026-10-10: barely

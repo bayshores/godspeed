@@ -13,8 +13,8 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageResponse } from "../components/ai-elements/message.tsx";
-import { MermaidError } from "../components/mermaid-error.tsx";
+import { MessageResponse } from "../src/components/ai-elements/message.tsx";
+import { MermaidError } from "../src/components/mermaid-error.tsx";
 import { transformMathDelimiters, healOverescapedCommands } from "../src/core/math-delims.ts";
 
 /** Render through MessageResponse in static mode (no streaming/remend artifacts). */

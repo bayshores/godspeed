@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { measuredContextTokens, newCompactionMarker, type LhMessage } from "../src/core/index.ts";
-import { SessionModel } from "../components/session-core.ts";
+import { SessionModel } from "../src/components/session-core.ts";
 
 function assistant(id: string, stopReason: AssistantMessage["stopReason"] = "stop", total = 999_999): LhMessage {
 	return { id, role: "assistant", content: [{ type: "text", text: "fixture" }], api: "openai-completions", provider: "openrouter", model: "fixture", stopReason, timestamp: 1,

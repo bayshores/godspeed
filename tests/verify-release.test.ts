@@ -149,7 +149,7 @@ describe("release gate — draft selection (fail-closed, existing tag matching)"
 
 describe("release gate — packaging-config drift guard", () => {
 	const yaml = require("js-yaml") as { load(source: string): unknown };
-	const realConfig = yaml.load(fs.readFileSync(path.join(repoRoot, "electron-builder.yml"), "utf8"));
+	const realConfig = yaml.load(fs.readFileSync(path.join(repoRoot, "electron", "electron-builder.yml"), "utf8"));
 	const realPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
 
 	it("accepts the repository's real configuration", () => {
@@ -314,7 +314,7 @@ describe("release gate — workflow wiring", () => {
 
 	it("can see drafts after ALL packaging jobs, only on real tag pushes", () => {
 		assert.ok(verify);
-		assert.equal(verify.needs, "package");
+		assert.deepEqual(verify.needs, ["quality", "package"]);
 		assert.equal(verify.if, "github.event_name == 'push'");
 		// GitHub's release-list API hides drafts from read-only tokens.
 		assert.deepEqual(verify.permissions, { contents: "write" });
@@ -450,7 +450,8 @@ describe("release gate — CLI (offline, repo config)", () => {
 		try {
 			const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
 			fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ ...pkg, version: futureVersion }));
-			fs.copyFileSync(path.join(repoRoot, "electron-builder.yml"), path.join(root, "electron-builder.yml"));
+			fs.mkdirSync(path.join(root, "electron"));
+			fs.copyFileSync(path.join(repoRoot, "electron", "electron-builder.yml"), path.join(root, "electron", "electron-builder.yml"));
 			const result = run(["verify", path.join(root, "releases.json"), path.join(root, "metadata"), "--tag", `v${futureVersion}`], root);
 			assert.equal(result.status, 0, String(result.stderr));
 			assert.ok(result.stdout.includes(`OK: draft for v${futureVersion} is complete`));

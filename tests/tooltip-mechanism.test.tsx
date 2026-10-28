@@ -15,9 +15,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Hint, hintText } from "../components/ui/hint.tsx";
-import { TOOLTIP_DELAY_MS } from "../components/ui/tooltip.tsx";
-import { AUTO_UPDATE_HINT } from "../components/settings/update-settings.tsx";
+import { Hint, hintText } from "../src/components/ui/hint.tsx";
+import { TOOLTIP_DELAY_MS } from "../src/components/ui/tooltip.tsx";
+import { AUTO_UPDATE_HINT } from "../src/components/settings/update-settings.tsx";
 import { IS_MAC } from "../src/core/keyboard.ts";
 
 describe("hintText — the parenthesized composition", () => {

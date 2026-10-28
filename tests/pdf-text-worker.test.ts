@@ -23,9 +23,9 @@ const FIXTURE = path.join(import.meta.dirname, "fixtures", "sample-3page.pdf");
 const { pdfExtract } = await import("../src/agent/subagents/pdf-ops.ts");
 const { fingerprintFile, pdfTextOffThread } = await import("../src/server/class-files.ts");
 const server = await import("../src/server/index.ts");
-const classesRoute = await import("../app/api/classes/route.ts");
-const filesRoute = await import("../app/api/classes/[id]/files/route.ts");
-const fileRoute = await import("../app/api/classes/[id]/files/[fileId]/route.ts");
+const classesRoute = await import("../src/app/api/classes/route.ts");
+const filesRoute = await import("../src/app/api/classes/[id]/files/route.ts");
+const fileRoute = await import("../src/app/api/classes/[id]/files/[fileId]/route.ts");
 
 const { extraction, stores, classIdle, enqueueFile } = server;
 

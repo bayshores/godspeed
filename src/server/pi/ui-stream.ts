@@ -1,6 +1,5 @@
 import type { Agent, AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
 import { ToolCallIdUniquifier } from "./call-ids.ts";
-import type { ChatGPTRequestCycle } from "../../agent/chatgpt-request-cycle.ts";
 
 /**
  * THE NATIVE WIRE (Wave D, owner-approved 2026-09-26): one agent turn, streamed
@@ -70,7 +69,6 @@ export type TurnWireEvent =
 	| { type: "error"; errorText: string };
 
 export interface PiTurnSpec {
-	requestCycle?: ChatGPTRequestCycle;
 	/** The per-turn agent (stateless engine — built from the record). */
 	agent: Agent;
 	/** The handler's error-masking policy for LOOP-level failures (the
@@ -121,7 +119,7 @@ export interface PiTurnHandle {
 }
 
 export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
-	const { agent, onError, onFinish, onSettleError, onSettleFailure, usedToolCallIds, updateFlushMs = 100, requestCycle } = spec;
+	const { agent, onError, onFinish, onSettleError, onSettleFailure, usedToolCallIds, updateFlushMs = 100 } = spec;
 	const uniquifier = usedToolCallIds ? new ToolCallIdUniquifier(usedToolCallIds) : undefined;
 
 	let settled = false;
@@ -260,24 +258,11 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 			closeAll();
 		}
 	};
-	requestCycle?.bindRelease(handle);
-	agent.subscribe((event) => {
-		if (!requestCycle?.hold(event)) handle(event);
-	});
+	agent.subscribe(handle);
 
 	void (async () => {
 		try {
-			do {
-				await agent.continue();
-				if (!requestCycle) break;
-				const denied = requestCycle.deniedBeforeDispatch;
-				const outcome = requestCycle.finishNativeCycle();
-				if (denied) agent.state.messages = outcome.messages;
-				if (outcome.action !== "resumeForeground") {
-					handle({ type: "agent_end", messages: [...agent.state.messages] });
-					break;
-				}
-			} while (!sawAbort);
+			await agent.continue();
 		} catch (err) {
 			// A loop-level failure (not a provider error — those ride the
 			// stream as stopReason "error"): surface, close, persist. If the
@@ -347,7 +332,6 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 		abort() {
 			if (settled) return;
 			sawAbort = true;
-			requestCycle?.abort();
 			agent.abort();
 		},
 	};

@@ -28,7 +28,7 @@ Execution plan for `docs/vision.md`. Section references (§) point into that doc
 
 ## Wave 2 — three parallel workers
 
-- **W4 · Graph store + home view** (§1): `src/core/graph.ts` (model + naive-union emission from session trees + tagged quiz outcomes), `data/graph/` store, emission on chat completion, `GET /api/graph`, `components/graph-view.tsx` (sigma.js + forceatlas2 run-then-freeze, state colors, labels at zoom, pan/zoom — per the rendering decision), home page integration, 2k-node synthetic benchmark script, tests.
+- **W4 · Graph store + home view** (§1): `src/core/graph.ts` (model + naive-union emission from session trees + tagged quiz outcomes), `data/graph/` store, emission on chat completion, `GET /api/graph`, `src/components/graph-view.tsx` (sigma.js + forceatlas2 run-then-freeze, state colors, labels at zoom, pan/zoom — per the rendering decision), home page integration, 2k-node synthetic benchmark script, tests.
 - **W5 · Phases & question reveal** (§2 "two phases"): probe→teach structured marker + transcript divider, teach-phase checks start collapsed behind a reveal button (QuestionDock variant), probe keeps auto-open. *Warning in brief: chat.tsx scroll/hysteresis state machine is load-bearing — minimal diffs.*
 - **W6 · Demo artifacts + builder/visual workers** (§2 demos + §2.5): `demo` artifact tool part → sandboxed iframe renderer (resize bridge, error chip, fix loop), demo-builder sub-agent that headlessly tests the code before delivery, visual-maker sub-agent (port of vault `svg-maker`: write/edit/render + verify-by-looking), SVG block renderer, tests.
 

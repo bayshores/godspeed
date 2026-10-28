@@ -27,6 +27,10 @@ import type { EmissionStats } from "./graph.ts";
  *  practice agent, its two tools, no extraction, no graph writes. */
 export type ChatKind = "teach" | "practice";
 
+/** Every lesson id starts with this (store/chats.ts makes them). The
+ *  outside-agent bridge uses it to tell lesson work from background jobs. */
+export const CHAT_ID_PREFIX = "chat_";
+
 export interface ChatRecord {
 	id: string;
 	title: string;
@@ -68,7 +72,7 @@ export interface ChatRecord {
 export const CURRENT_CHAT_VERSION = 1;
 
 /** The conversation agents' runtime model choice (model-control wave,
- *  2026-09-12): a per-chat override of config.ts's pinned prober/teacher
+ *  2026-09-12): a per-chat override of src/config.ts's pinned prober/teacher
  *  spec. Absent fields fall back to config; written by the model picker
  *  (PUT /api/chats/[id]/settings) and read at turn composition — the
  *  agents are stateless per turn, so a change takes effect on the next
@@ -302,8 +306,8 @@ export interface ChatListItem extends ChatSummary {
 // ─── Artifact renderer registry (client extension point) ────────────────────
 
 /**
- * components/chat.tsx renders any tool part it doesn't specially handle via
- * components/artifacts/index.ts's registry, keyed by tool name ("research",
+ * src/components/chat.tsx renders any tool part it doesn't specially handle via
+ * src/components/artifacts/index.ts's registry, keyed by tool name ("research",
  * "demo", "visual", …). Workers add renderers there — chat.tsx is off-limits
  * to artifact work. Renderer receives the raw tool part; it typically renders
  * an activity card while state is input-available (poll /api/jobs) and the

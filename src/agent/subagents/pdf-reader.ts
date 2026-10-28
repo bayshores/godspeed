@@ -3,8 +3,7 @@ import type { AssistantMessage, Message, ToolResultMessage, Usage, Tool } from "
 import { normalizeContext } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { resolveSourcePath } from "../tools/fs-shared.ts";
-import { piEngineFor, type PiEngine, type ThinkingLevel } from "../models.ts";
-import { providerEventObserver, type ProviderEventObserver } from "../provider-events.ts";
+import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
 import type { PdfResult, PdfToolInput } from "../../core/contracts.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
 import { pdfExtract, pdfInfo, pdfProbe, pdfSearch, type PdfSearchHit } from "./pdf-ops.ts";
@@ -181,9 +180,7 @@ export async function runPdfReaderAgent(
 
 	const tools = createPdfTools(pdfPath);
 	const toolDeclarations = Object.values(tools);
-	const engine = opts.engine ?? piEngineFor("pdfReader");
-	// BYOK (owner, 2026-09-22): the level rides the injected engine — no
-	// factory pin to consult (engine.level is the resolved/clamped value).
+	const engine = opts.engine ?? agentEngine();
 	const reasoning = engine.level;
 	const sessionId = randomUUID();
 	const prompt = [
@@ -213,7 +210,6 @@ export async function runPdfReaderAgent(
 				sessionId,
 				reasoning,
 				opts.abortSignal,
-				opts.chatId ? providerEventObserver(opts.chatId, "job:pdfReader") : undefined,
 			);
 			// Money channel: each iteration is one model call.
 			opts.onUsage?.(result.usage);
@@ -402,7 +398,6 @@ async function streamOnce(
 	sessionId: string,
 	reasoning: ThinkingLevel | undefined,
 	abortSignal?: AbortSignal,
-	onProviderStreamEvent?: ProviderEventObserver,
 ): Promise<AssistantMessage> {
 	// 0.87.1: provider-facing contexts are TranscriptContexts — the prompt
 	// and tool declarations fold into a leading system message.
@@ -411,7 +406,6 @@ async function streamOnce(
 		sessionId,
 		reasoning: reasoning && reasoning !== "off" ? reasoning : undefined,
 		signal: abortSignal,
-		onProviderStreamEvent: onProviderStreamEvent as never,
 	} as never);
 	for await (const event of stream) {
 		if (event.type === "done") return event.message;

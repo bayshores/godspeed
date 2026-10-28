@@ -16,18 +16,13 @@
  *     read-only and native .node/dylib can't dlopen from one);
  *   - all mutable state under userData (never inside the .app bundle —
  *     translocated apps are read-only);
- *   - secrets ride the child's ENV, never argv. There are no API keys:
- *     models come only from subscription sign-ins, which this shell owns
- *     (chatgpt.cjs / subscriptions.cjs) and serves to the child over IPC.
+ *   - secrets ride the child's ENV, never argv. There are no API keys and
+ *     no built-in sign-ins: the only AI is an outside agent (Claude Code,
+ *     Codex, any MCP client) that connects to the server's /api/mcp.
  */
 
 const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("electron");
-const { createChatGPT, fileStore } = require("./chatgpt.cjs");
-const { attachChatGPTChild, trustedSender, chatGPTControl } = require("./chatgpt-ipc.cjs");
-const { createSubscriptions, loadSubscriptionSDK } = require("./subscriptions.cjs");
-const { attachSubscriptionChild, subscriptionControl } = require("./subscription-ipc.cjs");
-const { desktopAPIHeaders } = require("./desktop-api.cjs");
-const { openWebSubscriptionBrowser } = require("./web-subscription-browser.cjs");
+const { desktopAPIHeaders, trustedSender } = require("./desktop-api.cjs");
 const { randomBytes } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
@@ -35,7 +30,7 @@ const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
 
-// Mirrors SIDEBAR_AUTOCLOSE in components/sidebar.tsx — keep in sync (the
+// Mirrors SIDEBAR_AUTOCLOSE in src/components/sidebar.tsx — keep in sync (the
 // renderer owns the number; this is the IPC widen target).
 const SIDEBAR_AUTOCLOSE = 928;
 
@@ -55,7 +50,7 @@ const DATA_DIR = () => path.join(app.getPath("userData"), "data");
  *  the window points at the running `next dev` server (full HMR). */
 function serverEntry() {
 	// extraResources ships the whole .next payload under server/standalone/
-	// (copied from .next with an explicit filter — see electron-builder.yml).
+	// (copied from .next with an explicit filter — see electron/electron-builder.yml).
 	return path.join(process.resourcesPath, "server", "standalone", "server.js");
 }
 
@@ -131,21 +126,13 @@ if (process.argv.includes("--browser-service")) {
 }
 
 let serverProcess = null;
-let chatgpt = null;
-let chatgptChild = null;
-let subscriptions = null;
-let subscriptionChild = null;
-// Per-launch request capability, never OAuth tokens and never renderer state.
+// Per-launch request capability, never renderer state.
 let desktopAPISecret = null;
 let reopenWindow = null;
 const trustedAppWindows = new Set();
 // Packaged launch: resolves when the server first answers (null in dev).
 let serverUp = null;
 let serverReady = false;
-// Resolves once the first window is on screen (or gone): heavy main-process
-// work waits for it so it never delays first paint.
-let markWindowShown;
-const windowShown = new Promise((resolve) => { markWindowShown = resolve; });
 
 // A GUI shell must never die to a stray exception (EPIPE dialogs, a race
 // in an event handler): the window + child server are the product, and
@@ -240,24 +227,16 @@ function startServer(port) {
 					// the server's code (measured: first page 1366 → 1157 ms).
 					NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
 				},
-				stdio: ["ignore", "pipe", "pipe", "ipc"],
+				stdio: ["ignore", "pipe", "pipe"],
 			},
 		);
 		serverProcess = child;
-		chatgptChild = attachChatGPTChild(child, chatgpt);
-		subscriptionChild = attachSubscriptionChild(child, subscriptions);
 		const fwd = (buf) => buf.toString().trimEnd().split("\n").forEach((l) => l && log(`server: ${l}`));
 		child.stdout.on("data", fwd);
 		child.stderr.on("data", fwd);
 		child.on("exit", (code, signal) => {
 			log(`server exited (code=${code} signal=${signal})`);
 			serverProcess = null;
-			chatgptChild?.dispose();
-			chatgptChild = null;
-			subscriptionChild?.dispose();
-			subscriptionChild = null;
-			chatgpt?.close();
-			subscriptions?.close();
 		});
 		resolve(child);
 	});
@@ -306,8 +285,6 @@ h1{margin:0;font:700 40px lh-cmu,serif;color:#e5e5e5}</style></head><body><h1>${
 }
 
 function killServer() {
-	chatgpt?.close();
-	subscriptions?.close();
 	if (!serverProcess) return;
 	const child = serverProcess;
 	serverProcess = null;
@@ -339,8 +316,8 @@ function createWindow(url, serverUp = null) {
 		// center (owner ask, 2026-09-17): macOS centers each 12px circle at
 		// y+6.75, and the pill box center measures 29.25 in the running app
 		// (band 0–59.5, pill box 19–39.5) — y 22.5 lands the circles at
-		// 29.25, exactly on the pill. Wordmark gutter: components/sidebar.tsx.
-		// Dragging comes from the renderer's .lh-drag bands (app/globals.css).
+		// 29.25, exactly on the pill. Wordmark gutter: src/components/sidebar.tsx.
+		// Dragging comes from the renderer's .lh-drag bands (src/app/globals.css).
 		...(process.platform === "darwin"
 			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 22.5 } }
 			: {
@@ -357,7 +334,6 @@ function createWindow(url, serverUp = null) {
 			contextIsolation: true,
 			sandbox: true,
 			nodeIntegration: false,
-			...(process.env.LH_DEV_URL ? { additionalArguments: ["--lh-web-subscriptions"] } : {}),
 			preload: path.join(__dirname, "preload.cjs"),
 		},
 		// Live-resize + first-paint flash (owner, 2026-09-17): during a resize
@@ -373,7 +349,7 @@ function createWindow(url, serverUp = null) {
 		// below it even a wrapped chrome row gets cramped and the chat header
 		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
 		// auto-closes below 928 = 640 + 288 (sidebar) in the renderer
-		// (components/sidebar.tsx, SIDEBAR_AUTOCLOSE); its "lh:expand-window"
+		// (src/components/sidebar.tsx, SIDEBAR_AUTOCLOSE); its "lh:expand-window"
 		// IPC widens the window back to that threshold.
 		minWidth: 640,
 		minHeight: 600,
@@ -463,7 +439,7 @@ const ZOOM_LADDER = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 /* ── Auto-update (Wave C, owner 2026-10-10: silent download + restart ─────
  * banner; checks at startup + every 24h) ─────────────────────────────────
  *
- * Feed: GitHub Releases (electron-builder.yml publish → app-update.yml,
+ * Feed: GitHub Releases (electron/electron-builder.yml publish → app-update.yml,
  * baked + signed into the bundle). macOS needs the app signed (it is —
  * Developer ID) and updates ride the zip target (Squirrel.Mac); blockmaps
  * give differential downloads for free. Windows uses NSIS; Linux uses
@@ -683,8 +659,6 @@ function installMenu() {
 
 async function main() {
 	app.on("window-all-closed", () => {
-		chatgpt?.pause();
-		subscriptions?.pause();
 		// macOS convention: the app stays resident, reactivated from the Dock.
 		if (process.platform !== "darwin") app.quit();
 	});
@@ -708,30 +682,6 @@ async function main() {
 		session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ["<all_urls>"] }, (details, callback) => {
 			callback({ requestHeaders: desktopAPIHeaders(details, ownedOrigin, desktopAPISecret, [...trustedAppWindows]) });
 		});
-		chatgpt = createChatGPT({
-			store: fileStore(path.join(app.getPath("userData"), "chatgpt-credentials.json")),
-			openExternal: (target) => shell.openExternal(target),
-			onChange: (value) => {
-				chatgptChild?.send(value);
-				for (const win of BrowserWindow.getAllWindows()) win.webContents.send("lh:chatgpt:changed");
-			},
-		});
-		subscriptions = createSubscriptions({
-			directory: app.getPath("userData"),
-			// Speed plan (2026-10-27): the SDK import blocks this process for
-			// 0.5–0.9 s, so it waits until the window is on screen and no
-			// longer delays the server spawn. The server's requests simply
-			// wait on subscriptions.ready, exactly as before.
-			loadSDK: async () => {
-				await windowShown;
-				return loadSubscriptionSDK(path.dirname(serverEntry()));
-			},
-			openExternal: (target) => shell.openExternal(target),
-			onChange: (snapshot) => {
-				subscriptionChild?.send(snapshot);
-				for (const win of BrowserWindow.getAllWindows()) win.webContents.send("lh:subscriptions:changed");
-			},
-		});
 		log(`starting server: ${serverEntry()}`);
 		log(`data dir: ${DATA_DIR()}`);
 		await startServer(new URL(url).port);
@@ -751,30 +701,6 @@ async function main() {
 		serverReady = true;
 		writeMcpEndpoint(url);
 	}
-
-	// Renderer controls contain no token/URL/code operation. The separate server
-	// child is the only recipient of credential leases over inherited IPC.
-	ipcMain.handle("lh:chatgpt:control", async (event, command) => {
-		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) return { error: "Untrusted desktop request." };
-		if (!chatgpt || !serverProcess?.connected) return { available: false, pending: false, activeId: null, accounts: [], error: "ChatGPT sign-in requires the desktop app's private server connection." };
-		return chatGPTControl(command, chatgpt);
-	});
-
-	ipcMain.handle("lh:subscriptions:control", async (event, command) => {
-		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
-		if (!subscriptions || !serverProcess?.connected) {
-			if (command?.op === "status") return [];
-			throw new Error("Subscription sign-in requires the desktop app's private server connection.");
-		}
-		return subscriptionControl(command, subscriptions);
-	});
-
-	// The dev shell has no browser tabs. Only a one-use action on its own
-	// Next server may be resolved here; never accept an arbitrary external URL.
-	ipcMain.handle("lh:subscriptions:web-browser", async (event, action) => {
-		if (!devUrl || !trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted development request.");
-		await openWebSubscriptionBrowser(action, new URL(url).origin, { openExternal: (target) => shell.openExternal(target) });
-	});
 
 	installMenu();
 
@@ -817,13 +743,11 @@ async function main() {
 		const target = SIDEBAR_AUTOCLOSE;
 		if (width < target) win.setBounds({ x, y, width: target, height });
 	});
-	reopenWindow = () => { chatgpt?.resume(); subscriptions?.resume(); return createWindow(url, serverReady ? null : serverUp); };
+	reopenWindow = () => createWindow(url, serverReady ? null : serverUp);
 	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) reopenWindow();
 	});
-	const firstWindow = createWindow(url, serverReady ? null : serverUp);
-	firstWindow.once("show", markWindowShown);
-	firstWindow.once("closed", markWindowShown);
+	createWindow(url, serverReady ? null : serverUp);
 	log(`window open: ${url}`);
 	// Startup + 24h checks stay main-owned and read the current preference.
 	// No renderer subscription is required; late loads retrieve the snapshot.

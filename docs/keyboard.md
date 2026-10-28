@@ -9,7 +9,7 @@ second pillar of input).
 - **Registry**: `src/core/keyboard.ts` — `KEYBOARD_ACTIONS` holds every
   action: `{ id, label, scope, binding }`. The cheat sheet renders FROM
   the registry, so it can never list a non-functional shortcut.
-- **Provider**: `components/keyboard-shortcuts.tsx` — one window-level
+- **Provider**: `src/components/keyboard-shortcuts.tsx` — one window-level
   keydown listener (bubble phase, mounted once in AppShell). Normalizes
   keys to `mod+d`-style strings, resolves overrides, dispatches
   `lh:kbd-<action-id>` window CustomEvents. Surfaces listen for their
@@ -40,8 +40,6 @@ second pillar of input).
 
 | Action | Binding | Seam |
 |---|---|---|
-| Model selector | ⌘K | `lh:kbd-open-model-picker` (model-picker.tsx) |
-| Cycle thinking level | Shift+Tab | `lh:kbd-cycle-thinking` (model-picker.tsx) |
 | Toggle sidebar | ⌘B | `lh:toggle-sidebar` (sidebar.tsx) |
 | Sessions search | ⌘⇧F | `lh:kbd-sessions-search` (sidebar.tsx) |
 | Walk search results | ↑ / ↓ *in the search field* | sidebar.tsx (cycles the filtered rows, wraps) |

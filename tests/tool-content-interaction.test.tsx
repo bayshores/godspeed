@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { QuestionDock } from "../components/question-dock.tsx";
-import { AnsweredCard } from "../components/answered-card.tsx";
+import { QuestionDock } from "../src/components/question-dock.tsx";
+import { AnsweredCard } from "../src/components/answered-card.tsx";
 import { newAnswerResult, type QuestionAnswerData } from "../src/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");

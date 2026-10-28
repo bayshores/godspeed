@@ -15,8 +15,15 @@
  * The item is CLAIMED for this agent (same as calling wait_for_work), so
  * read it and respond promptly — an unanswered claim is released to other
  * agents after 10 minutes. No dependencies — Node 18+.
+ *
+ * Images: the item's "[image N]" markers point at real images, which stdout
+ * can't carry. They are saved as files and listed in "imageFiles" (in
+ * order), so the agent can open them.
  */
-import { ACCESS_OFF, target } from "./target.mjs";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { NO_TOKEN, target } from "./target.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -35,10 +42,25 @@ function fail(text) {
 	process.exit(1);
 }
 
+const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp", "image/svg+xml": "svg" };
+
+/** Save the result's image blocks; returns their file paths. */
+function saveImages(content, workId) {
+	const blocks = (content ?? []).filter((c) => c?.type === "image" && typeof c.data === "string");
+	if (!blocks.length) return [];
+	const dir = path.join(os.tmpdir(), "godspeed-images");
+	fs.mkdirSync(dir, { recursive: true });
+	return blocks.map((block, i) => {
+		const file = path.join(dir, `${String(workId).replace(/[^\w-]/g, "")}-${i + 1}.${EXTENSIONS[block.mimeType] ?? "png"}`);
+		fs.writeFileSync(file, Buffer.from(block.data, "base64"));
+		return file;
+	});
+}
+
 /** One wait_for_work call. Returns the parsed tool result, or throws. */
 async function waitOnce() {
 	const { url, token } = target();
-	if (!token) fail(ACCESS_OFF);
+	if (!token) fail(NO_TOKEN);
 	const res = await fetch(url, {
 		method: "POST",
 		headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${token}` },
@@ -64,7 +86,12 @@ async function waitOnce() {
 	if (rpc.error) fail(`godspeed error: ${rpc.error.message}`);
 	const text = rpc.result?.content?.[0]?.text ?? "";
 	if (rpc.result?.isError) fail(`wait_for_work failed: ${text}`);
-	return JSON.parse(text);
+	const item = JSON.parse(text);
+	if (item.status === "work") {
+		const imageFiles = saveImages(rpc.result?.content, item.workId);
+		if (imageFiles.length) item.imageFiles = imageFiles;
+	}
+	return item;
 }
 
 let unreachableSince = null;

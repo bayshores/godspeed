@@ -22,4 +22,4 @@ Rules:
 - Turning study files into facts uses the learner's background model. Large folders take a while; progress shows in the godspeed window.
 - To teach inside a class afterwards, use `/godspeed:teach`, or `start_lesson` with the class's `class_id`.
 
-If a tool says godspeed is unreachable or access is off, tell the user exactly that message and stop.
+If a tool says godspeed is unreachable or its access token was not found, tell the user exactly that message and stop.

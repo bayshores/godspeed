@@ -12,7 +12,7 @@ Windows signing is deliberately disabled for this first release. SmartScreen may
 
 The custom app bar stays on all three platforms. macOS keeps its left-side traffic lights; Windows/Linux use Electron's native right-side Window Controls Overlay, with CSS space reserved from the overlay's actual geometry. Windows/Linux hide the native menu until Alt is pressed. macOS keeps its system menu.
 
-Icons are per-platform (2026-10-13): macOS compiles the Icon Composer document `build/icon.icon` via actool into `Assets.car` (macOS 26 Liquid Glass) plus a fallback icns that `scripts/after-pack.cjs` replaces with the hand-packed full-res `build/icon.icns` (actool's caps at 256px); Windows embeds `build/icon.ico` and Linux uses `build/icon.png`, both generated from the flat design (`build/icon-flat.svg`) by `node scripts/make-icons.mjs`. Building the mac icon needs **macOS 26+ and Xcode 26+** (`actool`): Xcode 26's asset compiler crashes on macOS 15 because its host frameworks lack required symbols. `desktop:dist` injects `DEVELOPER_DIR` locally; release packaging uses `macos-26` and selects Xcode via setup-xcode. The older-OS fallback icon remains included. Linux's desktop identity is `godspeed.desktop`. Public package-maintainer metadata uses the owner's GitHub no-reply address; support goes through [GitHub Issues](https://github.com/bayshores/godspeed/issues).
+Icons are per-platform (2026-10-13): macOS compiles the Icon Composer document `electron/build/icon.icon` via actool into `Assets.car` (macOS 26 Liquid Glass) plus a fallback icns that `scripts/after-pack.cjs` replaces with the hand-packed full-res `electron/build/icon.icns` (actool's caps at 256px); Windows embeds `electron/build/icon.ico` and Linux uses `electron/build/icon.png`, both generated from the flat design (`electron/build/icon-flat.svg`) by `node scripts/make-icons.mjs`. Building the mac icon needs **macOS 26+ and Xcode 26+** (`actool`): Xcode 26's asset compiler crashes on macOS 15 because its host frameworks lack required symbols. `desktop:dist` injects `DEVELOPER_DIR` locally; release packaging uses `macos-26` and selects Xcode via setup-xcode. The older-OS fallback icon remains included. Linux's desktop identity is `godspeed.desktop`. Public package-maintainer metadata uses the owner's GitHub no-reply address; support goes through [GitHub Issues](https://github.com/bayshores/godspeed/issues).
 
 ## Build pipeline
 
@@ -23,7 +23,7 @@ Each OS installs its own dependencies and builds its own Next standalone tree:
 3. `npm run build` (`output: "standalone"`).
 4. `node scripts/build-server.mjs` — copy static assets, refuse leaked data/keys, remove only standalone-root `dist/` and `node_modules/electron/` (old installers and the development runtime), check prompt assets. Runtime dependencies' own `dist/` directories and native renderer binaries stay intact.
 5. `node scripts/smoke-server.mjs --electron` — boot the standalone server in Electron's bundled Node, using empty temporary data/auth, then check the home route and GET-only APIs.
-6. `npx electron-builder <platform flags> --publish <policy>`.
+6. `npx electron-builder -c electron/electron-builder.yml <platform flags> --publish <policy>`.
 
 The shell/updater live in `app.asar`; the standalone server and native renderer binaries ship unpacked as `extraResources`. **Do not cross-build the server payload.** Next traces the build machine's native binaries, so a macOS-built standalone tree is not a Windows/Linux payload.
 
@@ -31,10 +31,10 @@ The shell/updater live in `app.asar`; the standalone server and native renderer 
 
 ```sh
 # On Windows:
-npx electron-builder --win --x64 --publish never
+npx electron-builder -c electron/electron-builder.yml --win --x64 --publish never
 
 # On Linux:
-npx electron-builder --linux --x64 --publish never
+npx electron-builder -c electron/electron-builder.yml --linux --x64 --publish never
 ```
 
 ## CI vs release
@@ -67,7 +67,7 @@ The three jobs upload distinct updater feeds: `latest-mac.yml`, `latest.yml`, `l
 | `godspeed-<v>-amd64.deb` | Linux deb (no sidecar blockmap) |
 | `latest-mac.yml` / `latest.yml` / `latest-linux.yml` | updater feeds |
 
-  (The Linux names are deliberate: the user-set `linux.artifactName` applies to both Linux targets, and `${arch}` expands per target — `x86_64` inside the AppImage, `amd64` in the deb — exactly what the installed app-builder-lib 26.15.3 emits. The script's expectations fail closed if `electron-builder.yml` drifts from these shapes.);
+  (The Linux names are deliberate: the user-set `linux.artifactName` applies to both Linux targets, and `${arch}` expands per target — `x86_64` inside the AppImage, `amd64` in the deb — exactly what the installed app-builder-lib 26.15.3 emits. The script's expectations fail closed if `electron/electron-builder.yml` drifts from these shapes.);
 - downloads the three feeds from the draft and fails unless each parses, carries the `package.json` version, and references **exactly** the uploaded assets — by bare file name only (no paths, traversal, or URLs), with sizes matching the API-reported asset sizes, the ZIP first in `latest-mac.yml`, and the legacy top-level `path`/`sha512` backed by that first entry.
 
 The job only reads (release list + asset downloads); it never creates, edits, publishes, or deletes anything.

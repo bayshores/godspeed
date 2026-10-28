@@ -28,8 +28,8 @@ const { newGraphContextMessage } = await import("../src/core/native-messages.ts"
 const { toLlmMessages } = await import("../src/core/native-messages.ts");
 import type { LhMessage } from "../src/core/native-messages.ts";
 const { projectView } = await import("../src/core/view.ts");
-const { POST } = await import("../app/api/chats/route.ts");
-const { initialPromptOwed } = await import("../components/chat.tsx");
+const { POST } = await import("../src/app/api/chats/route.ts");
+const { initialPromptOwed } = await import("../src/components/chat.tsx");
 const { chatStore } = await import("../src/store/chats.ts");
 const { graphStore } = await import("../src/store/graph.ts");
 

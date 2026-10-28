@@ -9,11 +9,11 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { PATHS } from "../../config.ts";
+import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import type { ChatStore } from "../core/ports.ts";
 import type { ChatRecord, ChatSettings, ChatSummary, ExtractionRunUsage, PlanTree, TurnUsage } from "../core/contracts.ts";
-import { CURRENT_CHAT_VERSION } from "../core/contracts.ts";
+import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
 import { activeProblemOf, danglingQuestionOf } from "../core/native-messages.ts";
 import { phaseAt3Lh } from "../core/phases.ts";
@@ -35,7 +35,7 @@ function chatFile(id: string): string {
 function createChat(title: string, kind?: "practice", classId?: string): ChatRecord {
 	const now = new Date().toISOString();
 	const record: ChatRecord = {
-		id: `chat_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
+		id: `${CHAT_ID_PREFIX}${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
 		title: title.trim() || "Untitled session",
 		createdAt: now,
 		updatedAt: now,

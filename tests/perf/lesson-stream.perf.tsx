@@ -88,8 +88,8 @@ const TOKENS = 240;
 const PER_FRAME = 4;
 
 async function main() {
-	const { Chat } = await import("../../components/chat.tsx");
-	const { ServerEventsProvider } = await import("../../components/server-events.tsx");
+	const { Chat } = await import("../../src/components/chat.tsx");
+	const { ServerEventsProvider } = await import("../../src/components/server-events.tsx");
 
 	// The stream body we push SSE frames into.
 	let push: (s: string) => void = () => {};
@@ -106,8 +106,7 @@ async function main() {
 		if (url.endsWith("/stream")) return new Response(body, { status: 200 });
 		if (url.startsWith("/api/jobs")) return Response.json({ jobs: [] });
 		if (url.startsWith("/api/chats/")) return Response.json({ messages: undefined, turns: [] });
-		if (url.startsWith("/api/models")) return Response.json({ models: [], providers: [], defaults: null, slots: {}, rolePins: {} });
-		if (url.startsWith("/api/settings")) return Response.json({ settings: { models: {} } });
+		if (url.startsWith("/api/settings")) return Response.json({ settings: {} });
 		return Response.json({});
 	}) as typeof fetch;
 
@@ -131,7 +130,7 @@ async function main() {
 		root.render(
 			<ServerEventsProvider connect={connect as never}>
 				<Profiler id="chat" onRender={onRender}>
-					<Chat chatId="perf" title="Gradient descent" initialMessages={lesson(100) as never} initiallyInFlight initialConfigured />
+					<Chat chatId="perf" title="Gradient descent" initialMessages={lesson(100) as never} initiallyInFlight />
 				</Profiler>
 			</ServerEventsProvider>,
 		);

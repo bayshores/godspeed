@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AssistantMessage, Message, Tool, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 import { normalizeContext } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
-import { piEngineFor, type PiEngine, type ThinkingLevel } from "../models.ts";
-import { providerEventObserver, type ProviderEventObserver } from "../provider-events.ts";
+import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
 import type { VisualResult } from "../../core/contracts.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
 
@@ -139,9 +138,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 
 	const tools = createVisualTools();
 	const toolDeclarations = Object.values(tools);
-	const engine = opts.engine ?? piEngineFor("visualMaker");
-	// BYOK (owner, 2026-09-22): the level rides the injected engine — no
-	// factory pin to consult (engine.level is the resolved/clamped value).
+	const engine = opts.engine ?? agentEngine();
 	const reasoning = engine.level;
 	const sessionId = randomUUID();
 	const prompt = [
@@ -169,7 +166,6 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 				sessionId,
 				reasoning,
 				opts.abortSignal,
-				opts.chatId ? providerEventObserver(opts.chatId, "job:visualMaker") : undefined,
 			);
 			// Money channel: each iteration is one model call.
 			opts.onUsage?.(result.usage);
@@ -323,7 +319,6 @@ async function streamOnce(
 	sessionId: string,
 	reasoning: ThinkingLevel | undefined,
 	abortSignal?: AbortSignal,
-	onProviderStreamEvent?: ProviderEventObserver,
 ): Promise<AssistantMessage> {
 	// 0.87.1: provider-facing contexts are TranscriptContexts — the prompt
 	// and tool declarations fold into a leading system message.
@@ -332,7 +327,6 @@ async function streamOnce(
 		sessionId,
 		reasoning: reasoning && reasoning !== "off" ? reasoning : undefined,
 		signal: abortSignal,
-		onProviderStreamEvent: onProviderStreamEvent as never,
 	} as never);
 	for await (const event of stream) {
 		if (event.type === "done") return event.message;

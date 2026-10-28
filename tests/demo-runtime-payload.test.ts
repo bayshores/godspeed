@@ -99,7 +99,7 @@ describe("demo standalone dependency gate", () => {
 		for (const key of ["API_KEY", "GH_TOKEN", "MY_SECRET", "PASSWORD", "NODE_OPTIONS", "NODE_PATH", "ELECTRON_RUN_AS_NODE", "LH_DEV_URL", "GOOGLE_APPLICATION_CREDENTIALS", "AWS_SHARED_CREDENTIALS_FILE", "AWS_PROFILE", "CLOUDSDK_CONFIG"]) assert.equal(key in env, false, key);
 		assert.equal(env.PATH, "/bin");
 		assert.equal(env.LH_DATA_DIR, path.join("/scratch", "data"));
-		assert.equal(env.LH_CREDENTIALS_DIR, "/scratch");
+		assert.equal("LH_CREDENTIALS_DIR" in env, false, "credential-dir overrides never pass through");
 		assert.equal(env.HOME, "/scratch");
 		assert.equal(original.API_KEY, "fake");
 	});

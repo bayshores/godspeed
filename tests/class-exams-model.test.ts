@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClassExam } from "../src/core/index.ts";
-import { draftProblem, draftsFrom, examDateLabel, examWrites, filesLabel, toggleFile } from "../components/class-exams-model.ts";
+import { draftProblem, draftsFrom, examDateLabel, examWrites, filesLabel, toggleFile } from "../src/components/class-exams-model.ts";
 
 const SAVED: ClassExam[] = [
 	{ id: "exm_1", name: "Midterm 1", date: "2026-10-29", fileIds: ["f1", "f2"] },

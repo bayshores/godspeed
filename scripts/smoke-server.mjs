@@ -18,7 +18,7 @@
  * free port, NODE_ENV=production, a THROWAWAY LH_DATA_DIR and credential
  * dir under os.tmpdir() (no real credentials or data ever touch it) —
  * polls GET / until 200, then probes the GET-only API surface (graph /
- * models / settings — no side effects). Any non-200, an early server
+ * settings — no side effects). Any non-200, an early server
  * exit, or a 30s boot timeout fails the gate and prints the server's own
  * log tail for diagnosis. The child is ALWAYS killed before exit — a
  * leaked server holds its port against the next run (learned the hard
@@ -26,7 +26,6 @@
  */
 import { spawn } from "node:child_process";
 import { probeEnv, verifyDemoRuntime } from "./smoke-demo-runtime.mjs";
-import { verifyProviderRuntime } from "./smoke-provider-runtime.mjs";
 import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import * as http from "node:http";
@@ -43,7 +42,7 @@ const RUNTIME = ELECTRON_MODE ? createRequire(import.meta.url)("electron") : pro
 const POLL_MS = 500;
 const BOOT_TIMEOUT_MS = 30_000;
 /** GET-only probes — the routes that exercised today's failure class. */
-const PROBES = ["/api/graph", "/api/models", "/api/settings"];
+const PROBES = ["/api/graph", "/api/settings"];
 
 if (!fs.existsSync(SERVER)) {
 	console.error("[smoke-server] .next/standalone/server.js missing — run next build first.");
@@ -81,8 +80,6 @@ async function main() {
 	// HTTP boot alone never imports the dynamically loaded demo engine.
 	// Fail before packaging if its standalone dependency graph is incomplete.
 	verifyDemoRuntime(STANDALONE, RUNTIME);
-	// /api/models only reads catalogs; initialize the real lazy SDK offline too.
-	verifyProviderRuntime(STANDALONE, RUNTIME);
 	const port = await freePort();
 	const url = `http://127.0.0.1:${port}`;
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh-smoke-"));

@@ -1,8 +1,7 @@
 /**
  * Settings-surface render tests (thin settings wave): SSR of the section
  * components pins the THIN markup — toggle rows, the graph ladder's
- * graying, the mode control's honest disabled state, the role rows and
- * tool rows. Fetches don't run under renderToStaticMarkup (effects never
+ * graying, the mode control's honest disabled state and the tool rows. Fetches don't run under renderToStaticMarkup (effects never
  * fire), so the SSR state IS the loading state — asserted as such.
  * Same tsx classic-JSX shim as render-sidebar.test.tsx.
  */
@@ -12,12 +11,12 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TOGGLE_TOOLS, AgentSection } from "../components/settings/agent-section.tsx";
-import { AppearanceSection, GraphSection } from "../components/settings/appearance-section.tsx";
-import { KeyboardSection } from "../components/settings/keyboard-section.tsx";
+import { TOGGLE_TOOLS, AgentSection } from "../src/components/settings/agent-section.tsx";
+import { AppearanceSection, GraphSection } from "../src/components/settings/appearance-section.tsx";
+import { KeyboardSection } from "../src/components/settings/keyboard-section.tsx";
 import type { GraphSettings } from "../src/core/index.ts";
-import { SettingsDialogBody } from "../components/settings/settings-dialog.tsx";
-import { SettingsDialogProvider } from "../components/settings/settings-dialog-provider.tsx";
+import { SettingsDialogBody } from "../src/components/settings/settings-dialog.tsx";
+import { SettingsDialogProvider } from "../src/components/settings/settings-dialog-provider.tsx";
 import { KEYBOARD_ACTIONS } from "../src/core/index.ts";
 
 /** The full opening tag of the element carrying a testid — attribute
@@ -41,15 +40,16 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 		assert.ok(!html.includes("settings-dialog"));
 	});
 
-	it("the dialog frame: role=dialog + the ✕ + the six-section nav, Outside agents first and General last", () => {
+	it("the dialog frame: role=dialog + the ✕ + the five-section nav, Outside agents first and General last", () => {
 		const html = renderToStaticMarkup(<SettingsDialogBody onClose={() => {}} />);
 		assert.ok(html.includes('role="dialog"'));
 		assert.ok(html.includes('aria-modal="true"'));
 		assert.ok(html.includes('aria-label="Close settings"'));
-		for (const id of ["agents", "agent", "providers", "appearance", "keyboard", "general"]) {
+		for (const id of ["agents", "agent", "appearance", "keyboard", "general"]) {
 			assert.ok(html.includes(`data-testid="settings-nav-${id}"`), id);
 		}
-		// Redesign (design/exports/settings.html): Outside agents is the first
+		assert.ok(!html.includes('data-testid="settings-nav-providers"'), "no Providers section")
+		// Redesign (docs/design/exports/settings.html): Outside agents is the first
 		// landing section; the old Graph section's rows live in General.
 		assert.ok(tagOf(html, "settings-nav-agents").includes('aria-current="true"'));
 		assert.ok(html.indexOf('data-testid="settings-nav-agents"') < html.indexOf('data-testid="settings-nav-general"'));
@@ -64,41 +64,23 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 });
 
 describe("AgentSection (thin SSR)", () => {
-	it("renders the three model SLOT rows (slots-only, fix wave: unpicked reads —, no Default option)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
-		for (const slot of ["strong", "cheap", "vision"]) {
-			assert.ok(html.includes(`data-testid="slot-row-${slot}"`), slot);
-			// The shared model-picker dropdown as the opened menu (owner,
-			// 2026-09-20), the thin trigger as the collapsed look.
-			assert.ok(html.includes(`data-testid="slot-model-${slot}"`), `${slot} model trigger`);
-			assert.ok(html.includes(`data-testid="slot-thinking-${slot}"`), `${slot} thinking trigger`);
-			// the roster hint rides every row
-			assert.ok(html.includes("The main model for your sessions") || slot !== "strong", "strong roster");
-		}
-		// Fix wave: no Default anywhere — an unpicked slot reads "—"
-		// (the owner's no-factory-fallback language), and no menu
-		// carries a Default row (menu-default testid is retired).
-		assert.equal((html.match(/>Default<\/span>/g) ?? []).length, 0, "no Default trigger");
-		assert.ok(!html.includes('data-testid="menu-default"'), "no Default row");
-		assert.equal((html.match(/>—<\/span>/g) ?? []).length, 6, "three slots × two — triggers");
-		// the per-role rows are GONE (slots-only)
-		for (const role of ["researcher", "demoBuilder", "visualMaker"]) {
-			assert.ok(!html.includes(`data-testid="role-row-${role}"`), `${role} retired`);
-		}
-		assert.ok(html.includes('data-testid="group-models"'), "Models sub-group");
+	it("renders the Tools and System prompts groups, and no Models group (the outside agent is the only model)", () => {
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
+		assert.ok(!html.includes('data-testid="group-models"'), "no Models sub-group");
+		assert.ok(!html.includes('data-testid="slot-row-'), "no slot rows");
 		assert.ok(html.includes('data-testid="group-tools"'), "Tools sub-group");
 		assert.ok(html.includes('data-testid="group-prompts"'), "System prompts sub-group");
 	});
 
 	it("no search-engine row (web search was removed)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		assert.ok(!html.includes('data-testid="search-engine-row"'));
 	});
 
 	it("the prober graph-tools row: FIRST in the Tools group, default ON, its own key (wave 7)", () => {
 		// Default state: graph on, graphTools absent → ON, the describing
 		// hint rides.
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		const toolsGroup = html.split('data-testid="group-tools"')[1] ?? "";
 		const rows = [...toolsGroup.matchAll(/data-testid="(graph-tools-row|tool-row-\w+)"/g)].map((m) => m[1]);
 		assert.equal(rows[0], "graph-tools-row", "graph tools is the FIRST row of the Tools group");
@@ -111,7 +93,7 @@ describe("AgentSection (thin SSR)", () => {
 
 	it("graph disabled dims the graph-tools row with the honest hint (the predicate composes)", () => {
 		const html = renderToStaticMarkup(
-			<AgentSection agent={undefined} models={undefined} graph={{ enabled: false }} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />,
+			<AgentSection agent={undefined} graph={{ enabled: false }} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />,
 		);
 		const row = html.split('data-testid="graph-tools-row"')[1]?.split('data-testid="tool-row-')[0] ?? "";
 		assert.ok(row.includes("opacity-40"), "row dims when the graph is off");
@@ -121,7 +103,7 @@ describe("AgentSection (thin SSR)", () => {
 
 	it("an explicit graphTools off shows stored-off (the record never lies)", () => {
 		const html = renderToStaticMarkup(
-			<AgentSection agent={{ graphTools: { enabled: false } }} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />,
+			<AgentSection agent={{ graphTools: { enabled: false } }} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />,
 		);
 		const row = html.split('data-testid="graph-tools-row"')[1] ?? "";
 		assert.ok(row.includes('aria-checked="false"'), "stored-off renders off");
@@ -129,38 +111,33 @@ describe("AgentSection (thin SSR)", () => {
 
 	it("renders the owner's FINAL tool list — research, demo, visual, pdf", () => {
 		assert.deepEqual([...TOGGLE_TOOLS], ["research", "demo", "visual", "pdf"]);
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		for (const id of TOGGLE_TOOLS) assert.ok(html.includes(`data-testid="tool-row-${id}"`), id);
 	});
 
 	it("tools default ON (absent key = enabled)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		for (const id of TOGGLE_TOOLS) {
 			assert.ok(tagOf(html, `toggle-tool-${id}`).includes('aria-checked="true"'), `${id} defaults on`);
 		}
 	});
 
-	it("an overridden SLOT shows its model in the trigger, tools carry the delta", () => {
+	it("tools carry the stored delta", () => {
 		const html = renderToStaticMarkup(
 			<AgentSection
 				agent={{ tools: { demo: false } }}
-				models={{ strong: { model: { provider: "zai", id: "glm-4.7-flash" } } }}
 				graph={undefined}
 				compaction={undefined}
 				onSectionChange={() => {}}
-				onModelsChange={() => {}}
 				onCompactionChange={() => {}}
 			/>,
 		);
-		// The trigger shows the stored id even with no catalog loaded (a
-		// trigger reading "Default" over a live override would lie).
-		assert.ok(html.includes("glm-4.7-flash"), "the override id is visible (prettyModel form, no auto-caps)");
 		assert.ok(tagOf(html, "toggle-tool-demo").includes('aria-checked="false"'), "demo off");
 		assert.ok(tagOf(html, "toggle-tool-visual").includes('aria-checked="true"'), "visual still on");
 	});
 
 	it("prompts show the loading state under SSR (effects never fire)", () => {
-		const html = renderToStaticMarkup(<AgentSection agent={undefined} models={undefined} graph={undefined} onSectionChange={() => {}} onModelsChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
+		const html = renderToStaticMarkup(<AgentSection agent={undefined} graph={undefined} onSectionChange={() => {}} compaction={undefined} onCompactionChange={() => {}} />);
 		assert.ok(html.includes("Loading prompt segments"));
 	});
 });

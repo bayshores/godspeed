@@ -6,8 +6,6 @@
  */
 import assert from "node:assert/strict";
 import path from "node:path";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 import {
 	createFauxCore, fauxAssistantMessage, fauxText, fauxToolCall,
@@ -17,7 +15,6 @@ import type { PiEngine } from "../src/agent/models.ts";
 import { runVisualMaker } from "../src/agent/subagents/visual-maker.ts";
 import { runPdfReaderAgent } from "../src/agent/subagents/pdf-reader.ts";
 import type { HeadlessApi } from "../src/agent/subagents/headless.ts";
-import { providerEventsDir } from "../src/agent/provider-events.ts";
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="20" height="20" fill="white"/></svg>';
 const FIXTURE = path.join(import.meta.dirname, "fixtures", "sample-3page.pdf");
@@ -33,9 +30,6 @@ type Call = { name: string; args: JsonObject };
 async function isolated<T>(env: Record<string, string>, run: () => Promise<T>): Promise<T> {
 	const previous = process.env;
 	const fetch = globalThis.fetch;
-	const previousEventsDir = providerEventsDir.current;
-	const eventsDir = mkdtempSync(path.join(tmpdir(), "lh-provider-neutral-"));
-	providerEventsDir.current = eventsDir;
 	globalThis.fetch = async () => { throw new Error("CLOSED: unexpected fetch"); };
 	process.env = { NODE_ENV: "test", HOME: "/nonexistent/provider-neutral-test-home", ...env };
 	try {
@@ -43,8 +37,6 @@ async function isolated<T>(env: Record<string, string>, run: () => Promise<T>): 
 	} finally {
 		process.env = previous;
 		globalThis.fetch = fetch;
-		providerEventsDir.current = previousEventsDir;
-		rmSync(eventsDir, { recursive: true, force: true });
 	}
 }
 
@@ -115,7 +107,7 @@ function assertSuccess(loop: Loop, run: Awaited<ReturnType<typeof runLoop>>) {
 describe("provider-neutral raw agent loops", { concurrency: false }, () => {
 	for (const loop of LOOPS) {
 		it(`${loop}: every actual stream request has NO credential override (recording faux engine)`, async () => {
-			await isolated({ LH_PROVIDER_EVENTS: "1" }, async () => {
+			await isolated({}, async () => {
 				const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });
 				faux.setResponses([0, 1, 2, 0, 1, 2].map((round) => {
 					const calls = callsFor(loop, round);
@@ -145,7 +137,6 @@ describe("provider-neutral raw agent loops", { concurrency: false }, () => {
 					}
 					assert.equal(options.reasoning, "medium");
 					assert.equal(options.signal, signal);
-					assert.equal(typeof options.onProviderStreamEvent, "function");
 				}
 				assert.match(JSON.stringify(requests[2]!.context), /image\/png/);
 				assert.match(JSON.stringify(requests[2]!.context), /toolResult/);

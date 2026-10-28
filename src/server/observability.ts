@@ -1,6 +1,6 @@
 /**
  * Server-side observability surface — the barrel-approved exports the
- * transport layer (app/api/*) reads for background-process status.
+ * transport layer (src/app/api/*) reads for background-process status.
  *
  * THE ACTIVITY FEED (2026-09 observability design): the bottom-right dock is
  * visible in every view, so it needs the complete running-process picture —
@@ -22,7 +22,7 @@
 import { extractionStatuses, type ExtractionPhase } from "../agent/subagents/extraction.ts";
 import { chatStore } from "../store/chats.ts";
 import { graphRevision } from "./graph.ts";
-import { catalogContextLimits } from "./model-catalog.ts";
+import { agentModel } from "../agent/agent-bridge.ts";
 import { listJobs } from "./jobs.ts";
 import { jobCost } from "./pricing.ts";
 import type { JobRecord } from "../core/contracts.ts";
@@ -72,7 +72,9 @@ export function activityFeed(): {
 	graphRevision: number;
 } {
 	const chats = chatStore.listChats();
-	const limits = catalogContextLimits();
+	// Every job runs on the outside agent: one context window.
+	const agentWindow = agentModel().contextWindow;
+	const agentModelId = `${agentModel().provider}:${agentModel().id}`;
 	const jobs: ActivityJob[] = [];
 	for (const chat of chats) {
 		for (const job of listJobs(chat.id)) {
@@ -81,7 +83,7 @@ export function activityFeed(): {
 					...job,
 					costUsd: jobCost(job),
 					title: chat.title ?? chat.id,
-					contextLimit: job.usage ? (limits.get(job.usage.model) ?? null) : null,
+					contextLimit: job.usage?.model === agentModelId ? agentWindow : null,
 				});
 			}
 		}

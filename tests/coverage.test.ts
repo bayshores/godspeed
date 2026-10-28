@@ -244,9 +244,9 @@ describe("the all-sessions coverage GET is dead (extraction-UX close-out, 2026-0
 		// all-sessions list anymore — the sidebar block and the ring both
 		// read GET /api/chats/[id]'s coverage block. This pin guards against
 		// a merge resurrecting the dead surface.
-		assert.equal(fs.existsSync("app/api/graph/coverage/route.ts"), false, "the all-sessions GET route is deleted");
+		assert.equal(fs.existsSync("src/app/api/graph/coverage/route.ts"), false, "the all-sessions GET route is deleted");
 		// stays by design: the manual-extract front door (sidebar block's
 		// Extract affordance) lives on.
-		assert.equal(fs.existsSync("app/api/graph/coverage/extract/route.ts"), true, "the Extract POST survives");
+		assert.equal(fs.existsSync("src/app/api/graph/coverage/extract/route.ts"), true, "the Extract POST survives");
 	});
 });

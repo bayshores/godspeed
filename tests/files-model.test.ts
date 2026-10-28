@@ -16,7 +16,7 @@ import {
 	shortenHome,
 	splitByKind,
 	studiedFill,
-} from "../components/files/files-model.ts";
+} from "../src/components/files/files-model.ts";
 
 function file(over: Partial<ClassFile>): ClassFile {
 	return { id: "f_1", origin: "copied", name: "L1.pdf", path: "f_1/L1.pdf", kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };

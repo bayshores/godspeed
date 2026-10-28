@@ -1,10 +1,9 @@
 import { Agent } from "@earendil-works/pi-agent-core";
 import type { AgentEvent, AgentMessage, AgentTool } from "@earendil-works/pi-agent-core";
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
-import { providerEventObserver } from "./provider-events.ts";
 import type { Usage } from "@earendil-works/pi-ai";
-import { PATHS } from "../../config.ts";
-import { APP_IDENTITY, piEngineFor, type PiEngine } from "./models.ts";
+import { PATHS } from "../config.ts";
+import { APP_IDENTITY, agentEngine, type PiEngine } from "./models.ts";
 import { effectivePromptSegments } from "./prompt-segments.ts";
 import {
 	askUserQuestionTool,
@@ -19,9 +18,7 @@ import { healToolRecord, withArgumentHeal } from "./tools/heal.ts";
 import { sendToUserTool } from "./tools/send-to-user.ts";
 import { quizInputObject, quizInputProblems } from "../core/question-core.ts";
 import { QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
-import { toLlmMessages, nativeInputCause, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
-import type { ChatGPTRequestCycle } from "./chatgpt-request-cycle.ts";
-import { usageWasAdmitted } from "./subscription-request-cycle.ts";
+import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
  * The two teaching-side agents (docs/probe-teach-split.md): the PROBER and
@@ -100,8 +97,6 @@ export type StepUsageCollector = (usage: Usage) => void;
 export interface AgentBuildOptions {
 	/** Model + stream function — tests inject a scripted faux engine. */
 	engine?: PiEngine;
-	callPurpose?: { background: boolean };
-	requestCycle?: ChatGPTRequestCycle;
 	/** The initial transcript, as pi messages (the record IS agent state). */
 	messages?: AgentMessage[];
 	/** Money channel: one call per model request. */
@@ -122,11 +117,7 @@ export interface AgentBuildOptions {
 	 *  exists); absent → the cached pure-source composition. */
 	promptSwitches?: Record<string, boolean>;
 	/** Native conversation identity: the existing persisted chat id, reused
-	 * across reconstructed prober, teacher, and practice Agents.
-	 * Debug: when set AND LH_PROVIDER_EVENTS=1, raw provider stream events
-	 *  (pre-normalization) append to data/debug/provider-events/
-	 *  <chatId>.jsonl via providerEventObserver — the GLM-truncation /
-	 *  DeepSeek-id incident layer. Absent or env-off → no observer. */
+	 * across reconstructed prober, teacher, and practice Agents. */
 	chatId?: string;
 }
 
@@ -175,20 +166,12 @@ function makeQuestionStopper(kind: AgentKind) {
 }
 
 function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: AgentTool<any, any>[]) {
-	// Practice never reaches the role fallback (the handler ALWAYS injects
-	// the session's conversation engine — practice rides the same
-	// conversation-spec resolution as teaching); the cast keeps AgentKind
-	// ("practice" is not a ModelRole) honest about that.
-	const engine = opts.engine ?? piEngineFor(kind as "prober" | "teacher");
+	// The handler always injects the engine; the outside agent is the fallback.
+	const engine = opts.engine ?? agentEngine();
 	const stopper = makeQuestionStopper(kind);
 	const systemPrompt = opts.promptSwitches
 		? composeInstructions(kind, opts.promptSwitches)
 		: composedInstructions[kind]!;
-	// Debug recorder (owner, 2026-10-04): raw provider events when
-	// LH_PROVIDER_EVENTS=1 and the caller handed a chatId; undefined is
-	// the normal no-observer path (tests, env-off).
-	const providerEvents = opts.chatId ? providerEventObserver(opts.chatId, kind) : undefined;
-	const seenInputs = new Set((opts.messages ?? []).map((m) => (m as { id?: string }).id).filter(Boolean));
 	const agent = new Agent({
 		identity: APP_IDENTITY,
 		sessionId: opts.chatId,
@@ -209,7 +192,6 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,
-		...(providerEvents ? { onProviderStreamEvent: providerEvents } : {}),
 		// 0.87.1: shouldStopAfterTurn → finishTurn. Same call point (after
 		// tool results attach, before turn_end) and `{ action: "end" }` still
 		// exits BEFORE the steering poll — the parked-marker stranding our
@@ -231,31 +213,13 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		// an abort's dangling question call gets its INTERRUPTED result. It
 		// must never throw (pi's convertToLlm contract).
 		convertToLlm: toLlmMessages,
-		prepareRequest: (request) => {
-			if (opts.callPurpose) {
-				let learner = false, automatic = false;
-				const messages = request.context.messages;
-				for (const message of messages) {
-					const id = (message as { id?: string }).id;
-					const cause = nativeInputCause(message, messages.slice(0, messages.indexOf(message)));
-					if (cause === "neutral") continue;
-					if (id && seenInputs.has(id)) continue;
-					if (id) seenInputs.add(id);
-					if (cause === "learner" && id) learner = true;
-					else automatic = true; // missing/unrecognized identity never grants foreground
-				}
-				if (automatic) opts.callPurpose.background = true;
-				else if (learner) opts.callPurpose.background = false;
-			}
-			opts.requestCycle?.prepare(request);
-		},
 	});
 	if (opts.onUsage) {
 		agent.subscribe((event: AgentEvent) => {
 			if (event.type === "message_end" && event.message.role === "assistant" && "usage" in event.message) {
 				// A cancelled call is not a billed step (partial/estimated
 				// usage on an aborted message is not money spent).
-				if (event.message.stopReason === "aborted" || !usageWasAdmitted(event.message.usage) || (opts.requestCycle && !opts.requestCycle.acceptsUsage(event.message))) return;
+				if (event.message.stopReason === "aborted") return;
 				opts.onUsage!(event.message.usage);
 			}
 		});

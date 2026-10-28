@@ -6,21 +6,14 @@ import {
 	type AgentBuildOptions,
 	type TeachingAgent,
 } from "../agent/teacher-agent.ts";
-import { piEngineForSpec, type PiEngine } from "../agent/models.ts";
-import { connectionBackgroundAllowed, connectionScopeCurrent, isSubscriptionProvider } from "../agent/subscription-connections.ts";
-import { nativeSubscriptionError } from "../agent/subscription-stream.ts";
-import { chatGPTStreamError } from "../agent/chatgpt-stream.ts";
-import { SubscriptionRequestCycle, type SubscriptionDispatchLifecycle } from "../agent/subscription-request-cycle.ts";
-import { reconstructRequestCause } from "../core/native-messages.ts";
+import { agentEngine } from "../agent/models.ts";
 import { createJobRunner } from "../agent/subagents/runner.ts";
 import { createExtractionPipeline } from "../agent/subagents/extraction.ts";
-import type { ModelRole } from "../../config.ts";
 import {
 	deliverJobResult,
 	noteSteersDurable,
 	reconcileUserSteers,
 	registerLiveAgent,
-	restoreUncommittedAutomatic,
 	setJobRespawn,
 	setTurnRunner,
 	settleSteers,
@@ -29,18 +22,10 @@ import {
 } from "./jobs.ts";
 import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
-import { providerEventNote } from "../agent/provider-events.ts";
 import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, scopeOfGraphStore, stores } from "./stores.ts";
 import { scheduleTopicGrouping } from "./topics.ts";
 import { classCardFor } from "./class-card.ts";
-import { providerConnected } from "./connections.ts";
-import {
-	extractionEnabled,
-	graphToolsEnabled,
-	resolveConversationSpec,
-	resolveRoleSpec,
-} from "../core/settings-resolution.ts";
-import { modelsNotConfigured, providerNotConnected as providerNotConnectedEnvelope } from "../core/settings.ts";
+import { extractionEnabled, graphToolsEnabled } from "../core/settings-resolution.ts";
 import { beginTurn, endTurn } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
 import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.ts";
@@ -48,7 +33,6 @@ import { persistTurn, triggerExtraction, TurnPersistenceError } from "./turn-ser
 import { hasProbeDone, danglingQuestionOf } from "../core/native-messages.ts";
 import { composeInstructions } from "../agent/teacher-agent.ts";
 import { ensureCompacted, kickCompaction, effectiveThresholdTokens } from "./compaction.ts";
-import { catalogContextLimits, refreshConnectionCatalog } from "./model-catalog.ts";
 import { emit } from "../core/events.ts";
 import { settledTurnResponse } from "./turn-runs.ts";
 import { asAgentMessages } from "../core/native-messages.ts";
@@ -64,7 +48,7 @@ import type {CallUsage} from "../core/contracts.ts";
 /**
  * One chat turn over the server-owned native record. Framework-free (plain
  * Request/Response) so tests can drive it directly with a scripted faux
- * engine — the Next route handler in app/api/chat is a one-line wrapper.
+ * engine — the Next route handler in src/app/api/chat is a one-line wrapper.
  *
  * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26): POST /api/chat
  * carries {chatId, input} — one explicit event (text / answer / verdict /
@@ -88,18 +72,8 @@ const jobRunner = createJobRunner({
 	chatStore: stores.chatStore,
 	jobStore: stores.jobStore,
 	deliver: deliverJobResult,
-	// BYOK (owner, 2026-09-22): job engines resolve the chain — role
-	// override → slot → NOTHING — read FRESH per job (a settings PUT
-	// between dispatch and spawn lands); an empty chain flows through as
-	// undefined and the runner refuses the spawn honestly.
-	engineFor: (role) =>
-		resolveEngine(role),
-	// Connection gate: the runner reads the resolved engine's provider and
-	// asks THIS check (the agent layer may not read connection state); an
-	// unconnected provider refuses the spawn with the 503-envelope family
-	// instead of dying mid-run.
-	providerNotConnected: (provider, tier) =>
-		providerConnected(provider) ? null : providerNotConnectedEnvelope(provider, [tier]),
+	// Every job runs on the outside agent (owner, 2026-10-27).
+	engineFor: () => agentEngine(),
 });
 /** The app's ONE extraction pipeline instance — both front doors share it:
  *  quiz-triggered session runs (turn-service) and notes imports
@@ -114,17 +88,8 @@ export const extraction = createExtractionPipeline({
 		const scope = scopeOfGraphStore(store);
 		if (typeof scope === "string") scheduleTopicGrouping(scope);
 	},
-	// BYOK (owner, 2026-09-22): the extraction stages resolve the chain —
-	// role override → slot → NOTHING — read FRESH per stage call; an empty
-	// chain flows through as undefined and the pipeline refuses the run
-	// with the typed ModelsNotConfiguredError. Direct test values still win.
-	engineFor: (role) =>
-		resolveEngine(role),
-	// Connection gate: same check the job runner gets — a stage engine whose
-	// provider is not connected refuses BEFORE any batch runs (the typed
-	// throw), never mid-run.
-	providerNotConnected: (provider, tier) =>
-		providerConnected(provider) ? null : providerNotConnectedEnvelope(provider, [tier]),
+	// Every stage runs on the outside agent (owner, 2026-10-27).
+	engineFor: () => agentEngine(),
 });
 
 
@@ -139,15 +104,6 @@ setTurnRunner(async (chatId, input) => {
 	await res.arrayBuffer().catch(() => undefined);
 	return res.status;
 });
-/** The settings-resolved engine for one role — BYOK (owner, 2026-09-22):
- *  the chain (role override → slot → NOTHING) may end empty, and undefined
- *  flows through to the per-need refusal gates (runner/extraction), read
- *  FRESH so a settings PUT between dispatch and spawn lands. */
-function resolveEngine(role: ModelRole): PiEngine | undefined {
-	const spec = resolveRoleSpec(role, stores.settingsStore.readSettings());
-	return spec ? piEngineForSpec(spec) : undefined;
-}
-
 setJobRespawn((jobId) => void jobRunner.runJob(jobId));
 
 /** The route-facing entry: parse {chatId, input} and run one turn. */
@@ -190,40 +146,10 @@ export async function handleChatInput(
 		return Response.json({ error: "Unknown chat" }, { status: 404 });
 	}
 
-	// THE UNIVERSAL TURN GATE (BYOK, owner, 2026-09-22): a turn needs the
-	// CONVERSATION chain — the chat's own model override over the strong
-	// slot — and there is no factory floor; when both are empty the turn
-	// refuses honestly with the machine-readable 503 envelope (new sessions
-	// and continuing ones alike — wake-pipeline turns ride this same path).
-	// Placement is deliberate: BEFORE beginTurn (no liveness effects), the
-	// write-ahead persist (nothing durable changes), and every downstream
-	// resolution (jobs/extraction gate per-need on their own tiers).
+	// The outside agent is the only model (owner, 2026-10-27): no model or
+	// connection gate. With no agent connected the turn simply waits in the
+	// agent queue until one polls (the UI shows "Waiting for your agent").
 	const effective = effectiveSettings();
-	const conversation = resolveConversationSpec(record.settings, effective.models.strong);
-	if (!conversation) {
-		const envelope = modelsNotConfigured(["strong"]);
-		console.info(`[chat ${chatId}] turn refused — ${JSON.stringify(envelope)}`);
-		return Response.json(envelope, { status: 503 });
-	}
-
-	// THE CONNECTION GATE (API keys removed — subscriptions only): a pinned
-	// model is not enough — its PROVIDER must be a connected subscription,
-	// or the turn dies mid-stream masked to a generic error. Same placement
-	// discipline as the models gate: BEFORE beginTurn (no liveness effects) and the write-ahead
-	// persist (nothing durable changes); wake-pipeline turns ride the same
-	// path. The affected tier is strong — the conversation chain's own tier
-	// (a chat.model override still resolves through it).
-	if (isSubscriptionProvider(conversation.provider)) {
-		await refreshConnectionCatalog(conversation.provider);
-		if (input.type === "steers" && !connectionBackgroundAllowed(conversation.provider)) {
-			return Response.json({ error: "Background use is off for this connection. Automatic follow-up remains deferred in its queue." }, { status: 403 });
-		}
-	}
-	if (!providerConnected(conversation.provider)) {
-		const envelope = providerNotConnectedEnvelope(conversation.provider, ["strong"]);
-		console.info(`[chat ${chatId}] turn refused — ${JSON.stringify(envelope)}`);
-		return Response.json(envelope, { status: 503 });
-	}
 
 	// THE COMPACTION GATE (owner round 14, 2026-10-05 — the structural
 	// ruling: NOTHING model-facing for this chat interleaves with a
@@ -234,27 +160,18 @@ export async function handleChatInput(
 	// placement mirrors the BYOK/key gates — BEFORE appends and
 	// beginTurn, no liveness effects — and the record re-reads after
 	// because compaction appends the marker.
-	const callPurpose = { background: input.type === "steers" || (input.type === "continue" && reconstructRequestCause(record.messages) !== "foreground") };
-	let requestCycle: SubscriptionRequestCycle | undefined;
-	const lifecycle: SubscriptionDispatchLifecycle = {
-		captured: (scope) => requestCycle?.captured(scope),
-		beforeDispatch: (scope) => requestCycle?.beforeDispatch(scope),
-		noDispatch: (kind) => requestCycle?.noDispatch(kind),
-	};
-	let conversationEngine: PiEngine;
-	try { conversationEngine = piEngineForSpec(conversation, () => callPurpose.background, lifecycle); }
-	catch { return Response.json({ error: conversation.provider === "chatgpt" ? chatGPTStreamError("model catalog") : isSubscriptionProvider(conversation.provider) ? nativeSubscriptionError(conversation.provider, "model catalog") : "The selected model is unavailable." }, { status: 503 }); }
+	const conversationEngine = agentEngine();
 	const modelIdForCompaction = `${conversationEngine.model.provider}:${conversationEngine.model.id}`;
 	await ensureCompacted(
 		{
 			chatStore: stores.chatStore,
-			engine: piEngineForSpec(conversation, true),
-			canStart: () => connectionBackgroundAllowed(conversation.provider),
+			engine: agentEngine(),
+			canStart: () => true,
 			modelId: modelIdForCompaction,
 			kind: record.kind === "practice" ? "practice" : hasProbeDone(record.messages) ? "teach" : "probe",
 			thresholdTokens: effectiveThresholdTokens(
 				effective.compaction?.thresholdTokens,
-				catalogContextLimits().get(modelIdForCompaction),
+				conversationEngine.model.contextWindow,
 			),
 			systemPromptTokens: Math.ceil(composeInstructions(record.kind === "practice" ? "practice" : "teacher").length / 4),
 		},
@@ -320,10 +237,9 @@ export async function handleChatInput(
 	// ride this same write-ahead - the pump de-queued them at fire, so this
 	// is the ONLY copy ever appended.)
 	const merged = [...record.messages, ...appends];
-	const stagedAutomatic = isSubscriptionProvider(conversation.provider) && input.type === "steers";
-	let persistBaseCount = stagedAutomatic ? record.messages.length : merged.length;
+	const persistBaseCount = merged.length;
 	try {
-		if (!stagedAutomatic) stores.chatStore.saveMessages(chatId, merged);
+		stores.chatStore.saveMessages(chatId, merged);
 	} catch (err) {
 		console.error(`[chat ${chatId}] write-ahead persist failed:`, err);
 		endTurn(chatId);
@@ -332,7 +248,7 @@ export async function handleChatInput(
 	// Visibility bookkeeping is not the canonical save. Its failure must
 	// neither misreport a saved input as lost nor prevent the turn running.
 	try {
-		if (!stagedAutomatic) noteSteersDurable(chatId, merged);
+		noteSteersDurable(chatId, merged);
 	} catch (err) {
 		console.error(`[chat ${chatId}] input visibility bookkeeping failed:`, err);
 	}
@@ -361,9 +277,6 @@ export async function handleChatInput(
 	// Both share this whole composition (write-ahead persist, liveness,
 	// steers, usage, extraction) — only the agent differs.
 	const teaching = hasProbeDone(merged);
-	// BYOK (owner, 2026-09-22): the conversation chain was resolved by the
-	// turn gate above (chat.model override → strong slot → refused) — the
-	// engine build is pure from here; thinking levels clamp natively.
 	// (Built once above the compaction gate; reused verbatim.)
 	const engine = conversationEngine;
 	// Provider-qualified stamp (model slots wave): matches the price table's
@@ -378,28 +291,11 @@ export async function handleChatInput(
 	// enabled). The definitive toggleable set is TOGGLEABLE_TOOLS — the
 	// sub-agent JOB tools (research/demo/visual/pdf; adjudicated with the
 	// user: quiz/ask/fs/plan/probe_done are always-on).
-	if (isSubscriptionProvider(conversation.provider)) requestCycle = new SubscriptionRequestCycle({
-		initialMessages: asAgentMessages(merged),
-		staged: stagedAutomatic ? asAgentMessages(appends) : undefined,
-		foregroundOwed: !callPurpose.background,
-		purpose: callPurpose,
-		scopeCurrent: (scope) => connectionScopeCurrent(conversation.provider, scope),
-		commitStaged: () => {
-			stores.chatStore.saveMessages(chatId, merged);
-			persistBaseCount = merged.length;
-			noteSteersDurable(chatId, merged);
-		},
-		restoreAutomatic: (automaticIds, retainedIds) => restoreUncommittedAutomatic(chatId, constructed, automaticIds, retainedIds),
-	});
 	const agentOpts: AgentBuildOptions = {
 		engine,
-		callPurpose,
-		requestCycle,
 		messages: asAgentMessages(merged),
 		onUsage: collectUsage,
 		toolToggles: effective.agent.tools,
-		// Debug (owner, 2026-10-04): teacher/prober raw provider events under
-		// LH_PROVIDER_EVENTS=1 (provider-events.ts); no-op otherwise.
 		chatId,
 		// The prompt-override switches (P2, 2026-09-19): same resolution
 		// point as the tool delta — the agent layer composes the system
@@ -506,13 +402,8 @@ export async function handleChatInput(
 		// a streamed response, which never happens inside the constructor.
 		registerLiveAgent(chatId, constructed, input.type !== "steers" && input.type !== "continue",
 			input.type === "steers" ? new Set(appends.map((message) => message.id)) : undefined);
-		// Debug recorder run marker (owner, 2026-10-04): correlates the
-		// JSONL event stream with the record's turns; no-op unless
-		// LH_PROVIDER_EVENTS=1.
-		providerEventNote(chatId, "turn", `run start (base: ${merged.length} messages)`);
 		const handle = runPiTurn({
 			agent: constructed,
-			requestCycle,
 			// The coalescing window seam (COMPACTION LAW, 2026-10-09): tests
 			// tighten it via LH_UPDATE_FLUSH_MS; production rides the 100ms
 			// default in ui-stream.
@@ -528,8 +419,6 @@ export async function handleChatInput(
 			// route through here: they ride the error-result path and reach the
 			// transcript directly (the retry context the model saw).
 			onError: (error) => {
-				if (conversation.provider === "chatgpt") return chatGPTStreamError(String(error));
-				if (isSubscriptionProvider(conversation.provider)) return nativeSubscriptionError(conversation.provider, String(error));
 				console.error(`[chat ${chatId}] turn error:`, error);
 				return "An error occurred.";
 			},
@@ -571,7 +460,7 @@ export async function handleChatInput(
 				// PRACTICE (owner, 2026-10-04): practice sessions write nothing —
 				// no extraction, no graph, no coverage (v1: the session itself
 				// is the deliverable).
-				if ((!requestCycle || requestCycle.dispatched) && record.kind !== "practice" && extractionEnabled(effective.graph)) {
+				if (record.kind !== "practice" && extractionEnabled(effective.graph)) {
 					// Fresh per-turn read of the graph section's chunk budget
 					// (extraction-UX redesign, 2026-09-24): the trigger compares
 					// against it and the pipeline's batches share it.
@@ -617,25 +506,22 @@ export async function handleChatInput(
 				// beneath-threshold record is a silent no-op. Skipped under
 				// tests (the extraction precedent — scripted chats are
 				// fixtures; the service itself is pinned directly).
-				if (process.env.NODE_ENV !== "test" && (!requestCycle || requestCycle.dispatched))
+				if (process.env.NODE_ENV !== "test")
 					kickCompaction(() => {
 						const fresh = effectiveSettings();
-						const spec = resolveConversationSpec(stores.chatStore.getChat(chatId)?.settings, fresh.models.strong);
-						if (!spec || !connectionBackgroundAllowed(spec.provider)) return null;
-						let kickEngine: PiEngine;
-						try { kickEngine = piEngineForSpec(spec, true); } catch { return null; }
+						const kickEngine = agentEngine();
 						const kickModelId = `${kickEngine.model.provider}:${kickEngine.model.id}`;
 						const freshRecord = stores.chatStore.getChat(chatId);
 						if (!freshRecord) return null;
 						return {
 							chatStore: stores.chatStore,
 							engine: kickEngine,
-							canStart: () => connectionBackgroundAllowed(spec.provider),
+							canStart: () => true,
 							modelId: kickModelId,
 							kind: freshRecord.kind === "practice" ? "practice" : hasProbeDone(freshRecord.messages) ? "teach" : "probe",
 							thresholdTokens: effectiveThresholdTokens(
 								fresh.compaction?.thresholdTokens,
-								catalogContextLimits().get(kickModelId),
+								kickEngine.model.contextWindow,
 							),
 							systemPromptTokens: Math.ceil(composeInstructions(freshRecord.kind === "practice" ? "practice" : "teacher").length / 4),
 						};
@@ -657,7 +543,6 @@ export async function handleChatInput(
 		// must cost zero permanently-held slots beyond the one live view. The
 		// turn itself is a server-side process (ruling 2026-09-25) — it never
 		// needed this connection, only a view did.
-		if (stagedAutomatic && requestCycle && !(await requestCycle.admission)) return Response.json({ error: "Automatic follow-up remains deferred in its queue." }, { status: 403 });
 		return Response.json({ ok: true });
 	} catch (err) {
 		// The stream never started, so no onFinish will fire — clear the registry

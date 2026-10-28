@@ -19,7 +19,7 @@ import { createElement } from "react";
  * word for graph objects (standardized everywhere, same ruling).
  */
 
-import { DeleteNodeBody, DeleteNodeDialog, EXTRACTION_RETRY_LINE } from "../components/delete-node-dialog.tsx";
+import { DeleteNodeBody, DeleteNodeDialog, EXTRACTION_RETRY_LINE } from "../src/components/delete-node-dialog.tsx";
 
 /** The body — pure, so SSR pins everything the live dialog shows. */
 function bodyAt(nodes: { id: string; name: string }[], extra?: { failure?: { code: string; error: string } | null; busy?: boolean }) {

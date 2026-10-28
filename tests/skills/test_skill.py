@@ -14,7 +14,7 @@ import unittest
 
 sys.dont_write_bytecode = True
 REPO = Path(__file__).resolve().parents[2]
-SKILL = REPO / "skills" / "godspeed"
+SKILL = REPO / "integrations" / "skills" / "godspeed"
 GOLDEN = REPO / "tests" / "fixtures" / "golden-data"
 
 

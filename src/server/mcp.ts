@@ -1,12 +1,13 @@
 /**
  * THE MCP SERVER: how outside agents (Claude Code, Codex, any MCP client)
  * reach godspeed. Served at /api/mcp (Streamable HTTP, stateless),
- * guarded by a bearer token (data/mcp-token — Settings → Outside agents).
+ * guarded by a bearer token (data/mcp-token — always present, shown in
+ * Settings → Outside agents).
  *
  * Two kinds of tools:
- *  - THE WORK LOOP (wait_for_work / respond): when a lesson, helper job, or
- *    graph-fact run uses the "Outside agent" model, the app parks the
- *    request in agent-bridge.ts; the agent takes it, answers it, repeats.
+ *  - THE WORK LOOP (wait_for_work / respond): every lesson turn, helper
+ *    job, and graph-fact run parks its model request in agent-bridge.ts;
+ *    the agent takes it, answers it, repeats.
  *  - DIRECT ACCESS: list/read lessons, search the knowledge graph, import
  *    notes, start a lesson.
  *  - CLASSES (classes wave, owner-approved 2026-10-26): agents set up the
@@ -22,7 +23,10 @@ import {
 	AGENT_MODEL_ID,
 	AGENT_PROVIDER,
 	agentConnected,
+	agentName,
+	displayAgentName,
 	pendingWorkCount,
+	recordCheckIn,
 	respondToWork,
 	waitForWork,
 	type WorkView,
@@ -30,7 +34,7 @@ import {
 import { getGraph } from "../core/graph.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
 import { parseClassScope, type ClassScope } from "../core/contracts.ts";
-import { deleteMcpToken, readMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
+import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import {
@@ -56,11 +60,11 @@ const DEFAULT_WAIT_S = 45;
 const MAX_WAIT_S = 55;
 const READ_LIMIT_CHARS = 120_000;
 
-const INSTRUCTIONS = `godspeed is a learning app. You can act as its AI: the teacher in lessons, and the worker behind its helpers (research, demos, diagrams, PDF reading) and its knowledge-graph builder — for any of those the learner has set to "Outside agent (MCP)".
+const INSTRUCTIONS = `godspeed is a learning app, and you are its AI: the teacher in lessons, and the worker behind its helpers (research, demos, diagrams, PDF reading) and its knowledge-graph builder. All of the app's model work comes to you.
 
 The work loop:
 1. Call wait_for_work. It returns a work item (or "idle" after a while — then call it again).
-2. A work item holds "instructions" (your system prompt for this conversation — follow it exactly, it is the app's teaching method), "tools" (the tools you may call, with JSON schemas), and "messages" (the conversation so far). Later items in the same conversation have "continued": true and carry only the new messages.
+2. A work item holds "instructions" (your system prompt for this conversation — follow it exactly, it is the app's teaching method), "tools" (the tools you may call, with JSON schemas), and "messages" (the conversation so far). Later items in the same conversation have "continued": true and carry only the new messages. Images in the messages appear as "[image N]"; the images themselves come with the work item, in that order.
 3. Answer with respond: your text and/or tool calls, exactly as a model would. The app runs the tools and, when it needs you again in the same conversation (e.g. tool results), respond returns the next work item directly.
 4. When respond says the turn is complete, the app is waiting on the learner (they read and answer in the godspeed window). Call wait_for_work again.
 
@@ -89,16 +93,13 @@ const CLASS_ID_ARG = z
 // ─── Access control ─────────────────────────────────────────────────────────
 
 /** Token status for the settings screen. */
-export function mcpAccessStatus(): { enabled: boolean; token: string | null; agentConnected: boolean; pendingWork: number } {
-	const token = readMcpToken();
-	return { enabled: token !== null, token, agentConnected: agentConnected(), pendingWork: pendingWorkCount() };
+export function mcpAccessStatus(): { token: string; agentConnected: boolean; agentName: string | null; pendingWork: number } {
+	return { token: ensureMcpToken(), agentConnected: agentConnected(), agentName: agentName() ?? null, pendingWork: pendingWorkCount() };
 }
 
-export function enableMcpAccess(): string {
-	return readMcpToken() ?? writeNewMcpToken();
-}
+/** The token, made first if missing (outside-agent access is always on). */
+export const ensureMcpAccess = ensureMcpToken;
 export const rotateMcpToken = writeNewMcpToken;
-export const disableMcpAccess = deleteMcpToken;
 
 function tokenMatches(supplied: string, expected: string): boolean {
 	const a = Buffer.from(supplied);
@@ -116,8 +117,7 @@ function refuse(req: Request): Response | null {
 	if (req.headers.get("origin")) return json(403, "Browser requests are not allowed.");
 	const host = (req.headers.get("host") ?? "").replace(/:\d+$/, "");
 	if (!LOCAL_HOSTS.has(host)) return json(403, "Only local connections are allowed.");
-	const expected = readMcpToken();
-	if (!expected) return json(403, "Outside-agent access is off. Turn it on in godspeed: Settings → Outside agents.");
+	const expected = ensureMcpToken();
 	const supplied = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
 	if (!supplied || !tokenMatches(supplied, expected)) return json(401, "Missing or wrong access token (Settings → Outside agents).");
 	return null;
@@ -127,6 +127,13 @@ function refuse(req: Request): Response | null {
 
 function result(value: unknown) {
 	return { content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] };
+}
+
+/** A work item as a tool result: the item as JSON, then its images as
+ *  real MCP images (the "[image N]" markers point at them in order). */
+function workResult(view: WorkView) {
+	const images = (view.images ?? []).map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mimeType }));
+	return { content: [...result(describe(view)).content, ...images] };
 }
 function failure(message: string) {
 	return { content: [{ type: "text" as const, text: message }], isError: true };
@@ -140,7 +147,7 @@ function describe(view: WorkView) {
 		: view.label
 			? { kind: "background task", task: view.label }
 			: { kind: "background task (a helper job or knowledge-graph run)" };
-	return { status: "work", workId: view.workId, ...about, continued: view.continued, ...(view.instructions !== undefined ? { instructions: view.instructions } : {}), ...(view.tools ? { tools: view.tools } : {}), messages: view.messages };
+	return { status: "work", workId: view.workId, ...about, continued: view.continued, ...(view.instructions !== undefined ? { instructions: view.instructions } : {}), ...(view.tools ? { tools: view.tools } : {}), messages: view.messages, ...(view.images?.length ? { imageCount: view.images.length } : {}) };
 }
 
 const IDLE = {
@@ -171,13 +178,13 @@ function buildServer(): McpServer {
 			description: "Wait for the next request from godspeed (a lesson turn, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
 			inputSchema: {
 				timeout_seconds: z.number().int().min(1).max(MAX_WAIT_S).optional().describe(`How long to wait (default ${DEFAULT_WAIT_S}).`),
-				lesson_id: z.string().optional().describe("Only take work from this lesson."),
+				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
 			},
 		},
 		async ({ timeout_seconds, lesson_id, full_context }) => {
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id });
-			return result(view ? describe(view) : IDLE);
+			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true });
+			return view ? workResult(view) : result(IDLE);
 		},
 	);
 
@@ -200,7 +207,7 @@ function buildServer(): McpServer {
 			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined });
 			if (!answered.ok) return failure(answered.error);
 			const next = await waitForWork(Math.min(wait_seconds ?? 30, MAX_WAIT_S) * 1000, { conversation: answered.conversation });
-			if (next) return result(describe(next));
+			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			return result({
 				status: "turn_complete",
@@ -299,7 +306,7 @@ function buildServer(): McpServer {
 		"import_notes",
 		{
 			title: "Import notes",
-			description: "Add notes to a knowledge graph. godspeed turns them into facts in the background with its graph-fact model; if that model is \"Outside agent\", the work arrives through wait_for_work. Returns right away. With class_id the notes become a study file of that class (to add a file from disk, use add_class_file).",
+			description: "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns right away. With class_id the notes become a study file of that class (to add a file from disk, use add_class_file).",
 			inputSchema: {
 				name: z.string().describe("A file-like name for the notes, e.g. \"biology-ch3.md\". In a class, re-importing the same name replaces that file and rebuilds its facts; in No class it is processed again and adds to that import."),
 				text: z.string().min(1).describe("The notes."),
@@ -580,10 +587,26 @@ function registerClassTools(server: McpServer): void {
 	);
 }
 
+/** The client's name from an MCP initialize request in the body, if any. */
+async function initializeName(req: Request): Promise<string | undefined> {
+	try {
+		const body: unknown = await req.clone().json();
+		for (const message of Array.isArray(body) ? body : [body]) {
+			const m = message as { method?: unknown; params?: { clientInfo?: { name?: unknown; title?: unknown } } } | null;
+			if (m?.method === "initialize") return displayAgentName(m.params?.clientInfo);
+		}
+	} catch {
+		/* not JSON: the transport reports it */
+	}
+	return undefined;
+}
+
 /** The /api/mcp transport: one stateless server per request. */
 export async function handleMcpRequest(req: Request): Promise<Response> {
 	const refused = refuse(req);
 	if (refused) return refused;
+	// Every authorized request is a check-in; initialize also names the agent.
+	if (req.method === "POST") recordCheckIn(await initializeName(req));
 	const server = buildServer();
 	const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
 	await server.connect(transport);

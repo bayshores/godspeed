@@ -30,7 +30,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { PROMPTS_OVERRIDE_DIR } from "../../config.ts";
+import { PROMPTS_OVERRIDE_DIR } from "../config.ts";
 import { isValidSegmentPath } from "../core/prompt-segments.ts";
 import type { PromptOverrideStore } from "../core/ports.ts";
 

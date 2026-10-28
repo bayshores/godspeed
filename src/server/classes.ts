@@ -2,7 +2,7 @@
  * CLASS ORCHESTRATION (classes wave, owner-approved 2026-10-26).
  *
  * The cross-store choreography behind every class action: the routes
- * (app/api/classes/*), the MCP tools, and the folder scanner all come
+ * (src/app/api/classes/*), the MCP tools, and the folder scanner all come
  * through here.
  *
  *  - create / edit / archive / delete a class (delete takes its lessons,
@@ -28,7 +28,6 @@ import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
 import type { ClassExam, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
 import { ClassExamError, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
-import { ModelsNotConfiguredError, ProviderNotConnectedError } from "../core/settings.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
 import { emit } from "../core/events.ts";
@@ -542,9 +541,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
 	} catch (err) {
 		const message =
-			err instanceof ModelsNotConfiguredError || err instanceof ProviderNotConnectedError
-				? `${err.message} Then retry this file.`
-				: err instanceof NotesImportError
+			err instanceof NotesImportError
 					? `${err.outcome}: ${err.message}`
 					: err instanceof Error
 						? err.message

@@ -5,9 +5,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import { MessageResponse, ToolContentResponse } from "../components/ai-elements/message.tsx";
-import { QuestionDock } from "../components/question-dock.tsx";
-import { AnsweredCard } from "../components/answered-card.tsx";
+import { MessageResponse, ToolContentResponse } from "../src/components/ai-elements/message.tsx";
+import { QuestionDock } from "../src/components/question-dock.tsx";
+import { AnsweredCard } from "../src/components/answered-card.tsx";
 import { answerForPresentation, buildAnswer, normalizeOptions, parseAskInput, parseExplainInput, parseQuizInput,
 	repairMathForDisplay, resolveCorrect, type QuestionAnswerData, type QuestionData } from "../src/core/index.ts";
 

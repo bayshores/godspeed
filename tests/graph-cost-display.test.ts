@@ -1,10 +1,10 @@
 /**
- * The graph cost control's display fold (components/graph/cost-control.tsx).
+ * The graph cost control's display fold (src/components/graph/cost-control.tsx).
  */
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { displayCostTotals } from "../components/graph/cost-control.tsx";
+import { displayCostTotals } from "../src/components/graph/cost-control.tsx";
 
 describe("displayCostTotals (naming-free cost fold)", () => {
 	const stage = (dollars: number, unpricedRuns = 0) => ({

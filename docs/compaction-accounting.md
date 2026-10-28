@@ -51,8 +51,8 @@ background-job calls. Older write-bearing records with a lost retention split,
 and tier-priced multi-call jobs with only aggregate usage, remain unpriced when
 the lost detail can change the answer. They are not reconstructed from totals.
 Flat-rate historical jobs with sufficient counts remain priceable. Missing models
-or required usage stay unpriced; ChatGPT subscriptions remain plan usage, not
-API dollars. Summarizer costs continue to count toward session spending.
+or required usage stay unpriced; plan usage (the outside agent, and older
+ChatGPT runs) is never counted as API dollars. Summarizer costs continue to count toward session spending.
 
 ## Upstream attribution
 

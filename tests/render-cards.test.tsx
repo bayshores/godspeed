@@ -15,15 +15,15 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageResponse } from "../components/ai-elements/message.tsx";
-import { QuestionDock } from "../components/question-dock.tsx";
-import { ProbeDoneCard } from "../components/artifacts/probe-done-card.tsx";
-import { DispatchCard } from "../components/artifacts/dispatch-card.tsx";
-import { JobsContext } from "../components/jobs-context.ts";
-import { ChatActionsContext } from "../components/chat.tsx";
+import { MessageResponse } from "../src/components/ai-elements/message.tsx";
+import { QuestionDock } from "../src/components/question-dock.tsx";
+import { ProbeDoneCard } from "../src/components/artifacts/probe-done-card.tsx";
+import { DispatchCard } from "../src/components/artifacts/dispatch-card.tsx";
+import { JobsContext } from "../src/components/jobs-context.ts";
+import { ChatActionsContext } from "../src/components/chat.tsx";
 import type { JobRecord } from "../src/core/contracts.ts";
-import { AnsweredCard } from "../components/answered-card.tsx";
-import { LessonStepsContext } from "../components/lesson/step-context.ts";
+import { AnsweredCard } from "../src/components/answered-card.tsx";
+import { LessonStepsContext } from "../src/components/lesson/step-context.ts";
 import {
 	buildAnswer,
 	normalizeOptions,
@@ -105,7 +105,7 @@ describe("question submission draft restoration", () => {
 	});
 });
 
-describe("DispatchCard — the BYOK refusal tone (owner, 2026-09-22)", () => {
+describe("DispatchCard — failed jobs", () => {
 	const job = (over: Partial<JobRecord>): JobRecord => ({
 		id: "j1",
 		kind: "research",
@@ -120,35 +120,12 @@ describe("DispatchCard — the BYOK refusal tone (owner, 2026-09-22)", () => {
 	const inJobs = (jobs: JobRecord[]) => (
 		<JobsContext.Provider value={jobs}>
 			<ChatActionsContext.Provider
-				value={{ chatId: "c1", syncFromServer: async () => {}, sendText: () => {}, openSetup: () => {} }}
+				value={{ chatId: "c1", syncFromServer: async () => {}, sendText: () => {} }}
 			>
 				<DispatchCard toolCallId="t1" kind="research" />
 			</ChatActionsContext.Provider>
 		</JobsContext.Provider>
 	);
-
-	it("a models-refused job is INFO: quiet card, 'needs model setup', deep-link to the dialog", () => {
-		const html = renderToStaticMarkup(
-			inJobs([job({ error: "No model configured — set up your models first (missing: cheap)" })]),
-		);
-		assert.ok(html.includes('data-testid="dispatch-refused"'));
-		assert.ok(html.includes("needs model setup"));
-		assert.ok(html.includes('data-testid="dispatch-setup-link"'));
-		assert.ok(html.includes("Set up models"));
-		assert.ok(!html.includes("failed"));
-		assert.ok(!html.includes("text-red-500"));
-	});
-
-	it("a connection-refused job is INFO: 'needs a sign-in', 'Sign in'", () => {
-		const html = renderToStaticMarkup(
-			inJobs([job({ error: "ChatGPT is not connected — sign in under Settings → Providers" })]),
-		);
-		assert.ok(html.includes('data-testid="dispatch-refused"'));
-		assert.ok(html.includes("needs a sign-in"));
-		assert.ok(html.includes("Sign in"));
-		assert.ok(html.includes('data-testid="dispatch-setup-link"'));
-		assert.ok(!html.includes("failed"));
-	});
 
 	it("a real failure keeps the honest red failure", () => {
 		const html = renderToStaticMarkup(inJobs([job({ error: "FAILED: headless crashed" })]));
