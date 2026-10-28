@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClassRecord } from "@/core";
 import { useServerEvent } from "@/components/server-events";
 
-/** The full record of one class (files and exams included); null until
+/** The full record of one class (files and deadlines included); null until
  *  loaded, and for "No class". A stale response for another class is
  *  dropped. */
 export function useClassRecord(classId: string | null): { record: ClassRecord | null; reload: () => Promise<void> } {

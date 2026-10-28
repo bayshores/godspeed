@@ -1,6 +1,6 @@
 {
   "name": "godspeed",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Study app that keeps track of what you've actually learned, so your agent doesn't start from scratch every chat. Works with Claude Code, Codex or anything that speaks MCP.",
   "author": { "name": "godspeed fork (bayshores)" },
   "repository": "https://github.com/bayshores/godspeed",

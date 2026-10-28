@@ -28,8 +28,9 @@ const classRoute = await import("../src/app/api/classes/[id]/route.ts");
 const filesRoute = await import("../src/app/api/classes/[id]/files/route.ts");
 const fileRoute = await import("../src/app/api/classes/[id]/files/[fileId]/route.ts");
 const folderRoute = await import("../src/app/api/classes/[id]/folder/route.ts");
-const examsRoute = await import("../src/app/api/classes/[id]/exams/route.ts");
-const examRoute = await import("../src/app/api/classes/[id]/exams/[examId]/route.ts");
+const deadlinesRoute = await import("../src/app/api/classes/[id]/deadlines/route.ts");
+const deadlineRoute = await import("../src/app/api/classes/[id]/deadlines/[deadlineId]/route.ts");
+const openDeadlinesRoute = await import("../src/app/api/deadlines/route.ts");
 const chatsRoute = await import("../src/app/api/chats/route.ts");
 const moveRoute = await import("../src/app/api/chats/[id]/class/route.ts");
 const graphRoute = await import("../src/app/api/graph/route.ts");
@@ -94,42 +95,92 @@ describe("class routes", () => {
 	});
 });
 
-describe("exam routes (redesign plan, 2026-10-27)", () => {
-	it("lists, adds, edits and removes exams; refuses bad input", async () => {
+describe("deadline routes (plan 2026-10-28; exams before that)", () => {
+	it("lists, adds, edits and removes deadlines; refuses bad input", async () => {
 		const id = await makeClass("CSE 21");
 		const up = await (await upload(id, "study", [["lecture1.md", "Counting"]])).json();
 		await classIdle(id);
 		const fileId = up.results[0].file.id as string;
 
-		const empty = await (await examsRoute.GET(json(`/api/classes/${id}/exams`, "GET"), ctx({ id }))).json();
-		assert.deepEqual(empty.exams, []);
+		const empty = await (await deadlinesRoute.GET(json(`/api/classes/${id}/deadlines`, "GET"), ctx({ id }))).json();
+		assert.deepEqual(empty.deadlines, []);
 
-		const added = await examsRoute.POST(json("/x", "POST", { name: "Midterm 1", date: "2026-11-05", fileIds: [fileId] }), ctx({ id }));
+		const added = await deadlinesRoute.POST(
+			json("/x", "POST", { kind: "exam", name: "Midterm 1", date: "2026-11-05", time: "19:00", fileIds: [fileId] }),
+			ctx({ id }),
+		);
 		assert.equal(added.status, 201);
-		const exam = (await added.json()).exam;
-		assert.deepEqual(exam.fileIds, [fileId]);
+		const deadline = (await added.json()).deadline;
+		assert.deepEqual(deadline.fileIds, [fileId]);
+		assert.equal(deadline.time, "19:00");
+		assert.equal(deadline.done, false);
+		assert.match(deadline.id, /^ddl_/);
 
-		const badDate = await examsRoute.POST(json("/x", "POST", { name: "Final", date: "Dec 10" }), ctx({ id }));
-		assert.equal(badDate.status, 400);
-		assert.equal((await badDate.json()).code, "bad_date");
-		const badFile = await examsRoute.POST(json("/x", "POST", { name: "Final", date: "2026-12-10", fileIds: ["f_other"] }), ctx({ id }));
-		assert.equal(badFile.status, 400);
-		const noName = await examsRoute.POST(json("/x", "POST", { date: "2026-12-10" }), ctx({ id }));
-		assert.equal(noName.status, 400);
+		const refused = async (body: unknown, code: string) => {
+			const res = await deadlinesRoute.POST(json("/x", "POST", body), ctx({ id }));
+			assert.equal(res.status, 400);
+			assert.equal((await res.json()).code, code);
+		};
+		await refused({ kind: "exam", name: "Final", date: "Dec 10" }, "bad_date");
+		await refused({ kind: "exam", name: "Final", date: "2026-12-10", time: "7pm" }, "bad_time");
+		await refused({ kind: "essay", name: "Final", date: "2026-12-10" }, "bad_kind");
+		await refused({ name: "Final", date: "2026-12-10" }, "bad_kind");
+		await refused({ kind: "exam", name: "Final", date: "2026-12-10", fileIds: ["f_other"] }, "unknown_file");
+		await refused({ kind: "exam", date: "2026-12-10" }, "bad_name");
 
-		const put = await examRoute.PUT(json("/x", "PUT", { name: "Midterm" }), ctx({ id, examId: exam.id }));
-		assert.equal((await put.json()).exam.name, "Midterm");
-		const missing = await examRoute.PUT(json("/x", "PUT", { name: "x" }), ctx({ id, examId: "exm_nope" }));
+		const put = await deadlineRoute.PUT(json("/x", "PUT", { name: "Midterm", kind: "quiz" }), ctx({ id, deadlineId: deadline.id }));
+		const renamed = (await put.json()).deadline;
+		assert.equal(renamed.name, "Midterm");
+		assert.equal(renamed.kind, "quiz");
+		const done = (await (await deadlineRoute.PUT(json("/x", "PUT", { done: true, time: null }), ctx({ id, deadlineId: deadline.id }))).json()).deadline;
+		assert.equal(done.done, true);
+		assert.equal(typeof done.doneAt, "string");
+		assert.equal(done.time, undefined, "time: null clears it");
+		const badDone = await deadlineRoute.PUT(json("/x", "PUT", { done: "yes" }), ctx({ id, deadlineId: deadline.id }));
+		assert.equal(badDone.status, 400);
+		const missing = await deadlineRoute.PUT(json("/x", "PUT", { name: "x" }), ctx({ id, deadlineId: "ddl_nope" }));
 		assert.equal(missing.status, 404);
+		assert.equal((await missing.json()).code, "deadline_not_found");
 
-		const listed = await (await examsRoute.GET(json("/x", "GET"), ctx({ id }))).json();
-		assert.equal(listed.exams.length, 1);
+		const listed = await (await deadlinesRoute.GET(json("/x", "GET"), ctx({ id }))).json();
+		assert.equal(listed.deadlines.length, 1);
 		const read = await (await classRoute.GET(json(`/api/classes/${id}`, "GET"), ctx({ id }))).json();
-		assert.equal(read.class.exams[0].name, "Midterm", "the class record carries its exams");
+		assert.equal(read.class.deadlines[0].name, "Midterm", "the class record carries its deadlines");
 
-		assert.equal((await examRoute.DELETE(json("/x", "DELETE"), ctx({ id, examId: exam.id }))).status, 200);
-		assert.equal((await examRoute.DELETE(json("/x", "DELETE"), ctx({ id, examId: exam.id }))).status, 404);
-		assert.equal((await examsRoute.GET(json("/x", "GET"), ctx({ id: "cls_nope_x" }))).status, 404);
+		assert.equal((await deadlineRoute.DELETE(json("/x", "DELETE"), ctx({ id, deadlineId: deadline.id }))).status, 200);
+		assert.equal((await deadlineRoute.DELETE(json("/x", "DELETE"), ctx({ id, deadlineId: deadline.id }))).status, 404);
+		assert.equal((await deadlinesRoute.GET(json("/x", "GET"), ctx({ id: "cls_nope_x" }))).status, 404);
+		assert.equal((await deadlinesRoute.POST(json("/x", "POST", { kind: "exam", name: "x", date: "2026-12-10" }), ctx({ id: "cls_nope_x" }))).status, 404);
+	});
+
+	it("GET /api/deadlines: open deadlines of classes not archived, soonest due first", async () => {
+		const a = await makeClass("Open A");
+		const b = await makeClass("Open B");
+		const archived = await makeClass("Archived C");
+		const add = async (id: string, body: Record<string, unknown>) =>
+			(await (await deadlinesRoute.POST(json("/x", "POST", body), ctx({ id }))).json()).deadline as { id: string };
+		await add(a, { kind: "homework", name: "HW 2", date: "2026-11-03" });
+		await add(b, { kind: "quiz", name: "Quiz 1", date: "2026-11-03", time: "09:00" });
+		await add(a, { kind: "exam", name: "Midterm", date: "2026-11-01", time: "19:00" });
+		const done = await add(b, { kind: "project", name: "Done one", date: "2026-10-30" });
+		await deadlineRoute.PUT(json("/x", "PUT", { done: true }), ctx({ id: b, deadlineId: done.id }));
+		await add(archived, { kind: "exam", name: "Hidden", date: "2026-10-29" });
+		await classRoute.PUT(json("/x", "PUT", { archived: true }), ctx({ id: archived }));
+
+		const res = await openDeadlinesRoute.GET();
+		assert.equal(res.status, 200);
+		const mine = ((await res.json()).deadlines as { classId: string; className: string; name: string; done: boolean }[]).filter((d) =>
+			[a, b, archived].includes(d.classId),
+		);
+		assert.deepEqual(
+			mine.map((d) => [d.name, d.className]),
+			[
+				["Midterm", "Open A"],
+				["Quiz 1", "Open B"],
+				["HW 2", "Open A"],
+			],
+		);
+		assert.ok(mine.every((d) => d.done === false));
 	});
 });
 

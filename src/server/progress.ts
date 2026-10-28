@@ -1,7 +1,7 @@
 /**
  * PROGRESS — the server half of GET /api/progress (redesign plan,
  * owner-approved 2026-10-27): reads one class scope's graph, topic
- * snapshot, files, exams and lessons, and hands them to the pure
+ * snapshot, files, deadlines and lessons, and hands them to the pure
  * derivation (core/progress.ts deriveProgress). Nothing is written.
  */
 import type { ClassScope } from "../core/contracts.ts";
@@ -38,7 +38,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 		chains: graph.chains,
 		topics: store.readTopics(),
 		files: (record?.files ?? []).map((f) => ({ id: f.id, name: f.name, kind: f.kind, sourceId: f.sourceId ?? sourceIdFor(record!.id, f.id) })),
-		exams: record?.exams ?? [],
+		deadlines: record?.deadlines ?? [],
 		lessons,
 		grouping: topicGroupingRunning(scope),
 	});

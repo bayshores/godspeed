@@ -1,13 +1,13 @@
 /**
  * Pure helpers for the topic Graph's panels and map (redesign plan,
  * Phase 5): status colors, score lines, the topic takeaway, fact order,
- * the exam picker's default, search matches. Browser-safe, unit-tested.
+ * the deadline picker's choices and default, search matches. Browser-safe, unit-tested.
  */
 import {
 	RAMP_COLORS,
 	type AnswerOutcome,
 	type AnswerRef,
-	type ExamProgress,
+	type DeadlineProgress,
 	type FactProgress,
 	type TopicLink,
 	type TopicProgress,
@@ -109,11 +109,17 @@ export function neighbors(
 	};
 }
 
-/** The exam the picker opens on: the soonest one still ahead, else the
- *  latest one (exams arrive soonest first). */
-export function defaultExamId(exams: readonly Pick<ExamProgress, "id" | "daysUntil">[]): string | null {
-	if (exams.length === 0) return null;
-	return (exams.find((e) => e.daysUntil >= 0) ?? exams[exams.length - 1]!).id;
+/** The deadlines the picker offers: not done, and covering at least one
+ *  file (payload order: soonest due first). */
+export function pickableDeadlines<T extends Pick<DeadlineProgress, "done" | "files">>(deadlines: readonly T[]): T[] {
+	return deadlines.filter((d) => !d.done && d.files.length > 0);
+}
+
+/** The deadline the picker opens on: the soonest one still ahead, else
+ *  the latest one (they arrive soonest first). */
+export function defaultDeadlineId(deadlines: readonly Pick<DeadlineProgress, "id" | "daysUntil">[]): string | null {
+	if (deadlines.length === 0) return null;
+	return (deadlines.find((d) => d.daysUntil >= 0) ?? deadlines[deadlines.length - 1]!).id;
 }
 
 /** "9 days", "1 day", "Today", "3 days ago". */
@@ -127,16 +133,16 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "Thu Nov 5" for a YYYY-MM-DD date (calendar day, no time zone shift). */
-export function examDateText(date: string): string {
+export function deadlineDateText(date: string): string {
 	const [y, m, d] = date.split("-").map(Number) as [number, number, number];
 	if (!y || !m || !d) return date;
 	const day = new Date(Date.UTC(y, m - 1, d));
 	return `${WEEKDAYS[day.getUTCDay()]} ${MONTHS[m - 1]} ${d}`;
 }
 
-/** What the exam covers, short: the file's name when there is one,
+/** What the deadline covers, short: the file's name when there is one,
  *  else "7 files". */
-export function examFilesText(files: readonly { name: string }[]): string {
+export function deadlineFilesText(files: readonly { name: string }[]): string {
 	if (files.length === 0) return "";
 	if (files.length === 1) return files[0]!.name;
 	return `${files.length} files`;

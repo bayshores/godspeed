@@ -11,7 +11,7 @@ import { RAMP_COLORS, type TopicProgress } from "@/core";
 import type { PlacedTopic } from "./layout.ts";
 import { OVERCONFIDENT_COLOR, scoreText } from "./derive.ts";
 
-/** Faded topics (not on the picked exam / not matching the search). */
+/** Faded topics (not on the picked deadline / not matching the search). */
 export const FADED_OPACITY = 0.22;
 
 /** The halo gradient id for a ramp color (defs live in the map). */

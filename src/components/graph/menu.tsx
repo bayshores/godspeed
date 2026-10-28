@@ -1,5 +1,5 @@
 /**
- * The Graph page's two small menus (the exam picker and a fact's
+ * The Graph page's two small menus (the deadline picker and a fact's
  * right-click menu) share one dismissal rule: a pointerdown outside the
  * anchor and outside the menu closes it, and so does Escape (claimed, so
  * nothing under the menu also acts). Placement is MenuShell's.

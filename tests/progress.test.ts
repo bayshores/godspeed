@@ -115,9 +115,10 @@ const payload = () =>
 		chains: CHAINS,
 		topics: TOPICS,
 		files: FILES,
-		exams: [
-			{ id: "exm_final", name: "Final", date: "2026-12-10", fileIds: ["fA", "fB", "fC"] },
-			{ id: "exm_mid", name: "Midterm", date: "2026-11-05", fileIds: ["fB"] },
+		deadlines: [
+			{ id: "exm_final", kind: "exam", name: "Final", date: "2026-12-10", fileIds: ["fA", "fB", "fC"], done: false },
+			{ id: "ddl_hw", kind: "homework", name: "HW 2", date: "2026-11-05", time: "17:00", fileIds: [], done: true, doneAt: "2026-10-26T00:00:00.000Z" },
+			{ id: "exm_mid", kind: "exam", name: "Midterm", date: "2026-11-05", fileIds: ["fB"], done: false },
 		],
 		lessons: [
 			{ id: "c1", title: "Counting", updatedAt: "2026-10-20T05:00:00.000Z", messages: C1 },
@@ -264,9 +265,17 @@ describe("progress: deriveProgress", () => {
 		]);
 	});
 
-	it("builds each exam: days left, its topics, where you're at, work on next", () => {
-		assert.deepEqual(p.exams.map((e) => [e.id, e.daysUntil]), [["exm_mid", 9], ["exm_final", 44]], "soonest first");
-		const mid = p.exams[0]!;
+	it("builds each deadline: days left, its topics, where you're at, work on next", () => {
+		assert.deepEqual(
+			p.deadlines.map((d) => [d.id, d.kind, d.daysUntil, d.done, d.time]),
+			[
+				["ddl_hw", "homework", 9, true, "17:00"],
+				["exm_mid", "exam", 9, false, undefined],
+				["exm_final", "exam", 44, false, undefined],
+			],
+			"every deadline, done ones too, soonest due first (no time = 23:59)",
+		);
+		const mid = p.deadlines[1]!;
 		assert.deepEqual(mid.files, [{ id: "fB", name: "lecture2.md" }]);
 		assert.deepEqual(mid.topicIds, ["tpc_2", "tpc_3"]);
 		assert.deepEqual(mid.counts, { strong: 0, shaky: 0, weak: 2, untested: 0 });
@@ -274,14 +283,33 @@ describe("progress: deriveProgress", () => {
 			["tpc_2", "Induction builds on it, so fix it first"],
 			["tpc_3", "0% right"],
 		]);
-		const fin = p.exams[1]!;
+		const fin = p.deadlines[2]!;
 		assert.deepEqual(fin.topicIds, ["tpc_1", "tpc_2", "tpc_3", "tpc_4"]);
 		assert.deepEqual(fin.counts, { strong: 1, shaky: 0, weak: 2, untested: 1 });
 		assert.deepEqual(fin.workOnNext.map((w) => [w.topicId, w.reason]), [
 			["tpc_2", "Induction builds on it, so fix it first"],
 			["tpc_3", "0% right"],
-			["tpc_4", "On the exam, never practiced"],
+			["tpc_4", "Due soon, never practiced"],
 		]);
+	});
+
+	it("ready % is the average right rate with untested topics at 0; topics weakest first", () => {
+		const rate = new Map(p.topics.map((t) => [t.id, t.rate]));
+		const fin = p.deadlines.find((d) => d.id === "exm_final")!;
+		const expected = fin.topicIds.reduce((sum, id) => sum + (rate.get(id) ?? 0), 0) / fin.topicIds.length;
+		assert.equal(rate.get("tpc_4"), null, "the fixture has an untested topic");
+		assert.ok(Math.abs(fin.ready! - expected) < 1e-9);
+		const ranked = fin.topics.map((t) => t.rate ?? 0);
+		assert.deepEqual(ranked, [...ranked].sort((a, b) => a - b), "weakest first");
+		assert.deepEqual(fin.topics.at(-1), { id: "tpc_1", name: p.topics.find((t) => t.id === "tpc_1")!.name, rate: rate.get("tpc_1") });
+		assert.deepEqual(
+			fin.topics.filter((t) => (t.rate ?? 0) === 0).map((t) => t.name),
+			fin.topics.filter((t) => (t.rate ?? 0) === 0).map((t) => t.name).sort(),
+			"ties by name",
+		);
+		const hw = p.deadlines.find((d) => d.id === "ddl_hw")!;
+		assert.equal(hw.ready, null, "no topics, no ready %");
+		assert.deepEqual(hw.topics, []);
 	});
 
 	it("falls back to a class-wide view without the Ungrouped bucket", () => {
@@ -295,21 +323,21 @@ describe("progress: deriveProgress", () => {
 		const items = P.workOnNext(
 			[t("Strong", 0.9, { overconfident: true }), t("Shaky", 0.6, { column: 1 }), t("Weak", 0.2), t("Base", 0.5), t("New", null)],
 			[{ from: "Base", to: "Shaky", weight: 1 }, { from: "Shaky", to: "Strong", weight: 1 }],
-			"exam",
+			"deadline",
 		);
 		assert.deepEqual(items.map((i) => [i.topicId, i.reason]), [
 			["Base", "Shaky builds on it, so fix it first"],
 			["Strong", "overconfident"],
 			["Weak", "20% right"],
 			["Shaky", "Needed for Strong"],
-			["New", "On the exam, never practiced"],
+			["New", "Due soon, never practiced"],
 		]);
 	});
 
-	it("works with no topics, no files and no exams (No class)", () => {
-		const empty = P.deriveProgress({ classId: null, today: "2026-10-27", facts: FACTS.slice(0, 2), chains: [], topics: null, files: [], exams: [], lessons: [] });
+	it("works with no topics, no files and no deadlines (No class)", () => {
+		const empty = P.deriveProgress({ classId: null, today: "2026-10-27", facts: FACTS.slice(0, 2), chains: [], topics: null, files: [], deadlines: [], lessons: [] });
 		assert.deepEqual(empty.topics.map((t) => [t.id, t.members]), [["ungrouped", ["f1", "f2"]]]);
-		assert.deepEqual([empty.files, empty.nextUp, empty.exams, empty.topicsAt], [[], null, [], null]);
+		assert.deepEqual([empty.files, empty.nextUp, empty.deadlines, empty.topicsAt], [[], null, [], null]);
 		assert.deepEqual(empty.overall, { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [] });
 	});
 });
@@ -342,11 +370,11 @@ describe("progress: planStepBar", () => {
 // ─── GET /api/progress ──────────────────────────────────────────────────────
 
 describe("GET /api/progress", () => {
-	it("assembles one class's graph, files, exams and lessons", async () => {
+	it("assembles one class's graph, files, deadlines and lessons", async () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
 		const file = { id: "f_aaaaaaaaaaaa", origin: "copied" as const, name: "lecture1.md", path: "x/lecture1.md", kind: "study" as const, contentFp: "", status: "ready" as const, addedAt: "2026-10-26T00:00:00.000Z" };
 		classStore.saveFiles(cls.id, [file]); // no sourceId recorded: the server derives it
-		classStore.addExam(cls.id, { name: "Midterm", date: "2026-11-05", fileIds: [file.id] });
+		classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: "2026-11-05", fileIds: [file.id] });
 		const src = sourceIdFor(cls.id, file.id);
 		const store = graphStoreFor(cls.id);
 		const chat = chatStore.createChat("Counting", undefined, cls.id);
@@ -368,7 +396,7 @@ describe("GET /api/progress", () => {
 		assert.deepEqual(body.topics.map((t) => [t.name, t.answered, t.status]), [["Counting", 1, "strong"]]);
 		assert.deepEqual(body.files.map((f) => [f.name, f.facts, f.inLessons]), [["lecture1.md", 2, 1]]);
 		assert.deepEqual(body.lessons.map((l) => l.chatId), [chat.id]);
-		assert.deepEqual(body.exams.map((e) => [e.name, e.daysUntil, e.topicIds]), [["Midterm", 9, ["tpc_x"]]]);
+		assert.deepEqual(body.deadlines.map((d) => [d.name, d.kind, d.daysUntil, d.topicIds, d.ready]), [["Midterm", "exam", 9, ["tpc_x"], 1]]);
 
 		const none = await progressRoute.GET(new Request("http://localhost/api/progress?class=none"));
 		assert.equal(none.status, 200);

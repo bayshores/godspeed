@@ -6,11 +6,11 @@
  *    newest first). The app keeps no "finished" flag, so the newest
  *    lesson is the one to continue.
  *  - Next up: the earliest study file not studied yet (payload.nextUp).
- *  - Work on next: the first two topics of the soonest upcoming exam's
- *    list, or the class-wide list when no exam is ahead.
+ *  - Work on next: the first two topics of the soonest open deadline
+ *    that has files, or the class-wide list when none is ahead.
  */
 import type {
-	ExamProgress,
+	DeadlineProgress,
 	FileCoverage,
 	LessonProgress,
 	LhMessage,
@@ -29,14 +29,15 @@ export type Suggestion =
 	| { kind: "next-up"; file: FileCoverage }
 	| { kind: "work-on-next"; item: WorkOnNextItem; topic: TopicProgress };
 
-/** The soonest exam that hasn't passed (exams come soonest first). */
-export function upcomingExam(exams: readonly ExamProgress[]): ExamProgress | null {
-	return exams.find((e) => e.daysUntil >= 0) ?? null;
+/** The soonest deadline that hasn't passed, isn't done and covers files
+ *  (deadlines come soonest first). */
+export function upcomingDeadline(deadlines: readonly DeadlineProgress[]): DeadlineProgress | null {
+	return deadlines.find((d) => d.daysUntil >= 0 && !d.done && d.files.length > 0) ?? null;
 }
 
 /** The "Work on next" list Home draws from. */
-export function workOnNextList(data: Pick<ProgressPayload, "exams" | "overall">): WorkOnNextItem[] {
-	return upcomingExam(data.exams)?.workOnNext ?? data.overall.workOnNext;
+export function workOnNextList(data: Pick<ProgressPayload, "deadlines" | "overall">): WorkOnNextItem[] {
+	return upcomingDeadline(data.deadlines)?.workOnNext ?? data.overall.workOnNext;
 }
 
 export function homeSuggestions(data: ProgressPayload | null): Suggestion[] {

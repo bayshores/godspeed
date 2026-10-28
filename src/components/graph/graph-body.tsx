@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProgressPayload } from "@/core";
-import { defaultExamId, searchMatches } from "./derive.ts";
+import { defaultDeadlineId, pickableDeadlines, searchMatches } from "./derive.ts";
 import { TopicMap } from "./topic-map.tsx";
 import { TopicPanel } from "./topic-panel.tsx";
 import { WherePanel } from "./where-panel.tsx";
@@ -21,8 +21,9 @@ export function GraphBody({
 	initialSelected?: string | null;
 }) {
 	const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
-	const [examPick, setExamPick] = useState<string | null>(null);
-	const examId = data.exams.some((e) => e.id === examPick) ? examPick : defaultExamId(data.exams);
+	const [deadlinePick, setDeadlinePick] = useState<string | null>(null);
+	const pickable = useMemo(() => pickableDeadlines(data.deadlines), [data.deadlines]);
+	const deadlineId = pickable.some((d) => d.id === deadlinePick) ? deadlinePick : defaultDeadlineId(pickable);
 	const selected = selectedId ? data.topics.find((t) => t.id === selectedId) : undefined;
 
 	// Escape closes the topic (menus, dialogs and the search claim theirs first).
@@ -35,12 +36,12 @@ export function GraphBody({
 		return () => window.removeEventListener("keydown", onKey);
 	}, [selected]);
 
-	const exam = data.exams.find((e) => e.id === examId);
+	const deadline = pickable.find((d) => d.id === deadlineId);
 	const matches = useMemo(() => searchMatches(query, data.topics, data.facts), [query, data.topics, data.facts]);
-	const examTopics = useMemo(() => (exam ? new Set(exam.topicIds) : null), [exam]);
+	const deadlineTopics = useMemo(() => (deadline ? new Set(deadline.topicIds) : null), [deadline]);
 	// Bright topics: the search's matches; else, with nothing selected, the
-	// picked exam's topics; else all.
-	const focus = matches ?? (selected ? null : examTopics);
+	// picked deadline's topics; else all.
+	const focus = matches ?? (selected ? null : deadlineTopics);
 
 	if (data.topics.length === 0) {
 		return <TopicMap topics={data.topics} links={data.topicLinks} focus={null} selectedId={null} onSelect={setSelectedId} />;
@@ -62,8 +63,8 @@ export function GraphBody({
 			) : (
 				<WherePanel
 					data={data}
-					examId={examId}
-					onExamChange={setExamPick}
+					deadlineId={deadlineId}
+					onDeadlineChange={setDeadlinePick}
 					onSelectTopic={setSelectedId}
 					onPractice={onPractice}
 					practicing={practicing}

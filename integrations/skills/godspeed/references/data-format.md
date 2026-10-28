@@ -22,7 +22,7 @@ graph/positions.json      Canvas layout, not semantic relationships
 graph/render-settings.json  Presentation preferences, not learning evidence
 graph/topics.jsonl        Topic groupings of propositions; each line a full snapshot, the last line wins
 jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
-classes/<class-id>/class.json   A class (course): name, description, archived, file list, exams
+classes/<class-id>/class.json   A class (course): name, description, archived, file list, deadlines
 classes/<class-id>/files/       The class's copied files (and recording transcripts)
 classes/<class-id>/graph/       That class's OWN graph: the same files as graph/ above
 ```
@@ -33,9 +33,14 @@ propositions live in `classes/<class-id>/graph/`, not `graph/`. A lesson without
 the same idea taught in two classes is two propositions. A class file with kind
 `study` was turned into propositions (its source id is in the class graph's
 `sources.json`); a file with kind `info` (syllabus, assignments) never was.
-A class record may list `exams`: `{id, name, date: "YYYY-MM-DD", fileIds}`, where
-`fileIds` are the class files the exam covers. Class records are stamped
-`"version": 2` since exams were added; an unstamped or version-1 record has none.
+A class record may list `deadlines`: `{id, kind, name, date: "YYYY-MM-DD", time?,
+fileIds, done, doneAt?}`. `kind` is `exam`, `homework`, `quiz` or `project`; `time`
+is a 24-hour `"HH:MM"` on the learner's own clock (absent means due at the end of
+that day); `fileIds` are the class files it covers; `doneAt` is the ISO time it was
+ticked done. Class records are stamped `"version": 3` since deadlines replaced
+exams. A version-2 record lists `exams` instead (`{id, name, date, fileIds}`),
+which read as deadlines of kind `exam`, not done; an unstamped or version-1
+record has neither.
 
 **Topics.** `topics.jsonl` (in any graph folder) holds lines
 `{"at": ISO time, "topics": [{"id": "tpc_…", "name", "members": [proposition ids]}]}`.

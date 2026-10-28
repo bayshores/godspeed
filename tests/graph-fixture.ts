@@ -1,6 +1,6 @@
 /**
  * A small ProgressPayload for the topic Graph's tests: five topics in
- * three columns, one exam covering three of them.
+ * three columns, one deadline (an exam) covering three of them.
  */
 import {
 	rampColor,
@@ -87,11 +87,13 @@ export function fixture(): ProgressPayload {
 		nextUp: null,
 		lessons: [],
 		calibration: { levels: [], sureButWrong: [] },
-		exams: [
+		deadlines: [
 			{
 				id: "ex-1",
+				kind: "exam",
 				name: "Midterm 1",
 				date: "2026-11-05",
+				done: false,
 				daysUntil: 9,
 				files: [
 					{ id: "file-1", name: "Lecture 1" },
@@ -102,7 +104,13 @@ export function fixture(): ProgressPayload {
 				workOnNext: [
 					{ topicId: "t-var", name: "Variance", status: "shaky", reason: "Minibatch noise builds on it, so fix it first" },
 					{ topicId: "t-mini", name: "Minibatch noise", status: "weak", reason: "overconfident" },
-					{ topicId: "t-mom", name: "Momentum", status: "untested", reason: "On the exam, never practiced" },
+					{ topicId: "t-mom", name: "Momentum", status: "untested", reason: "Due soon, never practiced" },
+				],
+				ready: 0.3,
+				topics: [
+					{ id: "t-mom", name: "Momentum", rate: null },
+					{ id: "t-mini", name: "Minibatch noise", rate: 3 / 7 },
+					{ id: "t-var", name: "Variance", rate: 4 / 7 },
 				],
 			},
 		],

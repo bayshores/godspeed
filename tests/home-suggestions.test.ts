@@ -1,17 +1,18 @@
 /**
  * Home's "Suggested for <class>" rows (redesign Phase 6): which lesson is
- * Continue, Next up, which Work-on-next list counts (the soonest upcoming
- * exam's, else the class's), the two-row cap, and the Continue step.
+ * Continue, Next up, which Work-on-next list counts (the soonest open
+ * deadline with files, else the class's), the two-row cap, and the
+ * Continue step.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ExamProgress, LessonProgress, PlanTree, ProgressPayload, TopicProgress, WorkOnNextItem } from "../src/core/index.ts";
+import type { DeadlineProgress, LessonProgress, PlanTree, ProgressPayload, TopicProgress, WorkOnNextItem } from "../src/core/index.ts";
 import { planStepBar } from "../src/core/index.ts";
 import {
 	homeSuggestions,
 	lessonStep,
 	suggestionKey,
-	upcomingExam,
+	upcomingDeadline,
 	workOnNextList,
 	WORK_ON_NEXT_ROWS,
 } from "../src/components/home/suggestions-model.ts";
@@ -42,16 +43,21 @@ function item(topicId: string, status: TopicProgress["status"] = "weak"): WorkOn
 	return { topicId, name: `Topic ${topicId}`, status, reason: "r" };
 }
 
-function exam(id: string, daysUntil: number, workOnNext: WorkOnNextItem[]): ExamProgress {
+function deadline(id: string, daysUntil: number, workOnNext: WorkOnNextItem[], over: Partial<DeadlineProgress> = {}): DeadlineProgress {
 	return {
 		id,
+		kind: "exam",
 		name: id,
 		date: "2026-11-01",
+		done: false,
 		daysUntil,
-		files: [],
+		files: [{ id: "f1", name: "Lecture 1" }],
 		topicIds: [],
 		counts: { strong: 0, shaky: 0, weak: 0, untested: 0 },
 		workOnNext,
+		ready: null,
+		topics: [],
+		...over,
 	};
 }
 
@@ -68,7 +74,7 @@ function payload(over: Partial<ProgressPayload> = {}): ProgressPayload {
 		nextUp: null,
 		lessons: [],
 		calibration: { levels: [], sureButWrong: [] },
-		exams: [],
+		deadlines: [],
 		overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [] },
 		totals: { answered: 0, right: 0, wrong: 0, dontKnow: 0, rate: null },
 		...over,
@@ -121,19 +127,28 @@ describe("homeSuggestions", () => {
 describe("which Work-on-next list counts", () => {
 	const overall = { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [item("d")] };
 
-	it("the soonest exam that hasn't passed", () => {
-		const exams = [exam("past", -3, [item("a")]), exam("soon", 4, [item("c")]), exam("later", 30, [item("b")])];
-		assert.equal(upcomingExam(exams)?.id, "soon");
-		assert.deepEqual(workOnNextList({ exams, overall }).map((i) => i.topicId), ["c"]);
+	it("the soonest deadline that hasn't passed", () => {
+		const deadlines = [deadline("past", -3, [item("a")]), deadline("soon", 4, [item("c")]), deadline("later", 30, [item("b")])];
+		assert.equal(upcomingDeadline(deadlines)?.id, "soon");
+		assert.deepEqual(workOnNextList({ deadlines, overall }).map((i) => i.topicId), ["c"]);
 	});
 
-	it("an exam today still counts", () => {
-		assert.equal(upcomingExam([exam("today", 0, [])])?.id, "today");
+	it("a deadline today still counts", () => {
+		assert.equal(upcomingDeadline([deadline("today", 0, [])])?.id, "today");
 	});
 
-	it("no exam ahead: the class-wide list", () => {
-		assert.deepEqual(workOnNextList({ exams: [exam("past", -1, [item("a")])], overall }).map((i) => i.topicId), ["d"]);
-		assert.deepEqual(workOnNextList({ exams: [], overall }).map((i) => i.topicId), ["d"]);
+	it("done deadlines and ones with no files are skipped", () => {
+		const deadlines = [
+			deadline("done", 1, [item("a")], { done: true }),
+			deadline("no-files", 2, [], { kind: "homework", files: [] }),
+			deadline("quiz", 3, [item("c")], { kind: "quiz" }),
+		];
+		assert.equal(upcomingDeadline(deadlines)?.id, "quiz");
+	});
+
+	it("no deadline ahead: the class-wide list", () => {
+		assert.deepEqual(workOnNextList({ deadlines: [deadline("past", -1, [item("a")])], overall }).map((i) => i.topicId), ["d"]);
+		assert.deepEqual(workOnNextList({ deadlines: [], overall }).map((i) => i.topicId), ["d"]);
 	});
 });
 

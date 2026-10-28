@@ -82,7 +82,7 @@ const PAYLOAD = {
 			{ chatId: "c1", lessonTitle: "Gradient descent", messageId: "m7", toolCallId: "t7", question: "Why momentum damps **zigzag** at $\\frac{1}{N}$", level: 4, answeredAt: "2026-10-27T12:00:00Z" },
 		],
 	},
-	exams: [],
+	deadlines: [],
 	overall: { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [] },
 	totals: { answered: 24, right: 14, wrong: 7, dontKnow: 3, rate: 14 / 24 },
 } satisfies ProgressPayload;

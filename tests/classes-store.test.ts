@@ -23,7 +23,7 @@ const { chatStore } = await import("../src/store/chats.ts");
 const { graphStoreFor, graphStoreForChat, allGraphScopes } = await import("../src/server/stores.ts");
 const { deleteSourceTraces } = await import("../src/core/graph-deletion.ts");
 const { getGraph } = await import("../src/core/graph.ts");
-const { parseClassScope, isSupportedClassFile, extensionOf, isExamDate, ClassExamError } = await import("../src/core/contracts.ts");
+const { parseClassScope, isSupportedClassFile, extensionOf, isCalendarDate, isClockTime, ClassDeadlineError, deadlineDueAt, compareDeadlines } = await import("../src/core/contracts.ts");
 
 after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
@@ -97,7 +97,7 @@ describe("ClassStore", () => {
 	});
 });
 
-describe("exams (redesign plan, 2026-10-27)", () => {
+describe("deadlines (plan 2026-10-28; exams before that)", () => {
 	const studyFile = (id: string) => ({
 		id,
 		origin: "copied" as const,
@@ -108,70 +108,165 @@ describe("exams (redesign plan, 2026-10-27)", () => {
 		status: "ready" as const,
 		addedAt: "2026-10-26T00:00:00.000Z",
 	});
+	const classFile = (id: string) => path.join(TMP_DATA, "classes", id, "class.json");
 
-	it("adds, updates, sorts and removes exams; stamps version 2", () => {
+	it("adds, updates, sorts and removes deadlines; stamps version 3", () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
-		assert.equal(cls.version, 2);
+		assert.equal(cls.version, 3);
 		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
-		const finalExam = classStore.addExam(cls.id, { name: "  Final  ", date: "2026-12-10", fileIds: ["f_aaaaaaaaaaaa", "f_bbbbbbbbbbbb"] });
-		assert.match(finalExam.id, /^exm_[0-9a-f]{12}$/);
+		const finalExam = classStore.addDeadline(cls.id, {
+			kind: "exam",
+			name: "  Final  ",
+			date: "2026-12-10",
+			time: "08:00",
+			fileIds: ["f_aaaaaaaaaaaa", "f_bbbbbbbbbbbb"],
+		});
+		assert.match(finalExam.id, /^ddl_[0-9a-f]{12}$/);
 		assert.equal(finalExam.name, "Final", "names are trimmed");
-		const midterm = classStore.addExam(cls.id, { name: "Midterm 1", date: "2026-11-05" });
+		assert.equal(finalExam.time, "08:00");
+		assert.equal(finalExam.done, false);
+		const midterm = classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm 1", date: "2026-11-05" });
 		assert.deepEqual(midterm.fileIds, []);
-		assert.deepEqual(classStore.getClass(cls.id)?.exams?.map((e) => e.name), ["Midterm 1", "Final"], "soonest first");
+		assert.equal("time" in midterm, false, "no time, no field");
+		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.name), ["Midterm 1", "Final"], "soonest first");
 
-		const moved = classStore.updateExam(cls.id, midterm.id, { date: "2026-12-20", fileIds: ["f_aaaaaaaaaaaa"] });
+		const moved = classStore.updateDeadline(cls.id, midterm.id, { kind: "quiz", date: "2026-12-20", fileIds: ["f_aaaaaaaaaaaa"] });
 		assert.equal(moved.name, "Midterm 1");
+		assert.equal(moved.kind, "quiz");
 		assert.deepEqual(moved.fileIds, ["f_aaaaaaaaaaaa"]);
-		assert.deepEqual(classStore.getClass(cls.id)?.exams?.map((e) => e.name), ["Final", "Midterm 1"]);
+		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.name), ["Final", "Midterm 1"]);
 
-		const onDisk = JSON.parse(fs.readFileSync(path.join(TMP_DATA, "classes", cls.id, "class.json"), "utf-8"));
-		assert.equal(onDisk.version, 2);
-		assert.equal(onDisk.exams.length, 2);
+		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		assert.equal(onDisk.version, 3);
+		assert.equal(onDisk.deadlines.length, 2);
+		assert.equal(onDisk.exams, undefined);
 
-		assert.equal(classStore.removeExam(cls.id, midterm.id), true);
-		assert.equal(classStore.removeExam(cls.id, midterm.id), false);
-		assert.deepEqual(classStore.getClass(cls.id)?.exams?.map((e) => e.id), [finalExam.id]);
+		assert.equal(classStore.removeDeadline(cls.id, midterm.id), true);
+		assert.equal(classStore.removeDeadline(cls.id, midterm.id), false);
+		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.id), [finalExam.id]);
 	});
 
-	it("validates name, date and files", () => {
+	it("sorts by date, then time (none = 23:59), then name", () => {
+		const cls = classStore.createClass({ name: "Sorting" });
+		classStore.addDeadline(cls.id, { kind: "homework", name: "B no time", date: "2026-11-01" });
+		classStore.addDeadline(cls.id, { kind: "homework", name: "A no time", date: "2026-11-01" });
+		classStore.addDeadline(cls.id, { kind: "quiz", name: "Z morning", date: "2026-11-01", time: "09:00" });
+		classStore.addDeadline(cls.id, { kind: "quiz", name: "Late", date: "2026-11-01", time: "23:59" });
+		classStore.addDeadline(cls.id, { kind: "exam", name: "Earlier day", date: "2026-10-31", time: "23:00" });
+		assert.deepEqual(
+			classStore.getClass(cls.id)?.deadlines?.map((d) => d.name),
+			["Earlier day", "Z morning", "A no time", "B no time", "Late"],
+		);
+		assert.deepEqual(deadlineDueAt({ date: "2026-11-01" }), { date: "2026-11-01", time: "23:59" });
+		assert.deepEqual(deadlineDueAt({ date: "2026-11-01", time: "07:30" }), { date: "2026-11-01", time: "07:30" });
+		assert.ok(compareDeadlines({ date: "2026-11-01", name: "a" }, { date: "2026-11-01", time: "12:00", name: "b" }) > 0);
+	});
+
+	it("done stamps doneAt, undone removes it, time null clears the time", () => {
+		const cls = classStore.createClass({ name: "Done" });
+		const hw = classStore.addDeadline(cls.id, { kind: "homework", name: "HW 1", date: "2026-11-01", time: "17:00" });
+		const done = classStore.updateDeadline(cls.id, hw.id, { done: true });
+		assert.equal(done.done, true);
+		assert.ok(done.doneAt && !Number.isNaN(Date.parse(done.doneAt)), "doneAt is an ISO time");
+		const renamed = classStore.updateDeadline(cls.id, hw.id, { name: "HW 1a" });
+		assert.equal(renamed.doneAt, done.doneAt, "other edits keep doneAt");
+		const again = classStore.updateDeadline(cls.id, hw.id, { done: true });
+		assert.equal(again.doneAt, done.doneAt, "ticking a done one again keeps its time");
+		const undone = classStore.updateDeadline(cls.id, hw.id, { done: false });
+		assert.equal(undone.done, false);
+		assert.equal("doneAt" in undone, false);
+		const cleared = classStore.updateDeadline(cls.id, hw.id, { time: null });
+		assert.equal("time" in cleared, false);
+		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		assert.equal(onDisk.deadlines[0].time, undefined);
+		assert.equal(onDisk.deadlines[0].doneAt, undefined);
+	});
+
+	it("validates kind, name, date, time and files", () => {
 		const cls = classStore.createClass({ name: "MATH 20C" });
 		classStore.saveFiles(cls.id, [studyFile("f_cccccccccccc")]);
 		const refused = (fn: () => unknown, code: string) =>
-			assert.throws(fn, (err: unknown) => err instanceof ClassExamError && err.code === code);
-		refused(() => classStore.addExam(cls.id, { name: " ", date: "2026-11-05" }), "bad_name");
-		refused(() => classStore.addExam(cls.id, { name: "Quiz", date: "11/05/2026" }), "bad_date");
-		refused(() => classStore.addExam(cls.id, { name: "Quiz", date: "2026-02-30" }), "bad_date");
-		refused(() => classStore.addExam(cls.id, { name: "Quiz", date: "2026-11-05", fileIds: ["f_notmine00000"] }), "unknown_file");
-		refused(() => classStore.updateExam(cls.id, "exm_missing", { name: "x" }), "exam_not_found");
-		assert.throws(() => classStore.addExam("cls_nope_1", { name: "Quiz", date: "2026-11-05" }), /Class not found/);
-		assert.equal(classStore.getClass(cls.id)?.exams, undefined, "nothing was written");
+			assert.throws(fn, (err: unknown) => err instanceof ClassDeadlineError && err.code === code);
+		refused(() => classStore.addDeadline(cls.id, { kind: "exam", name: " ", date: "2026-11-05" }), "bad_name");
+		refused(() => classStore.addDeadline(cls.id, { kind: "essay" as never, name: "Quiz", date: "2026-11-05" }), "bad_kind");
+		refused(() => classStore.addDeadline(cls.id, { kind: "quiz", name: "Quiz", date: "11/05/2026" }), "bad_date");
+		refused(() => classStore.addDeadline(cls.id, { kind: "quiz", name: "Quiz", date: "2026-02-30" }), "bad_date");
+		refused(() => classStore.addDeadline(cls.id, { kind: "quiz", name: "Quiz", date: "2026-11-05", time: "24:00" }), "bad_time");
+		refused(() => classStore.addDeadline(cls.id, { kind: "quiz", name: "Quiz", date: "2026-11-05", time: "9:00" }), "bad_time");
+		refused(() => classStore.addDeadline(cls.id, { kind: "quiz", name: "Quiz", date: "2026-11-05", fileIds: ["f_notmine00000"] }), "unknown_file");
+		refused(() => classStore.updateDeadline(cls.id, "ddl_missing", { name: "x" }), "deadline_not_found");
+		assert.throws(() => classStore.addDeadline("cls_nope_1", { kind: "quiz", name: "Quiz", date: "2026-11-05" }), /Class not found/);
+		assert.equal(classStore.getClass(cls.id)?.deadlines, undefined, "nothing was written");
+		const ok = classStore.addDeadline(cls.id, { kind: "quiz", name: "Quiz", date: "2026-11-05" });
+		refused(() => classStore.updateDeadline(cls.id, ok.id, { time: "12:60" }), "bad_time");
+		refused(() => classStore.updateDeadline(cls.id, ok.id, { kind: "lab" as never }), "bad_kind");
 	});
 
-	it("drops a removed file from the exams that covered it", () => {
+	it("drops a removed file from the deadlines that covered it", () => {
 		const cls = classStore.createClass({ name: "PHYS 2B" });
 		classStore.saveFiles(cls.id, [studyFile("f_dddddddddddd"), studyFile("f_eeeeeeeeeeee")]);
-		classStore.addExam(cls.id, { name: "Midterm", date: "2026-11-01", fileIds: ["f_dddddddddddd", "f_eeeeeeeeeeee"] });
+		classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: "2026-11-01", fileIds: ["f_dddddddddddd", "f_eeeeeeeeeeee"] });
 		classStore.saveFiles(cls.id, [studyFile("f_eeeeeeeeeeee")]);
-		assert.deepEqual(classStore.getClass(cls.id)?.exams?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
+		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
 	});
 
-	it("reads a version-1 record without exams", () => {
-		const cls = classStore.createClass({ name: "Legacy" });
-		const file = path.join(TMP_DATA, "classes", cls.id, "class.json");
-		const raw = JSON.parse(fs.readFileSync(file, "utf-8"));
-		fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }));
+	it("reads a version-2 record's exams as deadlines, and writes them back as v3", () => {
+		const cls = classStore.createClass({ name: "Upgraded" });
+		classStore.saveFiles(cls.id, [studyFile("f_ffffffffffff")]);
+		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		fs.writeFileSync(
+			classFile(cls.id),
+			JSON.stringify({
+				...raw,
+				version: 2,
+				exams: [
+					{ id: "exm_222222222222", name: "Final", date: "2026-12-10", fileIds: ["f_ffffffffffff", "f_gone00000000"] },
+					{ id: "exm_111111111111", name: "Midterm 1", date: "2026-11-05", fileIds: [] },
+				],
+			}),
+		);
 		const read = classStore.getClass(cls.id);
 		assert.ok(read);
-		assert.equal(read.exams, undefined);
+		assert.equal(read.version, 2);
+		assert.deepEqual(read.deadlines, [
+			{ id: "exm_111111111111", kind: "exam", name: "Midterm 1", date: "2026-11-05", fileIds: [], done: false },
+			{ id: "exm_222222222222", kind: "exam", name: "Final", date: "2026-12-10", fileIds: ["f_ffffffffffff"], done: false },
+		]);
+		classStore.updateDeadline(cls.id, "exm_111111111111", { done: true });
+		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		assert.equal(onDisk.version, 3);
+		assert.equal(onDisk.exams, undefined, "the old field is gone");
+		assert.deepEqual(
+			onDisk.deadlines.map((d: { id: string; kind: string; done: boolean }) => [d.id, d.kind, d.done]),
+			[
+				["exm_111111111111", "exam", true],
+				["exm_222222222222", "exam", false],
+			],
+		);
+	});
+
+	it("reads a version-1 record without deadlines", () => {
+		const cls = classStore.createClass({ name: "Legacy" });
+		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		fs.writeFileSync(classFile(cls.id), JSON.stringify({ ...raw, version: 1 }));
+		const read = classStore.getClass(cls.id);
+		assert.ok(read);
+		assert.equal(read.deadlines, undefined);
 		assert.equal(read.version, 1);
 	});
 
-	it("knows a calendar date", () => {
-		assert.equal(isExamDate("2028-02-29"), true);
-		assert.equal(isExamDate("2027-02-29"), false);
-		assert.equal(isExamDate("2026-1-05"), false);
-		assert.equal(isExamDate(20261105), false);
+	it("knows a calendar date and a clock time", () => {
+		assert.equal(isCalendarDate("2028-02-29"), true);
+		assert.equal(isCalendarDate("2027-02-29"), false);
+		assert.equal(isCalendarDate("2026-1-05"), false);
+		assert.equal(isCalendarDate(20261105), false);
+		assert.equal(isClockTime("00:00"), true);
+		assert.equal(isClockTime("23:59"), true);
+		assert.equal(isClockTime("24:00"), false);
+		assert.equal(isClockTime("12:60"), false);
+		assert.equal(isClockTime("7:05"), false);
+		assert.equal(isClockTime("07:05:00"), false);
+		assert.equal(isClockTime(705), false);
 	});
 });
 

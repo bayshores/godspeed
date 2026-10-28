@@ -23,24 +23,24 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 describe("Where you're at (nothing selected)", () => {
 	const data = fixture();
 	const html = renderToStaticMarkup(
-		<WherePanel data={data} examId="ex-1" onExamChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
+		<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
 	);
 
-	it("shows the exam picker, the countdown, its date and files", () => {
-		assert.ok(html.includes('data-testid="exam-picker"'));
+	it("shows the deadline picker, the countdown, its date and files", () => {
+		assert.ok(html.includes('data-testid="deadline-picker"'));
 		assert.ok(html.includes("Midterm 1"));
 		assert.ok(html.includes("9 days"));
 		assert.ok(html.includes("Thu Nov 5 · 2 files"));
 	});
 
-	it("one readiness block per exam topic, and the four counts", () => {
+	it("one readiness block per deadline topic, and the four counts", () => {
 		const bar = html.slice(html.indexOf('data-testid="readiness"'));
 		assert.equal(count(bar.slice(0, bar.indexOf("</div>")), "<span"), 3);
 		assert.ok(html.includes("not tested"));
 		assert.ok(html.includes("shaky"));
 	});
 
-	it("Work on next lists the exam's items with status lines and reasons", () => {
+	it("Work on next lists the deadline's items with status lines and reasons", () => {
 		assert.equal(count(html, 'data-testid="work-on-next-row"'), 3);
 		assert.ok(html.includes("4/7 right"));
 		assert.ok(html.includes("3/7 right · overconfident"));
@@ -49,11 +49,11 @@ describe("Where you're at (nothing selected)", () => {
 		assert.ok(html.includes("Practice these 3"));
 	});
 
-	it("with no exams: the class-wide view (no picker)", () => {
+	it("with no deadlines: the class-wide view (no picker)", () => {
 		const none = renderToStaticMarkup(
-			<WherePanel data={{ ...data, exams: [] }} examId={null} onExamChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
+			<WherePanel data={{ ...data, deadlines: [] }} deadlineId={null} onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
 		);
-		assert.ok(!none.includes('data-testid="exam-picker"'));
+		assert.ok(!none.includes('data-testid="deadline-picker"'));
 		assert.ok(none.includes("Where you&#x27;re at"));
 		assert.equal(count(none, 'data-testid="work-on-next-row"'), 1);
 		assert.ok(none.includes("Practice these 1"));
@@ -106,7 +106,18 @@ describe("GraphBody picks the panel", () => {
 		assert.ok(picked.includes('data-testid="topic-panel"'));
 	});
 
-	it("topics off the picked exam fade on the map", () => {
+	it("a done deadline, or one with no files, is not offered: the class-wide view", () => {
+		const [d] = data.deadlines;
+		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
+			const html = renderToStaticMarkup(
+				<WherePanel data={{ ...data, deadlines }} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
+			);
+			assert.ok(!html.includes('data-testid="deadline-picker"'));
+			assert.equal(count(html, 'data-testid="work-on-next-row"'), 1);
+		}
+	});
+
+	it("topics off the picked deadline fade on the map", () => {
 		const html = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} onPractice={noop} />);
 		const node = (id: string) => html.slice(html.indexOf(`data-topic="${id}"`), html.indexOf(`data-topic="${id}"`) + 400);
 		assert.ok(node("t-attn").includes('opacity="0.22"'), "Attention is not on Midterm 1");

@@ -58,19 +58,29 @@ export interface ClassFile {
 	addedAt: string;
 }
 
-/** One exam of a class (redesign plan, owner-approved 2026-10-27): added by
- *  the learner (Edit class) or by an outside agent from the syllabus (MCP
- *  add_class_exam). The Graph page's "Where you're at" panel reads it: the
- *  exam's topics are the topics with facts born in its files. */
-export interface ClassExam {
-	/** "exm_" + 12 hex. */
+/** What a deadline is (plan 2026-10-28: exams become general deadlines). */
+export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
+
+export const DEADLINE_KINDS: readonly DeadlineKind[] = ["exam", "homework", "quiz", "project"];
+
+/** One deadline of a class: added by the learner (Edit class) or by an
+ *  outside agent from the syllabus (MCP add_class_deadline). Its topics are
+ *  the topics with facts born in its files. */
+export interface ClassDeadline {
+	/** "ddl_" + 12 hex. Deadlines upgraded from v2 exams keep their "exm_" id. */
 	id: string;
-	/** "Midterm 1", "Final". */
+	kind: DeadlineKind;
+	/** "Midterm 1", "Homework 5". */
 	name: string;
-	/** The exam day, YYYY-MM-DD (a calendar date, no time zone). */
+	/** The due day, YYYY-MM-DD (local wall clock, no time zone). */
 	date: string;
-	/** The class files (ClassFile.id) the exam covers. */
+	/** "HH:MM" 24h local wall clock. Absent = no time (due 23:59 that day). */
+	time?: string;
+	/** The class files (ClassFile.id) it covers. */
 	fileIds: string[];
+	done: boolean;
+	/** ISO time it was ticked done. */
+	doneAt?: string;
 }
 
 export interface ClassRecord {
@@ -87,9 +97,9 @@ export interface ClassRecord {
 	/** Absolute path of a folder on the learner's computer (optional). */
 	linkedFolder?: string;
 	files: ClassFile[];
-	/** The class's exams, soonest first (absent on records that never had
-	 *  one — absence reads as none). */
-	exams?: ClassExam[];
+	/** The class's deadlines, soonest due first (absent on records that
+	 *  never had one — absence reads as none). */
+	deadlines?: ClassDeadline[];
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
@@ -97,27 +107,51 @@ export interface ClassRecord {
 /** The class record format this build writes and understands.
  *  v2 (2026-10-27): adds `exams`. A v1 record reads unchanged; the bump
  *  makes an older build REFUSE a v2 record rather than drop its exams on
- *  its next write (its reader rebuilds the record field by field). */
-export const CURRENT_CLASS_VERSION = 2;
+ *  its next write (its reader rebuilds the record field by field).
+ *  v3 (2026-10-28): exams become deadlines (`deadlines`; a v2 record's
+ *  `exams` read as deadlines of kind "exam"). */
+export const CURRENT_CLASS_VERSION = 3;
 
-/** Why an exam write was refused (the store's validation; the server maps
- *  it to a 400 / 404 with this message). */
-export class ClassExamError extends Error {
+/** Why a deadline write was refused (the store's validation; the server
+ *  maps it to a 400 / 404 with this message). */
+export class ClassDeadlineError extends Error {
 	constructor(
-		public readonly code: "bad_name" | "bad_date" | "unknown_file" | "exam_not_found",
+		public readonly code: "bad_name" | "bad_kind" | "bad_date" | "bad_time" | "unknown_file" | "deadline_not_found",
 		message: string,
 	) {
 		super(message);
-		this.name = "ClassExamError";
+		this.name = "ClassDeadlineError";
 	}
 }
 
 /** True when `date` is a real calendar date written YYYY-MM-DD. */
-export function isExamDate(date: unknown): date is string {
+export function isCalendarDate(date: unknown): date is string {
 	if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
 	const [y, m, d] = date.split("-").map(Number) as [number, number, number];
 	const t = new Date(Date.UTC(y, m - 1, d));
 	return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
+
+/** True when `time` is a 24h clock time written HH:MM (00:00–23:59). */
+export function isClockTime(time: unknown): time is string {
+	return typeof time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
+}
+
+export function isDeadlineKind(kind: unknown): kind is DeadlineKind {
+	return typeof kind === "string" && (DEADLINE_KINDS as readonly string[]).includes(kind);
+}
+
+/** When a deadline is due: its day and time, with no time meaning 23:59. */
+export function deadlineDueAt(d: { date: string; time?: string }): { date: string; time: string } {
+	return { date: d.date, time: d.time ?? "23:59" };
+}
+
+/** Sort order for deadlines: due date, then due time (none = 23:59),
+ *  then name. */
+export function compareDeadlines(a: { date: string; time?: string; name: string }, b: { date: string; time?: string; name: string }): number {
+	const da = deadlineDueAt(a);
+	const db = deadlineDueAt(b);
+	return da.date.localeCompare(db.date) || da.time.localeCompare(db.time) || a.name.localeCompare(b.name);
 }
 
 /** The list view: the record minus its file list, plus counts. */

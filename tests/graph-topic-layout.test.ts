@@ -17,9 +17,10 @@ import {
 } from "../src/components/graph/layout.ts";
 import {
 	countdownText,
-	defaultExamId,
-	examDateText,
-	examFilesText,
+	defaultDeadlineId,
+	deadlineDateText,
+	deadlineFilesText,
+	pickableDeadlines,
 	factMark,
 	neighbors,
 	readinessBlocks,
@@ -152,10 +153,20 @@ describe("panel helpers", () => {
 		assert.deepEqual(leadsTo.map((t) => t.id), ["t-mom"]);
 	});
 
-	it("defaultExamId: the soonest exam still ahead, else the last", () => {
-		assert.equal(defaultExamId([]), null);
-		assert.equal(defaultExamId([{ id: "a", daysUntil: -3 }, { id: "b", daysUntil: 4 }]), "b");
-		assert.equal(defaultExamId([{ id: "a", daysUntil: -9 }, { id: "b", daysUntil: -2 }]), "b");
+	it("defaultDeadlineId: the soonest deadline still ahead, else the last", () => {
+		assert.equal(defaultDeadlineId([]), null);
+		assert.equal(defaultDeadlineId([{ id: "a", daysUntil: -3 }, { id: "b", daysUntil: 4 }]), "b");
+		assert.equal(defaultDeadlineId([{ id: "a", daysUntil: -9 }, { id: "b", daysUntil: -2 }]), "b");
+	});
+
+	it("pickableDeadlines: open ones that cover files", () => {
+		const f = [{ id: "f1", name: "Lecture 1" }];
+		const picked = pickableDeadlines([
+			{ id: "done", done: true, files: f },
+			{ id: "empty", done: false, files: [] },
+			{ id: "ok", done: false, files: f },
+		]);
+		assert.deepEqual(picked.map((d) => d.id), ["ok"]);
 	});
 
 	it("countdown, date and files lines", () => {
@@ -163,9 +174,9 @@ describe("panel helpers", () => {
 		assert.equal(countdownText(1), "1 day");
 		assert.equal(countdownText(0), "Today");
 		assert.equal(countdownText(-2), "2 days ago");
-		assert.equal(examDateText("2026-11-05"), "Thu Nov 5");
-		assert.equal(examFilesText([{ name: "Lecture 1" }]), "Lecture 1");
-		assert.equal(examFilesText([{ name: "a" }, { name: "b" }]), "2 files");
+		assert.equal(deadlineDateText("2026-11-05"), "Thu Nov 5");
+		assert.equal(deadlineFilesText([{ name: "Lecture 1" }]), "Lecture 1");
+		assert.equal(deadlineFilesText([{ name: "a" }, { name: "b" }]), "2 files");
 	});
 
 	it("readinessBlocks: strong, shaky, weak, then not tested", () => {

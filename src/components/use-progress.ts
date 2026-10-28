@@ -6,7 +6,7 @@
  * Re-reads when the class changes, when a turn settles (new answers), when
  * background activity changes (a graph build or the topic grouper
  * finished; debounced so a burst of updates causes one fetch), when classes
- * change (exams edited) and after the events channel reconnects.
+ * change (deadlines edited) and after the events channel reconnects.
  * A stale response for a previous class is dropped.
  */
 
@@ -15,7 +15,7 @@ import type { ProgressPayload } from "@/core";
 import { classQuery, useClasses } from "@/components/class-context";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 
-/** The browser's calendar day as YYYY-MM-DD (sets the exams' days left). */
+/** The browser's calendar day as YYYY-MM-DD (sets the deadlines' days left). */
 export function localDay(now: Date = new Date()): string {
 	const y = now.getFullYear();
 	const m = String(now.getMonth() + 1).padStart(2, "0");

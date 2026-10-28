@@ -20,7 +20,7 @@ const TOOLTIP_WIDTH = 232;
 export interface TopicMapProps {
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
-	/** The topics that stay bright (on the picked exam, matching the
+	/** The topics that stay bright (on the picked deadline, matching the
 	 *  search); every other topic fades. null = all bright. */
 	focus: ReadonlySet<string> | null;
 	selectedId: string | null;

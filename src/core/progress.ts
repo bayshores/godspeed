@@ -2,7 +2,7 @@
  * PROGRESS — every number the Overview and the topic Graph show (redesign
  * plan, owner-approved 2026-10-27). Nothing here is saved: it is all
  * derived from what the app already records (lesson answers, graph facts
- * and chains, class files and exams) plus the topic grouper's snapshot.
+ * and chains, class files and deadlines) plus the topic grouper's snapshot.
  *
  *  - answers: every graded quiz/probe answer in a lesson
  *  - answer → facts: the facts made from the lesson message that asked it
@@ -10,15 +10,15 @@
  *  - topic score / status / overconfidence, arrows between topics, columns
  *  - coverage per study file and "Next up"
  *  - how each lesson went, calibration per confidence level
- *  - per exam: days left, its topics, where you're at, "Work on next"
+ *  - per deadline: days left, ready %, its topics, where you're at, "Work on next"
  *  - the lesson plan's step bar (planStepBar — the lesson UI calls it
  *    client-side with its view messages)
  *
  * Pure and browser-safe: no node builtins. The server assembles the inputs
  * (src/server/progress.ts → GET /api/progress).
  */
-import type { ClassExam, ClassFileKind, GraphChain, PlanNodeStatus, PlanTree, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
-import { derivedNodeStatus, derivePlanStatuses } from "./contracts.ts";
+import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, PlanNodeStatus, PlanTree, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
+import { compareDeadlines, derivedNodeStatus, derivePlanStatuses } from "./contracts.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { QUESTION_TOOLS } from "./pending.ts";
 import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
@@ -476,7 +476,7 @@ export function calibration(answers: readonly AnsweredQuestion[], titleOf: (chat
 	return { levels, sureButWrong };
 }
 
-// ─── exams + "Work on next" ─────────────────────────────────────────────────
+// ─── deadlines + "Work on next" ────────────────────────────────────────────
 
 export interface StatusCounts {
 	strong: number;
@@ -493,20 +493,29 @@ export interface WorkOnNextItem {
 	reason: string;
 }
 
-export interface ExamProgress {
+export interface DeadlineProgress {
 	id: string;
+	kind: DeadlineKind;
 	name: string;
 	date: string;
-	/** Whole days from `today` (negative once the exam has passed). */
+	/** "HH:MM"; absent = no time (due 23:59). */
+	time?: string;
+	done: boolean;
+	/** Whole days from `today` (negative once the day has passed). */
 	daysUntil: number;
 	files: { id: string; name: string }[];
-	/** Topics with at least one fact born in the exam's files. */
+	/** Topics with at least one fact born in the deadline's files. */
 	topicIds: string[];
 	counts: StatusCounts;
 	workOnNext: WorkOnNextItem[];
+	/** The average right rate over its topics, untested ones counted as 0.
+	 *  null when it has no topics. */
+	ready: number | null;
+	/** Its topics, weakest first (untested counted as 0, then by name). */
+	topics: { id: string; name: string; rate: number | null }[];
 }
 
-/** The class-wide view (no exam picked, or none exists). */
+/** The class-wide view (no deadline picked, or none exists). */
 export interface OverallProgress {
 	topicIds: string[];
 	counts: StatusCounts;
@@ -535,13 +544,13 @@ export function statusCounts(topics: ReadonlyArray<Pick<TopicProgress, "status">
  *  2. overconfident topics ("overconfident");
  *  3. the remaining weak/shaky ones ("Needed for <dependent>" when a topic
  *     in the set builds on it, else "<n>% right");
- *  4. untested topics ("On the exam, never practiced" / "Never practiced").
+ *  4. untested topics ("Due soon, never practiced" / "Never practiced").
  * Within a group: lowest right rate first, then earlier column, then name.
  */
 export function workOnNext(
 	topics: readonly TopicProgress[],
 	links: readonly TopicLink[],
-	context: "exam" | "class",
+	context: "deadline" | "class",
 ): WorkOnNextItem[] {
 	const inSet = new Map(topics.map((t) => [t.id, t]));
 	const struggling = (t: TopicProgress | undefined) => !!t && (t.status === "weak" || t.status === "shaky");
@@ -572,7 +581,7 @@ export function workOnNext(
 	}
 	for (const t of sorted) {
 		if (listed.has(t.id) || t.status !== "untested") continue;
-		add(t, context === "exam" ? "On the exam, never practiced" : "Never practiced");
+		add(t, context === "deadline" ? "Due soon, never practiced" : "Never practiced");
 	}
 	return out;
 }
@@ -589,7 +598,7 @@ export interface ProgressInput {
 	topics: TopicSnapshot | null;
 	/** The class's files (empty for "No class"), in class order. */
 	files: readonly ProgressFileInput[];
-	exams: readonly ClassExam[];
+	deadlines: readonly ClassDeadline[];
 	/** The lessons in the class (teach and practice). */
 	lessons: readonly ProgressLessonInput[];
 	/** A topic-grouping run is going right now. */
@@ -613,8 +622,8 @@ export interface ProgressPayload {
 	/** Newest activity first. */
 	lessons: LessonProgress[];
 	calibration: Calibration;
-	/** Soonest first. */
-	exams: ExamProgress[];
+	/** Every deadline (done ones too), soonest due first. */
+	deadlines: DeadlineProgress[];
 	overall: OverallProgress;
 	/** Totals over every graded answer in the class. */
 	totals: Tally;
@@ -700,28 +709,32 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 		})
 		.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
-	// Exams: topics born in the exam's files. The "Ungrouped" bucket is
-	// never a recommendation.
+	// Deadlines: topics born in the deadline's files. The "Ungrouped"
+	// bucket is never a recommendation.
 	const grouped = topics.filter((t) => !t.ungrouped);
 	const bornIn = new Map(input.facts.map((f) => [f.id, birthSessionOf(f)]));
 	const sourceOfFile = new Map(input.files.map((f) => [f.id, f.sourceId]));
 	const nameOfFile = new Map(input.files.map((f) => [f.id, f.name]));
-	const exams: ExamProgress[] = [...input.exams]
-		.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name))
-		.map((exam) => {
-			const sources = new Set(exam.fileIds.map((id) => sourceOfFile.get(id)).filter((s): s is string => !!s));
-			const onExam = grouped.filter((t) => t.members.some((id) => sources.has(bornIn.get(id) ?? "")));
-			return {
-				id: exam.id,
-				name: exam.name,
-				date: exam.date,
-				daysUntil: daysBetween(input.today, exam.date),
-				files: exam.fileIds.map((id) => ({ id, name: nameOfFile.get(id) ?? id })),
-				topicIds: onExam.map((t) => t.id),
-				counts: statusCounts(onExam),
-				workOnNext: workOnNext(onExam, links, "exam"),
-			};
-		});
+	const deadlines: DeadlineProgress[] = [...input.deadlines].sort(compareDeadlines).map((d) => {
+		const sources = new Set(d.fileIds.map((id) => sourceOfFile.get(id)).filter((s): s is string => !!s));
+		const covered = grouped.filter((t) => t.members.some((id) => sources.has(bornIn.get(id) ?? "")));
+		const weakest = [...covered].sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0) || a.name.localeCompare(b.name));
+		return {
+			id: d.id,
+			kind: d.kind,
+			name: d.name,
+			date: d.date,
+			...(d.time !== undefined ? { time: d.time } : {}),
+			done: d.done,
+			daysUntil: daysBetween(input.today, d.date),
+			files: d.fileIds.map((id) => ({ id, name: nameOfFile.get(id) ?? id })),
+			topicIds: covered.map((t) => t.id),
+			counts: statusCounts(covered),
+			workOnNext: workOnNext(covered, links, "deadline"),
+			ready: covered.length === 0 ? null : covered.reduce((sum, t) => sum + (t.rate ?? 0), 0) / covered.length,
+			topics: weakest.map((t) => ({ id: t.id, name: t.name, rate: t.rate })),
+		};
+	});
 
 	return {
 		classId: input.classId,
@@ -735,7 +748,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 		nextUp: nextUpFile(files),
 		lessons,
 		calibration: calibration(allAnswers, (id) => titles.get(id) ?? id),
-		exams,
+		deadlines,
 		overall: { topicIds: grouped.map((t) => t.id), counts: statusCounts(grouped), workOnNext: workOnNext(grouped, links, "class") },
 		totals: tally(allAnswers),
 	};

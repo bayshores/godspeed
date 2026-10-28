@@ -1,10 +1,11 @@
 /**
- * The Edit class dialog with Exams (redesign plan, Phase 6 —
- * docs/design/exports/edit-class-exams.html), mounted over linkedom with a fake
- * fetch: exam rows read "Midterm 1 · Thu Oct 29 · 2 files"; one opens to
- * its name, date and a checkbox per study file; Add exam and Remove exam
- * are drafts until Save, which writes the class, then removals, changes
- * and new exams through the exam routes. The dialog has no file list.
+ * The Edit class dialog with Deadlines (plan 2026-10-28; exams before that),
+ * mounted over linkedom with a fake fetch: rows read "Midterm 1 · Exam ·
+ * Thu Oct 29, 7:00 PM · 2 files" (done ones show a tick); one opens to its
+ * kind, name, date, time, a checkbox per study file and Done; Add deadline
+ * and Remove deadline are drafts until Save, which writes the class, then
+ * removals, changes and new deadlines through the deadline routes. The
+ * dialog has no file list.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -45,9 +46,10 @@ const RECORD: ClassRecord = {
 	updatedAt: "",
 	archived: false,
 	files: [file("f1", "Lecture 1 — Counting.pdf"), file("f2", "Lecture 2 — Permutations.pdf"), file("f3", "Rosen 6.2.pdf"), file("f4", "Syllabus.pdf", "info")],
-	exams: [
-		{ id: "exm_1", name: "Midterm 1", date: "2026-10-29", fileIds: ["f1", "f2"] },
-		{ id: "exm_2", name: "Final", date: "2026-12-09", fileIds: ["f1", "f2", "f3"] },
+	deadlines: [
+		{ id: "exm_1", kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false },
+		{ id: "ddl_3", kind: "homework", name: "HW 1", date: "2026-11-01", fileIds: [], done: true, doneAt: "2026-10-28T10:00:00.000Z" },
+		{ id: "exm_2", kind: "exam", name: "Final", date: "2026-12-09", fileIds: ["f1", "f2", "f3"], done: false },
 	],
 };
 
@@ -61,7 +63,8 @@ function fakeFetch() {
 		if (method !== "GET") calls.push({ method, url, body });
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
 		if (url === "/api/classes/cls_a" && method === "GET") return Response.json({ class: RECORD });
-		if (url === "/api/classes/cls_a/exams" && method === "POST") return Response.json({ exam: { id: "exm_new", ...body } }, { status: 201 });
+		if (url === "/api/classes/cls_a/deadlines" && method === "POST")
+			return Response.json({ deadline: { id: "ddl_new", done: false, ...body } }, { status: 201 });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
 }
@@ -99,6 +102,13 @@ async function typeInto(el: HTMLElement | null, value: string) {
 		el.dispatchEvent(new window.Event("input", { bubbles: true }));
 	});
 }
+async function choose(el: HTMLElement | null, value: string) {
+	assert.ok(el, "missing select");
+	await act(async () => {
+		Object.defineProperty(el, "value", { configurable: true, writable: true, value });
+		el.dispatchEvent(new window.Event("change", { bubbles: true }));
+	});
+}
 /** linkedom's click doesn't flip a checkbox: flip it, then click. */
 async function check(el: HTMLElement | null) {
 	assert.ok(el, "missing checkbox");
@@ -120,68 +130,103 @@ afterEach(async () => {
 	globalThis.fetch = originalFetch;
 });
 
-describe("Edit class dialog — exams", () => {
-	it("shows name, description and the exams, and no file list", async () => {
+describe("Edit class dialog — deadlines", () => {
+	it("shows name, description and the deadlines, and no file list", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
 		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "Edit class");
 		assert.equal((q("class-name") as HTMLInputElement).value, "CSE 21");
-		const midterm = q("class-exam-exm_1")!.textContent!;
+		assert.match(q("class-deadlines")!.textContent!, /Deadlines/);
+		assert.match(q("class-add-deadline")!.textContent!, /Add deadline/);
+		const midterm = q("class-deadline-exm_1")!.textContent!;
 		assert.match(midterm, /Midterm 1/);
-		assert.match(midterm, /Thu Oct 29/);
+		assert.match(midterm, /Exam/);
+		assert.match(midterm, /Thu Oct 29, 7:00 PM/);
 		assert.match(midterm, /2 files/);
+		assert.equal(q("class-deadline-exm_1")!.querySelector('[data-testid="class-deadline-done-tick"]'), null);
+		const hw = q("class-deadline-ddl_3")!;
+		assert.match(hw.textContent!, /HW 1/);
+		assert.match(hw.textContent!, /Homework/);
+		assert.match(hw.textContent!, /Sun Nov 1/);
+		assert.doesNotMatch(hw.textContent!, /PM|AM/, "no time, no clock");
+		assert.ok(hw.querySelector('[data-testid="class-deadline-done-tick"]'), "a done one shows a tick");
+		assert.equal(hw.getAttribute("data-done"), "true");
 		assert.equal(q("class-files"), null, "the file list moved to the Files page");
 		assert.ok(q("class-archive") && q("class-delete") && q("class-save"));
 	});
 
-	it("an open exam lists the study files as checkboxes", async () => {
+	it("an open deadline has kind, name, date, time, the study files and Done", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
-		await click(q("class-exam-exm_1"));
-		assert.ok(q("class-exam-name"), "the name is a field");
-		assert.ok(q("class-exam-date"), "the date is a field");
-		assert.equal((q("class-exam-file-f1") as HTMLInputElement).checked, true);
-		assert.equal((q("class-exam-file-f3") as HTMLInputElement).checked, false);
-		assert.equal(q("class-exam-file-f4"), null, "course info is not offered");
+		await click(q("class-deadline-exm_1"));
+		assert.equal((q("class-deadline-kind") as HTMLSelectElement).value, "exam");
+		assert.deepEqual(
+			[...q("class-deadline-kind")!.querySelectorAll("option")].map((o) => o.textContent),
+			["Exam", "Homework", "Quiz", "Project"],
+		);
+		assert.ok(q("class-deadline-name"), "the name is a field");
+		assert.ok(q("class-deadline-date"), "the date is a field");
+		assert.equal((q("class-deadline-time") as HTMLInputElement).value, "19:00");
+		assert.ok(q("class-deadline-time-clear"), "a set time can be cleared");
+		assert.equal((q("class-deadline-file-f1") as HTMLInputElement).checked, true);
+		assert.equal((q("class-deadline-file-f3") as HTMLInputElement).checked, false);
+		assert.equal(q("class-deadline-file-f4"), null, "course info is not offered");
+		assert.equal((q("class-deadline-done") as HTMLInputElement).checked, false);
+		assert.match(q("class-deadline-remove")!.textContent!, /Remove deadline/);
 		// One open at a time.
-		await click(q("class-exam-exm_2"));
-		assert.equal(q("class-exam-exm_1")!.getAttribute("aria-expanded"), "false");
+		await click(q("class-deadline-exm_2"));
+		assert.equal(q("class-deadline-exm_1")!.getAttribute("aria-expanded"), "false");
 	});
 
-	it("Save writes the class, then removals, changes and new exams", async () => {
+	it("Save writes the class, then removals, changes and new deadlines", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
-		// Midterm 1 gains Rosen 6.2.
-		await click(q("class-exam-exm_1"));
-		await check(q("class-exam-file-f3"));
-		assert.match(q("class-exam-exm_1")!.textContent!, /3 files/);
+		// Midterm 1 gains Rosen 6.2, loses its time, and is done.
+		await click(q("class-deadline-exm_1"));
+		await check(q("class-deadline-file-f3"));
+		await click(q("class-deadline-time-clear"));
+		await check(q("class-deadline-done"));
+		assert.match(q("class-deadline-exm_1")!.textContent!, /3 files/);
+		// HW 1 is not done after all, and becomes a quiz.
+		await click(q("class-deadline-ddl_3"));
+		await check(q("class-deadline-done"));
+		await choose(q("class-deadline-kind"), "quiz");
 		// The Final goes.
-		await click(q("class-exam-exm_2"));
-		await click(q("class-exam-remove"));
-		assert.equal(q("class-exam-exm_2"), null);
-		// A new quiz.
-		await click(q("class-add-exam"));
-		await typeInto(q("class-exam-name"), "Quiz");
-		await typeInto(q("class-exam-date"), "2026-11-02");
-		await check(q("class-exam-file-f2"));
+		await click(q("class-deadline-exm_2"));
+		await click(q("class-deadline-remove"));
+		assert.equal(q("class-deadline-exm_2"), null);
+		// A new homework, due at 5 PM, already done.
+		await click(q("class-add-deadline"));
+		await choose(q("class-deadline-kind"), "homework");
+		await typeInto(q("class-deadline-name"), "HW 2");
+		await typeInto(q("class-deadline-date"), "2026-11-02");
+		await typeInto(q("class-deadline-time"), "17:00");
+		await check(q("class-deadline-file-f2"));
+		await check(q("class-deadline-done"));
 		await click(q("class-save"));
 		await act(async () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.deepEqual(calls, [
 			{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21", description: "Discrete math" } },
-			{ method: "DELETE", url: "/api/classes/cls_a/exams/exm_2", body: undefined },
-			{ method: "PUT", url: "/api/classes/cls_a/exams/exm_1", body: { fileIds: ["f1", "f2", "f3"] } },
-			{ method: "POST", url: "/api/classes/cls_a/exams", body: { name: "Quiz", date: "2026-11-02", fileIds: ["f2"] } },
+			{ method: "DELETE", url: "/api/classes/cls_a/deadlines/exm_2", body: undefined },
+			{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { time: null, fileIds: ["f1", "f2", "f3"], done: true } },
+			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_3", body: { kind: "quiz", done: false } },
+			{
+				method: "POST",
+				url: "/api/classes/cls_a/deadlines",
+				body: { kind: "homework", name: "HW 2", date: "2026-11-02", time: "17:00", fileIds: ["f2"] },
+			},
+			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_new", body: { done: true } },
 		]);
 		assert.equal(closed, 1);
 	});
 
-	it("an exam without a date stops Save before anything is written", async () => {
+	it("a deadline without a date stops Save before anything is written", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
-		await click(q("class-add-exam"));
-		await typeInto(q("class-exam-name"), "Quiz");
+		await click(q("class-add-deadline"));
+		await typeInto(q("class-deadline-name"), "Quiz");
 		await click(q("class-save"));
 		assert.equal(q("class-dialog-error")!.textContent, "Quiz needs a date.");
 		assert.deepEqual(calls, []);
@@ -192,7 +237,7 @@ describe("Edit class dialog — exams", () => {
 		fakeFetch();
 		await mount({ kind: "create" });
 		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "New class");
-		assert.equal(q("class-exams"), null);
+		assert.equal(q("class-deadlines"), null);
 		assert.equal(q("class-save")!.textContent, "Create class");
 	});
 });

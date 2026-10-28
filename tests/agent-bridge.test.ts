@@ -191,7 +191,7 @@ describe("the /api/mcp door", () => {
 		const tools = await (await mcp.handleMcpRequest(rpc(listTools, auth))).json();
 		const names = tools.result.tools.map((t: { name: string }) => t.name).sort();
 		assert.deepEqual(names, [
-			"add_class_exam",
+			"add_class_deadline",
 			"add_class_file",
 			"create_class",
 			"import_notes",
@@ -200,14 +200,14 @@ describe("the /api/mcp door", () => {
 			"list_lessons",
 			"read_class",
 			"read_lesson",
-			"remove_class_exam",
+			"remove_class_deadline",
 			"respond",
 			"search_graph",
 			"set_class_file_kind",
 			"start_lesson",
 			"unlink_class_folder",
 			"update_class",
-			"update_class_exam",
+			"update_class_deadline",
 			"wait_for_work",
 		]);
 		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a class is app-only (owner ruling)");
@@ -245,20 +245,31 @@ describe("the /api/mcp door", () => {
 		const searched = await call("search_graph", { class_id: id, query: "anything" });
 		assert.equal(searched.error, false, JSON.stringify(searched.body));
 
-		// Exams (redesign plan, 2026-10-27): add from the syllabus, fix, remove.
-		const exam = await call("add_class_exam", { class_id: id, name: "Midterm 1", date: "2026-11-05" });
-		assert.equal(exam.error, false, JSON.stringify(exam.body));
-		const examId = exam.body.exam.id as string;
-		assert.equal((await call("add_class_exam", { class_id: id, name: "Final", date: "next week" })).error, true);
-		assert.equal((await call("add_class_exam", { class_id: id, name: "Final", date: "2026-12-10", file_ids: ["f_nope"] })).error, true);
-		assert.equal((await call("add_class_exam", { class_id: "cls_missing", name: "Final", date: "2026-12-10" })).error, true);
-		const moved = await call("update_class_exam", { class_id: id, exam_id: examId, date: "2026-11-06" });
-		assert.equal(moved.body.exam.date, "2026-11-06");
-		const withExam = await call("read_class", { class_id: id });
-		assert.deepEqual(withExam.body.exams, [{ id: examId, name: "Midterm 1", date: "2026-11-06", files: [] }]);
-		assert.equal((await call("remove_class_exam", { class_id: id, exam_id: examId })).error, false);
-		assert.equal((await call("remove_class_exam", { class_id: id, exam_id: examId })).error, true);
-		assert.deepEqual((await call("read_class", { class_id: id })).body.exams, []);
+		// Deadlines (2026-10-28; exams before): add from the syllabus, fix, tick done, remove.
+		const added = await call("add_class_deadline", { class_id: id, kind: "homework", name: "HW 1", date: "2026-11-05", time: "17:00" });
+		assert.equal(added.error, false, JSON.stringify(added.body));
+		const deadlineId = added.body.deadline.id as string;
+		assert.match(deadlineId, /^ddl_/);
+		assert.equal((await call("add_class_deadline", { class_id: id, kind: "exam", name: "Final", date: "next week" })).error, true);
+		assert.equal((await call("add_class_deadline", { class_id: id, kind: "exam", name: "Final", date: "2026-12-10", time: "8am" })).error, true);
+		assert.equal((await call("add_class_deadline", { class_id: id, kind: "essay", name: "Final", date: "2026-12-10" })).error, true);
+		assert.equal((await call("add_class_deadline", { class_id: id, kind: "exam", name: "Final", date: "2026-12-10", file_ids: ["f_nope"] })).error, true);
+		assert.equal((await call("add_class_deadline", { class_id: "cls_missing", kind: "exam", name: "Final", date: "2026-12-10" })).error, true);
+		const moved = await call("update_class_deadline", { class_id: id, deadline_id: deadlineId, date: "2026-11-06", kind: "quiz", done: true });
+		assert.equal(moved.body.deadline.date, "2026-11-06");
+		assert.equal(moved.body.deadline.done, true);
+		const withDeadline = await call("read_class", { class_id: id });
+		assert.match(withDeadline.body.today, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/, "read_class carries the local date and time");
+		assert.deepEqual(withDeadline.body.deadlines, [{ id: deadlineId, kind: "quiz", name: "HW 1", date: "2026-11-06", time: "17:00", done: true, files: [] }]);
+		const cleared = await call("update_class_deadline", { class_id: id, deadline_id: deadlineId, time: null, done: false });
+		assert.equal(cleared.error, false, JSON.stringify(cleared.body));
+		assert.deepEqual((await call("read_class", { class_id: id })).body.deadlines, [
+			{ id: deadlineId, kind: "quiz", name: "HW 1", date: "2026-11-06", done: false, files: [] },
+		]);
+		assert.equal((await call("update_class_deadline", { class_id: id, deadline_id: "ddl_nope", name: "x" })).error, true);
+		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: deadlineId })).error, false);
+		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: deadlineId })).error, true);
+		assert.deepEqual((await call("read_class", { class_id: id })).body.deadlines, []);
 	});
 });
 

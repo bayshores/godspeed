@@ -67,19 +67,23 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
-// ── classes: version 2 since exams (redesign, 2026-10-27) ──────────────────
+// ── classes: version 3 since deadlines (2026-10-28; v2 had exams) ──────────
 
-test("classes: writes stamp version 2; a version-1 record still reads; a newer one is refused", () => {
+test("classes: writes stamp version 3; version-1 and version-2 records still read; a newer one is refused", () => {
 	const r = classStore.createClass({ name: "stamp class" });
-	assert.equal(r.version, 2);
+	assert.equal(r.version, 3);
 	const file = path.join(TMP_DATA, "classes", r.id, "class.json");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 2);
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 3);
 	const raw = JSON.parse(fs.readFileSync(file, "utf8"));
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }), "utf-8");
-	assert.equal(classStore.getClass(r.id)?.version, 1, "v1 reads as-is (no exams)");
-	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 3 }), "utf-8");
+	assert.equal(classStore.getClass(r.id)?.version, 1, "v1 reads as-is (no deadlines)");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 2, exams: [{ id: "exm_000000000001", name: "Midterm", date: "2026-11-05", fileIds: [] }] }), "utf-8");
+	const v2 = classStore.getClass(r.id);
+	assert.equal(v2?.version, 2, "v2 reads");
+	assert.deepEqual(v2?.deadlines?.map((d) => [d.id, d.kind, d.done]), [["exm_000000000001", "exam", false]], "its exams read as deadlines");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 4 }), "utf-8");
 	assert.equal(classStore.getClass(r.id), null, "a newer build's record is refused");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 3, "and left untouched");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 4, "and left untouched");
 });
 
 // ── the graph family: the lazy format.json sidecar ──────────────────────────

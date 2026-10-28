@@ -15,9 +15,17 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
-import type { ClassPatch, ClassStore } from "../core/ports.ts";
-import type { ClassExam, ClassFile, ClassRecord, ClassSummary } from "../core/contracts.ts";
-import { ClassExamError, CURRENT_CLASS_VERSION, isClassId, isExamDate } from "../core/contracts.ts";
+import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../core/ports.ts";
+import type { ClassDeadline, ClassFile, ClassRecord, ClassSummary, DeadlineKind } from "../core/contracts.ts";
+import {
+	ClassDeadlineError,
+	compareDeadlines,
+	CURRENT_CLASS_VERSION,
+	isCalendarDate,
+	isClassId,
+	isClockTime,
+	isDeadlineKind,
+} from "../core/contracts.ts";
 
 function classDir(id: string): string {
 	if (!isClassId(id)) throw new Error(`Invalid class id: ${id}`);
@@ -55,11 +63,44 @@ const isClassFile = (v: unknown): v is ClassFile =>
 	isString(v.status) &&
 	isString(v.addedAt);
 
-const isClassExam = (v: unknown): v is ClassExam =>
+/** A v3 deadline as saved. */
+const isClassDeadline = (v: unknown): v is ClassDeadline =>
+	isRecord(v) &&
+	isString(v.id) &&
+	isDeadlineKind(v.kind) &&
+	isString(v.name) &&
+	isString(v.date) &&
+	(v.time === undefined || isString(v.time)) &&
+	Array.isArray(v.fileIds) &&
+	v.fileIds.every(isString) &&
+	typeof v.done === "boolean";
+
+/** A v2 exam as saved (read as a deadline of kind "exam"). */
+const isLegacyExam = (v: unknown): v is { id: string; name: string; date: string; fileIds: string[] } =>
 	isRecord(v) && isString(v.id) && isString(v.name) && isString(v.date) && Array.isArray(v.fileIds) && v.fileIds.every(isString);
 
-/** Exams soonest first; same day keeps name order. */
-const byDate = (a: ClassExam, b: ClassExam) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name);
+/** The record's deadlines: v3 `deadlines`, or an older record's `exams`
+ *  upgraded (kind "exam", not done, same id). Undefined when it has none. */
+function readDeadlines(parsed: Record<string, unknown>): ClassDeadline[] | undefined {
+	if (Array.isArray(parsed.deadlines)) {
+		return parsed.deadlines.filter(isClassDeadline).map((d) => ({
+			id: d.id,
+			kind: d.kind,
+			name: d.name,
+			date: d.date,
+			...(d.time !== undefined ? { time: d.time } : {}),
+			fileIds: d.fileIds,
+			done: d.done,
+			...(d.done && isString(d.doneAt) ? { doneAt: d.doneAt } : {}),
+		}));
+	}
+	if (Array.isArray(parsed.exams)) {
+		return parsed.exams
+			.filter(isLegacyExam)
+			.map((e) => ({ id: e.id, kind: "exam" as const, name: e.name, date: e.date, fileIds: e.fileIds, done: false }));
+	}
+	return undefined;
+}
 
 function getClass(id: string): ClassRecord | null {
 	let parsed: unknown;
@@ -76,9 +117,10 @@ function getClass(id: string): ClassRecord | null {
 	}
 	if (!isString(parsed.id) || !isString(parsed.name) || !isString(parsed.createdAt) || !isString(parsed.updatedAt)) return null;
 	const files = Array.isArray(parsed.files) ? parsed.files.filter(isClassFile) : [];
-	// A removed file drops out of every exam that covered it (read-side —
+	// A removed file drops out of every deadline that covered it (read-side —
 	// the next write persists the cleaned list).
 	const fileIds = new Set(files.map((f) => f.id));
+	const deadlines = readDeadlines(parsed);
 	return {
 		id: parsed.id,
 		name: parsed.name,
@@ -88,9 +130,7 @@ function getClass(id: string): ClassRecord | null {
 		archived: parsed.archived === true,
 		...(isString(parsed.linkedFolder) ? { linkedFolder: parsed.linkedFolder } : {}),
 		files,
-		...(Array.isArray(parsed.exams)
-			? { exams: parsed.exams.filter(isClassExam).map((e) => ({ ...e, fileIds: e.fileIds.filter((f) => fileIds.has(f)) })).sort(byDate) }
-			: {}),
+		...(deadlines ? { deadlines: deadlines.map((d) => ({ ...d, fileIds: d.fileIds.filter((f) => fileIds.has(f)) })).sort(compareDeadlines) } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
 	};
 }
@@ -167,24 +207,34 @@ function saveFiles(id: string, files: ClassFile[]): ClassRecord {
 	return record;
 }
 
-// ─── exams (redesign plan, 2026-10-27) ──────────────────────────────────────
+// ─── deadlines (plan 2026-10-28; exams before that) ─────────────────────────
 
-function examName(name: unknown): string {
+function deadlineName(name: unknown): string {
 	const clean = typeof name === "string" ? name.trim().replace(/\s+/g, " ").slice(0, 120) : "";
-	if (!clean) throw new ClassExamError("bad_name", "An exam needs a name");
+	if (!clean) throw new ClassDeadlineError("bad_name", "A deadline needs a name");
 	return clean;
 }
 
-function examDate(date: unknown): string {
-	if (!isExamDate(date)) throw new ClassExamError("bad_date", `The exam date must be a calendar date written YYYY-MM-DD (got ${JSON.stringify(date)})`);
+function deadlineKind(kind: unknown): DeadlineKind {
+	if (!isDeadlineKind(kind)) throw new ClassDeadlineError("bad_kind", `The kind must be exam, homework, quiz or project (got ${JSON.stringify(kind)})`);
+	return kind;
+}
+
+function deadlineDate(date: unknown): string {
+	if (!isCalendarDate(date)) throw new ClassDeadlineError("bad_date", `The date must be a calendar date written YYYY-MM-DD (got ${JSON.stringify(date)})`);
 	return date;
 }
 
-function examFiles(record: ClassRecord, fileIds: unknown): string[] {
-	if (!Array.isArray(fileIds) || !fileIds.every(isString)) throw new ClassExamError("unknown_file", "file ids must be a list of class file ids");
+function deadlineTime(time: unknown): string {
+	if (!isClockTime(time)) throw new ClassDeadlineError("bad_time", `The time must be a 24-hour time written HH:MM (got ${JSON.stringify(time)})`);
+	return time;
+}
+
+function deadlineFiles(record: ClassRecord, fileIds: unknown): string[] {
+	if (!Array.isArray(fileIds) || !fileIds.every(isString)) throw new ClassDeadlineError("unknown_file", "file ids must be a list of class file ids");
 	const known = new Set(record.files.map((f) => f.id));
 	const unknown = fileIds.filter((f) => !known.has(f));
-	if (unknown.length > 0) throw new ClassExamError("unknown_file", `Not files of this class: ${unknown.join(", ")}`);
+	if (unknown.length > 0) throw new ClassDeadlineError("unknown_file", `Not files of this class: ${unknown.join(", ")}`);
 	return [...new Set(fileIds)];
 }
 
@@ -194,43 +244,55 @@ function requireClass(id: string): ClassRecord {
 	return record;
 }
 
-function saveExams(record: ClassRecord, exams: ClassExam[]): void {
-	record.exams = [...exams].sort(byDate);
+function saveDeadlines(record: ClassRecord, deadlines: ClassDeadline[]): void {
+	record.deadlines = [...deadlines].sort(compareDeadlines);
 	record.updatedAt = new Date().toISOString();
 	writeClass(record);
 	emit("classes-changed", {});
 }
 
-function addExam(id: string, init: { name: string; date: string; fileIds?: string[] }): ClassExam {
+function addDeadline(id: string, init: DeadlineInit): ClassDeadline {
 	const record = requireClass(id);
-	const exam: ClassExam = {
-		id: `exm_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
-		name: examName(init.name),
-		date: examDate(init.date),
-		fileIds: examFiles(record, init.fileIds ?? []),
+	const time = init.time !== undefined ? deadlineTime(init.time) : undefined;
+	const deadline: ClassDeadline = {
+		id: `ddl_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
+		kind: deadlineKind(init.kind),
+		name: deadlineName(init.name),
+		date: deadlineDate(init.date),
+		...(time !== undefined ? { time } : {}),
+		fileIds: deadlineFiles(record, init.fileIds ?? []),
+		done: false,
 	};
-	saveExams(record, [...(record.exams ?? []), exam]);
-	return exam;
+	saveDeadlines(record, [...(record.deadlines ?? []), deadline]);
+	return deadline;
 }
 
-function updateExam(id: string, examId: string, patch: { name?: string; date?: string; fileIds?: string[] }): ClassExam {
+function updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): ClassDeadline {
 	const record = requireClass(id);
-	const prev = record.exams?.find((e) => e.id === examId);
-	if (!prev) throw new ClassExamError("exam_not_found", `No exam "${examId}" in this class`);
-	const next: ClassExam = {
+	const prev = record.deadlines?.find((d) => d.id === deadlineId);
+	if (!prev) throw new ClassDeadlineError("deadline_not_found", `No deadline "${deadlineId}" in this class`);
+	const time = patch.time === undefined ? prev.time : patch.time === null ? undefined : deadlineTime(patch.time);
+	const done = patch.done ?? prev.done;
+	// Ticking stamps the time; unticking clears it; leaving it alone keeps it.
+	const doneAt = !done ? undefined : patch.done === true && !prev.done ? new Date().toISOString() : prev.doneAt;
+	const next: ClassDeadline = {
 		id: prev.id,
-		name: patch.name !== undefined ? examName(patch.name) : prev.name,
-		date: patch.date !== undefined ? examDate(patch.date) : prev.date,
-		fileIds: patch.fileIds !== undefined ? examFiles(record, patch.fileIds) : prev.fileIds,
+		kind: patch.kind !== undefined ? deadlineKind(patch.kind) : prev.kind,
+		name: patch.name !== undefined ? deadlineName(patch.name) : prev.name,
+		date: patch.date !== undefined ? deadlineDate(patch.date) : prev.date,
+		...(time !== undefined ? { time } : {}),
+		fileIds: patch.fileIds !== undefined ? deadlineFiles(record, patch.fileIds) : prev.fileIds,
+		done,
+		...(doneAt !== undefined ? { doneAt } : {}),
 	};
-	saveExams(record, (record.exams ?? []).map((e) => (e.id === examId ? next : e)));
+	saveDeadlines(record, (record.deadlines ?? []).map((d) => (d.id === deadlineId ? next : d)));
 	return next;
 }
 
-function removeExam(id: string, examId: string): boolean {
+function removeDeadline(id: string, deadlineId: string): boolean {
 	const record = requireClass(id);
-	if (!record.exams?.some((e) => e.id === examId)) return false;
-	saveExams(record, record.exams.filter((e) => e.id !== examId));
+	if (!record.deadlines?.some((d) => d.id === deadlineId)) return false;
+	saveDeadlines(record, record.deadlines.filter((d) => d.id !== deadlineId));
 	return true;
 }
 
@@ -248,9 +310,9 @@ export const classStore: ClassStore = {
 	listClasses,
 	updateClass,
 	saveFiles,
-	addExam,
-	updateExam,
-	removeExam,
+	addDeadline,
+	updateDeadline,
+	removeDeadline,
 	deleteClass,
 	filesDir: (id) => path.join(classDir(id), "files"),
 	graphDir: (id) => path.join(classDir(id), "graph"),

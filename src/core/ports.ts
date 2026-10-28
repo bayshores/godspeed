@@ -24,7 +24,8 @@ import type {
 	SessionCheckpoint,
 	TurnUsage,
 	NotesSource,
-	ClassExam,
+	ClassDeadline,
+	DeadlineKind,
 	ClassFile,
 	ClassRecord,
 	ClassSummary,
@@ -151,6 +152,25 @@ export interface ClassPatch {
 	linkedFolder?: string | null;
 }
 
+/** A new deadline as the store takes it. */
+export interface DeadlineInit {
+	kind: DeadlineKind;
+	name: string;
+	date: string;
+	time?: string;
+	fileIds?: string[];
+}
+
+/** A deadline change. `time: null` clears the time. */
+export interface DeadlinePatch {
+	kind?: DeadlineKind;
+	name?: string;
+	date?: string;
+	time?: string | null;
+	fileIds?: string[];
+	done?: boolean;
+}
+
 export interface ClassStore {
 	createClass(init: { name: string; description?: string }): ClassRecord;
 	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
@@ -162,15 +182,17 @@ export interface ClassStore {
 	/** Replace the whole file list (the file pipeline's write). Quiet: no
 	 *  updatedAt bump, no event. */
 	saveFiles(id: string, files: ClassFile[]): ClassRecord;
-	/** Add an exam (validated: non-empty name, a YYYY-MM-DD date, every
-	 *  file id one of the class's files). Bumps updatedAt. Throws
-	 *  ClassExamError on bad input, Error on unknown class. */
-	addExam(id: string, exam: { name: string; date: string; fileIds?: string[] }): ClassExam;
-	/** Patch one exam (same validation). Throws ClassExamError when the
-	 *  exam is unknown or the input is bad. */
-	updateExam(id: string, examId: string, patch: { name?: string; date?: string; fileIds?: string[] }): ClassExam;
-	/** Remove one exam. False when unknown. */
-	removeExam(id: string, examId: string): boolean;
+	/** Add a deadline (validated: a known kind, non-empty name, a
+	 *  YYYY-MM-DD date, an optional HH:MM time, every file id one of the
+	 *  class's files). Starts not done. Bumps updatedAt. Throws
+	 *  ClassDeadlineError on bad input, Error on unknown class. */
+	addDeadline(id: string, deadline: DeadlineInit): ClassDeadline;
+	/** Patch one deadline (same validation). `time: null` clears the time;
+	 *  `done: true` stamps doneAt, `done: false` removes it. Throws
+	 *  ClassDeadlineError when the deadline is unknown or the input is bad. */
+	updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): ClassDeadline;
+	/** Remove one deadline. False when unknown. */
+	removeDeadline(id: string, deadlineId: string): boolean;
 	/** Delete the class folder entirely (record, copied files, graph).
 	 *  False when unknown. Lessons are the caller's choreography. */
 	deleteClass(id: string): boolean;

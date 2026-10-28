@@ -26,9 +26,10 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
-import type { ClassExam, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
-import { ClassExamError, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
+import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
 import { emit } from "../core/events.ts";
 import { extraction } from "./chat-handler.ts";
@@ -183,47 +184,60 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 	return { ok: true, value: { lessonsRemoved } };
 }
 
-// ─── exams (redesign plan, owner-approved 2026-10-27) ───────────────────────
+// ─── deadlines (plan 2026-10-28; exams before that) ─────────────────────────
 // Added by the learner (Edit class) or an outside agent from the syllabus
-// (MCP add_class_exam). The store validates; these map its refusals.
+// (MCP add_class_deadline). The store validates; these map its refusals.
 
-function examFailure(err: unknown): { ok: false; status: number; code: string; error: string } {
-	if (err instanceof ClassExamError) return fail(err.code === "exam_not_found" ? 404 : 400, err.code, err.message);
+function deadlineFailure(err: unknown): { ok: false; status: number; code: string; error: string } {
+	if (err instanceof ClassDeadlineError) return fail(err.code === "deadline_not_found" ? 404 : 400, err.code, err.message);
 	throw err;
 }
 
-export function listClassExams(classId: string): ClassOutcome<ClassExam[]> {
+export function listClassDeadlines(classId: string): ClassOutcome<ClassDeadline[]> {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return fail(404, "not_found", "No such class");
-	return { ok: true, value: record.exams ?? [] };
+	return { ok: true, value: record.deadlines ?? [] };
 }
 
-export function addClassExam(classId: string, exam: { name: string; date: string; fileIds?: string[] }): ClassOutcome<ClassExam> {
+export function addClassDeadline(classId: string, deadline: DeadlineInit): ClassOutcome<ClassDeadline> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
 	try {
-		return { ok: true, value: stores.classStore.addExam(classId, exam) };
+		return { ok: true, value: stores.classStore.addDeadline(classId, deadline) };
 	} catch (err) {
-		return examFailure(err);
+		return deadlineFailure(err);
 	}
 }
 
-export function updateClassExam(
-	classId: string,
-	examId: string,
-	patch: { name?: string; date?: string; fileIds?: string[] },
-): ClassOutcome<ClassExam> {
+export function updateClassDeadline(classId: string, deadlineId: string, patch: DeadlinePatch): ClassOutcome<ClassDeadline> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
 	try {
-		return { ok: true, value: stores.classStore.updateExam(classId, examId, patch) };
+		return { ok: true, value: stores.classStore.updateDeadline(classId, deadlineId, patch) };
 	} catch (err) {
-		return examFailure(err);
+		return deadlineFailure(err);
 	}
 }
 
-export function removeClassExam(classId: string, examId: string): ClassOutcome<null> {
+export function removeClassDeadline(classId: string, deadlineId: string): ClassOutcome<null> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
-	if (!stores.classStore.removeExam(classId, examId)) return fail(404, "exam_not_found", `No exam "${examId}" in this class`);
+	if (!stores.classStore.removeDeadline(classId, deadlineId)) return fail(404, "deadline_not_found", `No deadline "${deadlineId}" in this class`);
 	return { ok: true, value: null };
+}
+
+/** One open deadline with the class it belongs to (GET /api/deadlines). */
+export type OpenDeadline = ClassDeadline & { classId: string; className: string };
+
+/** Every deadline not yet done, across every class that is not archived,
+ *  soonest due first (Home and the sidebar's Due soon). */
+export function listOpenDeadlines(): OpenDeadline[] {
+	const out: OpenDeadline[] = [];
+	for (const summary of stores.classStore.listClasses()) {
+		if (summary.archived) continue;
+		const record = stores.classStore.getClass(summary.id);
+		for (const d of record?.deadlines ?? []) {
+			if (!d.done) out.push({ ...d, classId: summary.id, className: summary.name });
+		}
+	}
+	return out.sort((a, b) => compareDeadlines(a, b) || a.className.localeCompare(b.className));
 }
 
 // ─── file list mutation (sync read-modify-write) ────────────────────────────

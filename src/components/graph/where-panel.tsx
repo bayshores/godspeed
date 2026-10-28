@@ -1,15 +1,16 @@
 /**
- * The right panel with nothing selected — "Where you're at": the exam
- * picker and countdown, one block per topic on the exam (strong first),
- * the strong / shaky / weak / not tested counts, the "Work on next" list
- * and "Practice these N". With no exams it shows the class-wide view.
+ * The right panel with nothing selected — "Where you're at": the deadline
+ * picker and countdown, one block per topic the deadline covers (strong
+ * first), the strong / shaky / weak / not tested counts, the "Work on next"
+ * list and "Practice these N". With no open deadline that has files it
+ * shows the class-wide view.
  */
 import { memo, useCallback, useRef, useState } from "react";
 import { CalendarIcon, ChevronDownIcon, DumbbellIcon } from "lucide-react";
-import type { ExamProgress, ProgressPayload, StatusCounts, TopicProgress, WorkOnNextItem } from "@/core";
+import type { DeadlineProgress, ProgressPayload, StatusCounts, TopicProgress, WorkOnNextItem } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
-import { countdownText, examDateText, examFilesText, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
+import { countdownText, deadlineDateText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
 import { MENU_CLASS, MENU_ITEM_CLASS, useMenuDismiss } from "./menu.tsx";
 
 /** "Work on next" shows this many (the design's "Practice these 4"). */
@@ -19,31 +20,32 @@ const HEAD = "text-[13px] font-bold text-ink-3";
 
 export function WherePanel({
 	data,
-	examId,
-	onExamChange,
+	deadlineId,
+	onDeadlineChange,
 	onSelectTopic,
 	onPractice,
 	practicing,
 }: {
-	data: Pick<ProgressPayload, "exams" | "overall" | "topics">;
-	examId: string | null;
-	onExamChange: (id: string) => void;
+	data: Pick<ProgressPayload, "deadlines" | "overall" | "topics">;
+	deadlineId: string | null;
+	onDeadlineChange: (id: string) => void;
 	onSelectTopic: (id: string) => void;
 	onPractice: (topicIds: string[]) => void;
 	practicing: boolean;
 }) {
-	const exam = data.exams.find((e) => e.id === examId) ?? null;
-	const scope = exam ?? data.overall;
+	const pickable = pickableDeadlines(data.deadlines);
+	const deadline = pickable.find((d) => d.id === deadlineId) ?? null;
+	const scope = deadline ?? data.overall;
 	const byId = new Map(data.topics.map((t) => [t.id, t]));
 	const scoped = scope.topicIds.map((id) => byId.get(id)).filter((t): t is TopicProgress => !!t);
 	const next = scope.workOnNext.slice(0, WORK_ON_NEXT_LIMIT);
 	return (
 		<aside data-testid="where-panel" className="flex h-full w-[400px] shrink-0 flex-col border-l border-tone-2 bg-panel">
 			<div className="min-h-0 flex-1 overflow-y-auto px-6 py-[22px]">
-				{exam && (
+				{deadline && (
 					<>
-						<ExamPicker exams={data.exams} exam={exam} onChange={onExamChange} />
-						<Countdown exam={exam} />
+						<DeadlinePicker deadlines={pickable} deadline={deadline} onChange={onDeadlineChange} />
+						<Countdown deadline={deadline} />
 						<div className="h-[18px]" />
 					</>
 				)}
@@ -77,7 +79,15 @@ export function WherePanel({
 	);
 }
 
-function ExamPicker({ exams, exam, onChange }: { exams: readonly ExamProgress[]; exam: ExamProgress; onChange: (id: string) => void }) {
+function DeadlinePicker({
+	deadlines,
+	deadline,
+	onChange,
+}: {
+	deadlines: readonly DeadlineProgress[];
+	deadline: DeadlineProgress;
+	onChange: (id: string) => void;
+}) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const close = useCallback(() => setOpen(false), []);
@@ -87,30 +97,30 @@ function ExamPicker({ exams, exam, onChange }: { exams: readonly ExamProgress[];
 			<button
 				ref={anchorRef}
 				type="button"
-				data-testid="exam-picker"
+				data-testid="deadline-picker"
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
 				className="lh-press flex w-full items-center gap-2 bg-tone px-2.5 py-2 text-left text-sm font-bold text-ink hover:bg-tone-2"
 			>
 				<CalendarIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
-				<span className="min-w-0 flex-1 truncate">{exam.name}</span>
+				<span className="min-w-0 flex-1 truncate">{deadline.name}</span>
 				<ChevronDownIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="exam-picker-menu" preferredSide="down" align="left" menuClass={MENU_CLASS}>
-				{exams.map((e) => (
+			<MenuShell open={open} anchorRef={anchorRef} testid="deadline-picker-menu" preferredSide="down" align="left" menuClass={MENU_CLASS}>
+				{deadlines.map((d) => (
 					<button
-						key={e.id}
+						key={d.id}
 						type="button"
 						role="menuitemradio"
-						aria-checked={e.id === exam.id}
+						aria-checked={d.id === deadline.id}
 						onClick={() => {
-							onChange(e.id);
+							onChange(d.id);
 							setOpen(false);
 						}}
-						className={`${MENU_ITEM_CLASS} ${e.id === exam.id ? "font-bold text-ink" : ""}`}
+						className={`${MENU_ITEM_CLASS} ${d.id === deadline.id ? "font-bold text-ink" : ""}`}
 					>
-						{e.name}
+						{d.name}
 					</button>
 				))}
 			</MenuShell>
@@ -118,19 +128,19 @@ function ExamPicker({ exams, exam, onChange }: { exams: readonly ExamProgress[];
 	);
 }
 
-function Countdown({ exam }: { exam: ExamProgress }) {
-	const files = examFilesText(exam.files);
+function Countdown({ deadline }: { deadline: DeadlineProgress }) {
+	const files = deadlineFilesText(deadline.files);
 	const line = (
 		<span className="pb-1.5 text-[13.5px] text-ink-3">
-			{examDateText(exam.date)}
+			{deadlineDateText(deadline.date)}
 			{files ? ` · ${files}` : ""}
 		</span>
 	);
 	return (
-		<div className="mt-4 flex items-end gap-2.5" data-testid="exam-countdown">
-			<span className="text-[34px] font-extrabold leading-none text-ink">{countdownText(exam.daysUntil)}</span>
-			{exam.files.length > 1 ? (
-				<Tip title={exam.name} body={<span className="text-xs text-ink-2">{exam.files.map((f) => f.name).join(", ")}</span>}>
+		<div className="mt-4 flex items-end gap-2.5" data-testid="deadline-countdown">
+			<span className="text-[34px] font-extrabold leading-none text-ink">{countdownText(deadline.daysUntil)}</span>
+			{deadline.files.length > 1 ? (
+				<Tip title={deadline.name} body={<span className="text-xs text-ink-2">{deadline.files.map((f) => f.name).join(", ")}</span>}>
 					<span tabIndex={0} className="outline-none">
 						{line}
 					</span>

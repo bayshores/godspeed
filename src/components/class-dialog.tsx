@@ -1,12 +1,12 @@
 /**
  * THE CLASS DIALOG (classes wave 2026-10-26; redesigned 2026-10-27 —
- * docs/design/exports/edit-class-exams.html): create a class (name and
- * description) or edit one — name, description and its Exams — with
- * Archive and Delete class in the footer. The class's files live on the
- * Files page (src/components/files/*).
+ * docs/design/exports/edit-class-exams.html; exams became deadlines
+ * 2026-10-28): create a class (name and description) or edit one — name,
+ * description and its Deadlines — with Archive and Delete class in the
+ * footer. The class's files live on the Files page (src/components/files/*).
  *
- * Exam edits are drafts until Save (src/components/class-exams-model.ts turns
- * them into the exam routes' writes). Every write goes to /api/classes/*;
+ * Deadline edits are drafts until Save (src/components/class-deadlines-model.ts
+ * turns them into the deadline routes' writes). Every write goes to /api/classes/*;
  * the server announces classes-changed and the class list refetches.
  */
 
@@ -16,10 +16,10 @@ import { XIcon } from "lucide-react";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
-import { ExamsEditor } from "@/components/class-exams";
-import { draftProblem, draftsFrom, examWrites, type ExamDraft } from "@/components/class-exams-model";
+import { DeadlinesEditor } from "@/components/class-deadlines";
+import { deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
-import type { ClassExam, ClassRecord } from "@/core";
+import type { ClassDeadline, ClassRecord } from "@/core";
 
 type Mode = { kind: "create" } | { kind: "edit"; classId: string };
 
@@ -50,8 +50,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const { record, reload } = useClassRecord(classId);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const [drafts, setDrafts] = useState<ExamDraft[]>([]);
-	const [openExam, setOpenExam] = useState<string | null>(null);
+	const [drafts, setDrafts] = useState<DeadlineDraft[]>([]);
+	const [openDeadline, setOpenDeadline] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
@@ -64,7 +64,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			seeded.current = true;
 			setName(record.name);
 			setDescription(record.description);
-			setDrafts(draftsFrom(record.exams));
+			setDrafts(draftsFrom(record.deadlines));
 		}
 	}, [record]);
 
@@ -96,23 +96,23 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		return body;
 	};
 
-	const changeExam = useCallback((key: string, patch: Partial<Pick<ExamDraft, "name" | "date" | "fileIds">>) => {
+	const changeDeadline = useCallback((key: string, patch: Partial<Pick<DeadlineDraft, "kind" | "name" | "date" | "time" | "fileIds" | "done">>) => {
 		setDrafts((ds) => ds.map((d) => (d.key === key ? { ...d, ...patch } : d)));
 	}, []);
-	const addExam = useCallback(() => {
+	const addDeadline = useCallback(() => {
 		const key = `new-${++newCount.current}`;
-		setDrafts((ds) => [...ds, { key, name: "", date: "", fileIds: [] }]);
-		setOpenExam(key);
+		setDrafts((ds) => [...ds, { key, kind: "exam", name: "", date: "", time: "", fileIds: [], done: false }]);
+		setOpenDeadline(key);
 	}, []);
-	const removeExam = useCallback((key: string) => {
+	const removeDeadline = useCallback((key: string) => {
 		setDrafts((ds) => ds.filter((d) => d.key !== key));
 	}, []);
 
-	/** Save the exam drafts: each write in turn; a created exam keeps its
-	 *  new id so a retried Save never adds it twice. */
-	const saveExams = async (current: ClassRecord): Promise<string | null> => {
-		const base = `/api/classes/${encodeURIComponent(current.id)}/exams`;
-		for (const w of examWrites(current.exams, drafts)) {
+	/** Save the deadline drafts: each write in turn; a created deadline
+	 *  keeps its new id so a retried Save never adds it twice. */
+	const saveDeadlines = async (current: ClassRecord): Promise<string | null> => {
+		const base = `/api/classes/${encodeURIComponent(current.id)}/deadlines`;
+		for (const w of deadlineWrites(current.deadlines, drafts)) {
 			if (w.op === "remove") {
 				const { error: failed } = await send(`${base}/${encodeURIComponent(w.id)}`, { method: "DELETE" });
 				if (failed) return failed;
@@ -122,8 +122,14 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			} else {
 				const { error: failed, body } = await send(base, jsonInit("POST", w.body));
 				if (failed) return failed;
-				const exam = (body as { exam?: ClassExam } | null)?.exam;
-				if (exam) setDrafts((ds) => ds.map((d) => (d.key === w.key ? { ...d, id: exam.id } : d)));
+				const deadline = (body as { deadline?: ClassDeadline } | null)?.deadline;
+				if (!deadline) continue;
+				// A retried Save sees the new id; a ticked one then PUTs done.
+				setDrafts((ds) => ds.map((d) => (d.key === w.key ? { ...d, id: deadline.id } : d)));
+				if (w.done) {
+					const { error: doneFailed } = await send(`${base}/${encodeURIComponent(deadline.id)}`, jsonInit("PUT", { done: true }));
+					if (doneFailed) return doneFailed;
+				}
 			}
 		}
 		return null;
@@ -151,10 +157,10 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		setBusy(true);
 		setError(null);
 		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", { name, description }));
-		const examsFailed = failed ?? (await saveExams(record));
+		const deadlinesFailed = failed ?? (await saveDeadlines(record));
 		setBusy(false);
-		if (examsFailed) {
-			setError(examsFailed);
+		if (deadlinesFailed) {
+			setError(deadlinesFailed);
 			void reload();
 			return;
 		}
@@ -207,15 +213,15 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 
 					{mode.kind === "edit" && record && (
 						<div className="mt-2.5">
-							<ExamsEditor
+							<DeadlinesEditor
 								drafts={drafts}
 								files={record.files}
-								openKey={openExam}
+								openKey={openDeadline}
 								disabled={busy}
-								onOpen={setOpenExam}
-								onChange={changeExam}
-								onAdd={addExam}
-								onRemove={removeExam}
+								onOpen={setOpenDeadline}
+								onChange={changeDeadline}
+								onAdd={addDeadline}
+								onRemove={removeDeadline}
 							/>
 						</div>
 					)}
