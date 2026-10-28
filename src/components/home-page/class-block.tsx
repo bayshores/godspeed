@@ -21,8 +21,7 @@ export const ClassBlock = memo(function ClassBlock({
 	onOpenClass,
 }: {
 	cls: Pick<ClassSummary, "id" | "name" | "description">;
-	/** null while loading. */
-	progress: Pick<ProgressPayload, "facts" | "lessons"> | null;
+	progress: Pick<ProgressPayload, "facts" | "lessons">;
 	/** The class's soonest open deadline. */
 	nextDue: OpenDeadline | null;
 	nowMs: number;
@@ -31,54 +30,51 @@ export const ClassBlock = memo(function ClassBlock({
 	onOpenClass: (classId: string) => void;
 }) {
 	const firstLine = cls.description.split("\n").find((l) => l.trim() !== "")?.trim() ?? "";
-	const facts = progress ? studiedFacts(progress.facts) : null;
-	const latest = progress?.lessons[0] ?? null;
+	const facts = studiedFacts(progress.facts);
+	const latest = progress.lessons[0] ?? null;
 	return (
 		<section data-testid={`class-block-${cls.id}`} className={CARD}>
 			<div className="flex w-full min-w-0 flex-col gap-1">
 				<h2 className="truncate font-title text-[22px] leading-7 font-bold text-ink">{cls.name}</h2>
 				{firstLine && <p className="truncate text-[13.5px] leading-5 text-ink-2">{firstLine}</p>}
 			</div>
-			{facts && (
-				<div className="flex w-full flex-col gap-2">
-					<div data-testid="class-block-facts" className="flex items-baseline gap-1.5 text-[13.5px] text-ink-2">
-						<span className="font-mono text-[18px] leading-none font-bold tabular-nums text-ink">{facts.studied}</span>
-						<span>
-							of <span className="font-mono tabular-nums">{facts.total}</span> facts studied
-						</span>
-					</div>
-					<span className="flex h-1.5 w-full bg-tone-2" aria-hidden>
-						{facts.total > 0 && <span className="h-full bg-ink-2" style={{ width: `${(facts.studied / facts.total) * 100}%` }} />}
+			<div className="flex w-full flex-col gap-2">
+				<div data-testid="class-block-facts" className="flex items-baseline gap-1.5 text-[13.5px] text-ink-2">
+					<span className="font-mono text-[18px] leading-none font-bold tabular-nums text-ink">{facts.studied}</span>
+					<span>
+						of <span className="font-mono tabular-nums">{facts.total}</span> facts studied
 					</span>
 				</div>
-			)}
+				<span className="flex h-1.5 w-full bg-tone-2" aria-hidden>
+					{facts.total > 0 && <span className="h-full bg-ink-2" style={{ width: `${(facts.studied / facts.total) * 100}%` }} />}
+				</span>
+			</div>
 			{nextDue && (
 				<p data-testid="class-block-next-due" className="w-full truncate text-[13.5px] text-ink-2">
 					Next due: <span className="text-ink">{nextDueText(nextDue, nowMs)}</span>
 				</p>
 			)}
 			<div className="flex w-full gap-2">
-				{progress &&
-					(latest ? (
-						<button
-							type="button"
-							data-testid="class-block-continue"
-							onClick={() => onContinue(cls.id, latest.chatId)}
-							className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white"
-						>
-							<span className="min-w-0 truncate">Continue: {latest.title}</span>
-						</button>
-					) : (
-						<button
-							type="button"
-							data-testid="class-block-new-lesson"
-							onClick={() => onNewLesson(cls.id)}
-							className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white"
-						>
-							<PlusIcon className="size-3.5 shrink-0" aria-hidden />
-							New lesson
-						</button>
-					))}
+				{latest ? (
+					<button
+						type="button"
+						data-testid="class-block-continue"
+						onClick={() => onContinue(cls.id, latest.chatId)}
+						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white"
+					>
+						<span className="min-w-0 truncate">Continue: {latest.title}</span>
+					</button>
+				) : (
+					<button
+						type="button"
+						data-testid="class-block-new-lesson"
+						onClick={() => onNewLesson(cls.id)}
+						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white"
+					>
+						<PlusIcon className="size-3.5 shrink-0" aria-hidden />
+						New lesson
+					</button>
+				)}
 				<button
 					type="button"
 					data-testid="class-block-open"

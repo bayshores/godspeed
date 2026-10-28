@@ -24,10 +24,14 @@ import { useClassesProgress } from "./use-classes-progress";
  */
 export function HomePage() {
 	const router = useRouter();
-	const { classes, setActive } = useClasses();
+	const { classes, loaded, setActive } = useClasses();
 	const shown = useMemo(() => classes.filter((c) => !c.archived), [classes]);
 	const { deadlines, leaving, markDone } = useOpenDeadlines();
 	const progress = useClassesProgress(useMemo(() => shown.map((c) => c.id), [shown]));
+	// The blocks fill in together the first time; a class added later
+	// shows its own box until its progress arrives.
+	const [blocksReady, setBlocksReady] = useState(false);
+	if (!blocksReady && shown.length > 0 && shown.every((c) => progress.has(c.id))) setBlocksReady(true);
 	const nowMs = useMinute();
 	const [dialog, setDialog] = useState<ClassDialogMode | null>(null);
 
@@ -68,7 +72,11 @@ export function HomePage() {
 							{nowMs !== null ? longDateLine(nowMs) : ""}
 						</p>
 					</header>
-					{nowMs !== null && deadlines !== null && (
+					{nowMs === null || !loaded || deadlines === null ? (
+						<div className="px-[52px]">
+							<LoadingBox height="h-[320px]" />
+						</div>
+					) : (
 						<div className="flex flex-col items-start gap-4 px-[52px] @4xl:flex-row">
 							<div className="w-full min-w-0 flex-1">
 								<ComingUp
@@ -82,18 +90,23 @@ export function HomePage() {
 							</div>
 							{shown.length > 0 && (
 								<div className="flex w-full flex-col gap-4 @4xl:w-[400px] @4xl:shrink-0">
-									{shown.map((c) => (
-										<ClassBlock
-											key={c.id}
-											cls={c}
-											progress={progress.get(c.id) ?? null}
-											nextDue={nextDue.get(c.id) ?? null}
-											nowMs={nowMs}
-											onContinue={onContinue}
-											onNewLesson={onNewLesson}
-											onOpenClass={onOpenClass}
-										/>
-									))}
+									{shown.map((c) => {
+										const p = progress.get(c.id);
+										return blocksReady && p ? (
+											<ClassBlock
+												key={c.id}
+												cls={c}
+												progress={p}
+												nextDue={nextDue.get(c.id) ?? null}
+												nowMs={nowMs}
+												onContinue={onContinue}
+												onNewLesson={onNewLesson}
+												onOpenClass={onOpenClass}
+											/>
+										) : (
+											<LoadingBox key={c.id} height="h-[222px]" />
+										);
+									})}
 								</div>
 							)}
 						</div>
@@ -103,6 +116,12 @@ export function HomePage() {
 			<ClassDialog mode={dialog} onClose={() => setDialog(null)} />
 		</div>
 	);
+}
+
+/** A plain card-coloured box shown until Home's data arrives, so nothing
+ *  appears in a half-loaded state and then jumps. */
+function LoadingBox({ height }: { height: string }) {
+	return <div data-testid="home-loading" aria-hidden className={`w-full bg-panel ${height}`} />;
 }
 
 /** "Add deadline": one class opens its Edit class at once; several open a

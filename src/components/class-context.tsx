@@ -18,6 +18,8 @@ import { notifySettingsSaved } from "@/components/settings-signal";
 interface ClassesState {
 	/** Every class, archived included (most recently updated first). */
 	classes: ClassSummary[];
+	/** False until the first read of the class list finishes. */
+	loaded: boolean;
 	/** The active class id, or null for "No class". */
 	active: string | null;
 	/** The active class's summary (null for "No class"). */
@@ -43,6 +45,7 @@ export function className(classes: readonly ClassSummary[], id: string | null | 
 
 export function ClassProvider({ children, initialActive }: { children: ReactNode; initialActive: string | null }) {
 	const [classes, setClasses] = useState<ClassSummary[]>([]);
+	const [loaded, setLoaded] = useState(false);
 	const [active, setActiveState] = useState<string | null>(initialActive);
 	// Follow the server's value when it changes on a refresh (e.g. onboarding
 	// finishing with a new class), without overriding client switches.
@@ -60,6 +63,8 @@ export function ClassProvider({ children, initialActive }: { children: ReactNode
 			setClasses(Array.isArray(body.classes) ? body.classes : []);
 		} catch {
 			/* offline: keep what we have */
+		} finally {
+			setLoaded(true);
 		}
 	}, []);
 
@@ -95,8 +100,8 @@ export function ClassProvider({ children, initialActive }: { children: ReactNode
 	}, [active, classes, setActive]);
 
 	const value = useMemo<ClassesState>(
-		() => ({ classes, active, activeClass: classes.find((c) => c.id === active) ?? null, setActive, refresh }),
-		[classes, active, setActive, refresh],
+		() => ({ classes, loaded, active, activeClass: classes.find((c) => c.id === active) ?? null, setActive, refresh }),
+		[classes, loaded, active, setActive, refresh],
 	);
 	return <ClassesContext.Provider value={value}>{children}</ClassesContext.Provider>;
 }
@@ -107,6 +112,7 @@ export function useClasses(): ClassesState {
 	return (
 		useContext(ClassesContext) ?? {
 			classes: [],
+			loaded: true,
 			active: null,
 			activeClass: null,
 			setActive: () => {},

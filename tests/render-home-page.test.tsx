@@ -281,13 +281,6 @@ describe("Class block", () => {
 		assert.ok(!html.includes("class-block-continue"));
 	});
 
-	it("loading: no facts line and no Continue yet", () => {
-		const html = block({ progress: null });
-		assert.ok(!html.includes("class-block-facts"));
-		assert.ok(!html.includes("class-block-continue"));
-		assert.ok(html.includes('data-testid="class-block-open"'));
-	});
-
 	it("the buttons call back with the class (and the lesson)", async () => {
 		const calls: string[] = [];
 		const el = await mount(
