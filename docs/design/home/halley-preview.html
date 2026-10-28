@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halley preview</title>
+<style>
+  :root { --bg:#000; --panel:#080808; --tone:#161616; --tone2:#2F2F2F; --text:#E6E6E6; --muted:#8D8D8D; --body:#F2F2F2; --ink:#000; --blush:#FF8FA3; --sweat:#7CC7FF; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; }
+  body { background:var(--bg); color:var(--text); font:15px/1.5 "Source Sans 3", system-ui, sans-serif; display:flex; }
+  aside { width:256px; border-right:1px solid var(--tone2); padding:16px 10px; display:flex; flex-direction:column; gap:4px; }
+  aside h2 { margin:8px 10px 4px; font-size:13px; color:#6E6E6E; }
+  .item { padding:7px 10px; transition:background .6s ease, box-shadow .6s ease; }
+  .item b { display:block; font-size:14px; font-weight:600; }
+  .item span { font-size:12px; color:var(--muted); }
+  .item.glow { background:#232323; box-shadow:inset 2px 0 0 #fff; transition:none; }
+  main { flex:1; padding:40px 52px; display:flex; flex-direction:column; gap:14px; }
+  h1 { margin:0; font-size:28px; }
+  p { margin:0; color:var(--muted); max-width:620px; }
+  .row { display:flex; flex-wrap:wrap; gap:6px; }
+  button { background:var(--tone); color:var(--text); border:0; padding:8px 12px; font:inherit; font-size:14px; cursor:pointer; }
+  button[aria-pressed="true"] { background:var(--text); color:#000; font-weight:700; }
+  #trail { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; }
+  #halley { position:fixed; left:0; top:0; width:64px; height:64px; cursor:pointer; will-change:transform; }
+  #halley svg { width:100%; height:100%; overflow:visible; display:block; }
+  #bubble { position:fixed; left:0; top:0; background:#141414; border:1px solid var(--tone2); padding:6px 10px; font-size:13px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .2s; }
+  #bubble b { font-weight:700; }
+  #bubble.on { opacity:1; }
+
+  .body-bob { transform-origin:120px 210px; animation:bob 3.2s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
+  .flying .body-bob { animation:none; }
+  .look { transition:transform .15s ease-out; }
+  .blink { transform-origin:120px 108px; animation:blink 4.6s infinite; }
+  @keyframes blink { 0%,94%,100% { transform:scaleY(1) } 96% { transform:scaleY(.08) } }
+  .face > g { display:none; }
+  [data-mood="idle"] .m-idle, [data-mood="talking"] .m-idle, [data-mood="happy"] .m-happy, [data-mood="thinking"] .m-thinking,
+  [data-mood="oops"] .m-oops, [data-mood="shocked"] .m-shocked, [data-mood="sleepy"] .m-sleepy, [data-mood="sparkle"] .m-sparkle { display:inline; }
+  .mouth { display:none; transform-box:fill-box; transform-origin:center; }
+  [data-mood="talking"] .mouth { display:inline; animation:mouth .17s ease-in-out infinite alternate; }
+  @keyframes mouth { from { transform:scaleY(.25) } to { transform:scaleY(1) } }
+  [data-mood="happy"] .body-bob, [data-mood="sparkle"] .body-bob { animation:hop .7s cubic-bezier(.3,1.6,.5,1) infinite; }
+  @keyframes hop { 0%,100% { transform:translateY(0) scale(1,1) } 30% { transform:translateY(-22px) scale(.96,1.05) } 60% { transform:translateY(0) scale(1.06,.94) } }
+  .pulse { animation:pulse 1.2s ease-in-out infinite; } .pulse:nth-child(2) { animation-delay:.2s } .pulse:nth-child(3) { animation-delay:.4s }
+  @keyframes pulse { 0%,100% { opacity:.25 } 50% { opacity:1 } }
+  .zz { animation:zz 2.4s ease-in-out infinite; } .zz:nth-of-type(2) { animation-delay:.8s }
+  @keyframes zz { 0% { transform:translate(0,0); opacity:0 } 30% { opacity:1 } 100% { transform:translate(14px,-26px); opacity:0 } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+  <aside>
+    <h2>Due soon</h2>
+    <div class="item" id="t0"><b>HW 3</b><span>CSE 21 · Overdue</span></div>
+    <div class="item" id="t1"><b>Reading quiz</b><span>CSE 21 · 47:12.38</span></div>
+    <div class="item" id="t2"><b>Lab 4</b><span>CSE 29 · 07:47:00</span></div>
+    <div class="item" id="t3"><b>PA 3</b><span>CSE 29 · in 1 day</span></div>
+    <div class="item" id="t4"><b>HW 5</b><span>CSE 21 · in 9 days</span></div>
+  </aside>
+  <main>
+    <h1>Halley</h1>
+    <p>Click anywhere and Halley flies there, trailing like the logo's comet. It rests bottom-right. "Tour" plays three changes one by one; "Burst" plays 8 changes, which turn into one summary after 5.</p>
+    <div class="row"><button id="tour">Tour: 3 changes</button><button id="burst">Burst: 8 changes</button></div>
+    <div class="row" id="moods"></div>
+  </main>
+
+  <svg id="trail"><defs><linearGradient id="tg" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><path id="tp" fill="url(#tg)"/></svg>
+  <div id="bubble"></div>
+  <div id="halley" data-mood="idle" aria-label="Halley">
+    <svg viewBox="0 0 240 240">
+      <g class="body-bob">
+        <circle cx="120" cy="120" r="100" fill="var(--body)"/>
+        <g class="look" id="look">
+          <ellipse class="mouth" cx="120" cy="152" rx="10" ry="8" fill="var(--ink)"/>
+          <g class="face">
+            <g class="m-idle"><g class="blink"><rect x="80" y="84" width="28" height="48" rx="14" fill="var(--ink)"/><rect x="132" y="84" width="28" height="48" rx="14" fill="var(--ink)"/></g></g>
+            <g class="m-happy"><path d="M78 112 Q94 88 110 112" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/><path d="M130 112 Q146 88 162 112" fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/><ellipse cx="72" cy="136" rx="14" ry="8" fill="var(--blush)" opacity=".75"/><ellipse cx="168" cy="136" rx="14" ry="8" fill="var(--blush)" opacity=".75"/><path d="M106 142 Q120 156 134 142" fill="none" stroke="var(--ink)" stroke-width="6" stroke-linecap="round"/></g>
+            <g class="m-sparkle"><path d="M94 80 L101 101 L120 108 L101 115 L94 136 L87 115 L68 108 L87 101 Z" fill="var(--ink)"/><path d="M146 80 L153 101 L172 108 L153 115 L146 136 L139 115 L120 108 L139 101 Z" fill="var(--ink)"/><ellipse cx="70" cy="140" rx="12" ry="6" fill="var(--blush)" opacity=".7"/><ellipse cx="170" cy="140" rx="12" ry="6" fill="var(--blush)" opacity=".7"/></g>
+            <g class="m-thinking"><rect x="92" y="76" width="26" height="42" rx="13" fill="var(--ink)"/><rect x="142" y="76" width="26" height="42" rx="13" fill="var(--ink)"/><path d="M110 148 L128 143" stroke="var(--ink)" stroke-width="6" stroke-linecap="round"/><g><circle class="pulse" cx="196" cy="40" r="8" fill="var(--body)"/><circle class="pulse" cx="216" cy="22" r="6" fill="var(--body)"/><circle class="pulse" cx="232" cy="6" r="4" fill="var(--body)"/></g></g>
+            <g class="m-oops"><rect x="82" y="90" width="26" height="40" rx="13" fill="var(--ink)"/><rect x="132" y="90" width="26" height="40" rx="13" fill="var(--ink)"/><path d="M102 150 Q109 143 116 150 Q123 157 130 150 Q137 143 140 150" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/><path d="M184 54 Q197 74 190 83 Q181 90 175 81 Q170 72 184 54 Z" fill="var(--sweat)"/></g>
+            <g class="m-shocked"><circle cx="94" cy="106" r="21" fill="none" stroke="var(--ink)" stroke-width="7"/><circle cx="146" cy="106" r="21" fill="none" stroke="var(--ink)" stroke-width="7"/><circle cx="94" cy="106" r="6" fill="var(--ink)"/><circle cx="146" cy="106" r="6" fill="var(--ink)"/><ellipse cx="120" cy="154" rx="10" ry="12" fill="var(--ink)"/></g>
+            <g class="m-sleepy"><path d="M78 112 L110 112" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/><path d="M130 112 L162 112" stroke="var(--ink)" stroke-width="8" stroke-linecap="round"/><text class="zz" x="190" y="54" fill="var(--body)" font-size="26" font-weight="800" font-family="system-ui">z</text><text class="zz" x="208" y="36" fill="var(--body)" font-size="18" font-weight="800" font-family="system-ui">z</text></g>
+          </g>
+        </g>
+      </g>
+    </svg>
+  </div>
+<script>
+  const H = 64, el = document.getElementById("halley"), look = document.getElementById("look");
+  const tp = document.getElementById("tp"), tg = document.getElementById("tg"), bubble = document.getElementById("bubble");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const home = () => ({ x: innerWidth - H - 28, y: innerHeight - H - 28 });
+  let p = home(), v = { x: 0, y: 0 }, target = home(), hist = [], bubbleText = "";
+
+  function setMood(m) { el.dataset.mood = m; for (const b of document.querySelectorAll("#moods button")) b.setAttribute("aria-pressed", b.dataset.m === m); }
+  for (const [m, l] of [["idle","Idle"],["talking","Talking"],["thinking","Thinking"],["happy","Happy"],["sparkle","Sparkle"],["oops","Oops"],["shocked","O_O"],["sleepy","Sleepy"]]) {
+    const b = document.createElement("button"); b.textContent = l; b.dataset.m = m; b.onclick = e => { e.stopPropagation(); setMood(m); };
+    document.getElementById("moods").appendChild(b);
+  }
+  setMood("idle");
+
+  function say(text) { bubbleText = text; bubble.innerHTML = text; bubble.classList.toggle("on", !!text); }
+  function flyTo(x, y) { target = { x: x - H / 2, y: y - H / 2 }; if (reduce) { p = { ...target }; } }
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  function glow(node) { node.classList.add("glow"); setTimeout(() => node.classList.remove("glow"), 900); }
+  function nextTo(node) { const r = node.getBoundingClientRect(); return [r.right + H / 2 + 10, r.top + r.height / 2]; }
+
+  function frame(now) {
+    const dx = target.x - p.x, dy = target.y - p.y;
+    v.x = (v.x + dx * 0.07) * 0.74; v.y = (v.y + dy * 0.07) * 0.74;
+    p.x += v.x; p.y += v.y;
+    const speed = Math.hypot(v.x, v.y);
+    el.classList.toggle("flying", speed > 1.5);
+    el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+    // eyes lean toward where it's heading
+    const lx = Math.max(-1, Math.min(1, v.x / 18)), ly = Math.max(-1, Math.min(1, v.y / 18));
+    look.style.transform = `translate(${lx * 14}px, ${ly * 10}px)`;
+    // trail: recent centers, tapered from tail to head
+    const c = { x: p.x + H / 2, y: p.y + H / 2, t: now };
+    hist.push(c); while (hist.length && now - hist[0].t > 130) hist.shift();
+    drawTrail(c);
+    bubble.style.transform = `translate(${Math.min(p.x, innerWidth - bubble.offsetWidth - 8)}px, ${p.y - 36}px)`;
+    requestAnimationFrame(frame);
+  }
+  function drawTrail(head) {
+    const pts = hist.filter((q, i) => i === 0 || Math.hypot(q.x - hist[i - 1].x, q.y - hist[i - 1].y) > 0.5);
+    const tail = pts[0];
+    if (reduce || pts.length < 3 || Math.hypot(head.x - tail.x, head.y - tail.y) < 12) { tp.setAttribute("d", ""); return; }
+    const L = [], R = [], n = pts.length, r = H / 2 * 0.92;
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+      let nx = -(b.y - a.y), ny = b.x - a.x; const len = Math.hypot(nx, ny) || 1; nx /= len; ny /= len;
+      const w = r * Math.pow(i / (n - 1), 1.3);
+      L.push([pts[i].x + nx * w, pts[i].y + ny * w]); R.push([pts[i].x - nx * w, pts[i].y - ny * w]);
+    }
+    const d = "M" + L.map(q => q.join(",")).join(" L") + " L" + R.reverse().map(q => q.join(",")).join(" L") + " Z";
+    tp.setAttribute("d", d);
+    tg.setAttribute("x1", head.x); tg.setAttribute("y1", head.y); tg.setAttribute("x2", tail.x); tg.setAttribute("y2", tail.y);
+  }
+  requestAnimationFrame(frame);
+
+  let busy = false;
+  async function goHome() { const h = home(); flyTo(h.x + H / 2, h.y + H / 2); await wait(500); say(""); setMood("idle"); }
+  document.body.addEventListener("click", async e => {
+    if (busy || e.target.closest("button")) return;
+    if (e.target.closest("#halley")) { setMood("happy"); await wait(1200); setMood("idle"); return; }
+    busy = true; say("<b>Halley</b> · going here"); flyTo(e.clientX, e.clientY); await wait(1300); busy = false; goHome();
+  });
+  document.getElementById("tour").onclick = async () => {
+    if (busy) return; busy = true;
+    for (const [id, text] of [["t4","Adding HW 5 · CSE 21"],["t2","Marking Lab 4 · covers Lab 4 notes"],["t1","Moving Reading quiz to 5:00 PM"]]) {
+      const n = document.getElementById(id); say("<b>Halley</b> · " + text); flyTo(...nextTo(n)); await wait(520); glow(n); await wait(600);
+    }
+    busy = false; goHome();
+  };
+  document.getElementById("burst").onclick = async () => {
+    if (busy) return; busy = true;
+    const ids = ["t0","t1","t2","t3","t4"];
+    for (let i = 0; i < 5; i++) { const n = document.getElementById(ids[i]); say(`<b>Halley</b> · Adding deadline ${i + 1} of 8`); flyTo(...nextTo(n)); await wait(380); glow(n); await wait(220); }
+    const mid = document.querySelector("aside").getBoundingClientRect();
+    say("<b>Halley</b> · Added 8 deadlines to CSE 21"); setMood("happy"); flyTo(mid.right + H / 2 + 10, mid.top + 140);
+    for (const id of ids) glow(document.getElementById(id));
+    await wait(1600); busy = false; goHome();
+  };
+  addEventListener("resize", () => { if (!busy) { target = home(); } });
+</script>
+</body>
+</html>
