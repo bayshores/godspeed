@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/bayshores/godspeed/releases/latest"><strong>Download</strong></a> ·
-  <a href="https://bayshores.github.io/godspeed-site/">Website</a> ·
+  <a href="https://learnatgodspeed.com/">Website</a> ·
   <a href="#whats-different-from-learnharness">What's different</a> ·
   <a href="#outside-agents-mcp">Outside agents</a> ·
   <a href="docs/development.md">Docs</a> ·
