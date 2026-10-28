@@ -31,7 +31,8 @@ export function classTools(ctx: ClassToolContext): Record<string, AgentTool<any>
 			label: "read_class",
 			description:
 				"Read the current card of this lesson's class: the class name, the learner's description of the course, and its files (study material and course info) with the paths to open them. " +
-				"Use it when you need class details the opening [Class context] card may not have (files added since the lesson started, an edited description).",
+				"Use it when you need class details the opening [Class context] card may not have (files added since the lesson started, an edited description). " +
+				"It also returns today's date and time and the class's open deadlines (the [Today] note).",
 			parameters: readClassInput,
 			execute: serverExecute("read_class", readClassInput, async (): Promise<string> => {
 				const card = ctx.classCard();
