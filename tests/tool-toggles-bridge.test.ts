@@ -30,6 +30,8 @@ function fauxEngine(): PiEngine {
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 import type { AgentSettings } from "../src/core/settings.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 describe("AgentBuildOptions.toolToggles (the P2 bridge)", () => {
 	const toolNames = (agent: { state: { tools: Array<{ name: string }> } }) =>

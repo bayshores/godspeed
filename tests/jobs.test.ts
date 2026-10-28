@@ -76,6 +76,8 @@ import { projectView as projectNative } from "../src/core/view.ts";
 import { subscribe } from "../src/core/events.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import type { SteerInput, TurnInput } from "../src/core/input-events.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 const JOBS_DIR = path.join(PATHS.data, "jobs");
 

@@ -49,6 +49,8 @@ const steerRoute = await import("../src/app/api/chats/[id]/steer/route.ts");
 const streamRoute = await import("../src/app/api/chats/[id]/stream/route.ts");
 const recordRoute = await import("../src/app/api/chats/[id]/route.ts");
 import { PATHS } from "../src/config.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 const QUIZ_INPUT = {
 	question: "Which planet is closest to the sun?",

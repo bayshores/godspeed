@@ -30,6 +30,8 @@ import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { createFauxCore } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../src/agent/models.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 // ── the seam, BEFORE any config-loading import ──────────────────────────────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-prompt-overrides-"));

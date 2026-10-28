@@ -22,18 +22,20 @@
  * Requests wait for an agent with no time limit, so work queued while no
  * agent is connected starts by itself once one connects.
  */
-import {
-	createFauxCore,
-	fauxAssistantMessage,
-	type AssistantMessage,
-	type Message,
-	type Model,
-	type Api,
-	type StreamFunction,
-	type TranscriptContext,
-	type ToolCall,
-	type JsonObject,
+import type {
+	AssistantMessage,
+	Message,
+	Model,
+	Api,
+	StreamFunction,
+	TranscriptContext,
+	ToolCall,
+	JsonObject,
 } from "@earendil-works/pi-ai";
+// The faux provider's own entry, not the package root (speed plan,
+// 2026-10-27): the root loads every provider (~0.15–0.3 s at startup);
+// this subpath is a few small files.
+import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { CHAT_ID_PREFIX } from "../core/contracts.ts";
 import { emit } from "../core/events.ts";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "../core/settings.ts";

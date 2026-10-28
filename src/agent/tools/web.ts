@@ -1,9 +1,7 @@
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
-import { Readability } from "@mozilla/readability";
-import { parseHTML } from "linkedom";
-import TurndownService from "turndown";
+import type TurndownService from "turndown";
 
 /**
  * Server-side web tools for the researcher sub-agent — a minimal port of the
@@ -29,7 +27,22 @@ const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const MAX_CONTENT_CHARS = 40_000;
 const MIN_USEFUL_CONTENT = 200;
 
-const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
+/** The page reader (Readability + linkedom + Turndown, ~1 MB of code),
+ *  loaded on the first web_fetch (speed plan, 2026-10-27), not at server
+ *  start. */
+let reader: Promise<{
+	Readability: typeof import("@mozilla/readability").Readability;
+	parseHTML: typeof import("linkedom").parseHTML;
+	turndown: TurndownService;
+}> | null = null;
+function loadReader() {
+	reader ??= Promise.all([import("@mozilla/readability"), import("linkedom"), import("turndown")]).then(([readability, linkedom, td]) => ({
+		Readability: readability.Readability,
+		parseHTML: linkedom.parseHTML,
+		turndown: new td.default({ headingStyle: "atx", codeBlockStyle: "fenced" }),
+	}));
+	return reader;
+}
 
 function truncate(text: string): string {
 	if (text.length <= MAX_CONTENT_CHARS) return text;
@@ -56,7 +69,8 @@ async function fetchViaJina(url: string): Promise<string | null> {
 	}
 }
 
-function htmlToMarkdown(html: string): { title: string; content: string } | null {
+async function htmlToMarkdown(html: string): Promise<{ title: string; content: string } | null> {
+	const { Readability, parseHTML, turndown } = await loadReader();
 	const { document } = parseHTML(html);
 	const article = new Readability(document as unknown as Document).parse();
 	if (!article?.content) return null;
@@ -96,7 +110,7 @@ async function fetchAndExtract(url: string): Promise<string> {
 	const text = await resp.text();
 	if (!contentType.includes("html")) return `${sourceLine}\n\n${truncate(text)}`; // plain text / markdown / code
 
-	const extracted = htmlToMarkdown(text);
+	const extracted = await htmlToMarkdown(text);
 	if (extracted) {
 		const header = extracted.title ? `# ${extracted.title}\n\n${sourceLine}\n\n---\n\n` : `${sourceLine}\n\n---\n\n`;
 		return header + truncate(extracted.content);

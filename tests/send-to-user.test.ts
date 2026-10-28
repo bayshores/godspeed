@@ -14,6 +14,8 @@ import {
 import type { PiEngine } from "../src/agent/models.ts";
 import type { AgentBuildOptions } from "../src/agent/teacher-agent.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 // Set the data/auth seams BEFORE importing app modules. Do not read local
 // keys, recordings, or learner sessions, even if a dev server is running.

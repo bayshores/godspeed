@@ -35,6 +35,8 @@ import { PATHS } from "../src/config.ts";
 import { CONCLUDE_ACK_TEXT } from "../src/core/contracts/chat.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 /** A valid problem pose — the slim schema: statement, mode, target,
  *  modelSolution (the commitment, which is also the reveal). */

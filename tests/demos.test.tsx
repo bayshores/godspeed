@@ -87,6 +87,8 @@ function testRunner() {
 	return { steers, runner };
 }
 import { artifactRenderers } from "../src/components/artifacts/index.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 
 

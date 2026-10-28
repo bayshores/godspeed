@@ -1,4 +1,5 @@
-import { Agent, type AgentEvent, type AgentMessage, type AgentTool } from "@earendil-works/pi-agent-core";
+import type { AgentEvent, AgentMessage, AgentTool } from "@earendil-works/pi-agent-core";
+import { loadAgentCore, loadedAgentCore } from "../engine-load.ts";
 import type { AssistantMessage, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
 import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
@@ -61,6 +62,20 @@ export function subagentEngine(role: ModelRole, override?: PiEngine): PiEngine {
 }
 
 export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRunOptions): Promise<SubagentRunResult> {
+	// The engine loads on the first run only. Once loaded, no await happens
+	// here: everything from the abort listener on stays synchronous with
+	// the caller, exactly as before (an await here let an abort slip past).
+	let core = loadedAgentCore();
+	if (!core) {
+		core = await loadAgentCore();
+		// Cancelled while the engine loaded: end as an abort, before any call.
+		if (opts.abortSignal?.aborted) {
+			const err = new Error("aborted");
+			err.name = "AbortError";
+			throw err;
+		}
+	}
+	const { Agent } = core;
 	const engine = subagentEngine(opts.role, opts.engine);
 	let turns = 0;
 	// One unsaved conversation per invocation, stable through every turn.

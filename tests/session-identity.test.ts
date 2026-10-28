@@ -5,6 +5,8 @@ import { createFauxCore, fauxAssistantMessage, fauxText, fauxToolCall, type Simp
 import { APP_IDENTITY, type PiEngine } from "../src/agent/models.ts";
 import { createProberAgent, createTeacherAgent, createPracticeAgent, type AgentBuildOptions } from "../src/agent/teacher-agent.ts";
 import { runSubagent } from "../src/agent/subagents/pi-run.ts";
+// The agent engine loads on first use in the app; agent-building tests load it up front.
+await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 import metadata from "../package.json" with { type: "json" };
 
 const factories = [

@@ -1,4 +1,4 @@
-import { Agent } from "@earendil-works/pi-agent-core";
+import { agentCore } from "./engine-load.ts";
 import type { AgentEvent, AgentMessage, AgentTool } from "@earendil-works/pi-agent-core";
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
 import type { Usage } from "@earendil-works/pi-ai";
@@ -172,7 +172,7 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 	const systemPrompt = opts.promptSwitches
 		? composeInstructions(kind, opts.promptSwitches)
 		: composedInstructions[kind]!;
-	const agent = new Agent({
+	const agent = new (agentCore().Agent)({
 		identity: APP_IDENTITY,
 		sessionId: opts.chatId,
 		initialState: {

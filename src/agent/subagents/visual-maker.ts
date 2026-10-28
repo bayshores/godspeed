@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AssistantMessage, Message, Tool, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
-import { normalizeContext } from "@earendil-works/pi-ai";
+// Subpath, not the package root (speed plan): the root loads every provider.
+import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import { Type } from "typebox";
 import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
 import type { VisualResult } from "../../core/contracts.ts";

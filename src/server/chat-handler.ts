@@ -7,6 +7,7 @@ import {
 	type TeachingAgent,
 } from "../agent/teacher-agent.ts";
 import { agentEngine } from "../agent/models.ts";
+import { loadAgentCore } from "../agent/engine-load.ts";
 import { createJobRunner } from "../agent/subagents/runner.ts";
 import { createExtractionPipeline } from "../agent/subagents/extraction.ts";
 import {
@@ -321,6 +322,8 @@ export async function handleChatInput(
 					const cls = stores.classStore.getClass(lessonScope);
 					return cls ? classCardFor(cls) : null;
 				};
+	// The agent engine loads on the first turn, not at server start.
+	if (!buildAgent) await loadAgentCore();
 	const constructed: TeachingAgent = buildAgent
 		? buildAgent({ ...agentOpts, teaching })
 		: record.kind === "practice"
