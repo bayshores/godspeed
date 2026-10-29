@@ -1,5 +1,5 @@
 /**
- * Halley's geometry. Pure: corners and
+ * Halley's geometry. Pure: corners, the peek and
  * snapping, where to sit beside a target, the screen-edge point for an
  * off-screen target, the spring step, and the comet trail's shape.
  */
@@ -17,42 +17,41 @@ export interface Box {
 
 // ─── sizes ──────────────────────────────────────────────────────────────────
 
-/** The dot's diameter: resting, in a narrow window, beside a lesson message. */
-export const SIZE = 56;
-export const SIZE_NARROW = 40;
-export const SIZE_LESSON = 36;
+/** The dot's diameter, everywhere. */
+export const SIZE = 40;
+/** How much of it shows above the edge at rest: the top and the eyes. */
+export const PEEK = 24;
+/** The gap under it when it rises fully out of the edge. */
+export const RISE_GAP = 16;
 /** Narrower than this, the window counts as narrow (the sidebar's own
  *  auto-close width). */
 export const NARROW_WIDTH = 928;
 
-export function restingSize(viewportWidth: number): number {
-	return viewportWidth < NARROW_WIDTH ? SIZE_NARROW : SIZE;
-}
-
 // ─── corners ────────────────────────────────────────────────────────────────
 
-export type Corner = "br" | "bl" | "tr" | "tl";
+export type Corner = "br" | "bl";
 export const CORNER_KEY = "lh:halley-corner";
 
-/** Gaps from the content area's edges (the top clears the 60px top bar). */
-export const INSET = { side: 28, bottom: 28, top: 72 } as const;
+/** The gap from the area's side edges. */
+export const SIDE_INSET = 28;
 
+/** A saved top corner (it could rest there once) reads as the bottom
+ *  corner on the same side. */
 export function parseCorner(raw: string | null): Corner {
-	return raw === "bl" || raw === "tr" || raw === "tl" ? raw : "br";
+	return raw === "bl" || raw === "tl" ? "bl" : "br";
 }
 
-/** The corner of `area` nearest to a point (where a drag ends). */
+/** The bottom corner of `area` nearest to a point (where a drag ends). */
 export function nearestCorner(p: Point, area: Box): Corner {
-	const right = p.x >= area.left + area.width / 2;
-	const bottom = p.y >= area.top + area.height / 2;
-	return `${bottom ? "b" : "t"}${right ? "r" : "l"}` as Corner;
+	return p.x >= area.left + area.width / 2 ? "br" : "bl";
 }
 
-/** Halley's top-left when resting in a corner of `area`. */
-export function cornerSpot(corner: Corner, area: Box, size: number): Point {
-	const x = corner.endsWith("r") ? area.left + area.width - INSET.side - size : area.left + INSET.side;
-	const y = corner.startsWith("b") ? area.top + area.height - INSET.bottom - size : area.top + INSET.top;
-	return { x, y };
+/** Halley's top-left in a bottom corner of `area`: peeking over the
+ *  bottom edge, or risen fully out of it. */
+export function cornerSpot(corner: Corner, area: Box, size: number, risen: boolean): Point {
+	const x = corner === "br" ? area.left + area.width - SIDE_INSET - size : area.left + SIDE_INSET;
+	const bottom = area.top + area.height;
+	return { x, y: risen ? bottom - RISE_GAP - size : bottom - PEEK };
 }
 
 function overlaps(a: Box, b: Box): boolean {

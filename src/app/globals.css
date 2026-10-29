@@ -1224,22 +1224,11 @@ body {
 		opacity: 0;
 	}
 }
-/* The resting shadow breathes with the bob; it hides while flying. */
-.lh-halley .hy-shadow {
-	animation: hy-shadow 3.2s ease-in-out infinite;
+/* The halo hides while flying, so the trail reads clean. */
+.lh-halley .hy-halo {
 	transition: opacity 0.15s ease-out;
 }
-@keyframes hy-shadow {
-	0%,
-	100% {
-		transform: scaleX(1);
-	}
-	50% {
-		transform: scaleX(0.88);
-	}
-}
-.lh-halley[data-flying] .hy-shadow,
-.lh-halley:not([data-corner]) .hy-shadow {
+.lh-halley[data-flying] .hy-halo {
 	opacity: 0;
 }
 .lh-halley-bubble {

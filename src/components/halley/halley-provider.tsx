@@ -4,9 +4,10 @@
  * HALLEY: the logo's comet as the on-screen
  * teacher. One provider in the app shell:
  *
- *  - Presence: it rests in a corner of the content area (bottom-right by
- *    default, draggable to any corner), or beside the newest teacher
- *    message in a lesson. Its mood follows the app (mood.ts).
+ *  - Presence: it peeks over the bottom edge of the content area (the
+ *    reading pane in a lesson), bottom-right by default and draggable to
+ *    bottom-left. It rises out of the edge on hover, with its bubble, and
+ *    with the panel open. Its mood follows the app (mood.ts).
  *  - Changes: every "agent-action" event is a change the outside agent
  *    made. Halley flies to the changed element (data-halley-target), the
  *    element glows, and the bubble says what happened (tour.ts paces it).
@@ -42,13 +43,12 @@ import { FOLLOW_KEY, FOLLOW_OFF, NOTICE_MS, followMoves, followReady, followRedu
 import {
 	CORNER_KEY,
 	NARROW_WIDTH,
-	SIZE_LESSON,
+	SIZE,
 	besideTarget,
 	clearOf,
 	cornerSpot,
 	edgeToward,
 	parseCorner,
-	restingSize,
 	unionBox,
 	type Box,
 	type Corner,
@@ -113,7 +113,8 @@ export function useHalley(): HalleyApi | null {
 	return useContext(HalleyContext);
 }
 
-/** A lesson screen: Halley sits beside its newest teacher message. */
+/** A lesson screen: Halley rests in the reading pane and talks while the
+ *  teacher writes. */
 export function useHalleyLesson(streaming: boolean, working: boolean): void {
 	const api = useHalley();
 	const set = api?.setLesson;
@@ -253,8 +254,6 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const setLesson = useCallback((p: LessonPresence | null) => {
 		setLessonState((prev) => (prev === p || (prev && p && prev.streaming === p.streaming && prev.working === p.working) ? prev : p));
 	}, []);
-	const lessonRef = useRef(lesson);
-	lessonRef.current = lesson;
 
 	// ── recent changes ──
 	const [recent, setRecent] = useState<AgentAction[]>([]);
@@ -488,7 +487,6 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 				moodRef={moodRef}
 				bubble={bubble}
 				inLesson={inLesson}
-				lessonRef={lessonRef}
 				panelOpen={panelOpen}
 				setPanelOpen={setPanelOpen}
 				agent={agent}
@@ -512,7 +510,6 @@ function HalleyStage({
 	moodRef,
 	bubble,
 	inLesson,
-	lessonRef,
 	panelOpen,
 	setPanelOpen,
 	agent,
@@ -529,7 +526,6 @@ function HalleyStage({
 	moodRef: React.RefObject<HalleyMood>;
 	bubble: string | null;
 	inLesson: boolean;
-	lessonRef: React.RefObject<LessonPresence | null>;
 	panelOpen: boolean;
 	setPanelOpen: (open: boolean) => void;
 	agent: ReturnType<typeof useAgentStatus>;
@@ -558,32 +554,23 @@ function HalleyStage({
 		setMounted(true);
 	}, []);
 
+	const liftedRef = useRef(false);
+	liftedRef.current = !!bubble || panelOpen;
+
+	// The content area, or the reading pane in a lesson (clear of the
+	// Submit answer bar).
 	const area = useCallback((): Box => {
-		const main = document.querySelector("main");
-		return main ? boxOf(main.getBoundingClientRect()) : viewportBox();
+		const el = (inLessonRef.current && document.querySelector("[data-halley-area]")) || document.querySelector("main");
+		return el ? boxOf(el.getBoundingClientRect()) : viewportBox();
 	}, []);
 
 	const home = useCallback((): Home => {
-		if (inLessonRef.current && lessonRef.current) {
-			const slot = document.querySelector<HTMLElement>("[data-halley-slot]");
-			const message = slot?.parentElement;
-			if (slot && message) {
-				const r = slot.getBoundingClientRect();
-				const m = message.getBoundingClientRect();
-				const region = visibleRegion(slot);
-				// Beside the message's first line; it stays in view while any of
-				// the message is (sticky to the pane's edges).
-				const lo = region.top + 8;
-				const hi = Math.min(region.top + region.height - SIZE_LESSON - 8, m.bottom - SIZE_LESSON);
-				const y = Math.max(lo, Math.min(r.top, Math.max(lo, hi)));
-				return { spot: { x: r.left, y }, size: SIZE_LESSON, corner: false };
-			}
-		}
-		const size = restingSize(window.innerWidth);
-		const spot = cornerSpot(cornerRef.current, area(), size);
+		const a = area();
 		const banner = document.querySelector<HTMLElement>("[data-testid='update-banner']");
-		return { spot: clearOf(spot, size, banner ? boxOf(banner.getBoundingClientRect()) : null), size, corner: true };
-	}, [area, lessonRef]);
+		const obstacle = banner ? boxOf(banner.getBoundingClientRect()) : null;
+		const at = (risen: boolean) => clearOf(cornerSpot(cornerRef.current, a, SIZE, risen), SIZE, obstacle);
+		return { spot: at(false), up: at(true), size: SIZE, edge: a.top + a.height };
+	}, [area]);
 
 	// The engine lives as long as the stage.
 	useEffect(() => {
@@ -599,6 +586,7 @@ function HalleyStage({
 			{
 				home,
 				area,
+				lifted: () => liftedRef.current,
 				reduceMotion: prefersReducedMotion,
 				eyesStill: () => eyesStill(moodRef.current),
 				onCorner: (c) => {
@@ -635,14 +623,7 @@ function HalleyStage({
 
 	useEffect(() => {
 		engineRef.current?.refresh();
-		if (!inLesson) return;
-		// In a lesson, new messages move the spot beside the newest one.
-		const pane = document.querySelector("[data-session-find-root]");
-		if (!pane) return;
-		const mo = new MutationObserver(() => engineRef.current?.refresh());
-		mo.observe(pane, { childList: true, subtree: true });
-		return () => mo.disconnect();
-	}, [inLesson, corner, engineRef]);
+	}, [inLesson, corner, panelOpen, engineRef]);
 
 	useEffect(() => {
 		engineRef.current?.setBubble(!!bubble);
@@ -698,10 +679,11 @@ function HalleyStage({
 				className="lh-halley fixed left-0 top-0 z-40 cursor-pointer touch-none select-none border-0 bg-transparent p-0 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
 				// The engine owns position and size from the first frame on; these
 				// never change, so React never writes over it.
-				style={{ width: 56, height: 56, transform: "translate(-200px, -200px)" }}
+				style={{ width: SIZE, height: SIZE, transform: "translate(-200px, -200px)" }}
 			>
-				<HalleyFace mood={mood} lookRef={lookRef} />
-				<span aria-hidden className="hy-shadow pointer-events-none absolute left-[18%] top-[calc(100%+8px)] h-1.5 w-[64%] rounded-full bg-white/[0.08]" />
+				{/* A soft dark halo, so the page fades around it instead of it looking cut off. */}
+				<span aria-hidden className="hy-halo pointer-events-none absolute -inset-3 rounded-full bg-black blur-[10px]" />
+				<HalleyFace mood={mood} lookRef={lookRef} className="relative" />
 			</button>
 			<div
 				ref={bubbleRef}
@@ -725,7 +707,7 @@ function HalleyStage({
 					recent={recent}
 					onPick={go}
 					classNameOf={classNameOf}
-					anchor={home()}
+					anchor={{ spot: home().up, size: SIZE }}
 				/>
 			)}
 		</>,

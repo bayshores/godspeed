@@ -21,10 +21,10 @@ import {
 	type FollowState,
 } from "../src/components/halley/follow.ts";
 import {
-	INSET,
-	NARROW_WIDTH,
+	PEEK,
+	RISE_GAP,
+	SIDE_INSET,
 	SIZE,
-	SIZE_NARROW,
 	besideTarget,
 	clearOf,
 	cornerSpot,
@@ -32,7 +32,6 @@ import {
 	nearestCorner,
 	parseCorner,
 	pruneTrail,
-	restingSize,
 	settled,
 	springStep,
 	trailShape,
@@ -169,25 +168,28 @@ describe("follow", () => {
 
 describe("corners", () => {
 	const area = { left: 256, top: 0, width: 1184, height: 900 };
-	it("snaps a drop to the nearest corner of the content area", () => {
+	it("snaps a drop to the nearer bottom corner of the content area", () => {
 		assert.equal(nearestCorner({ x: 1300, y: 800 }, area), "br");
 		assert.equal(nearestCorner({ x: 300, y: 800 }, area), "bl");
-		assert.equal(nearestCorner({ x: 1300, y: 100 }, area), "tr");
-		assert.equal(nearestCorner({ x: 300, y: 100 }, area), "tl");
+		assert.equal(nearestCorner({ x: 1300, y: 100 }, area), "br");
+		assert.equal(nearestCorner({ x: 300, y: 100 }, area), "bl");
 	});
-	it("rests 28px from the edges (72 from the top, clear of the top bar)", () => {
-		assert.deepEqual(cornerSpot("br", area, SIZE), { x: 256 + 1184 - 28 - 56, y: 900 - 28 - 56 });
-		assert.deepEqual(cornerSpot("tl", area, SIZE), { x: 256 + INSET.side, y: INSET.top });
-		assert.equal(parseCorner("tl"), "tl");
+	it("peeks over the bottom edge, 28px from the side", () => {
+		assert.deepEqual(cornerSpot("br", area, SIZE, false), { x: 256 + 1184 - SIDE_INSET - SIZE, y: 900 - PEEK });
+		assert.deepEqual(cornerSpot("bl", area, SIZE, false), { x: 256 + SIDE_INSET, y: 900 - PEEK });
+	});
+	it("rises fully out of the edge", () => {
+		assert.deepEqual(cornerSpot("br", area, SIZE, true), { x: 256 + 1184 - SIDE_INSET - SIZE, y: 900 - RISE_GAP - SIZE });
+	});
+	it("a saved top corner reads as the bottom corner on its side", () => {
+		assert.equal(parseCorner("tl"), "bl");
+		assert.equal(parseCorner("tr"), "br");
+		assert.equal(parseCorner("bl"), "bl");
 		assert.equal(parseCorner("nonsense"), "br");
 		assert.equal(parseCorner(null), "br");
 	});
-	it("shrinks in a narrow window", () => {
-		assert.equal(restingSize(NARROW_WIDTH - 1), SIZE_NARROW);
-		assert.equal(restingSize(NARROW_WIDTH), SIZE);
-	});
 	it("sits above the update banner when it would cover it", () => {
-		const spot = cornerSpot("br", area, SIZE);
+		const spot = cornerSpot("br", area, SIZE, true);
 		const banner = { left: 1100, top: 830, width: 324, height: 54 };
 		assert.deepEqual(clearOf(spot, SIZE, banner), { x: spot.x, y: 830 - 12 - SIZE });
 		assert.deepEqual(clearOf(spot, SIZE, { left: 300, top: 830, width: 100, height: 54 }), spot);
@@ -198,16 +200,16 @@ describe("corners", () => {
 describe("placement", () => {
 	const vp = { width: 1440, height: 900 };
 	it("beside a target: to its right, centered", () => {
-		assert.deepEqual(besideTarget({ left: 10, top: 100, width: 236, height: 51 }, SIZE, vp), { x: 246 + 10 + 28, y: 125.5 });
+		assert.deepEqual(besideTarget({ left: 10, top: 100, width: 236, height: 51 }, SIZE, vp), { x: 246 + 10 + SIZE / 2, y: 125.5 });
 	});
 	it("over its right end when the right has no room (a full-width row)", () => {
 		const p = besideTarget({ left: 284, top: 100, width: 1128, height: 40 }, SIZE, vp);
-		assert.equal(p.x, 284 + 1128 - 10 - 28);
+		assert.equal(p.x, 284 + 1128 - 10 - SIZE / 2);
 	});
 	it("an off-screen target: the nearest edge, eyes pointing at it", () => {
 		const { at, dir } = edgeToward({ left: 400, top: 1400, width: 600, height: 60 }, { left: 0, top: 0, width: 1440, height: 900 }, SIZE);
 		assert.equal(at.x, 700);
-		assert.equal(at.y, 900 - 28 - 8);
+		assert.equal(at.y, 900 - SIZE / 2 - 8);
 		assert.ok(dir.y > 0.99);
 	});
 	it("a burst sits beside all its targets", () => {

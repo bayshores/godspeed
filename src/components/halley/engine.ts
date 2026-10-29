@@ -3,12 +3,14 @@
  * dot with the prototype's spring, draws the comet trail from the last
  * 130 ms of positions while it flies, leans the eyes toward where it is
  * heading (or toward the mouse at rest), and keeps the bubble above it.
+ * At home it peeks over the edge and rises out of it on hover.
  * The loop stops whenever Halley rests, and starts again on demand.
  *
  * Reduced motion: it jumps instead of flying and draws no trail.
  */
 import {
 	FLYING_SPEED,
+	SIZE,
 	nearestCorner,
 	pruneTrail,
 	settled,
@@ -29,17 +31,21 @@ interface EngineParts {
 }
 
 export interface Home {
-	/** Top-left of the resting spot. */
+	/** Top-left of the resting spot (peeking over the edge). */
 	spot: Point;
+	/** Top-left when risen fully out of the edge. */
+	up: Point;
 	size: number;
-	/** Resting in a corner (draggable, with a ground shadow). */
-	corner: boolean;
+	/** The edge it peeks over: what is below it is hidden. */
+	edge: number;
 }
 
 interface EngineHooks {
 	home: () => Home;
-	/** The content area (for corner snapping). */
+	/** The area it rests in (for corner snapping). */
 	area: () => Box;
+	/** Risen for something besides hover (the bubble, the panel). */
+	lifted: () => boolean;
 	reduceMotion: () => boolean;
 	/** Eyes stay still (sleepy, dizzy). */
 	eyesStill: () => boolean;
@@ -48,11 +54,13 @@ interface EngineHooks {
 
 const STEP_MS = 1000 / 60;
 const DRAG_START_PX = 4;
+/** How far the halo reaches past the dot (kept clear of the clip). */
+const HALO_PX = 40;
 
 export class HalleyEngine {
 	private p: Point = { x: -200, y: -200 };
 	private v: Point = { x: 0, y: 0 };
-	private size = 56;
+	private size = SIZE;
 	/** Center to fly to (or a function that says, each frame, so a target
 	 *  that moves while Halley flies is still met); null = home. */
 	private goal: Point | (() => Point) | null = null;
@@ -67,12 +75,15 @@ export class HalleyEngine {
 	private drag: { start: Point; grab: Point; moved: boolean; id: number } | null = null;
 	private dragClick = false;
 	private bubbleOn = false;
+	private hover = false;
+	private risen = false;
 
 	constructor(
 		private parts: EngineParts,
 		private hooks: EngineHooks,
 	) {
 		parts.root.addEventListener("pointerdown", this.onDown);
+		parts.root.addEventListener("pointerenter", this.onEnter);
 		window.addEventListener("pointermove", this.onMove, { passive: true });
 		window.addEventListener("pointerup", this.onUp);
 		window.addEventListener("pointercancel", this.onUp);
@@ -82,6 +93,7 @@ export class HalleyEngine {
 	destroy(): void {
 		cancelAnimationFrame(this.raf);
 		this.parts.root.removeEventListener("pointerdown", this.onDown);
+		this.parts.root.removeEventListener("pointerenter", this.onEnter);
 		window.removeEventListener("pointermove", this.onMove);
 		window.removeEventListener("pointerup", this.onUp);
 		window.removeEventListener("pointercancel", this.onUp);
@@ -90,6 +102,7 @@ export class HalleyEngine {
 	/** Fly so Halley's center lands on `center`. */
 	flyTo(center: Point | (() => Point)): void {
 		this.goal = center;
+		this.hover = false;
 		this.locked = false;
 		this.kick();
 	}
@@ -150,7 +163,13 @@ export class HalleyEngine {
 		}
 		const half = this.size / 2;
 		const goal = typeof this.goal === "function" ? this.goal() : this.goal;
-		const target = goal ? { x: goal.x - half, y: goal.y - half } : home.spot;
+		const risen = this.hover || this.hooks.lifted();
+		// Rising or sinking is a move: the spring carries it.
+		if (risen !== this.risen) {
+			this.risen = risen;
+			this.locked = false;
+		}
+		const target = goal ? { x: goal.x - half, y: goal.y - half } : risen ? home.up : home.spot;
 		const reduce = this.hooks.reduceMotion();
 
 		if (this.drag?.moved && this.mouse) {
@@ -180,7 +199,9 @@ export class HalleyEngine {
 		const flying = speed > FLYING_SPEED || !!this.drag?.moved;
 		root.style.transform = `translate(${round(this.p.x)}px, ${round(this.p.y)}px)`;
 		root.toggleAttribute("data-flying", flying);
-		root.toggleAttribute("data-corner", home.corner && !this.goal);
+		// At home, the part below the edge is hidden, so it peeks out of it.
+		const hidden = this.goal || this.drag?.moved ? 0 : Math.max(0, round(this.p.y + this.size - home.edge));
+		root.style.clipPath = hidden ? `inset(-${HALO_PX}px -${HALO_PX}px ${hidden}px -${HALO_PX}px)` : "";
 
 		// The eyes: lean into the flight, point at an off-screen target, or
 		// follow the mouse a little at rest.
@@ -238,17 +259,31 @@ export class HalleyEngine {
 		gradient.setAttribute("y2", String(shape.to.y));
 	}
 
+	// ─── hovering: it rises out of the edge ──────────────────────────────────
+
+	private onEnter = (): void => {
+		if (this.goal) return;
+		this.hover = true;
+		this.kick();
+	};
+
+	/** Still hovering: over the dot or the column below it down to the edge,
+	 *  so rising away from a pointer low in the peek does not drop it. */
+	private stillOver(x: number, y: number): boolean {
+		const edge = this.hooks.home().edge;
+		return x >= this.p.x && x <= this.p.x + this.size && y >= this.p.y && y <= Math.max(edge, this.p.y + this.size);
+	}
+
 	// ─── dragging to a corner ─────────────────────────────────────────────────
 
 	private onDown = (e: PointerEvent): void => {
-		if (e.button !== 0) return;
-		const home = this.hooks.home();
-		if (!home.corner || this.goal) return;
+		if (e.button !== 0 || this.goal) return;
 		this.drag = { start: { x: e.clientX, y: e.clientY }, grab: { x: e.clientX - this.p.x, y: e.clientY - this.p.y }, moved: false, id: e.pointerId };
 	};
 
 	private onMove = (e: PointerEvent): void => {
 		this.mouse = { x: e.clientX, y: e.clientY };
+		if (this.hover && !this.drag?.moved && !this.stillOver(e.clientX, e.clientY)) this.hover = false;
 		if (this.drag && !this.drag.moved && Math.hypot(e.clientX - this.drag.start.x, e.clientY - this.drag.start.y) > DRAG_START_PX) {
 			this.drag.moved = true;
 			this.locked = false;

@@ -134,8 +134,8 @@ export function Chat({
 	const waitingForAgent = busy && agentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
-	// Halley sits beside the newest teacher message: Talking while it is
-	// written, Thinking while the turn runs.
+	// Halley rests in the reading pane: Talking while the teacher writes,
+	// Thinking while the turn runs.
 	useHalleyLesson(status === "streaming", busy);
 	const halley = useHalley();
 

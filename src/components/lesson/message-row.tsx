@@ -67,8 +67,6 @@ interface MessageRowProps {
 	streamingLast: boolean;
 	arrive: Arrive;
 	onOpenPlan: () => void;
-	/** The newest teacher message: Halley sits in the margin beside it. */
-	halleySlot?: boolean;
 }
 
 /**
@@ -76,7 +74,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, index: mi, teachSeam, streamingLast, arrive, onOpenPlan, halleySlot = false }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, index: mi, teachSeam, streamingLast, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -123,10 +121,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	return (
 		<Fragment>
 			{seamStep === -1 && <PhaseDivider phase="teach" />}
-			<Message from="assistant" className="relative max-w-full">
-				{/* Halley's spot: in the 52px margin, 8px from the column's edge,
-				    centered on the first line (17/1.6). */}
-				{halleySlot && <span data-halley-slot="" aria-hidden className="pointer-events-none absolute top-[-4px] -left-11 size-9" />}
+			<Message from="assistant" className="max-w-full">
 				<MessageContent className="w-full">
 				{m.parts.map((part, pi) => (
 					<AssistantPart
