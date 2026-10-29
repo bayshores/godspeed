@@ -383,7 +383,7 @@ async function showServerStopped() {
 	const { response } = await dialog.showMessageBox({
 		type: "error",
 		message: "godspeed stopped working",
-		detail: "The app's server stopped and couldn't restart.",
+		detail: "The app's server stopped running.",
 		buttons: ["Relaunch", "Quit"],
 		defaultId: 0,
 		cancelId: 1,

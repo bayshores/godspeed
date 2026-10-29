@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { BookOpenIcon, CornerDownLeftIcon, DumbbellIcon, PlusIcon, XIcon } from "lucide-react";
+import { BookOpenIcon, DumbbellIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type HomeMode = "teach" | "practice";
@@ -133,7 +133,6 @@ export function TopicBox({
 					className="lh-press flex shrink-0 items-center gap-2 bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 				>
 					Start lesson
-					<CornerDownLeftIcon aria-hidden className="size-3.5" />
 				</button>
 			</div>
 		</form>
