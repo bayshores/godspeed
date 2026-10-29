@@ -92,6 +92,10 @@ const nextConfig: NextConfig = {
 			"node_modules/onnxruntime-node/dist/**/*.js",
 			"node_modules/onnxruntime-common/dist/cjs/**/*.js",
 			`node_modules/onnxruntime-node/bin/napi-v6/${process.platform}/${process.arch}/**/*`,
+			// transformers imports sharp; on Windows its .node needs the libvips
+			// DLLs beside it, which the tracer leaves out. npm installs only this
+			// platform's @img packages, so this is one set per build.
+			"node_modules/@img/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/providers/data/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/utils/sleep.js",
 			"node_modules/@earendil-works/pi-agent-core/dist/**/*.json",
