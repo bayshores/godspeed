@@ -5,7 +5,6 @@ import {
 	PlanBlock,
 	PlanPopup,
 	blockLayout,
-	topoFor,
 	edgePathD,
 	wrapTitle,
 	GAP_X,
@@ -36,12 +35,9 @@ const CHAIN: PlanTree = {
 
 describe("plan block layout (pure)", () => {
 	it("layers a chain top-down, one node per depth row", () => {
-		const { order, depth } = topoFor(CHAIN.nodes, CHAIN.edges);
-		assert.deepEqual(order.map((n) => n.id), ["a", "b", "c"]);
-		assert.equal(depth.get("c"), 2);
 		const layout = blockLayout(CHAIN.nodes, CHAIN.edges);
-		// Text-first sizing (owner, plan-hug round 2026-10-07): these short
-		// titles hug to the minimum — no more fixed 160px slabs.
+		assert.ok(layout.y.get("a")! < layout.y.get("b")! && layout.y.get("b")! < layout.y.get("c")!, "one row per depth, top-down");
+		// Text-first sizing: these short titles hug to the minimum.
 		const W = nodeWidth(wrapTitle("Alpha node"));
 		assert.equal(W, NODE_W_MIN); // est ≈ 50 → floored at the min
 		// All three short titles floor — the extent is the floor itself.

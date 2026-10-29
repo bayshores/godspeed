@@ -4,16 +4,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	const { id } = await params;
 	const chat = getChat(id);
 	if (!chat) return Response.json({ error: "Not found" }, { status: 404 });
-	// turnInFlight lets a returning client re-attach to a running turn
-	// (chat-handler write-ahead + registry — see src/server/turn-liveness.ts).
-	// coverage (extraction-UX redesign, 2026-09-24): the chat view's ring
-	// meter + sidebar block — THE coverage surface (the all-sessions GET
-	// route died with the redesign; the Extract POST stays). getChat
-	// already 404'd, so the block exists.
-	// Wave D (owner-approved 2026-09-26): the record's messages are native
-	// agent history, served VERBATIM — the client derives its view
-	// (core/view.ts projectView). turnInFlight lets a returning client
-	// re-attach to a running turn; coverage is the chat view's ring meter.
+	// The record's messages are native agent history, served verbatim; the
+	// client derives its view (core/view.ts projectView). turnInFlight lets a
+	// returning client re-attach to a running turn (src/server/turn-liveness.ts).
+	// coverage feeds the sidebar menu's coverage block; getChat already
+	// 404'd, so it exists.
 	return Response.json({
 		...chat,
 		messages: chat.messages,

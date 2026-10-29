@@ -13,21 +13,6 @@ import type { ChatListItem } from "@/core";
  * lesson sits on the tone block in bold.
  */
 
-/** Compact "how long ago": "just now", "5m ago", "3h ago", "2d ago",
- *  then the ISO date (YYYY-MM-DD) beyond a week. Pure — exported for
- *  tests and the coverage menu block. */
-export function timeAgo(iso: string, now = new Date()): string {
-	const ms = now.getTime() - new Date(iso).getTime();
-	if (ms < 60_000) return "just now";
-	const min = Math.floor(ms / 60_000);
-	if (min < 60) return `${min}m ago`;
-	const h = Math.floor(min / 60);
-	if (h < 24) return `${h}h ago`;
-	const d = Math.floor(h / 24);
-	if (d < 7) return `${d}d ago`;
-	return isoDate(iso);
-}
-
 function isoDate(iso: string): string {
 	const date = new Date(iso);
 	const mm = String(date.getMonth() + 1).padStart(2, "0");

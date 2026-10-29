@@ -11,7 +11,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SessionRow, timeAgo } from "../src/components/sidebar.tsx";
+import { SessionRow } from "../src/components/sidebar.tsx";
 import { lessonWaiting, longAgo, shortAgo } from "../src/components/sidebar/session-row.tsx";
 import type { ChatListItem } from "../src/core/index.ts";
 
@@ -127,21 +127,5 @@ describe("shortAgo / longAgo — the row meta and its tooltip", () => {
 		assert.equal(lessonWaiting(item({ pendingQuestion: true })), true);
 		assert.equal(lessonWaiting(item({ kind: "practice", pendingProblem: true })), true);
 		assert.equal(lessonWaiting(item({})), false);
-	});
-});
-
-describe("timeAgo", () => {
-	const now = new Date("2026-01-02T12:00:00.000Z");
-
-	it("just now / minutes / hours / days, then the ISO date (owner, round 5)", () => {
-		assert.equal(timeAgo("2026-01-02T11:59:30.000Z", now), "just now");
-		assert.equal(timeAgo("2026-01-02T11:55:00.000Z", now), "5m ago");
-		assert.equal(timeAgo("2026-01-02T09:00:00.000Z", now), "3h ago");
-		assert.equal(timeAgo("2025-12-31T12:00:00.000Z", now), "2d ago");
-		assert.equal(timeAgo("2025-06-02T12:00:00.000Z", now), "2025-06-02", "beyond a week: ISO — unambiguous, sortable");
-	});
-
-	it("negative drift (clock skew) reads as just now, never a future date", () => {
-		assert.equal(timeAgo("2026-01-02T12:01:00.000Z", now), "just now");
 	});
 });

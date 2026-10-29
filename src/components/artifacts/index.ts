@@ -23,8 +23,7 @@ export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>>
 	research: JobCard,
 	pdf: PdfJobCard, // sources v0 — live smoke 2026-09-19 caught the gap: without this the tool-pdf dispatch part rendered nothing
 	// plan_* parts render nothing inline by design: the phase seam is a
-	// message-level boundary, drawn by PhaseDivider in chat.tsx (the old
-	// part-level plan_init divider retired with it).
+	// message-level boundary, drawn by PhaseDivider in lesson/message-row.tsx.
 	// Artifacts (W6 fills in the components):
 	demo: DemoCard,
 	visual: VisualCard,

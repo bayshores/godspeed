@@ -14,6 +14,7 @@ import { CompactionCutDivider, CompactionMomentDivider, type CompactionDividerDa
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
+	firstSourceTextParts,
 	messageAnchorId,
 	teachStepIndex,
 	textPartMessageId,
@@ -39,23 +40,6 @@ function SystemLine({ children, testId }: { children: React.ReactNode; testId?: 
 			{children}
 		</div>
 	);
-}
-
-/** Each native message's FIRST non-empty text part gets the message's
- *  anchor id (the message navigation's targets). A native message lives
- *  in exactly one view group, so the row can decide this alone. */
-function firstTextParts(parts: readonly LhViewPart[]): Set<string> {
-	const seen = new Set<string>();
-	const out = new Set<string>();
-	for (const part of parts) {
-		if (part.type !== "text" || typeof part.text !== "string" || !part.text.trim() || !part.id) continue;
-		const source = textPartMessageId(part.id);
-		if (source && !seen.has(source)) {
-			seen.add(source);
-			out.add(part.id);
-		}
-	}
-	return out;
 }
 
 interface MessageRowProps {
@@ -120,7 +104,9 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	// The teach seam's step: -1 = before the whole group; a later index =
 	// at that step boundary, replacing its plain hairline.
 	const seamStep = teachSeam ? teachStepIndex(m.parts) : null;
-	const anchors = firstTextParts(m.parts);
+	// A native message lives in exactly one view group, so the row can pick
+	// its anchors alone.
+	const anchors = new Set(firstSourceTextParts([m]).values());
 	return (
 		<Fragment>
 			{seamStep === -1 && <PhaseDivider phase="teach" />}

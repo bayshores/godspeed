@@ -1,9 +1,9 @@
 /**
- * The Class Overview's small derived values (redesign plan, Phase 4).
+ * The Class Overview's small derived values.
  * Pure — every number comes from the ProgressPayload (src/core/progress.ts);
  * this file only shapes it for the page and is unit-tested on its own.
  */
-import type { CalibrationLevel, FileCoverage, LessonProgress } from "@/core";
+import type { CalibrationLevel, LessonProgress } from "@/core";
 import { messageAnchorId } from "@/core";
 
 /** A file's name without its extension ("Lecture 3 — Expectation.pdf" →
@@ -11,22 +11,6 @@ import { messageAnchorId } from "@/core";
 export function displayName(name: string): string {
 	const dot = name.lastIndexOf(".");
 	return dot > 0 ? name.slice(0, dot) : name;
-}
-
-/** A study file counts as studied once any of its facts came up in a lesson. */
-export function isStudied(file: Pick<FileCoverage, "inLessons">): boolean {
-	return file.inLessons > 0;
-}
-
-/** The coverage block's width weight: its fact count (a file whose facts
- *  aren't built yet still gets a sliver). */
-export function blockWeight(file: Pick<FileCoverage, "facts">): number {
-	return Math.max(file.facts, 1);
-}
-
-/** Where a coverage block's click goes: the Files page, at that file. */
-export function fileHref(fileId: string): string {
-	return `/class/files#file-${encodeURIComponent(fileId)}`;
 }
 
 /** A lesson's page. */

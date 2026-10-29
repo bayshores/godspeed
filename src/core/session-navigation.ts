@@ -1,8 +1,6 @@
-import type { GraphNode } from "./contracts/graph.ts";
 import type { LhViewMessage } from "./view.ts";
 
-/** Message-granular graph links (owner, 2026-10-13). Persisted provenance and
- * native IDs already carry everything needed; only the render seam is new. */
+/** Message-granular links: the DOM id a transcript message is reached by. */
 export function messageAnchorId(messageId: string): string {
 	return `message-${messageId}`;
 }
@@ -16,13 +14,6 @@ export function messageIdFromHash(hash: string): string | null {
 	} catch {
 		return null;
 	}
-}
-
-/** Old empty anchors do not mask a later real one. Ledger order, not date or
- * lexical order, selects the FIRST recorded message in this source. */
-export function propositionSessionHref(node: Pick<GraphNode, "provenance">, chatId: string): string {
-	const messageId = node.provenance.find((p) => p.chatId === chatId && p.messageId !== "")?.messageId;
-	return `/chat/${encodeURIComponent(chatId)}${messageId ? `#${encodeURIComponent(messageAnchorId(messageId))}` : ""}`;
 }
 
 /** projectView's text-part identity is <native message ID>-t<text index>.

@@ -22,7 +22,7 @@ import { HalleyProvider } from "@/components/halley/halley-provider";
 import { Welcome } from "@/components/welcome/welcome";
 
 export { useRiseOnChange } from "@/components/sidebar/motion";
-export { timeAgo, SessionRow, RenameRow } from "@/components/sidebar/session-row";
+export { SessionRow, RenameRow } from "@/components/sidebar/session-row";
 
 /**
  * Toggleable sidebar — NOT a modal drawer: no backdrop, no focus theft. It

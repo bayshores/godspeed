@@ -1,27 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/components/activity-dock";
 import { formatTokens } from "@/components/usage-format";
-import { timeAgo } from "@/components/sidebar/session-row";
-import { resolveSettings } from "@/core";
 
 /**
- * The extraction-coverage surfaces (extraction-UX redesign, owner-locked
- * dispatch 2026-09-24): the ring meter in the chat top bar and the coverage
- * block in the sidebar's session context menu — the two replacements for
- * the graph view's coverage panel (src/components/graph-coverage.tsx, retired
- * with this wave). Coverage is the SAME derivation, scoped to one session:
- * GET /api/chats/[id] now carries `coverage` (Platform's eed4b4e).
+ * The coverage block in the sidebar's lesson context menu: how much of one
+ * session the graph extractor hasn't covered yet, plus a manual Extract.
+ * Coverage comes from GET /api/chats/[id] (`coverage`).
  *
- * The ring fills with uncoveredTokens / extractionChunkTokens — the chunk
- * budget the threshold setting (Graph ▸ extractionChunkTokens) pins: the
- * meter is "how close this session is to firing its next extraction run".
- * It DRAINS as a run folds (coverage re-derives per request), pulses while
- * a run is in flight, and vanishes entirely when the graph is off (the
- * master kill-switch means no extraction, so no meter).
- *
- * The manual affordance stays POST /api/graph/coverage/extract {chatId}
- * (409 = already running, BENIGN — the trigger raced us; the dock's
- * start-site nudge seam refreshes either way).
+ * Extract posts to /api/graph/coverage/extract {chatId}. A 409 means a run
+ * is already in flight, which is fine: the activity dock refreshes either way.
  */
 
 /** Client-safe mirror of the server's SessionCoverage (src/server/chats.ts
@@ -49,35 +36,9 @@ async function fetchCoverage(chatId: string): Promise<SessionCoverage | null> {
 	}
 }
 
-/** The ring's denominator + visibility, resolved through the SAME core
- *  resolver the server's effective settings use (fix, 2026-10-02): the
- *  meter denominates at exactly the number the extraction trigger waits
- *  for — the old hand-rolled `?? 4096` fallback drifted from the factory
- *  default (8192) and the ring filled at half the truth. Null on fetch
- *  failure → no ring. */
-interface GraphRead {
-	enabled: boolean;
-	chunkTokens: number;
-}
-
-/** Exported for the render pin (the ringFill precedent): resolves the
- *  raw settings delta to the factory-true graph section. */
-export async function fetchGraphRead(): Promise<GraphRead | null> {
-	try {
-		const res = await fetch("/api/settings");
-		if (!res.ok) return null;
-		const body = (await res.json()) as { settings?: Parameters<typeof resolveSettings>[0] };
-		const graph = resolveSettings(body.settings ?? null).graph;
-		return { enabled: graph.enabled, chunkTokens: graph.extractionChunkTokens };
-	} catch {
-		return null;
-	}
-}
-
-/** The manual-extract seam, shared by both surfaces. 409 is BENIGN (the
- *  run is already in flight) — returns "running" so the caller flips to the
- *  optimistic/running state instead of an error. Returns false only on a
- *  real failure, where the caller reverts. */
+/** The manual-extract request. 409 (a run is already in flight) counts as
+ *  started, so the caller shows the running state instead of an error.
+ *  Returns false only on a real failure, where the caller reverts. */
 async function requestExtract(chatId: string): Promise<boolean> {
 	try {
 		const res = await fetch("/api/graph/coverage/extract", {
@@ -92,12 +53,9 @@ async function requestExtract(chatId: string): Promise<boolean> {
 	}
 }
 
-// ─── The sidebar context menu's coverage block ──────────────────────────────
-
 /**
- * The info block at the bottom of the session context menu (owner-locked
- * redesign): what the extractor hasn't covered yet, plus the manual Extract
- * affordance — visually separated from Rename/Delete below (those stay the
+ * The info block at the bottom of the session context menu: what the
+ * extractor hasn't covered yet, plus the manual Extract affordance, visually separated from Rename/Delete below (those stay the
  * two session-management actions). Fetched ON MENU OPEN (the block mounts
  * with the menu — on-demand, never eagerly), polled at 2s while a run is
  * in flight so the numbers settle live. No coverage (fetch failed, 404):
@@ -132,12 +90,9 @@ export function CoverageMenuBlock({ chatId }: { chatId: string }) {
 		void load();
 	}, [load]);
 
-	// While a run is in flight the block polls at 2s (the old panel's
-	// open-only cadence, bounded to the running state) — the numbers
-	// settle live and the block ends in "fully extracted".
-	// ACCEPTED BY DESIGN (owner, 2026-10-02): the ring drains per fold,
-	// and the events channel is per phase — that granularity gap is why
-	// this bounded, run-scoped poll stays.
+	// While a run is in flight the block polls at 2s so the numbers settle
+	// live. Coverage moves per fold but the events channel only reports per
+	// phase, so this bounded, run-scoped poll stays.
 	useEffect(() => {
 		if (coverage?.running !== true && !extracting) return;
 		const timer = setInterval(() => void load(), 2000);
@@ -209,92 +164,5 @@ export function CoverageMenuBody({
 				{busy ? "Running" : "Extract"}
 			</button>
 		</div>
-	);
-}
-
-// ─── The chat top bar's ring meter ──────────────────────────────────────────
-
-/** The donut's geometry (pure, exported for tests): the fill fraction
- *  uncovered/chunk, clamped to [0,1] — at 1 the next run fires. */
-export function ringFill(uncoveredTokens: number, chunkTokens: number): number {
-	if (!(chunkTokens > 0)) return 0;
-	return Math.min(1, Math.max(0, uncoveredTokens / chunkTokens));
-}
-
-/** The donut itself (exported for static-render tests): a hairline track
- *  plus the fill arc — uncovered/chunk of the circumference, starting at
- *  12 o'clock. The whole ring pulses while a run is in flight. */
-export function CoverageRingGlyph({ fill, running }: { fill: number; running: boolean }) {
-	const C = 2 * Math.PI * 6; // r=6 in the 16px viewBox
-	return (
-		<svg
-			viewBox="0 0 16 16"
-			className={running ? "size-full animate-pulse" : "size-full"}
-			aria-hidden="true"
-		>
-			<circle cx="8" cy="8" r="6" fill="none" strokeWidth="2.5" className="stroke-border" />
-			<circle
-				cx="8"
-				cy="8"
-				r="6"
-				fill="none"
-				strokeWidth="2.5"
-				className="stroke-foreground/70"
-				strokeDasharray={`${fill * C} ${C}`}
-				strokeLinecap="round"
-				transform="rotate(-90 8 8)"
-			/>
-		</svg>
-	);
-}
-
-/** The popover body (exported for static-render tests): the exact numbers —
- *  covered/uncovered tokens, message coverage, the threshold, the last
- *  fold's age. */
-export function CoverageRingDetail({ coverage, chunkTokens }: { coverage: SessionCoverage; chunkTokens: number }) {
-	return (
-		<>
-			<div className="mb-2 text-xs font-semibold text-muted-foreground">
-				Extraction coverage
-			</div>
-			<div className="flex flex-col gap-1 text-muted-foreground">
-				<div className="flex justify-between gap-2">
-					<span>Uncovered</span>
-					<span className="font-mono tabular-nums text-card-foreground">
-						{formatTokens(coverage.uncoveredTokens)} tokens
-					</span>
-				</div>
-				<div className="flex justify-between gap-2">
-					<span>Covered</span>
-					<span className="font-mono tabular-nums text-card-foreground">
-						{formatTokens(coverage.coveredTokens)} tokens
-					</span>
-				</div>
-				<div className="flex justify-between gap-2">
-					<span>Messages</span>
-					<span className="font-mono tabular-nums text-card-foreground">
-						{coverage.coveredCount} / {coverage.totalMessages}
-					</span>
-				</div>
-				<div className="flex justify-between gap-2">
-					<span>Chunk threshold</span>
-					<span className="font-mono tabular-nums text-card-foreground">
-						{formatTokens(chunkTokens)} tokens
-					</span>
-				</div>
-				<div className="flex justify-between gap-2">
-					<span>Last extraction</span>
-					<span className="font-mono tabular-nums text-card-foreground">
-						{coverage.lastFoldedAt ? timeAgo(coverage.lastFoldedAt) : "—"}
-					</span>
-				</div>
-				{coverage.running && (
-					<div className="flex justify-between gap-2" data-testid="coverage-ring-running">
-						<span>Status</span>
-						<span className="text-card-foreground">extracting…</span>
-					</div>
-				)}
-			</div>
-		</>
 	);
 }

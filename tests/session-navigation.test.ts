@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-	firstSourceTextParts, messageAnchorId, messageIdFromHash, propositionSessionHref, textPartMessageId,
+	firstSourceTextParts, messageAnchorId, messageIdFromHash, textPartMessageId,
 } from "../src/core/session-navigation.ts";
 import { projectView } from "../src/core/view.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
@@ -10,28 +10,10 @@ function teacher(id: string, content: unknown[]): LhMessage {
 	return { id, role: "assistant", content, stopReason: "stop", timestamp: 0, provider: "openrouter", model: "test" } as LhMessage;
 }
 
-describe("proposition source-session links (owner, 2026-10-13)", () => {
-	it("chooses the first recorded non-empty anchor for that source", () => {
-		const node = { provenance: [
-			{ chatId: "other", messageId: "unrelated" },
-			{ chatId: "chat_a", messageId: "" },
-			{ chatId: "chat_a", messageId: "msg_first" },
-			{ chatId: "chat_a", messageId: "msg_latest" },
-		] };
-		assert.equal(propositionSessionHref(node, "chat_a"), "/chat/chat_a#message-msg_first");
-		assert.equal(propositionSessionHref(node, "other"), "/chat/other#message-unrelated");
-	});
-
-	it("legacy chat-only/missing provenance remains an ordinary session link", () => {
-		assert.equal(propositionSessionHref({ provenance: [{ chatId: "c", messageId: "" }] }, "c"), "/chat/c");
-		assert.equal(propositionSessionHref({ provenance: [] }, "c"), "/chat/c");
-	});
-
-	it("encodes path/hash values and round-trips the actual message ID", () => {
-		const node = { provenance: [{ chatId: "chat /a", messageId: "msg /%#a" }] };
-		const href = propositionSessionHref(node, "chat /a");
-		assert.equal(href, "/chat/chat%20%2Fa#message-msg%20%2F%25%23a");
-		assert.equal(messageIdFromHash(href.slice(href.indexOf("#"))), "msg /%#a");
+describe("message anchors", () => {
+	it("an encoded anchor hash round-trips the actual message ID", () => {
+		const hash = `#${encodeURIComponent(messageAnchorId("msg /%#a"))}`;
+		assert.equal(messageIdFromHash(hash), "msg /%#a");
 	});
 
 	it("recognizes only non-empty, well-formed message hashes", () => {

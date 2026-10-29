@@ -94,47 +94,6 @@ export interface LayoutNode {
 	title: string;
 }
 
-/** Topological order + longest-path depth (Kahn, authoring tie-break) —
- *  order + depth semantics kept for tests; placement itself runs on dagre
- *  now (owner, round 8). */
-export function topoFor(nodes: readonly LayoutNode[], edges: ReadonlyArray<{ from: string; to: string }>) {
-	const index = new Map(nodes.map((n, i) => [n.id, i] as const));
-	const indegree = new Map<string, number>(nodes.map((n) => [n.id, 0] as const));
-	const dependents = new Map<string, string[]>();
-	for (const e of edges) {
-		if (!index.has(e.from) || !index.has(e.to)) continue; // defensive: dangling ids
-		indegree.set(e.to, (indegree.get(e.to) ?? 0) + 1);
-		const list = dependents.get(e.from);
-		if (list) list.push(e.to);
-		else dependents.set(e.from, [e.to]);
-	}
-	const ready = nodes.filter((n) => (indegree.get(n.id) ?? 0) === 0).map((n) => n.id);
-	const order: LayoutNode[] = [];
-	const depth = new Map<string, number>();
-	const byId = new Map(nodes.map((n) => [n.id, n] as const));
-	while (ready.length > 0) {
-		ready.sort((a, b) => (index.get(a) ?? 0) - (index.get(b) ?? 0));
-		const id = ready.shift()!;
-		const node = byId.get(id);
-		if (node) order.push(node);
-		const d = depth.get(id) ?? 0;
-		depth.set(id, d);
-		for (const t of dependents.get(id) ?? []) {
-			if ((depth.get(t) ?? -1) < d + 1) depth.set(t, d + 1);
-			const left = (indegree.get(t) ?? 0) - 1;
-			indegree.set(t, left);
-			if (left === 0) ready.push(t);
-		}
-	}
-	for (const n of nodes) {
-		if (!depth.has(n.id)) {
-			order.push(n);
-			depth.set(n.id, 0);
-		}
-	}
-	return { order, depth };
-}
-
 /** Placement — dagre (mermaid's engine, owner round 8): Sugiyama-style
  *  layered layout, TB, with our geometry (text-first sized boxes,
  *  GAP_X/GAP_Y

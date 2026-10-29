@@ -6,13 +6,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	answeredLessons,
-	blockWeight,
 	calibrationTakeaway,
 	displayName,
-	fileHref,
 	hasCalibration,
 	isLevelOverconfident,
-	isStudied,
 	lessonHref,
 	mostMissesTakeaway,
 	questionHref,
@@ -47,15 +44,7 @@ describe("overview-model", () => {
 		assert.equal(displayName(".hidden"), ".hidden");
 	});
 
-	it("studied = any fact came up; width weight = facts, at least 1", () => {
-		assert.equal(isStudied({ inLessons: 0 }), false);
-		assert.equal(isStudied({ inLessons: 1 }), true);
-		assert.equal(blockWeight({ facts: 0 }), 1);
-		assert.equal(blockWeight({ facts: 18 }), 18);
-	});
-
-	it("links: file on the Files page, the lesson, a question's message anchor", () => {
-		assert.equal(fileHref("cf_1"), "/class/files#file-cf_1");
+	it("links: the lesson, a question's message anchor", () => {
 		assert.equal(lessonHref("chat 1"), "/chat/chat%201");
 		assert.equal(questionHref("c1", "m7"), "/chat/c1#message-m7");
 	});
