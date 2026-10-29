@@ -27,7 +27,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
-import type { ClassDeadline, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSignature, ClassSummary } from "../core/contracts.ts";
 import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
@@ -140,11 +140,14 @@ export function sourceIdFor(classId: string, fileId: string): string {
 
 // ─── class lifecycle ────────────────────────────────────────────────────────
 
-export function createClass(init: { name: string; description?: string }): ClassRecord {
+export function createClass(init: { name: string; description?: string; signature?: ClassSignature }): ClassRecord {
 	return stores.classStore.createClass(init);
 }
 
-export function updateClass(id: string, patch: { name?: string; description?: string; archived?: boolean }): ClassOutcome<ClassRecord> {
+export function updateClass(
+	id: string,
+	patch: { name?: string; description?: string; archived?: boolean; signature?: ClassSignature | null },
+): ClassOutcome<ClassRecord> {
 	if (!stores.classStore.getClass(id)) return fail(404, "not_found", "No such class");
 	return { ok: true, value: stores.classStore.updateClass(id, patch) };
 }

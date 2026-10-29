@@ -16,9 +16,10 @@ import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../core/ports.ts";
-import type { ClassDeadline, ClassFile, ClassRecord, ClassSummary, DeadlineKind } from "../core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind } from "../core/contracts.ts";
 import {
 	ClassDeadlineError,
+	cleanSignature,
 	compareDeadlines,
 	CURRENT_CLASS_VERSION,
 	isCalendarDate,
@@ -102,6 +103,8 @@ function readDeadlines(parsed: Record<string, unknown>): ClassDeadline[] | undef
 	return undefined;
 }
 
+const isClassNote = (v: unknown): v is ClassNote => isRecord(v) && isString(v.text) && isString(v.at);
+
 function getClass(id: string): ClassRecord | null {
 	let parsed: unknown;
 	try {
@@ -122,6 +125,7 @@ function getClass(id: string): ClassRecord | null {
 	// the next write persists the cleaned list).
 	const fileIds = new Set(files.map((f) => f.id));
 	const deadlines = readDeadlines(parsed);
+	const signature = isRecord(parsed.signature) ? cleanSignature(parsed.signature) : null;
 	return {
 		id: parsed.id,
 		name: parsed.name,
@@ -132,6 +136,8 @@ function getClass(id: string): ClassRecord | null {
 		...(isString(parsed.linkedFolder) ? { linkedFolder: parsed.linkedFolder } : {}),
 		files,
 		...(deadlines ? { deadlines: deadlines.map((d) => ({ ...d, fileIds: d.fileIds.filter((f) => fileIds.has(f)) })).sort(compareDeadlines) } : {}),
+		...(signature ? { signature } : {}),
+		...(isClassNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
 	};
 }
@@ -146,6 +152,8 @@ function summarize(record: ClassRecord): ClassSummary {
 		archived: record.archived,
 		...(record.linkedFolder ? { linkedFolder: record.linkedFolder } : {}),
 		fileCount: record.files.length,
+		...(record.signature ? { signature: record.signature } : {}),
+		...(record.note ? { note: record.note } : {}),
 	};
 }
 
@@ -153,7 +161,7 @@ function cleanName(name: string): string {
 	return name.trim().replace(/\s+/g, " ").slice(0, 120) || "Untitled class";
 }
 
-function createClass(init: { name: string; description?: string }): ClassRecord {
+function createClass(init: { name: string; description?: string; signature?: ClassSignature }): ClassRecord {
 	const now = new Date().toISOString();
 	const record: ClassRecord = {
 		id: `cls_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
@@ -163,6 +171,7 @@ function createClass(init: { name: string; description?: string }): ClassRecord 
 		updatedAt: now,
 		archived: false,
 		files: [],
+		...(init.signature ? { signature: init.signature } : {}),
 	};
 	writeClass(record);
 	emit("classes-changed", {});
@@ -194,6 +203,11 @@ function updateClass(id: string, patch: ClassPatch): ClassRecord {
 		if (patch.linkedFolder === null) delete record.linkedFolder;
 		else record.linkedFolder = patch.linkedFolder;
 	}
+	if (patch.signature !== undefined) {
+		if (patch.signature === null) delete record.signature;
+		else record.signature = patch.signature;
+	}
+	if (patch.note !== undefined) record.note = patch.note;
 	record.updatedAt = new Date().toISOString();
 	writeClass(record);
 	emit("classes-changed", {});

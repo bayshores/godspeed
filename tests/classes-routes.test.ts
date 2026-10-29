@@ -93,6 +93,16 @@ describe("class routes", () => {
 		const missing = await classRoute.GET(json("/api/classes/cls_nope", "GET"), ctx({ id: "cls_nope" }));
 		assert.equal(missing.status, 404);
 	});
+
+	it("sets, refuses and clears a signature", async () => {
+		const id = await makeClass("CSE 21");
+		const set = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { signature: { kind: "math", value: " \\binom{n}{k} " } }), ctx({ id }));
+		assert.deepEqual((await set.json()).class.signature, { kind: "math", value: "\\binom{n}{k}" });
+		const bad = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { signature: { kind: "poem", value: "x" } }), ctx({ id }));
+		assert.equal(bad.status, 400);
+		const cleared = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { signature: null }), ctx({ id }));
+		assert.equal((await cleared.json()).class.signature, undefined);
+	});
 });
 
 describe("deadline routes (plan 2026-10-28; exams before that)", () => {

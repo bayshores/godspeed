@@ -82,6 +82,45 @@ export interface ClassDeadline {
 	doneAt?: string;
 }
 
+export type SignatureKind = "math" | "code" | "text";
+
+const SIGNATURE_KINDS: readonly SignatureKind[] = ["math", "code", "text"];
+
+/** The class's signature: one line that sums up the course, set huge and
+ *  dim on its Overview cover. "math" is LaTeX (no `$`), "code" a line of
+ *  code, "text" anything else (a quote, a sequence, a date). */
+export interface ClassSignature {
+	kind: SignatureKind;
+	value: string;
+}
+
+/** Longest signature, in characters (one line on the cover). */
+export const SIGNATURE_MAX = 60;
+
+/** Halley's note on the cover: the teacher's two sentences on where the
+ *  learner stands in the class and what's next (set_class_note). */
+export interface ClassNote {
+	text: string;
+	/** ISO time it was written. */
+	at: string;
+}
+
+/** Longest note, in characters. */
+export const NOTE_MAX = 280;
+
+function isSignatureKind(kind: unknown): kind is SignatureKind {
+	return typeof kind === "string" && (SIGNATURE_KINDS as readonly string[]).includes(kind);
+}
+
+/** A signature as given (by an agent or the Edit class dialog), cleaned:
+ *  one line, trimmed. Null when the kind is unknown, the value is empty
+ *  or longer than SIGNATURE_MAX. */
+export function cleanSignature(raw: { kind?: unknown; value?: unknown }): ClassSignature | null {
+	if (!isSignatureKind(raw.kind) || typeof raw.value !== "string") return null;
+	const value = raw.value.replace(/\s+/g, " ").trim();
+	return value && value.length <= SIGNATURE_MAX ? { kind: raw.kind, value } : null;
+}
+
 export interface ClassRecord {
 	/** "cls_" + base36 time + "_" + 8 hex. */
 	id: string;
@@ -99,6 +138,8 @@ export interface ClassRecord {
 	/** The class's deadlines, soonest due first (absent on records that
 	 *  never had one — absence reads as none). */
 	deadlines?: ClassDeadline[];
+	signature?: ClassSignature;
+	note?: ClassNote;
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
@@ -108,8 +149,9 @@ export interface ClassRecord {
  *  makes an older build REFUSE a v2 record rather than drop its exams on
  *  its next write (its reader rebuilds the record field by field).
  *  v3: exams become deadlines (`deadlines`; a v2 record's
- *  `exams` read as deadlines of kind "exam"). */
-export const CURRENT_CLASS_VERSION = 3;
+ *  `exams` read as deadlines of kind "exam").
+ *  v4: adds `signature` and `note`. */
+export const CURRENT_CLASS_VERSION = 4;
 
 /** Why a deadline write was refused (the store's validation; the server
  *  maps it to a 400 / 404 with this message). */
@@ -163,6 +205,8 @@ export interface ClassSummary {
 	archived: boolean;
 	linkedFolder?: string;
 	fileCount: number;
+	signature?: ClassSignature;
+	note?: ClassNote;
 }
 
 /** The "No class" space's wire name (query strings, MCP inputs). */

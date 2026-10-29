@@ -23,7 +23,7 @@ const { chatStore } = await import("../src/store/chats.ts");
 const { graphStoreFor, graphStoreForChat, allGraphScopes } = await import("../src/server/stores.ts");
 const { deleteSourceTraces } = await import("../src/core/graph-deletion.ts");
 const { getGraph } = await import("../src/core/graph.ts");
-const { parseClassScope, isSupportedClassFile, extensionOf, isCalendarDate, isClockTime, ClassDeadlineError, deadlineDueAt, compareDeadlines } = await import("../src/core/contracts.ts");
+const { parseClassScope, isSupportedClassFile, extensionOf, isCalendarDate, isClockTime, ClassDeadlineError, deadlineDueAt, compareDeadlines, cleanSignature } = await import("../src/core/contracts.ts");
 
 after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
@@ -110,9 +110,9 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 	});
 	const classFile = (id: string) => path.join(TMP_DATA, "classes", id, "class.json");
 
-	it("adds, updates, sorts and removes deadlines; stamps version 3", () => {
+	it("adds, updates, sorts and removes deadlines; stamps version 4", () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
-		assert.equal(cls.version, 3);
+		assert.equal(cls.version, 4);
 		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
 		const finalExam = classStore.addDeadline(cls.id, {
 			kind: "exam",
@@ -137,7 +137,7 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.name), ["Final", "Midterm 1"]);
 
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 3);
+		assert.equal(onDisk.version, 4);
 		assert.equal(onDisk.deadlines.length, 2);
 		assert.equal(onDisk.exams, undefined);
 
@@ -210,7 +210,7 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
 	});
 
-	it("reads a version-2 record's exams as deadlines, and writes them back as v3", () => {
+	it("reads a version-2 record's exams as deadlines, and writes them back as v4", () => {
 		const cls = classStore.createClass({ name: "Upgraded" });
 		classStore.saveFiles(cls.id, [studyFile("f_ffffffffffff")]);
 		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
@@ -234,7 +234,7 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		]);
 		classStore.updateDeadline(cls.id, "exm_111111111111", { done: true });
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 3);
+		assert.equal(onDisk.version, 4);
 		assert.equal(onDisk.exams, undefined, "the old field is gone");
 		assert.deepEqual(
 			onDisk.deadlines.map((d: { id: string; kind: string; done: boolean }) => [d.id, d.kind, d.done]),
@@ -253,6 +253,29 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		assert.ok(read);
 		assert.equal(read.deadlines, undefined);
 		assert.equal(read.version, 1);
+	});
+
+	it("keeps a signature and a note; null clears the signature; a bad one on disk reads as none", () => {
+		const cls = classStore.createClass({ name: "CSE 29", signature: { kind: "code", value: "int *p = &x;" } });
+		assert.deepEqual(cls.signature, { kind: "code", value: "int *p = &x;" });
+		classStore.updateClass(cls.id, { note: { text: "Pointers are clicking.", at: "2026-10-28T10:00:00.000Z" } });
+		const read = classStore.getClass(cls.id);
+		assert.deepEqual(read?.note, { text: "Pointers are clicking.", at: "2026-10-28T10:00:00.000Z" });
+		const listed = classStore.listClasses().find((c) => c.id === cls.id);
+		assert.deepEqual(listed?.signature, { kind: "code", value: "int *p = &x;" });
+		assert.equal(listed?.note?.text, "Pointers are clicking.");
+		assert.equal(classStore.updateClass(cls.id, { signature: null }).signature, undefined);
+		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		fs.writeFileSync(classFile(cls.id), JSON.stringify({ ...raw, signature: { kind: "poem", value: "x" } }));
+		assert.equal(classStore.getClass(cls.id)?.signature, undefined);
+	});
+
+	it("cleans a signature: one line, trimmed, a known kind, at most 60 characters", () => {
+		assert.deepEqual(cleanSignature({ kind: "math", value: "  e^{i\\pi}\n+ 1 = 0 " }), { kind: "math", value: "e^{i\\pi} + 1 = 0" });
+		assert.equal(cleanSignature({ kind: "poem", value: "x" }), null);
+		assert.equal(cleanSignature({ kind: "text", value: "   " }), null);
+		assert.equal(cleanSignature({ kind: "text", value: "x".repeat(61) }), null);
+		assert.equal(cleanSignature({ kind: "text" }), null);
 	});
 
 	it("knows a calendar date and a clock time", () => {
