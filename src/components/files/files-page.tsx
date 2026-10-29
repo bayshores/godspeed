@@ -6,6 +6,7 @@ import { useClasses } from "@/components/class-context";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
 import {
+	classFilePathOf,
 	linkClassFolder,
 	removeClassFile,
 	retryClassFile,
@@ -17,7 +18,7 @@ import {
 } from "./class-files-api";
 import type { FileRowActions } from "./file-row";
 import { FileSection, type SectionDrag } from "./files-sections";
-import { fileAnchorId, fileIdFromHash, splitByKind } from "./files-model";
+import { fileAnchorId, fileBrowserName, fileIdFromHash, splitByKind } from "./files-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
 
 /** How long a row a "#file-<id>" link landed on stays outlined. */
@@ -38,7 +39,7 @@ const FLASH_MS = 1600;
  */
 export function FilesPage() {
 	const { active } = useClasses();
-	const { record } = useClassRecord(active);
+	const { record, folderProblem } = useClassRecord(active);
 	const { data } = useProgress();
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
@@ -67,12 +68,22 @@ export function FilesPage() {
 
 	const actions = useMemo<FileRowActions | null>(() => {
 		if (!classId) return null;
+		const showInFolder = typeof window !== "undefined" ? window.lh?.showInFolder : undefined;
 		return {
 			onKind: (fileId, kind) => void run(() => setClassFileKind(classId, fileId, kind)),
 			onRetry: (fileId) => void run(() => retryClassFile(classId, fileId)),
 			onRemove: (fileId) => void run(() => removeClassFile(classId, fileId)),
+			show: showInFolder && {
+				label: `Show in ${fileBrowserName(window.lh?.platform)}`,
+				run: (fileId) =>
+					void classFilePathOf(classId, fileId).then((path) => {
+						if (path) void showInFolder(path);
+						else setError("Can't find this file on your computer.");
+					}),
+			},
 		};
 	}, [classId, run]);
+	const openFolder = typeof window !== "undefined" ? window.lh?.openFolder : undefined;
 
 	const link = useCallback(
 		(path: string) => {
@@ -176,7 +187,14 @@ export function FilesPage() {
 							actions={rowActions}
 							headerExtra={
 								record.linkedFolder ? (
-									<LinkedFolderChip path={record.linkedFolder} disabled={disabled} onUnlink={() => void run(() => unlinkClassFolder(record.id))} />
+									<LinkedFolderChip
+										path={record.linkedFolder}
+										problem={folderProblem}
+										disabled={disabled}
+										open={openFolder && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openFolder(record.linkedFolder!) }}
+										onPickAgain={onLinkFolder}
+										onUnlink={() => void run(() => unlinkClassFolder(record.id))}
+									/>
 								) : (
 									!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
 								)

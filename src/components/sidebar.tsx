@@ -62,6 +62,10 @@ declare global {
 			platform?: string;
 			/** Native folder picker: absolute path or null. */
 			pickFolder?: () => Promise<string | null>;
+			/** Opens Finder (File Explorer) with this file selected. */
+			showInFolder?: (path: string) => Promise<void>;
+			/** Opens this folder in Finder (File Explorer). */
+			openFolder?: (path: string) => Promise<void>;
 			/** A dropped file's or folder's absolute path (onboarding drop zone). */
 			pathForFile?: (file: File) => string;
 			expandWindow: () => void;

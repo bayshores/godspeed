@@ -39,6 +39,11 @@ export function shortenHome(path: string): string {
 	return path.replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
 }
 
+/** The computer's file browser by name, for "Show in …" labels. */
+export function fileBrowserName(platform: string | undefined): string {
+	return platform === "win32" ? "File Explorer" : platform === "darwin" ? "Finder" : "Files";
+}
+
 /** What a row shows between its name and the Study/Info toggle. */
 export type FileState =
 	| { kind: "coverage"; facts: number; inLessons: number; share: number | null }

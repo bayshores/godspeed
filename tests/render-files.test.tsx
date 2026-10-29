@@ -57,7 +57,7 @@ const RECORD: ClassRecord = {
 	linkedFolder: "/Users/me/School/CSE 21",
 	files: [
 		file("f1", "Lecture 1 — Counting.pdf"),
-		file("f2", "Rosen 6.2 — Probability theory.pdf"),
+		file("f2", "Rosen 6.2 — Probability theory.pdf", { origin: "linked", path: "Readings/Rosen 6.2 — Probability theory.pdf" }),
 		file("f3", "Rosen 7.1 — Discrete probability.pdf", { status: "extracting" }),
 		file("f4", "Week 4 Discussion.srt", { status: "failed", error: "no audio" }),
 		file("f5", "Syllabus.pdf", { kind: "info" }),
@@ -69,6 +69,7 @@ const COVERAGE: FileCoverage[] = [
 ];
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
+let folderProblem: string | null = null;
 const originalFetch = globalThis.fetch;
 function fakeFetch() {
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -76,7 +77,7 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
-		if (url.startsWith("/api/classes/cls_a") && method === "GET") return Response.json({ class: RECORD });
+		if (url.startsWith("/api/classes/cls_a") && method === "GET") return Response.json({ class: RECORD, folderProblem });
 		if (url.startsWith("/api/progress")) return Response.json({ classId: "cls_a", files: COVERAGE });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
@@ -120,6 +121,7 @@ afterEach(async () => {
 	host = undefined;
 	calls.length = 0;
 	scrolled.length = 0;
+	folderProblem = null;
 	globalThis.fetch = originalFetch;
 	window.location.hash = "";
 });
@@ -144,6 +146,30 @@ describe("FilesPage", () => {
 		assert.ok(q("class-file-retry-f4"));
 		assert.equal(q("class-file-status-f5"), null, "course info shows no state");
 		assert.equal(document.querySelector('[data-testid^="class-file-kind-"]'), null, "no Study/Info toggle");
+		assert.ok(q("class-file-linked-f2"), "a file from the linked folder is marked");
+		assert.equal(q("class-file-linked-f1"), null, "a copied file is not");
+		assert.equal(q("class-folder")!.getAttribute("data-problem"), null);
+	});
+
+	it("a missing linked folder says so and offers Pick folder again", async () => {
+		folderProblem = "missing";
+		fakeFetch();
+		await mount();
+		assert.equal(q("class-folder-path")!.textContent, "Can't find this folder");
+		await act(async () => q("class-folder")!.click());
+		assert.match(q("class-folder-problem")!.textContent!, /Its files and facts are kept/);
+		assert.ok(q("class-folder-pick-again"));
+		assert.equal(q("class-folder-open"), null, "no Open in Finder for a folder that isn't there");
+	});
+
+	it("a folder over the file limit says only the first 500 were added", async () => {
+		folderProblem = "too-many-files";
+		fakeFetch();
+		await mount();
+		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
+		await act(async () => q("class-folder")!.click());
+		assert.match(q("class-folder-problem")!.textContent!, /Only the first 500 files were added/);
+		assert.equal(q("class-folder-pick-again"), null);
 	});
 
 	it("Move to …, Retry and Unlink write through the class routes", async () => {

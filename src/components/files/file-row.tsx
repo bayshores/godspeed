@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef, useState, type DragEvent } from "react";
-import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, GripVerticalIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
+import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, GripVerticalIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
 import type { ClassFile, FileCoverage } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
@@ -9,9 +9,10 @@ import { canRemove, canRetry, FILE_DRAG_TYPE, fileAnchorId, fileState, kindTitle
 
 /**
  * ONE FILE ROW (Files page, docs/design/godspeed-redesign.pen "Files — panels"):
- * drag grip (on hover), icon, name, the row's state ("12/31 facts studied"
+ * drag grip (on hover), icon, name (a folder mark when it comes from the
+ * linked folder), the row's state ("12/31 facts studied"
  * with its bar, "Building facts…", "Waiting", "Failed · Retry") and the ⋯
- * menu (Move to the other section, Retry, Remove). The row has no box of
+ * menu (Move to the other section, Retry, Show in Finder, Remove). The row has no box of
  * its own; the one under the mouse lights up. Drag it into the other
  * section to switch its kind. Memoized: a row redraws only when its own
  * file, coverage, flash or drag state changes.
@@ -21,6 +22,8 @@ export interface FileRowActions {
 	onKind: (fileId: string, kind: "study" | "info") => void;
 	onRetry: (fileId: string) => void;
 	onRemove: (fileId: string) => void;
+	/** "Show in Finder" (desktop app only): its label and action. */
+	show?: { label: string; run: (fileId: string) => void };
 	/** A row drag started (null: it ended). */
 	onDrag?: (file: ClassFile | null) => void;
 }
@@ -72,15 +75,16 @@ export const FileRow = memo(function FileRow({
 		>
 			<GripVerticalIcon className="size-3.5 shrink-0 cursor-grab text-ink-3 opacity-0 group-hover:opacity-100" aria-hidden />
 			<Icon className="size-[15px] shrink-0 text-ink-2" aria-hidden />
-			{file.origin === "linked" && file.path !== file.name ? (
-				<Tip title="Linked folder" body={<span className="break-all">{file.path}</span>} side="bottom" align="start">
-					<span tabIndex={0} className="min-w-0 flex-1 truncate text-[14.5px] text-ink outline-none">
-						{file.name}
-					</span>
-				</Tip>
-			) : (
-				<span className="min-w-0 flex-1 truncate text-[14.5px] text-ink">{file.name}</span>
-			)}
+			<span className="flex min-w-0 flex-1 items-center gap-1.5">
+				<span className="min-w-0 truncate text-[14.5px] text-ink">{file.name}</span>
+				{file.origin === "linked" && (
+					<Tip title="From your linked folder" body={<span className="break-all">{file.path}</span>} side="bottom" align="start">
+						<span tabIndex={0} data-testid={`class-file-linked-${file.id}`} className="shrink-0 text-ink-3 outline-none">
+							<FolderIcon className="size-3" aria-label="From your linked folder" />
+						</span>
+					</Tip>
+				)}
+			</span>
 			<RowState fileId={file.id} state={state} disabled={disabled} onRetry={actions.onRetry} />
 			<RowMenu file={file} disabled={disabled} actions={actions} />
 		</li>
@@ -168,13 +172,14 @@ function CoverageCell({ fileId, state }: { fileId: string; state: Extract<FileSt
 
 const MENU_ITEM = "lh-press flex items-center gap-[9px] px-2.5 py-[7px] text-left hover:bg-tone";
 
-/** The ⋯ menu: Move to the other section, Retry (stuck or failed) and
- *  Remove (the app's own copies). */
+/** The ⋯ menu: Move to the other section, Retry (stuck or failed), Show
+ *  in Finder (desktop app) and Remove (the app's own copies). */
 function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: boolean; actions: FileRowActions }) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const retry = canRetry(file);
 	const remove = canRemove(file);
+	const show = actions.show;
 	const other = file.kind === "study" ? "info" : "study";
 
 	const close = useCallback(() => setOpen(false), []);
@@ -214,6 +219,12 @@ function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: bool
 					<button type="button" data-testid={`class-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={`${MENU_ITEM} text-ink`}>
 						<RotateCwIcon className="size-3.5 shrink-0" aria-hidden />
 						Retry
+					</button>
+				)}
+				{show && (
+					<button type="button" data-testid={`class-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={`${MENU_ITEM} text-ink`}>
+						<FolderSearchIcon className="size-3.5 shrink-0" aria-hidden />
+						{show.label}
 					</button>
 				)}
 				{remove && (

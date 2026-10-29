@@ -27,7 +27,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
-import type { ClassDeadline, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSignature, ClassSummary } from "../core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem } from "../core/contracts.ts";
 import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
@@ -377,14 +377,12 @@ export function linkFolder(classId: string, folder: string): ClassOutcome<ClassR
 	} catch {
 		return fail(404, "folder_not_found", `No folder at ${folder}`);
 	}
-	const resolved = path.resolve(folder);
-	if (record.linkedFolder && record.linkedFolder !== resolved) {
-		const blocked = unlinkFolder(classId);
-		if (!blocked.ok) return blocked;
-	}
-	const updated = stores.classStore.updateClass(classId, { linkedFolder: resolved });
+	// Linking another folder keeps the old folder's file entries: the scan
+	// drops the ones the new folder lacks, and a file at the same path with
+	// the same contents keeps its facts.
+	stores.classStore.updateClass(classId, { linkedFolder: path.resolve(folder) });
 	scanLinkedFolder(classId);
-	return { ok: true, value: updated };
+	return { ok: true, value: stores.classStore.getClass(classId)! };
 }
 
 /** Unlink: the linked files leave the class, their facts with them. */
@@ -396,7 +394,20 @@ export function unlinkFolder(classId: string): ClassOutcome<ClassRecord> {
 		return fail(409, "extraction_running", "A linked file is being turned into facts. Try again when it finishes.");
 	}
 	for (const file of linked) dropFile(stores.classStore.getClass(classId)!, file);
+	setFolderProblem(classId, null);
 	return { ok: true, value: stores.classStore.updateClass(classId, { linkedFolder: null }) };
+}
+
+export function folderProblemOf(classId: string): FolderProblem | null {
+	return folderProblems.get(classId) ?? null;
+}
+
+/** Record a scan's finding; the Files page re-reads when it changes. */
+function setFolderProblem(classId: string, problem: FolderProblem | null): void {
+	if (folderProblemOf(classId) === problem) return;
+	if (problem) folderProblems.set(classId, problem);
+	else folderProblems.delete(classId);
+	emit("classes-changed", {});
 }
 
 /**
@@ -409,10 +420,15 @@ export function scanLinkedFolder(classId: string): void {
 	if (!record?.linkedFolder || record.archived) return;
 	let present: string[];
 	try {
-		if (!fs.statSync(record.linkedFolder).isDirectory()) return;
-		present = walkLinkedFolder(record.linkedFolder);
+		if (!fs.statSync(record.linkedFolder).isDirectory()) throw new Error("not a folder");
+		const walk = walkLinkedFolder(record.linkedFolder);
+		present = walk.files;
+		setFolderProblem(classId, walk.capped ? "too-many-files" : null);
 	} catch {
-		return; // folder gone (unplugged drive, renamed): leave the class as is
+		// Folder gone (moved, renamed, drive unplugged): its files and facts
+		// stay, and the Files page says so.
+		setFolderProblem(classId, "missing");
+		return;
 	}
 	const presentSet = new Set(present);
 	const known = new Map(record.files.filter((f) => f.origin === "linked").map((f) => [f.path, f]));
@@ -461,6 +477,7 @@ interface ClassQueuesGlobal {
 	__lhClassQueues?: Map<string, Promise<void>>;
 	__lhClassQueued?: Set<string>;
 	__lhClassScanTimer?: ReturnType<typeof setInterval>;
+	__lhFolderProblems?: Map<string, FolderProblem>;
 }
 const G = globalThis as typeof globalThis & ClassQueuesGlobal;
 
@@ -468,6 +485,9 @@ const G = globalThis as typeof globalThis & ClassQueuesGlobal;
 const STARTUP_SCAN_DELAY_MS = 10_000;
 const queues = (G.__lhClassQueues ??= new Map());
 const queued = (G.__lhClassQueued ??= new Set());
+/** Each class's linked-folder problem at its last scan (memory only:
+ *  every launch rescans). */
+const folderProblems = (G.__lhFolderProblems ??= new Map());
 /** Classes deleted while work was queued — their queued work is skipped. */
 const cancelledClasses = new Set<string>();
 
