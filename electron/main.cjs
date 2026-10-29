@@ -68,6 +68,17 @@ function serverEntry() {
 // instance of this very binary, and before the LH_DEV_URL redirect — the
 // helper owns no user data at all.
 if (process.argv.includes("--browser-service")) {
+	// A throwaway Chromium profile, never the running app's own. The pid
+	// keeps a dev helper and a packaged one apart.
+	const helperData = path.join(app.getPath("temp"), `godspeed-browser-service-${process.pid}`);
+	app.setPath("userData", helperData);
+	app.once("will-quit", () => {
+		try {
+			fs.rmSync(helperData, { recursive: true, force: true });
+		} catch {
+			/* best effort: the OS clears temp too */
+		}
+	});
 	const { waitForBrowserService } = require("./browser-service-readiness.cjs");
 	// Own the helper's entire startup lifetime, including the readiness wait.
 	const lifetime = new AbortController();
@@ -182,23 +193,33 @@ function writeMcpEndpoint(baseUrl) {
 	}
 }
 
+const LOG_CAP_BYTES = 5 * 1024 * 1024;
+let logFile = null;
+
 function log(line) {
 	const stamp = new Date().toISOString();
-	// The stdout write is guarded (EPIPE hardening, 2026-10-10): a packaged
-	// app launched with a consumer-owned pipe (a launcher that exits, a
-	// piped run) must not die on its next log line when the pipe breaks.
-	// The file below stays the durable channel.
+	// The stdout write is guarded: a packaged app launched with a
+	// consumer-owned pipe (a launcher that exits, a piped run) must not die
+	// on its next log line when the pipe breaks. The file below stays the
+	// durable channel.
 	try {
 		console.log(`[lh ${stamp}] ${line}`);
 	} catch {
 		/* stdout gone — userData/logs/main.log still carries it */
 	}
 	// Belt and braces: also append to userData/logs so a misbehaving child
-	// can be diagnosed after the window is gone. Best effort only.
+	// can be diagnosed after the window is gone. Best effort only. Appends
+	// stay synchronous so the last lines before a crash reach disk.
 	try {
-		const dir = path.join(app.getPath("userData"), "logs");
-		fs.mkdirSync(dir, { recursive: true });
-		fs.appendFileSync(path.join(dir, "main.log"), `[${stamp}] ${line}\n`);
+		if (!logFile) {
+			const dir = path.join(app.getPath("userData"), "logs");
+			fs.mkdirSync(dir, { recursive: true });
+			const file = path.join(dir, "main.log");
+			// Rotate once per launch so the log can't grow forever.
+			if ((fs.statSync(file, { throwIfNoEntry: false })?.size ?? 0) > LOG_CAP_BYTES) fs.renameSync(file, path.join(dir, "main.old.log"));
+			logFile = file;
+		}
+		fs.appendFileSync(logFile, `[${stamp}] ${line}\n`);
 	} catch {
 		/* best effort */
 	}
@@ -208,11 +229,13 @@ function startServer(port) {
 	return new Promise((resolve, reject) => {
 		const child = spawn(
 			process.execPath,
-			// Only the macOS backend needs this: Next's native title setter
-			// otherwise checks this Node-mode process in as a foreground app.
-			process.platform === "darwin"
-				? ["--require", path.join(process.resourcesPath, "server-title-guard.cjs"), serverEntry()]
-				: [serverEntry()],
+			[
+				// Only the macOS backend needs this: Next's native title setter
+				// otherwise checks this Node-mode process in as a foreground app.
+				...(process.platform === "darwin" ? ["--require", path.join(process.resourcesPath, "server-title-guard.cjs")] : []),
+				"--require", path.join(process.resourcesPath, "server-parent-guard.cjs"),
+				serverEntry(),
+			],
 			{
 				cwd: path.dirname(serverEntry()),
 				env: {
@@ -228,7 +251,9 @@ function startServer(port) {
 					// the server's code (measured: first page 1366 → 1157 ms).
 					NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
 				},
-				stdio: ["ignore", "pipe", "pipe"],
+				// The IPC slot ties the server's lifetime to this process (see
+				// server-parent-guard.cjs), like the browser-service helper.
+				stdio: ["ignore", "pipe", "pipe", "ipc"],
 			},
 		);
 		serverProcess = child;
@@ -247,21 +272,30 @@ function startServer(port) {
  *  The probe hits an /api path WITHOUT the desktop secret: proxy.ts answers
  *  403 at once, so a probe never renders a page (polling "/" rendered the
  *  whole home page per probe). Any answer means the server listens.
- *  50 ms × 600 = the same 30 s budget as before. */
-function waitUntilUp(url, tries = 600) {
+ *  Polls for as long as the server process lives, so a slow first start
+ *  still loads, and fails as soon as that process exits. */
+function waitUntilUp(url, child) {
 	const probe = new URL("/api/ready", url);
 	return new Promise((resolve, reject) => {
-		const attempt = (n) => {
+		let done = false;
+		const exited = (code, signal) => {
+			if (done) return;
+			done = true;
+			reject(new Error(`server exited before answering (code=${code} signal=${signal})`));
+		};
+		if (child.exitCode !== null || child.signalCode !== null) return exited(child.exitCode, child.signalCode);
+		child.once("exit", exited);
+		const attempt = () => {
 			const req = http.get(probe, (res) => {
 				res.resume();
-				resolve(res.statusCode !== undefined);
+				done = true;
+				resolve();
 			});
 			req.on("error", () => {
-				if (n <= 0) reject(new Error(`server never answered on ${url}`));
-				else setTimeout(() => attempt(n - 1), 50);
+				if (!done) setTimeout(attempt, 50);
 			});
 		};
-		attempt(tries);
+		attempt();
 	});
 }
 
@@ -485,8 +519,9 @@ const ZOOM_LADDER = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
  *
  * Install path: the downloaded update applies on quit (autoInstallOnAppQuit
  * — Squirrel.Mac stages natively and swaps on relaunch). The renderer
- * banner asks for an immediate restart via "lh:update-install"; we kill
- * the child server FIRST — deterministic ordering: the server lives
+ * banner asks for an immediate restart via "lh:update-install". The child
+ * server is killed on before-quit-for-update, which fires only once the
+ * install really proceeds and before the windows close: the server lives
  * inside the .app bundle Squirrel is about to replace (extraResources),
  * and before-quit alone would race the swap. */
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -546,12 +581,6 @@ function checkForUpdates({ manual = false } = {}) {
 }
 
 function installUpdateNow() {
-	// Kill the server BEFORE the quit-and-install (see block comment).
-	try {
-		killServer();
-	} catch {
-		/* already dead */
-	}
 	autoUpdater?.quitAndInstall();
 }
 
@@ -594,6 +623,9 @@ function setupAutoUpdater() {
 		log(`updater error: ${err?.message ?? err}`);
 		reportUpdateStatus("error");
 	});
+	// Fires only when the install really goes ahead: a Restart click before
+	// Squirrel has the update must not leave the app without its server.
+	require("electron").autoUpdater.on("before-quit-for-update", killServer);
 }
 
 /** One result surface for manual checks. Preload buffers the navigation
@@ -715,8 +747,7 @@ async function main() {
 		});
 		log(`starting server: ${serverEntry()}`);
 		log(`data dir: ${DATA_DIR()}`);
-		await startServer(new URL(url).port);
-		serverUp = waitUntilUp(url).then(
+		serverUp = waitUntilUp(url, await startServer(new URL(url).port)).then(
 			() => {
 				serverReady = true;
 				log(`server up: ${url}`);

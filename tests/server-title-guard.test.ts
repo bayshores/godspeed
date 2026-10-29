@@ -116,9 +116,10 @@ describe("backend-only preload wiring and packaging", () => {
 			const launch = await serverLaunch(platform);
 			const entry = path.join("/fixture/resources with spaces", "server", "standalone", "server.js");
 			assert.equal(launch.binary, "/fixture/godspeed");
+			const parentGuard = ["--require", path.join("/fixture/resources with spaces", "server-parent-guard.cjs")];
 			assert.deepEqual(launch.args, platform === "darwin"
-				? ["--require", path.join("/fixture/resources with spaces", "server-title-guard.cjs"), entry]
-				: [entry]);
+				? ["--require", path.join("/fixture/resources with spaces", "server-title-guard.cjs"), ...parentGuard, entry]
+				: [...parentGuard, entry]);
 			assert.equal(launch.options.cwd, path.dirname(entry));
 			assert.equal(launch.options.env.NODE_OPTIONS, undefined, "do not add NODE_OPTIONS to the child environment");
 			assert.equal(launch.options.env.ELECTRON_RUN_AS_NODE, "1");
@@ -128,11 +129,11 @@ describe("backend-only preload wiring and packaging", () => {
 			assert.equal(launch.options.env.PORT, "54321");
 			assert.equal(launch.options.env.HOSTNAME, "127.0.0.1");
 			assert.equal(launch.options.env.FIXTURE, "kept");
-			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe"], "no IPC channel: the sign-in bridge was removed");
+			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe", "ipc"], "the IPC channel ties the server's lifetime to the app");
 		});
 	}
 
-	it("electron-builder copies the guard outside ASAR only on macOS, retaining shared resources", async () => {
+	it("electron-builder copies the title guard outside ASAR only on macOS and the parent guard everywhere", async () => {
 		const yaml = require("js-yaml");
 		const config = yaml.load(readFileSync(path.join(root, "electron", "electron-builder.yml"), "utf8"));
 		const { getFileMatchers, copyFiles } = require("app-builder-lib/out/fileMatcher.js");
@@ -146,6 +147,8 @@ describe("backend-only preload wiring and packaging", () => {
 				assert.ok(matchers.some((matcher: { to: string }) => matcher.to === path.join(destination, "server")), "shared standalone payload remains included");
 				const guards = matchers.filter((matcher: { to: string }) => matcher.to === path.join(destination, "server-title-guard.cjs"));
 				assert.equal(guards.length, platform === "mac" ? 1 : 0);
+				const parentGuards = matchers.filter((matcher: { to: string }) => matcher.to === path.join(destination, "server-parent-guard.cjs"));
+				assert.equal(parentGuards.length, 1);
 				if (platform === "mac") {
 					await copyFiles(guards, null, false);
 					assert.equal(readFileSync(path.join(destination, "server-title-guard.cjs"), "utf8"), guardSource);

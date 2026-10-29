@@ -113,6 +113,10 @@ extraResources:
     to: server
     filter:
       - "standalone/**/*"
+  # The backend's --require runs before Next loads, so it stays outside
+  # app.asar like the macOS title guard below.
+  - from: electron/server-parent-guard.cjs
+    to: server-parent-guard.cjs
 mac:
   # The backend's --require runs before Next loads. Keep this resource
   # outside app.asar so early Node-mode loading needs no ASAR support.

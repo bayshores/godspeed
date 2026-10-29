@@ -78,8 +78,9 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 		quit() {},
 		whenReady: async () => {},
 	});
+	const nativeUpdater = new EventEmitter();
 	const electron = {
-		app, BrowserWindow: FakeWindow,
+		app, BrowserWindow: FakeWindow, autoUpdater: nativeUpdater,
 		Menu: { buildFromTemplate: (value: typeof menu) => value, setApplicationMenu: (value: typeof menu) => { menu = value; } },
 		ipcMain: { on() {}, handle: (channel: string, fn: (event: unknown) => unknown) => handles.set(channel, fn) },
 		session: { defaultSession: { setPermissionRequestHandler() {}, setPermissionCheckHandler() {} } },
@@ -109,7 +110,7 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	runInContext(mainSource, context, { filename: mainFile });
 	const run = (code: string) => runInContext(code, context);
 	return {
-		run, updater, windows, intervals, handles, settingsReads, order, app,
+		run, updater, nativeUpdater, windows, intervals, handles, settingsReads, order, app,
 		setSettings: (value: unknown) => { settings = JSON.stringify(value); },
 		setSettingsFailure: (value: string | Error) => { settings = value; },
 		setEnumerationFailure: (value: boolean) => { enumerationFails = value; },
@@ -221,7 +222,7 @@ describe("status observation never controls the updater", () => {
 		assert.equal(f.updater.checks, 3);
 	});
 
-	it("OFF does not cancel in-flight events or alter staging/install-on-quit; Restart kills server first", async () => {
+	it("OFF does not cancel in-flight events or alter staging/install-on-quit; the server stops only when the install proceeds", async () => {
 		const f = fixture(); f.run("setupAutoUpdater()");
 		f.updater.emit("update-available", { version: "0.3.8" });
 		f.setSettings({ general: { autoUpdate: false } });
@@ -229,7 +230,9 @@ describe("status observation never controls the updater", () => {
 		assert.equal(f.state().status, "downloaded"); assert.equal(f.updater.checks, 0);
 		assert.equal(f.updater.autoDownload, true); assert.equal(f.updater.autoInstallOnAppQuit, true);
 		f.run("serverProcess = fixtureChild; installUpdateNow()");
-		assert.deepEqual(f.order, ["SIGTERM", "install"]);
+		assert.deepEqual(f.order, ["install"]);
+		f.nativeUpdater.emit("before-quit-for-update");
+		assert.deepEqual(f.order, ["install", "SIGTERM"]);
 	});
 });
 

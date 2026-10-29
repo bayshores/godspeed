@@ -147,10 +147,7 @@ async function main() {
 	const kill = () =>
 		new Promise((resolve) => {
 			if (exited) return resolve();
-			const done = () => resolve();
-			child.once("exit", done);
-			child.kill("SIGTERM");
-			setTimeout(() => {
+			const timer = setTimeout(() => {
 				if (!exited) {
 					try {
 						child.kill("SIGKILL");
@@ -158,8 +155,14 @@ async function main() {
 						/* already gone */
 					}
 				}
-				done();
+				resolve();
 			}, 3000);
+			// A pending timer would keep a passing run alive for the full 3 s.
+			child.once("exit", () => {
+				clearTimeout(timer);
+				resolve();
+			});
+			child.kill("SIGTERM");
 		});
 
 	let failed = null;

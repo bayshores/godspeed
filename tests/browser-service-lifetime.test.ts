@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname } from "node:path";
+import path, { dirname } from "node:path";
 import { Readable } from "node:stream";
 import { describe, it } from "node:test";
 import { setImmediate as turn } from "node:timers/promises";
@@ -20,21 +20,23 @@ function helperFixture(connected = true, channel = true) {
 	const appReady = new Promise<void>((resolve) => { allowAppReady = resolve; });
 	let allowReadiness!: () => void;
 	const readiness = new Promise<void>((resolve) => { allowReadiness = resolve; });
-	const state = { quits: 0, exits: [] as number[], windows: 0, readinessCalls: 0, stdinReads: 0, signal: undefined as AbortSignal | undefined };
+	const state = { quits: 0, exits: [] as number[], windows: 0, readinessCalls: 0, stdinReads: 0, signal: undefined as AbortSignal | undefined, removed: [] as string[] };
 	const logs: string[] = [];
 	const errors: string[] = [];
 	// Match Electron 44's Windows override, not a native pipe.
 	const stdin = new Readable({ read() {} });
 	stdin.push(null);
 	const process = Object.assign(new EventEmitter(), {
-		platform: "win32", argv: ["electron", "--browser-service"], env: {},
+		platform: "win32", argv: ["electron", "--browser-service"], env: {}, pid: 4242,
 		connected, channel: channel ? {} : undefined,
 	});
 	Object.defineProperty(process, "stdin", { get() { state.stdinReads++; return stdin; } });
-	const app = {
+	const paths = new Map<string, string>([["temp", "/fixture/tmp"]]);
+	const app = Object.assign(new EventEmitter(), {
 		setName() {}, commandLine: { appendSwitch() {} }, whenReady: () => appReady,
+		getPath: (name: string) => paths.get(name), setPath: (name: string, value: string) => { paths.set(name, value); },
 		quit() { state.quits++; }, exit(code: number) { state.exits.push(code); },
-	};
+	});
 	class FakeWindow {
 		constructor() { state.windows++; }
 		async loadURL(url: string) { assert.equal(url, "about:blank"); }
@@ -57,13 +59,14 @@ function helperFixture(connected = true, channel = true) {
 	runInNewContext(mainSource, {
 		require: (id: string) => id === "electron" ? { app, BrowserWindow: FakeWindow }
 			: id === "node:net" ? net
+			: id === "node:fs" ? { ...requireMain("node:fs"), rmSync: (dir: string) => { state.removed.push(dir); } }
 			: id === "./browser-service-readiness.cjs" ? { waitForBrowserService }
 			: requireMain(id),
 		process, __dirname: dirname(mainFile), AbortController,
 		console: { log: (line: string) => logs.push(line), error: (...parts: unknown[]) => errors.push(parts.join(" ")) },
 	}, { filename: mainFile });
 	return {
-		state, logs, errors, stdin, process, allowAppReady, allowReadiness,
+		state, logs, errors, stdin, process, app, paths, allowAppReady, allowReadiness,
 		disconnect() { process.connected = false; process.emit("disconnect"); },
 	};
 }
@@ -86,6 +89,14 @@ describe("browser-service IPC-owned lifetime", () => {
 		assert.deepEqual(helper.state.exits, []);
 		helper.disconnect();
 		assert.equal(helper.state.quits, 1);
+	});
+
+	it("runs on its own throwaway profile and removes it on quit", () => {
+		const helper = helperFixture();
+		const profile = path.join("/fixture/tmp", "godspeed-browser-service-4242");
+		assert.equal(helper.paths.get("userData"), profile);
+		helper.app.emit("will-quit");
+		assert.deepEqual(helper.state.removed, [profile]);
 	});
 
 	it("disconnect during readiness aborts it, quits once, and never announces", async () => {
