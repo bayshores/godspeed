@@ -4,7 +4,6 @@ import { PracticeDock } from "@/components/practice-dock";
 import { QuestionDock, questionKindLabel, type QuestionDockProps } from "@/components/question-dock";
 import { ReadingThinkingField } from "@/components/reading-thinking";
 import type { findPendingToolCall, QuestionAnswerData, QuestionFormDraft } from "@/core";
-import { revealArrival } from "./chat-helpers";
 import { PanelComposer } from "./panel-composer";
 import { ActionBar, KindChip, PanelBody, PanelHeader } from "./panel-parts";
 
@@ -31,6 +30,7 @@ export function YourTurnPanel({
 	practice,
 	practiceNumber,
 	onSubmitThinking,
+	sessionBusy,
 	compacting,
 	composer,
 	stats,
@@ -46,6 +46,8 @@ export function YourTurnPanel({
 	practice: { toolCallId: string; input: unknown } | null;
 	practiceNumber: number | null;
 	onSubmitThinking: (text: string) => void;
+	/** This view's turn is running: a practice send now would be dropped. */
+	sessionBusy: boolean;
 	compacting: boolean;
 	/** The message-box state's props (everything but the stats footer). */
 	composer: Omit<React.ComponentProps<typeof PanelComposer>, "footer">;
@@ -60,7 +62,7 @@ export function YourTurnPanel({
 	if (pendingId !== prevPendingIdRef.current) {
 		const wasQuestion = prevPendingIdRef.current !== null;
 		prevPendingIdRef.current = pendingId;
-		if (pendingId && requiresReveal) setRevealed(revealArrival(wasQuestion).revealed);
+		if (pendingId && requiresReveal) setRevealed(wasQuestion);
 	}
 	const revealPending = pending !== null && requiresReveal && !revealed;
 	const revealRef = useRef(() => setRevealed(true));
@@ -129,6 +131,7 @@ export function YourTurnPanel({
 				input={practice.input as { statement: string }}
 				number={practiceNumber}
 				onSubmit={onSubmitThinking}
+				busy={sessionBusy}
 				compactionRunning={compacting}
 				footer={footer}
 			/>

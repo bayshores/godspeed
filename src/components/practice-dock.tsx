@@ -23,19 +23,21 @@ interface PracticeDockProps {
 	number?: number | null;
 	/** text — POST {type:"thinking"} (one lane). */
 	onSubmit: (text: string) => void;
+	/** A turn is running: a send now would be dropped, so the field keeps its text. */
+	busy?: boolean;
 	/** Compaction is running: the POST would block on the server's gate. */
 	compactionRunning?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
 	footer?: React.ReactNode;
 }
 
-export function PracticeDock({ problemCallId, input, number, onSubmit, compactionRunning = false, footer }: PracticeDockProps) {
+export function PracticeDock({ problemCallId, input, number, onSubmit, busy = false, compactionRunning = false, footer }: PracticeDockProps) {
 	const [thinking, setThinking] = useState("");
 	// The ref mirrors the field: the window-level Enter reads the current trace.
 	const thinkingRef = useRef("");
 
 	const submit = () => {
-		if (compactionRunning) return;
+		if (compactionRunning || busy) return;
 		const text = thinkingRef.current.trim();
 		if (text.length === 0) return;
 		thinkingRef.current = "";
@@ -104,7 +106,7 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, compactio
 				type="submit"
 				testId="practice-send"
 				label={compactionRunning ? "Compacting the lesson…" : "Send"}
-				disabled={thinking.trim().length === 0 || compactionRunning}
+				disabled={thinking.trim().length === 0 || compactionRunning || busy}
 			/>
 		</form>
 	);

@@ -1,7 +1,4 @@
-/**
- * Pure helpers for the lesson view (split out of src/components/chat.tsx in
- * the redesign; chat.tsx re-exports them for existing imports and tests).
- */
+/** Pure helpers for the lesson view (src/components/chat.tsx). */
 import type { LhViewMessage } from "@/core";
 
 /** The layered-Esc ruling (owner, 2026-10-04): an open overlay claims Esc
@@ -37,14 +34,6 @@ export function escAbortTarget(s: {
 export function initialPromptOwed(messages: readonly { role: string }[], prompt: string | undefined): boolean {
 	if (!prompt) return false;
 	return !messages.some((m) => m.role === "user" || m.role === "assistant");
-}
-
-/** How a teach-phase check lands (owner ruling, 2026-09-25): behind the
- *  "Check your understanding" invitation when it follows the composer —
- *  the learner reads the teaching first — but open when it follows
- *  another question (the reading already happened). */
-export function revealArrival(wasQuestion: boolean): { expanded: boolean; revealed: boolean } {
-	return wasQuestion ? { expanded: true, revealed: true } : { expanded: false, revealed: false };
 }
 
 /** A wake-pipeline steer: a user-role delivery whose metadata marks a

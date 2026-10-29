@@ -58,6 +58,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			practice={null}
 			practiceNumber={null}
 			onSubmitThinking={() => {}}
+			sessionBusy={false}
 			compacting={false}
 			composer={composer()}
 			stats={null}

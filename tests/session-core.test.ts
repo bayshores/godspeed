@@ -21,7 +21,7 @@
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { absorbed, pendingCallTool, SessionModel } from "../src/components/session-core.ts";
+import { absorbed, errorBodyMessage, pendingCallTool, SessionModel } from "../src/components/session-core.ts";
 import type { ChatInput } from "../src/core/input-events.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import { newUserMessage, newAnswerResult, newThinkingMessage, needsContinuation, endsInDismissal } from "../src/core/native-messages.ts";
@@ -346,7 +346,7 @@ describe("send (one input event, verbatim consumption)", () => {
 			throw new Error(`unexpected fetch: ${String(input)}`);
 		}) as typeof globalThis.fetch;
 		const m = model({ initialMessages: [newUserMessage("hi"), quizCall] });
-		const pending = m.submitAnswer("quiz", "call-1", { correct: true } as never);
+		const pending = m.submitAnswer("call-1", { correct: true } as never);
 		// The dock's AnsweredCard state — before any server round-trip:
 		const state = m.getState();
 		const quizPart = state.messages
@@ -819,7 +819,7 @@ describe("automatic continuation after recovery failure", () => {
 	it("a retained failure seeds the banner and blocks continuation even after banner dismissal", async () => {
 		let posts = 0;
 		const m = model({ initialMessages: answered, initialError: "The reply could not be saved.", fetch: dietFetch({ onPost: () => posts++, stream: () => sseResponse("[DONE]") }) });
-		assert.equal(SessionModel.needsContinuation(answered), true);
+		assert.equal(needsContinuation(answered), true);
 		assert.equal(m.getState().error?.message, "The reply could not be saved.");
 		await m.continueIfOwed(answered);
 		assert.equal(posts, 0);
@@ -876,11 +876,11 @@ describe("answer submission recovery", () => {
 			if (String(url).endsWith("/stream")) return sseResponse("[DONE]");
 			return Response.json({ messages: [question], turnInFlight: false });
 		} });
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(m.getState().messages[0]!.parts.find(p => p.toolCallId === "q1")!.state, "input-available");
 		assert.equal(m.status, "error");
 		m.clearError(); // dismissing the banner must not disable recovery
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(posts, 2, "error must not permanently close the send gate");
 		assert.deepEqual(calls.slice(0, 3), ["/api/chat", "/api/chats/chat_x", "/api/chat"]);
 	});
@@ -890,7 +890,7 @@ describe("answer submission recovery", () => {
 		const m = model({ initialMessages: [question], fetch: async () => { throw new TypeError("offline"); } });
 		m.saveQuestionDraft("q1", { form });
 		m.saveQuestionDraft("q1", { readingThinking: "reading reasoning" });
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.deepEqual(m.questionDraft("q1"), { form, readingThinking: "reading reasoning" });
 		m.setMessages([question]);
 		assert.deepEqual(m.questionDraft("q1"), { form, readingThinking: "reading reasoning" });
@@ -901,7 +901,7 @@ describe("answer submission recovery", () => {
 
 	it("a final 409 restores the question instead of leaving an optimistic answer", async () => {
 		const m = model({ initialMessages: [question], waitMaxMs: 0, fetch: async () => new Response("busy", { status: 409 }) });
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(m.getState().nativeMessages.length, 1);
 		assert.equal(m.status, "error");
 	});
@@ -913,8 +913,8 @@ describe("answer submission recovery", () => {
 			if (String(url) === "/api/chat") { posts++; throw new TypeError("failed fetch"); }
 			return Response.json({ messages: saved, turnInFlight: false });
 		} });
-		await m.submitAnswer("quiz", "q1", answer);
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(posts, 1);
 		assert.equal(m.status, "ready");
 		assert.deepEqual(m.getState().nativeMessages, saved);
@@ -928,8 +928,8 @@ describe("answer submission recovery", () => {
 			if (String(url).endsWith("/stream")) return sseResponse("[DONE]");
 			return Response.json({ messages: [question, newAnswerResult("q1", "quiz", answer)], turnInFlight: true });
 		} });
-		await m.submitAnswer("quiz", "q1", answer);
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.deepEqual(calls, ["/api/chat", "/api/chats/chat_x", "/api/chats/chat_x/stream"]);
 		assert.equal(m.status, "ready");
 	});
@@ -937,8 +937,8 @@ describe("answer submission recovery", () => {
 	it("keeps the question and makes no further POST while reconciliation is unreachable", async () => {
 		const calls: string[] = [];
 		const m = model({ initialMessages: [question], fetch: async (url) => { calls.push(String(url)); throw new TypeError("offline"); } });
-		await m.submitAnswer("quiz", "q1", answer);
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.deepEqual(calls, ["/api/chat", "/api/chats/chat_x"]);
 		assert.equal(m.status, "error");
 		assert.equal(m.getState().nativeMessages.some(m => m.role === "toolResult"), false);
@@ -957,6 +957,60 @@ describe("answer submission recovery", () => {
 		assert.equal((part.output as { dismissed: boolean }).dismissed, true);
 	});
 
+	it("posts a mid-turn dismissal (the route parks it) and appends its optimistic entry", async () => {
+		const dismissals: unknown[] = [];
+		let closeStream = () => {};
+		const m = model({ initialMessages: [question], fetch: async (url, init) => {
+			const u = String(url);
+			if (u === "/api/chat") return Response.json({ ok: true });
+			if (u === "/api/chats/chat_x/dismiss") {
+				dismissals.push(JSON.parse(String(init?.body)).input);
+				return Response.json({ ok: true, parked: true }, { status: 202 });
+			}
+			if (u === "/api/chats/chat_x/stream") {
+				return new Response(new ReadableStream<Uint8Array>({
+					start(c) {
+						c.enqueue(new TextEncoder().encode(sse(partial([{ type: "text", text: "writing" }]))));
+						closeStream = () => c.close();
+					},
+				}));
+			}
+			return Response.json({ messages: [question] });
+		} });
+		const sending = m.send({ type: "text", text: "go on" });
+		for (let i = 0; i < 100 && m.status !== "streaming"; i++) await new Promise((r) => setTimeout(r, 0));
+		assert.equal(m.status, "streaming");
+		await m.dismissQuestion("q1", dismissedAnswer("quiz", "Q?"));
+		await m.dismissProblem("p1");
+		assert.deepEqual(dismissals.map((d) => (d as { type: string }).type), ["dismiss", "dismiss-problem"]);
+		const native = m.getState().nativeMessages as Array<{ role: string; toolCallId?: string; customType?: string }>;
+		assert.ok(native.some((x) => x.role === "toolResult" && x.toolCallId === "q1"), "the dismissed answer lands at once");
+		assert.ok(native.some((x) => x.customType === "problem-dismissed"), "the discard marker lands at once");
+		m.stop();
+		closeStream();
+		await sending;
+	});
+
+	it("posts a dismissal in the error status, and the banner shows the route's message, not its JSON", async () => {
+		const dismissals: unknown[] = [];
+		const m = model({ initialMessages: [question], fetch: async (url, init) => {
+			const u = String(url);
+			if (u === "/api/chat") return Response.json({ error: "Failed to start the turn" }, { status: 500 });
+			if (u === "/api/chats/chat_x/dismiss") {
+				dismissals.push(JSON.parse(String(init?.body)).input);
+				return Response.json({ ok: true });
+			}
+			throw new Error(`unexpected fetch: ${u}`);
+		} });
+		await m.send({ type: "text", text: "go on" });
+		assert.equal(m.status, "error");
+		assert.equal(m.getState().error?.message, "Failed to start the turn");
+		await m.dismissQuestion("q1", dismissedAnswer("quiz", "Q?"));
+		assert.equal(dismissals.length, 1);
+		const part = m.getState().messages.flatMap((x) => x.parts).find((p) => p.toolCallId === "q1")!;
+		assert.equal((part.output as { dismissed: boolean }).dismissed, true);
+	});
+
 	it("restores an unconfirmed optimistic answer when the post-ack record read fails", async () => {
 		let posts = 0;
 		let reads = 0;
@@ -966,10 +1020,10 @@ describe("answer submission recovery", () => {
 			if (++reads === 1) throw new TypeError("record read failed");
 			return Response.json({ messages: saved, turnInFlight: false });
 		} });
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(m.status, "error");
 		assert.equal(m.getState().nativeMessages.some(m => m.role === "toolResult"), false);
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(posts, 1, "the acknowledged answer must not be reposted");
 		assert.equal(m.status, "ready");
 		assert.deepEqual(m.getState().nativeMessages, saved);
@@ -1003,8 +1057,8 @@ describe("answer submission recovery", () => {
 			if (String(url) === "/api/chat") { posts++; throw new TypeError("failed fetch"); }
 			return Response.json({ messages: [question, newer], turnInFlight: false });
 		} });
-		await m.submitAnswer("quiz", "q1", answer);
-		await m.submitAnswer("quiz", "q1", answer);
+		await m.submitAnswer("q1", answer);
+		await m.submitAnswer("q1", answer);
 		assert.equal(posts, 1);
 		assert.deepEqual(m.getState().nativeMessages, [question, newer]);
 		assert.equal(m.status, "ready");
@@ -1639,5 +1693,21 @@ describe("absorbed — the custom role (the doubled thinking card)", () => {
 		const customs = m.getState().nativeMessages.filter((x) => (x as { role?: string }).role === "custom");
 		assert.equal(customs.length, 1, "the server copy replaced the optimistic one — no doubling");
 		assert.equal((customs[0] as { id?: string }).id, "srv_1");
+	});
+});
+
+describe("errorBodyMessage (the banner never shows a JSON envelope)", () => {
+	it("unwraps an {error} envelope", () => {
+		assert.equal(errorBodyMessage('{"error":"Unknown chat"}'), "Unknown chat");
+	});
+
+	it("passes plain text through", () => {
+		assert.equal(errorBodyMessage("Your input could not be saved."), "Your input could not be saved.");
+	});
+
+	it("leaves an empty body or other JSON unchanged", () => {
+		assert.equal(errorBodyMessage(""), "");
+		assert.equal(errorBodyMessage('{"ok":true}'), '{"ok":true}');
+		assert.equal(errorBodyMessage('{"error":42}'), '{"error":42}');
 	});
 });

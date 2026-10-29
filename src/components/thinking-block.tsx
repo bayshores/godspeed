@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
 import { blurAfterPointerClick } from "@/components/focus-hygiene";
 import { useFold } from "@/components/use-fold";
@@ -83,12 +83,8 @@ export function ThinkingBlock({
 	inCard?: boolean;
 }) {
 	const [open, setOpen] = useState(() => resolveUserThinkingOpen(defaultOpen));
-	// ⌘T: an explicit global set overrides every row (once set, rows re-sync).
-	const syncedRef = useRef(false);
-	useEffect(
-		() => subscribeUserThinking((o) => { syncedRef.current = true; setOpen(o); }),
-		[],
-	);
+	// ⌘T: an explicit global set overrides every row.
+	useEffect(() => subscribeUserThinking(setOpen), []);
 	// The text folds open/shut (motion wave, owner 2026-10-26) and stays
 	// unmounted while closed.
 	const fold = useFold(open);

@@ -45,12 +45,6 @@ import { useHalley, useHalleyLesson } from "@/components/halley/halley-provider"
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = dynamic(() => import("@/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
 
-export {
-	escAbortTarget,
-	initialPromptOwed,
-	revealArrival,
-} from "@/components/lesson/chat-helpers";
-
 /**
  * THE LESSON: the plan step bar on top, the reading
  * pane on the left, the Your-turn panel on the right (below the text in
@@ -127,7 +121,10 @@ export function Chat({
 	const activeProblemRef = useRef(activeProblem);
 	activeProblemRef.current = activeProblem;
 
-	const busy = status === "submitted" || status === "streaming" || turnInFlight;
+	// This view's own turn: send() drops input while it runs. A wake turn
+	// (turnInFlight alone) still takes sends; they wait it out.
+	const sessionBusy = status === "submitted" || status === "streaming";
+	const busy = sessionBusy || turnInFlight;
 	// The turn is waiting on the outside agent and none is connected: say so
 	// in the composer (it starts by itself once the agent connects).
 	const agentStatus = useAgentStatus();
@@ -322,7 +319,7 @@ export function Chat({
 		if (!pending) return;
 		saveQuestionDraft(pending.toolCallId, { readingThinking: readingThinkingRef.current });
 		const reading = readingThinkingRef.current.trim() || undefined;
-		submitAnswer(pending.tool, pending.toolCallId, reading ? { ...output, readingThinking: reading } : output);
+		submitAnswer(pending.toolCallId, reading ? { ...output, readingThinking: reading } : output);
 		// Graded right or wrong: Halley reacts for a moment.
 		const outcome = answerOutcome(output);
 		if (outcome === "right") halley?.react("happy");
@@ -397,6 +394,7 @@ export function Chat({
 									practice={activeProblem}
 									practiceNumber={stablePractice?.currentNumber ?? null}
 									onSubmitThinking={submitThinking}
+									sessionBusy={sessionBusy}
 									compacting={compacting}
 									composer={{
 										busy,

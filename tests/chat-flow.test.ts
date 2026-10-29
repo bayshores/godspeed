@@ -863,7 +863,7 @@ describe("canonical persistence failures", () => {
 			if (running) await new Response(running.subscribe()).text();
 			assert.equal(res.status, 500);
 			const client = new SessionModel({ chatId: chat.id, initialMessages: before, fetch: async () => res.clone() });
-			await client.submitAnswer("quiz", "call-1", gradedAnswer(QUIZ_INPUT, ["Mercury"]));
+			await client.submitAnswer("call-1", gradedAnswer(QUIZ_INPUT, ["Mercury"]));
 			assert.equal(client.getState().error?.message, "Your input could not be saved. Please try again.");
 			assert.equal(await res.text(), "Your input could not be saved. Please try again.");
 			assert.equal(builds, 0);

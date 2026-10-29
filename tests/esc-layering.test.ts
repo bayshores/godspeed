@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { escAbortTarget } from "../src/components/chat.tsx";
+import { escAbortTarget } from "../src/components/lesson/chat-helpers.ts";
 
 /**
  * THE LAYERED ESC (owner report, 2026-10-04): Esc over an open overlay —

@@ -83,6 +83,20 @@ async function turnInFlight(model: SessionModel): Promise<boolean | null> {
 
 const STREAM_DROPPED = "The connection dropped before the turn completed.";
 
+/** The routes fail with `{"error": "..."}` envelopes; the banner shows the
+ *  message, never the JSON. Plain-text bodies pass through. */
+export function errorBodyMessage(body: string): string {
+	try {
+		const parsed: unknown = JSON.parse(body);
+		if (parsed && typeof parsed === "object" && typeof (parsed as { error?: unknown }).error === "string") {
+			return (parsed as { error: string }).error;
+		}
+	} catch {
+		/* not JSON: the body is the message */
+	}
+	return body;
+}
+
 /** Mark transport failures without confusing JSON/application bugs with drops. */
 class StreamReadError extends Error {
 	constructor(cause: unknown) {
@@ -615,7 +629,7 @@ export class SessionModel {
 			}
 			const res = await this.fetchView(`/api/chats/${encodeURIComponent(this.chatId)}/stream`, controller.signal, !allowRecovery);
 			if (this.consumeAbort !== controller) return;
-			if (!res.ok) throw new Error((await res.text()) || "Failed to attach to the running turn.");
+			if (!res.ok) throw new Error(errorBodyMessage(await res.text()) || "Failed to attach to the running turn.");
 			await this.consumeStream(res, controller, allowRecovery);
 		} catch (err) {
 			if (this.consumeAbort !== controller || controller.signal.aborted) return; // intentionally cancelled
@@ -648,7 +662,7 @@ export class SessionModel {
 			try {
 				const res = await this.fetch(`/api/chats/${encodeURIComponent(this.chatId)}`, { signal: controller.signal });
 				if (this.consumeAbort !== controller) return;
-				if (!res.ok) throw new Error((await res.text()) || "An error occurred.");
+				if (!res.ok) throw new Error(errorBodyMessage(await res.text()) || "An error occurred.");
 				const record = await res.json() as { messages?: LhMessage[]; turnInFlight?: boolean; turnError?: string };
 				if (this.consumeAbort !== controller) return;
 				// No verified record/liveness: retain the draft and never guess
@@ -714,10 +728,7 @@ export class SessionModel {
 				throw new Error("A turn is already running. Try again in a moment.");
 			}
 			if (!res.ok) {
-				// Refusal envelopes (503 BYOK/key gates) and 400s: the RAW body
-				// text rides the error message — the banner shows it, and the
-				// page's refusal flow JSON-parses the envelope out of it.
-				throw new Error((await res.text()) || `The send failed (${res.status}).`);
+				throw new Error(errorBodyMessage(await res.text()) || `The send failed (${res.status}).`);
 			}
 			// CONNECTION DIET B (owner, 2026-10-10 — parallel-session freeze
 			// postmortem): the POST acknowledges and closes; there is no stream
@@ -784,7 +795,7 @@ export class SessionModel {
 				return;
 			}
 			dropSteer();
-			this.setError((await res.text()) || `The steer failed (${res.status}).`);
+			this.setError(errorBodyMessage(await res.text()) || `The steer failed (${res.status}).`);
 		} catch (err) {
 			dropSteer();
 			this.setError((err as Error).message);
@@ -793,19 +804,18 @@ export class SessionModel {
 
 	/** The answer path (the dock): the answer IS the question call's tool
 	 *  result (fork 1), riding as its input event. */
-	submitAnswer(tool: string, toolCallId: string, output: QuestionAnswerData): Promise<void> {
-		void tool;
+	submitAnswer(toolCallId: string, output: QuestionAnswerData): Promise<void> {
 		return this.send({ type: "answer", toolCallId, answer: output });
 	}
 
-	/** The dismissal path (owner design 2026-10-03, "A2"): the skipped
-	 * toolResult lands optimistically, then the SILENT route persists it
-	 * — no turn, no stream, nothing wakes. The session pauses at the
-	 * user's choice; the next plain send is the wake. On failure the
-	 * durable record wins: the error surfaces, the record-changed sync
-	 * (or any later refetch) replaces the optimistic append with truth. */
+	/** The dismissal path: the skipped toolResult lands optimistically,
+	 * then the SILENT route persists it (no turn, no stream, nothing
+	 * wakes). Not ready-gated: mid-turn the route parks the dismissal
+	 * until the turn settles. The session pauses at the user's choice;
+	 * the next plain send is the wake. On failure the durable record
+	 * wins: the error surfaces, the record-changed sync (or any later
+	 * refetch) replaces the optimistic append with truth. */
 	async dismissQuestion(toolCallId: string, answer: QuestionAnswerData): Promise<void> {
-		if (!this.readyRef) return;
 		const tool = pendingCallTool([...this.base, ...this.tail], toolCallId) ?? "quiz";
 		this.mutate(() => {
 			this.tail = [...this.tail, { ...newAnswerResult(toolCallId, tool, answer), id: localId() }];
@@ -822,12 +832,11 @@ export class SessionModel {
 		}
 	}
 
-	/** The problem discard (practice sessions, owner 2026-10-04): the
-	 *  ask-style dismissal — the UI-only marker lands optimistically, then
-	 *  the SILENT route persists it (no turn, no wake). The composer
+	/** The problem discard (practice sessions): the ask-style dismissal.
+	 *  The UI-only marker lands optimistically, then the SILENT route
+	 *  persists it (no turn, no wake; parked mid-turn). The composer
 	 *  returns; the conclude synthesis rides the user's next input. */
 	async dismissProblem(problemCallId: string): Promise<void> {
-		if (!this.readyRef) return;
 		this.mutate(() => {
 			this.tail = [...this.tail, { ...newProblemDismissedMarker(problemCallId), id: localId() }];
 		});
@@ -911,9 +920,6 @@ export class SessionModel {
 			await this.send({ type: "continue" });
 		}
 	}
-
-	/** The mount/sync continuation fold (native-messages.ts). */
-	static needsContinuation = needsContinuation;
 
 	clearError(): void {
 		this.setError(null);
