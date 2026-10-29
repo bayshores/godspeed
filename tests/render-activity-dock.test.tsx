@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
 import { formatTokens, formatUsd } from "../src/components/usage-format.ts";
-import { WAITING_NOTICE, agentWaiting, parseAgentStatus } from "../src/components/agent-status.tsx";
+import { WAITING_NOTICE, agentWaiting, parseAgentStatus, sameAgentStatus } from "../src/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
 	it("shows only while work waits and no agent is connected", () => {
@@ -16,6 +16,14 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.deepEqual(parseAgentStatus({ agentConnected: true, agentName: "Claude Code", pendingWork: 2 }), { connected: true, name: "Claude Code", pendingWork: 2 });
 		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), { connected: false, pendingWork: 0 });
 		assert.equal(parseAgentStatus(null), null);
+	});
+	it("a poll with the same status keeps the old one", () => {
+		const status = { connected: true, name: "Claude Code", pendingWork: 2 };
+		assert.equal(sameAgentStatus(status, { ...status }), true);
+		assert.equal(sameAgentStatus(null, status), false);
+		assert.equal(sameAgentStatus(status, { ...status, connected: false }), false);
+		assert.equal(sameAgentStatus(status, { ...status, name: "Codex" }), false);
+		assert.equal(sameAgentStatus(status, { ...status, pendingWork: 3 }), false);
 	});
 	it("the activity panel shows the notice text", () => {
 		const html = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} waiting />);

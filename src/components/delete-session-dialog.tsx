@@ -4,10 +4,9 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import type { ChatDeleteMode, ChatListItem } from "@/core";
 
-/** The graph-traces checkbox copy (owner, 2026-09-24 flow rework — was
- *  the delete-nodes option's body in the two-button design): the
- *  graph-touching consequence says so, shared-topic survival included.
- *  Exported pure for render pins: the copy is design, not implementation. */
+/** The graph-traces checkbox copy: the graph-touching consequence says
+ *  so, shared-topic survival included. Exported pure for render pins: the
+ *  copy is design, not implementation. */
 export const TRACES_COPY = {
 	testid: "delete-traces",
 	checkbox: "delete-traces-checkbox",
@@ -16,15 +15,13 @@ export const TRACES_COPY = {
 };
 
 /**
- * Session deletion (wave 6 chunk A; owner flow rework 2026-09-24) — THE
- * destructive-confirmation surface, portaled z-50 like the setup dialog,
- * now in the node dialog's shape (the two must read as one design):
+ * Lesson deletion: the destructive-confirmation surface, portaled z-50
+ * like the setup dialog, in the node dialog's shape (the two must read as
+ * one design):
  *
- *   - red title "Delete session?" in the abort-turn look (owner, 2026-10-13
- *     polish: text-sm font-semibold JetBrains Mono via the UI default —
- *     the serif display title is gone), the session name below it in
- *     JetBrains Mono at normal text-sm size (was sized-up text-lg), no
- *     code-block chrome;
+ *   - red title "Delete lesson?" in the abort-turn look (text-sm
+ *     font-semibold JetBrains Mono via the UI default), the lesson name
+ *     below it in JetBrains Mono at text-sm, no code-block chrome;
  *   - ONE unchecked-by-default checkbox "Also remove its graph traces"
  *     (unchecked = preserve-graph: the session record, its jobs, and its
  *     extraction bookkeeping die; the graph keeps every contribution.
@@ -178,11 +175,8 @@ export function DeleteSessionBody({
 			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">Delete lesson?</h2>
-			{/* The session name below the title in JetBrains Mono (owner,
-			    2026-09-24): no code-block chrome — the font already says
-			    code. Owner, 2026-10-13 polish: normal text-sm size (was
-			    sized-up text-lg), still white. Same shape as the node
-			    dialog. */}
+			{/* The lesson name in JetBrains Mono with no code-block chrome:
+			    the font already says code. Same shape as the node dialog. */}
 			<div className="mt-1.5">
 				<code data-testid="session-name-code" className="font-mono text-sm text-foreground">
 					{chat.title}

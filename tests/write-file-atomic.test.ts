@@ -19,6 +19,12 @@ describe("writeFileAtomic", () => {
 		assert.deepEqual(fs.readdirSync(path.dirname(file)), ["record.json"]);
 	});
 
+	it("writes bytes as given", () => {
+		const file = path.join(dir, "nested", "notes.bin");
+		writeFileAtomic(file, new Uint8Array([0, 255, 10]));
+		assert.deepEqual([...fs.readFileSync(file)], [0, 255, 10]);
+	});
+
 	it("keeps the old file and cleans up when the rename fails", () => {
 		const target = path.join(dir, "taken");
 		fs.mkdirSync(path.join(target, "inside"), { recursive: true });

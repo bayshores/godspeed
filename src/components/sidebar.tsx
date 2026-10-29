@@ -18,6 +18,7 @@ import { DueSoon } from "@/components/sidebar/due-soon";
 import { OpenDeadlinesProvider, useOpenDeadlines } from "@/components/use-open-deadlines";
 import { LessonsSection } from "@/components/sidebar/lessons-section";
 import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
+import { toggledSidebar } from "@/components/sidebar-model";
 import { HalleyProvider } from "@/components/halley/halley-provider";
 import { Welcome } from "@/components/welcome/welcome";
 
@@ -143,20 +144,12 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const toggle = useCallback(() => {
-		// While narrow the sidebar always shows as closed, so a toggle means
-		// open: save the preference and ask the shell to widen the window.
+		const next = toggledSidebar(open, narrow);
+		localStorage.setItem(STORAGE_KEY, next.open ? "1" : "0");
+		setOpen(next.open);
 		// The resize listener then flips `narrow` and the sidebar appears.
-		if (narrow) {
-			localStorage.setItem(STORAGE_KEY, "1");
-			setOpen(true);
-			window.lh?.expandWindow();
-			return;
-		}
-		setOpen((v) => {
-			localStorage.setItem(STORAGE_KEY, v ? "0" : "1");
-			return !v;
-		});
-	}, [narrow]);
+		if (next.expand) window.lh?.expandWindow();
+	}, [open, narrow]);
 
 	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
 	// and the context answers on exactly that name — one shared spelling,

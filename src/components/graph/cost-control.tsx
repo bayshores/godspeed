@@ -78,8 +78,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	return (
 		<div ref={rootRef} className="relative">
 			<Hint
-				// Trimmed (owner, subtlety round 2026-09-25).
-				label="Graph costs. Click for details"
+				label="Graph costs: click for details"
 				side="bottom"
 			>
 				<button

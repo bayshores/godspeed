@@ -72,13 +72,14 @@ if (process.argv.includes("--browser-service")) {
 	// keeps a dev helper and a packaged one apart.
 	const helperData = path.join(app.getPath("temp"), `godspeed-browser-service-${process.pid}`);
 	app.setPath("userData", helperData);
-	app.once("will-quit", () => {
+	const removeHelperData = () => {
 		try {
 			fs.rmSync(helperData, { recursive: true, force: true });
 		} catch {
 			/* best effort: the OS clears temp too */
 		}
-	});
+	};
+	app.once("will-quit", removeHelperData);
 	const { waitForBrowserService } = require("./browser-service-readiness.cjs");
 	// Own the helper's entire startup lifetime, including the readiness wait.
 	const lifetime = new AbortController();
@@ -108,6 +109,8 @@ if (process.argv.includes("--browser-service")) {
 		} catch (err) {
 			if (lifetime.signal.aborted) return; // Parent disconnect is normal.
 			console.error("browser-service failed:", err);
+			// app.exit skips will-quit, so clean up here too.
+			removeHelperData();
 			app.exit(1);
 		}
 	})();

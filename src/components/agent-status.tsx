@@ -39,6 +39,12 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 	};
 }
 
+/** True when two statuses read the same, so a poll can keep the old object
+ *  and consumers skip a render (pure — exported for tests). */
+export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
+	return !!a && a.connected === b.connected && a.name === b.name && a.pendingWork === b.pendingWork;
+}
+
 const AgentStatusContext = createContext<AgentStatus | null>(null);
 
 export function AgentStatusProvider({ children }: { children: React.ReactNode }) {
@@ -48,11 +54,7 @@ export function AgentStatusProvider({ children }: { children: React.ReactNode })
 			.then((r) => (r.ok ? r.json() : null))
 			.then((body) => {
 				const next = parseAgentStatus(body);
-				// Same status: keep the old object so consumers skip a render.
-				if (next)
-					setStatus((prev) =>
-						prev && prev.connected === next.connected && prev.name === next.name && prev.pendingWork === next.pendingWork ? prev : next,
-					);
+				if (next) setStatus((prev) => (sameAgentStatus(prev, next) ? prev : next));
 			})
 			.catch(() => {/* keep the last status */});
 	}, []);

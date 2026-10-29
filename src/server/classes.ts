@@ -315,9 +315,7 @@ export function replaceCopiedFile(classId: string, fileId: string, bytes: Uint8A
 	if (file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId)) {
 		return fail(409, "extraction_running", "This file is being turned into facts. Try again when it finishes.");
 	}
-	const abs = classFilePath(record, file)!;
-	fs.mkdirSync(path.dirname(abs), { recursive: true });
-	fs.writeFileSync(abs, bytes);
+	writeFileAtomic(classFilePath(record, file)!, bytes);
 	const patched = patchFile(classId, fileId, { kind, status: "pending", contentFp: "", error: undefined });
 	enqueueFile(classId, fileId);
 	return { ok: true, value: patched ?? file };
