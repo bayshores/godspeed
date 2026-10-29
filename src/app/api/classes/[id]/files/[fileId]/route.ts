@@ -1,14 +1,24 @@
 /**
  * /api/classes/[id]/files/[fileId] (classes wave, 2026-10-26).
+ *  GET    — { path }: the file's full path on this computer (Show in Finder)
  *  PUT    — { kind: "study" | "info" } switch, or { retry: true }
  *  DELETE — remove a copied file and its facts
  */
-import { removeFile, retryFile, setFileKind } from "@/server";
+import { classFilePath, getClass, removeFile, retryFile, setFileKind } from "@/server";
 import { isClassId } from "@/core";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string; fileId: string }> };
+
+export async function GET(_req: Request, { params }: Ctx) {
+	const { id, fileId } = await params;
+	const record = isClassId(id) ? getClass(id) : null;
+	const file = record?.files.find((f) => f.id === fileId);
+	const abs = record && file ? classFilePath(record, file) : null;
+	if (!abs) return Response.json({ error: "No such file" }, { status: 404 });
+	return Response.json({ path: abs });
+}
 
 export async function PUT(req: Request, { params }: Ctx) {
 	const { id, fileId } = await params;

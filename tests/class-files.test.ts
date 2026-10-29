@@ -9,6 +9,7 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 import { fileToText, transcriptToText, walkLinkedFolder, RecordingNeedsTranscriptError } from "../src/server/class-files.ts";
 import { findProgram } from "../src/server/transcribe.ts";
+import { MAX_LINKED_FILES } from "../src/core/contracts.ts";
 
 describe("transcriptToText", () => {
 	it("strips WebVTT headers, timings, tags and rolling duplicates", () => {
@@ -34,7 +35,21 @@ describe("fileToText and the folder walk", () => {
 			assert.equal(await fileToText(path.join(dir, "a.md")), "# Notes");
 			assert.equal(await fileToText(path.join(dir, "sub", "b.srt")), "Hi");
 			await assert.rejects(fileToText(path.join(dir, "talk.m4a")), RecordingNeedsTranscriptError);
-			assert.deepEqual(walkLinkedFolder(dir), ["a.md", "sub/b.srt", "talk.m4a"]);
+			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md", "sub/b.srt", "talk.m4a"], capped: false });
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("stops at the file limit and says so", () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-class-files-cap-"));
+		try {
+			for (let i = 0; i < MAX_LINKED_FILES; i++) fs.writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.md`), "");
+			assert.equal(walkLinkedFolder(dir).capped, false, "exactly at the limit is fine");
+			fs.writeFileSync(path.join(dir, "zzz.md"), "");
+			const walk = walkLinkedFolder(dir);
+			assert.equal(walk.files.length, MAX_LINKED_FILES);
+			assert.equal(walk.capped, true);
 		} finally {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}

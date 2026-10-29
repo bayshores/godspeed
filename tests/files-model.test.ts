@@ -14,6 +14,7 @@ import {
 	fileIdFromHash,
 	fileState,
 	shortenHome,
+	fileBrowserName,
 	splitByKind,
 	studiedFill,
 } from "../src/components/files/files-model.ts";
@@ -81,5 +82,11 @@ describe("files-model", () => {
 		assert.equal(shortenHome("/Users/me/School/CSE 21"), "~/School/CSE 21");
 		assert.equal(shortenHome("/home/me/x"), "~/x");
 		assert.equal(shortenHome("/Volumes/USB/x"), "/Volumes/USB/x");
+	});
+
+	it("fileBrowserName", () => {
+		assert.equal(fileBrowserName("darwin"), "Finder");
+		assert.equal(fileBrowserName("win32"), "File Explorer");
+		assert.equal(fileBrowserName("linux"), "Files");
 	});
 });

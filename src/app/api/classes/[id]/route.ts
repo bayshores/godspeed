@@ -1,12 +1,13 @@
 /**
  * /api/classes/[id] (classes wave, owner-approved 2026-10-26).
- *  GET    — the full record; ?scan=1 rescans its linked folder first
+ *  GET    — { class, folderProblem }: the full record and what is wrong with
+ *           its linked folder (null: nothing); ?scan=1 rescans the folder first
  *           (the switcher asks when you switch to the class)
  *  PUT    — { name?, description?, archived?, signature? } (signature null clears it)
  *  DELETE — the class with its lessons, copied files and graph (a linked
  *           folder on your computer is never touched)
  */
-import { deleteClass, getClass, scanLinkedFolder, updateClass } from "@/server";
+import { deleteClass, folderProblemOf, getClass, scanLinkedFolder, updateClass } from "@/server";
 import { cleanSignature, isClassId, SIGNATURE_MAX } from "@/core";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export async function GET(req: Request, { params }: Ctx) {
 	if (new URL(req.url).searchParams.get("scan") === "1") scanLinkedFolder(id);
 	const record = getClass(id);
 	if (!record) return Response.json({ error: "No such class" }, { status: 404 });
-	return Response.json({ class: record });
+	return Response.json({ class: record, folderProblem: folderProblemOf(id) });
 }
 
 export async function PUT(req: Request, { params }: Ctx) {

@@ -262,6 +262,44 @@ describe("the class file pipeline", () => {
 		assert.equal((await unlinked.json()).class.linkedFolder, undefined);
 		assert.ok(fs.existsSync(LINKED), "the learner's folder is never touched");
 	});
+
+	it("a missing folder keeps its files and facts; picking the moved folder again keeps matching facts", async () => {
+		const id = await makeClass("CSE 21");
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-moved-"));
+		const oldDir = path.join(root, "old");
+		const newDir = path.join(root, "new");
+		try {
+			fs.mkdirSync(oldDir);
+			fs.writeFileSync(path.join(oldDir, "a.md"), "Graphs");
+			fs.writeFileSync(path.join(oldDir, "b.md"), "Trees");
+			await folderRoute.PUT(json("/x", "PUT", { path: oldDir }), ctx({ id }));
+			await classIdle(id);
+			assert.deepEqual(getNames(id).sort(), ["Graphs", "Trees"]);
+			const problemOf = async () => (await (await classRoute.GET(json(`/api/classes/${id}?scan=1`, "GET"), ctx({ id }))).json()).folderProblem;
+			assert.equal(await problemOf(), null);
+
+			fs.renameSync(oldDir, newDir);
+			assert.equal(await problemOf(), "missing");
+			assert.equal(stores.classStore.getClass(id)!.files.length, 2, "a missing folder's files stay");
+			assert.deepEqual(getNames(id).sort(), ["Graphs", "Trees"], "and so do their facts");
+
+			fs.rmSync(path.join(newDir, "b.md"));
+			fs.writeFileSync(path.join(newDir, "c.md"), "Recursion");
+			const importsBefore = imports.length;
+			const relinked = await folderRoute.PUT(json("/x", "PUT", { path: newDir }), ctx({ id }));
+			assert.equal(relinked.status, 200);
+			await classIdle(id);
+			assert.equal(imports.length, importsBefore + 1, "only the new file is built");
+			assert.deepEqual(getNames(id).sort(), ["Graphs", "Recursion"], "a file the new folder lacks loses its facts");
+			assert.equal(await problemOf(), null);
+
+			const file = stores.classStore.getClass(id)!.files.find((f) => f.name === "a.md")!;
+			const shown = await fileRoute.GET(json("/x", "GET"), ctx({ id, fileId: file.id }));
+			assert.equal((await shown.json()).path, path.join(newDir, "a.md"));
+		} finally {
+			fs.rmSync(root, { recursive: true, force: true });
+		}
+	});
 });
 
 function getNames(classId: string): string[] {

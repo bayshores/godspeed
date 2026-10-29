@@ -742,6 +742,16 @@ async function main() {
 			: await dialog.showOpenDialog({ properties: ["openDirectory"] });
 		return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
 	});
+	// Show in Finder (a class file, selected) and Open in Finder (the linked
+	// folder). Opening is limited to folders so nothing can be launched.
+	ipcMain.handle("lh:show-in-folder", (event, target) => {
+		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
+		if (typeof target === "string" && path.isAbsolute(target)) shell.showItemInFolder(target);
+	});
+	ipcMain.handle("lh:open-folder", async (event, target) => {
+		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
+		if (typeof target === "string" && path.isAbsolute(target) && fs.statSync(target, { throwIfNoEntry: false })?.isDirectory()) await shell.openPath(target);
+	});
 	ipcMain.handle("lh:zoom:get", (event) => BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1);
 	ipcMain.on("lh:expand-window", (event) => {
 		const win = BrowserWindow.fromWebContents(event.sender);

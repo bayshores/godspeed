@@ -43,6 +43,8 @@ ipcRenderer.on("lh:open-settings", (_event, section) => {
 contextBridge.exposeInMainWorld("lh", {
 	platform: process.platform,
 	pickFolder: () => ipcRenderer.invoke("lh:pick-folder"),
+	showInFolder: (target) => ipcRenderer.invoke("lh:show-in-folder", target),
+	openFolder: (target) => ipcRenderer.invoke("lh:open-folder", target),
 	// A dropped file's or folder's path (onboarding's drop zone links a
 	// dropped folder). Path only — no file access crosses the bridge.
 	pathForFile: (file) => webUtils.getPathForFile(file),

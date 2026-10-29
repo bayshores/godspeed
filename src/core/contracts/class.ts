@@ -33,6 +33,15 @@ export type ClassFileOrigin = "copied" | "linked";
  *  - needs-whisper: a recording, but whisper.cpp/ffmpeg are not installed */
 export type ClassFileStatus = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
 
+/** Most files a linked folder may contribute (a guard against linking a
+ *  whole home directory by mistake). */
+export const MAX_LINKED_FILES = 500;
+
+/** What is wrong with a class's linked folder at its last scan:
+ *  "missing" = not found (moved, renamed, drive unplugged);
+ *  "too-many-files" = only the first MAX_LINKED_FILES were added. */
+export type FolderProblem = "missing" | "too-many-files";
+
 export interface ClassFile {
 	/** Stable id: "f_" + 12 hex. */
 	id: string;
