@@ -5,7 +5,8 @@
  * the facts studied, the latest lesson and each deadline's covers and
  * ready %. Re-reads like useProgress does: when a turn settles, background
  * activity changes, classes change, and after the events channel
- * reconnects (debounced, so a burst causes one round).
+ * reconnects (debounced, so a burst causes one round). A class whose read
+ * fails gets an error instead, so it never holds up the others.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,11 +14,12 @@ import type { ProgressPayload } from "@/core";
 import { classQuery } from "@/components/class-context";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 import { localDay } from "@/components/use-progress";
+import { foldClassesProgress, type ClassesProgress, type ProgressRead } from "./home-page-model";
 
 const REFRESH_DEBOUNCE_MS = 400;
 
-export function useClassesProgress(classIds: readonly string[]): ReadonlyMap<string, ProgressPayload> {
-	const [byClass, setByClass] = useState<ReadonlyMap<string, ProgressPayload>>(new Map());
+export function useClassesProgress(classIds: readonly string[]): ClassesProgress {
+	const [state, setState] = useState<ClassesProgress>({ progress: new Map(), errors: new Map() });
 	const key = classIds.join(",");
 	const request = useRef(0);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,26 +28,19 @@ export function useClassesProgress(classIds: readonly string[]): ReadonlyMap<str
 		const id = ++request.current;
 		const ids = key ? key.split(",") : [];
 		void Promise.all(
-			ids.map(async (classId) => {
+			ids.map(async (classId): Promise<ProgressRead> => {
 				try {
 					const res = await fetch(`/api/progress${classQuery(classId)}&today=${localDay()}`);
-					if (!res.ok) return null;
-					return [classId, (await res.json()) as ProgressPayload] as const;
-				} catch {
-					return null;
+					const body = await res.json();
+					if (!res.ok) throw new Error(typeof body?.error === "string" ? body.error : `HTTP ${res.status}`);
+					return { classId, payload: body as ProgressPayload };
+				} catch (err) {
+					return { classId, error: err instanceof Error ? err.message : String(err) };
 				}
 			}),
-		).then((entries) => {
+		).then((reads) => {
 			if (id !== request.current) return;
-			setByClass((prev) => {
-				const next = new Map<string, ProgressPayload>();
-				for (const classId of ids) {
-					const hit = entries.find((e) => e?.[0] === classId);
-					const payload = hit?.[1] ?? prev.get(classId);
-					if (payload) next.set(classId, payload);
-				}
-				return next;
-			});
+			setState((prev) => foldClassesProgress(prev, ids, reads));
 		});
 	}, [key]);
 
@@ -66,5 +61,5 @@ export function useClassesProgress(classIds: readonly string[]): ReadonlyMap<str
 	useServerEvent("classes-changed", refresh);
 	useServerResync(refresh);
 
-	return byClass;
+	return state;
 }

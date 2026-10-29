@@ -19,24 +19,30 @@ const LEAVE_MS = 200;
 interface SharedDeadlines {
 	/** null until the first response. */
 	fetched: OpenDeadline[] | null;
+	/** Why the last read failed; null once one succeeds. */
+	error: string | null;
 	load: () => Promise<void>;
 }
 
-const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, load: async () => {} });
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {} });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
 	const [fetched, setFetched] = useState<OpenDeadline[] | null>(null);
+	const [error, setError] = useState<string | null>(null);
 	const request = useRef(0);
 
 	const load = useCallback(async () => {
 		const id = ++request.current;
 		try {
 			const res = await fetch("/api/deadlines", { cache: "no-store" });
-			if (!res.ok) return;
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const body = (await res.json()) as { deadlines?: OpenDeadline[] };
-			if (id === request.current) setFetched(Array.isArray(body.deadlines) ? body.deadlines : []);
-		} catch {
-			/* offline: keep what we have */
+			if (id !== request.current) return;
+			setFetched(Array.isArray(body.deadlines) ? body.deadlines : []);
+			setError(null);
+		} catch (err) {
+			// Keep what we have; the error only matters before a first list.
+			if (id === request.current) setError(err instanceof Error ? err.message : String(err));
 		}
 	}, []);
 
@@ -46,20 +52,22 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	useServerEvent("classes-changed", () => void load());
 	useServerResync(() => void load());
 
-	const value = useMemo(() => ({ fetched, load }), [fetched, load]);
+	const value = useMemo(() => ({ fetched, error, load }), [fetched, error, load]);
 	return <OpenDeadlinesContext.Provider value={value}>{children}</OpenDeadlinesContext.Provider>;
 }
 
 interface OpenDeadlinesState {
 	/** null until the first response. Rows fading out stay in it. */
 	deadlines: OpenDeadline[] | null;
+	/** Why the last read failed; null once one succeeds. */
+	error: string | null;
 	/** Ids fading out after a done tick. */
 	leaving: ReadonlySet<string>;
 	markDone: (d: OpenDeadline) => void;
 }
 
 export function useOpenDeadlines(): OpenDeadlinesState {
-	const { fetched, load } = useContext(OpenDeadlinesContext);
+	const { fetched, error, load } = useContext(OpenDeadlinesContext);
 	// A ticked row stays (fading) until its fade ends, even once the
 	// re-read list no longer has it.
 	const [leavingRows, setLeavingRows] = useState<ReadonlyMap<string, OpenDeadline>>(new Map());
@@ -99,5 +107,5 @@ export function useOpenDeadlines(): OpenDeadlinesState {
 	}, [fetched, leavingRows]);
 	const leaving = useMemo(() => new Set(leavingRows.keys()), [leavingRows]);
 
-	return { deadlines, leaving, markDone };
+	return { deadlines, error, leaving, markDone };
 }

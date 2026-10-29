@@ -41,3 +41,9 @@ export function initialPromptOwed(messages: readonly { role: string }[], prompt:
 export function isSubagentSteer(m: LhViewMessage): boolean {
 	return (m.metadata as { subagentResult?: unknown } | undefined)?.subagentResult != null;
 }
+
+/** A steer the settle race left unsent goes back in the composer, ahead
+ *  of anything typed since, so the learner never loses it. */
+export function restoreUnsentSteer(unsent: string, draft: string): string {
+	return draft.trim() ? `${unsent}\n${draft}` : unsent;
+}

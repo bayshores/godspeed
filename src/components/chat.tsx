@@ -31,7 +31,7 @@ import {
 	type LhMessage,
 	type QuestionAnswerData,
 } from "@/core";
-import { escAbortTarget, initialPromptOwed } from "@/components/lesson/chat-helpers";
+import { escAbortTarget, initialPromptOwed, restoreUnsentSteer } from "@/components/lesson/chat-helpers";
 import { useArrivals } from "@/components/lesson/arrivals";
 import { LessonStepsContext, answerAnchorSelector } from "@/components/lesson/step-context";
 import { practiceProgress } from "@/components/lesson/practice-progress";
@@ -307,7 +307,9 @@ export function Chat({
 		if (!t) return;
 		applyText("");
 		if (busy) {
-			void steer(t);
+			void steer(t).then((sent) => {
+				if (!sent) applyText(restoreUnsentSteer(t, textRef.current));
+			});
 			return;
 		}
 		void send({ type: "text", text: t });

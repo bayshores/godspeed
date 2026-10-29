@@ -14,6 +14,7 @@ import { TopBar } from "@/components/top-bar";
 import { useOpenDeadlines } from "@/components/use-open-deadlines";
 import { ClassBlock } from "./class-block";
 import { ComingUp } from "./coming-up";
+import { classesSettled, classSlot } from "./home-page-model";
 import { useClassesProgress } from "./use-classes-progress";
 
 /**
@@ -26,21 +27,22 @@ export function HomePage() {
 	const router = useRouter();
 	const { classes, loaded, setActive } = useClasses();
 	const shown = useMemo(() => classes.filter((c) => !c.archived), [classes]);
-	const { deadlines, leaving, markDone } = useOpenDeadlines();
-	const progress = useClassesProgress(useMemo(() => shown.map((c) => c.id), [shown]));
+	const { deadlines, error: deadlinesError, leaving, markDone } = useOpenDeadlines();
+	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
+	const classesProgress = useClassesProgress(shownIds);
 	// The blocks fill in together the first time; a class added later
 	// shows its own box until its progress arrives.
 	const [blocksReady, setBlocksReady] = useState(false);
-	if (!blocksReady && shown.length > 0 && shown.every((c) => progress.has(c.id))) setBlocksReady(true);
+	if (!blocksReady && shown.length > 0 && classesSettled(shownIds, classesProgress)) setBlocksReady(true);
 	const nowMs = useMinute();
 	const [dialog, setDialog] = useState<ClassDialogMode | null>(null);
 
 	// Each deadline's covers and ready %, from its class's progress.
 	const deadlineProgress = useMemo(() => {
 		const map = new Map<string, DeadlineProgress>();
-		for (const p of progress.values()) for (const d of p.deadlines) map.set(d.id, d);
+		for (const p of classesProgress.progress.values()) for (const d of p.deadlines) map.set(d.id, d);
 		return map;
-	}, [progress]);
+	}, [classesProgress]);
 	const nextDue = useMemo(() => {
 		const map = new Map<string, NonNullable<typeof deadlines>[number]>();
 		for (const d of byDue(deadlines ?? [])) if (!map.has(d.classId) && !leaving.has(d.id)) map.set(d.classId, d);
@@ -72,40 +74,46 @@ export function HomePage() {
 							{nowMs !== null ? longDateLine(nowMs) : ""}
 						</p>
 					</header>
-					{nowMs === null || !loaded || deadlines === null ? (
+					{nowMs === null || !loaded || (deadlines === null && deadlinesError === null) ? (
 						<div className="px-[52px]">
 							<LoadingBox height="h-[320px]" />
 						</div>
 					) : (
 						<div className="flex flex-col items-start gap-4 px-[52px] @4xl:flex-row">
 							<div className="w-full min-w-0 flex-1">
-								<ComingUp
-									deadlines={deadlines}
-									progress={deadlineProgress}
-									leaving={leaving}
-									nowMs={nowMs}
-									hasClasses={shown.length > 0}
-									onDone={markDone}
-								/>
+								{deadlines ? (
+									<ComingUp
+										deadlines={deadlines}
+										progress={deadlineProgress}
+										leaving={leaving}
+										nowMs={nowMs}
+										hasClasses={shown.length > 0}
+										onDone={markDone}
+									/>
+								) : (
+									<LoadFailed />
+								)}
 							</div>
 							{shown.length > 0 && (
 								<div className="flex w-full flex-col gap-4 @4xl:w-[400px] @4xl:shrink-0">
 									{shown.map((c) => {
-										const p = progress.get(c.id);
-										return blocksReady && p ? (
-											<ClassBlock
-												key={c.id}
-												cls={c}
-												progress={p}
-												nextDue={nextDue.get(c.id) ?? null}
-												nowMs={nowMs}
-												onContinue={onContinue}
-												onNewLesson={onNewLesson}
-												onOpenClass={onOpenClass}
-											/>
-										) : (
-											<LoadingBox key={c.id} height="h-[222px]" />
-										);
+										const slot = classSlot(c.id, classesProgress, blocksReady);
+										const p = classesProgress.progress.get(c.id);
+										if (slot === "block" && p) {
+											return (
+												<ClassBlock
+													key={c.id}
+													cls={c}
+													progress={p}
+													nextDue={nextDue.get(c.id) ?? null}
+													nowMs={nowMs}
+													onContinue={onContinue}
+													onNewLesson={onNewLesson}
+													onOpenClass={onOpenClass}
+												/>
+											);
+										}
+										return slot === "failed" ? <LoadFailed key={c.id} /> : <LoadingBox key={c.id} height="h-[222px]" />;
 									})}
 								</div>
 							)}
@@ -122,6 +130,12 @@ export function HomePage() {
  *  appears in a half-loaded state and then jumps. */
 function LoadingBox({ height }: { height: string }) {
 	return <div data-testid="home-loading" aria-hidden className={`w-full bg-panel ${height}`} />;
+}
+
+/** Shown in place of a loading box when its read failed; the hooks re-read
+ *  on the next change. */
+function LoadFailed() {
+	return <p data-testid="home-load-failed" className="text-sm text-ink-3">{"Couldn't load this. It will try again when something changes."}</p>;
 }
 
 /** "Add deadline": one class opens its Edit class at once; several open a

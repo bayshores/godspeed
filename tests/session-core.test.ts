@@ -1711,3 +1711,33 @@ describe("errorBodyMessage (the banner never shows a JSON envelope)", () => {
 		assert.equal(errorBodyMessage('{"error":42}'), '{"error":42}');
 	});
 });
+
+describe("steer (the settle race)", () => {
+	it("resolves false and posts nothing when the 409 lands before the local stream is ready", async () => {
+		let posts = 0;
+		let closeStream = () => {};
+		const m = model({ fetch: async (url) => {
+			const u = String(url);
+			if (u === "/api/chat") { posts++; return Response.json({ ok: true }); }
+			if (u === "/api/chats/chat_x/steer") return new Response("settled", { status: 409 });
+			if (u === "/api/chats/chat_x/stream") {
+				return new Response(new ReadableStream<Uint8Array>({
+					start(c) {
+						c.enqueue(new TextEncoder().encode(sse(partial([{ type: "text", text: "writing" }]))));
+						closeStream = () => c.close();
+					},
+				}));
+			}
+			return Response.json({ messages: [] });
+		} });
+		const sending = m.send({ type: "text", text: "go on" });
+		for (let i = 0; i < 100 && m.status !== "streaming"; i++) await new Promise((r) => setTimeout(r, 0));
+		assert.equal(m.status, "streaming");
+		assert.equal(await m.steer("wait, why?"), false, "the caller keeps the text");
+		assert.equal(posts, 1, "no plain send for the steer");
+		assert.deepEqual(m.getState().steerQueue, [], "the queued line is gone");
+		m.stop();
+		closeStream();
+		await sending;
+	});
+});

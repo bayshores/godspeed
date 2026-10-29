@@ -652,7 +652,7 @@ export class SessionModel {
 	 */
 	async send(input: ChatInput): Promise<void> {
 		const recovering = this.statusValue === "error";
-		if (!this.readyRef && !recovering) return;
+		if (!this.canSend()) return;
 		this.consumeAbort?.abort();
 		const controller = new AbortController();
 		this.consumeAbort = controller;
@@ -771,10 +771,12 @@ export class SessionModel {
 	 *  key) and the indicator's fold drops the line. A 409 means the turn
 	 *  settled mid-send (the race): fall back to the plain text send —
 	 *  the entry is dropped and send() pushes its own optimistic card.
+	 *  Resolves false when that fallback cannot send because the local
+	 *  stream has not reached ready yet, so the caller can keep the text.
 	 */
-	async steer(text: string): Promise<void> {
+	async steer(text: string): Promise<boolean> {
 		const t = text.trim();
-		if (!t) return;
+		if (!t) return true;
 		const id = `steer_${localId()}`;
 		this.steerQueueValue = [...this.steerQueueValue, { id, text: t }];
 		this.onChange?.();
@@ -788,11 +790,12 @@ export class SessionModel {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ input: { type: "steer", id, text: t } }),
 			});
-			if (res.ok) return; // parked or delivered — the stream lands the card
+			if (res.ok) return true; // parked or delivered — the stream lands the card
 			if (res.status === 409) {
 				dropSteer();
+				if (!this.canSend()) return false;
 				await this.send({ type: "text", text: t }); // the settle race: plain send
-				return;
+				return true;
 			}
 			dropSteer();
 			this.setError(errorBodyMessage(await res.text()) || `The steer failed (${res.status}).`);
@@ -800,6 +803,12 @@ export class SessionModel {
 			dropSteer();
 			this.setError((err as Error).message);
 		}
+		return true;
+	}
+
+	/** The ready gate: one turn per client, but an errored session may retry. */
+	private canSend(): boolean {
+		return this.readyRef || this.statusValue === "error";
 	}
 
 	/** The answer path (the dock): the answer IS the question call's tool
