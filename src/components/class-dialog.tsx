@@ -87,14 +87,16 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		if (state === "closed") return;
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
+				// Claimed even while saving, so Esc never reaches the abort-turn fallback.
 				e.preventDefault();
 				e.stopPropagation();
-				onClose();
+				// A save in flight stays open so its error can show.
+				if (!busy) onClose();
 			}
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [onClose, state]);
+	}, [busy, onClose, state]);
 
 	const call = async (url: string, init: RequestInit): Promise<unknown | null> => {
 		setBusy(true);
@@ -194,7 +196,14 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			>
 				<div className="flex shrink-0 items-center justify-between px-5 py-[18px]">
 					<h2 className="text-base font-bold text-ink">{title}</h2>
-					<button type="button" aria-label="Close" data-testid="class-dialog-close" onClick={onClose} className="lh-press text-ink-2 hover:text-ink">
+					<button
+						type="button"
+						aria-label="Close"
+						data-testid="class-dialog-close"
+						disabled={busy}
+						onClick={onClose}
+						className="lh-press text-ink-2 hover:text-ink disabled:opacity-60"
+					>
 						<XIcon className="size-4" aria-hidden />
 					</button>
 				</div>
@@ -379,6 +388,18 @@ function MoveLessonInner({
 	const backdropDismiss = useBackdropDismiss(() => {
 		if (!busy) onClose();
 	});
+	useEffect(() => {
+		if (state === "closed") return;
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				onClose();
+			}
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [onClose, state]);
 	const move = async () => {
 		setBusy(true);
 		setError(null);

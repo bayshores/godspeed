@@ -31,7 +31,7 @@ Object.assign(globalThis, {
 });
 
 const { createRoot } = await import("react-dom/client");
-const { ClassDialog } = await import("../src/components/class-dialog.tsx");
+const { ClassDialog, MoveLessonDialog } = await import("../src/components/class-dialog.tsx");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
 const { ClassProvider } = await import("../src/components/class-context.tsx");
 
@@ -108,6 +108,15 @@ async function choose(el: HTMLElement | null, value: string) {
 		Object.defineProperty(el, "value", { configurable: true, writable: true, value });
 		el.dispatchEvent(new window.Event("change", { bubbles: true }));
 	});
+}
+/** Esc on the document; returns whether something claimed it. */
+async function pressEscape() {
+	const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
+	Object.assign(esc, { key: "Escape" });
+	await act(async () => {
+		document.dispatchEvent(esc);
+	});
+	return esc.defaultPrevented;
 }
 /** linkedom's click doesn't flip a checkbox: flip it, then click. */
 async function check(el: HTMLElement | null) {
@@ -259,5 +268,54 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal(q("class-deadlines"), null);
 		assert.equal(q("class-signature"), null);
 		assert.equal(q("class-save")!.textContent, "Create class");
+	});
+});
+
+describe("Esc on the class dialogs", () => {
+	it("Esc closes the class dialog", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		assert.equal(await pressEscape(), true);
+		assert.equal(closed, 1);
+	});
+
+	it("while Save runs, Esc is claimed but the dialog stays open and the close button is off", async () => {
+		fakeFetch();
+		const saving = Promise.withResolvers<void>();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/classes/cls_a" && init?.method === "PUT") await saving.promise;
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", classId: "cls_a" });
+		await click(q("class-save"));
+		assert.equal(await pressEscape(), true);
+		assert.equal(closed, 0);
+		assert.equal((q("class-dialog-close") as HTMLButtonElement).disabled, true);
+		await act(async () => {
+			saving.resolve();
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.equal(closed, 1);
+	});
+
+	it("Esc closes the Move lesson dialog", async () => {
+		fakeFetch();
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
+		await act(async () => {
+			root!.render(
+				<ServerEventsProvider connect={connect as never}>
+					<ClassProvider initialActive="cls_a">
+						<MoveLessonDialog lesson={{ id: "chat_1", title: "Counting" }} onClose={() => closed++} onMoved={() => {}} />
+					</ClassProvider>
+				</ServerEventsProvider>,
+			);
+		});
+		assert.ok(q("move-lesson-dialog"));
+		assert.equal(await pressEscape(), true);
+		assert.equal(closed, 1);
 	});
 });

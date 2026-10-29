@@ -108,7 +108,7 @@ export function KeyboardShortcuts() {
 					handlersRef.current.openSettings();
 					break;
 				case "jump-graph":
-					handlersRef.current.router.push("/");
+					handlersRef.current.router.push("/graph");
 					break;
 				case "cheat-sheet":
 					handlersRef.current.setCheatOpen(true);
@@ -143,6 +143,9 @@ function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 	};
 	return (
 		<div
+			role="dialog"
+			aria-modal="true"
+			aria-label="Keyboard shortcuts"
 			data-testid="cheat-sheet"
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 			{...backdropDismiss}
