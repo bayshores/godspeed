@@ -15,9 +15,8 @@ export interface ProbeDoneContext {
 	deliver: (steer: SteerMessage) => void;
 }
 
-/** Does the transcript already carry a concluded probe (any state)?
- *  Wave B: the native scan (any probe_done tool call, any state) — same
- *  semantics the UIMessage part scan had. */
+/** Does the transcript already carry a concluded probe (a probe_done call
+ *  that did not fail)? */
 function probeConcluded(messages: readonly LhMessage[]): boolean {
 	return hasProbeDone(messages);
 }

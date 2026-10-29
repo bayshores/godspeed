@@ -282,6 +282,18 @@ describe("the class file pipeline", () => {
 		assert.equal(stores.classStore.getClass(id)!.updatedAt, before);
 	});
 
+	it("linking a folder to an archived class is refused and changes nothing", async () => {
+		const id = await makeClass("CSE 31");
+		await classRoute.PUT(json("/x", "PUT", { archived: true }), ctx({ id }));
+		const before = stores.classStore.getClass(id)!.updatedAt;
+		const res = await folderRoute.PUT(json("/x", "PUT", { path: LINKED }), ctx({ id }));
+		assert.equal(res.status, 409);
+		assert.equal((await res.json()).error, "This class is archived. Unarchive it first, then link the folder.");
+		const record = stores.classStore.getClass(id)!;
+		assert.equal(record.linkedFolder, undefined);
+		assert.equal(record.updatedAt, before);
+	});
+
 	it("import_notes under the same name keeps the file id, its deadlines and one copy, and rebuilds its facts", async () => {
 		const id = await makeClass("CSE 12");
 		const importNotes = async (name: string, text: string) => {

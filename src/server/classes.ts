@@ -389,6 +389,8 @@ function dropFile(record: ClassRecord, file: ClassFile): void {
 export function linkFolder(classId: string, folder: string): ClassOutcome<ClassRecord> {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return fail(404, "not_found", "No such class");
+	// The scan skips archived classes, so a link here would add nothing.
+	if (record.archived) return fail(409, "archived", "This class is archived. Unarchive it first, then link the folder.");
 	if (!path.isAbsolute(folder)) return fail(400, "bad_path", "Give the folder's full (absolute) path");
 	try {
 		if (!fs.statSync(folder).isDirectory()) return fail(400, "not_a_folder", `${folder} is not a folder`);

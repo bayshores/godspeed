@@ -738,15 +738,11 @@ export function danglingQuestionOf(
 	return null;
 }
 
-/** The probe→teach construction seam (chat-handler): a probe_done call in
- *  the transcript — any state — means the probe is concluded: teach. */
+/** The probe→teach construction seam (chat-handler): a probe_done call
+ *  whose result is not an error means the probe is concluded: teach. A
+ *  refused or unanswered call keeps probing, as phaseAt3Lh does. */
 export function hasProbeDone(messages: readonly LhMessage[]): boolean {
-	for (const m of messages) {
-		if ((m as { role?: string }).role !== "assistant") continue;
-		const assistant = m as AssistantMessage;
-		if (assistant.content.some((b) => b.type === "toolCall" && b.name === "probe_done")) return true;
-	}
-	return false;
+	return messages.some((m) => m.role === "toolResult" && m.toolName === "probe_done" && !m.isError);
 }
 
 /** Every toolResult id in the record — answer-event validation (the call

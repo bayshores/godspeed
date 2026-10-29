@@ -13,7 +13,7 @@ import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { probeDoneTool } from "../src/agent/tools/probe.ts";
 import type { SteerMessage } from "../src/core/contracts.ts";
-import type { LhMessage } from "../src/core/native-messages.ts";
+import { hasProbeDone, type LhMessage } from "../src/core/native-messages.ts";
 import { HANDOFF_TEXT } from "../src/core/contracts.ts";
 import { chatStore } from "../src/store/chats.ts";
 import { PATHS } from "../src/config.ts";
@@ -61,11 +61,32 @@ function assistantWithCall(id: string, toolName: string, args: unknown): LhMessa
 	} as never;
 }
 
+function probeDoneResult(callId: string, isError: boolean): LhMessage {
+	return {
+		id: `${callId}_r`,
+		role: "toolResult",
+		toolCallId: callId,
+		toolName: "probe_done",
+		content: [{ type: "text", text: isError ? "Invalid tool input" : "ok" }],
+		isError,
+		timestamp: Date.now(),
+	} as never;
+}
+
 async function execute(tools: ReturnType<typeof probeDoneTool>, input: unknown) {
 	const t = tools.probe_done!;
 	assert.ok(typeof t.execute === "function");
 	return t.execute("test", input).then((r) => r.details as { ok: boolean; error?: string });
 }
+
+describe("hasProbeDone: the probe→teach construction seam", () => {
+	it("only a probe_done call whose result is not an error concludes the probe", () => {
+		const call = assistantWithCall("m1", "probe_done", { assessment: ASSESSMENT });
+		assert.equal(hasProbeDone([call]), false, "a call with no result yet keeps probing");
+		assert.equal(hasProbeDone([call, probeDoneResult("call_m1", true)]), false, "a failed call keeps probing");
+		assert.equal(hasProbeDone([call, probeDoneResult("call_m1", false)]), true);
+	});
+});
 
 describe("probe_done: the probe→planning seam", () => {
 	it("ok path: records the assessment and queues the handoff steer (deterministic id)", async () => {
@@ -103,15 +124,7 @@ describe("probe_done: the probe→planning seam", () => {
 		const chatId = newChat("Probe: twice");
 		chatStore.saveMessages(chatId, [
 			assistantWithCall("m1", "probe_done", { assessment: ASSESSMENT }),
-			{
-				id: "m1r",
-				role: "toolResult",
-				toolCallId: "call_m1",
-				toolName: "probe_done",
-				content: [{ type: "text", text: "ok" }],
-				isError: false,
-				timestamp: Date.now(),
-			} as never,
+			probeDoneResult("call_m1", false),
 		]);
 		const delivered: SteerMessage[] = [];
 		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) });

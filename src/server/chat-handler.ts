@@ -291,8 +291,8 @@ export async function handleChatInput(
 		};
 
 		// AGENT CONSTRUCTION BRANCH (docs/probe-teach-split.md §2): the transcript
-		// is the seam — a probe_done call in the record means the probe is
-		// concluded: build the TEACHER (planning + the full toolset). Otherwise
+		// is the seam — a successful probe_done call in the record means the
+		// probe is concluded: build the TEACHER (planning + the full toolset). Otherwise
 		// the session is still probing: build the PROBER (quiz/ask + probe_done).
 		// Both share this whole composition (write-ahead persist, liveness,
 		// steers, usage, extraction) — only the agent differs.

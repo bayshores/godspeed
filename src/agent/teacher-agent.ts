@@ -12,8 +12,7 @@ import {
 	type TeacherToolContext,
 } from "./tools.ts";
 import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
-import { healToolRecord, withArgumentHeal } from "./tools/heal.ts";
-import { sendToUserTool } from "./tools/send-to-user.ts";
+import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../core/question-core.ts";
 import { QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
@@ -110,8 +109,8 @@ export interface AgentBuildOptions {
  * in one message) that terminate-only semantics would let run on — the
  * learner cannot answer while a turn is in flight (per-chat 409), so a
  * cleanly-posed question MUST always end the turn. Practice's problem pose
- * has the same wait-for-the-learner contract, including mixed output/problem
- * batches; failed poses must still retry. maxTurns is gone
+ * has the same wait-for-the-learner contract, including mixed batches;
+ * failed poses must still retry. maxTurns is gone
  * (owner ruling 2026-09-25: no maximum-agent-turns net on the teaching
  * turn).
  */
@@ -149,16 +148,7 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 			systemPrompt,
 			model: engine.model,
 			thinkingLevel: engine.level,
-			// Conditional registry inclusion, like the graph-tool gates: when
-			// closed, neither the tool nor its usage instructions reach the model.
-			// Match Claude across providers (including OpenRouter), not the API
-			// transport. Explicit test registries remain caller-owned.
-			tools: [
-				...tools,
-				...(opts.tools === undefined && engine.model.id.toLowerCase().includes("claude")
-					? [withArgumentHeal(sendToUserTool)]
-					: []),
-			],
+			tools,
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,
@@ -263,7 +253,7 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
  * problem + conclude (tools/practice.ts); the doctrine prompt
  * (prompts/practice/) carries the method. A successful problem pose ends
  * the run, natively for a problem-only batch and via the shared stop hook
- * for a mixed batch (for example, send_to_user + problem).
+ * for a mixed batch.
  */
 export function createPracticeAgent(ctx: PracticeToolContext, opts: AgentBuildOptions = {}) {
 	const tools = opts.tools ?? practiceTools(ctx);

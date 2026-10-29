@@ -31,7 +31,7 @@ export { healEncodedArguments };
  *  (options-unwrap, target normalization, …) runs first, then the heal
  *  against the tool's declared schema. Spread-safe (these are plain
  *  object literals) and idempotent. */
-export function withArgumentHeal(tool: AgentTool<any>): AgentTool<any> {
+function withArgumentHeal(tool: AgentTool<any>): AgentTool<any> {
 	const inner = tool.prepareArguments;
 	return {
 		...tool,
