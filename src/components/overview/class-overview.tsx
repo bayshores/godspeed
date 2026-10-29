@@ -86,6 +86,7 @@ export function ClassOverview() {
 					busy={lesson.busy || practice.busy}
 					onPractice={practiceDeadline}
 					onLearn={learn}
+					onAddSignature={() => setEditing(true)}
 				/>
 			</div>
 			<ClassDialog mode={editMode} onClose={() => setEditing(false)} />

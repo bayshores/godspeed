@@ -39,7 +39,7 @@ import { HalleyPanel } from "./halley-panel";
 import { HalleyEngine, type Home } from "./engine";
 import { REACTION_MS, crossedUnderHour, eyesStill, pickMood, type HalleyMood, type HalleyReaction } from "./mood";
 import { BURST_MS, FLY_MS, STEP_MS, bubbleText, nextStep, summarize } from "./tour";
-import { FOLLOW_KEY, FOLLOW_OFF, NOTICE_MS, followMoves, followReady, followReducer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
+import { FOLLOW_KEY, FOLLOW_OFF, GO_OFFER_MS, NOTICE_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import {
 	CORNER_KEY,
 	NARROW_WIDTH,
@@ -56,10 +56,10 @@ import {
 import {
 	REMOVE_FADE_MS,
 	boxOf,
+	dialogOpen,
 	fadeOut,
 	glow,
 	isInView,
-	learnerBusy,
 	pickTarget,
 	placeGhost,
 	sleep,
@@ -104,6 +104,8 @@ interface HalleyApi {
 	setLesson: (p: LessonPresence | null) => void;
 	/** Go to a change (a Recent row): its page, then fly to it. */
 	go: (action: AgentAction) => void;
+	/** With Follow off: a fresh change on another page, to offer "Go to". */
+	offer: AgentAction | null;
 }
 
 const HalleyContext = createContext<HalleyApi | null>(null);
@@ -205,10 +207,15 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	// While Follow is on, note when the learner types or has a dialog open.
 	useEffect(() => {
 		if (!followView.on) return;
+		const busy = () => dispatchFollow({ type: "busy", at: Date.now() });
+		document.addEventListener("input", busy, true);
 		const t = setInterval(() => {
-			if (learnerBusy()) dispatchFollow({ type: "busy", at: Date.now() });
+			if (dialogOpen()) busy();
 		}, 250);
-		return () => clearInterval(t);
+		return () => {
+			document.removeEventListener("input", busy, true);
+			clearInterval(t);
+		};
 	}, [followView.on, dispatchFollow]);
 
 	// ── reactions (brief moods) ──
@@ -280,6 +287,17 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		return () => clearTimeout(t);
 	}, [recent]);
 
+	// "Go to": with Follow off, the newest change on another page.
+	const [offer, setOffer] = useState<AgentAction | null>(null);
+	useEffect(() => {
+		const latest = recent[0];
+		const next = goOffer(latest, { follow: followView.on, path: pathname, now: Date.now() });
+		setOffer(next);
+		if (!next) return;
+		const t = setTimeout(() => setOffer(null), GO_OFFER_MS - (Date.now() - Date.parse(next.at)));
+		return () => clearTimeout(t);
+	}, [recent, followView.on, pathname]);
+
 	// ── the mood ──
 	const jobs = feed.jobs.length + feed.extractions.length;
 	const working = !!agent && (agent.pendingWork > 0 || jobs > 0 || !!lesson?.working);
@@ -316,8 +334,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	}, [dispatchFollow]);
 
 	const waitUntilFollowReady = useCallback(async () => {
-		while (alive.current && !followReady(followRef.current, learnerBusy(), Date.now())) {
-			if (learnerBusy()) dispatchFollow({ type: "busy", at: Date.now() });
+		while (alive.current && !followReady(followRef.current, dialogOpen(), Date.now())) {
+			if (dialogOpen()) dispatchFollow({ type: "busy", at: Date.now() });
 			await sleep(250);
 		}
 	}, [dispatchFollow]);
@@ -468,8 +486,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	);
 
 	const api = useMemo<HalleyApi>(
-		() => ({ name, mood, follow: followView.on, setFollow, notice: followView.notice, panelOpen, setPanelOpen, recent, nowText, react, setLesson, go }),
-		[name, mood, followView.on, followView.notice, setFollow, panelOpen, recent, nowText, react, setLesson, go],
+		() => ({ name, mood, follow: followView.on, setFollow, notice: followView.notice, panelOpen, setPanelOpen, recent, nowText, react, setLesson, go, offer }),
+		[name, mood, followView.on, followView.notice, setFollow, panelOpen, recent, nowText, react, setLesson, go, offer],
 	);
 
 	const inLesson = pathname.startsWith("/chat/") && lesson !== null;

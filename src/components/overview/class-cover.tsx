@@ -63,6 +63,7 @@ export const ClassCover = memo(function ClassCover({
 	note,
 	facts,
 	nowMs,
+	onAddSignature,
 }: {
 	classId: string;
 	name: string;
@@ -73,6 +74,8 @@ export const ClassCover = memo(function ClassCover({
 	facts: { studied: number; total: number } | null;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
+	/** Shown as "Add a signature" while the class has none. */
+	onAddSignature?: () => void;
 }) {
 	const share = facts ? studiedShare(facts) : 0;
 	const pct = Math.round(share * 100);
@@ -93,6 +96,11 @@ export const ClassCover = memo(function ClassCover({
 						{name}
 					</h1>
 					{about && <p className="max-w-[640px] text-base text-ink-2">{about}</p>}
+					{!signature && onAddSignature && (
+						<button type="button" data-testid="class-cover-add-signature" onClick={onAddSignature} className="lh-press self-start text-sm text-ink-3 underline underline-offset-4 hover:text-ink">
+							Add a signature
+						</button>
+					)}
 				</div>
 				{note && (
 					<div data-testid="class-cover-note" className="flex shrink-0 items-center gap-3 bg-panel/90 px-3.5 py-3 @4xl:w-[440px]">

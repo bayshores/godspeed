@@ -11,7 +11,6 @@ import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClassNav, HomeRow, activeNavHref } from "../src/components/sidebar/class-nav.tsx";
 import { footerLabel } from "../src/components/agent-status.tsx";
-import { classMark } from "../src/components/class-switcher.tsx";
 
 function nav(pathname: string, hasClass = true, fileCount = 33) {
 	return renderToStaticMarkup(<ClassNav pathname={pathname} hasClass={hasClass} fileCount={fileCount} />);
@@ -109,22 +108,5 @@ describe("footerLabel — '<agent> · N jobs'", () => {
 		assert.equal(footerLabel({ connected: false, pendingWork: 1 }, 1), "Waiting for your agent · 1 job");
 		assert.equal(footerLabel({ connected: false, pendingWork: 2 }, 0), "Waiting for your agent");
 		assert.equal(footerLabel({ connected: true, name: "Codex", pendingWork: 2 }, 0), "Codex", "a connected agent is taking it");
-	});
-});
-
-describe("classMark — the class mark", () => {
-	it("an acronym first word keeps its first two letters", () => {
-		assert.equal(classMark("ML Foundations"), "ML");
-		assert.equal(classMark("CSE 21"), "21", "the course number tells classes of one department apart");
-		assert.equal(classMark("MATH 20C"), "20C");
-	});
-	it("otherwise the first letters of the first two words", () => {
-		assert.equal(classMark("Linear algebra"), "LA");
-		assert.equal(classMark("  intro to proofs "), "IT");
-	});
-	it("one word: its first two letters; nothing: empty", () => {
-		assert.equal(classMark("Calculus"), "CA");
-		assert.equal(classMark(""), "");
-		assert.equal(classMark(null), "");
 	});
 });

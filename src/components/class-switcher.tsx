@@ -1,7 +1,6 @@
 /**
- * THE CLASS SWITCHER: the block at the top of the sidebar — a white
- * square with the class's mark, the class name, and the up/down
- * chevrons. Picking a class switches the whole window to it — the
+ * THE CLASS SWITCHER: the block at the top of the sidebar — the class
+ * name and the up/down chevrons. Picking a class switches the whole window to it — the
  * sidebar's lessons, the graph, where new lessons start. Menu entries: every active class, "No class",
  * the archived classes (folded under "Archived"), "Edit class…" for the
  * active one, and "New class…".
@@ -13,22 +12,6 @@ import { MenuShell } from "@/components/menu-shell";
 import { ClassDialog } from "@/components/class-dialog";
 import { useClasses } from "@/components/class-context";
 import { cn } from "@/lib/utils";
-
-/** The class mark: the course number when the name has one ("CSE 21" →
- *  "21", "MATH 20C" → "20C"), so classes from one department differ.
- *  Otherwise letters: an acronym first word keeps its first two ("ML
- *  Foundations" → "ML"); else the first letters of the first two words
- *  ("Linear algebra" → "LA"); a single word gives its first two letters
- *  ("Calculus" → "CA"). */
-export function classMark(name: string | null | undefined): string {
-	const words = (name ?? "").trim().split(/\s+/);
-	const number = words.find((w) => /\d/.test(w));
-	if (number) return number.slice(0, 3);
-	const [first = "", second = ""] = words;
-	if (first.length >= 2 && /^[A-Z0-9]+$/.test(first)) return first.slice(0, 2);
-	if (!second) return first.slice(0, 2).toUpperCase();
-	return (first.charAt(0) + second.charAt(0)).toUpperCase();
-}
 
 export function ClassSwitcher() {
 	const { classes, active, activeClass, setActive } = useClasses();
@@ -67,7 +50,6 @@ export function ClassSwitcher() {
 	const archived = classes.filter((c) => c.archived);
 	const row = "lh-press flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[13.5px] text-ink hover:bg-tone";
 	const name = activeClass?.name ?? "No class";
-	const mark = classMark(activeClass?.name);
 
 	return (
 		<>
@@ -82,16 +64,6 @@ export function ClassSwitcher() {
 				aria-label={`Class: ${name}`}
 				className="lh-press flex w-full items-center gap-3 bg-panel px-3 py-2.5 text-left hover:bg-tone"
 			>
-				<span
-					data-testid="class-mark"
-					aria-hidden
-					className={cn(
-						"flex size-[34px] shrink-0 items-center justify-center text-sm font-extrabold",
-						activeClass ? "bg-ink text-primary-foreground" : "bg-tone-2 text-ink-2",
-					)}
-				>
-					{activeClass ? mark : "–"}
-				</span>
 				<span className={cn("min-w-0 flex-1 truncate text-[15px] font-bold", activeClass ? "text-ink" : "text-ink-2")}>{name}</span>
 				<ChevronsUpDownIcon className="size-4 shrink-0 text-ink-2" aria-hidden />
 			</button>

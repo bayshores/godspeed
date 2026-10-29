@@ -25,6 +25,7 @@ export const OverviewBody = memo(function OverviewBody({
 	busy,
 	onPractice,
 	onLearn,
+	onAddSignature,
 }: {
 	name: string;
 	description: string;
@@ -41,6 +42,8 @@ export const OverviewBody = memo(function OverviewBody({
 	onPractice: (deadline: DeadlineProgress) => void;
 	/** "Most needed" → Learn this. */
 	onLearn: (topicId: string) => void;
+	/** The cover's "Add a signature" (opens Edit class). */
+	onAddSignature?: () => void;
 }) {
 	const lessons = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
 	const facts = useMemo(() => studiedFacts(data?.facts ?? []), [data?.facts]);
@@ -49,7 +52,7 @@ export const OverviewBody = memo(function OverviewBody({
 	return (
 		<div data-testid="class-overview" className="@container flex w-full flex-col pb-8">
 			{classId ? (
-				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} nowMs={nowMs} />
+				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} nowMs={nowMs} onAddSignature={onAddSignature} />
 			) : (
 				<header className="flex flex-col gap-2 px-[52px] py-6">
 					<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">

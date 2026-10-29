@@ -11,11 +11,14 @@ import { crossedUnderHour, eyesStill, pickMood, REACTION_MS } from "../src/compo
 import { BURST_LIMIT, FLY_MS, STEP_MS, bubbleText, nextStep, pastLabel, summarize, targetKey, verbOf } from "../src/components/halley/tour.ts";
 import {
 	FOLLOW_OFF,
+	GO_OFFER_MS,
 	RESUME_MS,
 	STOPPED_NOTICE,
 	followMoves,
 	followReady,
 	followReducer,
+	goOffer,
+	pageName,
 	parseFollow,
 	safePage,
 	type FollowState,
@@ -163,6 +166,21 @@ describe("follow", () => {
 	it("only goes to the app's own pages", () => {
 		for (const p of ["/", "/class", "/class/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
 		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings"]) assert.equal(safePage(p), null);
+	});
+	it("with Follow off, offers 'Go to' for a fresh change on another page", () => {
+		const t = Date.parse("2026-10-29T08:00:00Z");
+		const change = { page: "/chat/c1", at: new Date(t).toISOString() };
+		assert.equal(goOffer(change, { follow: false, path: "/", now: t + 1000 }), change);
+		assert.equal(goOffer(change, { follow: true, path: "/", now: t + 1000 }), null, "Follow on goes there itself");
+		assert.equal(goOffer(change, { follow: false, path: "/chat/c1", now: t + 1000 }), null, "already there");
+		assert.equal(goOffer(change, { follow: false, path: "/", now: t + GO_OFFER_MS }), null, "too old");
+		assert.equal(goOffer({ page: "/settings", at: change.at }, { follow: false, path: "/", now: t }), null);
+		assert.equal(goOffer(undefined, { follow: false, path: "/", now: t }), null);
+	});
+	it("names the page on the button", () => {
+		assert.equal(pageName("/chat/c1"), "lesson");
+		assert.equal(pageName("/"), "Home");
+		assert.equal(pageName("/class/files"), "Files");
 	});
 });
 
