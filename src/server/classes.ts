@@ -256,21 +256,22 @@ function mutateFiles(classId: string, fn: (files: ClassFile[]) => ClassFile[]): 
 	return next;
 }
 
-function patchFile(classId: string, fileId: string, patch: Partial<ClassFile>): void {
-	mutateFiles(classId, (files) =>
+/** Returns the patched file as stored. */
+function patchFile(classId: string, fileId: string, patch: Partial<ClassFile>): ClassFile | undefined {
+	return mutateFiles(classId, (files) =>
 		files.map((f) => {
 			if (f.id !== fileId) return f;
 			const next = { ...f, ...patch };
 			if (patch.error === undefined && "error" in patch) delete next.error;
 			return next;
 		}),
-	);
+	)?.files.find((f) => f.id === fileId);
 }
 
 const newFileId = () => `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
 
 /** A filename safe to store (no folders, no control chars). */
-function safeName(name: string): string {
+export function safeName(name: string): string {
 	const base = path.basename(name.replace(/\\/g, "/")).replace(/[\u0000-\u001f]/g, "").trim();
 	return base.length > 0 && base !== "." && base !== ".." ? base.slice(0, 200) : "file";
 }
@@ -302,6 +303,23 @@ export function addCopiedFile(classId: string, name: string, bytes: Uint8Array, 
 	return { ok: true, value: file };
 }
 
+/** Write new contents over a copied file, keeping its id so deadlines
+ *  that cover it still do; its facts are rebuilt. */
+export function replaceCopiedFile(classId: string, fileId: string, bytes: Uint8Array, kind: ClassFileKind): ClassOutcome<ClassFile> {
+	const record = stores.classStore.getClass(classId);
+	const file = record?.files.find((f) => f.id === fileId);
+	if (!record || file?.origin !== "copied") return fail(404, "not_found", "No such copied class file");
+	if (file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId)) {
+		return fail(409, "extraction_running", "This file is being turned into facts. Try again when it finishes.");
+	}
+	const abs = classFilePath(record, file)!;
+	fs.mkdirSync(path.dirname(abs), { recursive: true });
+	fs.writeFileSync(abs, bytes);
+	const patched = patchFile(classId, fileId, { kind, status: "pending", contentFp: "", error: undefined });
+	enqueueFile(classId, fileId);
+	return { ok: true, value: patched ?? file };
+}
+
 /** Copy a file from an absolute path on this computer (MCP). */
 export function addFileFromPath(classId: string, absPath: string, kind: ClassFileKind): ClassOutcome<ClassFile> {
 	if (!path.isAbsolute(absPath)) return fail(400, "bad_path", "Give the file's full (absolute) path");
@@ -321,11 +339,10 @@ export function setFileKind(classId: string, fileId: string, kind: ClassFileKind
 	const record = stores.classStore.getClass(classId);
 	const file = record?.files.find((f) => f.id === fileId);
 	if (!record || !file) return fail(404, "not_found", "No such class file");
-	if (file.kind !== kind) {
-		patchFile(classId, fileId, { kind, status: "pending", contentFp: "", error: undefined });
-		enqueueFile(classId, fileId);
-	}
-	return { ok: true, value: { ...file, kind } };
+	if (file.kind === kind) return { ok: true, value: file };
+	const patched = patchFile(classId, fileId, { kind, status: "pending", contentFp: "", error: undefined });
+	enqueueFile(classId, fileId);
+	return { ok: true, value: patched ?? file };
 }
 
 /** Re-run a failed (or any) file. */
@@ -389,6 +406,7 @@ export function linkFolder(classId: string, folder: string): ClassOutcome<ClassR
 export function unlinkFolder(classId: string): ClassOutcome<ClassRecord> {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return fail(404, "not_found", "No such class");
+	if (!record.linkedFolder) return fail(400, "no_folder", "This class has no linked folder");
 	const linked = record.files.filter((f) => f.origin === "linked");
 	if (linked.some((f) => f.sourceId && extractionStatuses().some((r) => r.chatId === f.sourceId))) {
 		return fail(409, "extraction_running", "A linked file is being turned into facts. Try again when it finishes.");

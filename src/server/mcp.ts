@@ -45,7 +45,8 @@ import {
 	createClass,
 	linkFolder,
 	removeClassDeadline,
-	removeFile,
+	replaceCopiedFile,
+	safeName,
 	setFileKind,
 	unlinkFolder,
 	updateClass,
@@ -170,7 +171,7 @@ function failure(message: string) {
 function describe(view: WorkView) {
 	const chat = stores.chatStore.getChat(view.conversation);
 	const about = chat
-		? { lessonId: chat.id, lessonTitle: chat.title, kind: chat.kind ?? "lesson" }
+		? { lessonId: chat.id, lessonTitle: chat.title, kind: chat.kind ?? "teach" }
 		: view.label
 			? { kind: "background task", task: view.label }
 			: { kind: "background task (a helper job or knowledge-graph run)" };
@@ -258,7 +259,7 @@ function buildServer(): McpServer {
 				.map((c) => ({
 					id: c.id,
 					title: c.title,
-					kind: c.kind ?? "lesson",
+					kind: c.kind,
 					classId: c.classId ?? "none",
 					className: c.classId ? (stores.classStore.getClass(c.classId)?.name ?? "Unknown class") : "No class",
 					phase: c.phase,
@@ -347,16 +348,15 @@ function buildServer(): McpServer {
 			if ("error" in arg) return failure(arg.error);
 			const scope = arg.scope;
 			if (scope !== null) {
-				const fileName = /\.(md|markdown|txt)$/i.test(name) ? name : `${name}.md`;
+				// Compare as stored, so "week1/notes.md" finds "notes.md".
+				const clean = safeName(name);
+				const fileName = /\.(md|markdown|txt)$/i.test(clean) ? clean : `${clean}.md`;
+				const bytes = new TextEncoder().encode(text);
 				const existing = stores.classStore.getClass(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
-				if (existing) {
-					const removed = removeFile(scope, existing.id);
-					if (!removed.ok) return failure(removed.error);
-				}
-				const added = addCopiedFile(scope, fileName, new TextEncoder().encode(text), "study");
-				if (!added.ok) return failure(added.error);
-				act({ label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: added.value.id }, page: "/class/files" });
-				return result({ status: "started", fileId: added.value.id, note: "Import started. Check progress with read_class." });
+				const saved = existing ? replaceCopiedFile(scope, existing.id, bytes, "study") : addCopiedFile(scope, fileName, bytes, "study");
+				if (!saved.ok) return failure(saved.error);
+				act({ label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
+				return result({ status: "started", fileId: saved.value.id, note: "Import started. Check progress with read_class." });
 			}
 			act({ label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
@@ -447,7 +447,7 @@ function classView(classId: string) {
 		lessons: stores.chatStore
 			.listChats()
 			.filter((c) => c.classId === record.id)
-			.map((c) => ({ id: c.id, title: c.title, kind: c.kind ?? "teach", updatedAt: c.updatedAt })),
+			.map((c) => ({ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt })),
 	};
 }
 

@@ -34,6 +34,8 @@ const openDeadlinesRoute = await import("../src/app/api/deadlines/route.ts");
 const chatsRoute = await import("../src/app/api/chats/route.ts");
 const moveRoute = await import("../src/app/api/chats/[id]/class/route.ts");
 const graphRoute = await import("../src/app/api/graph/route.ts");
+const mcp = await import("../src/server/mcp.ts");
+const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 
 const { extraction, stores, graphStoreFor, classIdle } = server;
 
@@ -223,7 +225,9 @@ describe("the class file pipeline", () => {
 		await classIdle(id);
 		assert.equal(graphStoreFor(id).readNodes().length, 1);
 		const fileId = res.results[0].file.id;
-		await fileRoute.PUT(json("/x", "PUT", { kind: "info" }), ctx({ id, fileId }));
+		const switched = await fileRoute.PUT(json("/x", "PUT", { kind: "info" }), ctx({ id, fileId }));
+		const { file: switchedFile } = await switched.json();
+		assert.deepEqual([switchedFile.kind, switchedFile.status, switchedFile.contentFp], ["info", "pending", ""], "the reply shows the file as stored");
 		await classIdle(id);
 		assert.equal(graphStoreFor(id).readNodes().length, 0);
 		assert.equal(stores.classStore.getClass(id)!.files[0]!.sourceId, undefined);
@@ -261,6 +265,37 @@ describe("the class file pipeline", () => {
 		const unlinked = await folderRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
 		assert.equal((await unlinked.json()).class.linkedFolder, undefined);
 		assert.ok(fs.existsSync(LINKED), "the learner's folder is never touched");
+	});
+
+	it("unlinking a class with no folder is refused and changes nothing", async () => {
+		const id = await makeClass("CSE 30");
+		const before = stores.classStore.getClass(id)!.updatedAt;
+		const res = await folderRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
+		assert.equal(res.status, 400);
+		assert.equal((await res.json()).code, "no_folder");
+		assert.equal(stores.classStore.getClass(id)!.updatedAt, before);
+	});
+
+	it("import_notes under the same name keeps the file id, its deadlines and one copy, and rebuilds its facts", async () => {
+		const id = await makeClass("CSE 12");
+		const importNotes = async (name: string, text: string) => {
+			const req = new Request("http://127.0.0.1:3000/api/mcp", {
+				method: "POST",
+				headers: { host: "127.0.0.1:3000", "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${ensureMcpToken()}` },
+				body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "import_notes", arguments: { name, text, class_id: id } } }),
+			});
+			const body = await (await mcp.handleMcpRequest(req)).json();
+			return JSON.parse(body.result.content[0].text).fileId as string;
+		};
+		const fileId = await importNotes("week1/notes.md", "Stacks");
+		await classIdle(id);
+		await deadlinesRoute.POST(json("/x", "POST", { kind: "exam", name: "Midterm 1", date: "2026-11-10", fileIds: [fileId] }), ctx({ id }));
+		assert.equal(await importNotes(" notes.md", "Queues"), fileId);
+		await classIdle(id);
+		const record = stores.classStore.getClass(id)!;
+		assert.deepEqual(record.files.map((f) => [f.id, f.name, f.status]), [[fileId, "notes.md", "ready"]]);
+		assert.deepEqual(record.deadlines?.[0]?.fileIds, [fileId]);
+		assert.deepEqual(getNames(id), ["Queues"]);
 	});
 
 	it("a missing folder keeps its files and facts; picking the moved folder again keeps matching facts", async () => {
