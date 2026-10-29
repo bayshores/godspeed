@@ -68,7 +68,7 @@ export function AnsweredCard({
 	if (answer.dismissed) {
 		return (
 			<div data-testid="answered-card" className="bg-panel px-4 py-3.5 text-sm text-ink-3">
-				<span className="text-ink-2">{answer.questionText}</span>, skipped
+				<span className="text-ink-2">{answer.questionText}</span> (skipped)
 			</div>
 		);
 	}

@@ -365,6 +365,27 @@ describe("the class file pipeline", () => {
 		}
 	});
 
+	it("an unreadable subfolder keeps its files and facts", { skip: cannotLock }, async () => {
+		const id = await makeClass("CSE 103");
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-locked-sub-"));
+		const sub = path.join(dir, "week1");
+		try {
+			fs.mkdirSync(sub);
+			fs.writeFileSync(path.join(sub, "a.md"), "Graphs");
+			await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+			await classIdle(id);
+			const fileId = stores.classStore.getClass(id)!.files[0]!.id;
+			fs.chmodSync(sub, 0o000);
+			server.scanLinkedFolder(id);
+			await classIdle(id);
+			assert.deepEqual(stores.classStore.getClass(id)!.files.map((f) => f.id), [fileId], "the file and its id stay");
+			assert.deepEqual(getNames(id), ["Graphs"], "and so do its facts");
+		} finally {
+			fs.chmodSync(sub, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("an unreadable file shows as failed and is not re-queued by the scan", { skip: cannotLock }, async () => {
 		const id = await makeClass("CSE 105");
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-unreadable-"));

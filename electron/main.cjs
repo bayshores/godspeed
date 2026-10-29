@@ -272,9 +272,8 @@ function startServer(port) {
  *  The probe hits an /api path WITHOUT the desktop secret: proxy.ts answers
  *  403 at once, so a probe never renders a page (polling "/" rendered the
  *  whole home page per probe). Any answer means the server listens.
- *  Polls for as long as the server process lives, so a slow first start
- *  still loads, and fails as soon as that process exits. */
-function waitUntilUp(url, child) {
+ *  Fails as soon as the server process exits, or when it never answers. */
+function waitUntilUp(url, child, tries = 600) {
 	const probe = new URL("/api/ready", url);
 	return new Promise((resolve, reject) => {
 		let done = false;
@@ -285,17 +284,20 @@ function waitUntilUp(url, child) {
 		};
 		if (child.exitCode !== null || child.signalCode !== null) return exited(child.exitCode, child.signalCode);
 		child.once("exit", exited);
-		const attempt = () => {
+		const attempt = (n) => {
 			const req = http.get(probe, (res) => {
 				res.resume();
 				done = true;
 				resolve();
 			});
 			req.on("error", () => {
-				if (!done) setTimeout(attempt, 50);
+				if (done) return;
+				if (n > 0) return void setTimeout(() => attempt(n - 1), 50);
+				done = true;
+				reject(new Error(`server never answered on ${url}`));
 			});
 		};
-		attempt();
+		attempt(tries);
 	});
 }
 

@@ -440,10 +440,12 @@ export function scanLinkedFolder(classId: string): void {
 	const record = stores.classStore.getClass(classId);
 	if (!record?.linkedFolder || record.archived) return;
 	let present: string[];
+	let unreadable: string[];
 	try {
 		if (!fs.statSync(record.linkedFolder).isDirectory()) throw new Error("not a folder");
 		const walk = walkLinkedFolder(record.linkedFolder);
 		present = walk.files;
+		unreadable = walk.unreadable;
 		setFolderProblem(classId, walk.capped ? "too-many-files" : null);
 	} catch {
 		// Folder gone (moved, renamed, drive unplugged): its files and facts
@@ -454,9 +456,11 @@ export function scanLinkedFolder(classId: string): void {
 	const presentSet = new Set(present);
 	const known = new Map(record.files.filter((f) => f.origin === "linked").map((f) => [f.path, f]));
 	const toProcess: string[] = [];
-	// Removed from the folder → facts go.
+	// Removed from the folder → facts go. Files in a subfolder that can't be
+	// read are not known to be gone, so they stay.
+	const inUnreadable = (rel: string) => unreadable.some((dir) => rel.startsWith(`${dir}/`));
 	for (const [rel, file] of known) {
-		if (!presentSet.has(rel) && !(file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId))) {
+		if (!presentSet.has(rel) && !inUnreadable(rel) && !(file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId))) {
 			dropFile(stores.classStore.getClass(classId)!, file);
 		}
 	}

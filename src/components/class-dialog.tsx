@@ -394,12 +394,12 @@ function MoveLessonInner({
 			if (e.key === "Escape") {
 				e.preventDefault();
 				e.stopPropagation();
-				onClose();
+				if (!busy) onClose();
 			}
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [onClose, state]);
+	}, [busy, onClose, state]);
 	const move = async () => {
 		setBusy(true);
 		setError(null);

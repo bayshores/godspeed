@@ -237,12 +237,13 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 	useEffect(() => {
 		fetch("/api/mcp-access", { cache: "no-store" })
 			.then((r) => {
-				if (!r.ok) throw new Error("Agent access settings are unavailable.");
+				if (!r.ok) throw new Error(`mcp-access ${r.status}`);
 				return r.json() as Promise<Access>;
 			})
 			.then(
 				(body) => setAccess({ token: body.token, url: body.url }),
-				(e: Error) => setError(e.message),
+				// One plain message for every failure, so raw network errors never show.
+				() => setError("Agent access settings are unavailable."),
 			);
 	}, []);
 	useReturn(connected ? onNext : null);

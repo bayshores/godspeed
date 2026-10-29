@@ -35,7 +35,7 @@ describe("fileToText and the folder walk", () => {
 			assert.equal(await fileToText(path.join(dir, "a.md")), "# Notes");
 			assert.equal(await fileToText(path.join(dir, "sub", "b.srt")), "Hi");
 			await assert.rejects(fileToText(path.join(dir, "talk.m4a")), RecordingNeedsTranscriptError);
-			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md", "sub/b.srt", "talk.m4a"], capped: false });
+			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md", "sub/b.srt", "talk.m4a"], capped: false, unreadable: [] });
 		} finally {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
@@ -67,6 +67,20 @@ describe("walkLinkedFolder on an unreadable folder", () => {
 			assert.throws(() => walkLinkedFolder(dir));
 		} finally {
 			fs.chmodSync(dir, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+	it("lists an unreadable subfolder instead of skipping it silently", { skip }, () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-class-files-locked-sub-"));
+		const sub = path.join(dir, "week 2");
+		try {
+			fs.writeFileSync(path.join(dir, "a.md"), "");
+			fs.mkdirSync(sub);
+			fs.writeFileSync(path.join(sub, "b.md"), "");
+			fs.chmodSync(sub, 0o000);
+			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md"], capped: false, unreadable: ["week 2"] });
+		} finally {
+			fs.chmodSync(sub, 0o755);
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	});

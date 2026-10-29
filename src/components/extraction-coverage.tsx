@@ -54,9 +54,10 @@ async function requestExtract(chatId: string): Promise<boolean> {
 }
 
 /**
- * The info block at the bottom of the session context menu: what the
- * extractor hasn't covered yet, plus the manual Extract affordance, visually separated from Rename/Delete below (those stay the
- * two session-management actions). Fetched ON MENU OPEN (the block mounts
+ * The info block at the bottom of the lesson context menu: what the
+ * extractor hasn't covered yet, plus the manual Extract affordance,
+ * visually separated from Rename/Delete below (those stay the two
+ * lesson-management actions). Fetched ON MENU OPEN (the block mounts
  * with the menu — on-demand, never eagerly), polled at 2s while a run is
  * in flight so the numbers settle live. No coverage (fetch failed, 404):
  * the whole block renders nothing — no fake zeros.
