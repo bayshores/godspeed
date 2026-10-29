@@ -11,7 +11,7 @@ import UpdateBanner from "@/components/update-banner";
 import { ClassProvider } from "@/components/class-context";
 // The light server door — the @/server barrel would load the whole server
 // (agent engine, MCP, extraction) just for these two render-time reads.
-import { onboardingNeeded, readSettingsRecord, whatsNewSince } from "@/server/settings-read";
+import { onboardingNeeded, readSettingsRecord, welcomeNeeded, whatsNewSince } from "@/server/settings-read";
 import { Onboarding } from "@/components/onboarding/onboarding";
 import { WhatsNew } from "@/components/whats-new";
 
@@ -52,6 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	} catch {
 		/* unwritable data dir: skip the notes this launch */
 	}
+	// Asked even during onboarding, so finishing it doesn't open the welcome
+	// screen right after "You're all set".
+	const welcome = welcomeNeeded() && !onboarding;
 	try {
 		const general = readSettingsRecord()?.general;
 		const raw = general?.activeClass;
@@ -71,7 +74,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<AppearanceProvider>
 					<SidebarProvider>
 						<ActivityProvider>
-							{onboarding ? <Onboarding /> : <AppShell teacherName={teacherName}>{children}</AppShell>}
+							{onboarding ? (
+								<Onboarding />
+							) : (
+								<AppShell teacherName={teacherName} welcome={welcome} whatsNewSince={welcome ? whatsNew : null}>
+									{children}
+								</AppShell>
+							)}
 						</ActivityProvider>
 					</SidebarProvider>
 				</AppearanceProvider>
@@ -80,8 +89,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			</ServerEventsProvider>
 			{/* Auto-update banner: fixed card, Electron-only pushes. */}
 			<UpdateBanner />
-			{/* "What's new" after an update; Settings reopens it. */}
-			{!onboarding && <WhatsNew since={whatsNew} />}
+			{/* "What's new" after an update (after the welcome screen when it
+			    shows); Settings reopens it. */}
+			{!onboarding && <WhatsNew since={welcome ? null : whatsNew} />}
 		</body>
 		</html>
 	);

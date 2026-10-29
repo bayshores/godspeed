@@ -19,6 +19,7 @@ import { useOpenDeadlines } from "@/components/use-open-deadlines";
 import { LessonsSection } from "@/components/sidebar/lessons-section";
 import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
 import { HalleyProvider } from "@/components/halley/halley-provider";
+import { Welcome } from "@/components/welcome/welcome";
 
 export { useRiseOnChange } from "@/components/sidebar/motion";
 export { timeAgo, SessionRow, RenameRow } from "@/components/sidebar/session-row";
@@ -299,11 +300,23 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 	);
 }
 
-/** The app frame: sidebar inline + content, and Halley over both.
- *  Rendered once in the root layout. */
-export function AppShell({ children, teacherName }: { children: React.ReactNode; teacherName?: string }) {
+/** The app frame: sidebar inline + content, Halley over both, and the
+ *  welcome screen over everything at launch. Rendered once in the root
+ *  layout. */
+export function AppShell({
+	children,
+	teacherName,
+	welcome,
+	whatsNewSince,
+}: {
+	children: React.ReactNode;
+	teacherName?: string;
+	welcome: boolean;
+	whatsNewSince: string | null;
+}) {
 	return (
 		<SettingsDialogProvider>
+			<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 			<HalleyProvider initialName={teacherName}>
 			<SessionsSidebar />
 			<main className="min-w-0 flex-1">

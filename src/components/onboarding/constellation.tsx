@@ -4,7 +4,9 @@
  * and cropped to the window. In the intro a comet streaks in from the
  * bottom-left and drops topic dots along its trail; they link up and light
  * red → green, then dim to a faint backdrop that stays behind every setup
- * step. Pure SVG + CSS animation (src/app/globals.css, "Onboarding"); with
+ * step. The welcome screen draws the same sky without this comet (it flies
+ * its own, into the logo). Pure SVG + CSS animation (src/app/globals.css,
+ * "Onboarding"); with
  * reduced motion every element simply shows its final state.
  */
 
@@ -61,9 +63,10 @@ export function dotDelay(x: number): number {
 }
 
 /** The comet's tail, from the app icon (build/icon.icon), head at 0,0. */
-const TAIL = "M7.6,7.8 L-7.6,-7.8 Q-20.2,12.9 -37,36.3 Q-13.3,20 7.6,7.8 Z";
+export const TAIL = "M7.6,7.8 L-7.6,-7.8 Q-20.2,12.9 -37,36.3 Q-13.3,20 7.6,7.8 Z";
 
-export type ConstellationMode = "intro" | "backdrop" | "bright" | "gone";
+/** "welcome": the intro's dots and links, without the comet. */
+export type ConstellationMode = "intro" | "welcome" | "backdrop" | "bright" | "gone";
 
 export function Constellation({ mode }: { mode: ConstellationMode }) {
 	return (

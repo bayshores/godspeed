@@ -24,8 +24,10 @@ export function hasWhatsNew(version: string = VERSION): boolean {
 	return entryFor(version) !== null;
 }
 
-export function openWhatsNew(): void {
-	window.dispatchEvent(new Event(OPEN_EVENT));
+/** Opens the notes since `since` (the welcome screen hands over the
+ *  launch's missed notes), or this version's notes without it. */
+export function openWhatsNew(since?: string): void {
+	window.dispatchEvent(new CustomEvent<string | undefined>(OPEN_EVENT, { detail: since }));
 }
 
 export function WhatsNew({ since }: { since: string | null }) {
@@ -38,7 +40,13 @@ export function WhatsNew({ since }: { since: string | null }) {
 		if (missed.length > 0) setEntries(missed);
 	}, [since]);
 	useEffect(() => {
-		const open = () => {
+		const open = (e: Event) => {
+			const since = (e as CustomEvent<string | undefined>).detail;
+			if (since) {
+				const missed = entriesSince(since, VERSION);
+				if (missed.length > 0) setEntries(missed);
+				return;
+			}
 			const current = entryFor(VERSION);
 			if (current) setEntries([current]);
 		};
