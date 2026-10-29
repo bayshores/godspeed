@@ -48,7 +48,11 @@ export function AgentStatusProvider({ children }: { children: React.ReactNode })
 			.then((r) => (r.ok ? r.json() : null))
 			.then((body) => {
 				const next = parseAgentStatus(body);
-				if (next) setStatus(next);
+				// Same status: keep the old object so consumers skip a render.
+				if (next)
+					setStatus((prev) =>
+						prev && prev.connected === next.connected && prev.name === next.name && prev.pendingWork === next.pendingWork ? prev : next,
+					);
 			})
 			.catch(() => {/* keep the last status */});
 	}, []);

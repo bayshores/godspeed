@@ -15,7 +15,7 @@ import { useClasses } from "@/components/class-context";
 import { replayRise } from "@/components/sidebar/motion";
 import { ClassNav, HomeRow } from "@/components/sidebar/class-nav";
 import { DueSoon } from "@/components/sidebar/due-soon";
-import { useOpenDeadlines } from "@/components/use-open-deadlines";
+import { OpenDeadlinesProvider, useOpenDeadlines } from "@/components/use-open-deadlines";
 import { LessonsSection } from "@/components/sidebar/lessons-section";
 import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
 import { HalleyProvider } from "@/components/halley/halley-provider";
@@ -322,6 +322,7 @@ export function AppShell({
 }) {
 	return (
 		<SettingsDialogProvider>
+			<OpenDeadlinesProvider>
 			<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 			<HalleyProvider initialName={teacherName}>
 			<SessionsSidebar />
@@ -329,6 +330,7 @@ export function AppShell({
 				<ViewSwap>{children}</ViewSwap>
 			</main>
 			</HalleyProvider>
+			</OpenDeadlinesProvider>
 			{/* The single document-level keydown listener —
 			    after the content in the tree, but it's window-level so order only
 			    matters for the events it dispatches, never for DOM priority. */}

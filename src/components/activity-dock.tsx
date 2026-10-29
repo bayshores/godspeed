@@ -159,7 +159,8 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 		[],
 	);
 
-	return <ActivityContext.Provider value={{ feed, refresh }}>{children}</ActivityContext.Provider>;
+	const value = useMemo(() => ({ feed, refresh }), [feed, refresh]);
+	return <ActivityContext.Provider value={value}>{children}</ActivityContext.Provider>;
 }
 
 /** The activity feed seam for the rest of the shell: the dock's data +

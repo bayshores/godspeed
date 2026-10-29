@@ -142,6 +142,7 @@ export function ChainTableBody({
 	onSelect?: () => void;
 }) {
 	const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+	const names = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, { name: n.name }])), [nodes]);
 	const chains = useMemo(() => chainsForSelection(nodes, storedChains), [nodes, storedChains]);
 	const searching = query.trim() !== "";
 	// The selection bar fades out before unmounting (motion wave, owner 2026-10-26).
@@ -389,7 +390,7 @@ export function ChainTableBody({
 												)}
 											<div
 												data-testid={`chain-row-${chain.id}`}
-												aria-label={formatChainLine(chain, Object.fromEntries([...byId.entries()].map(([id, n]) => [id, { name: n.name }])))}
+												aria-label={formatChainLine(chain, names)}
 												className="flex items-center gap-1 py-1 pl-12 pr-3"
 											>
 												<RowCheckbox

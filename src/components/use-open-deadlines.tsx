@@ -2,32 +2,30 @@
 
 /**
  * The open deadlines of every non-archived class (GET /api/deadlines), for
- * the sidebar's Due soon and Home. Re-reads when classes change (every
+ * the sidebar's Due soon, Home, Halley and the welcome screen. One shared
+ * read in OpenDeadlinesProvider: it re-reads when classes change (every
  * deadline edit announces classes-changed) and after the events channel
  * reconnects. `markDone` ticks one done (PUT done: true); the row fades
- * out while the list re-reads.
+ * out while the list re-reads. The fade is per caller.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 import { byDue, type OpenDeadline } from "@/components/deadlines-model";
 
 /** How long a ticked row fades before it leaves (just over --lh-dur). */
 const LEAVE_MS = 200;
 
-interface OpenDeadlinesState {
-	/** null until the first response. Rows fading out stay in it. */
-	deadlines: OpenDeadline[] | null;
-	/** Ids fading out after a done tick. */
-	leaving: ReadonlySet<string>;
-	markDone: (d: OpenDeadline) => void;
+interface SharedDeadlines {
+	/** null until the first response. */
+	fetched: OpenDeadline[] | null;
+	load: () => Promise<void>;
 }
 
-export function useOpenDeadlines(): OpenDeadlinesState {
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, load: async () => {} });
+
+export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
 	const [fetched, setFetched] = useState<OpenDeadline[] | null>(null);
-	// A ticked row stays (fading) until its fade ends, even once the
-	// re-read list no longer has it.
-	const [leavingRows, setLeavingRows] = useState<ReadonlyMap<string, OpenDeadline>>(new Map());
 	const request = useRef(0);
 
 	const load = useCallback(async () => {
@@ -47,6 +45,24 @@ export function useOpenDeadlines(): OpenDeadlinesState {
 	}, [load]);
 	useServerEvent("classes-changed", () => void load());
 	useServerResync(() => void load());
+
+	const value = useMemo(() => ({ fetched, load }), [fetched, load]);
+	return <OpenDeadlinesContext.Provider value={value}>{children}</OpenDeadlinesContext.Provider>;
+}
+
+interface OpenDeadlinesState {
+	/** null until the first response. Rows fading out stay in it. */
+	deadlines: OpenDeadline[] | null;
+	/** Ids fading out after a done tick. */
+	leaving: ReadonlySet<string>;
+	markDone: (d: OpenDeadline) => void;
+}
+
+export function useOpenDeadlines(): OpenDeadlinesState {
+	const { fetched, load } = useContext(OpenDeadlinesContext);
+	// A ticked row stays (fading) until its fade ends, even once the
+	// re-read list no longer has it.
+	const [leavingRows, setLeavingRows] = useState<ReadonlyMap<string, OpenDeadline>>(new Map());
 
 	const markDone = useCallback(
 		(d: OpenDeadline) => {
