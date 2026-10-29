@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { memo, useLayoutEffect, useMemo, useRef } from "react";
 import { CheckIcon } from "lucide-react";
 import { BrailleSpinner } from "@/components/braille-spinner";
 import { prefersReducedMotion } from "@/components/presence";
@@ -75,7 +75,9 @@ function PageStage({ reading }: { reading: ReadingTarget }) {
 	const scrollerRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef<HTMLDivElement>(null);
 	const sweptRef = useRef<string | null>(null);
-	const anchor = reading.kind === "text" ? reading.from : reading.page;
+	const from = reading.kind === "text" ? reading.from : null;
+	const to = reading.kind === "text" ? (reading.to ?? reading.from) : null;
+	const anchor = reading.kind === "text" ? from : reading.page;
 
 	useLayoutEffect(() => {
 		const scroller = scrollerRef.current;
@@ -107,7 +109,8 @@ function PageStage({ reading }: { reading: ReadingTarget }) {
 	}, [doc, reading.path, anchor]);
 
 	return (
-		<div className="flex min-w-0 flex-1 flex-col gap-2">
+		// The file is not lesson text, and Find could never scroll into this stage.
+		<div data-session-find-exclude="" className="flex min-w-0 flex-1 flex-col gap-2">
 			<div className="flex items-baseline gap-3 text-[13px]">
 				<span className="truncate text-ink-2">{reading.name}</span>
 				<span className="shrink-0 font-mono text-[11.5px] text-ink-3">{whereLabel(reading, doc)}</span>
@@ -116,7 +119,7 @@ function PageStage({ reading }: { reading: ReadingTarget }) {
 				<div className="lh-float h-full px-4 pt-10">
 					<div className="lh-float-2 h-full">
 						<div ref={scrollerRef} className="relative flex flex-col gap-4 will-change-transform">
-							{doc?.kind === "text" && <TextPages text={doc.text} reading={reading} />}
+							{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
 							{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
 						</div>
 					</div>
@@ -139,10 +142,10 @@ function whereLabel(reading: ReadingTarget, doc: ReadingDoc | null): string {
 
 const PAPER = "bg-[#E9E9E7] text-[#2B2B2B] shadow-[0_18px_40px_rgba(0,0,0,0.75)]";
 
-function TextPages({ text, reading }: { text: string; reading: ReadingTarget }) {
-	const from = reading.kind === "text" ? reading.from : null;
-	const to = reading.kind === "text" ? (reading.to ?? reading.from) : null;
-	return textPages(text).map((page) => (
+// Memoized: the file can be megabytes, and the pane re-renders on every stream frame and keystroke.
+const TextPages = memo(function TextPages({ text, from, to }: { text: string; from: number | null; to: number | null }) {
+	const pages = useMemo(() => textPages(text), [text]);
+	return pages.map((page) => (
 		<div key={page.start} className={cn(PAPER, "px-6 py-5 font-title text-[10.5px] leading-[1.5]")}>
 			{page.lines.map((line, i) => {
 				const n = page.start + i;
@@ -159,7 +162,7 @@ function TextPages({ text, reading }: { text: string; reading: ReadingTarget }) 
 			})}
 		</div>
 	));
-}
+});
 
 function PdfPages({ path, doc, page }: { path: string; doc: Extract<ReadingDoc, { kind: "pdf" }>; page: number | null }) {
 	return Array.from({ length: Math.min(doc.pageCount, MAX_PDF_PAGES) }, (_, i) => i + 1).map((n) => (

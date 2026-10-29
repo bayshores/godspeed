@@ -74,7 +74,7 @@ export const ConversationScrollButton = ({
   ...props
 }: ConversationScrollButtonProps) => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
-  // Fades in and out instead of popping (motion wave, owner 2026-10-26).
+  // Fades in and out instead of popping.
   const presence = usePresence(!isAtBottom);
 
   const handleScrollToBottom = useCallback(() => {
@@ -84,6 +84,7 @@ export const ConversationScrollButton = ({
   return (
     presence.mounted && (
       <Button
+        aria-label="Scroll to the bottom"
         className={cn(
           "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] dark:bg-background dark:hover:bg-muted",
           className

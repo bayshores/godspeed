@@ -44,6 +44,34 @@ describe("agentWork", () => {
 		assert.deepEqual(work.steps, ["looked in CSE 21"]);
 	});
 
+	it("drops the work of a reply that ended in an answered question", () => {
+		const work = agentWork(
+			reply(tool("work_plan", { items: ["a", "b"], done: 0 }), tool("read", { path: "notes.md", offset: 3, limit: 10 }), { type: "text", text: "Try this." }, tool("quiz", {})),
+			[],
+		);
+		assert.deepEqual(work, { plan: null, steps: [], reading: null, replied: false });
+	});
+
+	it("keeps only the steps after the answered question", () => {
+		const work = agentWork(
+			reply(tool("work_plan", { items: ["a", "b"], done: 0 }), tool("read", { path: "notes.md" }), tool("quiz", {}), tool("read", { path: "other.md" }, "r2")),
+			[],
+		);
+		assert.equal(work.plan, null);
+		assert.deepEqual(work.steps, ["opened other.md"]);
+		assert.deepEqual(work.reading, { kind: "text", path: "other.md", name: "other.md", from: null, to: null });
+	});
+
+	it("keeps the reply's work across a question that failed or is still being written", () => {
+		const failed: LhViewPart = { ...tool("quiz", {}), state: "output-error" };
+		const writing: LhViewPart = { ...tool("probe", {}, "p2"), state: "input-streaming" };
+		for (const question of [failed, writing]) {
+			const work = agentWork(reply(tool("work_plan", { items: ["a"], done: 0 }), tool("read", { path: "notes.md" }), question), []);
+			assert.deepEqual(work.plan, { items: ["a"], done: 0 });
+			assert.deepEqual(work.steps, ["opened notes.md"]);
+		}
+	});
+
 	it("follows a PDF job's progress line", () => {
 		const work = agentWork(reply(tool("pdf", { path: "/Users/me/Rosen 7.1.pdf", question: "q" }, "j1")), [job("j1", "pdf_extract: 3-5")]);
 		assert.deepEqual(work.steps, ["opened Rosen 7.1.pdf", "read pages 3 to 5"]);

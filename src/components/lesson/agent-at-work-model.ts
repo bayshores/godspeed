@@ -1,9 +1,10 @@
-import type { JobRecord, LhViewMessage, LhViewPart } from "@/core";
+import { QUESTION_TOOLS, type JobRecord, type LhViewMessage, type LhViewPart } from "@/core";
 
 /**
  * What the teacher is doing in the reply it is working on, read from that
  * reply's tool calls: its plan (the newest work_plan call), the steps it
- * took since that plan, and the file it is reading.
+ * took since that plan, and the file it is reading. One message can hold
+ * several replies, since an answered question continues the same group.
  */
 
 export interface WorkPlan {
@@ -113,6 +114,14 @@ export function agentWork(message: LhViewMessage | undefined, jobs: readonly Job
 	for (const part of parts) {
 		const tool = toolOf(part);
 		if (!tool) continue;
+		// An answered question ended a reply: what came before belongs to it.
+		if (part.state === "output-available" && (QUESTION_TOOLS as readonly string[]).includes(tool)) {
+			plan = null;
+			planStart = 0;
+			steps.length = 0;
+			reading = null;
+			continue;
+		}
 		const input = inputOf(part);
 		if (tool === "work_plan") {
 			const next = planOf(input);
