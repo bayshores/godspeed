@@ -33,7 +33,7 @@ import {
 } from "../agent/agent-bridge.ts";
 import { getGraph } from "../core/graph.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
-import { parseClassScope, type ClassScope } from "../core/contracts.ts";
+import { cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassScope } from "../core/contracts.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -74,7 +74,7 @@ The work loop:
 
 Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.
 
-Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
+Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, and a one-line signature for the class's cover) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
 
 // ─── Class arguments ────────────────────────────────────────────────────────
 
@@ -86,6 +86,16 @@ function classArg(classId: string | undefined): { scope: ClassScope } | { error:
 	if (scope !== null && !stores.classStore.getClass(scope)) return { error: `No class "${classId}". Use list_classes.` };
 	return { scope };
 }
+
+const SIGNATURE_ARG = z
+	.object({
+		kind: z.enum(["math", "code", "text"]),
+		value: z.string().min(1).max(SIGNATURE_MAX),
+	})
+	.optional()
+	.describe(
+		`The class's signature: ONE line that sums up the subject, shown huge on the class's cover. kind "math" = LaTeX without $ (math, physics, chemistry, economics), "code" = a line of code (programming classes), "text" = anything else (a line from a primary source, a sequence, a date). At most ${SIGNATURE_MAX} characters. Pick something iconic for the course; ask the learner when unsure.`,
+	);
 
 const CLASS_ID_ARG = z
 	.string()
@@ -412,6 +422,7 @@ function classView(classId: string) {
 		id: record.id,
 		name: record.name,
 		description: record.description,
+		signature: record.signature ?? null,
 		archived: record.archived,
 		linkedFolder: record.linkedFolder ?? null,
 		files: record.files.map((f) => ({
@@ -537,10 +548,13 @@ function registerClassTools(server: McpServer): void {
 			inputSchema: {
 				name: z.string().min(1).describe('The course, e.g. "MATH 20C – Calculus III".'),
 				description: z.string().optional().describe("What the teacher should know about the course, in the learner's terms."),
+				signature: SIGNATURE_ARG,
 			},
 		},
-		async ({ name, description }) => {
-			const created = createClass({ name, description });
+		async ({ name, description, signature }) => {
+			const sig = signature ? cleanSignature(signature) : undefined;
+			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
+			const created = createClass({ name, description, ...(sig ? { signature: sig } : {}) });
 			act({ label: `Creating ${created.name}`, classId: created.id, target: { kind: "class", id: created.id }, page: "/class" });
 			return result({ class: classView(created.id) });
 		},
@@ -550,16 +564,19 @@ function registerClassTools(server: McpServer): void {
 		"update_class",
 		{
 			title: "Update a class",
-			description: "Rename a class, change its description, or archive / unarchive it (archiving hides it from the class switcher but keeps everything).",
+			description: "Rename a class, change its description or signature, or archive / unarchive it (archiving hides it from the class switcher but keeps everything).",
 			inputSchema: {
 				class_id: z.string(),
 				name: z.string().min(1).optional(),
 				description: z.string().optional(),
+				signature: SIGNATURE_ARG,
 				archived: z.boolean().optional(),
 			},
 		},
-		async ({ class_id, name, description, archived }) => {
-			const outcome = updateClass(class_id, { name, description, archived });
+		async ({ class_id, name, description, signature, archived }) => {
+			const sig = signature ? cleanSignature(signature) : undefined;
+			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
+			const outcome = updateClass(class_id, { name, description, archived, ...(sig ? { signature: sig } : {}) });
 			if (!outcome.ok) return failure(outcome.error);
 			const cls = stores.classStore.getClass(class_id);
 			const verb = archived === true ? "Archiving" : archived === false ? "Unarchiving" : "Updating";

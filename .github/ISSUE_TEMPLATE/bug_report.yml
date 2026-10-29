@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for helping improve godspeed. Describe what you observed; you do not need to know the cause.
 
-        **This report is public.** Remove API keys, tokens, passwords and private information before posting. Never attach credential files or your whole data folder. Share only the learning content you are comfortable making public.
+        **This report is public.** Remove tokens (such as the godspeed MCP token), passwords and private information before posting. Never attach credential files or your whole data folder. Share only the learning content you are comfortable making public.
   - type: textarea
     id: description
     attributes:
@@ -44,10 +44,10 @@ body:
     validations:
       required: false
   - type: input
-    id: provider_model
+    id: agent
     attributes:
-      label: Provider and model (if relevant)
-      description: Include the provider, model and API-key or subscription connection type if relevant. Do not include any keys or tokens.
+      label: Agent (if relevant)
+      description: Which agent you connected, for example Claude Code, Codex or another MCP app, and its model if you know it. Do not include any tokens.
     validations:
       required: false
   - type: textarea

@@ -93,6 +93,7 @@ function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) 
 			name="ML Foundations"
 			description="Optimization and learning theory"
 			hasClass
+			classId="cls_ml"
 			data={PAYLOAD}
 			nowMs={NOW}
 			busy={false}
@@ -120,6 +121,48 @@ function section(html: string, testid: string, close = "</section>"): string {
 // ─── header ─────────────────────────────────────────────────────────────────
 
 describe("Overview header", () => {
+	it("a class gets the cover: CMU title, description, progress line, tagged for Halley", () => {
+		const html = renderRunway();
+		assert.ok(html.includes('data-testid="class-cover"'));
+		assert.ok(html.includes('data-halley-target="class:cls_ml"'));
+		assert.match(section(html, "class-cover-progress", "</div></header>"), /width:40%.*>40% studied</);
+		assert.ok(!render().includes("class-cover-progress"), "no facts yet, no line");
+		assert.ok(!html.includes("class-signature-ink"), "no signature, no background line");
+		assert.ok(!html.includes("class-cover-note"), "no note, no box");
+	});
+
+	it("the signature is set behind the name in its own type and inks in as far as studied", () => {
+		const math = render({ classId: "cls_ml", signature: { kind: "math", value: "\\nabla f(x) = 0" } });
+		assert.match(section(math, "class-signature-ink"), /class="katex"/);
+		assert.ok(!section(math, "class-signature-ink", "</header>").includes("lh-ink"), "nothing studied, no ink");
+		const code = renderRunway(DEADLINES, { signature: { kind: "code", value: "int *p = &x;" } });
+		const sig = section(code, "class-signature-ink", "</header>");
+		assert.match(sig, /font-mono/);
+		assert.match(sig, /aria-hidden="true"/);
+		assert.match(sig, /class="lh-ink[^"]*" style="--ink:40%"/);
+		const text = render({ classId: "cls_ml", signature: { kind: "text", value: "We the People" } });
+		assert.match(section(text, "class-signature-ink"), /italic/);
+	});
+
+	it("the cover shows the description's first sentence only", () => {
+		const html = render({ description: "UCSD CSE 21, taught by Miles Jones. Discrete math: counting.\nTextbook: Rosen." });
+		assert.ok(html.includes(">UCSD CSE 21, taught by Miles Jones.</p>"));
+		assert.ok(!html.includes("Discrete math"));
+	});
+
+	it("Halley's note sits on the cover", () => {
+		const html = render({ classId: "cls_ml", note: { text: "Gradient steps are clicking. Momentum is next.", at: "2026-10-28T10:00:00.000Z" } });
+		const note = section(html, "class-cover-note", "</p>");
+		assert.ok(note.includes("halley-face"));
+		assert.ok(note.includes("Gradient steps are clicking. Momentum is next."));
+		assert.match(section(html, "class-cover-note", "</div></div>"), /Halley · after /);
+		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Halley · /, "no clock yet, no when");
+	});
+
+	it("loading: no progress line yet", () => {
+		assert.ok(!render({ classId: "cls_ml", data: null }).includes("class-cover-progress"));
+	});
+
 	it("the class name is the CMU title; the description sits under it", () => {
 		const html = render();
 		assert.match(tag(html, "overview-name"), /font-title/);
@@ -128,7 +171,7 @@ describe("Overview header", () => {
 	});
 
 	it("no description: no empty line", () => {
-		assert.doesNotMatch(render({ description: "" }), /<p class="text-base/);
+		assert.doesNotMatch(render({ description: "" }), /<p class="[^"]*text-base/);
 	});
 });
 
@@ -262,13 +305,13 @@ describe("Ready for what's due", () => {
 	});
 
 	it("No class or loading: no runway", () => {
-		assert.ok(!renderRunway(DEADLINES, { hasClass: false }).includes("overview-runway"));
+		assert.ok(!renderRunway(DEADLINES, { hasClass: false, classId: null }).includes("overview-runway"));
 		assert.ok(!render({ data: null }).includes("overview-runway"));
 		assert.ok(!renderRunway(DEADLINES, { nowMs: null }).includes("overview-runway"));
 	});
 
 	it("No class: the same page without the runway", () => {
-		const html = render({ hasClass: false, name: "No class", description: "" });
+		const html = render({ hasClass: false, classId: null, name: "No class", description: "" });
 		assert.ok(html.includes('data-testid="overview-lessons"'));
 		assert.ok(html.includes('data-testid="overview-confidence"'));
 		assert.ok(html.includes(">No class</h1>"));

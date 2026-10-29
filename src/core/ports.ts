@@ -27,7 +27,9 @@ import type {
 	ClassDeadline,
 	DeadlineKind,
 	ClassFile,
+	ClassNote,
 	ClassRecord,
+	ClassSignature,
 	ClassSummary,
 	TopicSnapshot,
 } from "./contracts.ts";
@@ -143,6 +145,9 @@ export interface ClassPatch {
 	archived?: boolean;
 	/** null unlinks. */
 	linkedFolder?: string | null;
+	/** null clears it. */
+	signature?: ClassSignature | null;
+	note?: ClassNote;
 	/** Replaces the class's rules; [] clears them. */
 	rules?: string[];
 }
@@ -167,7 +172,7 @@ export interface DeadlinePatch {
 }
 
 export interface ClassStore {
-	createClass(init: { name: string; description?: string }): ClassRecord;
+	createClass(init: { name: string; description?: string; signature?: ClassSignature }): ClassRecord;
 	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
 	getClass(id: string): ClassRecord | null;
 	/** Every class (archived included), most recently updated first. */

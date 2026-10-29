@@ -241,6 +241,20 @@ describe("read_class and the prompt", () => {
 		assert.equal(out, `[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\n${BOARD_TEXT}`);
 	});
 
+	it("set_class_note hands the text to the class and returns its reply", async () => {
+		const saved: string[] = [];
+		const tools = classTools({
+			classCard: () => null,
+			setNote: (text) => {
+				saved.push(text);
+				return "Saved.";
+			},
+		});
+		const out = (await tools.set_class_note!.execute!("tc", { text: "Pointers are clicking. PA 3 is next." })).details as string;
+		assert.equal(out, "Saved.");
+		assert.deepEqual(saved, ["Pointers are clicking. PA 3 is next."]);
+	});
+
 	it("12-class-context.md tells the teacher how to use the deadlines", () => {
 		const prompt = fs.readFileSync(path.join(import.meta.dirname, "../src/agent/prompts/shared/12-class-context.md"), "utf8");
 		assert.ok(

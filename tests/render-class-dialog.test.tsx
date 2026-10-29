@@ -208,7 +208,7 @@ describe("Edit class dialog — deadlines", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.deepEqual(calls, [
-			{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21", description: "Discrete math", rules: [] } },
+			{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21", description: "Discrete math", signature: null, rules: [] } },
 			{ method: "DELETE", url: "/api/classes/cls_a/deadlines/exm_2", body: undefined },
 			{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { time: null, fileIds: ["f1", "f2", "f3"], done: true } },
 			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_3", body: { kind: "quiz", done: false } },
@@ -233,11 +233,31 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal(closed, 0);
 	});
 
+	it("the signature: pick a kind, type one line, see it in the cover's type, save it", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		assert.equal((q("class-signature") as HTMLInputElement).value, "");
+		assert.equal(q("class-signature-preview"), null, "nothing typed, no preview");
+		await choose(q("class-signature-kind"), "code");
+		await typeInto(q("class-signature"), "int *p = &x;");
+		assert.match(q("class-signature-preview")!.innerHTML, /font-mono/);
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(calls[0], {
+			method: "PUT",
+			url: "/api/classes/cls_a",
+			body: { name: "CSE 21", description: "Discrete math", signature: { kind: "code", value: "int *p = &x;" }, rules: [] },
+		});
+	});
+
 	it("New class: name and description only", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });
 		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "New class");
 		assert.equal(q("class-deadlines"), null);
+		assert.equal(q("class-signature"), null);
 		assert.equal(q("class-save")!.textContent, "Create class");
 	});
 });

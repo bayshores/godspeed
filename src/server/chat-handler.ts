@@ -345,6 +345,12 @@ export async function handleChatInput(
 		lessonScope === null
 			? undefined
 			: { searchFiles: (query, limit) => searchClassFiles(lessonScope, query, limit), readPassage: (ref) => readPassage(lessonScope, ref) };
+	// set_class_note: Halley's note on the class's cover.
+	const classNote = (text: string): string => {
+		if (lessonScope === null || !stores.classStore.getClass(lessonScope)) return "This lesson's class no longer exists.";
+		stores.classStore.updateClass(lessonScope, { note: { text: text.trim(), at: new Date().toISOString() } });
+		return "Saved. It shows on the class's cover.";
+	};
 	// The agent engine loads on the first turn, not at server start.
 	if (!buildAgent) await loadAgentCore();
 	const constructed: TeachingAgent = buildAgent
@@ -373,7 +379,7 @@ export async function handleChatInput(
 						...(graphToolsEnabled(effective)
 							? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
 							: {}),
-						...(classCard ? { classCard, todayNote, classSearch } : {}),
+						...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 					},
 					agentOpts,
 				)
@@ -384,7 +390,7 @@ export async function handleChatInput(
 						chatStore: stores.chatStore,
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						...(classCard ? { classCard, todayNote, classSearch } : {}),
+						...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 						// The registry drop's signal: no live engine
 						// = no research tool in the teacher's registry.
 					},
@@ -403,7 +409,7 @@ export async function handleChatInput(
 						// knowledge graph through tools when the gate opens —
 						// graph master switch AND the agent.graphTools toggle.
 						...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
-						...(classCard ? { classCard, todayNote, classSearch } : {}),
+						...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 					},
 					agentOpts,
 				);

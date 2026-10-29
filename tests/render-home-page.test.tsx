@@ -248,6 +248,14 @@ function block(props: Partial<React.ComponentProps<typeof ClassBlock>> = {}) {
 }
 
 describe("Class block", () => {
+	it("its signature sits small and dim behind the name, inked like the cover", () => {
+		const html = block({ cls: { id: "c21", name: "CSE 21", description: "", signature: { kind: "code", value: "int *p = &x;" } } });
+		const ink = section(html, "class-signature-ink", "</section>");
+		assert.match(ink, /aria-hidden="true"/);
+		assert.match(ink, /int \*p = &amp;x;/);
+		assert.ok(!block().includes("class-signature-ink"), "no signature, nothing behind");
+	});
+
 	it("the name in CMU and the description's first line", () => {
 		const html = block();
 		assert.match(html, /font-title[^>]*>CSE 21</);

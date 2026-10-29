@@ -10,6 +10,6 @@ body:
     id: question
     attributes:
       label: What is your question?
-      description: Include any relevant context. Version, OS, provider or model details can help when they relate to your question.
+      description: Include any relevant context. Version, OS, agent or model details can help when they relate to your question.
     validations:
       required: true

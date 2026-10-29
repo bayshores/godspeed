@@ -1299,3 +1299,44 @@ body {
 		animation: none;
 	}
 }
+
+/* Class cover ink: the studied part of a class's signature, masked with a
+   soft edge at --ink. A registered property so the edge can ease: it
+   fills in from the left when the page opens, and moves when progress
+   changes. The progress line under it grows in the same way. */
+@property --ink {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+
+@keyframes lh-ink-in {
+	from {
+		--ink: 0%;
+	}
+}
+
+@keyframes lh-grow-in {
+	from {
+		width: 0;
+	}
+}
+
+.lh-ink {
+	mask-image: linear-gradient(90deg, #000 calc(var(--ink) - 3%), transparent calc(var(--ink) + 3%));
+	transition: --ink 600ms ease;
+	animation: lh-ink-in 900ms ease-out;
+}
+
+.lh-grow {
+	transition: width 600ms ease;
+	animation: lh-grow-in 900ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lh-ink,
+	.lh-grow {
+		transition: none;
+		animation: none;
+	}
+}

@@ -47,6 +47,7 @@ export interface PracticeToolContext {
 	classCard?: ClassToolContext["classCard"];
 	todayNote?: ClassToolContext["todayNote"];
 	classSearch?: ClassToolContext["search"];
+	classNote?: ClassToolContext["setNote"];
 }
 
 /** TURN-SCOPED GATE STATE: the gates can't read the STORED record — it
@@ -240,6 +241,6 @@ export function practiceTools(ctx: PracticeToolContext): Record<string, AgentToo
 		...(jobs?.research ? { research: jobs.research } : {}),
 		...(jobs ? { pdf: jobs.pdf! } : {}),
 		...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
-		...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch }) : {}),
+		...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
 	});
 }

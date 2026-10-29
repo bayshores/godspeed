@@ -2,6 +2,7 @@ import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
 import { classCardText, type ClassCardDetails } from "../../core/native-messages.ts";
+import { NOTE_MAX } from "../../core/contracts.ts";
 import type { PassageRef } from "../../core/search.ts";
 
 /**
@@ -12,6 +13,8 @@ import type { PassageRef } from "../../core/search.ts";
  *    version (new files, an edited description).
  *  - search_class_files / read_passage: search the class's files and open
  *    only the passages needed, instead of whole files.
+ *  - set_class_note: Halley's note on the class's cover (where the learner
+ *    stands, what's next).
  *
  * Registered only for lessons in a class (the composition root passes the
  * readers). How to USE class context is doctrine
@@ -26,6 +29,9 @@ export interface ClassToolContext {
 	/** Search over the class's files: present = search_class_files and
 	 *  read_passage. */
 	search?: ClassSearch;
+	/** Save Halley's note on the class's cover (present = set_class_note);
+	 *  returns the tool's reply. */
+	setNote?: (text: string) => string;
 }
 
 /** The lesson's class-file search (src/server/search-index.ts). */
@@ -35,6 +41,10 @@ export interface ClassSearch {
 }
 
 const readClassInput = Type.Object({});
+
+const setNoteInput = Type.Object({
+	text: Type.String({ minLength: 1, maxLength: NOTE_MAX, description: "Two short sentences in plain words, to the learner." }),
+});
 
 const searchInput = Type.Object({
 	query: Type.String({ description: "What to look for, in plain words." }),
@@ -63,7 +73,22 @@ export function classTools(ctx: ClassToolContext): Record<string, AgentTool<any>
 				return ctx.todayNote ? `${classCardText(card)}\n\n${ctx.todayNote()}` : classCardText(card);
 			}),
 		},
+		...(ctx.setNote ? noteTools(ctx.setNote) : {}),
 		...(ctx.search ? searchTools(ctx.search) : {}),
+	};
+}
+
+function noteTools(setNote: (text: string) => string): Record<string, AgentTool<any>> {
+	return {
+		set_class_note: {
+			name: "set_class_note",
+			label: "set_class_note",
+			description:
+				"Replace the note on this class's cover page: two short sentences to the learner about where they stand in this class and what's next. " +
+				`At most ${NOTE_MAX} characters. Write it when you finish a topic or the learner wraps up; skip it when nothing changed.`,
+			parameters: setNoteInput,
+			execute: serverExecute("set_class_note", setNoteInput, async ({ text }): Promise<string> => setNote(text)),
+		},
 	};
 }
 

@@ -1,7 +1,7 @@
 /**
  * THE CLASS DIALOG (docs/design/exports/edit-class-exams.html): create a
- * class (name and description) or edit one — name, description, its
- * rules for the teacher and its Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/components/files/*).
+ * class (name and description) or edit one — name, description, signature,
+ * its rules for the teacher and its Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/components/files/*).
  *
  * Deadline edits are drafts until Save (src/components/class-deadlines-model.ts
  * turns them into the deadline routes' writes). Every write goes to /api/classes/*;
@@ -18,7 +18,8 @@ import { DeadlinesEditor } from "@/components/class-deadlines";
 import { RuleChips } from "@/components/rule-chips";
 import { deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
-import type { ClassDeadline, ClassRecord } from "@/core";
+import type { ClassDeadline, ClassRecord, SignatureKind } from "@/core";
+import { ClassSignatureField } from "@/components/class-signature-field";
 
 /** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
 export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
@@ -51,6 +52,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const { record, reload } = useClassRecord(classId);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [signature, setSignature] = useState<{ kind: SignatureKind; value: string }>({ kind: "math", value: "" });
 	const [rules, setRules] = useState<string[]>([]);
 	const [drafts, setDrafts] = useState<DeadlineDraft[]>([]);
 	const [openDeadline, setOpenDeadline] = useState<string | null>(null);
@@ -66,6 +68,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			seeded.current = true;
 			setName(record.name);
 			setDescription(record.description);
+			if (record.signature) setSignature(record.signature);
 			setRules(record.rules ?? []);
 			const drafts = draftsFrom(record.deadlines);
 			if (mode.kind === "edit" && mode.newDeadline) {
@@ -165,7 +168,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		}
 		setBusy(true);
 		setError(null);
-		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", { name, description, rules }));
+		const body = { name, description, signature: signature.value.trim() ? signature : null, rules };
+		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", body));
 		const deadlinesFailed = failed ?? (await saveDeadlines(record));
 		setBusy(false);
 		if (deadlinesFailed) {
@@ -219,6 +223,17 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 							className={`min-h-[72px] resize-y ${FIELD}`}
 						/>
 					</label>
+
+					{mode.kind === "edit" && record && (
+						<ClassSignatureField
+							kind={signature.kind}
+							value={signature.value}
+							disabled={busy}
+							labelClass={LABEL}
+							fieldClass={FIELD}
+							onChange={(kind, value) => setSignature({ kind, value })}
+						/>
+					)}
 
 					{mode.kind === "edit" && record && (
 						<div className="mt-2.5 flex flex-col gap-2">
