@@ -265,12 +265,31 @@ function waitUntilUp(url, tries = 600) {
 	});
 }
 
-/** The launch splash (speed plan, owner 2026-10-27): "godspeed" in the
- *  CMU title font on the app background, shown the instant the window
- *  exists, replaced by the app once the server answers. A data: URL with
- *  the font inlined — a file:// page can't reliably load a font from
- *  another directory, and the font ships with the server's public/. */
-function splashURL() {
+/** The splash stays at least this long, so the startup sound (which
+ *  fits inside it) is never cut off by the app replacing the page. */
+const SPLASH_MS = 2500;
+
+/** The startup sound as base64, or null when it shouldn't play: Settings →
+ *  General "Sounds" is off, or this is the first launch, where the
+ *  onboarding intro plays its own sound. Undecided onboarding mirrors
+ *  src/server/onboarding.ts: an outside-agent token means an existing user. */
+function startupSound() {
+	try {
+		const general = JSON.parse(fs.readFileSync(path.join(DATA_DIR(), "settings.json"), "utf8"))?.general ?? {};
+		if (general.sounds === false) return null;
+		if (!(general.onboarded ?? fs.existsSync(path.join(DATA_DIR(), "mcp-token")))) return null;
+		return fs.readFileSync(path.join(path.dirname(serverEntry()), "public", "sounds", "startup.mp3")).toString("base64");
+	} catch {
+		return null; // no settings yet (first launch) or no sound file: a silent splash
+	}
+}
+
+/** The launch splash: "godspeed" in the CMU title font on the app
+ *  background, fading in with a soft glow while the startup sound plays.
+ *  A data: URL with the font and sound inlined — a file:// page can't
+ *  reliably load from another directory, and both ship with the server's
+ *  public/. */
+function splashURL(sound) {
 	let fontFace = "";
 	try {
 		const font = fs.readFileSync(path.join(path.dirname(serverEntry()), "public", "fonts", "cmunbx.ttf")).toString("base64");
@@ -278,10 +297,13 @@ function splashURL() {
 	} catch {
 		/* no font: the serif fallback below */
 	}
+	const audio = sound ? `<audio autoplay src="data:audio/mpeg;base64,${sound}"></audio>` : "";
 	const html = `<!doctype html><html><head><meta charset="utf-8"><title>${PRODUCT_NAME}</title><style>${fontFace}
 html,body{margin:0;height:100%;background:#141414;-webkit-app-region:drag;-webkit-user-select:none;cursor:default}
 body{display:flex;align-items:center;justify-content:center}
-h1{margin:0;font:700 40px lh-cmu,serif;color:#e5e5e5}</style></head><body><h1>${PRODUCT_NAME}</h1></body></html>`;
+h1{margin:0;font:700 40px lh-cmu,serif;color:#e5e5e5;text-shadow:0 0 18px rgba(229,229,229,.18);animation:lh-in 1.4s ease-out both}
+@keyframes lh-in{0%{opacity:0;filter:blur(6px);text-shadow:0 0 0 rgba(229,229,229,0)}70%{opacity:1;filter:blur(0);text-shadow:0 0 30px rgba(229,229,229,.4)}}
+@media (prefers-reduced-motion:reduce){h1{animation:none}}</style></head><body><h1>${PRODUCT_NAME}</h1>${audio}</body></html>`;
 	return `data:text/html;base64,${Buffer.from(html).toString("base64")}`;
 }
 
@@ -336,6 +358,9 @@ function createWindow(url, serverUp = null) {
 			sandbox: true,
 			nodeIntegration: false,
 			preload: path.join(__dirname, "preload.cjs"),
+			// Electron's default, stated: the splash and onboarding sounds play
+			// without a click first.
+			autoplayPolicy: "no-user-gesture-required",
 		},
 		// Live-resize + first-paint flash (owner, 2026-09-17): during a resize
 		// the native window surface changes size before Chromium's compositor
@@ -389,10 +414,11 @@ function createWindow(url, serverUp = null) {
 	});
 
 	// serverUp (packaged launch while the server still boots): the splash
-	// first, the app the moment the server answers.
+	// first, the app once the server answers and the splash has had its time.
 	if (serverUp) {
-		void win.loadURL(splashURL());
-		serverUp.then(
+		void win.loadURL(splashURL(startupSound()));
+		const held = new Promise((resolve) => setTimeout(resolve, SPLASH_MS));
+		Promise.all([serverUp, held]).then(
 			() => { if (!win.isDestroyed()) void win.loadURL(url); },
 			() => { /* logged by main(); the splash stays */ },
 		);

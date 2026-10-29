@@ -61,6 +61,8 @@ export interface GeneralSettings {
 	/** The on-screen teacher's name. Only shown in
 	 *  the window; the agent's prompts never use it. Default "Halley". */
 	teacherName?: string;
+	/** Startup, onboarding and right/wrong answer sounds (default ON). */
+	sounds?: boolean;
 }
 
 /** The teacher's name when none is set. */
@@ -206,7 +208,7 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME },
+	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
 	appearance: {
 		mode: "dark",
 		background: null, // the dark default (#141414) lives in the mode's derivation curve
@@ -263,6 +265,8 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 		const name = sanitizeTeacherName(raw.teacherName);
 		if (name) out.teacherName = name;
 	}
+	const sounds = boolOrDrop(raw.sounds);
+	if (sounds !== undefined) out.sounds = sounds;
 	return out;
 }
 

@@ -32,6 +32,13 @@ describe("parseGeneralSettingsBody", () => {
 		assert.equal(parseGeneralSettingsBody("x").ok, false);
 		assert.equal(parseGeneralSettingsBody({ autoUpdate: "yes" }).ok, false);
 	});
+
+	it("sounds: a boolean, anything else is a 400", () => {
+		const off = parseGeneralSettingsBody({ sounds: false });
+		assert.ok(off.ok);
+		assert.deepEqual(off.settings, { sounds: false });
+		assert.equal(parseGeneralSettingsBody({ sounds: "off" }).ok, false);
+	});
 });
 
 describe("parseAgentSettingsBody", () => {

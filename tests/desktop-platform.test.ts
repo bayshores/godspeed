@@ -61,6 +61,10 @@ describe("desktop window chrome", () => {
 		});
 	}
 
+	it("sounds may play without a click (the splash and onboarding sounds)", () => {
+		assert.equal(windowOptions("darwin").webPreferences.autoplayPolicy, "no-user-gesture-required");
+	});
+
 	it("no window receives a sign-in transport marker (built-in sign-ins removed 2026-10-27)", () => {
 		assert.equal(windowOptions("darwin").webPreferences.additionalArguments, undefined);
 		assert.equal(windowOptions("darwin", { LH_DEV_URL: "http://localhost:3000" }).webPreferences.additionalArguments, undefined);
@@ -85,6 +89,64 @@ describe("desktop window chrome", () => {
 		assert.deepEqual(Object.keys(bridge).sort(), [
 			"checkForUpdates", "expandWindow", "getUpdateState", "getZoom", "installUpdate", "onOpenSettings", "onUpdateStatus", "onZoom", "pathForFile", "pickFolder", "platform", "reportBug",
 		]);
+	});
+});
+
+/** The real main.cjs over a fake filesystem holding only `files`. */
+function shellWithFiles(files: Record<string, string>) {
+	const fakeFs = {
+		readFileSync(file: string, encoding?: string) {
+			if (!(file in files)) throw new Error(`ENOENT ${file}`);
+			return encoding ? files[file] : Buffer.from(files[file]!);
+		},
+		existsSync: (file: string) => file in files,
+		mkdirSync() {},
+		appendFileSync() {},
+	};
+	const electron = {
+		app: { setName() {}, getPath: () => "/fixture/godspeed", setPath() {}, requestSingleInstanceLock: () => false, quit() {} },
+		BrowserWindow: class {},
+		session: { defaultSession: {} },
+	};
+	const context = {
+		require: (id: string) => id === "electron" ? electron : id === "node:fs" ? fakeFs : mainRequire(id),
+		process: { platform: "darwin", argv: [], env: {}, on() {}, resourcesPath: "/fixture/resources" },
+		__dirname: dirname(mainFile),
+		Buffer,
+	};
+	runInNewContext(mainSource, context, { filename: mainFile });
+	return (code: string) => runInNewContext(code, context);
+}
+
+describe("launch splash", () => {
+	const SETTINGS = "/fixture/godspeed/data/settings.json";
+	const TOKEN = "/fixture/godspeed/data/mcp-token";
+	const SOUND = "/fixture/resources/server/standalone/public/sounds/startup.mp3";
+	const soundFor = (files: Record<string, string>) => shellWithFiles({ [SOUND]: "chime", ...files })("startupSound()");
+	const chime = Buffer.from("chime").toString("base64");
+
+	it("plays the startup sound for a learner past onboarding", () => {
+		assert.equal(soundFor({ [SETTINGS]: JSON.stringify({ general: { onboarded: true } }) }), chime);
+	});
+
+	it("stays silent when Sounds is off, on the first launch, and during onboarding", () => {
+		assert.equal(soundFor({ [SETTINGS]: JSON.stringify({ general: { onboarded: true, sounds: false } }) }), null);
+		assert.equal(soundFor({}), null);
+		assert.equal(soundFor({ [SETTINGS]: JSON.stringify({ general: { onboarded: false } }) }), null);
+	});
+
+	it("an undecided record with an outside-agent token is an existing user", () => {
+		assert.equal(soundFor({ [SETTINGS]: JSON.stringify({ general: {} }), [TOKEN]: "t" }), chime);
+		assert.equal(soundFor({ [SETTINGS]: JSON.stringify({ general: {} }) }), null);
+	});
+
+	it("inlines the sound as autoplaying audio, and leaves it out when silent", () => {
+		const page = (sound: string | null) => {
+			const url = shellWithFiles({})(`splashURL(${JSON.stringify(sound)})`) as string;
+			return Buffer.from(url.replace("data:text/html;base64,", ""), "base64").toString();
+		};
+		assert.match(page(chime), new RegExp(`<audio autoplay src="data:audio/mpeg;base64,${chime}"></audio>`));
+		assert.doesNotMatch(page(null), /<audio/);
 	});
 });
 

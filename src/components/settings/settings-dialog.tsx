@@ -36,7 +36,7 @@ import {
 	type UserSettings,
 } from "@/core";
 import { useAppearance } from "./appearance.tsx";
-import { CommitInput, SettingsGroup, SettingsRow, SettingsSection } from "./controls.tsx";
+import { CommitInput, SettingsGroup, SettingsRow, SettingsSection, Toggle } from "./controls.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 import { AgentSection } from "./agent-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
@@ -347,6 +347,13 @@ export function SettingsDialogBody({
 												const { teacherName: _old, ...rest } = record.general ?? {};
 												void write("general", next ? { ...rest, teacherName: next } : rest);
 											}}
+										/>
+									</SettingsRow>
+									<SettingsRow label="Sounds" hint="Startup, setup and right or wrong answers" testid="sounds-row">
+										<Toggle
+											checked={record.general?.sounds ?? true}
+											label="Sounds"
+											onChange={(on) => void write("general", { ...record.general, sounds: on })}
 										/>
 									</SettingsRow>
 									<UpdateSettings

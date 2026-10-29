@@ -9,6 +9,7 @@ import { AgentStatusProvider } from "@/components/agent-status";
 import { AppearanceProvider } from "@/components/settings/appearance";
 import UpdateBanner from "@/components/update-banner";
 import { ClassProvider } from "@/components/class-context";
+import { SoundProvider } from "@/components/sounds";
 // The light server door — the @/server barrel would load the whole server
 // (agent engine, MCP, extraction) just for these two render-time reads.
 import { onboardingNeeded, readSettingsRecord, welcomeNeeded, whatsNewSince } from "@/server/settings-read";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	let initialActive: string | null = null;
 	// Halley's name (Settings → General), so the first paint has it.
 	let teacherName: string | undefined;
+	let soundsOn = true;
 	// First launch: the onboarding replaces the app
 	// shell until it is finished. Deciding also makes the outside-agent
 	// access token (always on), so the Claude Code plugin can find it.
@@ -60,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		const raw = general?.activeClass;
 		initialActive = raw && raw !== "none" ? raw : null;
 		teacherName = general?.teacherName;
+		soundsOn = general?.sounds !== false;
 	} catch {
 		/* unreadable settings: No class */
 	}
@@ -74,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<AppearanceProvider>
 					<SidebarProvider>
 						<ActivityProvider>
+						<SoundProvider initialOn={soundsOn}>
 							{onboarding ? (
 								<Onboarding />
 							) : (
@@ -81,6 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 									{children}
 								</AppShell>
 							)}
+						</SoundProvider>
 						</ActivityProvider>
 					</SidebarProvider>
 				</AppearanceProvider>
