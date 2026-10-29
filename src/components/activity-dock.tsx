@@ -407,7 +407,7 @@ function ActivityBlobRow({
 	const Icon = blob.process === "extraction" ? WaypointsIcon : (blob.jobKind && KIND_ICON[blob.jobKind]) || BotIcon;
 	const label =
 		blob.process === "extraction"
-			? `Extraction — ${blob.phase ?? "running"}`
+			? `Extraction: ${blob.phase ?? "running"}`
 			: blob.jobKind === "research"
 				? "Researcher"
 				: blob.jobKind === "demo"
@@ -454,7 +454,7 @@ function ActivityBlobRow({
 				data-testid="activity-abort"
 				onClick={onAbort}
 				disabled={abortState !== undefined}
-				title={abortState === "failed" ? "Abort failed — try again" : "End this background process"}
+				title={abortState === "failed" ? "Abort failed. Try again." : "End this background process"}
 				aria-label={`End ${label} in ${blob.title}`}
 				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
 			>
@@ -511,7 +511,7 @@ function ActivityBlobRow({
 						</a>
 					</div>
 					<div className="mt-2 text-muted-foreground/80">
-					{abortState === "failed" && "Abort failed — try again"}
+					{abortState === "failed" && "Abort failed. Try again."}
 					{abortState === "pending" && "Stopping…"}
 				</div>
 				</div>

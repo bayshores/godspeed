@@ -36,7 +36,7 @@ function bodyAt(nodes: { id: string; name: string }[], extra?: { failure?: { cod
 
 describe("EXTRACTION_RETRY_LINE (the 409 phrasing, owner-locked)", () => {
 	it("names the activity dock — the surface the user watches drain", () => {
-		assert.equal(EXTRACTION_RETRY_LINE, "An extraction is running — try again when the activity dock drains.");
+		assert.equal(EXTRACTION_RETRY_LINE, "An extraction is running. Try again when the activity dock drains.");
 	});
 });
 
@@ -68,7 +68,7 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		assert.match(name, /font-mono text-sm/);
 		assert.ok(!name.includes("bg-muted"), "no code-block chrome — the font already says code");
 		assert.match(html, /data-testid="node-name-code"[^>]*>Kepler&#x27;s three laws</);
-		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the node — this cannot be undone\./);
+		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the node\. This cannot be undone\./);
 		assert.match(html, /data-testid="node-delete-cancel"/);
 		assert.match(html, /data-testid="node-delete-confirm"/);
 		// the Delete button carries the destructive red (owner, polish round)
@@ -94,7 +94,7 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		assert.match(three, /data-testid="node-names-code"/);
 		assert.match(three, /Kepler&#x27;s three laws, Newton&#x27;s second law, Hooke&#x27;s law/);
 		assert.ok(!three.includes('data-testid="node-name-code"'), "the single-name testid is gone in multi");
-		assert.match(three, /This permanently deletes all 3 nodes — this cannot be undone\./);
+		assert.match(three, /This permanently deletes all 3 nodes\. This cannot be undone\./);
 		assert.ok(!three.includes("proposition"), "the old word is gone from the dialog");
 
 		// the cap: 10 names render 8 + ", and 2 more"

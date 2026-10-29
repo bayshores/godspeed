@@ -59,7 +59,7 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 		assert.equal(html, "");
 	});
 
-	it("red mono title 'Delete session?' (abort-turn look), the session name below in mono at normal size, no code-block chrome", () => {
+	it("red mono title 'Delete lesson?' (abort-turn look), the session name below in mono at normal size, no code-block chrome", () => {
 		const html = renderToStaticMarkup(
 			<DeleteSessionBody
 				chat={{ id: "c1", title: "Orbital mechanics" }}
@@ -71,7 +71,7 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 				onRun={() => {}}
 			/>,
 		);
-		assert.match(html, /Delete session\?/);
+		assert.match(html, /Delete lesson\?/);
 		const title = html.match(/<h2[^>]*>/)?.[0] ?? "";
 		assert.match(title, /text-sm font-semibold text-destructive/); // red, abort-turn look (owner, 2026-10-13)
 		assert.ok(!title.includes("font-title"), "no serif display title");

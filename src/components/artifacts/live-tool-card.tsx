@@ -45,7 +45,7 @@ export function LiveToolCard({ part }: ArtifactPartProps) {
 			className="group my-1 w-full max-w-2xl select-none"
 		>
 			<summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
-				<BrailleSpinner label={`${toolActivityLabel(tool)} — live`} />
+				<BrailleSpinner label={`${toolActivityLabel(tool)} (live)`} />
 				<Shimmer duration={1} className="text-xs">
 					{toolActivityLabel(tool)}
 				</Shimmer>

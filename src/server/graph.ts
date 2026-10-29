@@ -105,7 +105,7 @@ export function deleteGraphNode(nodeId: string, scope: ClassScope = null): NodeD
 			ok: false,
 			status: 409,
 			code: "extraction_running",
-			error: "An extraction is running — try again when it finishes",
+			error: "An extraction is running. Try again when it finishes",
 		};
 	}
 	// THE SYNC BLOCK — no awaits below (the doc above): the gate and the

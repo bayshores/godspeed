@@ -72,7 +72,7 @@ function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, { status
 			ok: false,
 			status: 409,
 			code: "turn_in_flight",
-			error: "A turn is running in this session — try again when it finishes",
+			error: "A turn is running in this session. Try again when it finishes",
 			jobIds: [],
 		};
 	}

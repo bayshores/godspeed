@@ -88,7 +88,7 @@ export function QuestionDock(props: QuestionDockProps) {
 			<PanelBody>
 				<PanelHeader eyebrow="Your turn" />
 				<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
-					This question arrived malformed — the transcript keeps the retry.
+					This question arrived malformed. The transcript keeps the retry.
 				</div>
 			</PanelBody>
 		);

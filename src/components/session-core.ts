@@ -711,7 +711,7 @@ export class SessionModel {
 			// connection is Diet A's whole job.
 			const res = await this.postInputEvent(input);
 			if (res.status === 409) {
-				throw new Error("A turn is already running — try again in a moment.");
+				throw new Error("A turn is already running. Try again in a moment.");
 			}
 			if (!res.ok) {
 				// Refusal envelopes (503 BYOK/key gates) and 400s: the RAW body

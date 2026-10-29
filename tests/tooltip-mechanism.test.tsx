@@ -23,7 +23,7 @@ import { IS_MAC } from "../src/core/keyboard.ts";
 describe("hintText — the parenthesized composition", () => {
 	it("a registry action appends the LIVE binding (override-aware source)", () => {
 		assert.equal(hintText("Settings", "open-settings"), IS_MAC ? "Settings (⌘,)" : "Settings (Ctrl+,)");
-		assert.equal(hintText("Search sessions", "sessions-search"), IS_MAC ? "Search sessions (⌘⇧F)" : "Search sessions (Ctrl+Shift+F)");
+		assert.equal(hintText("Search lessons", "sessions-search"), IS_MAC ? "Search lessons (⌘⇧F)" : "Search lessons (Ctrl+Shift+F)");
 	});
 
 	it("surface-owned keys ride the binding prop (no registry entry)", () => {

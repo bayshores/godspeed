@@ -2,7 +2,7 @@
  * THE MCP SERVER: how outside agents (Claude Code, Codex, any MCP client)
  * reach godspeed. Served at /api/mcp (Streamable HTTP, stateless),
  * guarded by a bearer token (data/mcp-token — always present, shown in
- * Settings → Outside agents).
+ * Settings → Connection).
  *
  * Three kinds of tools:
  *  - THE WORK LOOP (wait_for_work / respond): every lesson turn, helper
@@ -129,7 +129,7 @@ function refuse(req: Request): Response | null {
 	if (!LOCAL_HOSTS.has(host)) return json(403, "Only local connections are allowed.");
 	const expected = ensureMcpToken();
 	const supplied = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-	if (!supplied || !tokenMatches(supplied, expected)) return json(401, "Missing or wrong access token (Settings → Outside agents).");
+	if (!supplied || !tokenMatches(supplied, expected)) return json(401, "Missing or wrong access token (Settings → Connection).");
 	return null;
 }
 

@@ -7,7 +7,7 @@ import { usePresence } from "@/components/presence";
 /** The 409 extraction_running line (owner phrasing, node interlude):
  *  the server's error names the extraction; the ACTIVITY DOCK is the
  *  surface the user actually watches drain. Exported pure for pins. */
-export const EXTRACTION_RETRY_LINE = "An extraction is running — try again when the activity dock drains.";
+export const EXTRACTION_RETRY_LINE = "An extraction is running. Try again when the activity dock drains.";
 
 /**
  * Node deletion (node interlude, Platform's 50bfcba engine) — the
@@ -84,8 +84,8 @@ export function DeleteNodeBody({
 			</div>
 			<p className="mt-2 text-sm text-muted-foreground" data-testid="node-permanence-line">
 				{nodes.length === 1
-					? "This permanently deletes the node — this cannot be undone."
-					: `This permanently deletes all ${nodes.length} nodes — this cannot be undone.`}
+					? "This permanently deletes the node. This cannot be undone."
+					: `This permanently deletes all ${nodes.length} nodes. This cannot be undone.`}
 			</p>
 			{failure && (
 				<div
@@ -219,7 +219,7 @@ export function DeleteNodeDialog({
 			}
 			onDeleted(dead, revision);
 		} catch {
-			setFailure({ code: "network", error: "Delete failed — network error. Try again." });
+			setFailure({ code: "network", error: "Delete failed: network error. Try again." });
 			setBusy(false);
 			if (dead.length > 0) onDeleted(dead, revision);
 		}

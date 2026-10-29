@@ -34,12 +34,12 @@ const COPY: Record<AbortMode, { title: string; line: string; action: string }> =
 	},
 	question: {
 		title: "Dismiss this question?",
-		line: "Skipped — the teacher moves on without it.",
+		line: "Skipped. The teacher moves on without it.",
 		action: "Dismiss",
 	},
 	problem: {
 		title: "Discard this problem?",
-		line: "The problem is dropped — no solution is revealed.",
+		line: "The problem is dropped. No solution is revealed.",
 		action: "Discard",
 	},
 };

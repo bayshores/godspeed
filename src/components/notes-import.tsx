@@ -68,7 +68,7 @@ export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () 
 			setErrors(results
 				.filter((result) => !result.ok)
 				.sort((a, b) => a.requestIndex - b.requestIndex)
-				.map((r) => `${r.filePath}: ${r.error}${r.code ? `\n${r.code}${r.provider ? ` — ${r.provider}` : ""}${r.missing?.length ? ` — ${r.missing.join(", ")}` : ""}${r.slots?.length ? ` — ${r.slots.join(", ")}` : ""}` : ""}`));
+				.map((r) => `${r.filePath}: ${r.error}${r.code ? `\n${r.code}${r.provider ? ` · ${r.provider}` : ""}${r.missing?.length ? ` · ${r.missing.join(", ")}` : ""}${r.slots?.length ? ` · ${r.slots.join(", ")}` : ""}` : ""}`));
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			setErrors(files.map((file) => `${file.name}: ${message}`));

@@ -26,7 +26,7 @@ describe("AbortTurnBody", () => {
 			<AbortTurnBody mode="question" onClose={() => {}} onConfirm={() => {}} />,
 		);
 		assert.match(html, /Dismiss this question\?/);
-		assert.match(html, /Skipped — the teacher moves on without it\./);
+		assert.match(html, /Skipped. The teacher moves on without it\./);
 		assert.match(html, /Dismiss/);
 		// the abort copy must not leak into the dismissal mode
 		assert.ok(!html.includes("Abort this turn"));

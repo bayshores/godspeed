@@ -1,5 +1,5 @@
 /**
- * /api/mcp-access — Settings → Outside agents: the access status and the
+ * /api/mcp-access — Settings → Connection: the access status and the
  * token (always present — outside-agent access is always on), plus
  * rotating the token. Desktop-window only like every /api route except
  * /api/mcp itself (proxy.ts).

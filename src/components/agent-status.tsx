@@ -21,7 +21,7 @@ export interface AgentStatus {
 }
 
 /** The notice shown while work waits and no agent is connected. */
-export const WAITING_NOTICE = "Waiting for your agent — run /godspeed:teach";
+export const WAITING_NOTICE = "Waiting for your agent. Run /godspeed:teach";
 
 /** True when work is waiting and no agent is there to take it. */
 export function agentWaiting(status: AgentStatus | null): boolean {
@@ -70,7 +70,7 @@ export function useAgentStatus(): AgentStatus | null {
 	return useContext(AgentStatusContext);
 }
 
-/** The sidebar footer's agent line (also Settings → Outside agents). Pure — exported for tests. While work waits and no
+/** The sidebar footer's agent line (also Settings → Connection). Pure — exported for tests. While work waits and no
  *  agent is connected it reads "Waiting for your agent". */
 export function footerLabel(agent: { connected: boolean; name?: string; pendingWork?: number } | null, jobs: number): string {
 	const waiting = !!agent && !agent.connected && (agent.pendingWork ?? 0) > 0;

@@ -21,7 +21,7 @@ describe("the waiting-for-your-agent notice", () => {
 		const html = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} waiting />);
 		assert.ok(html.includes('data-testid="activity-waiting"'));
 		assert.ok(html.includes(WAITING_NOTICE));
-		assert.equal(WAITING_NOTICE, "Waiting for your agent — run /godspeed:teach");
+		assert.equal(WAITING_NOTICE, "Waiting for your agent. Run /godspeed:teach");
 		assert.ok(!renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} />).includes("activity-waiting"));
 	});
 });
@@ -212,7 +212,7 @@ describe("activity section render", () => {
 		assert.match(html, /data-testid="activity-blob-extraction"/);
 		assert.match(html, /Chain-rule demo/);
 		assert.match(html, /building sandbox…/);
-		assert.match(html, /Extraction — merging/);
+		assert.match(html, /Extraction: merging/);
 		// Unpriced job → "—", never $0.0000 (doctrine); both blobs show it.
 		assert.match(html, /activity-blob-cost[^>]*>—</);
 		assert.match(html, /data-testid="activity-abort"/, "END on the blob face, popover-independent");

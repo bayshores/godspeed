@@ -23,7 +23,7 @@ export default function UpdateBanner() {
 		>
 			<div className="text-sm">
 				<span className="font-medium">godspeed {ready.version ?? "update"} is ready</span>
-				<span className="text-muted-foreground"> — restart to finish installing.</span>
+				<span className="text-muted-foreground">. Restart to finish installing.</span>
 			</div>
 			<button
 				type="button"

@@ -168,7 +168,7 @@ describe("KeyboardSection (thin SSR)", () => {
 
 	it("displayOnly actions list but never offer Rebind", () => {
 		const html = renderToStaticMarkup(<KeyboardSection />);
-		assert.ok(html.includes("Fixed — part of this screen"));
+		assert.ok(html.includes("Fixed, part of this screen"));
 		assert.ok(!html.includes(`data-testid="kbd-rebind-question-next-row"`), "surface keys stay put");
 		// The model-menu entries are GONE entirely (owner, 2026-10-10):
 		// obvious in-field navigation, not settings material.

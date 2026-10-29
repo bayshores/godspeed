@@ -77,7 +77,7 @@ export function proberGraphTools(ctx: GraphToolContext): Record<string, AgentToo
 			label: "list_propositions",
 			description:
 				"List the propositions BORN in one knowledge-graph session — what was covered there. " +
-				"Names only — no statement text, no session contents (owner ruling 2026-09-23: the map's ORGANIZATION is your business, its prose is not).",
+				"Names only — no statement text, no session contents (the map's ORGANIZATION is your business, its prose is not).",
 			parameters: listPropositionsInput,
 			execute: serverExecute("list_propositions", listPropositionsInput, async ({ session }): Promise<string> => {
 				// Cross-class: the session lives in exactly one class graph.
