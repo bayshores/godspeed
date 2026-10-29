@@ -105,15 +105,14 @@ describe("the tooltip's look", () => {
 		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 
-	it("TooltipCard: tip surface, tone-2 edge, square, bold title, click hint", () => {
+	it("TooltipCard: glass surface, square, bold title, click hint", () => {
 		const html = renderToStaticMarkup(
 			<TooltipCard title="Lecture 3 — Expectation" hint="Click to open the file">
 				<div>12 of 18 facts came up in lessons</div>
 			</TooltipCard>,
 		);
 		assert.match(html, /role="tooltip"/);
-		assert.match(html, /bg-tip/);
-		assert.match(html, /border-tone-2/);
+		assert.match(html, /lh-glass/);
 		assert.doesNotMatch(html, /rounded/);
 		assert.match(html, /data-slot="tooltip-title" class="[^"]*font-bold[^"]*">Lecture 3 — Expectation</);
 		assert.match(html, /data-slot="tooltip-hint"[^>]*>.*<svg.*Click to open the file/s);

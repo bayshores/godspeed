@@ -119,6 +119,18 @@
 	--lh-heading-weight: 900;
 }
 
+/* Pop-ups (menus, tooltips, Halley's panel) are see-through glass over
+   the page: a soft light edge on top and a deep shadow instead of an
+   outline. Rows that hover with bg-tone get a see-through tone inside. */
+.lh-glass {
+	--accent: color-mix(in srgb, var(--foreground) 9%, transparent);
+	background-color: color-mix(in srgb, var(--lh-tip) 72%, transparent);
+	backdrop-filter: blur(18px) saturate(1.3);
+	box-shadow:
+		inset 0 1px 0 color-mix(in srgb, var(--foreground) 20%, transparent),
+		0 20px 50px rgb(0 0 0 / 0.6);
+}
+
 /* CMU Serif bold (titles) — bundled local file, no CDN dependency. */
 @font-face {
 	font-family: "lh-cmu";

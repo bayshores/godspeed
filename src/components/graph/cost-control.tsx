@@ -120,7 +120,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 	// the pill and this panel must agree).
 	const { unpricedRuns } = displayCostTotals(costs);
 	return (
-		<div className="w-80 max-w-[calc(100vw-1.5rem)] border bg-card/95 p-3 text-xs shadow-lg backdrop-blur">
+		<div className="lh-glass w-80 max-w-[calc(100vw-1.5rem)] p-3 text-xs">
 			<div className="mb-2 flex items-baseline justify-between">
 				<span className="text-xs font-semibold text-muted-foreground">
 					Graph pipeline costs

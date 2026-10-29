@@ -118,7 +118,7 @@ export function StatsBar({
 						// Pops up out of the bar and back (motion wave, owner 2026-10-26).
 						data-side="up"
 						data-state={detail.state}
-						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 border bg-card p-3 text-xs shadow-xl"
+						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 lh-glass p-3 text-xs"
 					>
 						<div className="mb-2 text-xs font-semibold text-muted-foreground">
 							Session stats

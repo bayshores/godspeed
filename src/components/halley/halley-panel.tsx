@@ -2,9 +2,9 @@
 
 /**
  * Halley's panel: click Halley or the sidebar's agent line.
- * The head (name, the agent's state, the Follow switch), "Now", "Recent"
- * (the agent's last changes; click one to go there) and "Background
- * jobs".
+ * The head (name, the agent's state, the Follow switch), what the agent
+ * is doing now, its last changes (click one to go there) and background
+ * jobs. Each part shows only when it has something in it.
  */
 import { ArrowRightIcon } from "lucide-react";
 import type { AgentAction } from "@/core";
@@ -80,7 +80,7 @@ export function HalleyPanel({
 			data-testid="halley-panel"
 			aria-label={name}
 			style={style}
-			className="lh-pop fixed z-40 flex w-[360px] flex-col gap-3.5 overflow-y-auto border border-tone-2 bg-tip px-4 py-3.5 font-ui shadow-[0_10px_30px_#000000aa]"
+			className="lh-pop lh-glass fixed z-40 flex w-[360px] flex-col gap-4 overflow-y-auto px-[18px] py-4 font-ui"
 		>
 			<div className="flex items-center gap-2.5">
 				<span className="size-7 shrink-0">
@@ -115,41 +115,38 @@ export function HalleyPanel({
 				</span>
 			</div>
 
-			<div data-testid="halley-now" className="flex flex-col gap-1.5 bg-tone px-3 py-2.5">
-				<span className="text-[12.5px] font-bold text-ink-3">Now</span>
-				{nowText ? (
-					<span className="text-sm font-bold text-ink">{nowText}</span>
-				) : (
-					<span className="text-sm text-ink-2">Nothing right now</span>
-				)}
-			</div>
+			{nowText && (
+				<p data-testid="halley-now" className="text-[15px] font-bold text-ink-max">
+					{nowText}
+				</p>
+			)}
 
-			<div data-testid="halley-recent" className="flex flex-col gap-0.5">
-				<span className="text-[12.5px] font-bold text-ink-3">Recent</span>
-				{recent.length === 0 && <span className="py-1.5 text-[13px] text-ink-3">Nothing yet</span>}
-				{recent.slice(0, RECENT_ROWS).map((a) => {
-					// A class's own row doesn't repeat its name.
-					const cls = a.target?.kind === "class" ? null : classNameOf(a.classId);
-					const canGo = safePage(a.page) !== null;
-					return (
-						<button
-							key={a.id}
-							type="button"
-							data-testid="halley-recent-row"
-							disabled={!canGo}
-							onClick={() => onPick(a)}
-							className="lh-press group flex w-full items-center gap-2.5 py-1.5 text-left disabled:cursor-default"
-						>
-							<span className="w-[58px] shrink-0 font-mono text-xs text-ink-3 tabular-nums">{actionTime(a.at)}</span>
-							<span className="flex min-w-0 flex-1 items-center gap-1.5">
-								<span className="truncate text-[13.5px] text-ink group-hover:underline group-hover:underline-offset-4">{pastLabel(a.label)}</span>
-								{cls && <span className="shrink-0 text-[12.5px] text-ink-3">{cls}</span>}
-							</span>
-							{canGo && <ArrowRightIcon aria-hidden className="size-[13px] shrink-0 text-ink-3" />}
-						</button>
-					);
-				})}
-			</div>
+			{recent.length > 0 && (
+				<div data-testid="halley-recent" className="-mx-2 flex flex-col">
+					{recent.slice(0, RECENT_ROWS).map((a) => {
+						// A class's own row doesn't repeat its name.
+						const cls = a.target?.kind === "class" ? null : classNameOf(a.classId);
+						const canGo = safePage(a.page) !== null;
+						return (
+							<button
+								key={a.id}
+								type="button"
+								data-testid="halley-recent-row"
+								disabled={!canGo}
+								onClick={() => onPick(a)}
+								className="lh-press flex w-full items-center gap-2.5 px-2 py-1.5 text-left hover:bg-tone disabled:cursor-default disabled:hover:bg-transparent"
+							>
+								<span className="w-[58px] shrink-0 font-mono text-xs text-ink-3 tabular-nums">{actionTime(a.at)}</span>
+								<span className="flex min-w-0 flex-1 items-center gap-1.5">
+									<span className="truncate text-[13.5px] text-ink">{pastLabel(a.label)}</span>
+									{cls && <span className="shrink-0 text-[12.5px] text-ink-3">{cls}</span>}
+								</span>
+								{canGo && <ArrowRightIcon aria-hidden className="size-[13px] shrink-0 text-ink-3" />}
+							</button>
+						);
+					})}
+				</div>
+			)}
 
 			{jobs ?? <ActivitySection waiting={false} />}
 		</section>

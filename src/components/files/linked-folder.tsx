@@ -76,7 +76,7 @@ export function LinkedFolderChip({
 				anchorRef={anchorRef}
 				testid="class-folder-box"
 				preferredSide="down"
-				menuClass="flex w-[300px] flex-col gap-2 border border-tone-2 bg-tip px-[13px] py-[11px] shadow-[0_0_28px_#000000e6]"
+				menuClass="lh-glass flex w-[300px] flex-col gap-2 px-[13px] py-[11px]"
 			>
 				<div className="text-sm font-bold text-ink">Linked folder</div>
 				<div className="break-all font-mono text-xs leading-[1.4] text-ink-2">{path}</div>

@@ -492,7 +492,7 @@ export function ChainTableBody({
 					<div
 						data-testid="chain-selection-bar"
 						data-state={bar.state}
-						className="lh-pop pointer-events-auto flex items-center gap-3 border bg-card px-4 py-2 shadow-lg"
+						className="lh-pop pointer-events-auto lh-glass flex items-center gap-3 px-4 py-2"
 					>
 						<span data-testid="chain-selected-summary" className="text-xs font-medium">
 							{selection.size} {selection.size === 1 ? "node" : "nodes"} →{" "}

@@ -209,7 +209,7 @@ function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: bool
 				anchorRef={anchorRef}
 				testid={`class-file-menu-body-${file.id}`}
 				preferredSide="down"
-				menuClass="flex w-[196px] flex-col gap-0.5 border border-tone-2 bg-panel p-1.5 text-[13.5px] shadow-xl"
+				menuClass="lh-glass flex w-[196px] flex-col gap-0.5 p-1.5 text-[13.5px]"
 			>
 				<button type="button" data-testid={`class-file-move-${file.id}`} onClick={pick(() => actions.onKind(file.id, other))} className={`${MENU_ITEM} text-ink`}>
 					<ArrowRightLeftIcon className="size-3.5 shrink-0" aria-hidden />

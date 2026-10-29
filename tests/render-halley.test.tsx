@@ -98,9 +98,12 @@ describe("the panel", () => {
 		assert.equal(agentLine(null), WAITING_NOTICE);
 		assert.match(renderToStaticMarkup(panel({ agent: { connected: false, pendingWork: 2 } })), new RegExp(WAITING_NOTICE));
 	});
-	it("Now shows what it is doing, or says nothing is happening", () => {
+	it("Now shows what it is doing, and hides when nothing is happening", () => {
 		assert.match(renderToStaticMarkup(panel()), /Reading syllabus\.pdf for CSE 29/);
-		assert.match(renderToStaticMarkup(panel({ nowText: null })), /Nothing right now/);
+		assert.doesNotMatch(renderToStaticMarkup(panel({ nowText: null })), /halley-now/);
+	});
+	it("Recent hides when there is nothing yet", () => {
+		assert.doesNotMatch(renderToStaticMarkup(panel({ recent: [] })), /halley-recent/);
 	});
 	it("Recent: time, label, class, and an arrow only where it can go", () => {
 		const el = mount(panel());

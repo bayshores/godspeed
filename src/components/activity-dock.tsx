@@ -340,12 +340,13 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 		}
 	}, []);
 
-	// Part of the surrounding surface, not a floating card. Empty means
-	// empty: the header sits alone (the cost span is population, not
-	// decoration).
+	// Part of the surrounding surface, not a floating card, and hidden
+	// when there's nothing to show.
+	const failed = feed.failed ?? [];
+	if (!waiting && failed.length === 0 && blobs.length === 0) return null;
 	return (
-		<section data-testid="activity-section" className="flex flex-col gap-1.5 border-t border-tone-2 pt-2.5">
-			<div className="flex items-center gap-1.5 text-[12.5px] font-bold text-ink-3">
+		<section data-testid="activity-section" className="flex flex-col gap-1.5">
+			<div className="flex items-center gap-1.5 text-[12.5px] text-ink-3">
 				Background jobs
 				{blobs.length > 0 && (
 					<span className="ml-auto font-mono tabular-nums" data-testid="activity-total-cost" title="Total running cost (inferred)">
@@ -358,7 +359,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 					{WAITING_NOTICE}
 				</p>
 			)}
-			{(feed.failed ?? []).map((f) => (
+			{failed.map((f) => (
 				<div key={f.id} data-testid="activity-failed" className="flex items-start gap-2.5 py-1">
 					<CircleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-ans-wrong" aria-hidden />
 					<span className="min-w-0 flex-1">

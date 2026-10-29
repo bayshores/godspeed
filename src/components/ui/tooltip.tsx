@@ -61,7 +61,7 @@ function TooltipTrigger({
 
 /** The box's look, shared by the Radix content and <TooltipCard>. */
 const TOOLTIP_BOX =
-  "flex w-max max-w-72 flex-col gap-2 border border-tone-2 bg-tip px-[13px] py-[11px] text-left text-xs text-ink-2 shadow-[0_0_28px_#000000e6]"
+  "lh-glass flex w-max max-w-72 flex-col gap-2 px-[13px] py-[11px] text-left text-xs text-ink-2"
 
 function TooltipContent({
   className,
