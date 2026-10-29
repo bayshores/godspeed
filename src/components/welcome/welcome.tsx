@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAgentStatus } from "@/components/agent-status";
 import { useMinute } from "@/components/countdown";
 import { byDue } from "@/components/deadlines-model";
-import { Constellation, TAIL } from "@/components/onboarding/constellation";
+import { Constellation, HEAD_R, TAIL, TAIL_ANGLE } from "@/components/onboarding/constellation";
 import { usePresence } from "@/components/presence";
 import { useOpenDeadlines } from "@/components/use-open-deadlines";
 import { openWhatsNew } from "@/components/whats-new";
@@ -83,15 +83,20 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 			<Constellation mode="welcome" />
 			<div className="relative flex items-center gap-[18px]">
 				{/* The comet's head fills this 24px slot; the tail hangs outside it. */}
-				<svg aria-hidden viewBox="-10.9 -10.9 21.8 21.8" className="wl-comet size-6 shrink-0 overflow-visible">
+				<svg aria-hidden viewBox={`${-HEAD_R} ${-HEAD_R} ${HEAD_R * 2} ${HEAD_R * 2}`} className="wl-comet size-6 shrink-0 overflow-visible">
 					<defs>
-						<linearGradient id="wl-tail" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="-37" y2="36">
-							<stop offset="0" stopColor="#fff" stopOpacity="0.9" />
+						<linearGradient id="wl-tail">
+							<stop offset="0" stopColor="#fff" stopOpacity="0.85" />
 							<stop offset="1" stopColor="#fff" stopOpacity="0" />
 						</linearGradient>
+						<filter id="wl-tail-blur" x="-20%" y="-100%" width="140%" height="300%">
+							<feGaussianBlur stdDeviation="3" />
+						</filter>
 					</defs>
-					<path className="wl-tail" d={TAIL} fill="url(#wl-tail)" />
-					<circle r="10.9" fill="#fff" />
+					<g transform={`rotate(${TAIL_ANGLE.toFixed(1)})`}>
+						<path className="wl-tail" d={TAIL} fill="url(#wl-tail)" filter="url(#wl-tail-blur)" />
+					</g>
+					<circle r={HEAD_R} fill="#fff" />
 				</svg>
 				<h1 className="wl-word font-title text-[64px] leading-none text-ink">godspeed</h1>
 			</div>

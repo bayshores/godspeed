@@ -881,9 +881,10 @@ body {
 		opacity: 1;
 	}
 }
+/* Like ob-tail: it only lengthens, so it stays as wide as the head. */
 @keyframes wl-tail {
 	from {
-		transform: scale(7);
+		transform: scaleX(7);
 	}
 }
 .ob-sky[data-mode="bright"] .ob-stars {
@@ -950,20 +951,21 @@ body {
 		transform: translate(740px, 330px) scale(0.7);
 	}
 }
+/* The tail only lengthens, so it stays as wide as the head. */
 @keyframes ob-tail {
 	0%,
 	24% {
-		transform: scale(1);
+		transform: scaleX(1);
 	}
 	32% {
-		transform: scale(9);
+		transform: scaleX(7);
 	}
 	52% {
-		transform: scale(2);
+		transform: scaleX(2.5);
 	}
 	70%,
 	100% {
-		transform: scale(1);
+		transform: scaleX(1);
 	}
 }
 /* The name and button rise in as the constellation dims (2.0s). */
