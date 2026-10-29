@@ -73,6 +73,8 @@ declare global {
 			/** Explicit manual check also downloads and stages available updates. */
 			checkForUpdates?: () => Promise<void>;
 			installUpdate?: () => void;
+			/** Opens a new GitHub issue with the app version and OS filled in. */
+			reportBug?: () => void;
 			onOpenSettings?: (cb: (section: string) => void) => () => void;
 		};
 	}

@@ -23,6 +23,7 @@
 
 const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("electron");
 const { desktopAPIHeaders, trustedSender } = require("./desktop-api.cjs");
+const { bugReportURL } = require("./bug-report.cjs");
 const { randomBytes } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
@@ -605,6 +606,10 @@ function applyZoom(win, factor) {
 	win.webContents.send("lh:zoom", factor);
 }
 
+function openBugReport() {
+	void shell.openExternal(bugReportURL({ version: app.getVersion(), platform: process.platform, systemVersion: process.getSystemVersion(), arch: process.arch }));
+}
+
 /** macOS needs an application menu with the Edit roles — without one,
  *  Cmd+C/V/A do nothing in the renderer. Everything else stays minimal. */
 function installMenu() {
@@ -653,6 +658,7 @@ function installMenu() {
 			],
 		},
 		{ role: "windowMenu" },
+		{ role: "help", submenu: [{ label: "Report a Bug…", click: openBugReport }] },
 	];
 	Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -718,6 +724,7 @@ async function main() {
 		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
 		checkForUpdates({ manual: true });
 	});
+	ipcMain.on("lh:report-bug", () => openBugReport());
 
 	// Sidebar-at-narrow-window (owner, 2026-09-17): the renderer auto-closes
 	// the sidebar below SIDEBAR_AUTOCLOSE (928px); opening it again at that
