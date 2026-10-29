@@ -110,9 +110,8 @@ export interface AgentBuildOptions {
  * learner cannot answer while a turn is in flight (per-chat 409), so a
  * cleanly-posed question MUST always end the turn. Practice's problem pose
  * has the same wait-for-the-learner contract, including mixed batches;
- * failed poses must still retry. maxTurns is gone
- * (owner ruling 2026-09-25: no maximum-agent-turns net on the teaching
- * turn).
+ * failed poses must still retry. There is no maximum-turns net on the
+ * teaching turn.
  */
 function makeQuestionStopper(kind: AgentKind) {
 	return (context: {

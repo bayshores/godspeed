@@ -739,10 +739,12 @@ export function danglingQuestionOf(
 }
 
 /** The probe→teach construction seam (chat-handler): a probe_done call
- *  whose result is not an error means the probe is concluded: teach. A
- *  refused or unanswered call keeps probing, as phaseAt3Lh does. */
+ *  whose result is neither an error nor a refusal means the probe is
+ *  concluded: teach. Anything else keeps probing, as phaseAt3Lh does. */
 export function hasProbeDone(messages: readonly LhMessage[]): boolean {
-	return messages.some((m) => m.role === "toolResult" && m.toolName === "probe_done" && !m.isError);
+	return messages.some(
+		(m) => m.role === "toolResult" && m.toolName === "probe_done" && !m.isError && (m.details as { ok?: unknown } | undefined)?.ok !== false,
+	);
 }
 
 /** Every toolResult id in the record — answer-event validation (the call

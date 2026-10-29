@@ -61,7 +61,7 @@ function assistantWithCall(id: string, toolName: string, args: unknown): LhMessa
 	} as never;
 }
 
-function probeDoneResult(callId: string, isError: boolean): LhMessage {
+function probeDoneResult(callId: string, isError: boolean, details?: unknown): LhMessage {
 	return {
 		id: `${callId}_r`,
 		role: "toolResult",
@@ -69,6 +69,7 @@ function probeDoneResult(callId: string, isError: boolean): LhMessage {
 		toolName: "probe_done",
 		content: [{ type: "text", text: isError ? "Invalid tool input" : "ok" }],
 		isError,
+		...(details !== undefined ? { details } : {}),
 		timestamp: Date.now(),
 	} as never;
 }
@@ -84,6 +85,12 @@ describe("hasProbeDone: the probe→teach construction seam", () => {
 		const call = assistantWithCall("m1", "probe_done", { assessment: ASSESSMENT });
 		assert.equal(hasProbeDone([call]), false, "a call with no result yet keeps probing");
 		assert.equal(hasProbeDone([call, probeDoneResult("call_m1", true)]), false, "a failed call keeps probing");
+		assert.equal(
+			hasProbeDone([call, probeDoneResult("call_m1", false, { ok: false, error: "A question is still open" })]),
+			false,
+			"a refused call keeps probing",
+		);
+		assert.equal(hasProbeDone([call, probeDoneResult("call_m1", false, { ok: true })]), true);
 		assert.equal(hasProbeDone([call, probeDoneResult("call_m1", false)]), true);
 	});
 });

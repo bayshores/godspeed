@@ -1,7 +1,7 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
 import { probeDoneInputSchema, PROBE_DONE_ACK_TEXT } from "../../core/contracts.ts";
-import { danglingQuestionOf, hasProbeDone, type LhMessage } from "../../core/native-messages.ts";
+import { danglingQuestionOf, hasProbeDone } from "../../core/native-messages.ts";
 import type { ChatStore } from "../../core/ports.ts";
 import { buildProbeHandoffSteer, type SteerMessage } from "../../core/contracts.ts";
 
@@ -13,12 +13,6 @@ export interface ProbeDoneContext {
 	/** Queue the handoff steer (the wake pipeline — src/server/jobs.ts).
 	 *  Injected so this module never imports the server seam. */
 	deliver: (steer: SteerMessage) => void;
-}
-
-/** Does the transcript already carry a concluded probe (a probe_done call
- *  that did not fail)? */
-function probeConcluded(messages: readonly LhMessage[]): boolean {
-	return hasProbeDone(messages);
 }
 
 /**
@@ -41,8 +35,9 @@ function probeConcluded(messages: readonly LhMessage[]): boolean {
  *     live), so the agent sees the fixed PROBE_DONE_ACK_TEXT — never an
  *     echo. details = {ok:true} only.
  *
- * The first probe_done in the transcript is also the construction seam:
- * from that message on, every request builds the TEACHER agent.
+ * The first successful probe_done in the transcript is also the
+ * construction seam: from that message on, every request builds the
+ * TEACHER agent. A refusal concludes nothing, so the prober can retry.
  */
 export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<any>> {
 	return {
@@ -72,7 +67,7 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 							"probe_done only fires with no question outstanding.",
 					};
 				}
-				if (probeConcluded(record.messages)) {
+				if (hasProbeDone(record.messages)) {
 					return { ok: false, error: "The probe is already concluded — probe_done fires exactly once." };
 				}
 				try {

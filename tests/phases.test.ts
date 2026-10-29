@@ -98,6 +98,11 @@ test("phaseAt3: the tag is the seam — natural text and untagged questions neve
 	assert.equal(taggedOutOfOrder, "probe", "the chain never skips");
 });
 
+test("phaseAt3: a refused probe_done (ok:false) keeps the probe open", () => {
+	const refused = phaseAt3([user("teach me"), assistantTool("probe_done", "output-available", { ok: false, error: "A question is still open" })]);
+	assert.equal(refused, "probe");
+});
+
 test("phaseAt3: a mere probe_done CALL (input-available, not yet concluded) keeps the probe open", () => {
 	const still = phaseAt3([user("teach me"), assistantTool("probe_done", "input-available")]);
 	assert.equal(still, "probe");
@@ -133,7 +138,7 @@ import type { LhMessage } from "../src/core/native-messages.ts";
 import { phaseAt3Lh } from "../src/core/phases.ts";
 
 /** A native toolResult (the probe_done conclusion). */
-function toolResult(toolName: string, isError = false): LhMessage {
+function toolResult(toolName: string, isError = false, details?: unknown): LhMessage {
 	return {
 		id: `tr_${toolName}_${Math.random().toString(36).slice(2, 6)}`,
 		role: "toolResult",
@@ -141,6 +146,7 @@ function toolResult(toolName: string, isError = false): LhMessage {
 		toolName,
 		content: [{ type: "text", text: "ok" }],
 		isError,
+		...(details !== undefined ? { details } : {}),
 		timestamp: Date.now(),
 	} as LhMessage;
 }
@@ -170,6 +176,11 @@ test("phaseAt3Lh (native fold): probe→plan at the clean probe_done result; pla
 		phaseAt3Lh([toolResult("probe_done", true), tagged]),
 		"probe",
 		"an ERRORED probe_done concludes nothing",
+	);
+	assert.equal(
+		phaseAt3Lh([toolResult("probe_done", false, { ok: false, error: "A question is still open" }), tagged]),
+		"probe",
+		"a REFUSED probe_done concludes nothing",
 	);
 	// The two folds agree on the same settled transcript (the view projection
 	// of the tagged call carries its arguments as the part input).

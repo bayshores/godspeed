@@ -59,6 +59,12 @@ function taggedNodeId(input: unknown): boolean {
 	);
 }
 
+/** probe_done refuses (a question still open) with a clean {ok:false}
+ *  result; that concludes nothing. */
+function refusedProbe(output: unknown): boolean {
+	return (output as { ok?: unknown } | null | undefined)?.ok === false;
+}
+
 /** The phase at `upToIndex` (inclusive; default: the last message). */
 export function phaseAt3(messages: readonly PhaseMessage[], upToIndex?: number): Phase3 {
 	let phase: Phase3 = "probe";
@@ -80,7 +86,7 @@ function advance(
 		// plan → teach only via the first nodeId-tagged quiz CALL (the call,
 		// not its answer — an errored-and-retried call still proves teaching
 		// began, and the retry lands in the same group anyway).
-		if (phase === "probe" && part.type === "tool-probe_done" && part.state === "output-available") {
+		if (phase === "probe" && part.type === "tool-probe_done" && part.state === "output-available" && !refusedProbe(part.output)) {
 			phase = "plan";
 		}
 		// plan → teach via the first nodeId-tagged quizzing CALL — quiz OR
@@ -167,11 +173,12 @@ export function phaseAt3Lh(messages: readonly LhMessage[], upToIndex?: number): 
 		const m = messages[i]!;
 		const role = (m as { role?: string }).role;
 		if (role === "toolResult") {
-			const result = m as { toolName?: string; isError?: boolean };
+			const result = m as { toolName?: string; isError?: boolean; details?: unknown };
 			if (
 				phase === "probe" &&
 				result.toolName === "probe_done" &&
-				!result.isError
+				!result.isError &&
+				!refusedProbe(result.details)
 			) {
 				phase = "plan";
 			}
