@@ -69,9 +69,14 @@ export function ConnectionSection() {
 	const [access, setAccess] = useState<AccessView | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	const refresh = useCallback(() => {
-		request().then(setAccess, (e: Error) => setError(e.message));
+	// Any success clears an earlier failure, so a stale error never sits under good data.
+	const loaded = useCallback((a: AccessView) => {
+		setAccess(a);
+		setError(null);
 	}, []);
+	const refresh = useCallback(() => {
+		request().then(loaded, (e: Error) => setError(e.message));
+	}, [loaded]);
 	// Re-read whenever the live agent status changes (agent-status.tsx).
 	const live = useAgentStatus();
 	useEffect(() => {
@@ -79,7 +84,7 @@ export function ConnectionSection() {
 	}, [refresh, live]);
 
 	const rotate = () =>
-		request({ method: "POST", body: JSON.stringify({ action: "rotate" }) }).then(setAccess, (e: Error) => setError(e.message));
+		request({ method: "POST", body: JSON.stringify({ action: "rotate" }) }).then(loaded, (e: Error) => setError(e.message));
 
 	if (!access) return <p className="text-xs text-ink-3">{error ?? "Loading…"}</p>;
 	const token = access.token;

@@ -197,11 +197,17 @@ export function SettingsDialogBody({
 			body: object,
 		) => {
 			setError(null);
-			const res = await fetch(`/api/settings/${section}`, {
-				method: "PUT",
-				headers: { "content-type": "application/json" },
-				body: JSON.stringify(body),
-			});
+			let res: Response;
+			try {
+				res = await fetch(`/api/settings/${section}`, {
+					method: "PUT",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify(body),
+				});
+			} catch {
+				setError("Network error. Try again.");
+				return;
+			}
 			if (!res.ok) {
 				const detail = (await res.json().catch(() => ({}))) as {
 					error?: string;
@@ -323,7 +329,7 @@ export function SettingsDialogBody({
 						</p>
 					) : record === null ? (
 						<p className="text-xs text-ink-3">
-							Settings could not be loaded — refresh to retry.
+							Settings could not be loaded. Refresh to retry.
 						</p>
 					) : (
 						<div>

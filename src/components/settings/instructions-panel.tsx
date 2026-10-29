@@ -111,7 +111,12 @@ export function InstructionsPanel({
 									)}
 								>
 									{PART_NAMES[p.path] ?? p.path}
-									{p.overrideText !== null && <span className="size-1.5 rounded-full bg-ink" aria-label="edited" />}
+									{p.overrideText !== null && (
+										<>
+											<span className="size-1.5 rounded-full bg-ink" aria-hidden />
+											<span className="sr-only"> edited</span>
+										</>
+									)}
 								</button>
 							);
 						})}
