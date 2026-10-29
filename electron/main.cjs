@@ -231,7 +231,7 @@ function log(line) {
 }
 
 function startServer(port) {
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		const child = spawn(
 			process.execPath,
 			[
@@ -616,7 +616,7 @@ function setupAutoUpdater() {
 	autoUpdater.logger = {
 		info: (m) => log(`updater: ${m}`),
 		warn: (m) => log(`updater warn: ${m}`),
-		debug: (m) => {}, // too chatty for the persistent log
+		debug: () => {}, // too chatty for the persistent log
 		error: (m) => log(`updater error: ${m}`),
 	};
 	autoUpdater.on("checking-for-update", () => reportUpdateStatus("checking"));
