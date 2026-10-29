@@ -769,7 +769,7 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		// 409 — a turn in flight.
 		beginTurn(dA.id);
 		const turnedAway = await deleteChatSession(dA.id, "delete-nodes");
-		assert.deepEqual(turnedAway, { ok: false, status: 409, code: "turn_in_flight", error: "A turn is running in this session. Try again when it finishes", jobIds: [] });
+		assert.deepEqual(turnedAway, { ok: false, status: 409, code: "turn_in_flight", error: "A turn is running in this lesson. Try again when it finishes.", jobIds: [] });
 		endTurn(dA.id);
 		// 409 — running background jobs; a refused delete keeps its notice.
 		rememberTurnFailure(dA.id, "The reply could not be saved.");

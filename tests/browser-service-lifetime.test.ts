@@ -20,7 +20,7 @@ function helperFixture(connected = true, channel = true) {
 	const appReady = new Promise<void>((resolve) => { allowAppReady = resolve; });
 	let allowReadiness!: () => void;
 	const readiness = new Promise<void>((resolve) => { allowReadiness = resolve; });
-	const state = { quits: 0, exits: [] as number[], windows: 0, readinessCalls: 0, stdinReads: 0, signal: undefined as AbortSignal | undefined, removed: [] as string[] };
+	const state = { quits: 0, exits: [] as number[], windows: 0, readinessCalls: 0, stdinReads: 0, signal: undefined as AbortSignal | undefined, removed: [] as string[], swept: [] as string[] };
 	const logs: string[] = [];
 	const errors: string[] = [];
 	// Match Electron 44's Windows override, not a native pipe.
@@ -61,6 +61,10 @@ function helperFixture(connected = true, channel = true) {
 			: id === "node:net" ? net
 			: id === "node:fs" ? { ...requireMain("node:fs"), rmSync: (dir: string) => { state.removed.push(dir); } }
 			: id === "./browser-service-readiness.cjs" ? { waitForBrowserService }
+			: id === "./browser-service-profile.cjs" ? {
+				...requireMain(id),
+				removeStaleHelperProfiles: (dir: string) => { state.swept.push(dir); },
+			}
 			: requireMain(id),
 		process, __dirname: dirname(mainFile), AbortController,
 		console: { log: (line: string) => logs.push(line), error: (...parts: unknown[]) => errors.push(parts.join(" ")) },
@@ -91,10 +95,11 @@ describe("browser-service IPC-owned lifetime", () => {
 		assert.equal(helper.state.quits, 1);
 	});
 
-	it("runs on its own throwaway profile and removes it on quit", () => {
+	it("clears stale profiles, runs on its own throwaway profile and removes it on quit", () => {
 		const helper = helperFixture();
 		const profile = path.join("/fixture/tmp", "godspeed-browser-service-4242");
 		assert.equal(helper.paths.get("userData"), profile);
+		assert.deepEqual(helper.state.swept, ["/fixture/tmp"]);
 		helper.app.emit("will-quit");
 		assert.deepEqual(helper.state.removed, [profile]);
 	});

@@ -73,7 +73,7 @@ export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, {
 			ok: false,
 			status: 409,
 			code: "turn_in_flight",
-			error: "A turn is running in this session. Try again when it finishes",
+			error: "A turn is running in this lesson. Try again when it finishes.",
 			jobIds: [],
 		};
 	}
@@ -87,7 +87,7 @@ export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, {
 			ok: false,
 			status: 409,
 			code: "jobs_running",
-			error: "Background jobs are still running in this session — try again when they finish",
+			error: "Background jobs are still running in this lesson. Try again when they finish.",
 			jobIds: runningJobs.map((job) => job.id),
 		};
 	}

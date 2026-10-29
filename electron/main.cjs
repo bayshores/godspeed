@@ -70,13 +70,15 @@ function serverEntry() {
 if (process.argv.includes("--browser-service")) {
 	// A throwaway Chromium profile, never the running app's own. The pid
 	// keeps a dev helper and a packaged one apart.
-	const helperData = path.join(app.getPath("temp"), `godspeed-browser-service-${process.pid}`);
+	const { helperProfileDir, removeStaleHelperProfiles } = require("./browser-service-profile.cjs");
+	removeStaleHelperProfiles(app.getPath("temp"));
+	const helperData = helperProfileDir(app.getPath("temp"), process.pid);
 	app.setPath("userData", helperData);
 	const removeHelperData = () => {
 		try {
 			fs.rmSync(helperData, { recursive: true, force: true });
 		} catch {
-			/* best effort: the OS clears temp too */
+			/* best effort: the next helper removes it */
 		}
 	};
 	app.once("will-quit", removeHelperData);
