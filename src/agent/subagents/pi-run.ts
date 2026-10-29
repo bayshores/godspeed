@@ -4,7 +4,7 @@ import type { AssistantMessage, ToolResultMessage, Usage } from "@earendil-works
 import { randomUUID } from "node:crypto";
 import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
 import type { ModelRole } from "../../config.ts";
-import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
+import { forgetConversation, labelConversation } from "../agent-bridge.ts";
 
 /**
  * The shared sub-agent runner (docs/pi-engine-swap.md §6): one helper every
@@ -141,7 +141,7 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 		else await agent.continue();
 	} finally {
 		opts.abortSignal?.removeEventListener("abort", onAbort);
-		if (opts.taskLabel) unlabelConversation(sessionId);
+		forgetConversation(sessionId);
 	}
 
 	if (aborted || opts.abortSignal?.aborted) {

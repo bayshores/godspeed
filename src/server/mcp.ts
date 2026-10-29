@@ -207,6 +207,7 @@ function buildServer(): McpServer {
 			},
 		},
 		async ({ timeout_seconds, lesson_id, full_context }) => {
+			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
 			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true });
 			return view ? workResult(view) : result(IDLE);
 		},

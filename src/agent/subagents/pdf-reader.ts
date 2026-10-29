@@ -5,6 +5,7 @@ import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import { Type } from "typebox";
 import { resolveSourcePath } from "../tools/fs-shared.ts";
 import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
+import { forgetConversation } from "../agent-bridge.ts";
 import type { PdfResult, PdfToolInput } from "../../core/contracts.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
 import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "./pdf-ops.ts";
@@ -334,6 +335,8 @@ export async function runPdfReaderAgent(
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
 		return { path: pdfPath, question: input.question, brief: `PDF failed: the reader crashed — ${msg}`, pagesRead: [...read].sort((a, b) => a - b), pagesConsulted: [...consulted].sort((a, b) => a - b) };
+	} finally {
+		forgetConversation(sessionId);
 	}
 
 	// Iteration limit: deliver whatever was honestly consulted (never invention).

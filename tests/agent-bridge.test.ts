@@ -142,6 +142,26 @@ describe("outside agent as the model", () => {
 		assert.equal(bridge.pendingWorkCount(), 0);
 	});
 
+	it("a forgotten background conversation is delivered in full again", async () => {
+		const ask = async (conversation: string, messages: unknown[]) => {
+			const stream = bridge.agentStream(bridge.agentModel(), { messages } as never, { sessionId: conversation });
+			const work = await bridge.waitForWork(5000);
+			assert.ok(work);
+			assert.ok(bridge.respondToWork(work.workId, { text: "Done." }, 0).ok);
+			return { work, reply: await stream.result() };
+		};
+		const first = { role: "user", content: "Read this file", timestamp: Date.now() };
+		const next = { role: "user", content: "And this one", timestamp: Date.now() };
+		for (const forget of [false, true]) {
+			const conversation = `job_forget_${forget}`;
+			const { reply } = await ask(conversation, [first]);
+			if (forget) bridge.forgetConversation(conversation);
+			const { work } = await ask(conversation, [first, reply, next]);
+			assert.equal(work.continued, !forget);
+		}
+		assert.equal(bridge.pendingWorkCount(), 0);
+	});
+
 	it("an answered lesson's next item is held for the answering agent until release or expiry", async () => {
 		const chat = agentChat("Held");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
@@ -251,6 +271,10 @@ describe("the /api/mcp door", () => {
 
 		const idle = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1 } } }, auth))).json();
 		assert.equal(JSON.parse(idle.result.content[0].text).status, "idle");
+
+		const unknown = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1, lesson_id: "nope" } } }, auth))).json();
+		assert.equal(unknown.result.isError, true);
+		assert.match(unknown.result.content[0].text, /No lesson "nope"/);
 	});
 
 	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {

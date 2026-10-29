@@ -137,13 +137,18 @@ function state(): BridgeState {
 }
 
 /** Name a background conversation for the outside agent (pi-run calls
- *  this for runs with a taskLabel, and unlabels when the run ends). */
+ *  this for runs with a taskLabel, and forgets the run when it ends). */
 export function labelConversation(conversation: string, label: string): void {
 	state().labels.set(conversation, label);
 }
 
-export function unlabelConversation(conversation: string): void {
-	state().labels.delete(conversation);
+/** Drop a finished background run's state: it is never delivered again,
+ *  and its seen transcript would otherwise stay in memory until restart. */
+export function forgetConversation(conversation: string): void {
+	const s = state();
+	s.labels.delete(conversation);
+	s.seen.delete(conversation);
+	s.held.delete(conversation);
 }
 
 function wake(): void {
