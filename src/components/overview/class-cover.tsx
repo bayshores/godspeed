@@ -1,9 +1,9 @@
-import { memo, useMemo, type CSSProperties } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import katex from "katex";
 import type { ClassNote, ClassSignature } from "@/core";
 import { HalleyFace } from "@/components/halley/halley-face";
 import { cn } from "@/lib/utils";
-import { firstSentence, labelHangsLeft, noteWhen, studiedShare } from "./class-cover-model";
+import { SIGNATURE_LEFT, fitScale, firstSentence, labelHangsLeft, noteWhen, studiedShare } from "./class-cover-model";
 
 /**
  * THE CLASS COVER (top of a class's Overview, pen board 10b · H2): the
@@ -81,14 +81,34 @@ export const ClassCover = memo(function ClassCover({
 	const pct = Math.round(share * 100);
 	const about = firstSentence(description);
 	const when = note && nowMs !== null ? noteWhen(note.at, nowMs) : "";
+	// A tall formula or a long line shrinks to fit the cover instead of
+	// being cut off at its edges.
+	const coverRef = useRef<HTMLElement>(null);
+	const signatureRef = useRef<HTMLDivElement>(null);
+	const [scale, setScale] = useState(1);
+	useLayoutEffect(() => {
+		const cover = coverRef.current;
+		const sig = signatureRef.current;
+		if (!cover || !sig) return;
+		const fit = () =>
+			setScale(
+				fitScale(
+					{ width: sig.offsetWidth, height: sig.offsetHeight },
+					{ width: cover.clientWidth * (1 - SIGNATURE_LEFT), height: cover.clientHeight },
+				),
+			);
+		fit();
+		const observer = new ResizeObserver(fit);
+		observer.observe(cover);
+		observer.observe(sig);
+		return () => observer.disconnect();
+	}, [signature]);
 	return (
-		<header data-testid="class-cover" data-halley-target={`class:${classId}`} className="@container relative overflow-hidden px-[52px] pt-10 pb-7">
+		<header ref={coverRef} data-testid="class-cover" data-halley-target={`class:${classId}`} className="@container relative overflow-hidden px-[52px] pt-10 pb-7">
 			{signature && (
-				<InkedSignature
-					signature={signature}
-					share={share}
-					className={cn("absolute top-1/2 left-[28%] -translate-y-1/2", signature.kind === "math" ? "text-[110px]" : "text-[180px]")}
-				/>
+				<div ref={signatureRef} className="absolute top-1/2 -translate-y-1/2 origin-left" style={{ left: `${SIGNATURE_LEFT * 100}%`, scale: String(scale) }}>
+					<InkedSignature signature={signature} share={share} className={signature.kind === "math" ? "text-[110px]" : "text-[180px]"} />
+				</div>
 			)}
 			<div className="relative flex flex-col gap-6 @4xl:flex-row @4xl:items-end @4xl:justify-between">
 				<div className="flex min-w-0 flex-col gap-2">

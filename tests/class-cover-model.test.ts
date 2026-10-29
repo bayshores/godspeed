@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { firstSentence, labelHangsLeft, noteWhen, studiedShare } from "../src/components/overview/class-cover-model.ts";
+import { fitScale, firstSentence, labelHangsLeft, noteWhen, studiedShare } from "../src/components/overview/class-cover-model.ts";
 
 describe("class cover", () => {
 	it("inks the share of facts studied, 0 with no facts, never past 1", () => {
@@ -33,5 +33,21 @@ describe("class cover", () => {
 	it("the label hangs left of the line's end once it's far enough in", () => {
 		assert.equal(labelHangsLeft(0.05), false);
 		assert.equal(labelHangsLeft(0.4), true);
+	});
+});
+
+describe("fitScale", () => {
+	it("keeps a signature that fits as is", () => {
+		assert.equal(fitScale({ width: 200, height: 100 }, { width: 600, height: 200 }), 1);
+	});
+	it("shrinks a tall formula to the cover's height, with a margin", () => {
+		// A binomial at 110 px is 170 px tall; the cover is 146 px.
+		assert.equal(fitScale({ width: 180, height: 170 }, { width: 600, height: 146 }), (146 - 24) / 170);
+	});
+	it("shrinks a long line to the room on its right", () => {
+		assert.equal(fitScale({ width: 1000, height: 100 }, { width: 512, height: 300 }), 0.5);
+	});
+	it("leaves an unmeasured signature alone", () => {
+		assert.equal(fitScale({ width: 0, height: 0 }, { width: 600, height: 200 }), 1);
 	});
 });

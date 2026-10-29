@@ -6,7 +6,8 @@
 			"Follow no longer gets stuck when your cursor is in a text box. It only waits while you're typing or a dialog is open.",
 			"With Follow off, when your agent changes something on another page, the top bar shows what it did with a Go to button.",
 			"The white number box next to the class name is gone.",
-			"A class without a signature shows an Add a signature link on its cover."
+			"A class without a signature shows an Add a signature link on its cover.",
+			"A tall signature, like a fraction or a binomial, shrinks to fit the cover instead of being cut off."
 		]
 	},
 	{
