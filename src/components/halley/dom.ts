@@ -141,15 +141,10 @@ export function fadeOut(el: HTMLElement, reduce: boolean, then?: () => void): vo
 	window.setTimeout(() => then?.(), reduce ? 0 : REMOVE_FADE_MS);
 }
 
-/** The learner is typing (a text field has focus) or a dialog is open. */
-export function learnerBusy(): boolean {
+/** A dialog is open. (Typing is noted from input events instead: a text
+ *  box that only holds the cursor must not hold Follow back.) */
+export function dialogOpen(): boolean {
 	if (typeof document === "undefined") return false;
-	const a = document.activeElement as HTMLElement | null;
-	if (a) {
-		if (a.isContentEditable) return true;
-		if (a instanceof HTMLTextAreaElement) return true;
-		if (a instanceof HTMLInputElement && !/^(checkbox|radio|button|submit|reset|range|color|file|image)$/.test(a.type)) return true;
-	}
 	return !!document.querySelector("[role='dialog'], [role='alertdialog']");
 }
 

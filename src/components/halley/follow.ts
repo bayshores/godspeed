@@ -3,7 +3,8 @@
  *
  * With Follow on, Halley takes you to the page of each change. Going to a
  * page yourself turns it off ("Stopped following"). While you type or a
- * dialog is open it waits, and catches up RESUME_MS after you stop.
+ * dialog is open it waits, and catches up RESUME_MS after you stop. With
+ * Follow off, a fresh change on another page offers a "Go to" button.
  */
 
 export const RESUME_MS = 3000;
@@ -72,6 +73,24 @@ export function followMoves(
 ): { switchClass: { to: string | null } | null; go: string | null } {
 	const switchClass = classScopedPage(action.page) && action.classId !== here.activeClass ? { to: action.classId } : null;
 	return { switchClass, go: action.page !== here.path ? action.page : null };
+}
+
+/** How long a change on another page keeps its "Go to" button. */
+export const GO_OFFER_MS = 10 * 60_000;
+
+/** The change to offer "Go to" for while Follow is off: the newest one,
+ *  while it is fresh and its page isn't the one you're on. */
+export function goOffer<A extends { page: string; at: string }>(newest: A | undefined, here: { follow: boolean; path: string; now: number }): A | null {
+	if (!newest || here.follow) return null;
+	const page = safePage(newest.page);
+	if (!page || page === here.path) return null;
+	return here.now - Date.parse(newest.at) < GO_OFFER_MS ? newest : null;
+}
+
+/** The page's name on the "Go to" button. */
+export function pageName(page: string): string {
+	if (page.startsWith("/chat/")) return "lesson";
+	return ({ "/": "Home", "/class": "Overview", "/class/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
 }
 
 /** The stored Follow choice ("1" = on). Off by default. */

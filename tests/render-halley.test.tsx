@@ -143,15 +143,23 @@ describe("the panel", () => {
 describe("the Follow chip", () => {
 	it("white, 'Following <name>' with Stop", () => {
 		const stops: number[] = [];
-		const el = mount(<FollowChipView following name="Halley" notice={null} onStop={() => stops.push(1)} />);
+		const el = mount(<FollowChipView following name="Halley" notice={null} onStop={() => stops.push(1)} offer={null} onGo={() => {}} />);
 		assert.match(el.textContent ?? "", /Following HalleyStop/);
 		assert.match(el.querySelector("[data-testid='follow-chip']")!.className, /bg-ink/);
 		act(() => (el.querySelector("[data-testid='follow-stop']") as HTMLElement).click());
 		assert.deepEqual(stops, [1]);
 	});
 	it("'Stopped following' briefly, otherwise nothing", () => {
-		assert.match(renderToStaticMarkup(<FollowChipView following={false} name="Halley" notice="Stopped following" onStop={() => {}} />), /Stopped following/);
-		assert.equal(renderToStaticMarkup(<FollowChipView following={false} name="Halley" notice={null} onStop={() => {}} />), "");
+		assert.match(renderToStaticMarkup(<FollowChipView following={false} name="Halley" notice="Stopped following" onStop={() => {}} offer={null} onGo={() => {}} />), /Stopped following/);
+		assert.equal(renderToStaticMarkup(<FollowChipView following={false} name="Halley" notice={null} onStop={() => {}} offer={null} onGo={() => {}} />), "");
+	});
+	it("with Follow off, a change on another page offers 'Go to'", () => {
+		const offer: AgentAction = { id: "act_1", at: new Date().toISOString(), agent: "Claude Code", label: "Starting CSE 29 review", classId: null, target: null, page: "/chat/c1" };
+		const went: AgentAction[] = [];
+		const el = mount(<FollowChipView following={false} name="Halley" notice={null} onStop={() => {}} offer={offer} onGo={(a) => went.push(a)} />);
+		assert.match(el.textContent ?? "", /Starting CSE 29 reviewGo to lesson/);
+		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
+		assert.deepEqual(went, [offer]);
 	});
 });
 

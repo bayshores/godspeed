@@ -131,6 +131,11 @@ describe("Overview header", () => {
 		assert.ok(!html.includes("class-cover-note"), "no note, no box");
 	});
 
+	it("a cover without a signature offers 'Add a signature'", () => {
+		assert.match(renderRunway(DEADLINES, { onAddSignature: () => {} }), /Add a signature/);
+		assert.ok(!renderRunway(DEADLINES, { onAddSignature: () => {}, signature: { kind: "code", value: "int *p;" } }).includes("Add a signature"), "has one");
+	});
+
 	it("the signature is set behind the name in its own type and inks in as far as studied", () => {
 		const math = render({ classId: "cls_ml", signature: { kind: "math", value: "\\nabla f(x) = 0" } });
 		assert.match(section(math, "class-signature-ink"), /class="katex"/);
