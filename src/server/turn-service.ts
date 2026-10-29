@@ -93,7 +93,7 @@ export function persistTurn(
 
 /**
  * The graph write channel (vision §1 construction): the extraction pipeline
- * (extractor → auditor → merger — the sole graph writer) runs ASYNC once a
+ * (extractor → merger — the sole graph writer) runs ASYNC once a
  * chat's UNCOVERED transcript tokens reach the chunk budget
  * (vision-extraction-coverage.md, 2026-09-15). Coverage reads through the
  * projection (the record is native history; the extraction view stays

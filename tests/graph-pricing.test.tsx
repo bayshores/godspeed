@@ -17,7 +17,7 @@ function callCost(call: Partial<CallUsage>, model: string): number | null {
 }
 
 const usage = (over: Partial<CallUsage> = {}): CallUsage => ({ inputTokens: 1000, outputTokens: 100, cacheReadTokens: 0, cacheWriteTokens: 20_000, reasoningTokens: 0, ...over });
-const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): ExtractionRunUsage => ({ startedAt: at, at: "fixture", durationMs: 1, stages: { extractor: { model, steps }, auditor: { model, steps } } });
+const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): ExtractionRunUsage => ({ startedAt: at, at: "fixture", durationMs: 1, stages: { extractor: { model, steps } } });
 const summary = (runs: ExtractionRunUsage[]) => graphCostSummary({ chats: [{ title: "fixture", extractions: runs }], sources: [] }, callCost);
 const headline = (runs: ExtractionRunUsage[]) => renderToStaticMarkup(<GraphCostControl costs={summary(runs)} />);
 
@@ -49,8 +49,7 @@ test("known zero, mixed priced/unknown, and subscription headline semantics stay
 test("graph stage and recent-run aggregates preserve known one-hour cache writes", () => {
 	const costs = summary([run([usage({ cacheWrite1hTokens: 20_000 })]), run([usage({ cacheWrite1hTokens: 5000 })], undefined, 2)]);
 	assert.equal(costs.stages.extraction.tokens.cacheWrite1hTokens, 25_000);
-	assert.equal(costs.stages.audit.tokens.cacheWrite1hTokens, 25_000);
-	assert.deepEqual(costs.runs.map((r) => r.tokens.cacheWrite1hTokens), [10_000, 40_000]);
+	assert.deepEqual(costs.runs.map((r) => r.tokens.cacheWrite1hTokens), [5000, 20_000]);
 });
 
 test("unknown historical long-cache splits stay unknown regardless of merge order", () => {
@@ -59,7 +58,6 @@ test("unknown historical long-cache splits stay unknown regardless of merge orde
 	for (const runs of [[known, historical], [historical, known]]) {
 		const costs = summary(runs);
 		assert.equal(costs.stages.extraction.tokens.cacheWrite1hTokens, undefined);
-		assert.equal(costs.stages.audit.tokens.cacheWrite1hTokens, undefined);
 	}
 	const mixedWithinRun = summary([run([usage({ cacheWrite1hTokens: 20_000 }), usage()])]);
 	assert.equal(mixedWithinRun.stages.extraction.tokens.cacheWrite1hTokens, undefined);

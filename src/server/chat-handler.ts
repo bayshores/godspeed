@@ -25,6 +25,8 @@ import { collectToolCallIds } from "./pi/call-ids.ts";
 import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, scopeOfGraphStore, stores } from "./stores.ts";
 import { scheduleTopicGrouping } from "./topics.ts";
 import { classCardFor } from "./class-card.ts";
+import type { ClassSearch } from "../agent/tools/class.ts";
+import { readPassage, relatedFacts, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { extractionEnabled, graphToolsEnabled } from "../core/settings-resolution.ts";
 import { beginTurn, endTurn } from "./turn-liveness.ts";
@@ -91,6 +93,8 @@ export const extraction = createExtractionPipeline({
 	},
 	// Every stage runs on the outside agent.
 	engineFor: () => agentEngine(),
+	// The existing ideas each stretch's prompt carries, by local search.
+	relatedFacts,
 });
 
 
@@ -330,6 +334,11 @@ export async function handleChatInput(
 				};
 	// read_class ends with the current [Today] note (built at call time).
 	const todayNote = () => currentTodayNote(lessonScope ?? undefined);
+	// search_class_files / read_passage over the lesson's class files.
+	const classSearch: ClassSearch | undefined =
+		lessonScope === null
+			? undefined
+			: { searchFiles: (query, limit) => searchClassFiles(lessonScope, query, limit), readPassage: (ref) => readPassage(lessonScope, ref) };
 	// The agent engine loads on the first turn, not at server start.
 	if (!buildAgent) await loadAgentCore();
 	const constructed: TeachingAgent = buildAgent
@@ -358,7 +367,7 @@ export async function handleChatInput(
 						...(graphToolsEnabled(effective)
 							? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
 							: {}),
-						...(classCard ? { classCard, todayNote } : {}),
+						...(classCard ? { classCard, todayNote, classSearch } : {}),
 					},
 					agentOpts,
 				)
@@ -369,7 +378,7 @@ export async function handleChatInput(
 						chatStore: stores.chatStore,
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						...(classCard ? { classCard, todayNote } : {}),
+						...(classCard ? { classCard, todayNote, classSearch } : {}),
 						// The registry drop's signal: no live engine
 						// = no research tool in the teacher's registry.
 					},
@@ -388,7 +397,7 @@ export async function handleChatInput(
 						// knowledge graph through tools when the gate opens —
 						// graph master switch AND the agent.graphTools toggle.
 						...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
-						...(classCard ? { classCard, todayNote } : {}),
+						...(classCard ? { classCard, todayNote, classSearch } : {}),
 					},
 					agentOpts,
 				);
@@ -464,7 +473,7 @@ export async function handleChatInput(
 					});
 				}
 				// GRAPH GATE: the write channel —
-				// extraction, its auditor — dies with the master switch.
+				// extraction — dies with the master switch.
 				// PRACTICE: practice sessions write nothing —
 				// no extraction, no graph, no coverage (the session itself
 				// is the deliverable).

@@ -3,8 +3,7 @@
  * call that groups a class graph's facts into the topics a student would
  * name. Built on the extractor's single-submit seam (runSubmitAgent): the
  * model reads the facts and the current topics, then calls submit_topics
- * once. Runs on the auditor's model setting (the background "cheap" slot),
- * so an "Outside agent (MCP)" choice reaches the connected agent as a
+ * once. Runs on the outside agent, so the connected agent gets it as a
  * work item labeled "Topic grouping · <class>".
  *
  * This file only talks to the model. The deterministic rules — names 1–4
@@ -92,7 +91,7 @@ function topicGrouperPrompt(input: Pick<TopicGrouperInput, "className" | "facts"
  *  in exactly one topic. Throws when the model never submits. */
 export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[]> {
 	const submitted = await runSubmitAgent<TopicsSubmit>({
-		role: "auditor",
+		role: "topicGrouper",
 		taskLabel: `Topic grouping · ${input.className}`,
 		toolName: "submit_topics",
 		toolDescription: "Submit the full topic grouping for the course's facts.",

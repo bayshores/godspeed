@@ -272,6 +272,7 @@ export interface ProberToolContext extends ProbeDoneContext {
 	 *  is registered (lessons in a class only). */
 	classCard?: ClassToolContext["classCard"];
 	todayNote?: ClassToolContext["todayNote"];
+	classSearch?: ClassToolContext["search"];
 }
 
 /** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
@@ -330,7 +331,7 @@ export function createProberTools(
 				...(ctx.graphStore
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
-				...(ctx.classCard ? classTools({ classCard: ctx.classCard, ...(ctx.todayNote ? { todayNote: ctx.todayNote } : {}) }) : {}),
+				...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch }) : {}),
 				...done,
 			},
 				withoutMechanics(enabled),
@@ -392,6 +393,7 @@ export interface TeacherToolContext extends PlanToolContext {
 	/** The lesson's class card reader: present = read_class. */
 	classCard?: ClassToolContext["classCard"];
 	todayNote?: ClassToolContext["todayNote"];
+	classSearch?: ClassToolContext["search"];
 }
 
 /**
@@ -449,7 +451,7 @@ export function createTeacherTools(
 			grep: grepTool,
 			...planTools(ctx),
 			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn }),
-			...(ctx.classCard ? classTools({ classCard: ctx.classCard, ...(ctx.todayNote ? { todayNote: ctx.todayNote } : {}) }) : {}),
+			...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch }) : {}),
 		},
 		withoutMechanics(enabled),
 		),

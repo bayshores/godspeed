@@ -5,7 +5,7 @@
  * (field "files", any text format — the extractor is format-agnostic); the
  * pipeline mints a deterministic source id per file path, persists the
  * source record (the file's provenance + the run's usage), and runs
- * extractor → auditor → merger over the raw text.
+ * extractor → merger over the raw text.
  *
  * Small concurrency cap: the model calls are the slow part, and a burst of
  * 25 simultaneous runs would trip provider rate limits — a 3-wide worker

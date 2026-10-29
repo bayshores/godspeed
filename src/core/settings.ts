@@ -126,7 +126,7 @@ export interface AppearanceSettings {
 
 /** Knowledge-graph settings. */
 export interface GraphSettings {
-	/** The master switch: off = no extraction, no auditor. Clustering is
+	/** The master switch: off = no extraction. Clustering is
 	 *  the free birth-session partition derived on read
 	 *  (core/session-clusters.ts), labels ARE session names, and the prober
 	 *  graph tools read the ledgers directly — so there is nothing else to

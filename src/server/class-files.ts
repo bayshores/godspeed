@@ -2,7 +2,7 @@
  * CLASS FILES → TEXT (classes wave, owner-approved 2026-10-26, Phase 3).
  *
  * The one "to text" step every class file passes through before the
- * existing notes pipeline (extractor → auditor → merge) turns it into
+ * existing notes pipeline (extractor → merge) turns it into
  * facts. No model here: plain reads, the existing pdfjs text extraction,
  * transcript cleanup. Recordings go through the local whisper.cpp
  * transcriber (src/server/transcribe.ts).

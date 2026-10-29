@@ -112,11 +112,12 @@ export interface ExtractionRunUsage {
 	durationMs: number;
 	/** What the run merged into the graph; absent when it failed first. */
 	stats?: EmissionStats;
-	/** Model usage per stage, in pipeline order (merger is deterministic —
-	 *  no model call, no entry). */
+	/** Model usage per stage (merger is deterministic — no model call, no
+	 *  entry). `auditor` only appears on records from before the linking
+	 *  stage was folded into the extractor. */
 	stages: {
 		extractor: ExtractionStageUsage;
-		auditor: ExtractionStageUsage;
+		auditor?: ExtractionStageUsage;
 	};
 }
 

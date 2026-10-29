@@ -66,7 +66,7 @@ describe("chat store events (S6: the silence law)", () => {
 		chatStore.saveMessages(chat.id, [{ id: "m1", role: "user", content: "hello", timestamp: 1 } as never]);
 		// usage appends + settings + tree: record CONTENT, not list shape.
 		chatStore.appendTurnUsage(chat.id, { id: "t1", messageId: "m1", at: "2026-10-02T00:00:00.000Z", model: "x:y", steps: [] });
-		chatStore.appendExtractionUsage(chat.id, { startedAt: 1, at: "2026-10-02T00:00:00.000Z", durationMs: 1, stages: { extractor: { model: "x:y", steps: [] }, auditor: { model: "x:y", steps: [] } } });
+		chatStore.appendExtractionUsage(chat.id, { startedAt: 1, at: "2026-10-02T00:00:00.000Z", durationMs: 1, stages: { extractor: { model: "x:y", steps: [] } } });
 		chatStore.saveSettings(chat.id, {});
 		chatStore.saveTree(chat.id, { nodes: [], edges: [], version: 1 });
 

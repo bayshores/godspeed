@@ -68,13 +68,13 @@ it("real route plus in-memory ledgers and faux stages reprocess identical import
 	};
 	let calls = 0;
 	const pipeline = createExtractionPipeline({ chatStore: stores.chatStore, graphStore,
-		engineFor: (role) => {
+		engineFor: () => {
 			const faux = createFauxCore({});
 			faux.setResponses([() => {
-				if (role === "extractor") calls++;
-				return fauxAssistantMessage([fauxToolCall(role === "extractor" ? "submit_findings" : "submit_review", role === "extractor" ? {
-					propositions: [{ id: "p1", name: "Synthetic import", statement: "Explicit notes imports process the whole file.", aliases: [] }], chains: [],
-				} : { links: [] })], { stopReason: "toolUse" });
+				calls++;
+				return fauxAssistantMessage([fauxToolCall("submit_findings", {
+					propositions: [{ id: "p1", name: "Synthetic import", statement: "Explicit notes imports process the whole file.", aliases: [] }], chains: [], reteaches: [],
+				})], { stopReason: "toolUse" });
 			}]);
 			return { model: faux.getModel(), streamFn: faux.streamSimple };
 		},

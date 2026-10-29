@@ -47,7 +47,7 @@ export type ModelRole =
 	| "visualMaker"
 	| "pdfReader"
 	| "extractor"
-	| "auditor";
+	| "topicGrouper";
 
 /**
  * The LIVE graph store (src/store/graph.ts) — owned by the app's extraction

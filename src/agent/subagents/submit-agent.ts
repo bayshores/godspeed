@@ -14,7 +14,6 @@ import { invalidInputResult, toToolResult } from "../tool-execute.ts";
 import type { ModelRole } from "../../config.ts";
 import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
-import { healToolRecord } from "../tools/heal.ts";
 import { healEncodedArguments } from "../../core/argument-heal.ts";
 
 // ── the weak-model string-heal (owner, 2026-09-28; moved here from
@@ -32,7 +31,7 @@ import { healEncodedArguments } from "../../core/argument-heal.ts";
 export function healStringifiedArrays(raw: unknown): unknown {
 	if (typeof raw !== "object" || raw === null) return raw;
 	const out: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
-	for (const key of ["propositions", "chains"]) {
+	for (const key of ["propositions", "chains", "reteaches"]) {
 		const v = out[key];
 		if (typeof v !== "string" || v.trim().length === 0) continue;
 		try {
@@ -59,12 +58,6 @@ export async function runSubmitAgent<T>(opts: {
 	signal: AbortSignal | undefined;
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void;
 	neverSubmitted: string;
-	/** Extra tools beside the submit call (the auditor's graph-exploration
-	 *  set, 2026-09-27): a small agentic loop instead of a bare retry. */
-	extraTools?: Record<string, AgentTool<any>>;
-	/** Turn budget for the loop (default 4 = retry-only; the auditor runs
-	 *  an exploration loop instead — 16). */
-	maxTurns?: number;
 	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
 	/** The task's name on outside-agent work items (pi-run taskLabel). */
@@ -76,16 +69,12 @@ export async function runSubmitAgent<T>(opts: {
 	/** Semantic validation at the submit seam: the value is schema-valid
 	 *  but may violate a PIPELINE law (coverage, echo-equality). Returning
 	 *  a problem string yields an isError result (invalidInputResult) →
-	 *  the model retries within maxTurns. null = accept. */
+	 *  the model retries within its turns. null = accept. */
 	validate?: (value: T) => string | null;
 }): Promise<T> {
 	let submitted: T | undefined;
 	const result = await runSubagent(
 		[
-			// healToolRecord (owner, 2026-10-09): the standard argument heal
-		// over the extra tools (the auditor's graph set) — same as every
-		// registry.
-		...(opts.extraTools ? Object.values(healToolRecord(opts.extraTools)) : []),
 			{
 				name: opts.toolName,
 				label: opts.toolName,
@@ -113,7 +102,7 @@ export async function runSubmitAgent<T>(opts: {
 			engine: opts.engine,
 			systemPrompt: opts.systemPrompt,
 			prompt: opts.prompt,
-			maxTurns: opts.maxTurns ?? 4,
+			maxTurns: 4, // retry-only: the submit call is the whole deliverable
 			abortSignal: opts.signal,
 			chatId: opts.chatId,
 			taskLabel: opts.taskLabel,

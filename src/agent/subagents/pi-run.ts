@@ -9,7 +9,7 @@ import { labelConversation, unlabelConversation } from "../agent-bridge.ts";
 /**
  * The shared sub-agent runner (docs/pi-engine-swap.md §6): one helper every
  * background agent (researcher, demo-builder, visual-maker, extractor,
- * auditor) runs on — a stateless pi Agent built per call, driven to
+ * topic grouper) runs on — a stateless pi Agent built per call, driven to
  * completion, with the seams the job runner and the money channel need.
  *
  * Error semantics mirror the old ToolLoopAgent.generate: provider/loop

@@ -32,6 +32,7 @@ import * as http from "node:http";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
+import { Worker } from "node:worker_threads";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const STANDALONE = path.join(ROOT, ".next", "standalone");
@@ -76,10 +77,31 @@ function get(url) {
 	});
 }
 
+/** Class search's worker loads onnxruntime-node by a path the tracer can't
+ *  see, and the model by path: embed one query through the payload's own
+ *  worker file. */
+async function verifySearchModel() {
+	const worker = new Worker(path.join(STANDALONE, "src", "server", "workers", "embed-worker.mjs"), {
+		workerData: { modelsDir: path.join(STANDALONE, "models"), model: "Snowflake/snowflake-arctic-embed-xs" },
+	});
+	try {
+		const reply = await new Promise((resolve, reject) => {
+			worker.once("message", resolve);
+			worker.once("error", reject);
+			worker.postMessage({ id: 0, texts: ["stars and bars"] });
+		});
+		if (!reply.ok || reply.vectors.length !== 384) throw new Error(`search worker: ${reply.error ?? `${reply.vectors.length} numbers, expected 384`}`);
+	} finally {
+		await worker.terminate();
+	}
+	console.log("[smoke-server] search model: ok");
+}
+
 async function main() {
 	// HTTP boot alone never imports the dynamically loaded demo engine.
 	// Fail before packaging if its standalone dependency graph is incomplete.
 	verifyDemoRuntime(STANDALONE, RUNTIME);
+	await verifySearchModel();
 	const port = await freePort();
 	const url = `http://127.0.0.1:${port}`;
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh-smoke-"));

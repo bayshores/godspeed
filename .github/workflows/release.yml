@@ -185,6 +185,7 @@ jobs:
           path: .next/cache
           key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
           restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      - run: node scripts/fetch-model.mjs
       - run: npm run build
       - run: node scripts/build-server.mjs
       - run: node scripts/smoke-server.mjs --electron

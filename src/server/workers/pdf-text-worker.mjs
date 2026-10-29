@@ -8,7 +8,8 @@
  * Plain .mjs on purpose: the standalone server ships no TypeScript, and the
  * bundler never sees this file (it is loaded by path — next.config.ts traces
  * it in). Output MUST match pdf-ops.ts pdfExtract(file, "all") byte for byte:
- * "--- Page N ---" then the page's text items joined, lines joined by "\n".
+ * "--- Page N ---" then the page's text items joined, with "\n" where pdf.js
+ * marks a line end (hasEOL).
  * tests/pdf-text-worker.test.ts holds the two to each other.
  */
 import { readFile } from "node:fs/promises";
@@ -28,9 +29,10 @@ try {
 		let text = "";
 		for (const it of content.items) {
 			if (it && typeof it === "object" && typeof it.str === "string") text += it.str;
+			if (it && typeof it === "object" && it.hasEOL === true) text += "\n";
 		}
 		out.push(`--- Page ${i} ---`);
-		out.push(text);
+		out.push(text.replace(/\n+$/, ""));
 	}
 	await task.destroy();
 	parentPort.postMessage({ ok: true, text: doc.numPages === 0 ? "No pages selected — page spec matched nothing." : out.join("\n") });

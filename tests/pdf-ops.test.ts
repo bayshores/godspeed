@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import { parsePageSpec, pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "../src/agent/subagents/pdf-ops.ts";
+import { pdfTextOffThread } from "../src/server/class-files.ts";
 
 const FIXTURE = path.join(import.meta.dirname, "fixtures", "sample-3page.pdf");
 
@@ -33,6 +34,13 @@ describe("pdf-ops — the pdfjs text layer", () => {
 		assert.match(picks, /--- Page 1 ---/);
 		assert.ok(!picks.includes("--- Page 2 ---"));
 		assert.match(picks, /Chemistry/);
+	});
+
+	it("pdfExtract keeps the page's line breaks (in process and on the worker)", async () => {
+		const twoLines = path.join(import.meta.dirname, "fixtures", "two-lines.pdf");
+		const expected = "--- Page 1 ---\nFirst line of the page\nsecond line here";
+		assert.equal(await pdfExtract(twoLines, "all"), expected);
+		assert.equal(await pdfTextOffThread(twoLines), expected);
 	});
 
 	it("pdfSearch finds hits with page/line + context, literal and regex", async () => {

@@ -31,3 +31,6 @@ next-env.d.ts
 
 # Claude Code local state (session worktrees, settings)
 .claude/
+
+# class-search embedding model, filled by scripts/fetch-model.mjs
+models/

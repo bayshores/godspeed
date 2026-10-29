@@ -180,7 +180,7 @@ interface ActivityBlob {
 	process: "job" | "extraction";
 	/** Sub-agent kind for jobs (extraction blobs have none). */
 	jobKind?: JobKind;
-	/** Extraction phase (extracting/auditing/merging/embedding); jobs carry none. */
+	/** Extraction phase (waiting/extracting/merging/grouping); jobs carry none. */
 	phase?: string;
 	title: string;
 	chatId: string;

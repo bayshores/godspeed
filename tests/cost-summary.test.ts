@@ -30,10 +30,12 @@ const step = (input: number, output: number): CallUsage => ({
 	reasoningTokens: 0,
 });
 
+/** A run record. With `auditorModel` it is an old record from before the
+ *  linking stage was folded into the extractor. */
 const extractionRun = (
 	startedAt: number,
 	extractorModel: string,
-	auditorModel: string,
+	auditorModel?: string,
 	stats?: ExtractionRunUsage["stats"],
 ): ExtractionRunUsage => ({
 	startedAt,
@@ -41,13 +43,29 @@ const extractionRun = (
 	durationMs: 10_000,
 	stages: {
 		extractor: { model: extractorModel, steps: [step(1000, 200)] },
-		auditor: { model: auditorModel, steps: [step(2000, 100)] },
+		...(auditorModel ? { auditor: { model: auditorModel, steps: [step(2000, 100)] } } : {}),
 	},
 	...(stats ? { stats } : {}),
 });
 
 describe("graphCostSummary (the cost pill's fold)", () => {
 	test("folds both channels: stage totals, tokens, newest-first runs", () => {
+		const s = graphCostSummary({
+			chats: [{ title: "Testing session", extractions: [extractionRun(100, PRICED)] }],
+			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PRICED)] }],
+		});
+		const extStep = callCost(step(1000, 200), PRICED)!;
+		assert.equal(s.stages.extraction.dollars, extStep * 2);
+		assert.equal(s.stages.extraction.runs, 2);
+		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
+		assert.equal(s.stages.audit.runs, 0, "current records carry the extractor stage only");
+		assert.equal(s.totalDollars, extStep * 2);
+		assert.deepEqual(s.runs.map((r) => r.title), ["/vault/modal.md", "Testing session"]);
+		assert.deepEqual(s.runs.map((r) => r.kind), ["extraction", "extraction"]);
+		assert.equal(s.unpricedRuns, 0);
+	});
+
+	test("old records with an auditor stage still fold it", () => {
 		// (The cluster-naming channel died with the extraction-UX close-out,
 		// 2026-09-24 — two channels: chat + notes front doors.)
 		const input: CostSummaryInput = {
@@ -73,7 +91,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.unpricedRuns, 0);
 	});
 
-	test("unpriced models: excluded dollars, counted honestly, run null only when BOTH stages unpriced", () => {
+	test("unpriced models (old records): excluded dollars, counted honestly, run null only when BOTH stages unpriced", () => {
 		const s: GraphCostSummary = graphCostSummary({
 			chats: [{ title: "partial", extractions: [extractionRun(100, PRICED, "unknown-model")] }],
 			sources: [{ filePath: "/vault/x.md", extractions: [extractionRun(200, "unknown-model", "unknown-model")] }],
@@ -89,7 +107,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 	});
 
 	test("recent runs cap: newest survive", () => {
-		const extractions = [1, 2, 3, 4].map((n) => extractionRun(n * 100, PRICED, PRICED));
+		const extractions = [1, 2, 3, 4].map((n) => extractionRun(n * 100, PRICED));
 		const s = graphCostSummary({
 			chats: [{ title: "chat", extractions }],
 			sources: [],
@@ -103,7 +121,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 
 	test("failed runs carry no merged stats; empty input folds to zero", () => {
 		const s = graphCostSummary({
-			chats: [{ title: "failed", extractions: [extractionRun(100, PRICED, PRICED)] }],
+			chats: [{ title: "failed", extractions: [extractionRun(100, PRICED)] }],
 			sources: [],
 		});
 		assert.equal(s.runs[0]!.merged, undefined);
