@@ -873,6 +873,19 @@ describe("canonical persistence failures", () => {
 		} finally { chatStore.saveMessages = save; }
 	});
 
+	it("a failed agent build answers 500 and leaves the chat unlocked", async () => {
+		const chat = createConfiguredChat("Test: failed agent build");
+		createdChats.push(chat.id);
+		const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me" }), () => {
+			throw new Error("synthetic build failure");
+		});
+		assert.equal(res.status, 500);
+		assert.equal(isTurnRunning(chat.id), false, "the failed start released the turn");
+		const ok = await handleChatRequest(post(chat.id, { type: "text", text: "again" }), agentFactory(scriptedTeacher(defaultLesson).engine));
+		assert.equal(ok.status, 200, "the next send is not locked out");
+		await drain(ok);
+	});
+
 	it("reports a failed reply save before DONE while keeping the accepted answer durable", async () => {
 		const { engine } = scriptedTeacher(defaultLesson);
 		const chat = createConfiguredChat("Test: failed reply persistence");
@@ -1512,6 +1525,11 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 		assert.equal((await steerPost(chat.id, { input: { type: "text", text: "hi" } })).status, 400);
 		assert.equal((await steerPost(chat.id, { input: { type: "steer", id: "steer_1", text: "  " } })).status, 400);
 		assert.equal((await steerPost(chat.id, { input: { type: "steer", id: "steer_1", text: "hi" } })).status, 409);
+		const badJson = await steerRoute.POST(
+			new Request(`http://test/api/chats/${chat.id}/steer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{" }),
+			{ params: Promise.resolve({ id: chat.id }) },
+		);
+		assert.equal(badJson.status, 400, "a body that is not JSON is a 400");
 	});
 
 	it("200 + the live steering queue when a turn runs; the drain lands the card and the model sees it", async () => {

@@ -235,6 +235,37 @@ describe("the compaction service", () => {
 		assert.equal(measuredContextTokens(record.messages), null);
 	});
 
+	it("keeps what another writer saved while the summary was awaited", async () => {
+		const chatId = overThresholdChat("compact: concurrent write");
+		const late = newUserMessage("saved during the summary");
+		const deps = depsOf(40_000);
+		await ensureCompacted({
+			...deps,
+			summarize: async (prompt, engine) => {
+				chatStore.saveMessages(chatId, [...chatStore.getChat(chatId)!.messages, late]);
+				return deps.summarize!(prompt, engine);
+			},
+		}, chatId);
+		const messages = chatStore.getChat(chatId)!.messages;
+		assert.ok(messages.some((m) => m.id === late.id), "the concurrent write survives");
+		assert.equal((messages.at(-1) as { customType?: string }).customType, "compaction", "the marker is last");
+	});
+
+	it("skips the save when the kept message is gone after the summary", async () => {
+		const chatId = overThresholdChat("compact: rewritten");
+		const deps = depsOf(40_000);
+		await ensureCompacted({
+			...deps,
+			summarize: async (prompt, engine) => {
+				chatStore.saveMessages(chatId, [newUserMessage("rewritten")]);
+				return deps.summarize!(prompt, engine);
+			},
+		}, chatId);
+		const messages = chatStore.getChat(chatId)!.messages;
+		assert.equal(messages.length, 1);
+		assert.equal(activeCompactionOf(messages), null, "no marker on a rewritten record");
+	});
+
 	it("a summarizer failure leaves the record untouched and the gate re-arms", async () => {
 		const chatId = overThresholdChat("compact: fail");
 		const before = summarizeCalls;

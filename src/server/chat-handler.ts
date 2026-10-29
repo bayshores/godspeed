@@ -272,152 +272,152 @@ export async function handleChatInput(
 		console.error(`[chat ${chatId}] input visibility bookkeeping failed:`, err);
 	}
 
-	// MONEY CHANNEL: one collector per request, fed by the agent's
-	// message_end events. Every model call's usage lands in the chat record's
-	// append-only turns log at onFinish — idempotent per turn id.
-	const turnUsageId = crypto.randomUUID();
-	const steps: CallUsage[] = [];
-	const collectUsage = (usage: Usage) => {
-		steps.push({
-			inputTokens: usage.input,
-			outputTokens: usage.output,
-			cacheReadTokens: usage.cacheRead,
-			cacheWriteTokens: usage.cacheWrite,
-			cacheWrite1hTokens: usage.cacheWrite1h ?? 0,
-			// Optional in pi's Usage — persisted as 0, never dropped.
-			reasoningTokens: usage.reasoning ?? 0,
-		});
-	};
+	try {
+		// MONEY CHANNEL: one collector per request, fed by the agent's
+		// message_end events. Every model call's usage lands in the chat record's
+		// append-only turns log at onFinish — idempotent per turn id.
+		const turnUsageId = crypto.randomUUID();
+		const steps: CallUsage[] = [];
+		const collectUsage = (usage: Usage) => {
+			steps.push({
+				inputTokens: usage.input,
+				outputTokens: usage.output,
+				cacheReadTokens: usage.cacheRead,
+				cacheWriteTokens: usage.cacheWrite,
+				cacheWrite1hTokens: usage.cacheWrite1h ?? 0,
+				// Optional in pi's Usage — persisted as 0, never dropped.
+				reasoningTokens: usage.reasoning ?? 0,
+			});
+		};
 
-	// AGENT CONSTRUCTION BRANCH (docs/probe-teach-split.md §2): the transcript
-	// is the seam — a probe_done call in the record means the probe is
-	// concluded: build the TEACHER (planning + the full toolset). Otherwise
-	// the session is still probing: build the PROBER (quiz/ask + probe_done).
-	// Both share this whole composition (write-ahead persist, liveness,
-	// steers, usage, extraction) — only the agent differs.
-	const teaching = hasProbeDone(merged);
-	// (Built once above the compaction gate; reused verbatim.)
-	const engine = conversationEngine;
-	// Provider-qualified stamp: matches the price table's
-	// provider:id keys.
-	const modelId = `${engine.model.provider}:${engine.model.id}`;
-	// Tests inject a factory: the agent is stateless per turn, so each
-	// request builds a fresh one off the record — the factory mirrors that
-	// seam exactly. The record IS the agent state (native messages;
-	// the record's id field strips at the wire in toLlmMessages).
-	// CROSS-STREAM SEAM: `toolToggles` rides the build opts as the user-level
-	// DELTA map (absent key = enabled). The definitive toggleable set is
-	// TOGGLEABLE_TOOLS — the sub-agent JOB tools (research/demo/visual/pdf;
-	// quiz/ask/fs/plan/probe_done are always-on).
-	const agentOpts: AgentBuildOptions = {
-		engine,
-		messages: asAgentMessages(merged),
-		onUsage: collectUsage,
-		toolToggles: effective.agent.tools,
-		chatId,
-		// Read per turn, like the tool delta: a rule added mid-lesson applies
-		// on the next turn.
-		learnerRules: learnerRulesSection(effective.agent.rules, lessonClassRules(record.classId)),
-	};
-	// PRACTICE BRANCH: a kind:"practice"
-	// session builds the practitioner from turn 1 — no prober→teacher
-	// split, no plan/question/job tools; the whole registry is
-	// problem + conclude. buildAgent stays honored (the test seam is
-	// uniform across kinds).
-	// CLASS SCOPE: the lesson's class.
-	// Writes (extraction, practice targets) stay in its OWN graph; the map
-	// readers see every class (reads may cross classes, writes never do);
-	// read_class serves its live card (lessons in a class only).
-	const lessonScope = record.classId ?? null;
-	const scopedGraphs = () =>
-		allGraphScopes().map((g) => ({ className: g.name, graphStore: graphStoreFor(g.scope), own: g.scope === lessonScope }));
-	const classCard =
-		lessonScope === null
-			? undefined
-			: () => {
-					const cls = stores.classStore.getClass(lessonScope);
-					return cls ? classCardFor(cls) : null;
-				};
-	// read_class ends with the current [Today] note (built at call time).
-	const todayNote = () => currentTodayNote(lessonScope ?? undefined);
-	// search_class_files / read_passage over the lesson's class files.
-	const classSearch: ClassSearch | undefined =
-		lessonScope === null
-			? undefined
-			: { searchFiles: (query, limit) => searchClassFiles(lessonScope, query, limit), readPassage: (ref) => readPassage(lessonScope, ref) };
-	// set_class_note: Halley's note on the class's cover.
-	const classNote = (text: string): string => {
-		if (lessonScope === null || !stores.classStore.getClass(lessonScope)) return "This lesson's class no longer exists.";
-		stores.classStore.updateClass(lessonScope, { note: { text: text.trim(), at: new Date().toISOString() } });
-		return "Saved. It shows on the class's cover.";
-	};
-	// The agent engine loads on the first turn, not at server start.
-	if (!buildAgent) await loadAgentCore();
-	const constructed: TeachingAgent = buildAgent
-		? buildAgent({ ...agentOpts, teaching })
-		: record.kind === "practice"
-			? createPracticeAgent(
-					{
-						chatId,
-						chatStore: stores.chatStore,
-						// TARGET VALIDATION: the practice tools read the
-						// WHOLE graph fresh per pose — targets validate against every
-						// proposition, not just the session's picks (pickless sessions
-						// and future graph-tools poses stay valid).
-						// Targets are the lesson's OWN class graph (writes never cross
-						// classes).
-						graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
-						// THE RARELY-NEEDED SET: research + pdf jobs
-						// (same runner/gating as the teacher's — research honestly
-						// absent when no engine is live) and the map readers behind
-						// the SAME settings gate as the prober's.
-						jobs: {
+		// AGENT CONSTRUCTION BRANCH (docs/probe-teach-split.md §2): the transcript
+		// is the seam — a probe_done call in the record means the probe is
+		// concluded: build the TEACHER (planning + the full toolset). Otherwise
+		// the session is still probing: build the PROBER (quiz/ask + probe_done).
+		// Both share this whole composition (write-ahead persist, liveness,
+		// steers, usage, extraction) — only the agent differs.
+		const teaching = hasProbeDone(merged);
+		// (Built once above the compaction gate; reused verbatim.)
+		const engine = conversationEngine;
+		// Provider-qualified stamp: matches the price table's
+		// provider:id keys.
+		const modelId = `${engine.model.provider}:${engine.model.id}`;
+		// Tests inject a factory: the agent is stateless per turn, so each
+		// request builds a fresh one off the record — the factory mirrors that
+		// seam exactly. The record IS the agent state (native messages;
+		// the record's id field strips at the wire in toLlmMessages).
+		// CROSS-STREAM SEAM: `toolToggles` rides the build opts as the user-level
+		// DELTA map (absent key = enabled). The definitive toggleable set is
+		// TOGGLEABLE_TOOLS — the sub-agent JOB tools (research/demo/visual/pdf;
+		// quiz/ask/fs/plan/probe_done are always-on).
+		const agentOpts: AgentBuildOptions = {
+			engine,
+			messages: asAgentMessages(merged),
+			onUsage: collectUsage,
+			toolToggles: effective.agent.tools,
+			chatId,
+			// Read per turn, like the tool delta: a rule added mid-lesson applies
+			// on the next turn.
+			learnerRules: learnerRulesSection(effective.agent.rules, lessonClassRules(record.classId)),
+		};
+		// PRACTICE BRANCH: a kind:"practice"
+		// session builds the practitioner from turn 1 — no prober→teacher
+		// split, no plan/question/job tools; the whole registry is
+		// problem + conclude. buildAgent stays honored (the test seam is
+		// uniform across kinds).
+		// CLASS SCOPE: the lesson's class.
+		// Writes (extraction, practice targets) stay in its OWN graph; the map
+		// readers see every class (reads may cross classes, writes never do);
+		// read_class serves its live card (lessons in a class only).
+		const lessonScope = record.classId ?? null;
+		const scopedGraphs = () =>
+			allGraphScopes().map((g) => ({ className: g.name, graphStore: graphStoreFor(g.scope), own: g.scope === lessonScope }));
+		const classCard =
+			lessonScope === null
+				? undefined
+				: () => {
+						const cls = stores.classStore.getClass(lessonScope);
+						return cls ? classCardFor(cls) : null;
+					};
+		// read_class ends with the current [Today] note (built at call time).
+		const todayNote = () => currentTodayNote(lessonScope ?? undefined);
+		// search_class_files / read_passage over the lesson's class files.
+		const classSearch: ClassSearch | undefined =
+			lessonScope === null
+				? undefined
+				: { searchFiles: (query, limit) => searchClassFiles(lessonScope, query, limit), readPassage: (ref) => readPassage(lessonScope, ref) };
+		// set_class_note: Halley's note on the class's cover.
+		const classNote = (text: string): string => {
+			if (lessonScope === null || !stores.classStore.getClass(lessonScope)) return "This lesson's class no longer exists.";
+			stores.classStore.updateClass(lessonScope, { note: { text: text.trim(), at: new Date().toISOString() } });
+			return "Saved. It shows on the class's cover.";
+		};
+		// The agent engine loads on the first turn, not at server start.
+		if (!buildAgent) await loadAgentCore();
+		const constructed: TeachingAgent = buildAgent
+			? buildAgent({ ...agentOpts, teaching })
+			: record.kind === "practice"
+				? createPracticeAgent(
+						{
 							chatId,
+							chatStore: stores.chatStore,
+							// TARGET VALIDATION: the practice tools read the
+							// WHOLE graph fresh per pose — targets validate against every
+							// proposition, not just the session's picks (pickless sessions
+							// and future graph-tools poses stay valid).
+							// Targets are the lesson's OWN class graph (writes never cross
+							// classes).
+							graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
+							// THE RARELY-NEEDED SET: research + pdf jobs
+							// (same runner/gating as the teacher's — research honestly
+							// absent when no engine is live) and the map readers behind
+							// the SAME settings gate as the prober's.
+							jobs: {
+								chatId,
+								jobStore: stores.jobStore,
+								spawn: (job, input) => void jobRunner.runJob(job.id, input),
+								},
+							...(graphToolsEnabled(effective)
+								? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
+								: {}),
+							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+						},
+						agentOpts,
+					)
+				: teaching
+				? createTeacherAgent(
+						{
+							chatId,
+							chatStore: stores.chatStore,
 							jobStore: stores.jobStore,
 							spawn: (job, input) => void jobRunner.runJob(job.id, input),
-							},
-						...(graphToolsEnabled(effective)
-							? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
-							: {}),
-						...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
-					},
-					agentOpts,
-				)
-			: teaching
-			? createTeacherAgent(
-					{
-						chatId,
-						chatStore: stores.chatStore,
-						jobStore: stores.jobStore,
-						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
-						// The registry drop's signal: no live engine
-						// = no research tool in the teacher's registry.
-					},
-					agentOpts,
-				)
-			: createProberAgent(
-					{
-						chatId,
-						chatStore: stores.chatStore,
-						deliver: (steer) => void deliverJobResult(steer),
-						// The prober carries research + pdf dispatch too, so its ctx
-						// needs the same job wiring as the teacher's.
-						jobStore: stores.jobStore,
-						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						// The map reader: the prober reads the learner's
-						// knowledge graph through tools when the gate opens —
-						// graph master switch AND the agent.graphTools toggle.
-						...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
-						...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
-					},
-					agentOpts,
-				);
+							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+							// The registry drop's signal: no live engine
+							// = no research tool in the teacher's registry.
+						},
+						agentOpts,
+					)
+				: createProberAgent(
+						{
+							chatId,
+							chatStore: stores.chatStore,
+							deliver: (steer) => void deliverJobResult(steer),
+							// The prober carries research + pdf dispatch too, so its ctx
+							// needs the same job wiring as the teacher's.
+							jobStore: stores.jobStore,
+							spawn: (job, input) => void jobRunner.runJob(job.id, input),
+							// The map reader: the prober reads the learner's
+							// knowledge graph through tools when the gate opens —
+							// graph master switch AND the agent.graphTools toggle.
+							...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
+							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+						},
+						agentOpts,
+					);
 
-	// A test-injected agent gets no usage collector (tests assert the
-	// transcript, not the money channel); when it's ours, usage flows through
-	// the factory's subscription (wired above via onUsage).
-	try {
+		// A test-injected agent gets no usage collector (tests assert the
+		// transcript, not the money channel); when it's ours, usage flows through
+		// the factory's subscription (wired above via onUsage).
 		// THE TURN AS A BACKGROUND OBJECT: runPiTurn executes decoupled from
 		// this response — the POST stream is just the FIRST subscriber (a view).
 		// A client disconnect cannot abort the turn; the remote kill is the abort
@@ -570,8 +570,9 @@ export async function handleChatInput(
 		// needed this connection, only a view did.
 		return Response.json({ ok: true });
 	} catch (err) {
-		// The stream never started, so no onFinish will fire — clear the registry
-		// or a malformed request would lock the chat until the TTL eviction.
+		// The turn never started (agent load, build or runPiTurn threw), so no
+		// onFinish will fire — clear the registry or the chat stays locked
+		// until the TTL eviction.
 		endTurn(chatId);
 		// The live-agent registration (if it happened) dies with the
 		// turn here too - nothing was handed (the loop never ticked).

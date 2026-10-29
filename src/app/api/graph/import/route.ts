@@ -28,7 +28,12 @@ interface ImportResult {
 }
 
 export async function POST(request: Request) {
-	const form = await request.formData();
+	let form: FormData;
+	try {
+		form = await request.formData();
+	} catch {
+		return Response.json({ results: [] as ImportResult[], error: "Invalid form body" }, { status: 400 });
+	}
 	const files = form.getAll("files").filter((f): f is File => f instanceof File);
 	if (files.length === 0) {
 		return Response.json({ results: [] as ImportResult[], error: "no files" }, { status: 400 });

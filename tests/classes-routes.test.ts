@@ -218,6 +218,12 @@ describe("the class file pipeline", () => {
 		assert.equal(graph.propositions?.length ?? graph.nodes.filter((n: { kind?: string }) => n.kind !== "implication").length, 1);
 	});
 
+	it("a body that is not a form is a 400", async () => {
+		const id = await makeClass("PHYS 2A");
+		const res = await filesRoute.POST(json(`/api/classes/${id}/files`, "POST", { kind: "study" }), ctx({ id }));
+		assert.equal(res.status, 400);
+	});
+
 	it("switching study → info removes the file's facts; unsupported types are refused", async () => {
 		const id = await makeClass("CHEM 6A");
 		const res = await (await upload(id, "study", [["atoms.md", "Atoms"], ["photo.png", "x"]])).json();

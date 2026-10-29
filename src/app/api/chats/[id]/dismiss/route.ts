@@ -24,14 +24,15 @@ import { getChat, isTurnRunning, parkDismissal, stores } from "@/server";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
 	const { id } = await ctx.params;
+	// The POST-family convention: the body is { input } (chatId lives in
+	// the URL here). Read before the record, so no await sits between the
+	// read and the save below.
+	const body = (await req.json().catch(() => null)) as { input?: unknown } | null;
 	const chat = getChat(id);
 	if (!chat) return Response.json({ error: "Unknown chat" }, { status: 404 });
 
 	let input;
 	try {
-		// The POST-family convention: the body is { input } (chatId lives in
-		// the URL here).
-		const body = (await req.json().catch(() => null)) as { input?: unknown } | null;
 		input = parseDismissInput(body?.input ?? null);
 	} catch (err) {
 		if (err instanceof ChatInputError) return Response.json({ error: err.message }, { status: 400 });

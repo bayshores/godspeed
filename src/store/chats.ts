@@ -17,6 +17,7 @@ import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
 import { danglingQuestionOf } from "../core/native-messages.ts";
 import { phaseAt3Lh } from "../core/phases.ts";
+import { writeFileAtomic } from "./write-file-atomic.ts";
 
 function chatFile(id: string): string {
 	if (!/^[A-Za-z0-9_-]+$/.test(id)) throw new Error(`Invalid chat id: ${id}`);
@@ -46,7 +47,6 @@ function createChat(title: string, kind?: "practice", classId?: string): ChatRec
 		// The lesson's class; ABSENT = "No class" (classes wave, 2026-10-26).
 		...(classId ? { classId } : {}),
 	};
-	fs.mkdirSync(PATHS.chats, { recursive: true });
 	writeChat(record);
 	emit("chats-changed", {});
 	return { ...record, version: CURRENT_CHAT_VERSION }; // the in-memory twin of what landed on disk
@@ -58,7 +58,7 @@ function createChat(title: string, kind?: "practice", classId?: string): ChatRec
  *  A future-version guard lives on the read side (getChat). */
 function writeChat(record: ChatRecord): void {
 	summaryCache.delete(record.id);
-	fs.writeFileSync(chatFile(record.id), JSON.stringify({ ...record, version: CURRENT_CHAT_VERSION }, null, "\t"), "utf-8");
+	writeFileAtomic(chatFile(record.id), JSON.stringify({ ...record, version: CURRENT_CHAT_VERSION }, null, "\t"));
 }
 
 function getChat(id: string): ChatRecord | null {

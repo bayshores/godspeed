@@ -43,6 +43,7 @@ import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
 import { applyClassCard } from "./class-card.ts";
 import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
+import { writeFileAtomic } from "../store/write-file-atomic.ts";
 
 type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
 
@@ -123,10 +124,7 @@ function dropCachedTexts(classId: string, fileId: string): void {
 function writeCachedText(classId: string, fileId: string, fp: string, text: string): void {
 	try {
 		dropCachedTexts(classId, fileId);
-		fs.mkdirSync(textCacheDir(classId), { recursive: true });
-		const file = textCachePath(classId, fileId, fp);
-		fs.writeFileSync(`${file}.tmp`, text, "utf-8");
-		fs.renameSync(`${file}.tmp`, file);
+		writeFileAtomic(textCachePath(classId, fileId, fp), text);
 	} catch (err) {
 		console.error(`[classes] could not save text of ${fileId}:`, err);
 	}

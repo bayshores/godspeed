@@ -40,6 +40,7 @@ import * as path from "node:path";
 import { LEDGER_FILES, PATHS, graphFilesIn, type GraphFiles } from "../config.ts";
 import { assertGraphFormat, ensureGraphFormat } from "./graph-format.ts";
 import { isRecord, isString } from "./guards.ts";
+import { writeFileAtomic } from "./write-file-atomic.ts";
 import type {
 	GraphChain,
 	GraphNode,
@@ -247,9 +248,7 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 		},
 
 		/** THE DESTRUCTIVE SEAM (wave 6 session deletion): atomic full-content
-		 *  replacement per provided ledger — write a uniquely-named temp file
-		 *  beside the ledger, then rename over it (POSIX-atomic: a crash mid-
-		 *  write leaves the original ledger and an orphan .tmp-*, never a torn
+		 *  replacement per provided ledger (writeFileAtomic: never a torn
 		 *  ledger). Empty arrays write an empty file — a purged ledger reads
 		 *  as "nothing yet", same as never-emitted. */
 		rewriteLedgers(next: {
@@ -266,23 +265,10 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 			} as const;
 			for (const [key, records] of Object.entries(next) as [keyof typeof ledgers, unknown[]][]) {
 				const file = ledgers[key];
-				fs.mkdirSync(path.dirname(file), { recursive: true });
-				const tmp = `${file}.tmp-${crypto.randomUUID().slice(0, 8)}`;
 				ledgerCache.delete(file);
-				try {
-					// JSONL: one record per line, trailing newline — a reader
-					// must see exactly what appendLine would have written.
-					const body = records.map((record) => JSON.stringify(record)).join("\n") + (records.length > 0 ? "\n" : "");
-					fs.writeFileSync(tmp, body, "utf-8");
-					fs.renameSync(tmp, file);
-				} catch (err) {
-					try {
-						fs.unlinkSync(tmp);
-					} catch {
-						/* the rename either already happened or the tmp never existed */
-					}
-					throw err;
-				}
+				// JSONL: one record per line, trailing newline — a reader
+				// must see exactly what appendLine would have written.
+				writeFileAtomic(file, records.map((record) => JSON.stringify(record)).join("\n") + (records.length > 0 ? "\n" : ""));
 			}
 		},
 	};
@@ -315,9 +301,8 @@ function readSourceMap(files: GraphFiles): Record<string, NotesSource> {
 }
 
 function writeSourceMap(files: GraphFiles, map: Record<string, NotesSource>): void {
-	fs.mkdirSync(path.dirname(files.sources), { recursive: true });
 	ensureGraphFormat(files.format); // the lazy format stamp (graph-format.ts)
-	fs.writeFileSync(files.sources, JSON.stringify(map, null, "\t"), "utf-8");
+	writeFileAtomic(files.sources, JSON.stringify(map, null, "\t"));
 }
 
 // ─── one-way purges at adapter load: dead ledgers are exactly the confusion

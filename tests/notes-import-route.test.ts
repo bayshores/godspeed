@@ -16,6 +16,12 @@ function request(names: string[]) {
 	return new Request("http://localhost/api/graph/import", { method: "POST", body: form });
 }
 
+it("a body that is not a form is a 400", async () => {
+	const response = await POST(new Request("http://localhost/api/graph/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
+	assert.equal(response.status, 400);
+	assert.deepEqual((await response.json()).results, []);
+});
+
 it("route keeps three-worker batching, request positions and mixed per-file outcomes", async () => {
 	let active = 0;
 	let peak = 0;

@@ -19,7 +19,6 @@
  */
 
 import fs from "node:fs";
-import path from "node:path";
 import { SETTINGS_FILE } from "../config.ts";
 import {
 	sanitizeUserSettings,
@@ -27,6 +26,7 @@ import {
 } from "../core/settings.ts";
 import type { SettingsStore } from "../core/ports.ts";
 import { promptOverrides } from "./prompt-overrides.ts";
+import { writeFileAtomic } from "./write-file-atomic.ts";
 
 /** The persisted record, or null when none exists (first boot). Runs the
  *  migration chain on every read — cheap: a no-op file check when current. */
@@ -69,8 +69,7 @@ function dropPromptSwitches(parsed: unknown): boolean {
 export function writeSettings(raw: unknown): UserSettings {
 	const settings = sanitizeUserSettings(raw);
 	if (!settings) throw new Error("settings record must be a JSON object");
-	fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
-	fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, "\t"), "utf-8");
+	writeFileAtomic(SETTINGS_FILE, JSON.stringify(settings, null, "\t"));
 	return settings;
 }
 

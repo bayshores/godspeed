@@ -12,7 +12,12 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
 	if (!isClassId(id)) return Response.json({ error: "No such class" }, { status: 404 });
-	const form = await req.formData();
+	let form: FormData;
+	try {
+		form = await req.formData();
+	} catch {
+		return Response.json({ error: "Invalid form body" }, { status: 400 });
+	}
 	const kind = form.get("kind") === "info" ? "info" : form.get("kind") === "study" ? "study" : null;
 	if (!kind) return Response.json({ error: 'kind must be "study" or "info"' }, { status: 400 });
 	const files = form.getAll("files").filter((f): f is File => f instanceof File);

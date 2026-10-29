@@ -217,6 +217,10 @@ async function compact(deps: CompactionDeps, chatId: string): Promise<void> {
 		if (!trimmed) return; // an empty summary is a refusal artifact — leave the record honest
 
 		const firstKept = messages[cut]!;
+		// Re-read: other writers (dismiss, artifact-ui, class move) can save
+		// while the summary is awaited, and the cut is keyed by id.
+		const fresh = deps.chatStore.getChat(chatId);
+		if (!fresh || !fresh.messages.some((m) => m.id === firstKept.id)) return;
 		const details: CompactionDetails = {
 			firstKeptMessageId: firstKept.id,
 			tokensBefore,
@@ -224,7 +228,7 @@ async function compact(deps: CompactionDeps, chatId: string): Promise<void> {
 			at: new Date().toISOString(),
 		};
 		const marker = newCompactionMarker(trimmed, details);
-		deps.chatStore.saveMessages(chatId, [...messages, marker]);
+		deps.chatStore.saveMessages(chatId, [...fresh.messages, marker]);
 		// The money channel: the summary is a real model call on the
 		// session's own engine — its usage keys to the marker (provenance:
 		// the transcript shows the compaction divider at the marker).

@@ -29,6 +29,7 @@ import {
 	isDeadlineKind,
 } from "../core/contracts.ts";
 import { isRecord, isString } from "./guards.ts";
+import { writeFileAtomic } from "./write-file-atomic.ts";
 
 function classDir(id: string): string {
 	if (!isClassId(id)) throw new Error(`Invalid class id: ${id}`);
@@ -42,11 +43,7 @@ function recordFile(id: string): string {
 /** THE WRITE CHOKE POINT: every persist stamps the current version and goes
  *  through a temp file + rename (a torn write never replaces the record). */
 function writeClass(record: ClassRecord): void {
-	const file = recordFile(record.id);
-	fs.mkdirSync(path.dirname(file), { recursive: true });
-	const tmp = `${file}.tmp-${crypto.randomUUID().slice(0, 8)}`;
-	fs.writeFileSync(tmp, JSON.stringify({ ...record, version: CURRENT_CLASS_VERSION }, null, "\t"), "utf-8");
-	fs.renameSync(tmp, file);
+	writeFileAtomic(recordFile(record.id), JSON.stringify({ ...record, version: CURRENT_CLASS_VERSION }, null, "\t"));
 }
 
 const isClassFile = (v: unknown): v is ClassFile =>
