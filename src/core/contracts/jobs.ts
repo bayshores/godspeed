@@ -35,10 +35,10 @@ export interface JobRecord {
 	/** The sub-agent's result (steer-artifact payload). */
 	result?: unknown;
 	error?: string;
-	/** Money channel (observability, 2026-09): accumulated token usage of
-	 * the sub-agent's run, written by the runner as steps complete. Cost is
-	 * inferred at read time (core/prices.ts). Absent on pre-2026-09 jobs and
-	 * until the runner's capture lands — renderers show "–", never zero. */
+	/** Accumulated token usage of the sub-agent's run, written by the runner
+	 * as steps complete. Cost is inferred at read time (core/prices.ts).
+	 * Absent on older jobs and until the first step lands; renderers show
+	 * "–", never zero. */
 	usage?: JobUsage;
 }
 
