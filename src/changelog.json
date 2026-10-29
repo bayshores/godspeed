@@ -1,5 +1,19 @@
 [
 	{
+		"version": "0.5.1",
+		"date": "2026-10-28",
+		"changes": [
+			"Adding class files is much faster and uses far fewer tokens. Each part of a file takes your agent one step instead of five or six, and topics are sorted once after a batch of files.",
+			"godspeed searches your class files on your computer, with no API key. Your agent finds the right pages or lecture minutes and reads just those instead of whole PDFs.",
+			"While your agent works on a reply, the lesson shows its plan, its steps and the pages it reads.",
+			"The logo forms each time you open the app, with your agent and next deadline under it.",
+			"Halley peeks from the bottom corner and rises when you hover.",
+			"Report a bug, in Settings and the Help menu, opens a GitHub issue with your app version and OS filled in.",
+			"Agent setup reminds you to turn off permission prompts so your agent can work on its own.",
+			"PDF text keeps its line breaks."
+		]
+	},
+	{
 		"version": "0.5.0",
 		"date": "2026-10-28",
 		"changes": [
