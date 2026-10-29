@@ -86,8 +86,8 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 				<svg aria-hidden viewBox={`${-HEAD_R} ${-HEAD_R} ${HEAD_R * 2} ${HEAD_R * 2}`} className="wl-comet size-6 shrink-0 overflow-visible">
 					<defs>
 						<linearGradient id="wl-tail">
-							<stop offset="0" stopColor="#fff" stopOpacity="0.85" />
-							<stop offset="1" stopColor="#fff" stopOpacity="0" />
+							<stop offset="0" style={{ stopColor: "var(--foreground)" }} stopOpacity="0.85" />
+							<stop offset="1" style={{ stopColor: "var(--foreground)" }} stopOpacity="0" />
 						</linearGradient>
 						<filter id="wl-tail-blur" x="-20%" y="-100%" width="140%" height="300%">
 							<feGaussianBlur stdDeviation="3" />
@@ -96,7 +96,7 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 					<g transform={`rotate(${TAIL_ANGLE.toFixed(1)})`}>
 						<path className="wl-tail" d={TAIL} fill="url(#wl-tail)" filter="url(#wl-tail-blur)" />
 					</g>
-					<circle r={HEAD_R} fill="#fff" />
+					<circle r={HEAD_R} className="fill-ink" />
 				</svg>
 				<h1 className="wl-word font-title text-[64px] leading-none text-ink">godspeed</h1>
 			</div>
@@ -112,7 +112,7 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 						e.stopPropagation();
 						onClose();
 					}}
-					className="lh-press mt-8 bg-ink px-7 py-3 text-[15px] font-bold text-black hover:bg-white"
+					className="lh-press mt-8 bg-ink px-7 py-3 text-[15px] font-bold text-background hover:bg-ink-max"
 				>
 					Let&apos;s go
 				</button>

@@ -1,5 +1,5 @@
 /**
- * Settings → Outside agents (restyled 2026-10-27 — docs/design/exports/
+ * Settings → Connection (restyled 2026-10-27 — docs/design/exports/
  * settings.html): outside agents (Claude Code, Codex, any MCP client)
  * connect to godspeed and act as its AI — always on, the only model
  * (owner, 2026-10-27). "Access": the connection status and the access
@@ -65,7 +65,7 @@ function CopyButton({ text, label, children = "Copy" }: { text: string; label: s
 
 const MONO = "min-w-0 truncate font-mono text-[12.5px] text-ink-2";
 
-export function AgentsSection() {
+export function ConnectionSection() {
 	const [access, setAccess] = useState<AccessView | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
@@ -152,5 +152,5 @@ export function AgentsSection() {
 }
 
 /** The section's head tooltip: what outside agents do, and how to use one. */
-export const AGENTS_SECTION_HINT =
+export const CONNECTION_SECTION_HINT =
 	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons and does the helper and graph work too. In Claude Code, run /godspeed:teach to start.";

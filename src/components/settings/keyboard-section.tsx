@@ -112,7 +112,7 @@ export function KeyboardSection() {
 										testid={`kbd-row-${def.id}`}
 									>
 										<span className="flex items-center gap-2">
-											<kbd className="border border-tone-2 bg-black px-1.5 py-0.5 font-mono text-xs text-ink">
+											<kbd className="border border-tone-2 bg-background px-1.5 py-0.5 font-mono text-xs text-ink">
 												{rebinding === def.id ? "Press keys…" : formatBinding(effective)}
 											</kbd>
 											{def.displayOnly ? null : rebinding === def.id ? (

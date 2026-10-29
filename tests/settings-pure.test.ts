@@ -1,27 +1,31 @@
 /**
- * The settings wave's pure layers (thin settings wave): the appearance →
- * CSS-variable mapping (the section must actually DO something), the
- * dark-curve background derivation, the agent section's compose helpers
- * (the replace-whole PUT discipline), and the keyboard overrides map.
+ * The settings pure layers: the appearance → CSS-variable mapping, the
+ * background-derived palette (dark and light), the Teaching section's
+ * compose helpers (the replace-whole PUT), and the keyboard overrides map.
  */
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appearanceVars, derivedPalette, resolveAppearance, staleVarNames } from "../src/components/settings/appearance.tsx";
 import {
-	PROMPT_IN_USE_HINT,
-	composePromptSwitch,
+	appearanceVars,
+	derivedPalette,
+	isLight,
+	resolveAppearance,
+	staleVarNames,
+} from "../src/components/settings/appearance-model.ts";
+import {
+	areaParts,
+	composeGraphTools,
+	composeQuizStyle,
+	composeRules,
 	composeTool,
-	composeQuizMechanics,
-	sectionedSegments,
-} from "../src/components/settings/agent-section.tsx";
+} from "../src/components/settings/teaching-model.ts";
 import { nextOverrides } from "../src/components/settings/keyboard-section.tsx";
-import type { AgentSettings } from "../src/core";
+import { TEACHING_AREAS, type AgentSettings, type PromptSegmentInfo } from "../src/core";
 
 describe("resolveAppearance — delta over factory", () => {
 	it("absent everything = the factory view", () => {
 		const a = resolveAppearance(undefined);
-		assert.equal(a.mode, "dark");
 		assert.equal(a.background, null);
 		assert.equal(a.fontFamily, null);
 		assert.equal(a.proseFontSize, 16);
@@ -37,20 +41,18 @@ describe("resolveAppearance — delta over factory", () => {
 	});
 });
 
-describe("derivedPalette — the dark curve keeps today's relationships", () => {
-	it("the dark curve keeps the palette's relationships EXACTLY", () => {
-		assert.deepEqual(derivedPalette("#141414"), {
-			"--lh-tip": "#282828",
-			"--background": "#141414",
-			"--card": "#1c1c1c",
-			"--popover": "#1c1c1c",
-			"--secondary": "#1c1c1c",
-			"--muted": "#1c1c1c",
-			"--accent": "#2a2a2a",
-			"--border": "#434343",
-			"--input": "#434343",
-			"--primary-foreground": "#141414",
-		});
+describe("derivedPalette — every surface and text color follows the background", () => {
+	it("a dark background steps surfaces up and keeps light text", () => {
+		const p = derivedPalette("#141414");
+		assert.equal(p["color-scheme"], "dark");
+		assert.equal(p["--background"], "#141414");
+		assert.equal(p["--card"], "#1c1c1c");
+		assert.equal(p["--accent"], "#2a2a2a");
+		assert.equal(p["--lh-tip"], "#282828");
+		assert.equal(p["--border"], "#434343");
+		assert.equal(p["--foreground"], "#e6e6e6");
+		assert.equal(p["--primary-foreground"], "#141414", "primary buttons take the background as their text");
+		assert.equal(p["--lh-ink-max"], "#ffffff");
 	});
 
 	it("OLED black derives the redesign's panel / tone / tooltip / tone-2", () => {
@@ -61,15 +63,29 @@ describe("derivedPalette — the dark curve keeps today's relationships", () => 
 		assert.equal(p["--border"], "#2f2f2f");
 	});
 
-	it("an off-factory background shifts every surface with it (clamped at 255)", () => {
-		const p = derivedPalette("#f0f0f0");
-		assert.equal(p["--background"], "#f0f0f0");
-		assert.equal(p["--card"], "#f8f8f8"); // 240 + 8 per channel
-		assert.equal(p["--border"], "#ffffff", "240 + 47 clamps to 255 on every channel");
+	it("a light background steps surfaces down and flips the text to dark", () => {
+		const p = derivedPalette("#f4f1ea");
+		assert.equal(p["color-scheme"], "light");
+		assert.equal(p["--card"], "#ece9e2");
+		assert.equal(p["--border"], "#c5c2bb");
+		assert.equal(p["--foreground"], "#1a1a1a");
+		assert.equal(p["--lh-ink-max"], "#000000");
+		assert.equal(p["--primary-foreground"], "#f4f1ea");
+	});
+
+	it("channels clamp at 255", () => {
+		assert.equal(derivedPalette("#ff0000")["--card"], "#ff0808");
 	});
 
 	it("3-digit hex expands", () => {
-		assert.equal(derivedPalette("#abc")["--card"], "#b2c3d4"); // aa bb cc each +8
+		assert.equal(derivedPalette("#123")["--card"], "#192a3b"); // 11 22 33 each +8
+	});
+});
+
+describe("isLight — which text color reads on a background", () => {
+	it("splits the presets into dark and light", () => {
+		for (const dark of ["#000000", "#161616", "#0d1320", "#0e1712", "#ff0000"]) assert.equal(isLight(dark), false, dark);
+		for (const light of ["#f4f1ea", "#ffffff", "#ffeb3b"]) assert.equal(isLight(light), true, light);
 	});
 });
 
@@ -147,17 +163,44 @@ describe("staleVarNames — the removal half of application (owner repro: resets
 	});
 });
 
-describe("agent section compose helpers — the replace-whole PUT body", () => {
-	it("composeTool carries the rest of the section verbatim", () => {
-		const before = { tools: { demo: false }, prompts: { "system-prompt.md": true } };
+describe("Teaching compose helpers — the replace-whole PUT body", () => {
+	const before: AgentSettings = { tools: { demo: false }, rules: { voice: ["No jokes"] }, graphTools: { enabled: true } };
+
+	it("composeTool sets one tool and carries the rest verbatim", () => {
 		const after = composeTool(before, "visual", false);
 		assert.deepEqual(after.tools, { demo: false, visual: false });
-		assert.deepEqual(after.prompts, { "system-prompt.md": true }, "prompts untouched");
+		assert.deepEqual(after.rules, before.rules);
+		assert.deepEqual(after.graphTools, before.graphTools);
 	});
 
-	it("composePromptSwitch: on = explicit true, off = key REMOVED (absent = off)", () => {
-		assert.deepEqual(composePromptSwitch({ prompts: { a: true } }, "b", true).prompts, { a: true, b: true });
-		assert.deepEqual(composePromptSwitch({ prompts: { a: true, b: true } }, "b", false).prompts, { a: true });
+	it("composeQuizStyle: free recall writes explain:true, multiple choice explain:false", () => {
+		assert.equal(composeQuizStyle(before, "free").tools?.explain, true);
+		assert.equal(composeQuizStyle(before, "choice").tools?.explain, false);
+		assert.equal(composeQuizStyle(before, "free").tools?.demo, false, "other tools carry over");
+	});
+
+	it("composeGraphTools replaces only the graph-tools switch", () => {
+		const after = composeGraphTools(before, false);
+		assert.deepEqual(after.graphTools, { enabled: false });
+		assert.deepEqual(after.tools, before.tools);
+	});
+
+	it("composeRules replaces one area; an emptied area is dropped", () => {
+		const added = composeRules(before, "facts", ["Cite the textbook"]);
+		assert.deepEqual(added.rules, { voice: ["No jokes"], facts: ["Cite the textbook"] });
+		assert.deepEqual(composeRules(added, "voice", []).rules, { facts: ["Cite the textbook"] });
+		assert.deepEqual(composeRules(undefined, "voice", ["Short answers"]).rules, { voice: ["Short answers"] });
+	});
+
+	it("areaParts keeps the area's order and skips parts the prompt doesn't have", () => {
+		const area = TEACHING_AREAS.find((a) => a.id === "facts");
+		assert.ok(area);
+		const seg = (path: string): PromptSegmentInfo => ({ path, sourceText: "", overrideText: null, shared: true });
+		const segments = [seg("teacher/40-jobs.md"), seg("shared/15-accuracy.md"), seg("shared/10-voice.md")];
+		assert.deepEqual(
+			areaParts(area, segments).map((s) => s.path),
+			["shared/15-accuracy.md", "teacher/40-jobs.md"],
+		);
 	});
 });
 
@@ -170,69 +213,6 @@ describe("nextOverrides — the rebind persistence map", () => {
 	it("null = reset that action to its default (key removed)", () => {
 		const next = nextOverrides({ "toggle-sidebar": "mod+b", find: "mod+f" }, "toggle-sidebar", null);
 		assert.deepEqual(next, { find: "mod+f" });
-	});
-});
-
-describe("sectionedSegments — the prompts overhaul (2026-09-26)", () => {
-	// The server contract: BOTH per-agent lists include the shared
-	// segments (same paths) — the view must list them ONCE.
-	const view = {
-		prober: [
-			{ path: "system-prompt.md", sourceText: "b", overrideText: null, enabled: false, shared: true },
-			{ path: "shared/10-personality.md", sourceText: "s1", overrideText: "custom", enabled: true, shared: true },
-			{ path: "prober/10-probe-doctrine.md", sourceText: "p1", overrideText: null, enabled: false, shared: false },
-		],
-		teacher: [
-			{ path: "system-prompt.md", sourceText: "b", overrideText: null, enabled: false, shared: true },
-			{ path: "shared/10-personality.md", sourceText: "s1", overrideText: "custom", enabled: true, shared: true },
-			{ path: "teacher/05-method.md", sourceText: "t1", overrideText: null, enabled: false, shared: false },
-			{ path: "teacher/10-planning.md", sourceText: "t2", overrideText: null, enabled: false, shared: false },
-		],
-	};
-
-	it("the owner's ruled order: Teacher, Prober, Shared — Shared last", () => {
-		const ids = sectionedSegments(view).map((s) => s.id);
-		assert.deepEqual(ids, ["teacher", "prober", "shared"]);
-	});
-
-	it("shared chunks appear exactly ONCE across all sections (no duplication)", () => {
-		const all = sectionedSegments(view).flatMap((s) => s.segments.map((seg) => seg.path));
-		assert.equal(all.filter((p) => p === "system-prompt.md").length, 1);
-		assert.equal(all.filter((p) => p === "shared/10-personality.md").length, 1);
-		// every path unique — no chunk listed twice
-		assert.equal(new Set(all).size, all.length);
-	});
-
-	it("the Shared section holds the shared chunks in assembly order; the agents' sections hold their own", () => {
-		const [teacher, prober, shared] = sectionedSegments(view);
-		assert.ok(teacher && prober && shared, "all three sections present");
-		assert.deepEqual(teacher.segments.map((s) => s.path), ["teacher/05-method.md", "teacher/10-planning.md"]);
-		assert.deepEqual(prober.segments.map((s) => s.path), ["prober/10-probe-doctrine.md"]);
-		// assembly order: the base file first, then the shared fragments
-		assert.deepEqual(shared.segments.map((s) => s.path), ["system-prompt.md", "shared/10-personality.md"]);
-		// the Shared header carries the one hint that earns its place
-		assert.equal(shared.hint, "Used by both agents");
-		assert.equal(teacher.hint, undefined);
-	});
-
-	it("the indicator copy is pinned — it states WHICH VERSION IS IN USE (refined 2026-09-26)", () => {
-		assert.equal(PROMPT_IN_USE_HINT, "Your version is in use");
-	});
-});
-
-// ─── the quizzing-mechanics segmented control (owner 2026-09-27) ───────────
-
-describe("composeQuizMechanics (the segmented control's write)", () => {
-	it("free recall writes explain:true; multiple choice writes explain:false — nothing else moves", () => {
-		const before: AgentSettings = { tools: { research: false }, prompts: { teacher: true } } as AgentSettings;
-		const free = composeQuizMechanics(before, "free");
-		assert.equal(free.tools?.explain, true);
-		const choice = composeQuizMechanics(before, "choice");
-		assert.equal(choice.tools?.explain, false);
-		for (const after of [free, choice]) {
-			assert.equal(after.tools?.research, false, "the research toggle carries verbatim");
-			assert.deepEqual(after.prompts, before.prompts, "the prompts map carries verbatim");
-		}
 	});
 });
 

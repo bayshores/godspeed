@@ -1,7 +1,7 @@
 /**
  * THE CLASS DIALOG (docs/design/exports/edit-class-exams.html): create a
- * class (name and description) or edit one — name, description and its
- * Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/components/files/*).
+ * class (name and description) or edit one — name, description, its
+ * rules for the teacher and its Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/components/files/*).
  *
  * Deadline edits are drafts until Save (src/components/class-deadlines-model.ts
  * turns them into the deadline routes' writes). Every write goes to /api/classes/*;
@@ -15,6 +15,7 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
 import { DeadlinesEditor } from "@/components/class-deadlines";
+import { RuleChips } from "@/components/rule-chips";
 import { deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
 import type { ClassDeadline, ClassRecord } from "@/core";
@@ -42,7 +43,7 @@ type MotionState = "open" | "closed";
 
 const LABEL = "text-[13px] font-bold text-ink-2";
 const FIELD =
-	"w-full bg-black px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-tone-2 placeholder:text-ink-3 focus:border-ink-3";
+	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-tone-2 placeholder:text-ink-3 focus:border-ink-3";
 
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { setActive } = useClasses();
@@ -50,6 +51,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const { record, reload } = useClassRecord(classId);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [rules, setRules] = useState<string[]>([]);
 	const [drafts, setDrafts] = useState<DeadlineDraft[]>([]);
 	const [openDeadline, setOpenDeadline] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -64,6 +66,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			seeded.current = true;
 			setName(record.name);
 			setDescription(record.description);
+			setRules(record.rules ?? []);
 			const drafts = draftsFrom(record.deadlines);
 			if (mode.kind === "edit" && mode.newDeadline) {
 				const key = `new-${++newCount.current}`;
@@ -162,7 +165,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		}
 		setBusy(true);
 		setError(null);
-		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", { name, description }));
+		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", { name, description, rules }));
 		const deadlinesFailed = failed ?? (await saveDeadlines(record));
 		setBusy(false);
 		if (deadlinesFailed) {
@@ -216,6 +219,16 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 							className={`min-h-[72px] resize-y ${FIELD}`}
 						/>
 					</label>
+
+					{mode.kind === "edit" && record && (
+						<div className="mt-2.5 flex flex-col gap-2">
+							<span className="flex items-baseline justify-between gap-3">
+								<span className={LABEL}>Rules for this class</span>
+								<span className="text-xs text-ink-3">Added to your rules in every {record.name} lesson</span>
+							</span>
+							<RuleChips rules={rules} onChange={setRules} testid="class-rules" />
+						</div>
+					)}
 
 					{mode.kind === "edit" && record && (
 						<div className="mt-2.5">
@@ -305,7 +318,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 							data-testid="class-save"
 							disabled={busy}
 							onClick={() => void save()}
-							className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-black hover:bg-white disabled:opacity-60"
+							className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 						>
 							{mode.kind === "create" ? "Create class" : "Save"}
 						</button>

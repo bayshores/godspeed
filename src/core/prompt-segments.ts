@@ -31,10 +31,8 @@ export interface PromptSegmentInfo {
 	path: string;
 	/** The source text (what the segment runs without an override). */
 	sourceText: string;
-	/** The user's override text, or null when no file exists on disk. */
+	/** The learner's saved version (used in place of the source), or null. */
 	overrideText: string | null;
-	/** Effective state: the settings switch AND the file both present. */
-	enabled: boolean;
 	/** True for segments BOTH agents compose — the base and shared/ fragments. */
 	shared: boolean;
 }

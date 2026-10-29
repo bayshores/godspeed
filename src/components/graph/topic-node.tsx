@@ -14,6 +14,12 @@ import { OVERCONFIDENT_COLOR, scoreText } from "./derive.ts";
 /** Faded topics (not on the picked deadline / not matching the search). */
 export const FADED_OPACITY = 0.22;
 
+/** The strongest ink at a given opacity, as a CSS paint: the map's strokes
+ *  follow the appearance palette (white on dark, black on light). */
+export function inkAlpha(percent: number): string {
+	return `color-mix(in srgb, var(--lh-ink-max) ${percent}%, transparent)`;
+}
+
 /** The halo gradient id for a ramp color (defs live in the map). */
 function haloId(color: string): string | null {
 	const i = (RAMP_COLORS as readonly string[]).indexOf(color);
@@ -68,8 +74,8 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 			onKeyDown={onKeyDown}
 		>
 			{halo && <circle r={d * 1.3} fill={`url(#${halo})`} opacity={0.7} />}
-			<circle r={d / 2} fill="#0B0B0B" />
-			<circle r={mid} fill="none" stroke={tested ? "#FFFFFF1A" : "#FFFFFF26"} strokeWidth={thick} />
+			<circle r={d / 2} style={{ fill: "var(--card)" }} />
+			<circle r={mid} fill="none" style={{ stroke: inkAlpha(tested ? 10 : 15) }} strokeWidth={thick} />
 			{tested && (topic.rate ?? 0) > 0 && (
 				<circle
 					data-testid="topic-arc"
@@ -83,13 +89,12 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 					style={{ filter: `drop-shadow(0 0 5px ${topic.color}80)` }}
 				/>
 			)}
-			{selected && <circle r={d / 2 + 9} fill="none" stroke="#FFFFFF80" strokeWidth={1} />}
-			{hovered && !selected && <circle r={d / 2 + 6.25} fill="none" stroke="#FFFFFF99" strokeWidth={1.5} />}
+			{selected && <circle r={d / 2 + 9} fill="none" style={{ stroke: inkAlpha(50) }} strokeWidth={1} />}
+			{hovered && !selected && <circle r={d / 2 + 6.25} fill="none" style={{ stroke: inkAlpha(60) }} strokeWidth={1.5} />}
 			<text
-				className="font-mono"
+				className={tested ? "font-mono fill-ink" : "font-mono fill-ink-2"}
 				fontSize={Math.max(10, d * 0.275)}
 				fontWeight={700}
-				fill={tested ? "#E6E6E6" : "#8D8D8D"}
 				textAnchor="middle"
 				dominantBaseline="central"
 			>
@@ -98,7 +103,7 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 			<foreignObject x={-80} y={d / 2 + 8} width={160} height={44}>
 				<div className="flex flex-col items-center gap-0.5 text-center">
 					<div
-						className={`line-clamp-2 w-full text-[13px] leading-4 ${selected ? "font-extrabold text-white" : "font-semibold text-[#D6D6D6]"}`}
+						className={`line-clamp-2 w-full text-[13px] leading-4 ${selected ? "font-extrabold text-ink-max" : "font-semibold text-ink"}`}
 					>
 						{topic.name}
 					</div>

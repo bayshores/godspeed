@@ -1,26 +1,13 @@
 /**
- * Tests for the prompt-override store (settings-storage wave, 2026-09-19):
- * src/store/prompt-overrides.ts — override file CRUD, the mirror-layout
- * path discipline (traversal guard), and the SOURCE-DERIVED segment list
- * (the loader mirrors teacher-agent.ts's composeInstructions discovery;
- * these tests pin that the mirror tracks the real src/agent/prompts tree).
+ * Tests for the prompt-override store (src/store/prompt-overrides.ts), the
+ * source-derived segment list, composition with saved versions, and the
+ * clean-up of the old on/off switches.
  *
- * TEST-DIR ISOLATION (contract fix, interlude 2026-09-26): data/prompts
- * holds REAL user override files — this suite must never touch it (the
- * old after() wiped it as "disposable scratch", killing real overrides
- * and orphaning their ON switches). LH_DATA_DIR is the established
- * data-location seam (Electron contract, 2026-09-17; see
- * data-dir-seam.test.ts), evaluated at src/config.ts's MODULE LOAD — so it
- * must be set before the first import that (transitively) loads config.
- * Every app-module import below is dynamic for exactly that reason;
- * only node builtins and config-independent libs stay static. The seam
- * pins at the bottom assert the redirection, and after() snapshots that
- * the REAL repo data/prompts survived the suite untouched.
+ * LH_DATA_DIR must be set before the first import that loads src/config.ts,
+ * so every app-module import below is dynamic. data/prompts holds real
+ * override files; after() checks this suite never touched it.
  *
- * This file OWNS the temp dir (parallel-test discipline: one fs owner
- * per file) — every override-writing test lives here, including the
- * route-level contract pins for the same interlude (delete-clears-switch,
- * orphaned-ON-heals-to-OFF).
+ * This file owns the temp dir: every override-writing test lives here.
  */
 
 import assert from "node:assert/strict";
@@ -37,15 +24,12 @@ await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-prompt-overrides-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
-const { PROMPTS_OVERRIDE_DIR } = await import("../src/config.ts");
+const { PROMPTS_OVERRIDE_DIR, SETTINGS_FILE } = await import("../src/config.ts");
 const teacherAgent = await import("../src/agent/teacher-agent.ts");
 const { allSegmentPaths, effectivePromptSegments } = await import("../src/agent/prompt-segments.ts");
 const { isValidSegmentPath } = await import("../src/core/prompt-segments.ts");
 const { promptOverrides } = await import("../src/store/prompt-overrides.ts");
-// Route-level pins drive the actual src/app/api handlers (framework-free
-// Request/Response), isolated under the same temp LH_DATA_DIR.
-const { PUT: putSettingsSection } = await import("../src/app/api/settings/[section]/route.ts");
-const { DELETE: deletePromptText } = await import("../src/app/api/settings/prompts/[...segment]/route.ts");
+const { PUT: putPromptText, DELETE: deletePromptText } = await import("../src/app/api/settings/prompts/[...segment]/route.ts");
 const { readSettingsRecord } = await import("../src/server/index.ts");
 
 /** The REAL repo prompts dir this suite must never touch (read-only). */
@@ -85,15 +69,15 @@ function fauxEngine(): PiEngine {
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 
-/** PUT /api/settings/<section> with a fabricated params context. */
-function putSection(section: string, body: unknown): Promise<Response> {
-	return putSettingsSection(
-		new Request(`http://test/api/settings/${section}`, {
+/** PUT /api/settings/prompts/<segment...> with a fabricated params context. */
+function putSegment(segment: string[], text: string): Promise<Response> {
+	return putPromptText(
+		new Request("http://test/api/settings/prompts", {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(body),
+			body: JSON.stringify({ text }),
 		}),
-		{ params: Promise.resolve({ section }) },
+		{ params: Promise.resolve({ segment }) },
 	);
 }
 
@@ -137,6 +121,9 @@ describe("the override store", () => {
 		promptOverrides.writeOverride("teacher/20-teaching.md", "custom teaching");
 		promptOverrides.writeOverride("system-prompt.md", "custom base");
 		assert.deepEqual(promptOverrides.listOverrides(), ["system-prompt.md", "teacher/20-teaching.md"]);
+		// A saved file is always in use, so leave none behind for the composition tests.
+		promptOverrides.deleteOverride("teacher/20-teaching.md");
+		promptOverrides.deleteOverride("system-prompt.md");
 	});
 
 	it("readOverride round-trips; delete removes idempotently; invalid paths no-op", () => {
@@ -150,21 +137,21 @@ describe("the override store", () => {
 		assert.equal(fs.existsSync(path.join(PROMPTS_OVERRIDE_DIR, "..", "evil.md")), false);
 	});
 
-	it("switches are NOT the store's concern — files alone never enable", () => {
+	it("a saved file shows as the segment's override", () => {
 		promptOverrides.writeOverride("system-prompt.md", "custom base");
-		const off = effectivePromptSegments("teacher", {}) // no switches
-			.find((s) => s.path === "system-prompt.md");
-		assert.ok(off);
-		assert.equal(off.overrideText, "custom base"); // file exists...
-		assert.equal(off.enabled, false); // ...but no switch → source default
-		promptOverrides.deleteOverride("system-prompt.md"); // leave clean for the sibling tests
+		const base = effectivePromptSegments("teacher").find((s) => s.path === "system-prompt.md");
+		assert.ok(base);
+		assert.equal(base.overrideText, "custom base");
+		promptOverrides.deleteOverride("system-prompt.md");
+		const after = effectivePromptSegments("teacher").find((s) => s.path === "system-prompt.md");
+		assert.equal(after?.overrideText, null);
 	});
 });
 
 describe("the source-derived segment list", () => {
 	it("mirrors composeInstructions' discovery: base first, numeric fragments sorted, per agent", () => {
-		const prober = effectivePromptSegments("prober", {});
-		const teacher = effectivePromptSegments("teacher", {});
+		const prober = effectivePromptSegments("prober");
+		const teacher = effectivePromptSegments("teacher");
 		// The shared base composes both prompts, SAME path.
 		assert.equal(prober[0]?.path, "system-prompt.md");
 		assert.equal(teacher[0]?.path, "system-prompt.md");
@@ -216,29 +203,8 @@ describe("the source-derived segment list", () => {
 		assert.equal(allSegmentPaths().some((p) => p.includes("README")), false);
 	});
 
-	it("effective segments: switch+file → override; either missing → source text", () => {
-		promptOverrides.writeOverride("teacher/20-teaching.md", "MY WAY");
-		const switches = { "teacher/20-teaching.md": true, "system-prompt.md": false };
-		const teacher = effectivePromptSegments("teacher", switches);
-		const teaching = teacher.find((s) => s.path === "teacher/20-teaching.md");
-		assert.ok(teaching);
-		assert.equal(teaching.overrideText, "MY WAY");
-		assert.equal(teaching.enabled, true);
-		// base: switch OFF with file ABSENT → source, disabled
-		const base = teacher.find((s) => s.path === "system-prompt.md");
-		assert.ok(base);
-		assert.equal(base.overrideText, null);
-		assert.equal(base.enabled, false);
-		// a switch for a segment with NO override file never enables it
-		const weird = effectivePromptSegments("teacher", { "teacher/10-planning.md": true });
-		const planning = weird.find((s) => s.path === "teacher/10-planning.md");
-		assert.ok(planning);
-		assert.equal(planning.enabled, false);
-		assert.equal(planning.overrideText, null);
-	});
-
 	it("adapts to source changes by construction: the list is computed, not stored", () => {
-		// If a fragment vanishes upstream, its switch/override simply stop
+		// If a fragment vanishes upstream, its override simply stops
 		// composing — nothing here can go stale. Pinned by absence:
 		const before = allSegmentPaths().length;
 		assert.equal(before > 5, true, "base + prober fragments + teacher fragments");
@@ -252,7 +218,7 @@ describe("the source-derived segment list", () => {
 describe("composeInstructions: override honoring + the byte-identical source path", () => {
 	const { composeInstructions, createTeacherAgent } = teacherAgent;
 
-	it("switches-less composition is byte-identical to the pre-refactor loader", () => {
+	it("with no saved versions, composition is byte-identical to the plain loader", () => {
 		// The plain loader, rebuilt inline: base + the agent's own
 		// fragments + the shared/ appendix (the 2026-09-27 reorder),
 		// trimmed, empties dropped, joined with the separator.
@@ -275,140 +241,84 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 		assert.equal(composeInstructions("prober"), oldLoader("prober"));
 	});
 
-	it("an enabled override swaps in; switch off or file absent composes source", () => {
+	it("a saved version swaps in; deleting it brings the source back", () => {
 		promptOverrides.writeOverride("teacher/20-teaching.md", "CUSTOM TEACHING LOOP");
 		try {
-			const on = composeInstructions("teacher", { "teacher/20-teaching.md": true });
-			assert.ok(on.includes("CUSTOM TEACHING LOOP"), "override composes when switch on");
+			const on = composeInstructions("teacher");
+			assert.ok(on.includes("CUSTOM TEACHING LOOP"), "the saved version composes");
 			assert.ok(!on.includes("# Teach — one step at a time"), "source text is replaced");
-			// switch off → source default (the file stays on disk)
-			const off = composeInstructions("teacher", {});
-			assert.ok(off.includes("# Teach — one step at a time"), "source composes when switch off");
-			// switch on for a segment with NO file → source (enabled needs both)
-			const noFile = composeInstructions("teacher", { "teacher/10-planning.md": true });
-			assert.ok(noFile.includes("# Planning"), "file absent → source default");
 		} finally {
 			promptOverrides.deleteOverride("teacher/20-teaching.md");
 		}
+		assert.ok(composeInstructions("teacher").includes("# Teach — one step at a time"), "source composes again");
 	});
 
 	it("shared/ fragments are overridable — one edit swaps the doctrine in BOTH agents", () => {
 		promptOverrides.writeOverride("shared/30-learner-files.md", "MY SHARED FILES DOCTRINE");
 		try {
-			const switches = { "shared/30-learner-files.md": true };
 			for (const kind of ["teacher", "prober"] as const) {
-				const composed = composeInstructions(kind, switches);
+				const composed = composeInstructions(kind);
 				assert.ok(composed.includes("MY SHARED FILES DOCTRINE"), `${kind} composes the override`);
 				assert.ok(!composed.includes("## Learner files"), `${kind} source fragment is replaced`);
 			}
-			// switches-less: both keep the source fragment (the cached path)
-			assert.ok(composeInstructions("teacher").includes("## Learner files"));
 		} finally {
 			promptOverrides.deleteOverride("shared/30-learner-files.md");
 		}
 	});
 
-	it("promptSwitches threads through agent construction into the system prompt", () => {
-		promptOverrides.writeOverride("system-prompt.md", "TOTALLY CUSTOM BASE");
-		try {
-			// BYOK (owner, 2026-09-22): no factory pins — the agent build needs
-			// an injected engine; a scripted faux one stands in (the prompt is
-			// what's under test here, not the model).
-			const engine = fauxEngine();
-			const agent = createTeacherAgent(undefined, { engine, promptSwitches: { "system-prompt.md": true } });
-			assert.ok(agent.state.systemPrompt.includes("TOTALLY CUSTOM BASE"));
-			const source = createTeacherAgent(undefined, { engine });
-			assert.ok(!source.state.systemPrompt.includes("TOTALLY CUSTOM BASE"), "no switches → cached source");
-		} finally {
-			promptOverrides.deleteOverride("system-prompt.md");
-		}
+	it("the learner's rules land after the instructions in the system prompt", () => {
+		const engine = fauxEngine();
+		const rules = "## The learner's rules\n\nVoice\n- No jokes";
+		const agent = createTeacherAgent(undefined, { engine, learnerRules: rules });
+		assert.equal(agent.state.systemPrompt, `${composeInstructions("teacher")}\n\n---\n\n${rules}`);
+		const plain = createTeacherAgent(undefined, { engine });
+		assert.equal(plain.state.systemPrompt, composeInstructions("teacher"));
 	});
 });
 
-// ─── the orphan-heal contract (interlude, 2026-09-26) ────────────────────────
-// The orphan-400 trap: an ON switch whose file dies orphaned the record;
-// every agent-section write then 400'd while the disabled toggle couldn't
-// reach the OFF escape hatch — a user stuck unable to write settings.
-// Fix: the delete route clears the switch by construction, AND the write
-// path heals any orphan that still arises (disk wipes outside the app).
-
-describe("delete clears the switch — the record and file agree by construction", () => {
+describe("the prompts routes", () => {
 	const SEGMENT = "teacher/20-teaching.md";
 
-	it("DELETE removes the file AND clears the on-switch in one operation", async () => {
-		promptOverrides.writeOverride(SEGMENT, "custom teaching");
-		const on = await putSection("agent", { prompts: { [SEGMENT]: true } });
-		assert.equal(on.status, 200, "ON with a real file is valid");
-		assert.equal(readSettingsRecord()?.agent?.prompts?.[SEGMENT], true, "switch landed in the record");
-
-		const res = await deleteSegment(["teacher", "20-teaching.md"]);
+	it("PUT saves a version of a current segment; an unknown segment is a 400", async () => {
+		const res = await putSegment(["teacher", "20-teaching.md"], "custom teaching");
 		assert.equal(res.status, 200);
-		const body = (await res.json()) as { deleted: boolean; switchCleared: boolean };
-		assert.deepEqual(body, { path: SEGMENT, deleted: true, switchCleared: true }, "the response names what happened");
-
-		assert.equal(readSettingsRecord()?.agent?.prompts?.[SEGMENT], undefined, "the switch is GONE from the record");
-		assert.equal(promptOverrides.readOverride(SEGMENT), null, "the file is gone");
-		// And the trap's step 4 — flipping any tool toggle afterwards —
-		// just works (nothing orphaned to mirror):
-		const followUp = await putSection("agent", { tools: { research: false } });
-		assert.equal(followUp.status, 200, "a subsequent agent write succeeds");
-		assert.equal(readSettingsRecord()?.agent?.tools?.research, false);
+		assert.equal(promptOverrides.readOverride(SEGMENT), "custom teaching");
+		const bad = await putSegment(["teacher", "99-vanished.md"], "x");
+		assert.equal(bad.status, 400);
 	});
 
-	it("DELETE is idempotent for file and switch — nothing to clear, still 200", async () => {
+	it("DELETE removes the saved version and is idempotent", async () => {
 		const res = await deleteSegment(["teacher", "20-teaching.md"]);
 		assert.equal(res.status, 200);
-		const body = (await res.json()) as { switchCleared: boolean };
-		assert.equal(body.switchCleared, false, "no switch was present — nothing cleared");
+		assert.deepEqual(await res.json(), { path: SEGMENT, deleted: true });
+		assert.equal(promptOverrides.readOverride(SEGMENT), null);
+		assert.equal((await deleteSegment(["teacher", "20-teaching.md"])).status, 200);
 	});
 });
 
-describe("an orphaned ON heals to OFF on write — never a 400 (the invariant: a user can never get stuck)", () => {
-	const SEGMENT = "teacher/20-teaching.md";
-
-	it("the exact repro: file wiped at disk level → UI mirrors the orphan and flips a tool toggle → the write SUCCEEDS and heals", async () => {
-		promptOverrides.writeOverride(SEGMENT, "custom teaching");
-		const on = await putSection("agent", { prompts: { [SEGMENT]: true } });
-		assert.equal(on.status, 200);
-
-		// The disk-level wipe — OUTSIDE the app (the delete route now clears
-		// the switch, so this is the only way an orphan still arises).
-		fs.rmSync(path.join(PROMPTS_OVERRIDE_DIR, "teacher", "20-teaching.md"));
-
-		// The exact trap shape: the client mirrors the record's orphaned ON
-		// while writing an unrelated tool toggle. Today (pre-fix) → 400 forever.
-		const res = await putSection("agent", { tools: { research: false }, prompts: { [SEGMENT]: true } });
-		assert.equal(res.status, 200, "the write heals instead of 400-ing — the user is never stuck");
-
-		const record = readSettingsRecord();
-		assert.equal(record?.agent?.prompts?.[SEGMENT], undefined, "the orphaned ON landed as OFF (key dropped)");
-		assert.equal(record?.agent?.tools?.research, false, "the rest of the write landed — nothing was silently dropped");
-
-		// And the SECOND write (the "400 forever" of the trap) succeeds too:
-		const again = await putSection("agent", { tools: { research: false }, prompts: { [SEGMENT]: true } });
-		assert.equal(again.status, 200, "repeated writes keep succeeding");
-	});
-
-	it("an ON for a segment that left the source tree heals the same way", async () => {
-		promptOverrides.writeOverride(SEGMENT, "custom teaching");
-		// A vanished-fragment orphan: the switch keys a path that is no
-		// longer a current source segment (simulate by keying junk that the
-		// store never guarded — the record is the only place it exists).
-		const on = await putSection("agent", { prompts: { "teacher/99-vanished.md": true, [SEGMENT]: true } });
-		assert.equal(on.status, 200, "vanished-fragment ON heals too, not a 400");
-		assert.equal(readSettingsRecord()?.agent?.prompts?.["teacher/99-vanished.md"], undefined, "the vanished key healed to OFF");
-		promptOverrides.deleteOverride(SEGMENT);
-	});
-
-	it("a VALID ON (file present) stays valid — no heal, no 400", async () => {
-		promptOverrides.writeOverride(SEGMENT, "custom teaching");
+describe("old prompt switches are cleaned up on read", () => {
+	it("keeps versions that were switched on, deletes the rest, and drops the switch map", () => {
+		promptOverrides.writeOverride("teacher/20-teaching.md", "was on");
+		promptOverrides.writeOverride("teacher/10-planning.md", "was off");
+		promptOverrides.writeOverride("system-prompt.md", "no switch");
+		fs.writeFileSync(
+			SETTINGS_FILE,
+			JSON.stringify({
+				version: 1,
+				agent: { tools: { research: false }, prompts: { "teacher/20-teaching.md": true, "teacher/10-planning.md": false } },
+			}),
+		);
 		try {
-			const res = await putSection("agent", { prompts: { [SEGMENT]: true } });
-			assert.equal(res.status, 200);
-			const record = (await res.json()) as { settings: { agent?: { prompts?: Record<string, boolean> } } };
-			assert.equal(record.settings.agent?.prompts?.[SEGMENT], true, "a real ON+file write keeps the switch on");
+			const record = readSettingsRecord();
+			assert.equal(record?.agent?.tools?.research, false, "the rest of the record survives");
+			assert.equal(promptOverrides.readOverride("teacher/20-teaching.md"), "was on");
+			assert.equal(promptOverrides.readOverride("teacher/10-planning.md"), null);
+			assert.equal(promptOverrides.readOverride("system-prompt.md"), null);
+			const onDisk = JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8")) as { agent: Record<string, unknown> };
+			assert.equal("prompts" in onDisk.agent, false, "the switch map is gone from the file");
 		} finally {
-			promptOverrides.deleteOverride(SEGMENT);
+			promptOverrides.deleteOverride("teacher/20-teaching.md");
+			fs.rmSync(SETTINGS_FILE, { force: true });
 		}
 	});
 });

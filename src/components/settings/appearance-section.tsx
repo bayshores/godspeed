@@ -1,56 +1,24 @@
 /**
- * The Appearance + Graph sections (thin settings wave).
- *
- * Appearance controls resolve against the factory in the provider; writes
- * PUT the whole appearance section and hand the delta back so the CSS
- * variables move IMMEDIATELY (the section's whole point — it must DO
- * something). Hex inputs commit on blur/Enter; the background derives the
- * raised/accent/edge palette in code (src/components/settings/appearance.tsx).
- * Mode is dark-only this wave: control rendered DISABLED with a note — the
- * light palette is the design wave's work, and a lying control is worse
- * than an honest disabled one.
- *
- * Graph graying (owner, 2026-09-20) follows the graph viewer's render-panel
- * convention: the whole row dims when a parent is off (stored values
- * persist but resolve inert — the switch shows stored, the dim effective).
- *
- * Reading font (appearance wave, 2026-09-26, owner ruling): a searchable
- * dropdown of the user's INSTALLED fonts (FontMenuList over font-menu's
- * machine) fed by window.queryLocalFonts() in the desktop shell — the
- * enumeration is click-bound (the API requires user activation), deduped
- * to unique families, the factory family excluded (the DEFAULT row is
- * it). In a plain dev browser the API is absent → a small curated list
- * + a footer that says exactly that — never a fabricated system list.
- * The custom-family input inside the menu is the manual escape path.
- * Empty/unset keeps meaning Source Sans 3.
- *
- * Emphasis inks (same wave): the factory tokens default to the regular
- * text color now (globals.css); the rows' empty-state labels say "same
- * as text".
+ * Settings → Appearance (docs/design/godspeed-redesign.pen, board 11 F):
+ * background presets on top, the type controls on the left and a live
+ * lesson preview on the right. The preview uses the real lesson styles,
+ * so every saved change shows in it (and in the app behind the dialog).
  */
 
 import { useEffect, useRef, useState } from "react";
-import {
-	EXTRACTION_CHUNK_TOKENS_FLOOR,
-	resolveSettings,
-	type AppearanceSettings,
-	type GraphSettings,
-} from "@/core";
+import { ChevronDownIcon, PipetteIcon, PlusIcon } from "lucide-react";
+import type { AppearanceSettings } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
-import { Hint } from "@/components/ui/hint";
+import { cn } from "@/lib/utils";
 import { useAppearance } from "./appearance.tsx";
+import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette, isLight } from "./appearance-model.ts";
 import { FontMenuList } from "./font-menu";
-import { CommitInput, SettingsRow, ThinSelect, Toggle } from "./controls.tsx";
+import { SettingsGroup, Slider, Toggle } from "./controls.tsx";
 
-/** The factory reading family — the DEFAULT row's identity (unset =
- *  this). Exported for tests. */
+/** The factory reading family (unset = this). */
 export const DEFAULT_READING_FONT = "Source Sans 3";
 
-/** The dev-browser fallback list (queryLocalFonts is absent there):
- *  the app's own knowns plus a handful of ubiquitous macOS families,
- *  honestly LABELED as common — never presented as the system's real
- *  list. The factory family is absent: the DEFAULT row is it. Exported
- *  for tests. */
+/** Offered when the installed list can't be read (a plain browser). */
 export const CURATED_FALLBACK_FONTS: readonly string[] = [
 	"Arial",
 	"CMU Serif",
@@ -64,25 +32,8 @@ export const CURATED_FALLBACK_FONTS: readonly string[] = [
 	"Verdana",
 ];
 
-/** window.queryLocalFonts' shape as this section consumes it (family is
- *  the only field used; the API returns one FontData per FACE — the
- *  caller dedupes). */
-type LocalFontsApi = () => Promise<Array<{ family: string }>>;
-
-/** The Local Font Access seam — read lazily (SSR has no window, and
- *  render-time access would evaluate the API on the server). */
-function localFontsApi(): LocalFontsApi | null {
-	if (typeof window === "undefined") return null;
-	return (window as unknown as { queryLocalFonts?: LocalFontsApi }).queryLocalFonts ?? null;
-}
-
-/** Compose the reading-font pick: null (or blank) = the factory
- *  Source Sans 3; otherwise the family verbatim (trimmed — the
- *  sanitizer trims again server-side). Pure — exported for tests. */
-export function composeFontFamily(
-	appearance: AppearanceSettings | undefined,
-	family: string | null,
-): AppearanceSettings {
+/** null or blank = the factory font; otherwise the family, trimmed. */
+export function composeFontFamily(appearance: AppearanceSettings | undefined, family: string | null): AppearanceSettings {
 	const value = family?.trim() ?? "";
 	return { ...appearance, fontFamily: value === "" ? null : value };
 }
@@ -93,323 +44,268 @@ export function AppearanceSection({
 }: {
 	/** The record's appearance delta (absent = factory). */
 	appearance: AppearanceSettings | undefined;
-	/** PUT the whole appearance section; the page re-applies on success. */
+	/** PUT the whole appearance section; the provider re-applies on success. */
 	onSectionChange: (next: AppearanceSettings) => void;
 }) {
 	const { appearance: resolved } = useAppearance();
 	const md = appearance?.mdRendering;
-
-	// The font dropdown's open state + its enumeration cache. undefined =
-	// not enumerated yet (desktop: click-bound queryLocalFonts pending);
-	// null = enumeration UNAVAILABLE (the API is absent in a plain
-	// browser, rejected, or resolved EMPTY — Electron 44's local-fonts
-	// grant passes and the enumeration still yields zero fonts,
-	// reproduced 2026-09-26) → the curated fallback; a list = the deduped
-	// families. enumEmpty distinguishes WHY it fell back, for the footer.
-	const [fontMenuOpen, setFontMenuOpen] = useState(false);
-	const [localFonts, setLocalFonts] = useState<string[] | null | undefined>(undefined);
-	const [enumEmpty, setEnumEmpty] = useState(false);
-	const menuAnchorRef = useRef<HTMLSpanElement>(null);
-
-	// The enumeration runs INSIDE the trigger click — queryLocalFonts
-	// requires user activation, so it cannot be a mount effect. First
-	// open only: the families are cached for the section's life (font
-	// installs mid-dialog are not a case); ANY unavailable enumeration
-	// (absent / rejected / empty) falls back to the curated list rather
-	// than an empty picker.
-	const openFontMenu = () => {
-		setFontMenuOpen((open) => {
-			if (!open && localFonts === undefined) {
-				const api = localFontsApi();
-				if (api === null) {
-					setLocalFonts(null);
-					setEnumEmpty(false);
-				} else {
-					void api()
-						.then((fonts) => {
-							const families = [...new Set(fonts.map((f) => f.family))]
-								.filter((f) => f !== DEFAULT_READING_FONT)
-								.sort((a, b) => a.localeCompare(b));
-							if (families.length === 0) {
-								// Resolved-but-empty: not a failure the catch sees —
-								// an honest unavailable (this Electron 44 build
-								// enumerates nothing even granted).
-								setLocalFonts(null);
-								setEnumEmpty(true);
-							} else {
-								setLocalFonts(families);
-							}
-						})
-						.catch(() => {
-							setLocalFonts(null);
-							setEnumEmpty(false);
-						});
-				}
-			}
-			return !open;
-		});
-	};
-
-	const pickFont = (family: string | null) => {
-		setFontMenuOpen(false);
-		onSectionChange(composeFontFamily(appearance, family));
-	};
-
-	// The dropdown contract (agent-section's, mirrored): any click
-	// outside the open menu — or an Esc — closes it. Esc is CLAIMED with
-	// stopPropagation so the settings dialog behind does NOT also close.
-	useEffect(() => {
-		if (!fontMenuOpen) return;
-		const onPointerDown = (e: PointerEvent) => {
-			const target = e.target as Node;
-			if (menuAnchorRef.current?.contains(target)) return;
-			if (target instanceof Element && target.closest("[data-lh-menu]")) return;
-			if (target instanceof Element && target.closest('[role="dialog"]')) {
-				setFontMenuOpen(false);
-			}
-			// else: outside the dialog — the dialog's own close handles it.
-		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.stopPropagation();
-				setFontMenuOpen(false);
-			}
-		};
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [fontMenuOpen]);
+	const background = appearance?.background ?? null;
+	const shownBackground = background ?? "#000000";
+	const light = isLight(shownBackground);
+	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
+	const weightIndex = Math.max(0, HEADING_WEIGHTS.findIndex((w) => w.weight >= resolved.mdRendering.headingWeight));
+	const ink = md?.boldColor ?? null;
+	const inks: readonly string[] = INK_PRESETS[light ? "light" : "dark"];
+	const customInk = ink !== null && !inks.includes(ink);
+	const setInk = (color: string | null) =>
+		onSectionChange({ ...appearance, mdRendering: { ...md, boldColor: color, italicColor: color } });
 
 	return (
 		<>
-			<SettingsRow label="Mode" hint="Coming soon" testid="row-mode" dimmed>
-				<ThinSelect value="dark" ariaLabel="mode" onChange={() => {}} testid="select-mode" disabled>
-					<option value="dark">Dark</option>
-				</ThinSelect>
-			</SettingsRow>
-			<SettingsRow
-				label="Background"
-				hint={`Empty = ${resolved.background ?? "#141414"}`}
-				testid="row-background"
-			>
-				<CommitInput
-					value={appearance?.background ?? ""}
-					placeholder="#141414"
-					ariaLabel="background hex"
-					testid="input-background"
-					onCommit={(v) => onSectionChange({ ...appearance, background: v === "" ? null : v })}
-				/>
-			</SettingsRow>
-			<SettingsRow
-				label="Reading font"
-				hint={`Empty = ${DEFAULT_READING_FONT}`}
-				testid="row-font"
-			>
-				<span ref={fontMenuOpen ? menuAnchorRef : undefined} className="relative flex items-center gap-2">
-					{/* The MenuTrigger look (agent-section's collapsed
-					    select — it lives unexported there, so the
-					    classes ride inline; the searchable machine is
-					    the shared part). The tooltip rides the CLOSED
-					    button ONLY (owner ruling 2026-09-26: never while
-					    the dropdown is out — it popped over the open
-					    menu when the wrap covered the whole anchor
-					    span). */}
-					{(() => {
-						const triggerButton = (
-							<button
-								type="button"
-								aria-label="Reading font"
-								aria-expanded={fontMenuOpen}
-								data-testid="font-trigger"
-								onClick={openFontMenu}
-								className="lh-press flex h-7 min-w-20 items-center gap-1 border border-border bg-background px-1.5 font-ui text-xs text-foreground hover:border-muted-foreground/50"
-							>
-								<span className="min-w-0 flex-1 truncate">{appearance?.fontFamily || DEFAULT_READING_FONT}</span>
-								<span aria-hidden className="text-muted-foreground">
-									▾
-								</span>
-							</button>
-						);
-						return fontMenuOpen ? (
-							triggerButton
-						) : (
-							<Hint label="Choose from your installed fonts" side="left">
-								{triggerButton}
-							</Hint>
-						);
-					})()}
-					<MenuShell
-						open={fontMenuOpen}
-						preferredSide="down"
-						anchorTestid="font-trigger"
-						testid="font-menu"
-						menuClass="flex w-[18rem] flex-col gap-0.5 border border-border bg-card p-2 text-xs shadow-xl"
-					>
-						<FontMenuList
-							families={localFonts === undefined ? undefined : (localFonts ?? [...CURATED_FALLBACK_FONTS])}
-							effectiveFamily={appearance?.fontFamily ?? null}
-							onPick={pickFont}
-							footer={
-								localFonts === undefined
-									? undefined
-									: localFonts === null
-										? enumEmpty
-											? "Common families — installed fonts could not be read"
-											: "Common families — your installed list needs the desktop app"
-										: "Your installed fonts"
-							}
+			<SettingsGroup label="Background" testid="group-background">
+				<div className="grid grid-cols-7 gap-2.5">
+					{BACKGROUND_PRESETS.map((preset) => (
+						<ThemeTile
+							key={preset.name}
+							name={preset.name}
+							color={preset.color ?? "#000000"}
+							on={preset.color === background}
+							onPick={() => onSectionChange({ ...appearance, background: preset.color })}
 						/>
-					</MenuShell>
-				</span>
-			</SettingsRow>
-			<SettingsRow label="Reading font size" hint={`${resolved.proseFontSize}px`} testid="row-prose-size">
-				<CommitInput
-					type="number"
-					value={String(appearance?.proseFontSize ?? "")}
-					placeholder="16"
-					ariaLabel="prose font size"
-					testid="input-prose-size"
-					onCommit={(v) => {
-						// Empty = factory default (owner, fix wave): omit the key so the record
-						// UNSETS and the field stays empty (absence, not null, is the
-						// unset for numbers). Number("") is 0, so the old clamp wrote 12.
-						if (v === "") {
-							onSectionChange({ ...appearance, proseFontSize: undefined });
-							return;
-						}
-						const n = Number(v);
-						if (!Number.isFinite(n)) return; // bad input: no write, factory stays
-						onSectionChange({ ...appearance, proseFontSize: Math.min(24, Math.max(12, Math.round(n))) });
-					}}
-				/>
-			</SettingsRow>
-			<SettingsRow label="Session names in serif" testid="row-session-serif">
-				<Toggle
-					checked={appearance?.sessionNameSerif ?? true}
-					label="session names serif"
-					onChange={(on) => onSectionChange({ ...appearance, sessionNameSerif: on })}
-				/>
-			</SettingsRow>
-			<SettingsRow label="Heading weight" hint={`${resolved.mdRendering.headingWeight}`} testid="row-heading-weight">
-				<CommitInput
-					type="number"
-					value={String(md?.headingWeight ?? "")}
-					placeholder="900"
-					ariaLabel="heading weight"
-					testid="input-heading-weight"
-					onCommit={(v) => {
-						// Empty = factory default (owner, fix wave): Number("") is 0, so
-						// Absence is the unset representation — the old clamp wrote 100.
-						if (v === "") {
-							onSectionChange({ ...appearance, mdRendering: { ...md, headingWeight: undefined } });
-							return;
-						}
-						const n = Number(v);
-						if (!Number.isFinite(n)) return;
-						onSectionChange({
-							...appearance,
-							mdRendering: { ...md, headingWeight: Math.min(900, Math.max(100, Math.round(n))) },
-						});
-					}}
-				/>
-			</SettingsRow>
-			{/* The emphasis inks default to the REGULAR TEXT COLOR now
-			    (appearance wave, 2026-09-26) — the empty-state labels say
-			    so; explicit hex overrides ride unchanged. */}
-			<SettingsRow label="Bold color" hint="Empty = same as text" testid="row-bold-color">
-				<CommitInput
-					value={md?.boldColor ?? ""}
-					placeholder="same as text"
-					ariaLabel="bold color"
-					testid="input-bold-color"
-					onCommit={(v) => onSectionChange({ ...appearance, mdRendering: { ...md, boldColor: v === "" ? null : v } })}
-				/>
-			</SettingsRow>
-			<SettingsRow label="Italic color" hint="Empty = same as text" testid="row-italic-color">
-				<CommitInput
-					value={md?.italicColor ?? ""}
-					placeholder="same as text"
-					ariaLabel="italic color"
-					testid="input-italic-color"
-					onCommit={(v) => onSectionChange({ ...appearance, mdRendering: { ...md, italicColor: v === "" ? null : v } })}
-				/>
-			</SettingsRow>
+					))}
+					<label className="lh-press flex cursor-pointer flex-col gap-[7px]" data-testid="theme-custom">
+						<span
+							className={cn(
+								"relative flex h-16 items-center justify-center border",
+								!isPreset ? "border-2 border-ink" : "border-tone-2",
+							)}
+							style={{
+								background: !isPreset && background ? background : "conic-gradient(#e4573f, #d2a24c, #93b08a, #4a6fd1, #e4573f)",
+							}}
+						>
+							<span className="flex size-[26px] items-center justify-center bg-background text-ink">
+								<PlusIcon className="size-3.5" aria-hidden />
+							</span>
+							<ColorInput label="Custom background color" value={shownBackground} onCommit={(c) => onSectionChange({ ...appearance, background: c })} />
+						</span>
+						<span className={cn("text-[12.5px]", !isPreset ? "font-bold text-ink" : "text-ink-2")}>Custom</span>
+					</label>
+				</div>
+			</SettingsGroup>
+
+			<div className="mt-[22px] flex gap-6">
+				<div className="flex w-[300px] shrink-0 flex-col gap-[18px]">
+					<Control label="Reading font">
+						<FontPicker
+							family={appearance?.fontFamily ?? null}
+							onPick={(family) => onSectionChange(composeFontFamily(appearance, family))}
+						/>
+					</Control>
+					<Control label="Text size">
+						<Slider
+							value={resolved.proseFontSize}
+							min={12}
+							max={24}
+							ariaLabel="Text size"
+							testid="slider-text-size"
+							label={(v) => `${v} px`}
+							onCommit={(v) => onSectionChange({ ...appearance, proseFontSize: v })}
+						/>
+					</Control>
+					<Control label="Heading weight">
+						<Slider
+							value={weightIndex}
+							min={0}
+							max={HEADING_WEIGHTS.length - 1}
+							ariaLabel="Heading weight"
+							testid="slider-heading-weight"
+							label={(i) => HEADING_WEIGHTS[i]?.name ?? ""}
+							onCommit={(i) => onSectionChange({ ...appearance, mdRendering: { ...md, headingWeight: HEADING_WEIGHTS[i]?.weight } })}
+						/>
+					</Control>
+					<Control label="Bold and italic color">
+						<div className="flex items-center gap-1.5">
+							<InkSwatch color={derivedPalette(shownBackground)["--foreground"]!} label="Same as text" on={ink === null} onPick={() => setInk(null)} />
+							{inks.map((c) => (
+								<InkSwatch key={c} color={c} label={c} on={ink === c} onPick={() => setInk(c)} />
+							))}
+							<label
+								className={cn(
+									"lh-press relative flex size-7 cursor-pointer items-center justify-center border text-ink-2 hover:text-ink",
+									customInk ? "border-2 border-ink" : "border-tone-2",
+								)}
+								style={customInk ? { background: ink } : undefined}
+							>
+								<PipetteIcon className="size-[13px]" aria-hidden />
+								<ColorInput label="Custom bold and italic color" value={ink ?? "#ffffff"} onCommit={setInk} />
+							</label>
+						</div>
+					</Control>
+					<Control label="Lesson titles">
+						<div className="flex items-center justify-between bg-tone px-3 py-2">
+							<span className="text-[13.5px] text-ink">Serif titles</span>
+							<Toggle
+								checked={resolved.sessionNameSerif}
+								label="serif titles"
+								onChange={(on) => onSectionChange({ ...appearance, sessionNameSerif: on })}
+							/>
+						</div>
+					</Control>
+				</div>
+				<Preview />
+			</div>
 		</>
 	);
 }
 
-export function GraphSection({
-	graph,
-	onSectionChange,
-}: {
-	graph: GraphSettings | undefined;
-	onSectionChange: (next: GraphSettings) => void;
-}) {
-	// Wave 7 collapse (owner ruling 2026-09-23): the section is the MASTER
-	// SWITCH — the embedding/clustering/labeling rungs are gone; clustering
-	// is the free birth-session partition derived on read, labels ARE session
-	// names. The chunk budget (2026-10-02) joined it as the section's second
-	// and only other control: it denominates the coverage ring AND gates the
-	// auto-extraction trigger (turn settle ≥ budget fires the run).
-	//
-	// Resolved through the SAME core resolver the server's effective
-	// settings use (one source of truth, the 4096-fallback fix 2026-10-02):
-	// the hint and placeholder report exactly the number the trigger waits
-	// for — never a second hand-rolled default.
-	const resolved = resolveSettings(graph === undefined ? null : { version: 1, graph }).graph;
+function Control({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
-		<>
-			{/* EXTRACTION (renamed, owner 2026-10-06): this switch is the DATA
-			    channel — the pipeline and the prober's graph tools. It
-			    was born labeled "Graph": off ≠ no graph, off = the graph stops
-			    growing. (The display-only "Graph rendering" switch was removed
-			    with the old fact canvas, 2026-10-27.) The testid keeps the old name's shape (row-enabled) so
-			    this stays one rename, not a test re-pin. */}
-			<SettingsRow label="Extraction" hint="Off = the graph stops growing" testid="graph-row-enabled">
-				<Toggle
-					checked={graph?.enabled ?? true}
-					label="extraction enabled"
-					onChange={(on) =>
-						// Compose, never replace-whole (the section PUT is, but the
-					// row must not drop its sibling field — fixed with the budget
-					// row's arrival: the old { enabled: on } wiped a stored budget).
-						onSectionChange({ ...graph, enabled: on })
-					}
-				/>
-			</SettingsRow>
-			<SettingsRow
-				label="Extraction chunk budget"
-				hint={`${resolved.extractionChunkTokens} tok`}
-				testid="graph-row-chunk-tokens"
+		<div className="flex flex-col gap-2">
+			<p className="text-[13px] font-bold text-ink-3">{label}</p>
+			{children}
+		</div>
+	);
+}
+
+function ThemeTile({ name, color, on, onPick }: { name: string; color: string; on: boolean; onPick: () => void }) {
+	const p = derivedPalette(color);
+	return (
+		<button type="button" aria-pressed={on} data-testid={`theme-${name.toLowerCase()}`} onClick={onPick} className="lh-press flex flex-col gap-[7px] text-left">
+			<span
+				className={cn("flex h-16 flex-col gap-[5px] px-2.5 py-2.5", on ? "border-2 border-ink" : "border")}
+				style={{ background: color, borderColor: on ? undefined : p["--border"] }}
 			>
-				<CommitInput
-					type="number"
-					value={String(graph?.extractionChunkTokens ?? "")}
-					placeholder={String(resolved.extractionChunkTokens)}
-					ariaLabel="extraction chunk budget"
-					testid="input-chunk-tokens"
-					onCommit={(v) => {
-						// Empty = factory default (the fix-wave discipline): absence is
-						// the unset for numbers — Number("") is 0, so clamping would
-						// write the floor instead of unsetting.
-						if (v === "") {
-							onSectionChange({ ...graph, extractionChunkTokens: undefined });
-							return;
-						}
-						const n = Number(v);
-						if (!Number.isFinite(n) || n <= 0) return; // bad input: no write
-						// Mirror the server sanitize exactly: floor only (cost
-						// protection), no ceiling — a big budget is the user's call.
-						onSectionChange({
-							...graph,
-							extractionChunkTokens: Math.max(EXTRACTION_CHUNK_TOKENS_FLOOR, Math.round(n)),
-						});
+				<span className="h-1.5 w-11" style={{ background: p["--foreground"] }} />
+				<span className="h-1 w-full" style={{ background: p["--muted-foreground"] }} />
+				<span className="h-1 w-[30px]" style={{ background: p["--muted-foreground"] }} />
+			</span>
+			<span className={cn("text-[12.5px]", on ? "font-bold text-ink" : "text-ink-2")}>{name}</span>
+		</button>
+	);
+}
+
+/** The system color picker, invisible over its tile. Saves once the pick
+ *  is done (the native change event), not on every drag step. */
+function ColorInput({ label, value, onCommit }: { label: string; value: string; onCommit: (color: string) => void }) {
+	return (
+		<input
+			type="color"
+			aria-label={label}
+			defaultValue={value}
+			ref={(el) => {
+				if (el) el.onchange = () => onCommit(el.value);
+			}}
+			className="absolute inset-0 cursor-pointer opacity-0"
+		/>
+	);
+}
+
+function InkSwatch({ color, label, on, onPick }: { color: string; label: string; on: boolean; onPick: () => void }) {
+	return (
+		<button
+			type="button"
+			aria-label={label}
+			aria-pressed={on}
+			onClick={onPick}
+			className={cn("lh-press size-7", on ? "outline-2 outline-offset-2 outline-ink" : "")}
+			style={{ background: color, outlineStyle: on ? "solid" : undefined }}
+		/>
+	);
+}
+
+/** The sample lesson, drawn with the real lesson styles. */
+function Preview() {
+	return (
+		<div className="min-w-0 flex-1 self-start border border-tone-2 bg-background px-5 py-[18px]" data-testid="appearance-preview">
+			<p className="pb-2 text-[11.5px] font-bold text-ink-3">Preview</p>
+			<h4 className="font-title pb-2 text-[22px] leading-tight text-ink">Why a derivative is a slope</h4>
+			<div className="lh-prose flex flex-col gap-2.5">
+				<p>
+					Zoom in on a smooth curve and it <strong>looks straight</strong>.
+				</p>
+				<p>
+					That line&apos;s slope <em>is</em> the derivative at the point.
+				</p>
+				<h4 className="text-[1.1em]">Picking the line</h4>
+				<p>Take two points and slide one toward the other.</p>
+			</div>
+		</div>
+	);
+}
+
+/** The reading-font menu trigger. The installed families load on the
+ *  first open (desktop app); a plain browser gets a short common list. */
+function FontPicker({ family, onPick }: { family: string | null; onPick: (family: string | null) => void }) {
+	const [open, setOpen] = useState(false);
+	const [fonts, setFonts] = useState<string[] | null | undefined>(undefined);
+	const anchorRef = useRef<HTMLSpanElement>(null);
+
+	const toggle = () => {
+		if (!open && fonts === undefined) {
+			const list = typeof window === "undefined" ? undefined : window.lh?.listFonts;
+			if (!list) setFonts(null);
+			else
+				void list()
+					.then((all) => setFonts(all.length ? all.filter((f) => f !== DEFAULT_READING_FONT) : null))
+					.catch(() => setFonts(null));
+		}
+		setOpen((o) => !o);
+	};
+
+	// Any click outside the open menu, or Escape, closes it (not the dialog).
+	useEffect(() => {
+		if (!open) return;
+		const onPointerDown = (e: PointerEvent) => {
+			const target = e.target as Node;
+			if (anchorRef.current?.contains(target)) return;
+			if (target instanceof Element && target.closest("[data-lh-menu]")) return;
+			setOpen(false);
+		};
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== "Escape") return;
+			e.stopPropagation();
+			setOpen(false);
+		};
+		document.addEventListener("pointerdown", onPointerDown);
+		document.addEventListener("keydown", onKeyDown, true);
+		return () => {
+			document.removeEventListener("pointerdown", onPointerDown);
+			document.removeEventListener("keydown", onKeyDown, true);
+		};
+	}, [open]);
+
+	return (
+		<span ref={anchorRef} className="relative block">
+			<button
+				type="button"
+				aria-label="Reading font"
+				aria-expanded={open}
+				data-testid="font-trigger"
+				onClick={toggle}
+				className="lh-press flex w-full items-center justify-between gap-2 bg-tone px-3 py-[9px] text-left text-[15px] text-ink hover:bg-tone-2"
+			>
+				<span className="min-w-0 truncate" style={{ fontFamily: family ? `"${family}"` : undefined }}>
+					{family || DEFAULT_READING_FONT}
+				</span>
+				<ChevronDownIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
+			</button>
+			<MenuShell
+				open={open}
+				preferredSide="down"
+				anchorTestid="font-trigger"
+				testid="font-menu"
+				menuClass="flex w-[18rem] flex-col gap-0.5 border border-border bg-card p-2 text-xs shadow-xl"
+			>
+				<FontMenuList
+					families={fonts === undefined ? undefined : (fonts ?? [...CURATED_FALLBACK_FONTS])}
+					effectiveFamily={family}
+					onPick={(f) => {
+						setOpen(false);
+						onPick(f);
 					}}
+					footer={fonts === undefined ? undefined : fonts === null ? "Common fonts. Your installed fonts show in the desktop app." : "Your installed fonts"}
 				/>
-			</SettingsRow>
-		</>
+			</MenuShell>
+		</span>
 	);
 }

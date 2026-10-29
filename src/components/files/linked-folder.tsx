@@ -119,7 +119,7 @@ export function LinkFolderField({
 				}}
 				placeholder="/Users/you/School/MATH20C"
 				autoFocus
-				className="min-w-0 flex-1 border border-tone-2 bg-black px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-3 focus:border-ink-3"
+				className="min-w-0 flex-1 border border-tone-2 bg-background px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-3 focus:border-ink-3"
 			/>
 			<button type="button" onClick={onCancel} className="lh-press shrink-0 text-[13.5px] font-bold text-ink-2 hover:text-ink">
 				Cancel
@@ -128,7 +128,7 @@ export function LinkFolderField({
 				type="submit"
 				data-testid="class-link-folder"
 				disabled={disabled || !ready}
-				className="lh-press shrink-0 bg-ink px-3 py-1.5 text-[13.5px] font-bold text-black hover:bg-white disabled:opacity-50"
+				className="lh-press shrink-0 bg-ink px-3 py-1.5 text-[13.5px] font-bold text-background hover:bg-ink-max disabled:opacity-50"
 			>
 				Link
 			</button>

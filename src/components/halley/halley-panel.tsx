@@ -80,7 +80,7 @@ export function HalleyPanel({
 			data-testid="halley-panel"
 			aria-label={name}
 			style={style}
-			className="lh-pop fixed z-40 flex w-[360px] flex-col gap-3.5 overflow-y-auto border border-tone-2 bg-[#141414] px-4 py-3.5 font-ui shadow-[0_10px_30px_#000000aa]"
+			className="lh-pop fixed z-40 flex w-[360px] flex-col gap-3.5 overflow-y-auto border border-tone-2 bg-tip px-4 py-3.5 font-ui shadow-[0_10px_30px_#000000aa]"
 		>
 			<div className="flex items-center gap-2.5">
 				<span className="size-7 shrink-0">
@@ -108,7 +108,7 @@ export function HalleyPanel({
 						<span
 							className={cn(
 								"absolute top-[3px] left-[3px] size-2.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-								follow ? "translate-x-3 bg-black" : "translate-x-0 bg-ink-2",
+								follow ? "translate-x-3 bg-background" : "translate-x-0 bg-ink-2",
 							)}
 						/>
 					</button>

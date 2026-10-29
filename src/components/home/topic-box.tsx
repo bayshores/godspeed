@@ -28,7 +28,7 @@ export function ModeSwitch({ mode, onMode }: { mode: HomeMode; onMode: (m: HomeM
 					onClick={() => onMode(m)}
 					className={cn(
 						"lh-press flex items-center gap-[7px] px-3.5 py-2 text-[13.5px] font-bold",
-						mode === m ? "bg-ink text-black" : "bg-tone text-ink-2 hover:text-ink",
+						mode === m ? "bg-ink text-background" : "bg-tone text-ink-2 hover:text-ink",
 					)}
 				>
 					<Icon aria-hidden className="size-3.5" />
@@ -130,7 +130,7 @@ export function TopicBox({
 					data-testid="home-start"
 					aria-disabled={empty || busy}
 					disabled={busy}
-					className="lh-press flex shrink-0 items-center gap-2 bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-black hover:bg-white disabled:opacity-60"
+					className="lh-press flex shrink-0 items-center gap-2 bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 				>
 					Start lesson
 					<CornerDownLeftIcon aria-hidden className="size-3.5" />

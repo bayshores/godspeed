@@ -85,12 +85,12 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 		>
 			<defs>
 				<radialGradient id="ob-glow">
-					<stop offset="0" stopColor="#fff" stopOpacity="0.16" />
-					<stop offset="1" stopColor="#fff" stopOpacity="0" />
+					<stop offset="0" style={{ stopColor: "var(--foreground)" }} stopOpacity="0.16" />
+					<stop offset="1" style={{ stopColor: "var(--foreground)" }} stopOpacity="0" />
 				</radialGradient>
 				<linearGradient id="ob-tail">
-					<stop offset="0" stopColor="#fff" stopOpacity="0.85" />
-					<stop offset="1" stopColor="#fff" stopOpacity="0" />
+					<stop offset="0" style={{ stopColor: "var(--foreground)" }} stopOpacity="0.85" />
+					<stop offset="1" style={{ stopColor: "var(--foreground)" }} stopOpacity="0" />
 				</linearGradient>
 				<filter id="ob-tail-blur" x="-20%" y="-100%" width="140%" height="300%">
 					<feGaussianBlur stdDeviation="3" />
@@ -130,7 +130,7 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 				<g transform={`rotate(${TAIL_ANGLE.toFixed(1)})`}>
 					<path className="ob-tail" d={TAIL} fill="url(#ob-tail)" filter="url(#ob-tail-blur)" />
 				</g>
-				<circle r={HEAD_R} fill="#fff" />
+				<circle r={HEAD_R} className="fill-ink" />
 			</g>
 		</svg>
 	);

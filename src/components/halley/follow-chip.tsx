@@ -29,10 +29,10 @@ export function FollowChipView({
 }) {
 	if (following) {
 		return (
-			<span data-testid="follow-chip" className={cn("lh-pop flex h-[35px] shrink-0 items-center gap-2 bg-ink px-2.5 font-ui text-black", className)}>
-				<span aria-hidden className="size-3.5 shrink-0 rounded-full bg-black" />
+			<span data-testid="follow-chip" className={cn("lh-pop flex h-[35px] shrink-0 items-center gap-2 bg-ink px-2.5 font-ui text-background", className)}>
+				<span aria-hidden className="size-3.5 shrink-0 rounded-full bg-background" />
 				<span className="whitespace-nowrap text-[13.5px] font-bold">Following {name}</span>
-				<button type="button" data-testid="follow-stop" onClick={onStop} className="lh-press bg-black/[0.13] px-2 py-0.5 text-[13px] hover:bg-black/20">
+				<button type="button" data-testid="follow-stop" onClick={onStop} className="lh-press bg-background/[0.13] px-2 py-0.5 text-[13px] hover:bg-background/20">
 					Stop
 				</button>
 			</span>

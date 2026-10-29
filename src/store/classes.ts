@@ -15,6 +15,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
+import { sanitizeRules } from "../core/teaching-areas.ts";
 import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import type { ClassDeadline, ClassFile, ClassRecord, ClassSummary, DeadlineKind } from "../core/contracts.ts";
 import {
@@ -122,6 +123,7 @@ function getClass(id: string): ClassRecord | null {
 	// the next write persists the cleaned list).
 	const fileIds = new Set(files.map((f) => f.id));
 	const deadlines = readDeadlines(parsed);
+	const rules = sanitizeRules(parsed.rules);
 	return {
 		id: parsed.id,
 		name: parsed.name,
@@ -132,6 +134,7 @@ function getClass(id: string): ClassRecord | null {
 		...(isString(parsed.linkedFolder) ? { linkedFolder: parsed.linkedFolder } : {}),
 		files,
 		...(deadlines ? { deadlines: deadlines.map((d) => ({ ...d, fileIds: d.fileIds.filter((f) => fileIds.has(f)) })).sort(compareDeadlines) } : {}),
+		...(rules.length ? { rules } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
 	};
 }
@@ -190,6 +193,11 @@ function updateClass(id: string, patch: ClassPatch): ClassRecord {
 	if (patch.name !== undefined) record.name = cleanName(patch.name);
 	if (patch.description !== undefined) record.description = patch.description.trim();
 	if (patch.archived !== undefined) record.archived = patch.archived;
+	if (patch.rules !== undefined) {
+		const rules = sanitizeRules(patch.rules);
+		if (rules.length) record.rules = rules;
+		else delete record.rules;
+	}
 	if (patch.linkedFolder !== undefined) {
 		if (patch.linkedFolder === null) delete record.linkedFolder;
 		else record.linkedFolder = patch.linkedFolder;

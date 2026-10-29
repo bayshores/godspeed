@@ -35,15 +35,21 @@ describe("parseGeneralSettingsBody", () => {
 });
 
 describe("parseAgentSettingsBody", () => {
-	it("tools and prompts: boolean maps; non-boolean values are 400s", () => {
-		const r = parseAgentSettingsBody({ tools: { research: false }, prompts: { "system-prompt.md": true } });
+	it("tools: a boolean map; non-boolean values are 400s", () => {
+		const r = parseAgentSettingsBody({ tools: { research: false } });
 		assert.ok(r.ok);
 		assert.deepEqual(r.settings.tools, { research: false });
-		assert.deepEqual(r.settings.prompts, { "system-prompt.md": true });
 		assert.equal(parseAgentSettingsBody({ tools: { quiz: "no" } }).ok, false);
-		assert.equal(parseAgentSettingsBody({ prompts: { "x.md": 1 } }).ok, false);
-		// switch validity (segment membership, file presence) is the ROUTE's
-		// cross-validation — the parser only sees shapes.
+	});
+
+	it("rules: known areas, each a list of strings, cleaned on the way in", () => {
+		const r = parseAgentSettingsBody({ rules: { voice: ["  No jokes ", "", "No jokes"], facts: [] } });
+		assert.ok(r.ok);
+		assert.deepEqual(r.settings.rules, { voice: ["No jokes"] });
+		assert.equal(parseAgentSettingsBody({ rules: { mood: ["x"] } }).ok, false, "unknown area");
+		assert.equal(parseAgentSettingsBody({ rules: { voice: "x" } }).ok, false, "not a list");
+		assert.equal(parseAgentSettingsBody({ rules: { voice: [1] } }).ok, false, "not strings");
+		assert.equal(parseAgentSettingsBody({ rules: [] }).ok, false, "not an object");
 	});
 
 
@@ -69,7 +75,6 @@ describe("parseAgentSettingsBody", () => {
 describe("parseAppearanceSettingsBody", () => {
 	it("parses every field; hex-or-null colors; clamps happen at sanitize, rejects here", () => {
 		const r = parseAppearanceSettingsBody({
-			mode: "light",
 			background: "#ffffff",
 			fontFamily: "Some Font",
 			proseFontSize: 20,
@@ -78,7 +83,6 @@ describe("parseAppearanceSettingsBody", () => {
 		});
 		assert.ok(r.ok);
 		assert.deepEqual(r.settings, {
-			mode: "light",
 			background: "#ffffff",
 			fontFamily: "Some Font",
 			proseFontSize: 20,
@@ -87,9 +91,8 @@ describe("parseAppearanceSettingsBody", () => {
 		});
 	});
 
-	it("rejects bad enums, ranges, and colors — with specific messages, never clamps", () => {
+	it("rejects bad ranges and colors — with specific messages, never clamps", () => {
 		const cases: unknown[] = [
-			{ mode: "sepia" },
 			{ background: "blue" },
 			{ background: 42 },
 			{ fontFamily: "" },
@@ -109,7 +112,7 @@ describe("parseAppearanceSettingsBody", () => {
 		assert.ok(parseAppearanceSettingsBody({ mdRendering: { headingWeight: 100 } }));
 		assert.ok(parseAppearanceSettingsBody({ mdRendering: { headingWeight: 900 } }));
 		assert.ok(parseAppearanceSettingsBody({ background: "#abc" }));
-		// null = "the mode's default" — explicit, valid
+		// null = the factory value — explicit, valid
 		assert.ok(parseAppearanceSettingsBody({ background: null, fontFamily: null }));
 	});
 

@@ -94,6 +94,9 @@ export function QuestionDock(props: QuestionDockProps) {
 	return <QuestionDockForm {...props} input={parsed} />;
 }
 
+/** A picked row inverts: ink background, page-colored text. */
+const PICKED_INK = "var(--background)";
+
 /** Lesson prose at a given size and color (the markdown renderer reads
  *  these variables), for the question and option text. */
 function proseVars(size: number, leading: number, ink?: string): React.CSSProperties {
@@ -101,8 +104,8 @@ function proseVars(size: number, leading: number, ink?: string): React.CSSProper
 		"--lh-prose-size": `${size}px`,
 		"--lh-prose-leading": `${leading / size}`,
 		...(ink ? { "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } : {}),
-		// Bold words' shaded block, made readable on the white picked row.
-		...(ink === "#000000" ? { "--lh-mark-bg": "rgba(0,0,0,0.12)" } : {}),
+		// Bold words' shaded block, made readable on the inverted picked row.
+		...(ink === PICKED_INK ? { "--lh-mark-bg": "color-mix(in srgb, var(--background) 12%, transparent)" } : {}),
 	} as React.CSSProperties;
 }
 
@@ -115,7 +118,7 @@ function KeyBox({ n, selected, outlined }: { n: React.ReactNode; selected: boole
 			className={cn(
 				"flex size-6 shrink-0 items-center justify-center font-mono text-[13px] tabular-nums",
 				selected
-					? "bg-black font-bold text-ink"
+					? "bg-background font-bold text-ink"
 					: outlined
 						? "outline outline-1 -outline-offset-1 outline-tone-2 text-ink-3"
 						: "bg-tone-2 font-bold text-ink-2",
@@ -383,12 +386,12 @@ function QuestionDockForm({
 									className={cn(OPTION_ROW, isSel ? "bg-ink font-bold" : "bg-tone hover:bg-tone-2/60", walked(i, isSel))}
 								>
 									<KeyBox n={i + 1} selected={isSel} />
-									<span className="min-w-0 flex-1 pt-0.5" style={proseVars(15, 21, isSel ? "#000000" : "var(--foreground)")}>
+									<span className="min-w-0 flex-1 pt-0.5" style={proseVars(15, 21, isSel ? PICKED_INK : "var(--foreground)")}>
 										<ToolContentResponse>{opt.label}</ToolContentResponse>
 										{kind !== "quiz" && opt.description && (
 											// Ask-option subtext (quiz options carry none — the model
 											// used them to telegraph correctness).
-											<span className="mt-0.5 block" style={proseVars(13, 18, isSel ? "#000000" : "var(--muted-foreground)")}>
+											<span className="mt-0.5 block" style={proseVars(13, 18, isSel ? PICKED_INK : "var(--muted-foreground)")}>
 												<ToolContentResponse>{opt.description}</ToolContentResponse>
 											</span>
 										)}
@@ -407,7 +410,7 @@ function QuestionDockForm({
 								className={cn(
 									OPTION_ROW,
 									"items-center py-2.5",
-									sel.dontKnow ? "bg-ink font-bold text-black" : "text-ink-2 hover:bg-tone",
+									sel.dontKnow ? "bg-ink font-bold text-background" : "text-ink-2 hover:bg-tone",
 									walked(optionCount, sel.dontKnow),
 								)}
 							>
@@ -426,7 +429,7 @@ function QuestionDockForm({
 								className={cn(
 									OPTION_ROW,
 									"cursor-text items-center py-2.5",
-									sel.otherSelected ? "bg-ink text-black" : "hover:bg-tone",
+									sel.otherSelected ? "bg-ink text-background" : "hover:bg-tone",
 									walked(optionCount, sel.otherSelected),
 								)}
 							>
@@ -457,7 +460,7 @@ function QuestionDockForm({
 									placeholder="Type your own answer…"
 									className={cn(
 										"lh-input min-w-0 flex-1 bg-transparent text-[15px]! outline-none",
-										sel.otherSelected ? "placeholder:text-black/50" : "placeholder:text-ink-3",
+										sel.otherSelected ? "placeholder:text-background/50" : "placeholder:text-ink-3",
 									)}
 									onClick={(e) => e.stopPropagation()}
 								/>

@@ -12,7 +12,7 @@ import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from "d3-zo
 import { RAMP_COLORS, type TopicLink, type TopicProgress } from "@/core";
 import { fitTransform, layoutKey, layoutTopics, MAX_SCALE, MIN_SCALE, type PlacedLink, type TopicLayout } from "./layout.ts";
 import { neighbors } from "./derive.ts";
-import { FADED_OPACITY, TopicNode } from "./topic-node.tsx";
+import { FADED_OPACITY, TopicNode, inkAlpha } from "./topic-node.tsx";
 import { MapTooltip } from "./map-tooltip.tsx";
 
 const TOOLTIP_WIDTH = 232;
@@ -169,11 +169,11 @@ function MapDefs({ dotsRef }: { dotsRef: React.RefObject<SVGPatternElement | nul
 	return (
 		<defs>
 			<pattern ref={dotsRef} id="topic-dots" width={24} height={24} patternUnits="userSpaceOnUse">
-				<rect x={12} y={12} width={1.2} height={1.2} fill="#FFFFFF14" />
+				<rect x={12} y={12} width={1.2} height={1.2} style={{ fill: inkAlpha(8) }} />
 			</pattern>
 			<radialGradient id="topic-vignette" cx={0.5} cy={0.45} r={0.65} gradientTransform="translate(0.5 0.45) scale(1 0.92) translate(-0.5 -0.45)">
-				<stop offset={0.45} stopColor="#000" stopOpacity={0} />
-				<stop offset={1} stopColor="#000" stopOpacity={0.9} />
+				<stop offset={0.45} style={{ stopColor: "var(--background)" }} stopOpacity={0} />
+				<stop offset={1} style={{ stopColor: "var(--background)" }} stopOpacity={0.9} />
 			</radialGradient>
 			{RAMP_COLORS.map((c, i) => (
 				<radialGradient key={c} id={`topic-halo-${i}`}>
@@ -199,8 +199,8 @@ const BaseLinks = memo(function BaseLinks({ links, focus }: { links: readonly Pl
 				const dim = !!focus && (!focus.has(l.from) || !focus.has(l.to));
 				return (
 					<g key={`${l.from}>${l.to}`} opacity={dim ? FADED_OPACITY : 1}>
-						<path d={l.path} fill="none" stroke="#FFFFFF24" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-						<polygon points={l.arrow} fill="#FFFFFF4D" />
+						<path d={l.path} fill="none" style={{ stroke: inkAlpha(14) }} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+						<polygon points={l.arrow} style={{ fill: inkAlpha(30) }} />
 					</g>
 				);
 			})}
@@ -212,13 +212,13 @@ function LitLinks({ links, id, tone }: { links: readonly PlacedLink[]; id: strin
 	if (!id) return null;
 	const lit = links.filter((l) => l.from === id || l.to === id);
 	if (lit.length === 0) return null;
-	const color = tone === "selected" ? "#FFFFFFD9" : "#FFFFFFB3";
+	const color = inkAlpha(tone === "selected" ? 85 : 70);
 	return (
 		<g data-testid={`topic-links-${tone}`} filter={tone === "selected" ? "url(#topic-link-glow)" : undefined}>
 			{lit.map((l) => (
 				<g key={`${l.from}>${l.to}`}>
-					<path d={l.path} fill="none" stroke={color} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-					<polygon points={l.arrow} fill={color} />
+					<path d={l.path} fill="none" style={{ stroke: color }} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+					<polygon points={l.arrow} style={{ fill: color }} />
 				</g>
 			))}
 		</g>

@@ -1,9 +1,8 @@
 /**
- * The settings restyle (redesign plan, Phase 6 — docs/design/exports/
- * settings.html): requested sections land where they live now (the old
- * Graph rows are in General), the Outside agents section reads as the
- * design's rows (Access: switch, Connection, Access token; Setup: Claude
- * Code, Codex, Other MCP apps), and its helpers.
+ * The settings dialog in a DOM: requested sections land where they live
+ * (unknown ids open Connection), General holds the graph rows, and the
+ * Connection section reads as the design's rows (Access: Connection,
+ * Access token; Setup: Claude Code, Codex, Other MCP apps) with its helpers.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -26,7 +25,7 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { SettingsDialogBody, sectionFor } = await import("../src/components/settings/settings-dialog.tsx");
-const { AgentsSection, CLAUDE_CODE_SETUP, codexConfig, maskToken } = await import("../src/components/settings/agents-section.tsx");
+const { ConnectionSection, CLAUDE_CODE_SETUP, codexConfig, maskToken } = await import("../src/components/settings/connection-section.tsx");
 
 const originalFetch = globalThis.fetch;
 let root: Root | undefined;
@@ -52,12 +51,12 @@ afterEach(async () => {
 });
 
 describe("settings restyle", () => {
-	it("sectionFor: graph opens General; unknown ids land on Outside agents", () => {
-		assert.equal(sectionFor("graph"), "general");
+	it("sectionFor: known ids open their section; anything else lands on Connection", () => {
 		assert.equal(sectionFor("general"), "general");
-		assert.equal(sectionFor("providers"), "agents", "the removed Providers section lands on Outside agents");
-		assert.equal(sectionFor(undefined), "agents");
-		assert.equal(sectionFor("nope"), "agents");
+		assert.equal(sectionFor("teaching"), "teaching");
+		assert.equal(sectionFor("agent"), "connection", "the old Agent section id");
+		assert.equal(sectionFor(undefined), "connection");
+		assert.equal(sectionFor("nope"), "connection");
 	});
 
 	it("General holds the update rows and the Graph group (extraction, chunk budget)", async () => {
@@ -73,10 +72,10 @@ describe("settings restyle", () => {
 		assert.equal(graph.querySelector('[data-testid="graph-row-rendering"]'), null, "the dead rendering switch is gone");
 	});
 
-	it("Outside agents: Access and Setup rows, the token masked, connection status", async () => {
+	it("Connection: Access and Setup rows, the token masked, connection status", async () => {
 		globalThis.fetch = (async () =>
 			Response.json({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, pendingWork: 1 })) as typeof fetch;
-		const el = await mount(<AgentsSection />);
+		const el = await mount(<ConnectionSection />);
 		const text = el.textContent!;
 		for (const label of ["Access", "Connection", "Access token", "Setup", "Claude Code", "Codex", "Other MCP apps"]) {
 			assert.ok(text.includes(label), label);
@@ -90,7 +89,7 @@ describe("settings restyle", () => {
 
 	it("access is always on: no on/off switch, setup always shown", async () => {
 		globalThis.fetch = (async () => Response.json({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 })) as typeof fetch;
-		const el = await mount(<AgentsSection />);
+		const el = await mount(<ConnectionSection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.equal(el.querySelector('[role="switch"]'), null);
 		assert.ok(el.textContent!.includes("Setup"));

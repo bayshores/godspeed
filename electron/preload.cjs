@@ -26,6 +26,8 @@
  *
  *   window.lh.reportBug() — opens a prefilled GitHub issue in the browser.
  *
+ *   window.lh.listFonts() — the installed font families (Appearance).
+ *
  *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
  *   subscribes after a window is reopened. Browser builds have no bridge.
  *
@@ -62,6 +64,7 @@ contextBridge.exposeInMainWorld("lh", {
 	getUpdateState: () => ipcRenderer.invoke("lh:update:get"),
 	checkForUpdates: () => ipcRenderer.invoke("lh:update:check"),
 	reportBug: () => ipcRenderer.send("lh:report-bug"),
+	listFonts: () => ipcRenderer.invoke("lh:fonts"),
 	onOpenSettings: (cb) => {
 		openSettingsListener = cb;
 		if (pendingOpenSettings !== null) {

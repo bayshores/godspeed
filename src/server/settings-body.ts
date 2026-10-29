@@ -19,6 +19,7 @@ import type {
 } from "../core/settings.ts";
 import { COMPACTION_THRESHOLD_FLOOR, EXTRACTION_CHUNK_TOKENS_FLOOR, sanitizeTeacherName } from "../core/settings.ts";
 import { WRITABLE_TOOL_KEYS } from "../core/pending.ts";
+import { TEACHING_AREAS, sanitizeAreaRules } from "../core/teaching-areas.ts";
 
 /** Parsed-or-rejected — `ok: false` carries the 400's error message. */
 export type SettingsBodyResult<T> =
@@ -75,7 +76,7 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 	return { ok: true, settings };
 }
 
-/** A boolean map (tools / prompts switches): every value must be boolean. */
+/** A boolean map (tool switches): every value must be boolean. */
 function parseBooleanMap(value: unknown, field: string): { map?: Record<string, boolean>; error?: string } {
 	if (value === undefined) return {};
 	const raw = asRecord(value);
@@ -88,8 +89,7 @@ function parseBooleanMap(value: unknown, field: string): { map?: Record<string, 
 	return { map: out };
 }
 
-/** agent: { tools?, prompts?, graphTools? } — prompt switch-on membership
- *  is checked by the route (needs the store). */
+/** agent: { tools?, rules?, graphTools? } */
 export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -109,9 +109,18 @@ export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentS
 		}
 		settings.tools = tools.map;
 	}
-	const prompts = parseBooleanMap(raw.prompts, "prompts");
-	if (prompts.error) return { ok: false, error: prompts.error };
-	if (prompts.map) settings.prompts = prompts.map;
+	if (raw.rules !== undefined) {
+		const rules = asRecord(raw.rules);
+		if (!rules) return { ok: false, error: "rules must be an object" };
+		const areas = TEACHING_AREAS.map((a) => a.id as string);
+		for (const [key, list] of Object.entries(rules)) {
+			if (!areas.includes(key)) return { ok: false, error: `unknown area "${key}" (supported: ${areas.join(", ")})` };
+			if (!Array.isArray(list) || list.some((r) => typeof r !== "string")) {
+				return { ok: false, error: `rules.${key} must be a list of strings` };
+			}
+		}
+		settings.rules = sanitizeAreaRules(rules);
+	}
 	// Prober graph tools: an agent-section
 	// subsection, not a tool-toggles key — the mechanism is agent capability
 	// (tool registration), the subject is the graph. Strict write side:
@@ -136,18 +145,12 @@ function parseHexOrNull(value: unknown, field: string): { color?: string | null;
 	return { color: value };
 }
 
-/** appearance: { mode?, background?, fontFamily?, proseFontSize?,
+/** appearance: { background?, fontFamily?, proseFontSize?,
  *  sessionNameSerif?, mdRendering? } */
 export function parseAppearanceSettingsBody(body: unknown): SettingsBodyResult<AppearanceSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
 	const settings: AppearanceSettings = {};
-	if (raw.mode !== undefined) {
-		if (raw.mode !== "dark" && raw.mode !== "light") {
-			return { ok: false, error: "mode must be \"dark\" or \"light\"" };
-		}
-		settings.mode = raw.mode;
-	}
 	if (raw.background !== undefined) {
 		const parsed = parseHexOrNull(raw.background, "background");
 		if (parsed.error) return { ok: false, error: parsed.error };

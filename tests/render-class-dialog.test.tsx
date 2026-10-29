@@ -208,7 +208,7 @@ describe("Edit class dialog — deadlines", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.deepEqual(calls, [
-			{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21", description: "Discrete math" } },
+			{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21", description: "Discrete math", rules: [] } },
 			{ method: "DELETE", url: "/api/classes/cls_a/deadlines/exm_2", body: undefined },
 			{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { time: null, fileIds: ["f1", "f2", "f3"], done: true } },
 			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_3", body: { kind: "quiz", done: false } },

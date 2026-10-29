@@ -135,7 +135,7 @@ function RowState({
 						data-testid={`class-file-retry-${fileId}`}
 						disabled={disabled}
 						onClick={() => onRetry(fileId)}
-						className="lh-press ml-1 text-[13px] font-bold text-ink hover:text-white disabled:opacity-50"
+						className="lh-press ml-1 text-[13px] font-bold text-ink hover:text-ink-max disabled:opacity-50"
 					>
 						Retry
 					</button>

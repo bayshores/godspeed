@@ -18,8 +18,7 @@ describe("resolveSettings", () => {
 		const eff = resolveSettings(null);
 		assert.deepEqual(eff.general, { autoUpdate: true, activeClass: "none", teacherName: "Halley" });
 		assert.deepEqual(eff.agent.tools, {});
-		assert.deepEqual(eff.agent.prompts, {});
-		assert.equal(eff.appearance.mode, "dark");
+		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);
 		assert.equal(eff.appearance.fontFamily, null);
 		assert.equal(eff.appearance.proseFontSize, 16);
@@ -37,16 +36,15 @@ describe("resolveSettings", () => {
 			general: { autoUpdate: false },
 			agent: {
 				tools: { research: false },
-				prompts: { "system-prompt.md": true },
+				rules: { voice: ["No jokes"] },
 			},
-			appearance: { mode: "light", proseFontSize: 20, mdRendering: { headingWeight: 600 } },
+			appearance: { proseFontSize: 20, mdRendering: { headingWeight: 600 } },
 			graph: { enabled: false },
 		};
 		const eff = resolveSettings(record);
 		assert.equal(eff.general.autoUpdate, false);
 		assert.deepEqual(eff.agent.tools, { research: false });
-		assert.deepEqual(eff.agent.prompts, { "system-prompt.md": true });
-		assert.equal(eff.appearance.mode, "light");
+		assert.deepEqual(eff.agent.rules, { voice: ["No jokes"] });
 		assert.equal(eff.appearance.proseFontSize, 20);
 		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
 		// wave 7 collapse: the section IS the master switch (absent budget

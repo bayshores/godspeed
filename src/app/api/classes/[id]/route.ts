@@ -2,7 +2,7 @@
  * /api/classes/[id] (classes wave, owner-approved 2026-10-26).
  *  GET    — the full record; ?scan=1 rescans its linked folder first
  *           (the switcher asks when you switch to the class)
- *  PUT    — { name?, description?, archived? }
+ *  PUT    — { name?, description?, archived?, rules? }
  *  DELETE — the class with its lessons, copied files and graph (a linked
  *           folder on your computer is never touched)
  */
@@ -25,14 +25,19 @@ export async function GET(req: Request, { params }: Ctx) {
 export async function PUT(req: Request, { params }: Ctx) {
 	const { id } = await params;
 	if (!isClassId(id)) return Response.json({ error: "No such class" }, { status: 404 });
-	const body = (await req.json().catch(() => ({}))) as { name?: unknown; description?: unknown; archived?: unknown };
+	const body = (await req.json().catch(() => ({}))) as { name?: unknown; description?: unknown; archived?: unknown; rules?: unknown };
 	if (body.name !== undefined && (typeof body.name !== "string" || body.name.trim() === "")) {
 		return Response.json({ error: "A class needs a name" }, { status: 400 });
+	}
+	const rules = body.rules;
+	if (rules !== undefined && (!Array.isArray(rules) || rules.some((r) => typeof r !== "string"))) {
+		return Response.json({ error: "rules must be a list of strings" }, { status: 400 });
 	}
 	const outcome = updateClass(id, {
 		...(typeof body.name === "string" ? { name: body.name } : {}),
 		...(typeof body.description === "string" ? { description: body.description } : {}),
 		...(typeof body.archived === "boolean" ? { archived: body.archived } : {}),
+		...(rules !== undefined ? { rules: rules as string[] } : {}),
 	});
 	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
 	return Response.json({ class: outcome.value });

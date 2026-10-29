@@ -19,9 +19,7 @@
  * OVERRIDES: override files mirror the source layout under
  * config.PROMPTS_OVERRIDE_DIR — "system-prompt.md" at the root,
  * "shared/<file>", "teacher/<file>" / "prober/<file>" (POSIX-relative
- * paths, the same keys as the settings record's agent.prompts switches).
- * File presence is NOT the override: the switch is (owner decision) — the
- * user keeps their file and flips back to the source default to compare.
+ * paths). A file that exists is used in place of the source.
  *
  * Path discipline: only .md under the override dir, no traversal (no "..",
  * absolute, or empty segments) — a hand-crafted path outside the mirror

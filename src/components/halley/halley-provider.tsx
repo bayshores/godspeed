@@ -659,8 +659,8 @@ function HalleyStage({
 			<svg aria-hidden className="pointer-events-none fixed inset-0 z-[38] h-screen w-screen">
 				<defs>
 					<linearGradient ref={gradRef} id="lh-halley-trail" gradientUnits="userSpaceOnUse">
-						<stop offset="0" stopColor="#fff" stopOpacity="0.7" />
-						<stop offset="1" stopColor="#fff" stopOpacity="0" />
+						<stop offset="0" style={{ stopColor: "var(--foreground)" }} stopOpacity="0.7" />
+						<stop offset="1" style={{ stopColor: "var(--foreground)" }} stopOpacity="0" />
 					</linearGradient>
 				</defs>
 				<path ref={trailRef} fill="url(#lh-halley-trail)" />
@@ -690,7 +690,7 @@ function HalleyStage({
 				role="status"
 				data-testid="halley-bubble"
 				className={cn(
-					"lh-halley-bubble pointer-events-none fixed left-0 top-0 z-40 flex items-center gap-[5px] whitespace-nowrap border border-tone-2 bg-[#141414] px-2.5 py-1.5 font-ui text-[13px]",
+					"lh-halley-bubble pointer-events-none fixed left-0 top-0 z-40 flex items-center gap-[5px] whitespace-nowrap border border-tone-2 bg-tip px-2.5 py-1.5 font-ui text-[13px]",
 					text ? "opacity-100" : "opacity-0",
 				)}
 			>

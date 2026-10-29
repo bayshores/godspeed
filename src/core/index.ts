@@ -58,6 +58,7 @@ export * from "./settings.ts";
 // re-export.
 export type { ChatDeleteMode } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
+export * from "./teaching-areas.ts";
 export * from "./session-find.ts";
 export * from "./session-navigation.ts";
 // keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).

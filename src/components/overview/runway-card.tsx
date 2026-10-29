@@ -238,7 +238,7 @@ function MostNeededRow({ needed, busy, onLearn }: { needed: MostNeeded; busy: bo
 				data-testid="runway-learn-this"
 				disabled={busy}
 				onClick={() => onLearn(needed.topicId)}
-				className="lh-press flex shrink-0 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white disabled:opacity-60"
+				className="lh-press flex shrink-0 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 			>
 				Learn this
 				<ArrowRightIcon className="size-3.5" aria-hidden />

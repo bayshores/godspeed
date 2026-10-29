@@ -60,7 +60,7 @@ export const ClassBlock = memo(function ClassBlock({
 						type="button"
 						data-testid="class-block-continue"
 						onClick={() => onContinue(cls.id, latest.chatId)}
-						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white"
+						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-background hover:bg-ink-max"
 					>
 						<span className="min-w-0 truncate">Continue: {latest.title}</span>
 					</button>
@@ -69,7 +69,7 @@ export const ClassBlock = memo(function ClassBlock({
 						type="button"
 						data-testid="class-block-new-lesson"
 						onClick={() => onNewLesson(cls.id)}
-						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-black hover:bg-white"
+						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-background hover:bg-ink-max"
 					>
 						<PlusIcon className="size-3.5 shrink-0" aria-hidden />
 						New lesson

@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { CheckIcon, CircleCheckIcon, CopyIcon, FolderDownIcon } from "lucide-react";
 import { useAgentStatus } from "@/components/agent-status";
 import { notifySettingsSaved } from "@/components/settings-signal";
-import { CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/agents-section";
+import { CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/connection-section";
 import { linkClassFolder, uploadClassFiles } from "@/components/files/class-files-api";
 import { CLASS_FILE_ACCEPT } from "@/components/files/files-model";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ function useReturn(onReturn: (() => void) | null) {
 }
 
 const PRIMARY =
-	"lh-press bg-ink px-7 py-3 text-[15px] font-bold text-black hover:bg-white disabled:cursor-default disabled:bg-tone disabled:text-ink-3";
+	"lh-press bg-ink px-7 py-3 text-[15px] font-bold text-background hover:bg-ink-max disabled:cursor-default disabled:bg-tone disabled:text-ink-3";
 const QUIET = "lh-press text-[14px] font-bold text-ink-2 hover:text-ink";
 
 export function Onboarding() {

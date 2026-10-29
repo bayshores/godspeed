@@ -114,7 +114,7 @@ function row(html: string, testid: string): string {
 describe("Home: mode switch and topic box", () => {
 	it("Teach and Practice; the selected one is the white block", () => {
 		const html = renderToStaticMarkup(<ModeSwitch mode="teach" onMode={() => {}} />);
-		assert.match(html, /data-testid="home-mode-teach"[^>]*aria-pressed="true"[^>]*class="[^"]*bg-ink text-black/);
+		assert.match(html, /data-testid="home-mode-teach"[^>]*aria-pressed="true"[^>]*class="[^"]*bg-ink text-background/);
 		assert.match(html, /data-testid="home-mode-practice"[^>]*aria-pressed="false"/);
 	});
 
@@ -122,7 +122,7 @@ describe("Home: mode switch and topic box", () => {
 		const html = box();
 		assert.ok(html.includes("A topic, a homework method, or a question you&#x27;re stuck on…"));
 		assert.ok(html.includes("Start from facts"));
-		assert.match(html, /data-testid="home-start"[^>]*class="[^"]*bg-ink[^"]*text-black/);
+		assert.match(html, /data-testid="home-start"[^>]*class="[^"]*bg-ink[^"]*text-background/);
 		assert.ok(html.includes("Start lesson"));
 		assert.doesNotMatch(html, /practice-props-clear/);
 	});
@@ -157,7 +157,7 @@ describe("Home: suggestions", () => {
 		const html = row(list(), "home-suggestion-continue");
 		assert.ok(html.includes(">Continue</span>"));
 		assert.ok(html.includes("HW4 methods: expected value"));
-		assert.match(html, /rounded-full bg-white/);
+		assert.match(html, /rounded-full bg-ink-max/);
 		assert.match(html, /step <span class="font-mono tabular-nums">1 \/ 11<\/span>/);
 		assert.match(html, /<a[^>]*href="\/chat\/c1"[^>]*data-testid="home-continue"|data-testid="home-continue"[^>]*href="\/chat\/c1"/);
 	});

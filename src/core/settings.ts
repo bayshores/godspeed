@@ -26,6 +26,8 @@
  * (fully concrete) view lives in settings-resolution.ts.
  */
 
+import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
+
 
 /** The schema version this code understands. Bump ONLY for breaking shape
  *  changes (a field renamed/meaning changed); pure additions never bump. */
@@ -68,11 +70,9 @@ export const DEFAULT_TEACHER_NAME = "Halley";
 /** The longest teacher name kept. */
 export const TEACHER_NAME_MAX = 40;
 
-/** A teacher name made safe to show: one line, no control characters,
- *  at most TEACHER_NAME_MAX characters. "" = use the default. */
+/** A teacher name made safe to show. "" = use the default. */
 export function sanitizeTeacherName(raw: string): string {
-	const one = raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim();
-	return [...one].slice(0, TEACHER_NAME_MAX).join("").trim();
+	return oneLine(raw, TEACHER_NAME_MAX);
 }
 
 /** Agent settings — everything about the non-conversation machinery. */
@@ -88,11 +88,8 @@ export interface AgentSettings {
 	 *  tool-toggles map. Absent = enabled (the toggle discipline); the
 	 *  effective gate composes graph.enabled AND this switch. */
 	graphTools?: { enabled?: boolean };
-	/** System-prompt override SWITCHES keyed by segment path (absent key =
-	 *  off). Switch-on requires the override file to exist (enforced by the
-	 *  route); the switch is explicit so users keep a file on disk but run
-	 *  the source default to compare. */
-	prompts?: Record<string, boolean>;
+	/** The learner's rules per teaching area, added to every agent's prompt. */
+	rules?: AreaRules;
 }
 
 /** Markdown-rendering knobs — the bare-bones set. */
@@ -106,12 +103,10 @@ export interface MdRenderingSettings {
 	italicColor?: string | null;
 }
 
-/** Appearance settings — mode, colors, type, markdown emphasis. */
+/** Appearance settings — colors, type, markdown emphasis. */
 export interface AppearanceSettings {
-	/** "dark" | "light" (default dark). */
-	mode?: "dark" | "light";
-	/** The one user-chosen color; everything else derives per-mode in code.
-	 *  null = the mode's default background. */
+	/** The one user-chosen color; text, panels and borders derive from it
+	 *  in code (dark text on a light one). null = black. */
 	background?: string | null;
 	/** The main reading font (everything that is Source Sans 3 today), by
 	 *  name — user-chosen from installed fonts. null = Source Sans 3. */
@@ -183,13 +178,12 @@ export interface UserSettings {
 	[key: string]: unknown;
 }
 
-/** Factory defaults for everything core can pin. Tools default on;
- *  prompts default off — hence their absence here. */
+/** Factory defaults for everything core can pin. Tools default on and
+ *  rules default empty, hence their absence here. */
 export interface FactorySettings {
 	version: number;
 	general: Required<Omit<GeneralSettings, "onboarded" | "lastSeenVersion">>;
 	appearance: {
-		mode: "dark" | "light";
 		background: string | null;
 		fontFamily: string | null;
 		proseFontSize: number;
@@ -208,8 +202,7 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
 	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME },
 	appearance: {
-		mode: "dark",
-		background: null, // the dark default (#141414) lives in the mode's derivation curve
+		background: null, // black
 		fontFamily: null, // Source Sans 3
 		proseFontSize: 16,
 		sessionNameSerif: true,
@@ -237,7 +230,7 @@ export function isHexColor(value: string): boolean {
 }
 
 /** Coerce an arbitrary hex-or-null field: null and valid hex pass through,
- *  anything else becomes null (the factory/per-mode default). */
+ *  anything else becomes null (the factory default). */
 function sanitizeHexOrNull(value: unknown): string | null {
 	if (value === null) return null;
 	if (typeof value === "string" && isHexColor(value)) return value;
@@ -279,8 +272,8 @@ function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	const out: AgentSettings = {};
 	const tools = sanitizeBooleanMap(raw.tools);
 	if (tools) out.tools = tools;
-	const prompts = sanitizeBooleanMap(raw.prompts);
-	if (prompts) out.prompts = prompts;
+	const rules = sanitizeAreaRules(raw.rules);
+	if (Object.keys(rules).length) out.rules = rules;
 	// Prober graph tools: its own agent-section subsection —
 	// lenient read side (a bad shape drops the key and the default ON
 	// resumes; the write side's parser is strict).
@@ -306,7 +299,6 @@ function sanitizeMdRendering(raw: unknown): MdRenderingSettings {
 
 function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	const out: AppearanceSettings = {};
-	if (raw.mode === "dark" || raw.mode === "light") out.mode = raw.mode;
 	if (raw.background !== undefined) out.background = sanitizeHexOrNull(raw.background);
 	if (raw.fontFamily !== undefined) {
 		out.fontFamily = typeof raw.fontFamily === "string" && raw.fontFamily.trim() ? raw.fontFamily : null;
@@ -379,9 +371,9 @@ export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 	}
 	if (r.graph !== null && typeof r.graph === "object" && !Array.isArray(r.graph)) {
 		out.graph = sanitizeGraph(r.graph as Record<string, unknown>);
-		if (r.compaction !== undefined && r.compaction !== null && typeof r.compaction === "object") {
-			out.compaction = sanitizeCompaction(r.compaction as Record<string, unknown>);
-		}
+	}
+	if (r.compaction !== null && typeof r.compaction === "object" && !Array.isArray(r.compaction)) {
+		out.compaction = sanitizeCompaction(r.compaction as Record<string, unknown>);
 	}
 	// Unknown top-level keys ride along untouched (forward-compat). Known-
 	// DEAD keys are stripped instead of riding: `chat` (a removed default-

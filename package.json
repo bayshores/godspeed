@@ -46,6 +46,7 @@
 		"d3-zoom": "^3.0.0",
 		"dagre-d3-es": "7.0.14",
 		"electron-updater": "^6.8.9",
+		"font-list": "^2.0.1",
 		"katex": "0.18.2",
 		"linkedom": "^0.18.13",
 		"lucide-react": "^1.33.0",

@@ -26,8 +26,7 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 		// with the message anchors (owner, 2026-10-13)
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, extractionChunkTokens: 4096 });
 		const a = FACTORY_SETTINGS.appearance;
-		assert.equal(a.mode, "dark");
-		assert.equal(a.background, null); // the mode's own default, not a factory hex
+		assert.equal(a.background, null); // black
 		assert.equal(a.fontFamily, null); // Source Sans 3
 		assert.equal(a.proseFontSize, 16);
 		assert.equal(a.sessionNameSerif, true);
@@ -58,10 +57,9 @@ describe("sanitizeUserSettings", () => {
 			general: { autoUpdate: false },
 			agent: {
 				tools: { research: false, quiz: true },
-				prompts: { "system-prompt.md": true, "teacher/20-teaching.md": false },
+				rules: { voice: ["No jokes"], files: ["Quote page numbers"] },
 			},
 			appearance: {
-				mode: "light",
 				background: "#ffffff",
 				fontFamily: "Some Font",
 				proseFontSize: 18,
@@ -90,8 +88,8 @@ describe("sanitizeUserSettings", () => {
 	it("wrong-typed fields DROP (resolve to factory), never crash", () => {
 		const out = sanitizeUserSettings({
 			general: { autoUpdate: "yes" },
-			agent: { tools: { research: "no" }, prompts: { "system-prompt.md": 1 }, models: { researcher: "fast" } },
-			appearance: { mode: "sepia", sessionNameSerif: "true" },
+			agent: { tools: { research: "no" }, rules: { voice: [1], mood: ["x"] }, models: { researcher: "fast" } },
+			appearance: { sessionNameSerif: "true" },
 			graph: { enabled: 0 },
 		});
 		assert.ok(out);

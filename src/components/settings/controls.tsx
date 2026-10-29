@@ -139,7 +139,7 @@ export function Toggle({
 				<span
 					className={cn(
 						"absolute left-0 top-0.5 flex size-3.5 items-center justify-center transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-						checked ? "translate-x-[18px] text-black" : "translate-x-0.5 text-ink-3",
+						checked ? "translate-x-[18px] text-background" : "translate-x-0.5 text-ink-3",
 					)}
 				>
 					{discIcon}
@@ -149,7 +149,7 @@ export function Toggle({
 					className={cn(
 						"absolute left-0 top-0.5 size-3.5 transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
 						// 2px inset from each inner edge, both states.
-						checked ? "translate-x-[18px] bg-black" : "translate-x-0.5 bg-ink-3",
+						checked ? "translate-x-[18px] bg-background" : "translate-x-0.5 bg-ink-3",
 					)}
 				/>
 			)}
@@ -157,36 +157,63 @@ export function Toggle({
 	);
 }
 
-/** A thin select — native element, options as given. */
-export function ThinSelect({
+/** A slider: moves freely, saves when released (every save is a section
+ *  PUT). `label` names the current value beside it. */
+export function Slider({
 	value,
-	onChange,
-	children,
+	min,
+	max,
+	step = 1,
+	onCommit,
+	label,
 	ariaLabel,
 	testid,
 	disabled,
 }: {
-	value: string;
-	onChange: (next: string) => void;
-	children: React.ReactNode;
+	value: number;
+	min: number;
+	max: number;
+	step?: number;
+	onCommit: (next: number) => void;
+	label: (value: number) => string;
 	ariaLabel: string;
 	testid?: string;
 	disabled?: boolean;
 }) {
+	const [draft, setDraft] = useState<number | null>(null);
+	// The draft stays shown until the saved value comes back, so a second
+	// drag or key press starts from it, not from the old value.
+	const [saved, setSaved] = useState(value);
+	if (value !== saved) {
+		setSaved(value);
+		setDraft(null);
+	}
+	const shown = draft ?? value;
+	const commit = () => {
+		if (draft === null) return;
+		if (draft === value) setDraft(null);
+		else onCommit(draft);
+	};
 	return (
-		<select
-			value={value}
-			aria-label={ariaLabel}
-			data-testid={testid}
-			disabled={disabled}
-			onChange={(e) => onChange(e.target.value)}
-			className={cn(
-				"h-7 bg-black px-1.5 font-ui text-[13px] text-ink border border-tone-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) focus-visible:border-ink-3",
-				disabled && "cursor-not-allowed",
-			)}
-		>
-			{children}
-		</select>
+		<span className="flex w-full items-center gap-3">
+			<input
+				type="range"
+				min={min}
+				max={max}
+				step={step}
+				value={shown}
+				disabled={disabled}
+				aria-label={ariaLabel}
+				data-testid={testid}
+				onChange={(e) => setDraft(Number(e.target.value))}
+				onPointerUp={commit}
+				onKeyUp={commit}
+				onBlur={commit}
+				style={{ "--fill": `${((shown - min) / (max - min)) * 100}%` } as React.CSSProperties}
+				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--border)_var(--fill))] [&::-webkit-slider-thumb]:-mt-[5px] [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-ink"
+			/>
+			<span className="w-24 shrink-0 text-right font-mono text-xs tabular-nums text-ink-2">{label(shown)}</span>
+		</span>
 	);
 }
 
@@ -240,7 +267,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-7 w-40 bg-black px-2 font-ui text-[13px] text-ink border border-tone-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-ink-3 focus-visible:border-ink-3"
+			className="h-7 w-40 bg-background px-2 font-ui text-[13px] text-ink border border-tone-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-ink-3 focus-visible:border-ink-3"
 		/>
 	);
 }

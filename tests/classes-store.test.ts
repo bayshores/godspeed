@@ -62,6 +62,15 @@ describe("ClassStore", () => {
 		assert.equal(classStore.updateClass(cls.id, { linkedFolder: null }).linkedFolder, undefined);
 	});
 
+	it("class rules are cleaned on save, and an empty list removes them", () => {
+		const cls = classStore.createClass({ name: "CSE 30" });
+		assert.equal("rules" in cls, false, "no rules, no field");
+		const updated = classStore.updateClass(cls.id, { rules: [" Use the textbook's notation ", "", "Use the textbook's notation"] });
+		assert.deepEqual(updated.rules, ["Use the textbook's notation"]);
+		assert.deepEqual(classStore.getClass(cls.id)?.rules, ["Use the textbook's notation"]);
+		assert.equal("rules" in classStore.updateClass(cls.id, { rules: [] }), false);
+	});
+
 	it("saveFiles replaces the file list without bumping updatedAt", () => {
 		const cls = classStore.createClass({ name: "PHYS 2B" });
 		const file = {
@@ -110,9 +119,9 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 	});
 	const classFile = (id: string) => path.join(TMP_DATA, "classes", id, "class.json");
 
-	it("adds, updates, sorts and removes deadlines; stamps version 3", () => {
+	it("adds, updates, sorts and removes deadlines; stamps version 4", () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
-		assert.equal(cls.version, 3);
+		assert.equal(cls.version, 4);
 		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
 		const finalExam = classStore.addDeadline(cls.id, {
 			kind: "exam",
@@ -137,7 +146,7 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.name), ["Final", "Midterm 1"]);
 
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 3);
+		assert.equal(onDisk.version, 4);
 		assert.equal(onDisk.deadlines.length, 2);
 		assert.equal(onDisk.exams, undefined);
 
@@ -210,7 +219,7 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
 	});
 
-	it("reads a version-2 record's exams as deadlines, and writes them back as v3", () => {
+	it("reads a version-2 record's exams as deadlines, and writes them back as v4", () => {
 		const cls = classStore.createClass({ name: "Upgraded" });
 		classStore.saveFiles(cls.id, [studyFile("f_ffffffffffff")]);
 		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
@@ -234,7 +243,7 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		]);
 		classStore.updateDeadline(cls.id, "exm_111111111111", { done: true });
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 3);
+		assert.equal(onDisk.version, 4);
 		assert.equal(onDisk.exams, undefined, "the old field is gone");
 		assert.deepEqual(
 			onDisk.deadlines.map((d: { id: string; kind: string; done: boolean }) => [d.id, d.kind, d.done]),

@@ -75,7 +75,7 @@ const SuggestionRow = memo(function SuggestionRow({
 	let meta: ReactNode = null;
 	let action: ReactNode;
 	if (s.kind === "continue") {
-		dot = { className: "bg-white" };
+		dot = { className: "bg-ink-max" };
 		title = s.lesson.title;
 		if (step) {
 			meta = (

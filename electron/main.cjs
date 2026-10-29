@@ -365,8 +365,7 @@ function createWindow(url, serverUp = null) {
 	// 2026-09-19; before this grant every copy silently rejected). Still
 	// loopback-origin only — Electron's default is auto-approve-everything,
 	// and we do not ship that.
-	// "local-fonts": the appearance section's reading-font picker (2026-09-26).
-	const allowedPermissions = new Set(["clipboard-sanitized-write", "local-fonts"]);
+	const allowedPermissions = new Set(["clipboard-sanitized-write"]);
 	const fromOwnOrigin = (origin, permission) =>
 		origin === allowedOrigin() && allowedPermissions.has(permission);
 	session.defaultSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
@@ -742,7 +741,17 @@ async function main() {
 			: await dialog.showOpenDialog({ properties: ["openDirectory"] });
 		return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
 	});
-	ipcMain.handle("lh:zoom:get", (event) => BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1);
+	// Appearance → Reading font: the installed font families. Chromium's
+	// queryLocalFonts returns nothing in this Electron, so the OS is asked.
+	ipcMain.handle("lh:fonts", async () => {
+		try {
+			const fonts = await require("font-list").getFonts({ disableQuoting: true });
+			return [...new Set(fonts)].sort((a, b) => a.localeCompare(b));
+		} catch {
+			return [];
+		}
+	});
+	ipcMain.handle("lh:zoom:get",(event) => BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1);
 	ipcMain.on("lh:expand-window", (event) => {
 		const win = BrowserWindow.fromWebContents(event.sender);
 		if (!win) return;

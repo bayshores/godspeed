@@ -109,7 +109,7 @@ const FactRow = memo(function FactRow({
 				aria-expanded={open}
 				onClick={() => onToggle(fact.id)}
 				onContextMenu={(e) => onMenu(fact, e)}
-				className="lh-press flex w-full items-center gap-2 py-[9px] text-left text-sm text-ink hover:text-white"
+				className="lh-press flex w-full items-center gap-2 py-[9px] text-left text-sm text-ink hover:text-ink-max"
 			>
 				<span
 					aria-label={mark === null ? "Not asked yet" : mark === "right" ? "Last answer right" : mark === "wrong" ? "Last answer wrong" : "Last answer: I don't know"}

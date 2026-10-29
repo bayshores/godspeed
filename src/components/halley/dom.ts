@@ -83,8 +83,8 @@ export function glow(el: HTMLElement, reduce: boolean): void {
 	const s = el.style;
 	const before = { transition: s.transition, background: s.backgroundColor, shadow: s.boxShadow };
 	s.transition = "none";
-	s.backgroundColor = "#232323";
-	s.boxShadow = "inset 2px 0 0 #ffffff";
+	s.backgroundColor = "color-mix(in srgb, var(--foreground) 14%, var(--background))";
+	s.boxShadow = "inset 2px 0 0 var(--lh-ink-max)";
 	window.setTimeout(() => {
 		s.transition = reduce ? "none" : `background-color ${GLOW_FADE_MS}ms ease, box-shadow ${GLOW_FADE_MS}ms ease`;
 		s.backgroundColor = before.background;
@@ -109,7 +109,7 @@ export function snapshot(el: HTMLElement): Ghost {
 	for (const child of node.querySelectorAll("[id]")) child.removeAttribute("id");
 	const r = el.getBoundingClientRect();
 	const cs = getComputedStyle(el);
-	node.style.backgroundColor = cs.backgroundColor === "rgba(0, 0, 0, 0)" ? "#000" : cs.backgroundColor;
+	node.style.backgroundColor = cs.backgroundColor === "rgba(0, 0, 0, 0)" ? "var(--background)" : cs.backgroundColor;
 	node.style.color = cs.color;
 	node.style.font = cs.font;
 	return { rect: boxOf(r), node };

@@ -99,6 +99,8 @@ export interface ClassRecord {
 	/** The class's deadlines, soonest due first (absent on records that
 	 *  never had one — absence reads as none). */
 	deadlines?: ClassDeadline[];
+	/** The learner's rules for lessons in this class (absent = none). */
+	rules?: string[];
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
@@ -108,8 +110,9 @@ export interface ClassRecord {
  *  makes an older build REFUSE a v2 record rather than drop its exams on
  *  its next write (its reader rebuilds the record field by field).
  *  v3: exams become deadlines (`deadlines`; a v2 record's
- *  `exams` read as deadlines of kind "exam"). */
-export const CURRENT_CLASS_VERSION = 3;
+ *  `exams` read as deadlines of kind "exam").
+ *  v4: adds `rules`. */
+export const CURRENT_CLASS_VERSION = 4;
 
 /** Why a deadline write was refused (the store's validation; the server
  *  maps it to a 400 / 404 with this message). */

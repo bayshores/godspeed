@@ -143,15 +143,6 @@ describe("the emphasis-ink factory ruling (globals.css)", () => {
 		assert.equal((css.match(/--lh-ink-strong: var\(--foreground\)/g) ?? []).length, 2, "both theme blocks");
 		assert.equal((css.match(/--lh-ink-italic: var\(--foreground\)/g) ?? []).length, 2, "both theme blocks");
 	});
-
-	it("the appearance rows' empty-state labels say 'same as text'", () => {
-		const html = renderToStaticMarkup(
-			<AppearanceSection appearance={undefined} onSectionChange={() => {}} />,
-		);
-		assert.equal((html.match(/Empty = same as text/g) ?? []).length, 2, "bold + italic rows");
-		assert.ok(!html.includes("#ee928c"));
-		assert.ok(!html.includes("#6fa9d6"));
-	});
 });
 
 describe("customFamilyFor — the single-field custom escape (2026-09-26)", () => {

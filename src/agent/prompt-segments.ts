@@ -22,9 +22,8 @@
  *
  * OVERRIDES: override files mirror the source layout under
  * config.PROMPTS_OVERRIDE_DIR — "system-prompt.md" at the root,
- * "shared/<file>", "teacher/<file>" / "prober/<file>". File presence is NOT
- * the override: the settings SWITCH is (owner decision) — the user keeps
- * their file and flips back to the source default to compare.
+ * "shared/<file>", "teacher/<file>" / "prober/<file>". A saved file is the
+ * learner's version and is used in place of the source.
  */
 
 import fs from "node:fs";
@@ -96,16 +95,9 @@ function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: b
 	return segments;
 }
 
-/**
- * The effective segment view for one agent — every segment with its source
- * text, override text, and effective switch state. `switches` is the
- * settings record's agent.prompts map (absent key = off); enabled =
- * switch on AND the override file exists.
- */
-export function effectivePromptSegments(
-	agent: PromptAgent,
-	switches: Record<string, boolean>,
-): PromptSegmentInfo[] {
+/** Every segment of one agent's prompt with its source text and the
+ *  learner's saved version (null when none). */
+export function effectivePromptSegments(agent: PromptAgent): PromptSegmentInfo[] {
 	return listSourceSegments(agent).map((segment) => {
 		let sourceText: string;
 		try {
@@ -113,12 +105,10 @@ export function effectivePromptSegments(
 		} catch {
 			sourceText = ""; // source unreadable — the agent loader would crash anyway
 		}
-		const overrideText = readPromptOverride(segment.path);
 		return {
 			path: segment.path,
 			sourceText,
-			overrideText,
-			enabled: switches[segment.path] === true && overrideText !== null,
+			overrideText: readPromptOverride(segment.path),
 			shared: segment.shared,
 		};
 	});

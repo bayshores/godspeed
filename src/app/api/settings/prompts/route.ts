@@ -1,29 +1,21 @@
 /**
- * GET /api/settings/prompts — the system-prompt segment view
- * (settings-storage wave, 2026-09-19): the effective prompt segments for
- * BOTH agents, derived from SOURCE at runtime (src/agent/prompts — the
- * list adapts when the code ships/renames/removes fragments), each with
- * its source text, override text (if a file exists), and effective switch
- * state (settings record's agent.prompts map AND file presence).
+ * GET /api/settings/prompts — every prompt part the teacher and the level
+ * check compose, derived from SOURCE at runtime (src/agent/prompts), each
+ * with its source text and the learner's saved version (null when none).
+ * A part both agents share is listed once.
  *
- *   GET → 200 {prober: SegmentInfo[], teacher: SegmentInfo[]}
- *   SegmentInfo = {path, sourceText, overrideText, enabled, shared}
+ *   GET → 200 {segments: PromptSegmentInfo[]}
  *
- * The shared base appears in BOTH lists under the SAME path
- * ("system-prompt.md") — the prompt-editor's "what's constant between the
- * two agents" is discoverable by path equality. Writes: the switches go
- * through PUT /api/settings/agent; the TEXT goes through
- * PUT/DELETE /api/settings/prompts/[...segment].
+ * The text is written through PUT/DELETE /api/settings/prompts/[...segment].
  */
 
-import { effectivePromptSegments, readSettingsRecord } from "@/server";
+import type { PromptSegmentInfo } from "@/core";
+import { effectivePromptSegments } from "@/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-	const switches = readSettingsRecord()?.agent?.prompts ?? {};
-	return Response.json({
-		prober: effectivePromptSegments("prober", switches),
-		teacher: effectivePromptSegments("teacher", switches),
-	});
+	const byPath = new Map<string, PromptSegmentInfo>();
+	for (const s of [...effectivePromptSegments("teacher"), ...effectivePromptSegments("prober")]) byPath.set(s.path, s);
+	return Response.json({ segments: [...byPath.values()] });
 }

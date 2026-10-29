@@ -91,6 +91,12 @@ files:
   - node_modules/universalify/**/*
   - node_modules/ms/**/*
   - node_modules/argparse/**/*
+  # Installed-font listing for Appearance → Reading font (no dependencies).
+  - node_modules/font-list/**/*
+# font-list runs a small helper program (macOS) or script (Windows), which
+# can't execute from inside the asar.
+asarUnpack:
+  - node_modules/font-list/libs/**/*
 extraResources:
   # Attribution/license for the bounded local Pi cutoff-selector port.
   - from: docs/compaction-accounting.md

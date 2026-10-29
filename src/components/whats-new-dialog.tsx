@@ -80,7 +80,7 @@ export function WhatsNewDialog({
 						autoFocus
 						data-testid="whats-new-done"
 						onClick={onClose}
-						className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-black hover:bg-white"
+						className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max"
 					>
 						Got it
 					</button>

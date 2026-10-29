@@ -29,6 +29,7 @@ import type { ClassSearch } from "../agent/tools/class.ts";
 import { readPassage, relatedFacts, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { extractionEnabled, graphToolsEnabled } from "../core/settings-resolution.ts";
+import { learnerRulesSection } from "../core/teaching-areas.ts";
 import { beginTurn, endTurn } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
 import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.ts";
@@ -110,6 +111,12 @@ setTurnRunner(async (chatId, input) => {
 	return res.status;
 });
 setJobRespawn((jobId) => void jobRunner.runJob(jobId));
+
+/** The lesson's class name and rules, for the learner's-rules section. */
+function lessonClassRules(classId: string | undefined): { name: string; rules: string[] } | undefined {
+	const cls = classId ? stores.classStore.getClass(classId) : null;
+	return cls ? { name: cls.name, rules: cls.rules ?? [] } : undefined;
+}
 
 /** The route-facing entry: parse {chatId, input} and run one turn. */
 export async function handleChatRequest(
@@ -308,10 +315,9 @@ export async function handleChatInput(
 		onUsage: collectUsage,
 		toolToggles: effective.agent.tools,
 		chatId,
-		// The prompt-override switches: same resolution
-		// point as the tool delta — the agent layer composes the system
-		// prompt fresh per turn, swapping in any enabled override segments.
-		promptSwitches: effective.agent.prompts,
+		// Read per turn, like the tool delta: a rule added mid-lesson applies
+		// on the next turn.
+		learnerRules: learnerRulesSection(effective.agent.rules, lessonClassRules(record.classId)),
 	};
 	// PRACTICE BRANCH: a kind:"practice"
 	// session builds the practitioner from turn 1 — no prober→teacher

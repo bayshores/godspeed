@@ -144,7 +144,7 @@ export function createClass(init: { name: string; description?: string }): Class
 	return stores.classStore.createClass(init);
 }
 
-export function updateClass(id: string, patch: { name?: string; description?: string; archived?: boolean }): ClassOutcome<ClassRecord> {
+export function updateClass(id: string, patch: { name?: string; description?: string; archived?: boolean; rules?: string[] }): ClassOutcome<ClassRecord> {
 	if (!stores.classStore.getClass(id)) return fail(404, "not_found", "No such class");
 	return { ok: true, value: stores.classStore.updateClass(id, patch) };
 }

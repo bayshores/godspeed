@@ -13,7 +13,7 @@ import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useS
 const loadDialog = () => import("./settings-dialog.tsx");
 const SettingsDialog = lazy(() => loadDialog().then((m) => ({ default: m.SettingsDialog })));
 
-/** `open(section?)` — lands the dialog on a section (default Outside agents). */
+/** `open(section?)` — lands the dialog on a section (default Connection). */
 const DialogContext = createContext<{ open: (section?: string) => void }>({ open: () => {} });
 
 /** AppShell-level mount: the sidebar row and the mod+, chord call this.

@@ -75,6 +75,10 @@
 	--lh-heading-weight: 900;
 	/* The quietest text (labels, finished lessons, hints). */
 	--lh-ink-3: #6e6e6e;
+	/* The strongest ink: hover brightening, focus edges, graph strokes.
+	   White on dark backgrounds; the appearance settings flip it to black
+	   on light ones. */
+	--lh-ink-max: #ffffff;
 }
 
 /* The app is always dark (<html class="dark">); mirror the same values so
@@ -207,6 +211,7 @@
 	--color-ink: var(--foreground);
 	--color-ink-2: var(--muted-foreground);
 	--color-ink-3: var(--lh-ink-3);
+	--color-ink-max: var(--lh-ink-max);
 	/* The only colors in the app: right / wrong / didn't know … */
 	--color-ans-right: #10b981;
 	--color-ans-wrong: #ef4444;
@@ -806,7 +811,7 @@ body {
 	transition: opacity 600ms var(--lh-ease-out);
 }
 .ob-sky .ob-link {
-	stroke: #ffffff;
+	stroke: var(--lh-ink-max);
 	stroke-opacity: 0.35;
 	stroke-width: 1.2;
 	stroke-dasharray: 1;

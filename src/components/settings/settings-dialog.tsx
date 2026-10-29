@@ -29,42 +29,37 @@ import { usePresence } from "@/components/presence";
 import {
 	CURRENT_SETTINGS_VERSION,
 	DEFAULT_TEACHER_NAME,
-	type AgentSettings,
 	type AppearanceSettings,
-	type CompactionSettings,
-	type GraphSettings,
 	type UserSettings,
 } from "@/core";
 import { useAppearance } from "./appearance.tsx";
-import { CommitInput, SettingsGroup, SettingsRow, SettingsSection } from "./controls.tsx";
-import { UpdateSettings } from "./update-settings.tsx";
-import { AgentSection } from "./agent-section.tsx";
+import { SettingsSection } from "./controls.tsx";
+import { TeachingSection } from "./teaching-section.tsx";
+import { GeneralSection } from "./general-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { Hint } from "@/components/ui/hint";
 import { Tip } from "@/components/ui/tooltip";
-import { BotIcon, InfoIcon, KeyboardIcon, PaletteIcon, PlugIcon, SettingsIcon, XIcon } from "lucide-react";
-import { AppearanceSection, GraphSection } from "./appearance-section.tsx";
+import { GraduationCapIcon, InfoIcon, KeyboardIcon, PaletteIcon, PlugIcon, SettingsIcon, XIcon } from "lucide-react";
+import { AppearanceSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
-import { AGENTS_SECTION_HINT, AgentsSection } from "./agents-section.tsx";
+import { CONNECTION_SECTION_HINT, ConnectionSection } from "./connection-section.tsx";
 
-/** The left nav, in the design's order (docs/design/exports/settings.html).
- *  A section's hint shows as a tooltip on the info icon by its title.
- *  The graph settings rows live in General. */
+/** The left nav (docs/design/godspeed-redesign.pen, boards 10 to 12).
+ *  A section's hint shows as a tooltip on the info icon by its title. */
 const SECTIONS = [
-	{ id: "agents", label: "Outside agents", icon: PlugIcon, hint: AGENTS_SECTION_HINT },
-	{ id: "agent", label: "Agent", icon: BotIcon },
+	{ id: "connection", label: "Connection", icon: PlugIcon, hint: CONNECTION_SECTION_HINT },
+	{ id: "teaching", label: "Teaching", icon: GraduationCapIcon },
 	{ id: "appearance", label: "Appearance", icon: PaletteIcon },
 	{ id: "keyboard", label: "Keyboard", icon: KeyboardIcon, hint: "Stored on this device" },
 	{ id: "general", label: "General", icon: SettingsIcon },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
-const DEFAULT_SECTION: SectionId = "agents";
+const DEFAULT_SECTION: SectionId = "connection";
 
-/** A requested section id → the section that shows it ("graph" lives
- *  in General; unknown ids land on the default). */
+/** A requested section id → the section that shows it (unknown ids land
+ *  on the default). */
 export function sectionFor(id: string | undefined): SectionId {
-	if (id === "graph") return "general";
 	return SECTIONS.some((s) => s.id === id) ? (id as SectionId) : DEFAULT_SECTION;
 }
 
@@ -238,7 +233,7 @@ export function SettingsDialogBody({
 			aria-label="Settings"
 			data-testid="settings-dialog"
 			data-state={state}
-			className="lh-dialog flex h-[720px] max-h-[90vh] w-[920px] max-w-[90vw] overflow-hidden bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2"
+			className="lh-dialog relative flex h-[720px] max-h-[90vh] w-[920px] max-w-[90vw] overflow-hidden bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2"
 			onClick={(e) => e.stopPropagation()}
 		>
 			{/* Left nav: the title, then one row per section (icon + name;
@@ -332,81 +327,39 @@ export function SettingsDialogBody({
 						</p>
 					) : (
 						<div>
-							{active === "general" && (
-								<SettingsSection
-									title="General"
-									testid="section-general"
-								>
-									<SettingsRow label="Teacher name" hint="Shown in the window only" testid="teacher-name-row">
-										<CommitInput
-											value={record.general?.teacherName ?? ""}
-											placeholder={DEFAULT_TEACHER_NAME}
-											ariaLabel="Teacher name"
-											testid="teacher-name"
-											onCommit={(next) => {
-												const { teacherName: _old, ...rest } = record.general ?? {};
-												void write("general", next ? { ...rest, teacherName: next } : rest);
-											}}
-										/>
-									</SettingsRow>
-									<UpdateSettings
-										autoUpdate={record.general?.autoUpdate ?? true}
-										onAutoUpdateChange={(on) =>
-											void write("general", { ...record.general, autoUpdate: on })
-										}
-									/>
-									<SettingsGroup label="Graph" testid="section-graph">
-										<GraphSection
-											graph={record.graph}
-											onSectionChange={(next: GraphSettings) =>
-												void write("graph", next)
-											}
-										/>
-									</SettingsGroup>
+							{active === "connection" && (
+								<SettingsSection title="Connection" testid="section-connection">
+									<ConnectionSection />
 								</SettingsSection>
 							)}
-							{active === "agent" && (
-								<SettingsSection
-									title="Agent"
-									testid="section-agent"
-								>
-									<AgentSection
+							{active === "teaching" && (
+								<SettingsSection title="Teaching" testid="section-teaching">
+									<TeachingSection
 										agent={record.agent}
 										graph={record.graph}
-										compaction={record.compaction}
-										onSectionChange={(next: AgentSettings) =>
-											void write("agent", next)
-										}
-										onCompactionChange={(next: CompactionSettings) =>
-											void write("compaction", next)
-										}
+										teacherName={record.general?.teacherName || DEFAULT_TEACHER_NAME}
+										onSectionChange={(next) => void write("agent", next)}
 									/>
-								</SettingsSection>
-							)}
-							{active === "agents" && (
-								<SettingsSection title="Outside agents" testid="section-agents">
-									<AgentsSection />
 								</SettingsSection>
 							)}
 							{active === "appearance" && (
-								<SettingsSection
-									title="Appearance"
-									testid="section-appearance"
-								>
-									<AppearanceSection
-										appearance={record.appearance}
-										onSectionChange={(next: AppearanceSettings) =>
-											void write("appearance", next)
-										}
-									/>
+								<SettingsSection title="Appearance" testid="section-appearance">
+									<AppearanceSection appearance={record.appearance} onSectionChange={(next) => void write("appearance", next)} />
 								</SettingsSection>
 							)}
 							{active === "keyboard" && (
-								<SettingsSection
-									title="Keyboard"
-									testid="section-keyboard"
-								>
+								<SettingsSection title="Keyboard" testid="section-keyboard">
 									<KeyboardSection />
+								</SettingsSection>
+							)}
+							{active === "general" && (
+								<SettingsSection title="General" testid="section-general">
+									<GeneralSection
+										record={record}
+										onGeneralChange={(next) => void write("general", next)}
+										onCompactionChange={(next) => void write("compaction", next)}
+										onGraphChange={(next) => void write("graph", next)}
+									/>
 								</SettingsSection>
 							)}
 						</div>

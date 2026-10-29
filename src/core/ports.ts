@@ -143,6 +143,8 @@ export interface ClassPatch {
 	archived?: boolean;
 	/** null unlinks. */
 	linkedFolder?: string | null;
+	/** Replaces the class's rules; [] clears them. */
+	rules?: string[];
 }
 
 /** A new deadline as the store takes it. */
@@ -249,10 +251,8 @@ export interface SettingsStore {
 /**
  * User text overriding ONE source prompt segment (the shared base or one
  * numeric fragment), stored at the data-dir seam mirroring the source
- * layout (config.PROMPTS_OVERRIDE_DIR). File presence is NOT the override:
- * the settings record's agent.prompts switch is the explicit on/off, so a
- * user can keep a customized file on disk while running the source default.
- * The segment LIST is always derived from source at runtime — see the
+ * layout (config.PROMPTS_OVERRIDE_DIR). A file that exists is used in place
+ * of the source. The segment LIST is always derived from source at runtime — see the
  * adapter (src/store/prompt-overrides.ts) for the loader rules.
  */
 export interface PromptOverrideStore {

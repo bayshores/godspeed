@@ -43,7 +43,7 @@ export function DeadlinesEditor({
 					data-testid="class-add-deadline"
 					disabled={disabled}
 					onClick={onAdd}
-					className="lh-press flex items-center gap-[5px] text-[13.5px] font-bold text-ink hover:text-white disabled:opacity-50"
+					className="lh-press flex items-center gap-[5px] text-[13.5px] font-bold text-ink hover:text-ink-max disabled:opacity-50"
 				>
 					<PlusIcon className="size-[13px]" aria-hidden />
 					Add deadline
@@ -216,7 +216,7 @@ function Check({
 				aria-hidden
 				className={cn(
 					"flex size-3.5 shrink-0 items-center justify-center peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink",
-					checked ? "bg-ink text-black" : "outline outline-1 -outline-offset-1 outline-ink-3",
+					checked ? "bg-ink text-background" : "outline outline-1 -outline-offset-1 outline-ink-3",
 				)}
 			>
 				{checked && <CheckIcon className="size-[11px]" strokeWidth={3} />}

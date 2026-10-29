@@ -71,13 +71,13 @@ export function ActionBar({
 			disabled={disabled}
 			className={cn(
 				"lh-press flex h-14 w-full shrink-0 items-center justify-between px-6 text-left text-base font-extrabold transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-				waiting ? "bg-tone-2 text-ink" : "bg-ink text-black hover:bg-white",
+				waiting ? "bg-tone-2 text-ink" : "bg-ink text-background hover:bg-ink-max",
 				"disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink",
 				waiting && "disabled:hover:bg-tone-2",
 			)}
 		>
 			<span>{label}</span>
-			<span aria-hidden className={cn("flex items-center gap-1.5 font-mono text-[12.5px] font-normal", waiting ? "text-ink-2" : "text-black")}>
+			<span aria-hidden className={cn("flex items-center gap-1.5 font-mono text-[12.5px] font-normal", waiting ? "text-ink-2" : "text-background")}>
 				{keyLabel}
 				<CornerDownLeftIcon className="size-3.5" />
 			</span>
