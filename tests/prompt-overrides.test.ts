@@ -187,6 +187,7 @@ describe("the source-derived segment list", () => {
 				"shared/20-question-tools.md",
 				"shared/25-confidence.md",
 				"shared/30-learner-files.md",
+				"shared/35-work-plan.md",
 				"shared/40-formatting.md",
 			],
 		);

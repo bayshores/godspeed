@@ -18,6 +18,7 @@ import type { JobRecord } from "../core/contracts.ts";
 import type { JobStore } from "../core/ports.ts";
 import { jobTools, type DemoInput, type PdfInput, type ResearchInput, type VisualInput } from "./tools/jobs.ts";
 import { planTools, type PlanToolContext } from "./tools/plan.ts";
+import { workPlanTool } from "./tools/work-plan.ts";
 import { probeDoneTool, type ProbeDoneContext } from "./tools/probe.ts";
 import { proberGraphTools } from "./tools/graph.ts";
 import { readTool } from "./tools/read.ts";
@@ -320,6 +321,7 @@ export function createProberTools(
 				ls: lsTool,
 				find: findTool,
 				grep: grepTool,
+				work_plan: workPlanTool,
 				// Job dispatch in the probe phase: research + pdf are ALWAYS available in every phase — the
 				// prober can verify facts or read learner PDFs while assessing.
 				// demo/visual stay teach-phase-only (they need the lesson's plan
@@ -448,6 +450,7 @@ export function createTeacherTools(
 			find: findTool,
 			grep: grepTool,
 			...planTools(ctx),
+			work_plan: workPlanTool,
 			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn }),
 			...(ctx.classCard ? classTools({ classCard: ctx.classCard, ...(ctx.todayNote ? { todayNote: ctx.todayNote } : {}) }) : {}),
 		},

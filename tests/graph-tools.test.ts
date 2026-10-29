@@ -101,6 +101,7 @@ describe("prober graph tools — registration", () => {
 			"probe_done",
 			"read",
 			"research",
+			"work_plan",
 		]);
 	});
 });

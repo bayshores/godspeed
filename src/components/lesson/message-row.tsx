@@ -23,6 +23,7 @@ import {
 	type PlanBlockData,
 	type QuestionAnswerData,
 } from "@/core";
+import { STEP_TOOLS } from "./agent-at-work-model";
 import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 
@@ -65,6 +66,8 @@ interface MessageRowProps {
 	teachSeam: boolean;
 	/** This is the last message and its turn is streaming right now. */
 	streamingLast: boolean;
+	/** The agent-at-work view stands in for this message's step cards. */
+	hideSteps: boolean;
 	arrive: Arrive;
 	onOpenPlan: () => void;
 }
@@ -74,7 +77,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, index: mi, teachSeam, streamingLast, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -132,6 +135,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 						teachBoundary={seamStep === pi}
 						anchor={part.type === "text" && part.id && anchors.has(part.id) ? part.id : undefined}
 						streaming={streamingLast && pi === m.parts.length - 1}
+						hideSteps={hideSteps}
 						arrive={arrive}
 						onOpenPlan={onOpenPlan}
 					/>
@@ -173,6 +177,7 @@ function AssistantPart({
 	teachBoundary,
 	anchor,
 	streaming,
+	hideSteps,
 	arrive,
 	onOpenPlan,
 }: {
@@ -182,9 +187,11 @@ function AssistantPart({
 	teachBoundary: boolean;
 	anchor?: string;
 	streaming: boolean;
+	hideSteps: boolean;
 	arrive: Arrive;
 	onOpenPlan: () => void;
 }) {
+	if (hideSteps && STEP_TOOLS.has(part.type.slice("tool-".length))) return null;
 	// A tool call that errored BACK TO THE AGENT is invisible work (the agent
 	// reads the error and retries): one quiet line. Aborts stay silent.
 	if (part.state === "output-error" && part.type.startsWith("tool-") && part.errorText !== "Operation aborted") {
@@ -221,7 +228,7 @@ function AssistantPart({
 						<PhaseDivider phase="teach" />
 					</div>
 				);
-			return first ? null : <Separator className="my-3" />;
+			return first || hideSteps ? null : <Separator className="my-3" />;
 		case "data-plan-block":
 			// A frozen snapshot of the plan, rendered as carried.
 			return (

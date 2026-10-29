@@ -105,6 +105,17 @@ export async function pdfProbe(filePath: string): Promise<void> {
 	await task.destroy();
 }
 
+/** Page count and the first page's width over height, without pdfInfo's per-page walk. */
+export async function pdfShape(filePath: string): Promise<{ pageCount: number; aspect: number }> {
+	const { doc, task } = await openDocument(filePath);
+	try {
+		const { width, height } = (await doc.getPage(1)).getViewport({ scale: 1 });
+		return { pageCount: doc.numPages, aspect: width / height };
+	} finally {
+		await task.destroy();
+	}
+}
+
 /** pdf_info: page count + per-page triage signals. ALWAYS run first. */
 export async function pdfInfo(filePath: string): Promise<PdfInfo> {
 	const pdfjs = await loadPdfjs(); // OPS constant for the operator-list scan

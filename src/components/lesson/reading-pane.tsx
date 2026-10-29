@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useContext, useMemo, type RefObject } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import {
 	Conversation,
@@ -8,8 +8,12 @@ import {
 } from "@/components/ai-elements/conversation";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { BrailleSpinner } from "@/components/braille-spinner";
+import { useAgentStatus } from "@/components/agent-status";
+import { JobsContext } from "@/components/jobs-context";
 import { SessionMessageNavigation } from "@/components/session-navigation";
 import type { LhViewMessage, Phase3 } from "@/core";
+import { AgentAtWork } from "./agent-at-work";
+import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow } from "./message-row";
 
@@ -47,6 +51,12 @@ export function ReadingPane({
 	scrollContextRef: RefObject<StickToBottomContext | null>;
 }) {
 	const last = messages.length - 1;
+	const jobs = useContext(JobsContext);
+	const agentName = useAgentStatus()?.name ?? "Outside agent";
+	// The reply being worked on: its plan, steps and file, until its text lands.
+	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
+	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);
+	const showWork = !!work && !work.replied && (work.plan !== null || work.steps.length > 0);
 	return (
 		// data-halley-area: Halley rests in this pane's bottom corners.
 		<Conversation data-halley-area="" className="h-full min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
@@ -65,6 +75,7 @@ export function ReadingPane({
 							// the phase fold flips to teach (exactly one per lesson).
 							teachSeam={m.role === "assistant" && mi > 0 && phases[mi] === "teach" && phases[mi - 1] !== "teach"}
 							streamingLast={status === "streaming" && mi === last}
+							hideSteps={showWork && mi === last}
 							arrive={arrive}
 							onOpenPlan={onOpenPlan}
 						/>
@@ -80,7 +91,12 @@ export function ReadingPane({
 					{/* From the instant of any action that produces tokens until the
 					    turn's first applied event (the stream then renders its own
 					    thinking row with the same look). */}
-					{(status === "submitted" || turnInFlight) && (
+					{showWork && work && (
+						<ArrivalRow live={arrivalsLive} as="div">
+							<AgentAtWork work={work} agentName={agentName} />
+						</ArrivalRow>
+					)}
+					{!showWork && (status === "submitted" || turnInFlight) && (
 						<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-[13px] font-bold text-ink-3">
 							<BrailleSpinner label="Thinking" />
 							<Shimmer duration={1}>Thinking…</Shimmer>

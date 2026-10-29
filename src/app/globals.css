@@ -1248,3 +1248,49 @@ body {
 		transition: none !important;
 	}
 }
+
+/* The lesson's agent-at-work view (components/lesson/agent-at-work.tsx):
+   the page stack floats on two uneven loops so it never sits still, and
+   each new step rises into the list. */
+@keyframes lh-float-a {
+	0% {
+		transform: translate(0, 0) rotate(-1deg);
+	}
+	50% {
+		transform: translate(2px, -3px) rotate(-0.6deg);
+	}
+	100% {
+		transform: translate(-1px, 2px) rotate(-1.3deg);
+	}
+}
+@keyframes lh-float-b {
+	from {
+		transform: translateY(0) rotate(0);
+	}
+	to {
+		transform: translateY(-2px) rotate(0.3deg);
+	}
+}
+.lh-float {
+	transform: rotate(-1deg);
+	animation: lh-float-a 9s ease-in-out infinite alternate;
+}
+.lh-float-2 {
+	animation: lh-float-b 5.3s ease-in-out infinite alternate;
+}
+@keyframes lh-step-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+.lh-step-in {
+	animation: lh-step-in 0.32s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+	.lh-float,
+	.lh-float-2,
+	.lh-step-in {
+		animation: none;
+	}
+}
