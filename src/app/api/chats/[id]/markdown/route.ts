@@ -1,8 +1,6 @@
 /**
- * THE SESSION MARKDOWN EXPORT (owner, release polish 2026-10-06): the
- * user-facing export the session-markdown engine was built for — the
- * same document the extractor reads, minted anchorless (anchors are
- * extraction provenance; a learner's export carries no message ids).
+ * The session markdown export, made anchorless because a learner's
+ * export needs no message ids.
  *
  * GET /api/chats/:id/markdown → the whole session as one markdown file
  * (Content-Disposition attachment; filename from the slugified title).

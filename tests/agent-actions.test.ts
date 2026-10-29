@@ -32,6 +32,7 @@ after(() => {
 });
 
 const mcp = await import("../src/server/mcp.ts");
+const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const actions = await import("../src/server/agent-actions.ts");
 const route = await import("../src/app/api/agent-actions/route.ts");
 const { subscribe } = await import("../src/core/events.ts");
@@ -45,7 +46,7 @@ function rpc(body: unknown, headers: Record<string, string> = {}) {
 	});
 }
 
-const auth = () => ({ authorization: `Bearer ${mcp.ensureMcpAccess()}` });
+const auth = () => ({ authorization: `Bearer ${ensureMcpToken()}` });
 
 async function call(name: string, args: Record<string, unknown>) {
 	const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth()))).json();

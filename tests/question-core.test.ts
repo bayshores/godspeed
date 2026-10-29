@@ -35,7 +35,6 @@ import {
 	emptyDockSelection,
 	shuffleOptions,
 	type QuestionData,
-	toClientQuestion,
 } from "../src/core/question-core.ts";
 import { toolQuestionKind } from "../src/core/pending.ts";
 import { parseQuizInput } from "../src/core/tool-parts.ts";
@@ -611,21 +610,6 @@ describe("toolQuestionKind (tool→kind parity with the dock)", () => {
 		assert.equal(toolQuestionKind("anything-else"), "ask");
 	});
 });
-
-// ─── toClientQuestion (leak safety) ─────────────────────────────────────────
-
-describe("toClientQuestion", () => {
-	it("NEVER exposes correctIndices or explanation", () => {
-		const cq = toClientQuestion(quizData());
-		const raw = JSON.stringify(cq);
-		assert.ok(!raw.includes("correctIndices"));
-		assert.ok(!raw.includes("Mercury orbits closest"));
-		assert.equal(cq.id, "q_test");
-		assert.equal(cq.kind, "quiz");
-		assert.equal(cq.options.length, 2);
-	});
-});
-
 
 // ─── the dock selection state machine (multi-select Other coexistence) ──
 // The live bug: in a multi-select ask, picking the custom "Other…" row

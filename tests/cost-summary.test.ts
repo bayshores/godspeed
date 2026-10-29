@@ -59,10 +59,8 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.stages.extraction.runs, 2);
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.runs, 0, "current records carry the extractor stage only");
-		assert.equal(s.totalDollars, extStep * 2);
 		assert.deepEqual(s.runs.map((r) => r.title), ["/vault/modal.md", "Testing session"]);
 		assert.deepEqual(s.runs.map((r) => r.kind), ["extraction", "extraction"]);
-		assert.equal(s.unpricedRuns, 0);
 	});
 
 	test("old records with an auditor stage still fold it", () => {
@@ -80,7 +78,6 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.stages.extraction.runs, 2);
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.tokens.outputTokens, 200);
-		assert.equal(s.totalDollars, extStep * 2 + audStep * 2);
 		// Both runs, newest first, titles joined per front door — every
 		// run is kind "extraction" now.
 		assert.deepEqual(
@@ -88,7 +85,6 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 			["/vault/modal.md", "Testing session"],
 		);
 		assert.deepEqual(s.runs.map((r) => r.kind), ["extraction", "extraction"]);
-		assert.equal(s.unpricedRuns, 0);
 	});
 
 	test("unpriced models (old records): excluded dollars, counted honestly, run null only when BOTH stages unpriced", () => {
@@ -103,7 +99,6 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		// unpriced run renders "—". Newest first: 200 (both unpriced), 100.
 		assert.equal(s.runs[0]!.dollars, null);
 		assert.notEqual(s.runs[1]!.dollars, null);
-		assert.equal(s.unpricedRuns, 1); // run-level: only the both-stages run
 	});
 
 	test("recent runs cap: newest survive", () => {
@@ -126,7 +121,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		});
 		assert.equal(s.runs[0]!.merged, undefined);
 		const empty = graphCostSummary({ chats: [], sources: [] });
-		assert.equal(empty.totalDollars, 0);
+		assert.equal(empty.stages.extraction.dollars, 0);
 		assert.equal(empty.runs.length, 0);
 		assert.equal(empty.stages.extraction.tokens.inputTokens, undefined);
 	});

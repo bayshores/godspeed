@@ -47,22 +47,6 @@ export function messageViewLines(
 	return lines;
 }
 
-/**
- * The teacher's prose blocks of a transcript, in order — the extractor's
- * prompt material. SAME selection as messageViewLines (the parity
- * doctrine survives the ruling in this one function pair), rendered
- * without the provenance prefix: plain paragraphs.
- */
-export function teacherProseBlocks(messages: ReadonlyArray<LhMessage>): string[] {
-	const out: string[] = [];
-	const failedOutputCalls = failedOutputCallIds(messages);
-	for (const message of messages) {
-		if ((message as { role?: string }).role !== "assistant") continue;
-		for (const text of userFacingTextOf((message as { content: unknown }).content, failedOutputCalls)) out.push(text.trim());
-	}
-	return out;
-}
-
 /** Tokens of a message's view — chars/4, ceil, the app-wide estimate. */
 function viewTokens(lines: string[]): number {
 	return Math.ceil(lines.join("\n").length / 4);
@@ -173,19 +157,4 @@ export function batchRuns(slots: ReadonlyArray<CoverageSlot>, uncovered: Readonl
 	}
 	flush();
 	return runs;
-}
-
-/**
- * A batch's deterministic tag: hash of its member fingerprints. This is the
- * observation-ref prefix for the run (obs:<tag>:<sourceId> in the merger):
- * re-running the SAME batch (crash recovery) produces the same refs and
- * dedupes; a re-opened (mutated) message changes the tag, so its fresh
- * understanding observations land as new events — the most-recent fold
- * sees the update. Run-local source ids ("p1"…) alone could never do this:
- * their positions shift between runs.
- */
-export function batchTag(batch: ReadonlyArray<CoverageSlot>): string {
-	const h = createHash("sha256");
-	for (const slot of batch) h.update(slot.fp);
-	return h.digest("hex").slice(0, 12);
 }

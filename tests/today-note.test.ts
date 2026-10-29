@@ -15,7 +15,6 @@ import {
 } from "../src/core/today-note.ts";
 import { newMessageId } from "../src/core/message-id.ts";
 import {
-	nativeInputCause,
 	newTodayContextMessage,
 	newUserMessage,
 	toLlmMessages,
@@ -224,10 +223,6 @@ describe("[Today] note on the wire and on screen", () => {
 		assert.equal(view.length, 1);
 		assert.equal(view[0]!.id, learner.id);
 		assert.ok(!JSON.stringify(view).includes("[Today]"));
-	});
-
-	it("is context, not learner input, for the request-cause fold", () => {
-		assert.equal(nativeInputCause(marker as never, []), "neutral");
 	});
 });
 

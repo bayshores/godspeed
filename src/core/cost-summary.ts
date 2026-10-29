@@ -56,16 +56,7 @@ export interface RecentRun {
 
 /** The cost pill's whole payload: stage totals + recent runs. */
 export interface GraphCostSummary {
-	subscriptionRuns?: number;
-	subscriptionProviders?: string[];
-	/** Inferred USD across all priced stages of all runs. */
-	totalDollars: number;
-	/** Runs with no priced API stage and at least one unknown stage. */
-	unpricedRuns: number;
-	/** The billable pipeline stages. (Wave 7, owner ruling 2026-09-23:
-	 *  the embedding stage is gone with the provider embedder; the
-	 *  2026-09-24 close-out culled cluster naming the same way —
-	 *  historical spend on either is simply not displayed.) */
+	/** The billable pipeline stages. */
 	stages: {
 		extraction: StageCost;
 		audit: StageCost;
@@ -183,16 +174,8 @@ export function graphCostSummary(input: CostSummaryInput, price: CallPricer): Gr
 	}
 
 	runs.sort((a, b) => b.startedAt - a.startedAt);
-	const capped = runs.slice(0, input.recentCap ?? 10);
-
-	// A run is "unpriced" when it billed nothing countable at all.
-	const unpricedRuns = runs.filter((r) => r.dollars === null && (r.subscriptionRuns ?? 0) < 2).length;
-	const subscriptionRuns = (extraction.subscriptionRuns ?? 0) + (audit.subscriptionRuns ?? 0);
 	return {
-		...(subscriptionRuns ? { subscriptionRuns, subscriptionProviders: [...new Set([...(extraction.subscriptionProviders ?? []), ...(audit.subscriptionProviders ?? [])])] } : {}),
-		totalDollars: extraction.dollars + audit.dollars,
-		unpricedRuns,
 		stages: { extraction, audit },
-		runs: capped,
+		runs: runs.slice(0, input.recentCap ?? 10),
 	};
 }

@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute, type ImageFileResult } from "../tool-execute.ts";
-import { resolveSourcePath } from "./fs-shared.ts";
+import { formatSize, resolveSourcePath } from "./fs-shared.ts";
 
 /**
  * The read tool — sources v0 (2026-09): a Node port of pi's read semantics
@@ -47,10 +47,6 @@ const readInput = Type.Object({
 	offset: Type.Optional(Type.Integer({ minimum: 1, description: "Line number to start reading from (1-indexed)" })),
 	limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum number of lines to read" })),
 });
-
-function formatSize(bytes: number): string {
-	return bytes >= 1024 ? `${(bytes / 1024).toFixed(1)}KB` : `${bytes}B`;
-}
 
 /** Slice + truncate the text body, pi's continuation-notice style. */
 function readTextSlice(text: string, offset: number | undefined, limit: number | undefined): string {

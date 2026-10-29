@@ -28,6 +28,7 @@ import {
 	isClockTime,
 	isDeadlineKind,
 } from "../core/contracts.ts";
+import { isRecord, isString } from "./guards.ts";
 
 function classDir(id: string): string {
 	if (!isClassId(id)) throw new Error(`Invalid class id: ${id}`);
@@ -47,12 +48,6 @@ function writeClass(record: ClassRecord): void {
 	fs.writeFileSync(tmp, JSON.stringify({ ...record, version: CURRENT_CLASS_VERSION }, null, "\t"), "utf-8");
 	fs.renameSync(tmp, file);
 }
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-	return typeof v === "object" && v !== null;
-}
-
-const isString = (v: unknown): v is string => typeof v === "string";
 
 const isClassFile = (v: unknown): v is ClassFile =>
 	isRecord(v) &&

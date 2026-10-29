@@ -68,8 +68,8 @@ export * from "./coverage.ts";
 // numbers — pure, browser-safe.
 export * from "./topics.ts";
 export * from "./progress.ts";
-// session-markdown.ts: the ONE session→markdown formatter — the extractor's view and the user-facing
-// export share it. Pure, browser-safe.
+// session-markdown.ts: session to markdown, used by the markdown export
+// and the MCP read_lesson tool. Pure, browser-safe.
 export * from "./session-markdown.ts";
 // changelog.ts: the release notes (src/changelog.json)
 // and the version math the "What's new" dialog uses. Pure, browser-safe.

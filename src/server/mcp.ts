@@ -109,8 +109,6 @@ export function mcpAccessStatus(): { token: string; agentConnected: boolean; age
 	return { token: ensureMcpToken(), agentConnected: agentConnected(), agentName: agentName() ?? null, pendingWork: pendingWorkCount() };
 }
 
-/** The token, made first if missing (outside-agent access is always on). */
-export const ensureMcpAccess = ensureMcpToken;
 export const rotateMcpToken = writeNewMcpToken;
 
 function tokenMatches(supplied: string, expected: string): boolean {

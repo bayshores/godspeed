@@ -40,7 +40,7 @@ after(() => {
 const { sendToUserTool } = await import("../src/agent/tools/send-to-user.ts");
 const { createProberAgent, createTeacherAgent, createPracticeAgent, composeInstructions } = await import("../src/agent/teacher-agent.ts");
 const { SEND_TO_USER_TOOL, activeProblemOf, asAgentMessages, newUserMessage, sendToUserText, toLlmMessages, userFacingTextOf } = await import("../src/core/native-messages.ts");
-const { coverageOf, messageFingerprint, messageViewLines, teacherProseBlocks } = await import("../src/core/coverage.ts");
+const { coverageOf, messageFingerprint, messageViewLines } = await import("../src/core/coverage.ts");
 const { projectView } = await import("../src/core/view.ts");
 const { sessionMarkdown } = await import("../src/core/session-markdown.ts");
 const { transcriptView } = await import("../src/agent/subagents/extraction.ts");
@@ -204,7 +204,6 @@ describe("send_to_user extraction and Markdown", () => {
 		const message = assistant([fauxText("First."), outputCall("Second."), fauxThinking("Hidden."), outputCall("Third.", "send-2")]);
 		const messages = [message, ack(), ack("send-2")];
 		assert.deepEqual(messageViewLines(message, "a1"), ["TEACHER [a1] First.", "TEACHER [a1] Second.", "TEACHER [a1] Third."]);
-		assert.deepEqual(teacherProseBlocks(messages), ["First.", "Second.", "Third."]);
 		assert.equal(coverageOf(messages, [], "fixture").uncoveredCount, 1);
 		const md = sessionMarkdown(messages, { anchors: false });
 		assert.equal(md, "### Teacher\n\nFirst.\n\n### Teacher\n\nSecond.\n\n### Teacher\n\nThird.");
@@ -218,7 +217,6 @@ describe("send_to_user extraction and Markdown", () => {
 	it("does not extract/export failed output calls, including partial calls from truncated responses", () => {
 		const message = assistant([fauxText("Keep this."), outputCall("Do not treat this as delivered.")]);
 		const messages = [message, ack("send-1", true)];
-		assert.deepEqual(teacherProseBlocks(messages), ["Keep this."]);
 		assert.equal(sessionMarkdown(messages, { anchors: false }), "### Teacher\n\nKeep this.");
 		const record = chatStore.createChat("Failed output fixture");
 		assert.ok(!transcriptView({ ...record, messages }).includes("Do not treat"));
@@ -236,7 +234,6 @@ describe("send_to_user interrupted generations", () => {
 			assert.deepEqual(prose(projectView(messages)), ["Keep ordinary text."]);
 			assert.deepEqual(prose(projectView(JSON.parse(JSON.stringify(messages)))), ["Keep ordinary text."]);
 			assert.deepEqual(messageViewLines(message, message.id), ["TEACHER [a1] Keep ordinary text."]);
-			assert.deepEqual(teacherProseBlocks(messages), ["Keep ordinary text."]);
 			assert.equal(sessionMarkdown(messages, { anchors: false }), "### Teacher\n\nKeep ordinary text.");
 			const onlyOutput = { ...assistant([outputCall("Unfinished output.")]), stopReason };
 			assert.equal(coverageOf([onlyOutput], [], "fixture").uncoveredCount, 0);
@@ -362,7 +359,6 @@ describe("send_to_user native flow (offline)", () => {
 		await client.consumeStream(new Response(wire));
 		assert.deepEqual(prose(client.getState().messages), [lesson], "native event replay shows the lesson exactly once");
 		assert.deepEqual(prose(projectView(JSON.parse(JSON.stringify(saved)))), [lesson], "reload preserves the lesson");
-		assert.deepEqual(teacherProseBlocks(saved), [lesson]);
 		assert.equal(sessionMarkdown(saved).split(lesson).length - 1, 1);
 	});
 });

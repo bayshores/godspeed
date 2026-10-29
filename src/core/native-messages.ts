@@ -777,26 +777,6 @@ export function endsInDismissal(messages: readonly LhMessage[]): boolean {
 	return last !== undefined && isDismissedResult(last);
 }
 
-type NativeInputCause = "learner" | "automatic" | "neutral" | "unrecognizable";
-/** Native causes only: flattened user roles, IDs' prefixes and prose confer no permission. */
-export function nativeInputCause(message: AgentMessage, history: readonly AgentMessage[]): NativeInputCause {
-	if (message.role === "user") return "learner";
-	if (message.role === "system" || message.role === "assistant") return "neutral";
-	if (message.role === "custom") {
-		if (["probe-handoff", "subagent-steer", "subagent-abort"].includes(message.customType)) return "automatic";
-		if (["practice-thinking", "practice-next"].includes(message.customType)) return "learner";
-		return ["graph-context", "class-context", "today-context", "plan-block", "problem-dismissed", "compaction"].includes(message.customType) ? "neutral" : "unrecognizable";
-	}
-	if (message.role === "toolResult") {
-		if (!(QUESTION_TOOLS as readonly string[]).includes(message.toolName) || message.isError || message.details == null || (message.details as { dismissed?: boolean }).dismissed) return "neutral";
-		const details = message.details as Partial<QuestionAnswerData>;
-		if (!["quiz", "ask", "explain"].includes(details.kind ?? "") || typeof details.questionText !== "string" || typeof details.dontKnow !== "boolean" || !Array.isArray(details.answers) || typeof details.answeredAt !== "string") return "unrecognizable";
-		const calls = history.flatMap((m) => m.role === "assistant" ? m.content.filter((b) => b.type === "toolCall" && b.id === message.toolCallId) : []);
-		return calls.length === 1 && calls[0]?.type === "toolCall" && calls[0].name === message.toolName ? "learner" : "unrecognizable";
-	}
-	return "unrecognizable";
-}
-
 /**
  * Does the record END on un-consumed tool results — a turn that stopped
  * after its tools ran (a job dispatch's ack, an aborted answer turn),

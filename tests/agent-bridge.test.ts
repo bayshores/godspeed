@@ -33,6 +33,7 @@ const { abortTurn } = await import("../src/server/turn-runs.ts");
 const { chatStore } = await import("../src/store/chats.ts");
 const bridge = await import("../src/agent/agent-bridge.ts");
 const mcp = await import("../src/server/mcp.ts");
+const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { subscribe } = await import("../src/core/events.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
@@ -59,7 +60,7 @@ function textOf(message: unknown): string {
 }
 
 describe("outside agent as the model", () => {
-	mcp.ensureMcpAccess();
+	ensureMcpToken();
 
 	it("a lesson turn waits for the agent, and the agent's reply is saved", async () => {
 		const chat = agentChat("Photosynthesis");
@@ -205,7 +206,7 @@ describe("the /api/mcp door", () => {
 	});
 
 	it("needs the right token, and refuses browsers and other hosts", async () => {
-		const token = mcp.ensureMcpAccess();
+		const token = ensureMcpToken();
 		assert.equal((await mcp.handleMcpRequest(rpc(listTools))).status, 401);
 		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: "Bearer wrong" }))).status, 401);
 		assert.equal((await mcp.handleMcpRequest(rpc(listTools, { authorization: `Bearer ${token}`, origin: "https://evil.example" }))).status, 403);
@@ -213,7 +214,7 @@ describe("the /api/mcp door", () => {
 	});
 
 	it("lists its tools and answers calls", async () => {
-		const token = mcp.ensureMcpAccess();
+		const token = ensureMcpToken();
 		const auth = { authorization: `Bearer ${token}` };
 		const init = await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } } }, auth));
 		assert.equal(init.status, 200, await init.clone().text());
@@ -253,7 +254,7 @@ describe("the /api/mcp door", () => {
 	});
 
 	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {
-		const token = mcp.ensureMcpAccess();
+		const token = ensureMcpToken();
 		const auth = { authorization: `Bearer ${token}` };
 		const call = async (name: string, args: Record<string, unknown>) => {
 			const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json();
@@ -323,7 +324,7 @@ describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
 	});
 
 	it("the initialize handshake names the agent; the status shows it and an event goes out", async () => {
-		const token = mcp.ensureMcpAccess();
+		const token = ensureMcpToken();
 		let events = 0;
 		const off = subscribe((e) => { if (e.type === "agent-changed") events++; });
 		try {
@@ -339,7 +340,7 @@ describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
 	});
 
 	it("a work item's images go to the agent as real MCP images, marked [image N] in the text", async () => {
-		const token = mcp.ensureMcpAccess();
+		const token = ensureMcpToken();
 		let events = 0;
 		const off = subscribe((e) => { if (e.type === "agent-changed") events++; });
 		const stream = bridge.agentStream(bridge.agentModel(), {
@@ -365,7 +366,7 @@ describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
 });
 
 describe("the [Today] note and the outside agent (plan 2026-10-28, Phase 2)", () => {
-	mcp.ensureMcpAccess();
+	ensureMcpToken();
 
 	async function turn(chatId: string, text: string) {
 		const ack = await handleChatInput(chatId, { type: "text", text });

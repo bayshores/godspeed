@@ -3,7 +3,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GraphCostControl } from "../src/components/graph/cost-control.tsx";
+import { GraphCostControl, displayCostTotals } from "../src/components/graph/cost-control.tsx";
 import { graphCostSummary } from "../src/core/cost-summary.ts";
 import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
 
@@ -24,8 +24,7 @@ const headline = (runs: ExtractionRunUsage[]) => renderToStaticMarkup(<GraphCost
 test("wholly unpriced historical graph costs render unknown, not known-zero dollars", () => {
 	const historical = run([usage()]); // missing long-cache split
 	const costs = summary([historical]);
-	assert.equal(costs.totalDollars, 0);
-	assert.equal(costs.unpricedRuns, 1);
+	assert.equal(costs.stages.extraction.dollars, 0);
 	assert.equal(costs.stages.extraction.unpricedRuns, 1);
 	const html = headline([historical]);
 	assert.match(html, />—<\/button>/);
@@ -38,9 +37,10 @@ test("known zero, mixed priced/unknown, and subscription headline semantics stay
 	const priced = run([usage({ cacheWrite1hTokens: 0 })]);
 	const historical = run([usage()], undefined, 2);
 	const mixed = summary([priced, historical]);
-	assert.equal(mixed.unpricedRuns, 1);
-	assert.ok(mixed.totalDollars > 0);
-	assert.match(headline([priced, historical]), new RegExp(`>\\$${mixed.totalDollars.toFixed(2).replace(".", "\\.")}<\\/button>`));
+	const { totalDollars, unpricedRuns } = displayCostTotals(mixed);
+	assert.equal(unpricedRuns, 1);
+	assert.ok(totalDollars > 0);
+	assert.match(headline([priced, historical]), new RegExp(`>\\$${totalDollars.toFixed(2).replace(".", "\\.")}<\\/button>`));
 	const plan = run([usage()], "agent:outside-agent");
 	assert.match(headline([plan]), />Outside agent<\/button>/);
 	assert.match(headline([plan, zero]), />\$0\.00 \+ Outside agent<\/button>/);

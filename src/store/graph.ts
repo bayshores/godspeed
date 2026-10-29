@@ -39,6 +39,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { LEDGER_FILES, PATHS, graphFilesIn, type GraphFiles } from "../config.ts";
 import { assertGraphFormat, ensureGraphFormat } from "./graph-format.ts";
+import { isRecord, isString } from "./guards.ts";
 import type {
 	GraphChain,
 	GraphNode,
@@ -112,12 +113,6 @@ function parseRawLines(file: string): unknown[] {
 	}
 	return out;
 }
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-	return typeof v === "object" && v !== null;
-}
-
-const isString = (v: unknown): v is string => typeof v === "string";
 
 /** Strict shape guards — anything not matching a W4 ledger shape is skipped. */
 function readValid<T>(files: GraphFiles, file: string, isValid: (v: unknown) => v is T): T[] {

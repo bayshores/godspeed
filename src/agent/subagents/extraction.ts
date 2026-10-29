@@ -53,12 +53,10 @@ import { runSubmitAgent, healStringifiedArrays } from "./submit-agent.ts";
 // ─── the source view (what the extractor sees) ──────────────────────────────
 
 /**
- * The extraction view: the session as TEACHER PROSE ONLY (owner ruling,
- * 2026-09-28 — supersedes the 2026-09-27 whole-session markdown view),
- * each passage labeled with its actual message id (2026-10-13). The
- * shared markdown engine (core/session-markdown.ts) keeps the full session
- * format for the future user-facing export; the extractor no longer uses
- * it.
+ * The extraction view: the session as teacher prose only, each passage
+ * labeled with its message id. The markdown engine
+ * (core/session-markdown.ts) serves the markdown export and read_lesson;
+ * the extractor does not use it.
  */
 
 /** The whole-record view (used by callers that render a full session;
@@ -76,8 +74,7 @@ export function transcriptView(record: ChatRecord): string {
  *  core/coverage.ts messageViewLines ("TEACHER [id] text"), the exact
  *  lines the coverage fingerprints hash, so the extractor can anchor
  *  every proposition to the passage it came from (the session submit's
- *  required messageId). The shared markdown engine stays reserved for the
- *  future user-facing export. */
+ *  required messageId). */
 function proseView(
 	messages: ReadonlyArray<LhMessage>,
 	title?: string,

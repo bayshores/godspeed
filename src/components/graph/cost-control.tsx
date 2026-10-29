@@ -46,21 +46,12 @@ function graphUsageLabel(costs: Pick<GraphCostSummary, "stages">): string {
 	return planCostLabel(priced ? dollars : null, providers, (value) => `$${value.toFixed(2)}`);
 }
 
-/**
- * The cost figures the UI DISPLAYS (owner refinement round, 2026-09-24):
- * extraction + audit only. Cluster naming is dead — labels are session
- * titles / file names — so the core's naming fold (and its historical
- * spend) is deliberately not shown anywhere: the pill and the panel must
- * agree, and both read THIS, never GraphCostSummary.totalDollars.
- * (The core fold's naming stage was then culled outright — 2026-09-24 —
- * so the recent-runs list carries extraction runs only.)
- */
+/** The cost figures the UI shows, summed over the stages. The pill and
+ *  the panel both read this so they always agree. */
 export function displayCostTotals(costs: Pick<GraphCostSummary, "stages">): {
 	totalDollars: number;
 	unpricedRuns: number;
 } {
-	// The two live stages (the spine came and went on one day,
-	// 2026-09-30 — digest-aware extraction replaced it).
 	return {
 		totalDollars: costs.stages.extraction.dollars + costs.stages.audit.dollars,
 		unpricedRuns: costs.stages.extraction.unpricedRuns + costs.stages.audit.unpricedRuns,

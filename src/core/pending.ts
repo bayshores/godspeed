@@ -156,16 +156,3 @@ export function toolActivityLabel(tool: string): string {
 	if ((QUESTION_TOOLS as readonly string[]).includes(tool)) return "Writing a question…";
 	return ACTIVITY_LABELS[tool] ?? "Working…";
 }
-
-export function streamingToolActivity(messages: UIMessage[]): string | null {
-	const last = messages.at(-1);
-	if (!last || last.role !== "assistant") return null;
-	for (const part of last.parts) {
-		if (isToolUIPart(part) && part.state === "input-streaming") {
-			return toolActivityLabel(part.type.slice("tool-".length));
-		}
-	}
-	return null;
-}
-
-
