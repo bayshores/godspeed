@@ -84,7 +84,7 @@ export interface ProvenancePoint {
 
 /** One imported notes file — the format-agnostic front door's bookkeeping
  *  (DECIDED 2026-09-13): personal notes in ARBITRARY formats run through the
- *  same extractor → auditor → merger pipeline, with the file itself as the
+ *  same extractor → merger pipeline, with the file itself as the
  *  provenance anchor. There is no chat: the detail card shows the file path
  *  as a STATIC entry (not a link). The run's usage log lives here,
  *  mirroring ChatRecord.extractions. Ids are "src_" + hash of the file
@@ -140,10 +140,9 @@ export interface GraphNode {
 	 *  creation (first line defines); a link-append never changes it. */
 	name: string;
 	/** The minimal proposition — one true, self-contained statement, at
-	 *  full precision. The IDENTITY ANCHOR: the auditor recognizes a
-	 *  re-encounter by judgment against this (link-or-create), not by
-	 *  string matching. Shown in the detail card; the canvas label is the
-	 *  name. */
+	 *  full precision. The extractor recognizes a re-taught idea by
+	 *  judgment against this, not by string matching. Shown in the detail
+	 *  card; the canvas label is the name. */
 	statement: string;
 	/** Verbatim phrasings sessions used for this proposition (the identity
 	 *  audit trail — how the world said what the node says). */
@@ -200,23 +199,14 @@ export interface CoverageEntry {
  * the extraction pipeline has processed, and through which updatedAt
  * (never extract the same turns twice).
  *
- * The EXTRACTION PIPELINE is the sole graph writer (extractor → auditor →
- * merger), tree-blind and post-hoc (2026-09-27 cleanup — clear separation
- * of work): the extractor is the ONLY stage that sees the raw source
- * (whole session as readable markdown, or raw notes) and extracts the
- * reasoning chains — propositions (lonely relevant ones included) plus
- * follows/supports edges; the auditor NEVER sees
- * the source — its job is preparing the merge: identity verdicts
- * (link-or-create, merging equivalent forms of the same proposition) via
- * graph-exploration tools (find / list_sessions / list_propositions), and
- * it may draw BRIDGING edges from existing graph nodes to the new
- * propositions; the merger (core/graph.ts, deterministic) applies the
- * verdicts and appends. Quiz events and understanding observations are
- * GONE — the pipeline is the only session→graph bridge, and it carries
- * propositions + edges, nothing else.
+ * The EXTRACTION PIPELINE is the sole graph writer (extractor → merger):
+ * the extractor reads one stretch of a source next to that source's
+ * earlier findings and the related ideas the graph already holds, and
+ * submits new ideas, chains and the existing ideas it re-teaches; the
+ * merger (core/graph.ts, deterministic) appends them.
  */
 
-// ─── Extraction findings (extractor output → audit → merger input) ───────────
+// ─── Extraction findings (extractor output → merger input) ───────────────────
 
 /** One proposed proposition — a node candidate (or a re-encounter of one). */
 export interface ExtractedProposition {
@@ -262,34 +252,13 @@ export interface ExtractedChain {
 	conclusion: string;
 }
 
-/** The extractor's output shape: the raw reasoning chains. */
+/** The extractor's output shape: the raw reasoning chains, plus the
+ *  existing graph ideas this stretch also teaches (`reteaches` — the merge
+ *  credits the source for them, so re-taught ideas never duplicate). */
 export interface SessionFindings {
 	propositions: ExtractedProposition[];
 	chains: ExtractedChain[];
-}
-
-/** One identity verdict: the extractor's local proposition id → the
- *  EXISTING graph node that proposition IS. On link, the session's
- *  phrasings (statement, aliases) join the node's aliases and the
- *  provenance unions. EQUIVALENCE BIAS (2026-09-27): paraphrases,
- *  rewordings, and compressions of the same claim MERGE — do not create
- *  a duplicate because the wording differs. Only genuinely distinct
- *  propositions stay apart. */
-export interface IdentityLink {
-	id: string;
-	linkTo: string;
-}
-
-/** The auditor's output — VERDICTS ONLY (owner, 2026-09-28): the auditor
- *  never alters the extractor's findings, so it does not restate them;
- *  the deterministic merger joins findings + verdicts. `links` = the
- *  identity verdicts (local id ⇄ existing node) — the auditor's ENTIRE
- *  deliverable (owner, 2026-09-28 evening: the edges argument is GONE —
- *  the auditor never mints edges; the graph connects across sources
- *  solely through identified equivalences). No drop channel — the
- *  auditor never rejects; the extractor is fully trusted (2026-09-27). */
-export interface AuditVerdicts {
-	links: IdentityLink[];
+	reteaches: string[];
 }
 
 /** The GET /api/graph payload — everything the home view's PURE renderer needs. */

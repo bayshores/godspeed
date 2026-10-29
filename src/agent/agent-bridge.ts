@@ -121,14 +121,18 @@ interface BridgeState {
 	lapseTimer?: ReturnType<typeof setTimeout>;
 	/** conversation → the task's name (background jobs that gave one). */
 	labels: Map<string, string>;
+	/** conversation → until when (ms) its next item is held for the agent
+	 *  that just answered it, so another waiting agent can't take it. */
+	held: Map<string, number>;
 }
 
 const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seen: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seen: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map(), held: new Map() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
+	g[STATE_KEY].held ??= new Map();
 	return g[STATE_KEY];
 }
 
@@ -276,24 +280,26 @@ function isBackground(item: WorkItem): boolean {
 	return !item.conversation.startsWith(CHAT_ID_PREFIX);
 }
 
-function claimable(item: WorkItem, now: number): boolean {
+function claimable(item: WorkItem, now: number, conversation: string | undefined): boolean {
+	if (item.conversation !== conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
 	return item.claimedAt === undefined || now - item.claimedAt > CLAIM_TIMEOUT_MS;
 }
 
 /** Oldest first, so jobs are answered in the order they were asked. */
-function oldestClaimable(now: number, keep: (i: WorkItem) => boolean): WorkItem | undefined {
+function oldestClaimable(now: number, conversation: string | undefined, keep: (i: WorkItem) => boolean): WorkItem | undefined {
 	const items = [...state().items.values()].sort((a, b) => a.createdAt - b.createdAt);
-	return items.find((i) => keep(i) && claimable(i, now));
+	return items.find((i) => keep(i) && claimable(i, now, conversation));
 }
 
 /** Pick the next item. With a conversation, that conversation's item;
  *  `andBackground` also allows background jobs, so an agent staying on one
  *  lesson still does the file reading and graph work nobody else would. */
 function pick(now: number, opts: { conversation?: string; andBackground?: boolean }): WorkItem | undefined {
-	if (!opts.conversation) return oldestClaimable(now, () => true);
+	const { conversation } = opts;
+	if (!conversation) return oldestClaimable(now, undefined, () => true);
 	return (
-		oldestClaimable(now, (i) => i.conversation === opts.conversation) ??
-		(opts.andBackground ? oldestClaimable(now, isBackground) : undefined)
+		oldestClaimable(now, conversation, (i) => i.conversation === conversation) ??
+		(opts.andBackground ? oldestClaimable(now, conversation, isBackground) : undefined)
 	);
 }
 
@@ -327,8 +333,10 @@ export async function waitForWork(
 	}
 }
 
-/** Answer a work item. Returns the item's conversation, or an error. */
-export function respondToWork(workId: string, reply: AgentReply): { ok: true; conversation: string } | { ok: false; error: string } {
+/** Answer a work item. Its conversation's next item is held for the
+ *  answering agent for `holdMs` (it waits for it right after; release with
+ *  releaseConversation). Returns the item's conversation, or an error. */
+export function respondToWork(workId: string, reply: AgentReply, holdMs: number): { ok: true; conversation: string } | { ok: false; error: string } {
 	const s = state();
 	const item = s.items.get(workId);
 	if (!item) return { ok: false, error: `No open work item "${workId}" — it was already answered or the request was cancelled. Call wait_for_work for the current one.` };
@@ -346,8 +354,14 @@ export function respondToWork(workId: string, reply: AgentReply): { ok: true; co
 	// The agent already knows its own reply: mark it seen so the next
 	// delivery in this conversation starts at the tool results.
 	s.seen.set(item.conversation, [...item.context.messages.map(fingerprint), fingerprint(message)]);
+	s.held.set(item.conversation, Date.now() + holdMs);
 	item.resolve(message);
 	return { ok: true, conversation: item.conversation };
+}
+
+/** End a respondToWork hold (the answering agent stopped waiting). */
+export function releaseConversation(conversation: string): void {
+	if (state().held.delete(conversation)) wake();
 }
 
 // ─── The engine side ────────────────────────────────────────────────────────

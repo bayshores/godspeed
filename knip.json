@@ -4,7 +4,7 @@
 		"electron/*.cjs",
 		"scripts/*.{ts,mjs,cjs}",
 		"integrations/claude-code/godspeed/scripts/*.mjs",
-		"src/server/workers/pdf-text-worker.mjs",
+		"src/server/workers/*.mjs",
 		"tests/**/*.test.{ts,tsx}",
 		"tests/perf/*.{ts,tsx}"
 	],

@@ -3,7 +3,8 @@
  *  - the read rule (last snapshot, dead members dropped, "Ungrouped")
  *  - the write rule (every fact in exactly one topic; ids kept stable)
  *  - the topic grouper against a fake model (names validated → retry)
- *  - the scheduler: < 4 facts skip, unchanged skip, debounce, single-flight,
+ *  - the scheduler: < 4 facts skip, unchanged skip, files-waiting skip,
+ *    debounce, single-flight,
  *    the activity-dock entry, and the outside agent's labeled work item
  * Isolated LH_DATA_DIR (set before any config-loading import).
  */
@@ -168,6 +169,17 @@ describe("topics: the scheduler", () => {
 		assert.equal(await topics.groupTopicsNow("cls_gone_1").then((o) => o.status), "skipped");
 	});
 
+	it("a scheduled run waits while a class file is still pending; a forced run does not", async () => {
+		const cls = classStore.createClass({ name: "CSE 29" });
+		const store = seed(cls.id, 4);
+		classStore.saveFiles(cls.id, [
+			{ id: "f_000000000001", origin: "copied", name: "notes.md", path: "notes.md", kind: "study", contentFp: "", status: "pending", addedAt: "2026-10-27T00:00:00.000Z" },
+		]);
+		assert.deepEqual(await topics.groupTopicsNow(cls.id, { force: false }), { status: "skipped", reason: "files_waiting" });
+		topics.topicGroupingSeams.engine = submitEngine({ topics: [{ name: "Pointers", members: store.readNodes().map((n) => n.id) }] }).engine;
+		assert.deepEqual(await topics.groupTopicsNow(cls.id), { status: "grouped", topics: 1, facts: 4 });
+	});
+
 	it("debounces scheduled runs and runs once more after a busy one", async () => {
 		const cls = classStore.createClass({ name: "MATH 20C" });
 		const store = seed(cls.id, 4);
@@ -220,7 +232,7 @@ describe("topics: the scheduler", () => {
 		assert.equal(row.kind, "topics");
 		assert.equal(row.phase, "grouping");
 		assert.equal(row.label, "Topic grouping · PHYS 2B");
-		const answered = bridge.respondToWork(work.workId, { toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Electrostatics", members: ids }] } }] });
+		const answered = bridge.respondToWork(work.workId, { toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Electrostatics", members: ids }] } }] }, 0);
 		assert.equal(answered.ok, true);
 		assert.equal((await run).status, "grouped");
 		assert.ok(!extractionStatuses().some((r) => r.chatId === topics.topicRunKey(cls.id)), "the row leaves the dock");

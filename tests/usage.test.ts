@@ -63,7 +63,6 @@ const runEntry = (startedAt: number): ExtractionRunUsage => ({
 	startedAt, at: "2026-09-09T00:00:00Z", durationMs: 42_000,
 	stats: { nodes: 1, chains: 2 }, stages: {
 		extractor: { model: "openai:gpt-5", steps: [call({ inputTokens: 100, outputTokens: 10 })] },
-		auditor: { model: "openai:gpt-5", steps: [call({ inputTokens: 50, outputTokens: 5 })] },
 	},
 });
 

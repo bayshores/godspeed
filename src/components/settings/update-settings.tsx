@@ -75,6 +75,7 @@ export function UpdateSettings({
 	const status = state?.status === "downloaded" ? updateStatusText(state)
 		: failed || checkFailed ? UPDATE_ERROR : updateStatusText(state);
 	const releaseNotes = version && homepage ? `${homepage}/releases/tag/v${version}` : null;
+	const reportBug = typeof window !== "undefined" ? window.lh?.reportBug : undefined;
 	const check = () => {
 		setCheckFailed(false);
 		void window.lh?.checkForUpdates?.().catch(() => setCheckFailed(true));
@@ -95,14 +96,19 @@ export function UpdateSettings({
 					</>
 				}
 			>
-				{active && (state.status === "downloaded" ? (
-					<Button type="button" size="xs" className="cursor-pointer" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart</Button>
-				) : (
-					<Button type="button" size="xs" variant="outline" className="cursor-pointer disabled:cursor-not-allowed" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
-						{busy && <BrailleSpinner label={state.status === "downloading" ? "Downloading update" : "Checking for updates"} />}
-						Check for updates
-					</Button>
-				))}
+				<span className="flex items-center gap-2">
+					{active && (state.status === "downloaded" ? (
+						<Button type="button" size="xs" className="cursor-pointer" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart</Button>
+					) : (
+						<Button type="button" size="xs" variant="outline" className="cursor-pointer disabled:cursor-not-allowed" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
+							{busy && <BrailleSpinner label={state.status === "downloading" ? "Downloading update" : "Checking for updates"} />}
+							Check for updates
+						</Button>
+					))}
+					{reportBug && (
+						<Button type="button" size="xs" variant="outline" className="cursor-pointer" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</Button>
+					)}
+				</span>
 			</SettingsRow>
 			{active && (
 				<SettingsRow label="Automatic updates" hint={AUTO_UPDATE_HINT} testid="row-auto-update">

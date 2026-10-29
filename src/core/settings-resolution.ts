@@ -95,7 +95,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 // ─── Graph channel gates ─────────────────────────────────────────────────────
 
 /**
- * The WRITE channel gate (extraction + its auditor): dies with the master
+ * The WRITE channel gate (extraction): dies with the master
  * switch. Used by the chat-handler's post-turn trigger.
  */
 export function extractionEnabled(graph: { enabled: boolean }): boolean {

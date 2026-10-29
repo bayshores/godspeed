@@ -23,12 +23,13 @@
 		"check": "npm run typecheck && npm test && npm run lint && npm run deadcode",
 		"desktop:dev": "concurrently -k \"next dev\" \"LH_DEV_URL=http://localhost:3000 electron .\"",
 		"dev:fresh": "bash scripts/dev-fresh.sh",
-		"desktop:local": "rm -rf dist .next/standalone && next build && node scripts/build-server.mjs && electron-builder -c electron/electron-builder.yml --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
-		"desktop:dist": "rm -rf dist .next/standalone && next build && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"
+		"desktop:local": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && next build && node scripts/build-server.mjs && electron-builder -c electron/electron-builder.yml --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
+		"desktop:dist": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && next build && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"
 	},
 	"dependencies": {
 		"@earendil-works/pi-agent-core": "1.4.0",
 		"@earendil-works/pi-ai": "1.4.0",
+		"@huggingface/transformers": "^4.3.2",
 		"@modelcontextprotocol/sdk": "^1.32.2",
 		"@mozilla/readability": "^0.6.0",
 		"@napi-rs/canvas": "^1.0.9",
@@ -52,6 +53,7 @@
 		"mdast-util-math": "3.0.0",
 		"mermaid": "^11.17.0",
 		"micromark-extension-math": "3.1.0",
+		"minisearch": "^7.2.0",
 		"motion": "^13.1.1",
 		"next": "^16.3.2",
 		"pdfjs-dist": "^6.3.289",

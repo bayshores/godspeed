@@ -14,6 +14,7 @@ Not a chat app with a graph bolted on: sessions are probe→teach lessons, the p
 
 ```bash
 npm install          # once
+node scripts/fetch-model.mjs   # once: the class-search model into models/ (the desktop builds run it too)
 
 npm run dev          # http://localhost:3000
 npm run build        # production build (standalone output)

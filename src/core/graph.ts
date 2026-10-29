@@ -1,59 +1,33 @@
 /**
  * The knowledge graph: merger (the deterministic final stage of the
- * extraction pipeline — vision §1 construction) + derivation (reads).
+ * extraction pipeline) + derivation (reads).
  *
- * The extraction pipeline is the SOLE graph writer, tree-blind and post-hoc
- * (2026-09-27 cleanup — clear separation of work):
- *
- *   extractor (LLM)  → SessionFindings: the raw reasoning chains —
- *                      propositions (lonely relevant ones included) and
- *                      chains, from the stretch (one batch) PLUS the
- *                      same-source digest (digest-aware, 2026-09-30
- *                      evening: the extractor continues its own source,
- *                      references existing ids verbatim, assembles
- *                      cross-stretch itself). Session propositions carry
- *                      their passage's messageId (2026-10-13) — the
- *                      merger's provenance anchor. Fully trusted: no
- *                      stage re-checks it.
- *   auditor (LLM)    → AuditVerdicts: identity links (local id → an existing
- *                      node, or create) via graph-exploration tools —
- *                      links ONLY (owner, 2026-09-28 evening: the auditor
- *                      never mints edges; cross-source connection happens
- *                      solely through identified equivalences). Never sees
- *                      the source; never drops; never sees chains — its
- *                      input is the fresh propositions only.
+ *   extractor (LLM)  → SessionFindings: new propositions, reasoning chains,
+ *                      and `reteaches` — existing ideas the stretch also
+ *                      teaches. It reads the stretch next to the source's
+ *                      earlier findings and the related ideas the graph
+ *                      already holds, and references existing ids verbatim.
+ *                      Session propositions carry their passage's
+ *                      messageId — the merger's provenance anchor.
  *   merger (HERE)    → mergeFindings(): deterministic ledger appends
- *                      + the chain-simplification maintenance pass
- *                      (2026-09-30 evening — simplifyChains below).
+ *                      + the chain-simplification pass (simplifyChains).
  *
- * The merger is deliberately the ONLY stage that touches the ledgers, and it
- * is pure code: the LLM supplies exactly the judgment calls (what the
- * propositions are, what follows/supports what, whether a proposition IS an
- * existing node), while timestamps/provenance — anything the model could
- * silently mis-copy — are rebuilt deterministically. Idempotent +
- * incremental: edges dedupe by (from,to,type)-already-asserted-by-this-chat,
- * mapping lines dedupe by (chat, sourceId), and coverage entries /
- * sessions.jsonl checkpoints which messages and chats have been extracted
- * (never the same turns twice). No events: the events ledger is GONE
- * (2026-09-27) — the graph carries propositions + edges, nothing else.
+ * The merger is the ONLY code that touches the ledgers: the LLM supplies
+ * the judgment calls, while timestamps and provenance — anything the model
+ * could mis-copy — are rebuilt here. A re-taught idea appends a node line
+ * under the existing id; reads merge lines by id (phrasings join `aliases`,
+ * provenance unions). Coverage entries and sessions.jsonl checkpoint what
+ * has been extracted, so nothing is extracted twice.
  *
- * Identity across re-encounters is the AUDITOR's judgment (link-or-create
- * with an equivalence bias — paraphrases merge), not string matching.
- * A re-extracted session's propositions link to the existing nodes; the
- * link appends a node line whose phrasings join `aliases` and whose
- * provenance unions (getGraph merges lines by id).
- *
- * Derivation below (getGraph / graphSnapshot) is reads only — everything
- * is recomputed from the ledgers. Every function takes the storage ports
- * (core/ports.ts) as explicit parameters — pure core, no adapter imports;
- * the composition root (src/server/stores.ts) wires the fs adapters in.
+ * Derivation below (getGraph / graphSnapshot) is reads only. Every function
+ * takes the storage ports (core/ports.ts) as explicit parameters; the
+ * composition root (src/server/stores.ts) wires the fs adapters in.
  */
 
 import { randomBytes } from "node:crypto";
 import type { CoverageEntry,
 } from "./contracts/graph.ts";
 import type {
-	AuditVerdicts,
 	ExtractedChain,
 	GraphChain,
 	SessionFindings,
@@ -127,87 +101,59 @@ const samePoint = (a: ProvenancePoint, b: ProvenancePoint): boolean =>
 // ─── the merger (extraction pipeline stage 3 — deterministic) ────────────────
 
 /**
- * Merge one job's audited findings into the graph ledgers — the pipeline's
- * apply stage. Deterministic. Each chunk/batch job merges INDEPENDENTLY
- * (owner, 2026-09-29): resolution is a job-local in-memory map from this
- * submit's proposition ids to graph node ids — nothing persists between
- * jobs, so no job can see (or collide with) another's ids. Cross-job
- * identity is the auditor's alone: it links this job's propositions to
- * existing nodes before this function is ever called.
- *
- * Identity inside the job is the auditor's link-or-create verdict: `linkTo`
- * an existing node (validated against the ledger — an unknown id falls
- * back to create) appends a LINK line (the job's phrasings join the node's
- * aliases and the provenance unions; getGraph merges lines by id);
- * absent → a new node.
+ * Merge one job's findings into the graph ledgers. Deterministic. Each
+ * chunk/batch job merges independently: its proposition ids resolve
+ * through a job-local map, so no job can collide with another's ids.
+ * New propositions always create nodes; `reteaches` ids that name an
+ * existing node append a provenance line for this source.
  *
  * `chatId` is the job's source key: a real chat, or a notes source id
- * ("src_…") for the format-agnostic import path. The `source` parameter
- * carries the checkpoint stamp; the merger itself is chat-store-free.
+ * ("src_…"). `source` carries the checkpoint stamp.
  */
 export function mergeFindings(
 	chatId: string,
 	findings: SessionFindings,
-	verdicts: AuditVerdicts,
 	deps: GraphDeps,
 	source: MergeSource,
 ): EmissionStats {
 	const { graphStore: ledgers } = deps;
 	const stats: EmissionStats = { nodes: 0, chains: 0 };
 
-	// 1. Resolution: THIS job's propositions → graph node ids, built
-	//    in-memory as the propositions resolve (owner, 2026-09-29: the
-	//    mappings ledger is gone — a persisted table was a shared namespace
-	//    across independent jobs, and cross-job id collisions silently
-	//    dropped propositions and welded wrong edges). Dedupe across runs
-	//    is the coverage ledger (nothing re-extracts) and the auditor's
-	//    equivalence links (re-encountered knowledge merges in).
-	const existingIds = new Set(ledgers.readNodes().map((n) => n.id));
+	// 1. Resolution: this job's propositions → new graph node ids.
+	const nodes = ledgers.readNodes();
+	const existingIds = new Set(nodes.map((n) => n.id));
 	const mapping = new Map<string, string>();
 	const now = new Date().toISOString();
-	const linkOf = new Map(verdicts.links.map((l) => [l.id, l.linkTo]));
 
-	// VERDICTS-ONLY (owner, 2026-09-28): the propositions come from the
-	// extractor's findings verbatim; the auditor's links join here by id.
 	for (const p of findings.propositions) {
-		if (mapping.has(p.id)) continue; // duplicate id WITHIN this submit — first resolution stands
-		// The anchor (2026-10-13): a session proposition may carry its
-		// passage's messageId — it rides BOTH the create and the link-append
-		// line (each re-encounter anchors to ITS passage); absent (notes,
-		// legacy/core callers) → "", chat-level as before.
-		const points = pointOf(chatId, p.messageId);
-		const linkTo = linkOf.get(p.id);
-		let graphNodeId: string;
-		if (linkTo !== undefined && existingIds.has(linkTo)) {
-			// Identity verdict: this proposition IS that node. Append a link
-			// line — the session's phrasings (statement + aliases) join the
-			// node's aliases, the provenance unions. Reads merge by id.
-			graphNodeId = linkTo;
-			// Link-append: phrasings + provenance join at read time (the
-			// first line's name/statement/createdAt stand).
-			ledgers.appendNode({
-				id: graphNodeId,
-				name: p.name,
-				statement: p.statement,
-				aliases: [...p.aliases],
-				createdAt: now,
-				provenance: points,
-			});
-		} else {
-			const node: GraphNode = {
-				id: newGraphNodeId(),
-				name: p.name,
-				statement: p.statement,
-				aliases: [...p.aliases],
-				createdAt: now,
-				provenance: points,
-			};
-			ledgers.appendNode(node);
-			stats.nodes++;
-			graphNodeId = node.id;
-			existingIds.add(graphNodeId);
-		}
-		mapping.set(p.id, graphNodeId);
+		if (mapping.has(p.id)) continue; // duplicate id within this submit — first resolution stands
+		// A session proposition carries its passage's messageId; notes have none ("").
+		const node: GraphNode = {
+			id: newGraphNodeId(),
+			name: p.name,
+			statement: p.statement,
+			aliases: [...p.aliases],
+			createdAt: now,
+			provenance: pointOf(chatId, p.messageId),
+		};
+		ledgers.appendNode(node);
+		stats.nodes++;
+		existingIds.add(node.id);
+		mapping.set(p.id, node.id);
+	}
+
+	// 1b. Re-taught ideas: credit this source on the existing node once
+	//     (its first line's name and statement, so reads add no phrasing).
+	const firstLine = new Map<string, GraphNode>();
+	const credited = new Set<string>();
+	for (const line of nodes) {
+		if (!firstLine.has(line.id)) firstLine.set(line.id, line);
+		if (line.provenance.some((pt) => pt.chatId === chatId)) credited.add(line.id);
+	}
+	for (const id of new Set(findings.reteaches)) {
+		const node = firstLine.get(id);
+		if (!node || credited.has(id)) continue;
+		ledgers.appendNode({ id, name: node.name, statement: node.statement, aliases: [], createdAt: now, provenance: pointOf(chatId) });
 	}
 
 	// 2. Chains — the extractor's alone since the digest-aware redesign
@@ -256,7 +202,7 @@ export function mergeFindings(
 
 	// 2b. Simplification (owner, 2026-09-30 evening) — the deterministic
 	//     dedupe pass over the WHOLE chain ledger (this merge runs inside
-	//     the serialized audit section, so the rewrite is race-free). Two
+	//     the serialized graph section, so the rewrite is race-free). Two
 	//     rules, decided per conclusion group, greedy in (premiseCount,
 	//     createdAt, key) order — the leanest, earliest derivation stands:
 	//     • prefer-fewest-premises: a chain whose premise set strictly
@@ -385,7 +331,7 @@ export function simplifyChains(lines: GraphChain[]): GraphChain[] {
 
 /** The merged STORED truth: propositions + chains (chains-primary, owner
  *  2026-09-30). `nodes` are PROPOSITIONS ONLY — no derived implication
- *  nodes; the auditor's and prober's views see the world, not the
+ *  nodes; the extractor's and prober's views see the world, not the
  *  rendering. The canvas-facing VIEW (implication nodes + untyped
  *  arrows) is deriveView() below — the lossy image. */
 export interface DerivedGraph {
@@ -413,7 +359,7 @@ export function getGraph(graphStore: Pick<GraphStore, "readNodes" | "readChains"
 		}
 		// A later line's statement is a phrasing, not a replacement.
 		for (const phrasing of [line.statement, ...line.aliases]) {
-			if (phrasing.length > 0 && !existing.aliases.includes(phrasing)) existing.aliases.push(phrasing);
+			if (phrasing.length > 0 && phrasing !== existing.statement && !existing.aliases.includes(phrasing)) existing.aliases.push(phrasing);
 		}
 		for (const pt of line.provenance) {
 			if (!existing.provenance.some((q) => samePoint(q, pt))) existing.provenance.push(pt);

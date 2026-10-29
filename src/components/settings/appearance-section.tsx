@@ -363,7 +363,7 @@ export function GraphSection({
 	return (
 		<>
 			{/* EXTRACTION (renamed, owner 2026-10-06): this switch is the DATA
-			    channel — the pipeline, the auditor, the prober's graph tools. It
+			    channel — the pipeline and the prober's graph tools. It
 			    was born labeled "Graph": off ≠ no graph, off = the graph stops
 			    growing. (The display-only "Graph rendering" switch was removed
 			    with the old fact canvas, 2026-10-27.) The testid keeps the old name's shape (row-enabled) so

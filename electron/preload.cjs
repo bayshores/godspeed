@@ -24,6 +24,8 @@
  *   snapshot for a late subscriber; checkForUpdates requests a manual
  *   check (including download/install-on-quit, even with automatic checks OFF).
  *
+ *   window.lh.reportBug() — opens a prefilled GitHub issue in the browser.
+ *
  *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
  *   subscribes after a window is reopened. Browser builds have no bridge.
  *
@@ -59,6 +61,7 @@ contextBridge.exposeInMainWorld("lh", {
 	installUpdate: () => ipcRenderer.send("lh:update-install"),
 	getUpdateState: () => ipcRenderer.invoke("lh:update:get"),
 	checkForUpdates: () => ipcRenderer.invoke("lh:update:check"),
+	reportBug: () => ipcRenderer.send("lh:report-bug"),
 	onOpenSettings: (cb) => {
 		openSettingsListener = cb;
 		if (pendingOpenSettings !== null) {

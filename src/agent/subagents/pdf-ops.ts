@@ -63,16 +63,19 @@ async function openDocument(filePath: string) {
 	return { doc: await task.promise, task };
 }
 
-/** Concatenate a page's text items into a body string. */
+/** Concatenate a page's text items into a body string. pdf.js marks the
+ *  item that ends a line with hasEOL; without the break, every page came
+ *  out as one line with words glued across line ends. */
 function itemsToText(items: unknown[]): string {
 	let out = "";
 	for (const it of items) {
 		if (it && typeof it === "object" && "str" in (it as Record<string, unknown>)) {
-			const str = (it as { str?: unknown }).str;
+			const { str, hasEOL } = it as { str?: unknown; hasEOL?: unknown };
 			if (typeof str === "string") out += str;
+			if (hasEOL === true) out += "\n";
 		}
 	}
-	return out;
+	return out.replace(/\n+$/, "");
 }
 
 /** Math-flavored char fraction — the skill's heuristic, verbatim ranges. */

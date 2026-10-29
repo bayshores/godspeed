@@ -40,6 +40,7 @@ import {
 	NEXT_PROBLEM_TEXT,
 	THINKING_LABEL,
 } from "./contracts/chat.ts";
+import type { ClassFileStatus } from "./contracts/class.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
 import { newMessageId } from "./message-id.ts";
@@ -286,6 +287,10 @@ export interface ClassCardFile {
 	name: string;
 	kind: "study" | "info";
 	path: string | null;
+	/** Once indexed for search: "98 pages", "52 min", "420 lines". */
+	size?: string;
+	/** Shown when not "ready" (still being read, failed…). */
+	status?: ClassFileStatus;
 }
 
 /** The class card's UI payload (the transcript's collapsible card). */
@@ -294,6 +299,8 @@ export interface ClassCardDetails {
 	name: string;
 	description: string;
 	files: ClassCardFile[];
+	/** The class graph's topics with their fact counts. */
+	topics?: { name: string; facts: number }[];
 }
 
 /** The model-facing class card text. Bracket-labelled like the graph
@@ -310,7 +317,13 @@ export function classCardText(card: ClassCardDetails): string {
 	const readable = card.files.filter((f) => f.path !== null);
 	if (readable.length > 0) {
 		lines.push("", "Class files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):");
-		for (const f of readable) lines.push(`- [${f.kind === "study" ? "study material" : "course info"}] ${f.name} — ${f.path}`);
+		for (const f of readable) {
+			const about = [f.size, f.status && f.status !== "ready" ? f.status : undefined].filter(Boolean).join(", ");
+			lines.push(`- [${f.kind === "study" ? "study material" : "course info"}] ${f.name}${about ? ` (${about})` : ""} — ${f.path}`);
+		}
+	}
+	if (card.topics?.length) {
+		lines.push("", "Topics in the class's knowledge graph (facts in each):", card.topics.map((t) => `${t.name} (${t.facts})`).join(", "));
 	}
 	return lines.join("\n");
 }

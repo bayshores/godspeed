@@ -48,6 +48,11 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			"node_modules/@napi-rs/canvas-*/**/*",
 			"node_modules/@resvg/resvg-js-*/**/*",
+			// Class search: onnxruntime-node, loaded by createRequire; this platform's binding only.
+			"node_modules/onnxruntime-node/package.json",
+			"node_modules/onnxruntime-node/dist/**/*.js",
+			"node_modules/onnxruntime-common/dist/cjs/**/*.js",
+			`node_modules/onnxruntime-node/bin/napi-v6/${process.platform}/${process.arch}/**/*`,
 			"node_modules/@earendil-works/pi-ai/dist/providers/data/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/utils/sleep.js",
 			"node_modules/@earendil-works/pi-agent-core/dist/**/*.json",

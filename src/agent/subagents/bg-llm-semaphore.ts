@@ -1,14 +1,7 @@
 /**
- * THE SHARED BACKGROUND-LLM SEMAPHORE (owner ruling, 2026-09-29): ONE
- * process-wide pool of 3 permits for ALL background LLM jobs — extraction
- * chunks. Total background
- * LLM concurrency is bounded at 3, whoever is calling: no subsystem gets
- * a private lane past the provider-facing stance.
- *
- * Extraction owned this gate alone first (owner, 2026-09-28: at most 3
- * concurrent extractor calls).
- * the ruling then unified them — this module is the single truth, so
- * extraction chunks are the only holders.
+ * THE SHARED BACKGROUND-LLM SEMAPHORE: one process-wide pool of 3 permits
+ * for background LLM jobs that run beside extraction (topic grouping).
+ * Extraction itself runs one job at a time behind its graph lock.
  *
  * FIFO; abort-aware (a queued caller that aborts marks its ticket dead —
  * the permit handoff skips it and hands to the next waiter).
@@ -19,14 +12,9 @@
  * untouched for the inheritor) — counting both sides is how a semaphore
  * slowly deadlocks at 3-with-empty-queue.
  *
- * The audit side needs no slot: audits serialize behind their own global
- * lock, so by the time a job releases its permit the audit queue is the
- * only remaining throttle.
  */
 
-/** Total background LLM concurrency, process-wide, across ALL subsystems
- *  (owner ruling 2026-09-29: one shared pool — extraction chunks +
- *  extraction chunks). */
+/** Total background LLM concurrency, process-wide. */
 const PERMIT_COUNT = 3;
 
 interface LlmSlots {

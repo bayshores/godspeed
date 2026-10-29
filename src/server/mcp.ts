@@ -8,8 +8,8 @@
  *  - THE WORK LOOP (wait_for_work / respond): every lesson turn, helper
  *    job, and graph-fact run parks its model request in agent-bridge.ts;
  *    the agent takes it, answers it, repeats.
- *  - DIRECT ACCESS: list/read lessons, search the knowledge graph, import
- *    notes, start a lesson.
+ *  - DIRECT ACCESS: list/read lessons, search the knowledge graph and a
+ *    class's files, import notes, start a lesson.
  *  - CLASSES: agents set up the learner's classes — create/edit/archive,
  *    add files, link folders, read them, start lessons inside them.
  *    Deleting a class is app-only on purpose: no tool here can wipe a class.
@@ -26,6 +26,7 @@ import {
 	displayAgentName,
 	pendingWorkCount,
 	recordCheckIn,
+	releaseConversation,
 	respondToWork,
 	waitForWork,
 	type WorkView,
@@ -50,6 +51,8 @@ import {
 	updateClass,
 	updateClassDeadline,
 } from "./classes.ts";
+import { classTopics } from "./class-card.ts";
+import { fileExtents, readPassage, searchClassFiles, searchFacts } from "./search-index.ts";
 import { localToday } from "./progress.ts";
 import { createLesson } from "./lessons.ts";
 import { recordAgentAction, type AgentActionInput } from "./agent-actions.ts";
@@ -175,10 +178,6 @@ function waitMs(seconds: number | undefined): number {
 	return Math.min(Math.max(seconds ?? DEFAULT_WAIT_S, 1), MAX_WAIT_S) * 1000;
 }
 
-function searchTerms(query: string): string[] {
-	return query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
-}
-
 // ─── The server ─────────────────────────────────────────────────────────────
 
 function buildServer(): McpServer {
@@ -220,11 +219,12 @@ function buildServer(): McpServer {
 			},
 		},
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
-			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined });
+			const waitMs = Math.min(wait_seconds ?? 30, MAX_WAIT_S) * 1000;
+			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, waitMs);
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			if (lesson) act({ label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
-			const next = await waitForWork(Math.min(wait_seconds ?? 30, MAX_WAIT_S) * 1000, { conversation: answered.conversation });
+			const next = await waitForWork(waitMs, { conversation: answered.conversation }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			return result({
@@ -286,7 +286,7 @@ function buildServer(): McpServer {
 			title: "Search the knowledge graph",
 			description: "Search one class's knowledge graph (each class has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
 			inputSchema: {
-				query: z.string().optional().describe("Words to look for in fact names and statements."),
+				query: z.string().optional().describe("What to look for, in plain words (matched by meaning and by keywords)."),
 				limit: z.number().int().min(1).max(200).optional().describe("Most facts to return (default 30)."),
 				class_id: CLASS_ID_ARG,
 			},
@@ -297,16 +297,19 @@ function buildServer(): McpServer {
 			if ("error" in arg) return failure(arg.error);
 			const scope = arg.scope;
 			const graph = getGraph(graphStoreFor(scope));
-			const terms = searchTerms(query ?? "");
-			const scored = graph.nodes
-				.map((n) => {
-					const haystack = [n.name, n.statement, ...n.aliases].join(" ").toLowerCase();
-					return { node: n, score: terms.length ? terms.filter((t) => haystack.includes(t)).length : 1 };
-				})
-				.filter((s) => s.score > 0)
-				.sort((a, b) => b.score - a.score || b.node.createdAt.localeCompare(a.node.createdAt))
-				.slice(0, limit ?? 30);
-			const picked = new Set(scored.map((s) => s.node.id));
+			const max = limit ?? 30;
+			let found: typeof graph.nodes;
+			if (query?.trim()) {
+				const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+				try {
+					found = (await searchFacts(scope, graph.nodes, query, max)).map((id) => byId.get(id)!);
+				} catch (err) {
+					return failure(err instanceof Error ? err.message : String(err));
+				}
+			} else {
+				found = [...graph.nodes].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, max);
+			}
+			const picked = new Set(found.map((n) => n.id));
 			const names = new Map(graph.nodes.map((n) => [n.id, n.name]));
 			const chains = graph.chains
 				.filter((c) => picked.has(c.conclusion) || c.premises.some((p) => picked.has(p)))
@@ -314,7 +317,7 @@ function buildServer(): McpServer {
 				.map((c) => `${c.premises.map((p) => names.get(p) ?? p).join(" + ")} ⟹ ${names.get(c.conclusion) ?? c.conclusion}`);
 			return result({
 				totalFacts: graph.nodes.length,
-				facts: scored.map(({ node }) => ({ id: node.id, name: node.name, statement: node.statement })),
+				facts: found.map((node) => ({ id: node.id, name: node.name, statement: node.statement })),
 				chains,
 			});
 		},
@@ -399,11 +402,12 @@ function localNow(now = new Date()): string {
 	return `${localToday(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
-/** A class as agents see it: summary, files with paths and states,
- *  deadlines, lessons. */
+/** A class as agents see it: summary, files with paths, states and sizes,
+ *  the graph's topics, deadlines, lessons. */
 function classView(classId: string) {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return null;
+	const sizes = fileExtents(record.id);
 	return {
 		id: record.id,
 		name: record.name,
@@ -417,8 +421,10 @@ function classView(classId: string) {
 			origin: f.origin,
 			status: f.status,
 			...(f.error ? { error: f.error } : {}),
+			...(sizes[f.id] ? { size: sizes[f.id] } : {}),
 			path: classFilePath(record, f),
 		})),
+		topics: classTopics(record.id),
 		today: localNow(),
 		deadlines: (record.deadlines ?? []).map((d) => ({
 			id: d.id,
@@ -470,13 +476,56 @@ function registerClassTools(server: McpServer): void {
 		"read_class",
 		{
 			title: "Read a class",
-			description: "Read one class: its description, its files (kind, status, path on disk), its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time.",
+			description: "Read one class: its description, its files (kind, status, size, path on disk), the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. To find something inside the files, use search_class_files.",
 			inputSchema: { class_id: z.string() },
 			annotations: { readOnlyHint: true },
 		},
 		async ({ class_id }) => {
 			const view = classView(class_id);
 			return view ? result(view) : failure(`No class "${class_id}". Use list_classes.`);
+		},
+	);
+
+	server.registerTool(
+		"search_class_files",
+		{
+			title: "Search a class's files",
+			description: "Search all of a class's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
+			inputSchema: {
+				class_id: z.string(),
+				query: z.string().min(1).describe("What to look for, in plain words."),
+				limit: z.number().int().min(1).max(20).optional().describe("Most passages to return (default 8)."),
+			},
+			annotations: { readOnlyHint: true },
+		},
+		async ({ class_id, query, limit }) => {
+			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
+			try {
+				return result(await searchClassFiles(class_id, query, limit ?? 8));
+			} catch (err) {
+				return failure(err instanceof Error ? err.message : String(err));
+			}
+		},
+	);
+
+	server.registerTool(
+		"read_passage",
+		{
+			title: "Read a passage of a class file",
+			description: "Read one passage of a class file by its id from search_class_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+			inputSchema: {
+				class_id: z.string(),
+				passage_id: z.string().optional().describe("A passage id from search_class_files (or a previous/next id)."),
+				file_id: z.string().optional().describe("Instead of passage_id: a file id from read_class, with range."),
+				range: z.string().optional().describe('With file_id: the place, e.g. "p. 12", "12:30" or "lines 40".'),
+			},
+			annotations: { readOnlyHint: true },
+		},
+		async ({ class_id, passage_id, file_id, range }) => {
+			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
+			if (passage_id) return result(readPassage(class_id, { passageId: passage_id }));
+			if (file_id && range) return result(readPassage(class_id, { fileId: file_id, range }));
+			return failure("Give passage_id, or file_id with range.");
 		},
 	);
 

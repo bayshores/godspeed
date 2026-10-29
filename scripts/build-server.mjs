@@ -4,7 +4,9 @@
  * `next build` (output: "standalone") produces .next/standalone/ with
  * server.js + the traced node_modules subset, but leaves two pieces
  * outside that the docs require us to copy: public/ and .next/static/.
- * This script finishes the job and sanity-checks the result — including
+ * This script finishes the job — plus models/, the class-search embedding
+ * model (scripts/fetch-model.mjs), which the server loads by path — and
+ * sanity-checks the result, including
  * the exclusion that keeps the repo's real data/ OUT of the bundle
  * (see next.config.ts outputFileTracingExcludes). It also removes two
  * exact build-only paths the tracer sweeps in: old installers and the
@@ -38,6 +40,12 @@ copyTree(staticFrom, staticTo);
 if (exists(path.join(ROOT, "public"))) {
 	copyTree(path.join(ROOT, "public"), path.join(STANDALONE, "public"));
 }
+const MODEL_WEIGHTS = path.join("models", "Snowflake", "snowflake-arctic-embed-xs", "onnx", "model_quantized.onnx");
+if (!exists(path.join(ROOT, MODEL_WEIGHTS))) {
+	console.error("[build-server] the search model is missing — run `node scripts/fetch-model.mjs` first.");
+	process.exit(1);
+}
+copyTree(path.join(ROOT, "models"), path.join(STANDALONE, "models"));
 
 // 2) Safety: the repo's real data/ must NEVER ride along in the bundle.
 const leakedData = path.join(STANDALONE, "data");
@@ -76,6 +84,12 @@ for (const extra of ["dist", path.join("node_modules", "electron")]) {
 		fs.rmSync(target, { recursive: true, force: true });
 		console.log(`[build-server] removed build-only payload: ${extra}`);
 	}
+}
+// onnxruntime-node's macOS folder holds its library twice (44 MB each);
+// the binding links only libonnxruntime.1.dylib.
+const ortBin = path.join(STANDALONE, "node_modules", "onnxruntime-node", "bin", "napi-v6", process.platform, process.arch);
+for (const name of exists(ortBin) ? fs.readdirSync(ortBin) : []) {
+	if (/^libonnxruntime\.\d+\.\d+\.\d+\.dylib$/.test(name)) fs.rmSync(path.join(ortBin, name));
 }
 
 // 3) Sanity: the runtime-read prompt assets must be present (the teacher

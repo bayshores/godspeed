@@ -76,7 +76,7 @@ describe("outside agent as the model", () => {
 		assert.equal(lastUser && "text" in lastUser ? lastUser.text : "", "Teach me photosynthesis");
 		assert.ok(isTurnRunning(chat.id), "the turn stays open while the agent thinks");
 
-		const answered = bridge.respondToWork(work.workId, { text: "What do you already know about how plants get energy?" });
+		const answered = bridge.respondToWork(work.workId, { text: "What do you already know about how plants get energy?" }, 0);
 		assert.ok(answered.ok);
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 
@@ -90,7 +90,7 @@ describe("outside agent as the model", () => {
 		await handleChatInput(chat.id, { type: "text", text: "hello" });
 		const first = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(first);
-		assert.ok(bridge.respondToWork(first.workId, { toolCalls: [{ name: "ls", arguments: {} }] }).ok);
+		assert.ok(bridge.respondToWork(first.workId, { toolCalls: [{ name: "ls", arguments: {} }] }, 0).ok);
 
 		const second = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(second, "the tool result asks the agent again");
@@ -98,7 +98,7 @@ describe("outside agent as the model", () => {
 		assert.equal(second.instructions, undefined);
 		assert.deepEqual(second.messages.map((m) => m.role), ["toolResult"]);
 
-		assert.ok(bridge.respondToWork(second.workId, { text: "Done looking." }).ok);
+		assert.ok(bridge.respondToWork(second.workId, { text: "Done looking." }, 0).ok);
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 	});
 
@@ -107,9 +107,9 @@ describe("outside agent as the model", () => {
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
 		const work = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(work);
-		const refused = bridge.respondToWork(work.workId, { toolCalls: [{ name: "launch_rockets", arguments: {} }] });
+		const refused = bridge.respondToWork(work.workId, { toolCalls: [{ name: "launch_rockets", arguments: {} }] }, 0);
 		assert.equal(refused.ok, false);
-		assert.ok(bridge.respondToWork(work.workId, { text: "ok" }).ok, "the item is still open after a refusal");
+		assert.ok(bridge.respondToWork(work.workId, { text: "ok" }, 0).ok, "the item is still open after a refusal");
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 	});
 
@@ -134,11 +134,41 @@ describe("outside agent as the model", () => {
 		assert.equal(await bridge.waitForWork(50, { conversation: lesson.id, andBackground: true }), null, "another lesson's turn does not");
 		assert.equal(await bridge.waitForWork(50, { conversation: lesson.id }), null, "without andBackground, only the lesson's own work");
 
-		assert.ok(bridge.respondToWork(work.workId, { text: "Done." }).ok);
+		assert.ok(bridge.respondToWork(work.workId, { text: "Done." }, 0).ok);
 		await finished;
 		abortTurn(other.id);
 		await waitFor(() => !isTurnRunning(other.id), 8000, "other lesson settle");
 		assert.equal(bridge.pendingWorkCount(), 0);
+	});
+
+	it("an answered lesson's next item is held for the answering agent until release or expiry", async () => {
+		const chat = agentChat("Held");
+		await handleChatInput(chat.id, { type: "text", text: "hi" });
+		const ls = { toolCalls: [{ name: "ls", arguments: {} }] };
+		const first = await bridge.waitForWork(5000, { conversation: chat.id });
+		assert.ok(first);
+
+		assert.ok(bridge.respondToWork(first.workId, ls, 60_000).ok);
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "follow-up parked");
+		assert.equal(await bridge.waitForWork(100), null, "another agent can't take a held lesson's item");
+		const second = await bridge.waitForWork(1000, { conversation: chat.id });
+		assert.ok(second, "the answering agent's own wait takes it");
+
+		assert.ok(bridge.respondToWork(second.workId, ls, 60_000).ok);
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "follow-up parked");
+		bridge.releaseConversation(chat.id);
+		const third = await bridge.waitForWork(1000);
+		assert.ok(third);
+		assert.equal(third.conversation, chat.id, "after release anyone can take it");
+
+		assert.ok(bridge.respondToWork(third.workId, ls, 100).ok);
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "follow-up parked");
+		const fourth = await bridge.waitForWork(1000);
+		assert.ok(fourth);
+		assert.equal(fourth.conversation, chat.id, "after the hold expires anyone can take it");
+
+		assert.ok(bridge.respondToWork(fourth.workId, { text: "Done." }, 0).ok);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 	});
 
 	it("stopping the turn withdraws the parked request", async () => {
@@ -200,8 +230,10 @@ describe("the /api/mcp door", () => {
 			"list_lessons",
 			"read_class",
 			"read_lesson",
+			"read_passage",
 			"remove_class_deadline",
 			"respond",
+			"search_class_files",
 			"search_graph",
 			"set_class_file_kind",
 			"start_lesson",
@@ -322,7 +354,7 @@ describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
 			assert.equal(item.imageCount, 1);
 			assert.match(item.messages[0].text, /What is in this picture\?\n\[image 1\]/);
 			assert.deepEqual(image, { type: "image", data: "aGVsbG8=", mimeType: "image/png" });
-			assert.equal(bridge.respondToWork(item.workId, { text: "A greeting." }).ok, true);
+			assert.equal(bridge.respondToWork(item.workId, { text: "A greeting." }, 0).ok, true);
 			const done = await stream.result();
 			assert.ok(done.content.some((c) => c.type === "text"));
 			assert.equal(bridge.pendingWorkCount(), 0);
@@ -340,7 +372,7 @@ describe("the [Today] note and the outside agent (plan 2026-10-28, Phase 2)", ()
 		assert.equal(ack.status, 200, await ack.clone().text());
 		const work = await bridge.waitForWork(5000, { conversation: chatId });
 		assert.ok(work, "the turn parked a request");
-		assert.ok(bridge.respondToWork(work.workId, { text: "Okay." }).ok);
+		assert.ok(bridge.respondToWork(work.workId, { text: "Okay." }, 0).ok);
 		await waitFor(() => !isTurnRunning(chatId), 8000, "turn settle");
 		return work;
 	}

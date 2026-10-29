@@ -127,37 +127,43 @@ export function graphCostSummary(input: CostSummaryInput, price: CallPricer): Gr
 	const runs: RecentRun[] = [];
 
 	const foldExtractionRun = (run: ExtractionRunUsage, title: string) => {
-		const stages = run.stages ?? { extractor: { model: "unknown", steps: [] }, auditor: { model: "unknown", steps: [] } };
+		const extractor = run.stages?.extractor ?? { model: "unknown", steps: [] };
+		// Records from before the linking stage was folded in carry an auditor stage.
+		const auditor = run.stages?.auditor;
+		const stages = auditor ? [extractor, auditor] : [extractor];
 		// Per-stage: tokens always count; dollars only when priced.
 		extraction.runs++;
-		mergeTokens(extraction.tokens, stages.extractor.steps);
-		const extDollars = stageDollars(stages.extractor.model, stages.extractor.steps, price);
-		if (isSubscriptionModel(stages.extractor.model)) {
+		mergeTokens(extraction.tokens, extractor.steps);
+		const extDollars = stageDollars(extractor.model, extractor.steps, price);
+		if (isSubscriptionModel(extractor.model)) {
 			extraction.subscriptionRuns = (extraction.subscriptionRuns ?? 0) + 1;
-			extraction.subscriptionProviders = [...new Set([...(extraction.subscriptionProviders ?? []), ...subscriptionLabels([stages.extractor.model])])];
+			extraction.subscriptionProviders = [...new Set([...(extraction.subscriptionProviders ?? []), ...subscriptionLabels([extractor.model])])];
 		}
 		else if (extDollars === null) extraction.unpricedRuns++;
 		else extraction.dollars += extDollars;
 
-		audit.runs++;
-		mergeTokens(audit.tokens, stages.auditor.steps);
-		const audDollars = stageDollars(stages.auditor.model, stages.auditor.steps, price);
-		if (isSubscriptionModel(stages.auditor.model)) {
-			audit.subscriptionRuns = (audit.subscriptionRuns ?? 0) + 1;
-			audit.subscriptionProviders = [...new Set([...(audit.subscriptionProviders ?? []), ...subscriptionLabels([stages.auditor.model])])];
+		let audDollars: number | null = null;
+		if (auditor) {
+			audit.runs++;
+			mergeTokens(audit.tokens, auditor.steps);
+			audDollars = stageDollars(auditor.model, auditor.steps, price);
+			if (isSubscriptionModel(auditor.model)) {
+				audit.subscriptionRuns = (audit.subscriptionRuns ?? 0) + 1;
+				audit.subscriptionProviders = [...new Set([...(audit.subscriptionProviders ?? []), ...subscriptionLabels([auditor.model])])];
+			}
+			else if (audDollars === null) audit.unpricedRuns++;
+			else audit.dollars += audDollars;
 		}
-		else if (audDollars === null) audit.unpricedRuns++;
-		else audit.dollars += audDollars;
 
 		// Run-level: null only when EVERY stage is unpriced.
-		const allStages: Array<number | null> = [extDollars, audDollars];
+		const allStages: Array<number | null> = auditor ? [extDollars, audDollars] : [extDollars];
 		const runDollars = allStages.every((d) => d === null)
 			? null
 			: allStages.reduce<number>((a, d) => a + (d ?? 0), 0);
-		const subscriptionRuns = [stages.extractor, stages.auditor].filter((stage) => isSubscriptionModel(stage.model)).length;
-		const allSteps = [...stages.extractor.steps, ...stages.auditor.steps];
+		const subscriptionRuns = stages.filter((stage) => isSubscriptionModel(stage.model)).length;
+		const allSteps = stages.flatMap((stage) => stage.steps);
 		runs.push({
-			...(subscriptionRuns ? { subscriptionRuns, subscriptionProviders: subscriptionLabels([stages.extractor.model, stages.auditor.model]) } : {}),
+			...(subscriptionRuns ? { subscriptionRuns, subscriptionProviders: subscriptionLabels(stages.map((stage) => stage.model)) } : {}),
 			startedAt: run.startedAt,
 			at: run.at,
 			durationMs: run.durationMs,

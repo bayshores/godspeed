@@ -85,6 +85,13 @@ const nextConfig: NextConfig = {
 			// Wave E stage 2: resvg rasterizes visual-maker SVGs natively; same
 			// per-platform-binary story as the canvas above (one per build).
 			"node_modules/@resvg/resvg-js-*/**/*",
+			// Class search: transformers loads onnxruntime-node with createRequire,
+			// which the tracer misses. Its binding is per platform; only this
+			// build's is included.
+			"node_modules/onnxruntime-node/package.json",
+			"node_modules/onnxruntime-node/dist/**/*.js",
+			"node_modules/onnxruntime-common/dist/cjs/**/*.js",
+			`node_modules/onnxruntime-node/bin/napi-v6/${process.platform}/${process.arch}/**/*`,
 			"node_modules/@earendil-works/pi-ai/dist/providers/data/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/utils/sleep.js",
 			"node_modules/@earendil-works/pi-agent-core/dist/**/*.json",

@@ -9,6 +9,8 @@ import { describe, it } from "node:test";
 const source = fs.readFileSync(new URL("../scripts/build-server.mjs", import.meta.url), "utf8");
 const STANDALONE = path.join(".next", "standalone");
 const PROMPT = path.join("src", "agent", "system-prompt.md");
+const MODEL = path.join("models", "Snowflake", "snowflake-arctic-embed-xs", "onnx", "model_quantized.onnx");
+const ORT_BIN = path.join("node_modules", "onnxruntime-node", "bin", "napi-v6", process.platform, process.arch);
 
 function withPayload(test: (fixture: {
 	root: string;
@@ -26,6 +28,7 @@ function withPayload(test: (fixture: {
 		write(path.join(STANDALONE, "server.js"));
 		write(path.join(".next", "static", "runtime.js"));
 		write(path.join("public", "asset.txt"));
+		write(MODEL);
 		write(path.join(STANDALONE, PROMPT));
 		write(path.join(STANDALONE, "src", "agent", "prompts", "teacher", "20-teaching.md"));
 		test({ root, write, run: () => spawnSync(process.execPath, [path.join(root, "scripts", "build-server.mjs")], {
@@ -52,6 +55,8 @@ describe("desktop standalone payload", () => {
 				"node_modules/electron-updater/out/main.js",
 			];
 			for (const file of runtime) write(path.join(STANDALONE, file));
+			write(path.join(STANDALONE, ORT_BIN, "libonnxruntime.1.dylib"));
+			write(path.join(STANDALONE, ORT_BIN, "libonnxruntime.1.30.0.dylib"));
 			const result = run();
 			assert.equal(result.status, 0, String(result.stderr));
 			assert.equal(fs.existsSync(path.join(root, STANDALONE, "dist")), false);
@@ -61,6 +66,18 @@ describe("desktop standalone payload", () => {
 			for (const file of runtime) assert.ok(fs.existsSync(path.join(root, STANDALONE, file)), file);
 			assert.ok(fs.existsSync(path.join(root, STANDALONE, ".next", "static", "runtime.js")));
 			assert.ok(fs.existsSync(path.join(root, STANDALONE, "public", "asset.txt")));
+			assert.ok(fs.existsSync(path.join(root, STANDALONE, MODEL)), "the search model ships");
+			assert.ok(fs.existsSync(path.join(root, STANDALONE, ORT_BIN, "libonnxruntime.1.dylib")));
+			assert.equal(fs.existsSync(path.join(root, STANDALONE, ORT_BIN, "libonnxruntime.1.30.0.dylib")), false, "the duplicate library is dropped");
+		});
+	});
+
+	it("refuses to build without the search model", () => {
+		withPayload(({ root, run }) => {
+			fs.rmSync(path.join(root, MODEL));
+			const result = run();
+			assert.equal(result.status, 1);
+			assert.match(String(result.stderr), /search model is missing/);
 		});
 	});
 

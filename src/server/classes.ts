@@ -10,7 +10,8 @@
  *  - add, re-kind, retry, remove files; link / unlink a folder
  *  - the FILE PIPELINE: file → text (class-files.ts, transcribe.ts) → the
  *    existing notes pipeline into THE CLASS'S OWN graph. "study" files
- *    become facts; "info" files never do.
+ *    become facts; "info" files never do. Both go into the class's
+ *    search index (search-index.ts).
  *    A changed file rebuilds its facts; a removed one loses them.
  *  - the linked-folder scan: new files are added as study material,
  *    every 60 s while the app runs
@@ -27,7 +28,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
 import type { ClassDeadline, ClassFile, ClassFileKind, ClassRecord, ClassScope, ClassSummary } from "../core/contracts.ts";
-import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
@@ -35,12 +36,13 @@ import { emit } from "../core/events.ts";
 import { extraction } from "./chat-handler.ts";
 import { quiesceChatForRewrite } from "./chats.ts";
 import { fileToText, fingerprintFile, walkLinkedFolder } from "./class-files.ts";
+import { dropClassFile, indexClassFile, isFileIndexed } from "./search-index.ts";
 import { discardChatDeliveries } from "./jobs.ts";
 import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./stores.ts";
 import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
 import { applyClassCard } from "./class-card.ts";
-import { cancelTopicGrouping } from "./topics.ts";
+import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
 
 type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
 
@@ -93,8 +95,9 @@ function isDocumentFile(name: string): boolean {
 function textCacheDir(classId: string): string {
 	return path.join(stores.classStore.filesDir(classId), "texts");
 }
+/** ".v2": texts saved before PDF line breaks were kept are not reused. */
 function textCachePath(classId: string, fileId: string, fp: string): string {
-	return path.join(textCacheDir(classId), `${fileId}.${fp}.txt`);
+	return path.join(textCacheDir(classId), `${fileId}.${fp}.v2.txt`);
 }
 function readCachedText(classId: string, fileId: string, fp: string): string | null {
 	try {
@@ -353,6 +356,7 @@ function dropFile(record: ClassRecord, file: ClassFile): void {
 	if (file.sourceId) deleteSourceTraces(graphStoreFor(record.id), file.sourceId);
 	fs.rmSync(transcriptPathOf(record.id, file.id), { force: true });
 	dropCachedTexts(record.id, file.id);
+	dropClassFile(record.id, file.id).catch((err: unknown) => console.error(`[classes] could not drop ${file.id} from search:`, err));
 	if (file.origin === "copied") {
 		fs.rmSync(path.join(stores.classStore.filesDir(record.id), file.id), { recursive: true, force: true });
 	}
@@ -476,7 +480,11 @@ export function enqueueFile(classId: string, fileId: string): void {
 			if (cancelledClasses.has(classId)) return;
 			await processFile(classId, fileId);
 		})
-		.catch((err: unknown) => console.error(`[classes] processing ${key} failed:`, err));
+		.catch((err: unknown) => console.error(`[classes] processing ${key} failed:`, err))
+		.finally(() => {
+			// The queue drained: group topics once for the whole batch of files.
+			if (queues.get(classId) === next && !cancelledClasses.has(classId)) scheduleTopicGrouping(classId);
+		});
 	queues.set(classId, next);
 }
 
@@ -508,6 +516,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	if (file.kind === "info") {
 		if (file.sourceId) deleteSourceTraces(store, file.sourceId);
 		patchFile(classId, fileId, { status: "ready", contentFp: fp, statSig, sourceId: undefined, error: undefined });
+		await indexForSearch(classId, file, abs, fp);
 		return;
 	}
 	if (file.contentFp === fp && file.status === "ready" && file.sourceId) {
@@ -516,26 +525,14 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	}
 	if (!extractionEnabled(effectiveSettings().graph)) {
 		patchFile(classId, fileId, { status: "pending", statSig, error: "The knowledge graph is turned off in Settings → Graph" });
+		await indexForSearch(classId, file, abs, fp);
 		return;
 	}
 
 	patchFile(classId, fileId, { status: "extracting", statSig, error: undefined });
 	let text: string;
 	try {
-		if (isRecordingFile(file.name)) {
-			const out = transcriptPathOf(classId, fileId);
-			text = await transcribeRecording(abs, out);
-		} else if (isDocumentFile(file.name)) {
-			const cached = readCachedText(classId, fileId, fp);
-			if (cached !== null) {
-				text = cached;
-			} else {
-				text = await fileToText(abs);
-				writeCachedText(classId, fileId, fp, text);
-			}
-		} else {
-			text = await fileToText(abs);
-		}
+		text = await fileText(classId, file, abs, fp);
 	} catch (err) {
 		if (err instanceof WhisperMissingError) {
 			patchFile(classId, fileId, { status: "needs-whisper", contentFp: fp, error: err.message });
@@ -544,6 +541,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		}
 		return;
 	}
+	await indexForSearch(classId, file, abs, fp, text);
 
 	// REBUILD: the old version's facts go first — shared facts survive by the deletion law.
 	const sourceId = sourceIdFor(classId, fileId);
@@ -561,6 +559,56 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 						: String(err);
 		if (stores.classStore.getClass(classId)) {
 			patchFile(classId, fileId, { status: "failed", contentFp: fp, sourceId, error: message });
+		}
+	}
+}
+
+/** A file's text for the notes pipeline: a recording's transcript, a PDF's
+ *  saved (or freshly read) text, the file itself otherwise. */
+async function fileText(classId: string, file: ClassFile, abs: string, fp: string): Promise<string> {
+	if (isRecordingFile(file.name)) return transcribeRecording(abs, transcriptPathOf(classId, file.id));
+	if (!isDocumentFile(file.name)) return fileToText(abs);
+	const cached = readCachedText(classId, file.id, fp);
+	if (cached !== null) return cached;
+	const text = await fileToText(abs);
+	writeCachedText(classId, file.id, fp, text);
+	return text;
+}
+
+/**
+ * Put this version of a file (study or info) in the class's search index.
+ * `text` is the pipeline's text when it was already read. Captions are
+ * indexed from the raw file (search keeps their times); a recording only
+ * once its transcript exists (never transcribed for search alone). Best
+ * effort: a failure is logged and the file goes on. Not under tests (no
+ * model there).
+ */
+async function indexForSearch(classId: string, file: ClassFile, abs: string, fp: string, text?: string): Promise<void> {
+	if (process.env.NODE_ENV === "test" || isFileIndexed(classId, file.id, fp)) return;
+	try {
+		let source = text;
+		if ((TRANSCRIPT_EXTENSIONS as readonly string[]).includes(extensionOf(file.name))) {
+			source = fs.readFileSync(abs, "utf-8");
+		} else if (source === undefined && isRecordingFile(file.name)) {
+			const transcript = transcriptPathOf(classId, file.id);
+			if (!fs.existsSync(transcript)) return;
+			source = fs.readFileSync(transcript, "utf-8");
+		}
+		await indexClassFile(classId, file, fp, source ?? (await fileText(classId, file, abs, fp)));
+	} catch (err) {
+		console.error(`[classes] could not index ${file.name} for search:`, err);
+	}
+}
+
+/** Index every processed file the search index lacks (classes from before
+ *  search, a failed index), one file at a time in the background. */
+async function indexUnindexedFiles(): Promise<void> {
+	for (const summary of stores.classStore.listClasses()) {
+		const record = summary.archived ? null : stores.classStore.getClass(summary.id);
+		for (const file of record?.files ?? []) {
+			if ((file.status !== "ready" && file.status !== "failed") || !file.contentFp) continue;
+			const abs = classFilePath(record!, file);
+			if (abs && fs.existsSync(abs)) await indexForSearch(summary.id, file, abs, file.contentFp);
 		}
 	}
 }
@@ -601,6 +649,7 @@ export function startClassScanner(): void {
 		} catch (err) {
 			console.error("[classes] startup scan failed:", err);
 		}
+		void indexUnindexedFiles().catch((err: unknown) => console.error("[classes] search catch-up failed:", err));
 	}, STARTUP_SCAN_DELAY_MS).unref?.();
 }
 

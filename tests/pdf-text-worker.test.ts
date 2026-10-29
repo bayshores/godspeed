@@ -75,7 +75,7 @@ describe("saved PDF text", () => {
 		assert.match(imports.at(-1)!, /Calculus/);
 
 		const fp = await fingerprintFile(FIXTURE);
-		const saved = path.join(stores.classStore.filesDir(id), "texts", `${fileId}.${fp}.txt`);
+		const saved = path.join(stores.classStore.filesDir(id), "texts", `${fileId}.${fp}.v2.txt`);
 		assert.equal(fs.readFileSync(saved, "utf-8"), imports.at(-1));
 
 		// Unfinished last time (a relaunch): the saved text is used, the PDF is not re-read.
