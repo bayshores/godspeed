@@ -96,8 +96,8 @@ describe("footerLabel — '<agent> · N jobs'", () => {
 	it("no jobs: just the agent", () => {
 		assert.equal(footerLabel({ connected: true, name: "Codex" }, 0), "Codex");
 	});
-	it("connected without a known name reads 'Outside agent'", () => {
-		assert.equal(footerLabel({ connected: true }, 0), "Outside agent");
+	it("connected without a known name reads 'Your agent'", () => {
+		assert.equal(footerLabel({ connected: true }, 0), "Your agent");
 	});
 	it("nobody connected (or access off, or not loaded yet)", () => {
 		assert.equal(footerLabel({ connected: false }, 2), "No agent connected · 2 jobs");

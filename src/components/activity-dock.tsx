@@ -23,7 +23,7 @@ import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent
  * Cost is INFERRED server-side through Pi; the context line is the LAST
  * model call's input+output against the model's limit (JobUsage.lastStep)
  * — never a cumulative sum, which would be the wrong number.
- * Absent data renders "—", never zero.
+ * Absent data renders "–", never zero.
  *
  * Quiet/ambient by design: stable keys, updates land in place — refreshes
  * never flicker. ALWAYS present: empty means EMPTY — the header sits
@@ -187,9 +187,9 @@ interface ActivityBlob {
 	chatId: string;
 	/** ms epoch — blobs order oldest-first and elapsed counts from it. */
 	startedAt: number;
-	/** Inferred USD cost (jobCost) — null renders "—". */
+	/** Inferred USD cost (jobCost) — null renders "–". */
 	cost: number | null;
-	/** Last model call's footprint vs the model's limit — null renders "—". */
+	/** Last model call's footprint vs the model's limit — null renders "–". */
 	context: { used: number; limit: number } | null;
 	/** Latest human-readable activity line (""). */
 	activity: string;
@@ -491,7 +491,7 @@ function ActivityBlobRow({
 							<span>Context</span>
 							<span className="font-mono tabular-nums text-card-foreground" data-testid="activity-blob-context">
 								{blob.context === null
-									? "—"
+									? "–"
 									: `${formatTokens(blob.context.used)} / ${formatTokens(blob.context.limit)}`}
 							</span>
 						</div>

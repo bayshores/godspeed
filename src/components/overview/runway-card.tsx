@@ -12,7 +12,7 @@ import { CARD, CARD_TITLE } from "./styles";
  * "READY FOR WHAT'S DUE" (Class Overview): a runway from Today through
  * the next 5 open deadlines. Every stop
  * is a 120px column on one strict grid; deadline stops are 88px rings of
- * their ready % (empty with "—" when nothing is covered). A 2px line joins
+ * their ready % (empty with "–" when nothing is covered). A 2px line joins
  * the stops through their centers, stopping 10px short of each, with the
  * days between them above it. Hover a ring: its topics, weakest first;
  * click: practice them. Below: "Most needed" with Learn this.
@@ -198,7 +198,7 @@ function Ring({ deadline: d, busy, onPractice }: { deadline: DeadlineProgress; b
 					/>
 				)}
 			</svg>
-			<span className="relative font-mono text-[18px] font-bold tabular-nums text-ink">{covered ? `${percent(ready)}%` : "—"}</span>
+			<span className="relative font-mono text-[18px] font-bold tabular-nums text-ink">{covered ? `${percent(ready)}%` : "–"}</span>
 		</button>
 	);
 	return (

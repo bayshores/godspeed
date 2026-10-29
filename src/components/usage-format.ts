@@ -10,7 +10,7 @@ export function formatUsd(c: number): string {
 
 export function planCostLabel(dollars: number | null, subscription: string | readonly string[] | undefined, format = formatUsd): string {
 	const labels = typeof subscription === "string" ? [subscription] : Array.isArray(subscription) ? [...new Set(subscription)] : [];
-	return [...(dollars === null ? [] : [format(dollars)]), ...labels].join(" + ") || "—";
+	return [...(dollars === null ? [] : [format(dollars)]), ...labels].join(" + ") || "–";
 }
 
 /** 38000 → "38k", 1234567 → "1.2M" — trimmed, never "38.0k". */

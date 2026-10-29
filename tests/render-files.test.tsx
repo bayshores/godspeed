@@ -70,6 +70,7 @@ const COVERAGE: FileCoverage[] = [
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
 let folderProblem: string | null = null;
+let recordFails = false;
 const originalFetch = globalThis.fetch;
 function fakeFetch() {
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -77,7 +78,9 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
-		if (url.startsWith("/api/classes/cls_a") && method === "GET") return Response.json({ class: RECORD, folderProblem });
+		if (url.startsWith("/api/classes/cls_a") && method === "GET") {
+			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ class: RECORD, folderProblem });
+		}
 		if (url.startsWith("/api/progress")) return Response.json({ classId: "cls_a", files: COVERAGE });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
@@ -85,7 +88,7 @@ function fakeFetch() {
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount() {
+async function mount(initialActive: string | null = "cls_a") {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -93,7 +96,7 @@ async function mount() {
 	await act(async () => {
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
-				<ClassProvider initialActive="cls_a">
+				<ClassProvider initialActive={initialActive}>
 					<FilesPage />
 				</ClassProvider>
 			</ServerEventsProvider>,
@@ -122,6 +125,7 @@ afterEach(async () => {
 	calls.length = 0;
 	scrolled.length = 0;
 	folderProblem = null;
+	recordFails = false;
 	globalThis.fetch = originalFetch;
 	window.location.hash = "";
 });
@@ -149,6 +153,21 @@ describe("FilesPage", () => {
 		assert.ok(q("class-file-linked-f2"), "a file from the linked folder is marked");
 		assert.equal(q("class-file-linked-f1"), null, "a copied file is not");
 		assert.equal(q("class-folder")!.getAttribute("data-problem"), null);
+	});
+
+	it("No class asks for a class instead of showing a blank page", async () => {
+		fakeFetch();
+		const page = await mount(null);
+		assert.match(page.textContent!, /Pick a class to see its files\./);
+		assert.equal(q("files-section-study"), null);
+	});
+
+	it("a class record that fails to load says so", async () => {
+		recordFails = true;
+		fakeFetch();
+		const page = await mount();
+		assert.match(page.textContent!, /Couldn't load this class's files\./);
+		assert.equal(q("files-section-study"), null);
 	});
 
 	it("a missing linked folder says so and offers Pick folder again", async () => {

@@ -38,7 +38,7 @@ export interface JobRecord {
 	/** Money channel (observability, 2026-09): accumulated token usage of
 	 * the sub-agent's run, written by the runner as steps complete. Cost is
 	 * inferred at read time (core/prices.ts). Absent on pre-2026-09 jobs and
-	 * until the runner's capture lands — renderers show "—", never zero. */
+	 * until the runner's capture lands — renderers show "–", never zero. */
 	usage?: JobUsage;
 }
 
@@ -46,7 +46,7 @@ export interface JobRecord {
  * chat turn (contracts/chat.ts CallUsage), flattened to one running total
  * plus a step count. Token fields are optional exactly like CallUsage: a
  * field NO model call reported stays undefined — absent is not zero (the
- * money-channel doctrine; cost renders "—", never $0). */
+ * money-channel doctrine; cost renders "–", never $0). */
 export interface JobUsage {
 	/** The model that ran the sub-agent, provider-qualified ("provider:id" —
 	 *  model slots wave, 2026-09-20; matches Pi catalog lookup keys). */

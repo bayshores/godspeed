@@ -6,7 +6,7 @@ import { sessionCost } from "../src/server/pricing.ts";
 import { prettyModel } from "../src/components/usage-format.ts";
 import type { TurnUsage } from "../src/core/contracts.ts";
 
-// The stats bar: folds only (no cost math in the component), the "—"
+// The stats bar: folds only (no cost math in the component), the "–"
 // doctrine for absent data, and the outside agent's context budget as the
 // meter's denominator. There is no model control (the outside agent picks
 // its own model — owner, 2026-10-27).
@@ -45,11 +45,11 @@ describe("stats bar", () => {
 		assert.match(html, /data-testid="stats-cost">Outside agent</);
 	});
 
-	it("shows — for cost when every turn is unpriceable, never a fake $0", () => {
+	it("shows – for cost when every turn is unpriceable, never a fake $0", () => {
 		const html = renderToStaticMarkup(
 			<StatsBar turns={[turn({ model: "nope/unknown" })]} contextTokens={11_000} pricing={sessionCost({ turns: [turn({ model: "nope/unknown" })] })} />,
 		);
-		assert.match(html, /data-testid="stats-cost">—</);
+		assert.match(html, /data-testid="stats-cost">–</);
 	});
 
 	it("unknown context is explicit", () => {

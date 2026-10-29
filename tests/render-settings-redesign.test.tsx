@@ -82,7 +82,7 @@ describe("settings restyle", () => {
 		}
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
-		assert.equal(q("agent-status")!.textContent, "Outside agent · 1 job");
+		assert.equal(q("agent-status")!.textContent, "Your agent · 1 job");
 		assert.ok(text.includes("127.0.0.1:47613/api/mcp"));
 		assert.ok(el.querySelector('[aria-label="Copy Codex config"]'));
 	});

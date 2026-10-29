@@ -241,12 +241,12 @@ describe("Ready for what's due", () => {
 		assert.match(head, />2<\/span> of <span[^>]*>5<\/span> facts studied in/);
 	});
 
-	it("rings show the ready % in mono; a deadline with no files shows an empty ring with —", () => {
+	it("rings show the ready % in mono; a deadline with no files shows an empty ring with –", () => {
 		const html = renderRunway();
 		assert.match(section(html, "runway-ring-d1", "</button>"), /font-mono[^>]*>38%</);
 		assert.match(section(html, "runway-ring-d2", "</button>"), />72%</);
 		const empty = section(html, "runway-ring-d3", "</button>");
-		assert.match(empty, />—</);
+		assert.match(empty, />–</);
 		assert.doesNotMatch(empty, /runway-arc/);
 		assert.match(tag(html, "runway-ring-d3"), /disabled=""/);
 	});

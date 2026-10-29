@@ -24,7 +24,7 @@ const PANEL_GAP = 16;
 
 /** The agent line under the name. */
 export function agentLine(agent: AgentStatus | null): string {
-	if (agent?.connected) return `${agent.name?.trim() || "Outside agent"} · connected`;
+	if (agent?.connected) return `${agent.name?.trim() || "Your agent"} · connected`;
 	return WAITING_NOTICE;
 }
 

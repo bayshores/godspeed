@@ -80,6 +80,6 @@ export function useAgentStatus(): AgentStatus | null {
  *  agent is connected it reads "Waiting for your agent". */
 export function footerLabel(agent: { connected: boolean; name?: string; pendingWork?: number } | null, jobs: number): string {
 	const waiting = !!agent && !agent.connected && (agent.pendingWork ?? 0) > 0;
-	const who = agent?.connected ? agent.name?.trim() || "Outside agent" : waiting ? "Waiting for your agent" : "No agent connected";
+	const who = agent?.connected ? agent.name?.trim() || "Your agent" : waiting ? "Waiting for your agent" : "No agent connected";
 	return jobs > 0 ? `${who} · ${jobs} job${jobs === 1 ? "" : "s"}` : who;
 }

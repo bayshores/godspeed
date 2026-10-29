@@ -52,7 +52,7 @@ export function ReadingPane({
 }) {
 	const last = messages.length - 1;
 	const jobs = useContext(JobsContext);
-	const agentName = useAgentStatus()?.name ?? "Outside agent";
+	const agentName = useAgentStatus()?.name?.trim() || "Your agent";
 	// The reply being worked on: its plan, steps and file, until its text lands.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
 	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);

@@ -153,10 +153,10 @@ describe("the recent list", () => {
 		assert.equal(actions.recentAgentActions().length, 2);
 	});
 
-	it("labels are one short line, and an unnamed agent is 'Outside agent'", () => {
+	it("labels are one short line, and an unnamed agent is 'Your agent'", () => {
 		const a = actions.recordAgentAction({ label: `Reading  ${"x".repeat(200)}\nmore`, classId: null, target: null, page: "/graph" });
 		assert.ok(a.label.length <= 80);
 		assert.ok(!a.label.includes("\n"));
-		assert.equal(a.agent, "Outside agent");
+		assert.equal(a.agent, "Your agent");
 	});
 });

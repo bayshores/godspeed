@@ -27,7 +27,7 @@ export interface StageCost {
 	subscriptionProviders?: string[];
 	/** Inferred USD summed over PRICED runs (partial when unpricedRuns > 0). */
 	dollars: number;
-	/** Stage-runs whose model is missing from Pi's catalog (render "—", never zero). */
+	/** Stage-runs whose model is missing from Pi's catalog (render "–", never zero). */
 	unpricedRuns: number;
 	/** Runs that billed this stage. */
 	runs: number;

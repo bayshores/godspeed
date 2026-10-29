@@ -267,7 +267,7 @@ function MetadataPopover({
 					>
 				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
 						<dt className="text-muted-foreground">Mode</dt>
-						<dd className="font-mono">{mode || "—"}</dd>
+						<dd className="font-mono">{mode || "–"}</dd>
 						<dt className="text-muted-foreground">Targets</dt>
 						<dd className="font-mono">
 							{targets.length === 0 ? (
@@ -284,13 +284,13 @@ function MetadataPopover({
 							)}
 						</dd>
 						<dt className="text-muted-foreground">Outcome</dt>
-						<dd className="font-mono">{outcome || "—"}</dd>
+						<dd className="font-mono">{outcome || "–"}</dd>
 						<dt className="text-muted-foreground">Hint rung</dt>
 						<dd className="font-mono">{rung || "none"}</dd>
 						<dt className="text-muted-foreground">Miss class</dt>
 						<dd className="font-mono">{miss || "none"}</dd>
 						<dt className="text-muted-foreground">Retest</dt>
-						<dd className="font-mono">{retest === undefined ? "—" : retest ? "yes" : "no"}</dd>
+						<dd className="font-mono">{retest === undefined ? "–" : retest ? "yes" : "no"}</dd>
 					</dl>
 					</div>,
 					document.body,

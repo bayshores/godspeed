@@ -45,7 +45,7 @@ export function FilesPage() {
 
 function FilesPageBody() {
 	const { active } = useClasses();
-	const { record, folderProblem } = useClassRecord(active);
+	const { record, folderProblem, failed } = useClassRecord(active);
 	const { data } = useProgress();
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
@@ -176,7 +176,9 @@ function FilesPageBody() {
 			<TopBar>
 				<h1 className="pl-4 text-[15px] font-bold text-ink">Files</h1>
 			</TopBar>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+				{!active && <p className="m-auto text-sm text-ink-3">Pick a class to see its files.</p>}
+				{active && !record && failed && <p className="m-auto text-sm text-ink-3">Couldn&apos;t load this class&apos;s files.</p>}
 				{record && rowActions && (
 					<div className="flex w-full flex-col gap-6 px-7 pt-2 pb-7">
 						{error && (

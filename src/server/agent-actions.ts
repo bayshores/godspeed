@@ -46,7 +46,7 @@ function sameTarget(a: AgentAction["target"], b: AgentAction["target"]): boolean
 export function recordAgentAction(input: AgentActionInput, now = Date.now()): AgentAction {
 	const { list } = state();
 	const label = shortLabel(input.label);
-	const agent = input.agent?.trim() || "Outside agent";
+	const agent = input.agent?.trim() || "Your agent";
 	const last = list.at(-1);
 	if (last && last.label === label && last.agent === agent && sameTarget(last.target, input.target) && now - Date.parse(last.at) < COALESCE_MS && !input.removed) {
 		last.at = new Date(now).toISOString();

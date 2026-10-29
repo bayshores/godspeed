@@ -10,9 +10,9 @@ import { usePopoverDismiss } from "@/components/popover-dismiss";
 import { usePresence } from "@/components/presence";
 import { Hint } from "@/components/ui/hint";
 
-/** Compact token display: 45231 → "45.2k"; absent → "—". */
+/** Compact token display: 45231 → "45.2k"; absent → "–". */
 function fmtTokens(n: number | undefined): string {
-	if (n === undefined) return "—";
+	if (n === undefined) return "–";
 	if (n < 1000) return String(Math.round(n));
 	if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
 	return `${(n / 1_000_000).toFixed(2)}M`;
@@ -29,7 +29,7 @@ function timeAgo(startedAt: number): string {
 }
 
 /** Run/stage cost at 3 decimals (pipeline pennies are real money at this
- *  scale); headline totals use 2. Null (unpriced model) renders "—". */
+ *  scale); headline totals use 2. Null (unpriced model) renders "–". */
 function fmtRunCost(dollars: number | null, providers: readonly string[] = []): string {
 	return planCostLabel(dollars, providers, (value) => `$${value.toFixed(3)}`);
 }

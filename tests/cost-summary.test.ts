@@ -2,7 +2,7 @@
  * Tests for src/core/cost-summary.ts — the graph cost pill's pure fold.
  * Same laws as the money channel everywhere: dollars INFERRED at read
  * time (core/prices.ts), unpriced models excluded-but-counted (render
- * "—", never a silent zero), tokens always sum.
+ * "–", never a silent zero), tokens always sum.
  */
 
 import assert from "node:assert/strict";
@@ -96,7 +96,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.stages.audit.dollars, 0); // never a silent zero: unpricedRuns says it
 		assert.equal(s.stages.extraction.unpricedRuns, 1);
 		// The partial run still prices its extractor side; the fully
-		// unpriced run renders "—". Newest first: 200 (both unpriced), 100.
+		// unpriced run renders "–". Newest first: 200 (both unpriced), 100.
 		assert.equal(s.runs[0]!.dollars, null);
 		assert.notEqual(s.runs[1]!.dollars, null);
 	});

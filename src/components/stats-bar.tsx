@@ -20,7 +20,7 @@ export function formatContextMeasurement(tokens: number | null, limit: number | 
  *  popover is pure noise).
  *
  * Lessons run on the outside agent's own plan, so cost reads as the plan's
- * label; missing cost stays "—", never fake zero. Context is a separate
+ * label; missing cost stays "–", never fake zero. Context is a separate
  * completed-conversation measurement, never a money-log/summarizer fold or
  * transcript estimate; its denominator is the agent's context budget.
  * Successful compaction clears it to ?.
@@ -70,7 +70,7 @@ export function StatsBar({
 	const contextLabel = formatContextMeasurement(contextTokens, OUTSIDE_AGENT_CONTEXT_WINDOW);
 	const { cost = 0, unpriced = turns.length, subscription = 0 } = pricing ?? {};
 	// Honest cost: show dollars only when at least one turn priced;
-	// otherwise "—" (never a fake $0.0000).
+	// otherwise "–" (never a fake $0.0000).
 	const pricedCount = turns.length - unpriced - subscription;
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
 	const costLabel = planCostLabel(pricedCount > 0 ? cost : null, providers);
@@ -156,7 +156,7 @@ export function StatsBar({
 												</span>
 												<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-card-foreground">
 													<span className="text-muted-foreground">{turn.steps.length} steps</span>
-													<span>{subscriptionLabel(turn.model) ?? (c === null ? "—" : formatUsd(c))}</span>
+													<span>{subscriptionLabel(turn.model) ?? (c === null ? "–" : formatUsd(c))}</span>
 												</span>
 											</li>
 										);

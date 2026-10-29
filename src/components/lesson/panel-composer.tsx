@@ -7,9 +7,9 @@ import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader } from "./panel-parts";
 /**
  * The Your-turn panel with no question waiting (redesign, your-turn
  * states): a message box and Send. While the teacher writes, the header
- * says so with Stop · Esc, and the bar turns gray — "Send when ready":
- * a message typed now steers the running turn and shows as a queued line
- * until it lands in the lesson.
+ * says so with a Stop button (Esc also stops), and the bar turns gray:
+ * "Send when ready". A message typed now steers the running turn and
+ * shows as a queued line until it lands in the lesson.
  *
  * Enter follows enterAction: send (or steer) when
  * there is text, stop on an empty box while the teacher writes, and in a
@@ -71,7 +71,6 @@ export function PanelComposer({
 							>
 								<SquareIcon aria-hidden className="size-3" />
 								Stop
-								<span className="font-mono text-xs font-normal text-ink-3">Esc</span>
 							</button>
 						)
 					}
@@ -93,7 +92,7 @@ export function PanelComposer({
 							act();
 						}
 					}}
-					placeholder={nextProblem ? "Ask anything, or press Enter for the next one." : "Message the teacher…"}
+					placeholder={nextProblem ? "Ask anything, or go on to the next problem." : "Message the teacher…"}
 					aria-label="Message the teacher"
 					className={cn(PANEL_FIELD, busy ? "mt-4" : "mt-3")}
 				/>

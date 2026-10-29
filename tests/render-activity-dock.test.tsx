@@ -35,7 +35,7 @@ describe("the waiting-for-your-agent notice", () => {
 });
 
 // The section's pure layer: folds, formatting, and blob order — then the SSR
-// render (blobs, "—" doctrine, the abort affordance, the always-present
+// render (blobs, "–" doctrine, the abort affordance, the always-present
 // header — the sidebar's background-agents strip).
 
 const NOW = Date.parse("2026-09-09T12:00:00Z");
@@ -134,7 +134,7 @@ describe("activity dock pure layer", () => {
 		const blob = toBlobs({ jobs: [withLast], extractions: [] })[0]!;
 		assert.equal(blob.context?.used, 92_000);
 		assert.equal(blob.context?.limit, 131_072);
-		// No lastStep yet (capture pending) → "—", even though usage exists.
+		// No lastStep yet (capture pending) → "–", even though usage exists.
 		const stripped = toBlobs({ jobs: [job({ usage: { ...base } })], extractions: [] })[0]!;
 		assert.equal(stripped.context, null);
 		// Model missing from the live catalog (historical session,
@@ -170,7 +170,7 @@ describe("activity dock pure layer", () => {
 		assert.equal(cached.context?.limit, 200_000);
 	});
 
-	it("extraction blobs carry no money/context (—, the doctrine)", () => {
+	it("extraction blobs carry no money/context (–, the doctrine)", () => {
 		const blob = toBlobs({
 			jobs: [],
 			extractions: [{ id: "cx", chatId: "cx", title: "T", phase: "extracting", startedAt: NOW }],
@@ -221,13 +221,13 @@ describe("activity section render", () => {
 		assert.match(html, /Chain-rule demo/);
 		assert.match(html, /building sandbox…/);
 		assert.match(html, /Extraction: merging/);
-		// Unpriced job → "—", never $0.0000 (doctrine); both blobs show it.
-		assert.match(html, /activity-blob-cost[^>]*>—</);
+		// Unpriced job → "–", never $0.0000 (doctrine); both blobs show it.
+		assert.match(html, /activity-blob-cost[^>]*>–</);
 		assert.match(html, /data-testid="activity-abort"/, "END on the blob face, popover-independent");
 		assert.match(html, /\bEnd\b/, "the explicit END button");
 		assert.match(html, /Background jobs/);
-		// Total cost: nothing priced → "—" in the header.
-		assert.match(html, /activity-total-cost[^>]*>—</);
+		// Total cost: nothing priced → "–" in the header.
+		assert.match(html, /activity-total-cost[^>]*>–</);
 		// Truncation-reveals KEEP native title (tooltip wave mechanism rule):
 		// the truncated activity + title spans carry title= — a styled
 		// tooltip adds nothing over an ellipsis reveal.

@@ -77,10 +77,10 @@ describe("the Your-turn panel's states", () => {
 		assert.ok(!html.includes("stop-turn"), "no Stop while idle");
 	});
 
-	it("while the teacher writes: Stop · Esc, the hint, and the gray Send when ready", () => {
+	it("while the teacher writes: Stop, the hint, and the gray Send when ready", () => {
 		const html = panel({ composer: composer({ busy: true, value: "wait, why?", canSend: true }) });
 		assert.match(html, /Teacher is writing…/);
-		assert.match(html, /data-testid="stop-turn"[\s\S]*?Stop[\s\S]*?Esc/);
+		assert.match(html, /data-testid="stop-turn"[\s\S]*?Stop<\/button>/, "no key hint beside Stop");
 		assert.match(html, /Sends when the teacher finishes\./);
 		assert.match(html, /data-testid="composer-send"[^>]*class="[^"]*bg-tone-2[\s\S]*?Send when ready/);
 	});

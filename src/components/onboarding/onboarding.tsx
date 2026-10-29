@@ -143,7 +143,6 @@ function Intro({ skipped, onSkip, onDone }: { skipped: boolean; onSkip: () => vo
 				<button type="button" data-testid="onboarding-start" className={PRIMARY} onClick={onDone}>
 					Get started
 				</button>
-				<p className="-mt-3 text-[12px] text-ink-3">or press Return</p>
 			</div>
 		</div>
 	);
@@ -345,12 +344,9 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 						I&apos;ll do this later
 					</button>
 				)}
-				<div className="flex items-center gap-4">
-					{connected && <span className="text-[12px] text-ink-3">or press Return</span>}
-					<button type="button" data-testid="onboarding-agent-continue" disabled={!connected} className={PRIMARY} onClick={onNext}>
-						Continue
-					</button>
-				</div>
+				<button type="button" data-testid="onboarding-agent-continue" disabled={!connected} className={PRIMARY} onClick={onNext}>
+					Continue
+				</button>
 			</div>
 		</StepColumn>
 	);

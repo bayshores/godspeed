@@ -10,40 +10,51 @@ import { useServerEvent } from "@/components/server-events";
 
 /** The full record of one class (files and deadlines included) and what
  *  is wrong with its linked folder; null until loaded, and for "No class".
- *  A stale response for another class is dropped. */
+ *  failed: the last read failed. A stale response for another class is
+ *  dropped. */
 export function useClassRecord(classId: string | null): {
 	record: ClassRecord | null;
 	folderProblem: FolderProblem | null;
+	failed: boolean;
 	reload: () => Promise<void>;
 } {
 	const [record, setRecord] = useState<ClassRecord | null>(null);
 	const [folderProblem, setFolderProblem] = useState<FolderProblem | null>(null);
+	const [failed, setFailed] = useState(false);
 	const request = useRef(0);
 	const reload = useCallback(async () => {
 		const id = ++request.current;
 		if (!classId) {
 			setRecord(null);
 			setFolderProblem(null);
+			setFailed(false);
 			return;
 		}
 		try {
 			const res = await fetch(`/api/classes/${encodeURIComponent(classId)}`, { cache: "no-store" });
-			if (!res.ok || id !== request.current) return;
+			if (id !== request.current) return;
+			if (!res.ok) {
+				setFailed(true);
+				return;
+			}
 			const body = (await res.json()) as { class: ClassRecord; folderProblem: FolderProblem | null };
 			if (id !== request.current) return;
 			setRecord(body.class);
 			setFolderProblem(body.folderProblem);
+			setFailed(false);
 		} catch {
-			/* offline: keep what we have */
+			// Offline: keep what we have.
+			if (id === request.current) setFailed(true);
 		}
 	}, [classId]);
 	useEffect(() => {
 		setRecord(null);
 		setFolderProblem(null);
+		setFailed(false);
 		void reload();
 	}, [reload]);
 	useServerEvent("classes-changed", () => void reload());
-	return { record, folderProblem, reload };
+	return { record, folderProblem, failed, reload };
 }
 
 /** A failed write's message, or null on success. */
