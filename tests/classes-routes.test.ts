@@ -335,6 +335,51 @@ describe("the class file pipeline", () => {
 			fs.rmSync(root, { recursive: true, force: true });
 		}
 	});
+
+	// Root reads any file, and Windows ignores the mode bits.
+	const cannotLock = process.platform === "win32" || process.getuid?.() === 0;
+
+	it("an unreadable linked folder keeps its files and facts", { skip: cannotLock }, async () => {
+		const id = await makeClass("CSE 101");
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-locked-"));
+		try {
+			fs.writeFileSync(path.join(dir, "a.md"), "Heaps");
+			await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+			await classIdle(id);
+			const fileId = stores.classStore.getClass(id)!.files[0]!.id;
+			fs.chmodSync(dir, 0o000);
+			const res = await classRoute.GET(json(`/api/classes/${id}?scan=1`, "GET"), ctx({ id }));
+			assert.equal((await res.json()).folderProblem, "missing");
+			await classIdle(id);
+			assert.deepEqual(stores.classStore.getClass(id)!.files.map((f) => f.id), [fileId], "the file and its id stay");
+			assert.deepEqual(getNames(id), ["Heaps"], "and so do its facts");
+		} finally {
+			fs.chmodSync(dir, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("an unreadable file shows as failed and is not re-queued by the scan", { skip: cannotLock }, async () => {
+		const id = await makeClass("CSE 105");
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-unreadable-"));
+		const file = path.join(dir, "a.md");
+		try {
+			fs.writeFileSync(file, "Automata");
+			fs.chmodSync(file, 0o000);
+			await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+			await classIdle(id);
+			const failed = stores.classStore.getClass(id)!.files[0]!;
+			assert.equal(failed.status, "failed");
+			assert.ok(failed.error, "the error is shown");
+			assert.ok(failed.statSig, "the scan can tell the file has not changed");
+			const idle = classIdle(id);
+			server.scanLinkedFolder(id);
+			assert.equal(classIdle(id), idle, "nothing new was queued");
+		} finally {
+			fs.chmodSync(file, 0o644);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });
 
 function getNames(classId: string): string[] {

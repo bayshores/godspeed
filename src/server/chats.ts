@@ -67,7 +67,7 @@ type ChatDeleteOutcome =
  *      the wind-down finds the chat gone at its merge and aborts with
  *      nothing merged.
  */
-function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, { status: 409 }> | null {
+export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, { status: 409 }> | null {
 	if (isTurnRunning(chatId)) {
 		return {
 			ok: false,

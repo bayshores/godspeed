@@ -34,9 +34,9 @@ import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
 import { emit } from "../core/events.ts";
 import { extraction } from "./chat-handler.ts";
-import { quiesceChatForRewrite } from "./chats.ts";
+import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
 import { fileToText, fingerprintFile, walkLinkedFolder } from "./class-files.ts";
-import { dropClassFile, indexClassFile, isFileIndexed } from "./search-index.ts";
+import { dropClassFile, forgetClassSearch, indexClassFile, isFileIndexed } from "./search-index.ts";
 import { discardChatDeliveries } from "./jobs.ts";
 import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./stores.ts";
 import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
@@ -173,6 +173,11 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 		if (Date.now() > deadline) return fail(503, "extraction_winding_down", "The class's file imports are still stopping. Try again in a moment.");
 		await new Promise((r) => setTimeout(r, 50));
 	}
+	// A turn may have started during the waits above; recheck with no await before the sync block.
+	for (const lesson of lessons) {
+		const busy = runningWorkBlocker(lesson.id);
+		if (busy) return fail(busy.status, busy.code, `${lesson.title}: ${busy.error}`);
+	}
 	cancelledClasses.add(id);
 	cancelTopicGrouping(id);
 	// THE SYNC BLOCK: lessons → class folder.
@@ -187,6 +192,7 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 	}
 	stores.classStore.deleteClass(id);
 	forgetGraphStore(id);
+	forgetClassSearch(id);
 	return { ok: true, value: { lessonsRemoved } };
 }
 
@@ -548,58 +554,66 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		patchFile(classId, fileId, { status: "failed", error: "The file could not be found" });
 		return;
 	}
-	const st = fs.statSync(abs);
-	const statSig = `${st.mtimeMs}:${st.size}`;
-	const fp = await fingerprintFile(abs);
-	const store = graphStoreFor(classId);
-
-	if (file.kind === "info") {
-		if (file.sourceId) deleteSourceTraces(store, file.sourceId);
-		patchFile(classId, fileId, { status: "ready", contentFp: fp, statSig, sourceId: undefined, error: undefined });
-		await indexForSearch(classId, file, abs, fp);
-		return;
-	}
-	if (file.contentFp === fp && file.status === "ready" && file.sourceId) {
-		if (file.statSig !== statSig) patchFile(classId, fileId, { statSig });
-		return; // touched, not changed
-	}
-	if (!extractionEnabled(effectiveSettings().graph)) {
-		patchFile(classId, fileId, { status: "pending", statSig, error: "The knowledge graph is turned off in Settings → Graph" });
-		await indexForSearch(classId, file, abs, fp);
-		return;
-	}
-
-	patchFile(classId, fileId, { status: "extracting", statSig, error: undefined });
-	let text: string;
+	// Saved on failure too, so the folder scan stops re-queuing an unreadable file until it changes.
+	let statSig: string | undefined;
 	try {
-		text = await fileText(classId, file, abs, fp);
-	} catch (err) {
-		if (err instanceof WhisperMissingError) {
-			patchFile(classId, fileId, { status: "needs-whisper", contentFp: fp, error: err.message });
-		} else {
-			patchFile(classId, fileId, { status: "failed", contentFp: fp, error: err instanceof Error ? err.message : String(err) });
-		}
-		return;
-	}
-	await indexForSearch(classId, file, abs, fp, text);
+		const st = fs.statSync(abs);
+		statSig = `${st.mtimeMs}:${st.size}`;
+		const fp = await fingerprintFile(abs);
+		const store = graphStoreFor(classId);
 
-	// REBUILD: the old version's facts go first — shared facts survive by the deletion law.
-	const sourceId = sourceIdFor(classId, fileId);
-	if (stores.classStore.getClass(classId) === null) return;
-	deleteSourceTraces(store, sourceId);
-	try {
-		await extraction.importNotes({ filePath: file.name, text, graphStore: store, sourceId });
-		patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
-	} catch (err) {
-		const message =
-			err instanceof NotesImportError
-					? `${err.outcome}: ${err.message}`
-					: err instanceof Error
-						? err.message
-						: String(err);
-		if (stores.classStore.getClass(classId)) {
-			patchFile(classId, fileId, { status: "failed", contentFp: fp, sourceId, error: message });
+		if (file.kind === "info") {
+			if (file.sourceId) deleteSourceTraces(store, file.sourceId);
+			patchFile(classId, fileId, { status: "ready", contentFp: fp, statSig, sourceId: undefined, error: undefined });
+			await indexForSearch(classId, file, abs, fp);
+			return;
 		}
+		if (file.contentFp === fp && file.status === "ready" && file.sourceId) {
+			if (file.statSig !== statSig) patchFile(classId, fileId, { statSig });
+			return; // touched, not changed
+		}
+		if (!extractionEnabled(effectiveSettings().graph)) {
+			patchFile(classId, fileId, { status: "pending", statSig, error: "The knowledge graph is turned off in Settings → Graph" });
+			await indexForSearch(classId, file, abs, fp);
+			return;
+		}
+
+		patchFile(classId, fileId, { status: "extracting", statSig, error: undefined });
+		let text: string;
+		try {
+			text = await fileText(classId, file, abs, fp);
+		} catch (err) {
+			if (err instanceof WhisperMissingError) {
+				patchFile(classId, fileId, { status: "needs-whisper", contentFp: fp, error: err.message });
+			} else {
+				patchFile(classId, fileId, { status: "failed", contentFp: fp, error: err instanceof Error ? err.message : String(err) });
+			}
+			return;
+		}
+		await indexForSearch(classId, file, abs, fp, text);
+
+		// REBUILD: the old version's facts go first — shared facts survive by the deletion law.
+		const sourceId = sourceIdFor(classId, fileId);
+		if (stores.classStore.getClass(classId) === null) return;
+		deleteSourceTraces(store, sourceId);
+		try {
+			await extraction.importNotes({ filePath: file.name, text, graphStore: store, sourceId });
+			patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
+		} catch (err) {
+			const message =
+				err instanceof NotesImportError
+						? `${err.outcome}: ${err.message}`
+						: err instanceof Error
+							? err.message
+							: String(err);
+			if (stores.classStore.getClass(classId)) {
+				patchFile(classId, fileId, { status: "failed", contentFp: fp, sourceId, error: message });
+			}
+		}
+	} catch (err) {
+		// An unreadable file (or a failed graph write) shows as failed with a Retry, not stuck in progress.
+		if (!stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId)) return;
+		patchFile(classId, fileId, { status: "failed", error: err instanceof Error ? err.message : String(err), ...(statSig ? { statSig } : {}) });
 	}
 }
 

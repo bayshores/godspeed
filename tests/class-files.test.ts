@@ -56,6 +56,22 @@ describe("fileToText and the folder walk", () => {
 	});
 });
 
+describe("walkLinkedFolder on an unreadable folder", () => {
+	// Root reads any folder, and Windows ignores the mode bits.
+	const skip = process.platform === "win32" || process.getuid?.() === 0;
+	it("throws instead of reporting it empty", { skip }, () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-class-files-locked-"));
+		try {
+			fs.writeFileSync(path.join(dir, "a.md"), "");
+			fs.chmodSync(dir, 0o000);
+			assert.throws(() => walkLinkedFolder(dir));
+		} finally {
+			fs.chmodSync(dir, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
 describe("findProgram", () => {
 	it("finds an executable on PATH and returns null when absent", () => {
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-bin-"));

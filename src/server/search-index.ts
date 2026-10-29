@@ -238,6 +238,13 @@ function rank(table: Table, queries: Float32Array[], keywordQuery: string, keywo
 
 const passagesFile = (classId: string) => path.join(searchDir(classId), "passages");
 
+/** Drop a deleted class's tables from memory: nothing reads them again.
+ *  Its locks stay, so an index run still in flight keeps its order. */
+export function forgetClassSearch(classId: string): void {
+	tables.delete(passagesFile(classId));
+	tables.delete(path.join(searchDir(classId), "facts"));
+}
+
 /** True when this version of the file is in the class's index. */
 export function isFileIndexed(classId: string, fileId: string, fp: string): boolean {
 	return readTable(passagesFile(classId)).files[fileId]?.fp === fp;

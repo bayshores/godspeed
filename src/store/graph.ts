@@ -69,6 +69,11 @@ function appendLine<T>(files: GraphFiles, file: string, record: T): void {
  *  them (frozen under tests so a mutation fails loudly). */
 const ledgerCache = new Map<string, { mtimeMs: number; size: number; lines: readonly unknown[] }>();
 
+/** Drop a deleted graph's parsed ledgers: nothing reads them again. */
+export function forgetLedgers(files: GraphFiles): void {
+	for (const file of Object.values(files)) ledgerCache.delete(file);
+}
+
 function deepFreeze<T>(value: T): T {
 	if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
 		Object.freeze(value);

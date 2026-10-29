@@ -8,7 +8,7 @@
 
 import { chatStore } from "../store/chats.ts";
 import { classStore } from "../store/classes.ts";
-import { createGraphStore, graphStore } from "../store/graph.ts";
+import { createGraphStore, forgetLedgers, graphStore } from "../store/graph.ts";
 import { PATHS, graphFilesIn } from "../config.ts";
 import type { GraphStore } from "../core/ports.ts";
 import type { ClassScope } from "../core/contracts.ts";
@@ -61,9 +61,10 @@ export function graphStoreForChat(chatId: string): GraphStore {
 	return graphStoreFor(chatStore.getChat(chatId)?.classId ?? null);
 }
 
-/** Drop a deleted class's cached adapter. */
+/** Drop a deleted class's cached adapter and parsed ledgers. */
 export function forgetGraphStore(classId: string): void {
 	classGraphStores.delete(classId);
+	forgetLedgers(graphFilesIn(graphDirFor(classId)));
 }
 
 /** Every graph scope that exists: "No class" first, then each class
