@@ -49,7 +49,7 @@ export const OverviewBody = memo(function OverviewBody({
 	return (
 		<div data-testid="class-overview" className="@container flex w-full flex-col pb-8">
 			{classId ? (
-				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} />
+				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} nowMs={nowMs} />
 			) : (
 				<header className="flex flex-col gap-2 px-[52px] py-6">
 					<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">

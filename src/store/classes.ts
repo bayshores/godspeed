@@ -208,7 +208,10 @@ function updateClass(id: string, patch: ClassPatch): ClassRecord {
 		else record.signature = patch.signature;
 	}
 	if (patch.note !== undefined) record.note = patch.note;
-	record.updatedAt = new Date().toISOString();
+	// A new note alone doesn't count as an edit: the class list is ordered
+	// by updatedAt and shouldn't reshuffle after every lesson.
+	const edited = Object.entries(patch).some(([k, v]) => k !== "note" && v !== undefined);
+	if (edited) record.updatedAt = new Date().toISOString();
 	writeClass(record);
 	emit("classes-changed", {});
 	return record;

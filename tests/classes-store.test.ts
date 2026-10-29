@@ -258,7 +258,8 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 	it("keeps a signature and a note; null clears the signature; a bad one on disk reads as none", () => {
 		const cls = classStore.createClass({ name: "CSE 29", signature: { kind: "code", value: "int *p = &x;" } });
 		assert.deepEqual(cls.signature, { kind: "code", value: "int *p = &x;" });
-		classStore.updateClass(cls.id, { note: { text: "Pointers are clicking.", at: "2026-10-28T10:00:00.000Z" } });
+		const noted = classStore.updateClass(cls.id, { note: { text: "Pointers are clicking.", at: "2026-10-28T10:00:00.000Z" } });
+		assert.equal(noted.updatedAt, cls.updatedAt, "a new note alone doesn't reorder the class list");
 		const read = classStore.getClass(cls.id);
 		assert.deepEqual(read?.note, { text: "Pointers are clicking.", at: "2026-10-28T10:00:00.000Z" });
 		const listed = classStore.listClasses().find((c) => c.id === cls.id);

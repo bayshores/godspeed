@@ -127,20 +127,27 @@ describe("Overview header", () => {
 		assert.ok(html.includes('data-halley-target="class:cls_ml"'));
 		assert.match(section(html, "class-cover-progress", "</div></header>"), /width:40%.*>40% studied</);
 		assert.ok(!render().includes("class-cover-progress"), "no facts yet, no line");
-		assert.ok(!html.includes("class-cover-signature"), "no signature, no background line");
+		assert.ok(!html.includes("class-signature-ink"), "no signature, no background line");
 		assert.ok(!html.includes("class-cover-note"), "no note, no box");
 	});
 
 	it("the signature is set behind the name in its own type and inks in as far as studied", () => {
 		const math = render({ classId: "cls_ml", signature: { kind: "math", value: "\\nabla f(x) = 0" } });
-		assert.match(section(math, "class-cover-signature"), /class="katex"/);
-		const code = render({ classId: "cls_ml", signature: { kind: "code", value: "int *p = &x;" } });
-		const sig = section(code, "class-cover-signature", "</header>");
+		assert.match(section(math, "class-signature-ink"), /class="katex"/);
+		assert.ok(!section(math, "class-signature-ink", "</header>").includes("lh-ink"), "nothing studied, no ink");
+		const code = renderRunway(DEADLINES, { signature: { kind: "code", value: "int *p = &x;" } });
+		const sig = section(code, "class-signature-ink", "</header>");
 		assert.match(sig, /font-mono/);
 		assert.match(sig, /aria-hidden="true"/);
-		assert.match(sig, /clip-path:inset\(0 \d+(\.\d+)?% 0 0\)/);
+		assert.match(sig, /class="lh-ink[^"]*" style="--ink:40%"/);
 		const text = render({ classId: "cls_ml", signature: { kind: "text", value: "We the People" } });
-		assert.match(section(text, "class-cover-signature"), /italic/);
+		assert.match(section(text, "class-signature-ink"), /italic/);
+	});
+
+	it("the cover shows the description's first sentence only", () => {
+		const html = render({ description: "UCSD CSE 21, taught by Miles Jones. Discrete math: counting.\nTextbook: Rosen." });
+		assert.ok(html.includes(">UCSD CSE 21, taught by Miles Jones.</p>"));
+		assert.ok(!html.includes("Discrete math"));
 	});
 
 	it("Halley's note sits on the cover", () => {
@@ -148,6 +155,8 @@ describe("Overview header", () => {
 		const note = section(html, "class-cover-note", "</p>");
 		assert.ok(note.includes("halley-face"));
 		assert.ok(note.includes("Gradient steps are clicking. Momentum is next."));
+		assert.match(section(html, "class-cover-note", "</div></div>"), /Halley · after /);
+		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Halley · /, "no clock yet, no when");
 	});
 
 	it("loading: no progress line yet", () => {

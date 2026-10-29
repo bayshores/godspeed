@@ -2,12 +2,16 @@ import { memo } from "react";
 import { PlusIcon } from "lucide-react";
 import type { ClassSummary, ProgressPayload } from "@/core";
 import { nextDueText, type OpenDeadline } from "@/components/deadlines-model";
+import { InkedSignature } from "@/components/overview/class-cover";
+import { studiedShare } from "@/components/overview/class-cover-model";
 import { studiedFacts } from "@/components/overview/runway-model";
 import { CARD } from "@/components/overview/styles";
+import { cn } from "@/lib/utils";
 
 /**
  * A CLASS BLOCK (Home's right column):
- * the class name and the first line of its description, the facts studied
+ * the class name and the first line of its description (its signature
+ * small and dim behind them, inked like the cover), the facts studied
  * with a bar, the next deadline, then Continue (the latest lesson; "New
  * lesson" when there is none) and Open class.
  */
@@ -20,7 +24,7 @@ export const ClassBlock = memo(function ClassBlock({
 	onNewLesson,
 	onOpenClass,
 }: {
-	cls: Pick<ClassSummary, "id" | "name" | "description">;
+	cls: Pick<ClassSummary, "id" | "name" | "description" | "signature">;
 	progress: Pick<ProgressPayload, "facts" | "lessons">;
 	/** The class's soonest open deadline. */
 	nextDue: OpenDeadline | null;
@@ -33,8 +37,15 @@ export const ClassBlock = memo(function ClassBlock({
 	const facts = studiedFacts(progress.facts);
 	const latest = progress.lessons[0] ?? null;
 	return (
-		<section data-testid={`class-block-${cls.id}`} className={CARD}>
-			<div className="flex w-full min-w-0 flex-col gap-1">
+		<section data-testid={`class-block-${cls.id}`} className={cn(CARD, "relative overflow-hidden")}>
+			{cls.signature && (
+				<InkedSignature
+					signature={cls.signature}
+					share={studiedShare(facts)}
+					className={cn("absolute top-3 right-4", cls.signature.kind === "math" ? "text-[30px]" : "text-[44px]")}
+				/>
+			)}
+			<div className="relative flex w-full min-w-0 flex-col gap-1">
 				<h2 className="truncate font-title text-[22px] leading-7 font-bold text-ink">{cls.name}</h2>
 				{firstLine && <p className="truncate text-[13.5px] leading-5 text-ink-2">{firstLine}</p>}
 			</div>
