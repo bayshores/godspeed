@@ -1,5 +1,20 @@
 [
 	{
+		"version": "0.5.2",
+		"date": "2026-10-29",
+		"changes": [
+			"Each class gets a signature, a line of math, code or text that shows big behind the class name and inks in as you study, with a progress line under it.",
+			"Halley leaves a note from your teacher on each class's cover.",
+			"Settings has a new Teaching section with six areas. Each one has its switches, your own rules, and the full instructions if you want to rewrite them.",
+			"You can give a class its own rules in Edit class.",
+			"Appearance works now. Pick a background or your own color, any font on your computer, text size, heading weight and one color for bold and italic, with a live preview.",
+			"The dark and light mode switch is gone. A light background makes the whole app light.",
+			"godspeed warns you when a linked folder is missing or has more than 500 files, and linking it again keeps the facts you already have.",
+			"Files from a linked folder show a folder mark, with Show in Finder to open them.",
+			"Sounds for the startup screen, onboarding and right or wrong answers, with one Sounds switch in Settings."
+		]
+	},
+	{
 		"version": "0.5.1",
 		"date": "2026-10-28",
 		"changes": [
