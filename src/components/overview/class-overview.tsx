@@ -25,7 +25,7 @@ import { OverviewBody } from "./overview-body";
  */
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
-	const { data } = useProgress();
+	const { data, error } = useProgress();
 	const [editing, setEditing] = useState(false);
 	const lesson = useLessonStart();
 	const practice = usePracticeStart();
@@ -88,6 +88,7 @@ export function ClassOverview() {
 					onLearn={learn}
 					onAddSignature={() => setEditing(true)}
 				/>
+				{!current && error && <p className="px-[52px] text-sm text-ink-3">{error}</p>}
 			</div>
 			<ClassDialog mode={editMode} onClose={() => setEditing(false)} />
 		</div>

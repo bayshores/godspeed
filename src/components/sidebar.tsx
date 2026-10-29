@@ -143,13 +143,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const toggle = useCallback(() => {
-		// Opening while narrow (auto-closed, or the user's own closed-at-
-		// narrow): ask the shell to widen to the threshold — the resize
-		// listener flips `narrow` and the sidebar appears. The preference
-		// persists like any other open, so a restart at a narrow width
-		// still auto-restores when widened.
-		if (narrow && !open) {
-			localStorage.setItem(STORAGE_KEY, "0");
+		// While narrow the sidebar always shows as closed, so a toggle means
+		// open: save the preference and ask the shell to widen the window.
+		// The resize listener then flips `narrow` and the sidebar appears.
+		if (narrow) {
+			localStorage.setItem(STORAGE_KEY, "1");
 			setOpen(true);
 			window.lh?.expandWindow();
 			return;
@@ -158,7 +156,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 			localStorage.setItem(STORAGE_KEY, v ? "0" : "1");
 			return !v;
 		});
-	}, [narrow, open]);
+	}, [narrow]);
 
 	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
 	// and the context answers on exactly that name — one shared spelling,

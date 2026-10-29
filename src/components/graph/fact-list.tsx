@@ -10,10 +10,11 @@ import { memo, useCallback, useRef, useState, type MouseEvent } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import type { FactProgress } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { DeleteNodeDialog } from "@/components/delete-node-dialog";
 import { InlineMath } from "@/components/overview/inline-math";
 import { factMark, PANEL_ANSWER_COLOR } from "./derive.ts";
-import { MENU_CLASS, MENU_ITEM_CLASS, useMenuDismiss } from "./menu.tsx";
+import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 const FACTS_SHOWN = 4;
 

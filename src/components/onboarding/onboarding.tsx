@@ -229,20 +229,24 @@ interface Access {
 function AgentStep({ connected, name, onNext }: { connected: boolean; name?: string; onNext: () => void }) {
 	const [tab, setTab] = useState<AgentTab>("claude");
 	const [access, setAccess] = useState<Access | null>(null);
+	const [error, setError] = useState<string | null>(null);
 	const play = useSound();
 	useEffect(() => {
 		if (connected) play("connected");
 	}, [connected, play]);
 	useEffect(() => {
 		fetch("/api/mcp-access", { cache: "no-store" })
-			.then((r) => (r.ok ? (r.json() as Promise<Access>) : null))
-			.then((body) => body && setAccess({ token: body.token, url: body.url }))
-			.catch(() => {});
+			.then((r) => {
+				if (!r.ok) throw new Error("Agent access settings are unavailable.");
+				return r.json() as Promise<Access>;
+			})
+			.then(
+				(body) => setAccess({ token: body.token, url: body.url }),
+				(e: Error) => setError(e.message),
+			);
 	}, []);
 	useReturn(connected ? onNext : null);
 
-	const token = access?.token ?? "";
-	const url = access?.url ?? "";
 	let block: React.ReactNode;
 	if (tab === "claude") {
 		block = (
@@ -261,7 +265,15 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 				<Numbered n={1}>
 					Add this to <span className="font-mono text-[13.5px]">~/.codex/config.toml</span>:
 				</Numbered>
-				<CodeBlock label="config.toml" lines={codexConfig(url, maskToken(token)).split("\n")} copy={codexConfig(url, token)} />
+				{access ? (
+					<CodeBlock
+						label="config.toml"
+						lines={codexConfig(access.url, maskToken(access.token)).split("\n")}
+						copy={codexConfig(access.url, access.token)}
+					/>
+				) : (
+					<p className="text-xs text-ink-3">{error ?? "Loading…"}</p>
+				)}
 				<Numbered n={2}>
 					Then ask Codex to teach you with the godspeed tools. Set Codex&apos;s approvals to Full Access first, so it never stops to ask your
 					permission.
@@ -272,11 +284,15 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 		block = (
 			<>
 				<Numbered n={1}>Add a Streamable HTTP MCP server with this address and header:</Numbered>
-				<CodeBlock
-					label="MCP server"
-					lines={[url, `Authorization: Bearer ${maskToken(token)}`]}
-					copy={`${url}\nAuthorization: Bearer ${token}`}
-				/>
+				{access ? (
+					<CodeBlock
+						label="MCP server"
+						lines={[access.url, `Authorization: Bearer ${maskToken(access.token)}`]}
+						copy={`${access.url}\nAuthorization: Bearer ${access.token}`}
+					/>
+				) : (
+					<p className="text-xs text-ink-3">{error ?? "Loading…"}</p>
+				)}
 				<Numbered n={2}>
 					Then ask it to teach you with the godspeed tools. Let your agent use the godspeed tools without asking your permission.
 				</Numbered>

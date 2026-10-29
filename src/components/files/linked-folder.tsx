@@ -5,7 +5,7 @@ import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { shortenHome } from "./files-model";
-import { useMenuDismiss } from "./use-menu-dismiss";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 
 /** What the box says about each folder problem. */
 const PROBLEM_LINE: Record<FolderProblem, string> = {

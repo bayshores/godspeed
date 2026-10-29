@@ -9,9 +9,10 @@ import { memo, useCallback, useRef, useState } from "react";
 import { CalendarIcon, ChevronDownIcon, DumbbellIcon } from "lucide-react";
 import type { DeadlineProgress, ProgressPayload, StatusCounts, TopicProgress, WorkOnNextItem } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { Tip } from "@/components/ui/tooltip";
 import { countdownText, deadlineDateText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
-import { MENU_CLASS, MENU_ITEM_CLASS, useMenuDismiss } from "./menu.tsx";
+import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 /** "Work on next" shows this many (the design's "Practice these 4"). */
 const WORK_ON_NEXT_LIMIT = 4;

@@ -4,7 +4,7 @@ import type { ClassFile, FileCoverage } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useMenuDismiss } from "./use-menu-dismiss";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { canRemove, canRetry, FILE_DRAG_TYPE, fileAnchorId, fileState, kindTitle, studiedFill, type FileState } from "./files-model";
 
 /**

@@ -39,6 +39,12 @@ const FLASH_MS = 1600;
  */
 export function FilesPage() {
 	const { active } = useClasses();
+	// Keyed by class, so a class switch starts clean.
+	return <FilesPageBody key={active ?? "none"} />;
+}
+
+function FilesPageBody() {
+	const { active } = useClasses();
 	const { record, folderProblem } = useClassRecord(active);
 	const { data } = useProgress();
 	const [error, setError] = useState<string | null>(null);
