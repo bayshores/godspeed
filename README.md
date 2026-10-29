@@ -64,7 +64,7 @@ Each link downloads the newest version directly.
 
 The app checks for updates once a day and installs them when you quit. **Settings → General → Check for updates** checks right away.
 
-The first launch walks you through connecting your agent (below). You can find the same steps later under **Settings → Outside agents**.
+The first launch walks you through connecting your agent (below). You can find the same steps later under **Settings → Connection**.
 
 To build it yourself instead: `npm install`, then `npm run desktop:local` (an unsigned Mac app in `dist/`) or `npm run dev` (http://localhost:3000).
 
@@ -74,8 +74,8 @@ While godspeed is open it runs an MCP server, and an agent you already use is it
 
 1. Connect your agent:
    - **Claude Code:** `/plugin marketplace add bayshores/godspeed`, then `/plugin install godspeed@godspeed`, then `/godspeed:teach` (add a topic to start a new lesson). `/godspeed:setup-classes` builds your classes from your course files.
-   - **Codex:** paste the config snippet from **Settings → Outside agents** into `~/.codex/config.toml`.
-   - **Other MCP apps:** use the address and token shown under **Settings → Outside agents** (Streamable HTTP, `Authorization: Bearer <token>`).
+   - **Codex:** paste the config snippet from **Settings → Connection** into `~/.codex/config.toml`.
+   - **Other MCP apps:** use the address and token shown under **Settings → Connection** (Streamable HTTP, `Authorization: Bearer <token>`).
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
 While you think, the Claude Code plugin waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph, import notes, and manage classes and exams. Only programs on your computer that hold the token can connect.

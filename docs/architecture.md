@@ -431,7 +431,7 @@ The Electron main is a launcher + security guard, never a host for teaching or i
 
 ### 8.1 Outside-agent boundary
 
-The outside agent is the only model (owner, 2026-10-27). The server makes the access token `data/mcp-token` (mode 0600) on the first page load (`src/app/layout.tsx`) and again whenever it is missing, so access is always on. `/api/mcp` accepts only local, non-browser requests that carry the token (`src/server/mcp.ts` `refuse`). The Electron app writes `data/mcp-endpoint.json` so the Claude Code plugin can find the address; the plugin reads the token file itself. Settings → Outside agents shows the connection status, shows and rotates the token, and gives setup for Claude Code, Codex and other MCP apps. No credentials for model providers exist anywhere in the app.
+The outside agent is the only model (owner, 2026-10-27). The server makes the access token `data/mcp-token` (mode 0600) on the first page load (`src/app/layout.tsx`) and again whenever it is missing, so access is always on. `/api/mcp` accepts only local, non-browser requests that carry the token (`src/server/mcp.ts` `refuse`). The Electron app writes `data/mcp-endpoint.json` so the Claude Code plugin can find the address; the plugin reads the token file itself. Settings → Connection shows the connection status, shows and rotates the token, and gives setup for Claude Code, Codex and other MCP apps. No credentials for model providers exist anywhere in the app.
 
 ## 9. The foundational invariants — what ALWAYS holds
 

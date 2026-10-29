@@ -43,7 +43,7 @@ Secrets and machine-specific paths only. There are no model settings: the outsid
 |---|---|
 | `CHROME_PATH` | optional system Chrome fallback for demo verification; the app's own browser helper is primary (nothing is downloaded) |
 
-There are no API keys and no sign-ins: the only model is an outside agent connected over MCP (Settings → Outside agents). The server makes the access token `data/mcp-token` on the first page load. PDFs render natively with pdfjs/Skia; SVGs use resvg.
+There are no API keys and no sign-ins: the only model is an outside agent connected over MCP (Settings → Connection). The server makes the access token `data/mcp-token` on the first page load. PDFs render natively with pdfjs/Skia; SVGs use resvg.
 
 ## Architecture
 

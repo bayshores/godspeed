@@ -162,7 +162,7 @@ function freePort() {
 
 /** Outside agents (MCP) connect to the server directly, so a stable port keeps
  *  their saved setup working across launches. Taken → any free port; the real
- *  address is always in <data>/mcp-endpoint.json and Settings → Outside agents. */
+ *  address is always in <data>/mcp-endpoint.json and Settings → Connection. */
 const PREFERRED_PORT = 47613;
 function preferredPort() {
 	return new Promise((resolve) => {
