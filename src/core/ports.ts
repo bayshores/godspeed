@@ -175,6 +175,8 @@ export interface ClassStore {
 	createClass(init: { name: string; description?: string; signature?: ClassSignature }): ClassRecord;
 	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
 	getClass(id: string): ClassRecord | null;
+	/** Every class's full record (archived included), most recently updated first. */
+	listClassRecords(): ClassRecord[];
 	/** Every class (archived included), most recently updated first. */
 	listClasses(): ClassSummary[];
 	/** Merge a patch; bumps updatedAt. Throws on unknown id. */
@@ -223,6 +225,8 @@ export interface JobStore {
 	getJob(id: string): JobRecord | null;
 	/** Merge a patch into the record; null if unknown id. */
 	updateJob(id: string, patch: JobPatch): JobRecord | null;
+	/** Every job across all chats, newest activity first. */
+	listAllJobs(): JobRecord[];
 	/** All jobs for a chat, newest activity first. */
 	listJobs(chatId: string): JobRecord[];
 	/** The job fulfilling a given tool part, if any (spawn-hook dedup). */

@@ -236,11 +236,10 @@ type OpenDeadline = ClassDeadline & { classId: string; className: string };
  *  soonest due first (Home and the sidebar's Due soon). */
 export function listOpenDeadlines(): OpenDeadline[] {
 	const out: OpenDeadline[] = [];
-	for (const summary of stores.classStore.listClasses()) {
-		if (summary.archived) continue;
-		const record = stores.classStore.getClass(summary.id);
-		for (const d of record?.deadlines ?? []) {
-			if (!d.done) out.push({ ...d, classId: summary.id, className: summary.name });
+	for (const record of stores.classStore.listClassRecords()) {
+		if (record.archived) continue;
+		for (const d of record.deadlines ?? []) {
+			if (!d.done) out.push({ ...d, classId: record.id, className: record.name });
 		}
 	}
 	return out.sort((a, b) => compareDeadlines(a, b) || a.className.localeCompare(b.className));
@@ -657,10 +656,8 @@ async function indexUnindexedFiles(): Promise<void> {
 /** Re-check every class: linked folders rescanned, never-processed files
  *  queued (app start). */
 function scanAllClasses(): void {
-	for (const summary of stores.classStore.listClasses()) {
-		if (summary.archived) continue;
-		const record = stores.classStore.getClass(summary.id);
-		if (!record) continue;
+	for (const record of stores.classStore.listClassRecords()) {
+		if (record.archived) continue;
 		for (const file of record.files) {
 			if (file.status === "pending" || file.status === "extracting") enqueueFile(record.id, file.id);
 		}

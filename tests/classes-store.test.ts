@@ -62,6 +62,14 @@ describe("ClassStore", () => {
 		assert.equal(classStore.updateClass(cls.id, { linkedFolder: null }).linkedFolder, undefined);
 	});
 
+	it("listClassRecords gives the full records in listClasses order", () => {
+		const cls = classStore.createClass({ name: "CSE 12" });
+		classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: "2026-11-05" });
+		const records = classStore.listClassRecords();
+		assert.deepEqual(records.map((r) => r.id), classStore.listClasses().map((c) => c.id));
+		assert.equal(records.find((r) => r.id === cls.id)?.deadlines?.[0]?.name, "Midterm");
+	});
+
 	it("class rules are cleaned on save, and an empty list removes them", () => {
 		const cls = classStore.createClass({ name: "CSE 30" });
 		assert.equal("rules" in cls, false, "no rules, no field");

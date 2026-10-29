@@ -176,7 +176,7 @@ function createClass(init: { name: string; description?: string; signature?: Cla
 	return { ...record, version: CURRENT_CLASS_VERSION };
 }
 
-function listClasses(): ClassSummary[] {
+function listClassRecords(): ClassRecord[] {
 	let entries: string[];
 	try {
 		entries = fs.readdirSync(PATHS.classes);
@@ -187,8 +187,11 @@ function listClasses(): ClassSummary[] {
 		.filter((name) => isClassId(name))
 		.map((name) => getClass(name))
 		.filter((r): r is ClassRecord => r !== null)
-		.map(summarize)
 		.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+function listClasses(): ClassSummary[] {
+	return listClassRecords().map(summarize);
 }
 
 function updateClass(id: string, patch: ClassPatch): ClassRecord {
@@ -328,6 +331,7 @@ function deleteClass(id: string): boolean {
 export const classStore: ClassStore = {
 	createClass,
 	getClass,
+	listClassRecords,
 	listClasses,
 	updateClass,
 	saveFiles,

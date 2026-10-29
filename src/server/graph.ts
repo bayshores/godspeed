@@ -50,9 +50,8 @@ export function graphCosts(scope: ClassScope = null): GraphCostSummary {
  * across every graph data file (the ledgers). Moves on ANY graph write
  * (merge append or a deletion's atomic rewrite),
  * never moves on reads, and needs no bookkeeping of its own: the fs
- * IS the counter. Consumers poll it (the activity feed
- *  carries it; the DELETE response returns it) to know the graph
- *  must refetch — the "graph changed underneath me" signal. */
+ * IS the counter. The DELETE responses return it so the graph
+ *  knows to refetch — the "graph changed underneath me" signal. */
 export function graphRevision(scope: ClassScope = null): number {
 	let revision = 0;
 	const files = graphFilesIn(graphDirFor(scope));

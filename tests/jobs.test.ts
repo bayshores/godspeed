@@ -265,6 +265,9 @@ describe("job store", () => {
 		const listed = jobStore.listJobs("chat_storetest");
 		assert.ok(listed.some((j) => j.id === job.id));
 		assert.equal(jobStore.listJobs("chat_other").some((j) => j.id === job.id), false, "jobs are scoped to their chat");
+		const all = jobStore.listAllJobs();
+		assert.ok(all.some((j) => j.id === job.id), "listAllJobs spans every chat");
+		assert.deepEqual(all.filter((j) => j.chatId === "chat_storetest"), listed, "listJobs is listAllJobs for one chat");
 
 		const byTool = jobStore.findJobByToolCallId("chat_storetest", "call-store");
 		assert.equal(byTool?.id, job.id);

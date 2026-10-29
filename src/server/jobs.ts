@@ -689,21 +689,22 @@ export function recoverStaleJobs(): void {
 	if (now - s.lastSweepAt < SWEEP_THROTTLE_MS) return;
 	s.lastSweepAt = now;
 	try {
-		for (const chat of stores.chatStore.listChats()) {
-			for (const job of stores.jobStore.listJobs(chat.id)) {
-				if (isJobLive(job.id)) continue; // never re-run beside live computation
-				if (!stores.chatStore.getChat(job.chatId)) continue;
-				if (isTurnRunning(job.chatId)) continue;
-				const recovered = normalizeLegacyResult(job);
-				if (recovered.delivery?.status === "pending") {
-					restorePendingDeliveries(job.chatId);
-					void pump(job.chatId);
-				} else if (job.status === "running" && !job.result) {
-					// The sub-agent loop itself died with the process: re-spawn.
-					if (!s.respawn) continue;
-					stores.jobStore.updateJob(job.id, { activity: "recovering: re-running" });
-					s.respawn(job.id);
-				}
+		const chatIds = new Set(stores.chatStore.listChats().map((chat) => chat.id));
+		for (const job of stores.jobStore.listAllJobs()) {
+			// Only running jobs and pending deliveries can need recovery.
+			if (job.status !== "running" && job.delivery?.status !== "pending") continue;
+			if (!chatIds.has(job.chatId)) continue;
+			if (isJobLive(job.id)) continue; // never re-run beside live computation
+			if (isTurnRunning(job.chatId)) continue;
+			const recovered = normalizeLegacyResult(job);
+			if (recovered.delivery?.status === "pending") {
+				restorePendingDeliveries(job.chatId);
+				void pump(job.chatId);
+			} else if (job.status === "running" && !job.result) {
+				// The sub-agent loop itself died with the process: re-spawn.
+				if (!s.respawn) continue;
+				stores.jobStore.updateJob(job.id, { activity: "recovering: re-running" });
+				s.respawn(job.id);
 			}
 		}
 	} catch (err) {
@@ -715,4 +716,10 @@ export function recoverStaleJobs(): void {
 export function listJobs(chatId: string): JobRecord[] {
 	if (process.env.NODE_ENV !== "test") recoverStaleJobs();
 	return stores.jobStore.listJobs(chatId);
+}
+
+/** The activity feed's entry: every job in one read (+ lazy recovery). */
+export function listAllJobs(): JobRecord[] {
+	if (process.env.NODE_ENV !== "test") recoverStaleJobs();
+	return stores.jobStore.listAllJobs();
 }

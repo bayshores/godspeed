@@ -7,8 +7,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	// The record's messages are native agent history, served verbatim; the
 	// client derives its view (core/view.ts projectView). turnInFlight lets a
 	// returning client re-attach to a running turn (src/server/turn-liveness.ts).
-	// coverage feeds the sidebar menu's coverage block; getChat already
-	// 404'd, so it exists.
+	// coverage feeds the sidebar menu's coverage block.
 	return Response.json({
 		...chat,
 		messages: chat.messages,
@@ -17,7 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 		// Also reaches idle views that missed the failing turn's stream.
 		turnError: turnFailure(id),
 		compacting: compactionInFlight(id),
-		coverage: sessionCoverage(id),
+		coverage: sessionCoverage(chat),
 	});
 }
 

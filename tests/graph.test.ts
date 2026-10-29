@@ -949,7 +949,7 @@ describe("session coverage read (extraction-UX redesign, 2026-09-24)", () => {
 			teacher("cov_t2", "and about per-session blocks"),
 			teacher("cov_t3", "a third distinct message"),
 		].flat());
-		const empty = sessionCoverage(chat.id)!;
+		const empty = sessionCoverage(chatStore.getChat(chat.id)!);
 		assert.ok(empty);
 		assert.equal(empty.totalMessages, 3);
 		assert.equal(empty.coveredCount, 0);
@@ -967,7 +967,7 @@ describe("session coverage read (extraction-UX redesign, 2026-09-24)", () => {
 		// Another session's row must not leak into this read.
 		graphStore.appendCoverage({ chatId: "chat_other", fp: slots[2]!.fp, tokens: slots[2]!.tokens, foldedAt: "2026-09-24T23:00:00.000Z" });
 
-		const cov = sessionCoverage(chat.id)!;
+		const cov = sessionCoverage(chatStore.getChat(chat.id)!);
 		assert.equal(cov.totalMessages, 3);
 		assert.equal(cov.coveredCount, 2);
 		assert.equal(cov.uncoveredCount, 1);
@@ -990,7 +990,7 @@ describe("session coverage read (extraction-UX redesign, 2026-09-24)", () => {
 				inFlight: new Set(),
 				lastStartedAt: 0,
 			};
-			assert.equal(sessionCoverage(chat.id)!.running, false, "no chat-kind run for this id");
+			assert.equal(sessionCoverage(chatStore.getChat(chat.id)!).running, false, "no chat-kind run for this id");
 			g.__lhExtractionRuns = {
 				running: new Map([
 					[chat.id, { chatId: chat.id, kind: "chat", phase: "extracting", startedAt: 3, usage: {}, controller: new AbortController() }],
@@ -998,14 +998,10 @@ describe("session coverage read (extraction-UX redesign, 2026-09-24)", () => {
 				inFlight: new Set(),
 				lastStartedAt: 0,
 			};
-			assert.equal(sessionCoverage(chat.id)!.running, true);
+			assert.equal(sessionCoverage(chatStore.getChat(chat.id)!).running, true);
 		} finally {
 			g.__lhExtractionRuns = realRuns;
 		}
-	});
-
-	it("unknown chat → null (the caller owns the 404)", () => {
-		assert.equal(sessionCoverage("chat_never_was"), null);
 	});
 });
 

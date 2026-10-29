@@ -21,9 +21,8 @@
 
 import { extractionStatuses, type ExtractionPhase } from "../agent/subagents/extraction.ts";
 import { chatStore } from "../store/chats.ts";
-import { graphRevision } from "./graph.ts";
 import { agentModel } from "../agent/agent-bridge.ts";
-import { listJobs } from "./jobs.ts";
+import { listAllJobs } from "./jobs.ts";
 import { jobCost } from "./pricing.ts";
 import type { JobRecord } from "../core/contracts.ts";
 
@@ -74,15 +73,11 @@ const FAILED_JOB_WINDOW_MS = 10 * 60_000;
 /** The dock's whole world in one payload: every running process, every view.
  *  Jobs are RUNNING-ONLY — finished jobs belong to their chat's transcript;
  *  the blob disappears when the process ends. Costs are joined here through
- *  the server-side Pi pricing adapter; clients never reconstruct rates.
- *  graphRevision (max mtime across the graph data files — see
- *  server/graph.ts) lets any view detect "the graph changed underneath me"
- *  and refetch. Reads never move it. */
+ *  the server-side Pi pricing adapter; clients never reconstruct rates. */
 export function activityFeed(now = Date.now()): {
 	jobs: ActivityJob[];
 	extractions: ActivityExtraction[];
 	failed: ActivityFailedJob[];
-	graphRevision: number;
 } {
 	const chats = chatStore.listChats();
 	// Every job runs on the outside agent: one context window.
@@ -90,8 +85,15 @@ export function activityFeed(now = Date.now()): {
 	const agentModelId = `${agentModel().provider}:${agentModel().id}`;
 	const jobs: ActivityJob[] = [];
 	const failed: ActivityFailedJob[] = [];
+	// One read of every job, grouped by lesson; jobs of unlisted lessons stay out.
+	const jobsByChat = new Map<string, JobRecord[]>();
+	for (const job of listAllJobs()) {
+		const group = jobsByChat.get(job.chatId);
+		if (group) group.push(job);
+		else jobsByChat.set(job.chatId, [job]);
+	}
 	for (const chat of chats) {
-		for (const job of listJobs(chat.id)) {
+		for (const job of jobsByChat.get(chat.id) ?? []) {
 			if (job.status === "error" && now - Date.parse(job.updatedAt) < FAILED_JOB_WINDOW_MS) {
 				failed.push({ id: job.id, kind: job.kind, chatId: job.chatId, title: chat.title ?? chat.id, error: job.error?.trim() || "Something went wrong", at: job.updatedAt });
 			}
@@ -124,6 +126,5 @@ export function activityFeed(now = Date.now()): {
 		jobs,
 		extractions: extractions.sort((a, b) => a.startedAt - b.startedAt),
 		failed: failed.sort((a, b) => b.at.localeCompare(a.at)),
-		graphRevision: graphRevision(),
 	};
 }
