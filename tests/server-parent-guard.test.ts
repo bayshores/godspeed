@@ -1,4 +1,4 @@
-/** The backend exits when the app's main process goes away, using plain Node children. */
+/** The backend exits when the app's main process goes away or soon after SIGTERM, using plain Node children. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -18,6 +18,20 @@ describe("server parent guard", () => {
 		const [code, signal] = await once(child, "exit");
 		assert.equal(code, 0);
 		assert.equal(signal, null);
+	});
+
+	it("exits within about 2 s of SIGTERM while a shutdown handler still waits", { timeout: 10_000 }, async () => {
+		// The empty handler stands in for Next waiting on an open long-poll.
+		const child = spawn(process.execPath, ["--require", guard, "-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000); process.send('up');"], {
+			stdio: ["ignore", "ignore", "ignore", "ipc"],
+		});
+		await once(child, "message");
+		const sent = Date.now();
+		child.kill("SIGTERM");
+		const [code] = await once(child, "exit");
+		const waited = Date.now() - sent;
+		assert.equal(code, 143);
+		assert.ok(waited >= 1_900 && waited < 4_000, `exited after ${waited} ms`);
 	});
 
 	it("does nothing in a process without an IPC channel", async () => {

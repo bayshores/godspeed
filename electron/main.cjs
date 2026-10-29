@@ -24,6 +24,7 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("electron");
 const { desktopAPIHeaders, trustedSender } = require("./desktop-api.cjs");
 const { bugReportURL } = require("./bug-report.cjs");
+const { recordRestart } = require("./server-restarts.cjs");
 const { randomBytes } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
@@ -150,6 +151,10 @@ const trustedAppWindows = new Set();
 // Packaged launch: resolves when the server first answers (null in dev).
 let serverUp = null;
 let serverReady = false;
+// Set once the app ends the server itself, so that exit is not a crash.
+let stoppingServer = false;
+// When the server was restarted after crashes (see server-restarts.cjs).
+let restartTimes = [];
 
 // A GUI shell must never die to a stray exception (EPIPE dialogs, a race
 // in an event handler): the window + child server are the product, and
@@ -267,7 +272,9 @@ function startServer(port) {
 		child.stderr.on("data", fwd);
 		child.on("exit", (code, signal) => {
 			log(`server exited (code=${code} signal=${signal})`);
-			serverProcess = null;
+			if (serverProcess === child) serverProcess = null;
+			// A crash during the first start is handled where main() waits for it.
+			if (!stoppingServer && serverReady) void restartServer(port);
 		});
 		resolve(child);
 	});
@@ -348,7 +355,49 @@ h1{margin:0;font:700 40px lh-cmu,serif;color:#e5e5e5;text-shadow:0 0 18px rgba(2
 	return `data:text/html;base64,${Buffer.from(html).toString("base64")}`;
 }
 
+/** Starts the crashed server again on the same port and reloads the windows
+ *  once it answers. Gives up with a dialog after too many restarts. */
+async function restartServer(port) {
+	const times = recordRestart(restartTimes, Date.now());
+	if (!times) return void showServerStopped();
+	restartTimes = times;
+	log(`restarting server (${times.length} in the last minute)`);
+	const url = `http://127.0.0.1:${port}`;
+	const child = await startServer(port);
+	try {
+		await waitUntilUp(url, child);
+	} catch (err) {
+		log(`${err?.message ?? err}`);
+		// An exit already started the next try. A server that never answered gets none.
+		if (serverProcess === child) void showServerStopped();
+		return;
+	}
+	log(`server up again: ${url}`);
+	for (const win of trustedAppWindows) if (!win.isDestroyed()) win.webContents.reload();
+}
+
+/** The server is gone for good: offer a relaunch, since the window can't work without it. */
+async function showServerStopped() {
+	if (stoppingServer) return; // quitting already
+	killServer();
+	const { response } = await dialog.showMessageBox({
+		type: "error",
+		message: "godspeed stopped working",
+		detail: "The app's server stopped and couldn't restart.",
+		buttons: ["Relaunch", "Quit"],
+		defaultId: 0,
+		cancelId: 1,
+	});
+	if (response === 0) {
+		app.relaunch();
+		app.exit(0);
+	} else {
+		app.quit();
+	}
+}
+
 function killServer() {
+	stoppingServer = true;
 	if (!serverProcess) return;
 	const child = serverProcess;
 	serverProcess = null;
@@ -762,6 +811,7 @@ async function main() {
 			},
 			(err) => {
 				log(`${err?.message ?? err}`);
+				void showServerStopped();
 				throw err;
 			},
 		);
