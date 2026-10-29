@@ -756,6 +756,13 @@ export function buildAnswer(qd: QuestionData, req: AnswerRequest, tool?: string)
 	return base;
 }
 
+/** The sound a submitted answer makes. Only quiz answers are graded on
+ *  submit; "I don't know", ask and explain answers stay silent. */
+export function answerSound(answer: QuestionAnswerData): "right" | "wrong" | null {
+	if (answer.kind !== "quiz" || answer.dontKnow) return null;
+	return answer.correct ? "right" : "wrong";
+}
+
 /**
  * The MODEL-VISIBLE answer record (owner, tool-result diet 2026-10-02):
  * the tool call already carries everything the model itself authored —

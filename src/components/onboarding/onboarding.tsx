@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckIcon, CircleCheckIcon, CopyIcon, FolderDownIcon } from "lucide-react";
 import { useAgentStatus } from "@/components/agent-status";
+import { useSound } from "@/components/sounds";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/connection-section";
 import { linkClassFolder, uploadClassFiles } from "@/components/files/class-files-api";
@@ -127,10 +128,12 @@ export function Onboarding() {
 
 function Intro({ skipped, onSkip, onDone }: { skipped: boolean; onSkip: () => void; onDone: () => void }) {
 	const [played, setPlayed] = useState(false);
+	const play = useSound();
 	useEffect(() => {
+		play("intro");
 		const timer = setTimeout(() => setPlayed(true), INTRO_MS);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [play]);
 	// Return during the animation jumps to its end; after it, continues.
 	useReturn(played || skipped ? onDone : onSkip);
 	return (
@@ -226,6 +229,10 @@ interface Access {
 function AgentStep({ connected, name, onNext }: { connected: boolean; name?: string; onNext: () => void }) {
 	const [tab, setTab] = useState<AgentTab>("claude");
 	const [access, setAccess] = useState<Access | null>(null);
+	const play = useSound();
+	useEffect(() => {
+		if (connected) play("connected");
+	}, [connected, play]);
 	useEffect(() => {
 		fetch("/api/mcp-access", { cache: "no-store" })
 			.then((r) => (r.ok ? (r.json() as Promise<Access>) : null))
@@ -489,6 +496,8 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 // ─── You're all set ─────────────────────────────────────────────────────────
 
 function DoneStep({ agentName, onStart, disabled }: { agentName?: string; onStart: () => void; disabled: boolean }) {
+	const play = useSound();
+	useEffect(() => play("all-set"), [play]);
 	useReturn(disabled ? null : onStart);
 	return (
 		<div data-testid="onboarding-done" className="ob-step m-auto flex flex-col items-center px-4 text-center">

@@ -36,7 +36,7 @@ function asRecord(body: unknown): Record<string, unknown> | null {
 	return body as Record<string, unknown>;
 }
 
-/** general: { autoUpdate?: boolean; activeClass?: string; onboarded?: boolean; lastSeenVersion?: string; teacherName?: string } */
+/** general: { autoUpdate?: boolean; activeClass?: string; onboarded?: boolean; lastSeenVersion?: string; teacherName?: string; sounds?: boolean } */
 export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<GeneralSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -72,6 +72,12 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 		// "" (or only spaces) clears it back to the default name.
 		const name = sanitizeTeacherName(raw.teacherName);
 		if (name) settings.teacherName = name;
+	}
+	if (raw.sounds !== undefined) {
+		if (typeof raw.sounds !== "boolean") {
+			return { ok: false, error: "sounds must be a boolean" };
+		}
+		settings.sounds = raw.sounds;
 	}
 	return { ok: true, settings };
 }

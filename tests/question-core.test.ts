@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 import { Value } from "typebox/value";
 import type { TSchema } from "typebox";
 import {
+	answerSound,
 	askInputSchema,
 	askOptionProblems,
 	buildAnswer,
@@ -476,6 +477,14 @@ describe("buildAnswer", () => {
 		assert.equal(ad.correct, false);
 		assert.equal(ad.dontKnow, true);
 		assert.deepEqual(ad.answers, []);
+	});
+
+	it("answerSound: quiz answers sound right or wrong; I don't know and ask answers stay silent", () => {
+		assert.equal(answerSound(buildAnswer(quizData(), { values: ["mercury"] })), "right");
+		assert.equal(answerSound(buildAnswer(quizData(), { values: ["venus"] })), "wrong");
+		assert.equal(answerSound(buildAnswer(quizData(), { dontKnow: true })), null);
+		const askQD: QuestionData = { ...quizData(), kind: "ask", correctIndices: undefined, explanation: undefined };
+		assert.equal(answerSound(buildAnswer(askQD, { values: ["mercury"] })), null);
 	});
 
 	it("keeps the note only when non-empty", () => {

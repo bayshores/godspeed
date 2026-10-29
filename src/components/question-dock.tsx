@@ -5,7 +5,9 @@ import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter } from "@/components/confidence-rail";
 import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
 import { cn } from "@/lib/utils";
+import { useSound } from "@/components/sounds";
 import {
+	answerSound,
 	buildAnswer,
 	normalizeQuizType,
 	CONFIDENCE_STOPS,
@@ -141,6 +143,7 @@ function QuestionDockForm({
 	footer,
 }: QuestionDockProps) {
 	const kind = toolQuestionKind(toolName);
+	const play = useSound();
 
 	// Canonical QuestionData, built once per question. Quiz options are
 	// shuffled deterministically (seeded by toolCallId) so position never
@@ -226,7 +229,10 @@ function QuestionDockForm({
 			text: answerTextRef.current,
 			confidenceIndex: confIdx,
 		});
-		onSubmit(buildAnswer(qd, req, toolName));
+		const answer = buildAnswer(qd, req, toolName);
+		const sound = answerSound(answer);
+		if (sound) play(sound);
+		onSubmit(answer);
 	};
 
 	// Enter submits from anywhere outside a typing surface (owner round 6).

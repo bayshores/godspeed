@@ -1,7 +1,7 @@
 /**
  * Settings → General (docs/design/godspeed-redesign.pen, board 12): the
- * teacher's name, when long lessons get summarized, how the graph grows,
- * and updates.
+ * teacher's name, sounds, when long lessons get summarized, how the graph
+ * grows, and updates.
  */
 
 import {
@@ -50,6 +50,9 @@ export function GeneralSection({
 							onGeneralChange(next ? { ...rest, teacherName: next } : rest);
 						}}
 					/>
+				</SettingsRow>
+				<SettingsRow label="Sounds" hint="Startup, setup and right or wrong answers" testid="sounds-row">
+					<Toggle checked={effective.general.sounds} label="Sounds" onChange={(on) => onGeneralChange({ ...record.general, sounds: on })} />
 				</SettingsRow>
 			</SettingsGroup>
 			<SettingsGroup label="Lessons" testid="group-lessons">
