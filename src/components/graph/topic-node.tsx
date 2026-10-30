@@ -3,16 +3,20 @@
  * count, an arc + glow colored by % right (gray track only when
  * untested), the fact count in the middle, and the name + score under it.
  * Memoized — hovering one topic redraws only the topics whose state
- * changed. Focusable: Tab reaches it, focus shows the hover ring and the
- * tooltip, Enter/Space selects it.
+ * changed. Hovered, it shows its last answers as a thin strip under the
+ * score. Focusable: Tab reaches it, focus counts as hover, Enter/Space
+ * selects it.
  */
 import { memo, type KeyboardEvent } from "react";
 import { RAMP_COLORS, type TopicProgress } from "@/core";
 import type { PlacedTopic } from "./layout.ts";
-import { OVERCONFIDENT_COLOR, scoreText } from "./derive.ts";
+import { OVERCONFIDENT_COLOR, STRIP_ANSWER_CLASS, scoreText } from "./derive.ts";
 
 /** Faded topics (not on the picked deadline / not matching the search). */
 export const FADED_OPACITY = 0.22;
+
+/** At most this many answers in the hover strip (the newest). */
+const STRIP_ANSWERS = 12;
 
 /** The strongest ink at a given opacity, as a CSS paint: the map's strokes
  *  follow the appearance palette (white on dark, black on light). */
@@ -100,7 +104,7 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 			>
 				{topic.members.length}
 			</text>
-			<foreignObject x={-80} y={d / 2 + 8} width={160} height={44}>
+			<foreignObject x={-80} y={d / 2 + 8} width={160} height={54}>
 				<div className="flex flex-col items-center gap-0.5 text-center">
 					<div
 						className={`line-clamp-2 w-full text-[13px] leading-4 ${selected ? "font-extrabold text-ink-max" : "font-semibold text-ink"}`}
@@ -126,6 +130,13 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 							<span className="text-ink-3">Not tested</span>
 						)}
 					</div>
+					{hovered && topic.answers.length > 0 && (
+						<div data-testid="topic-answer-strip" className="mt-1 flex gap-0.5" aria-hidden>
+							{topic.answers.slice(-STRIP_ANSWERS).map((a) => (
+								<span key={`${a.chatId}:${a.toolCallId}`} className={`h-[3px] w-[7px] ${STRIP_ANSWER_CLASS[a.outcome]}`} />
+							))}
+						</div>
+					)}
 				</div>
 			</foreignObject>
 		</g>

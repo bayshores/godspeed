@@ -202,7 +202,7 @@ function Ring({ deadline: d, busy, onPractice }: { deadline: DeadlineProgress; b
 		</button>
 	);
 	return (
-		<Tip side="bottom" title={ringTitle(d)} body={<RingTipBody deadline={d} />} hint={canPractice ? "Click to practice these" : undefined}>
+		<Tip side="bottom" title={ringTitle(d)} body={<RingTipBody deadline={d} />}>
 			{ring}
 		</Tip>
 	);

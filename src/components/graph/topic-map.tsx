@@ -3,19 +3,16 @@
  * a dot grid, foundations on the left. Pan and zoom with d3-zoom (the
  * camera is applied straight to the DOM — panning never re-renders React).
  * The layout is computed once per data change (layout.ts, cached by its
- * key). Hovering or focusing a topic lights its arrows and shows its
- * tooltip; clicking selects it; clicking the empty map clears it.
+ * key). Hovering or focusing a topic lights its arrows (labeled "needs"
+ * and "leads to") and fades every topic it isn't linked to; clicking
+ * selects it; clicking the empty map clears it.
  */
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { select } from "d3-selection";
 import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from "d3-zoom";
 import { RAMP_COLORS, type TopicLink, type TopicProgress } from "@/core";
-import { fitTransform, layoutKey, layoutTopics, MAX_SCALE, MIN_SCALE, type PlacedLink, type TopicLayout } from "./layout.ts";
-import { neighbors } from "./derive.ts";
+import { fitTransform, layoutKey, layoutTopics, MAX_SCALE, MIN_SCALE, type PlacedLink } from "./layout.ts";
 import { FADED_OPACITY, TopicNode, inkAlpha } from "./topic-node.tsx";
-import { MapTooltip } from "./map-tooltip.tsx";
-
-const TOOLTIP_WIDTH = 232;
 
 interface TopicMapProps {
 	topics: readonly TopicProgress[];
@@ -106,9 +103,8 @@ export function TopicMap({ topics, links, focus, selectedId, onSelect }: TopicMa
 		// Refit on a new layout (not on every resize: the learner's camera stays).
 	}, [layout, hasSize]);
 
-	const hover = hoverId ? byId.get(hoverId) : undefined;
-	const tooltip = hover && hover.id !== selectedId ? tooltipPlace(layout, hover.id, transformRef.current, size) : null;
-	const hoverNeighbors = useMemo(() => (hover ? neighbors(hover.id, [...links], byId) : null), [hover, links, byId]);
+	// While hovering, the hovered topic and its linked topics stay bright.
+	const bright = useMemo(() => (hoverId ? linkedTopics(hoverId, layout.links) : focus), [hoverId, layout.links, focus]);
 
 	return (
 		<div ref={wrapRef} data-testid="topic-map" className="relative h-full min-w-0 flex-1 overflow-hidden bg-background">
@@ -118,7 +114,7 @@ export function TopicMap({ topics, links, focus, selectedId, onSelect }: TopicMa
 				<rect width="100%" height="100%" fill="url(#topic-vignette)" pointerEvents="none" />
 				<rect data-testid="topic-map-bg" width="100%" height="100%" fill="transparent" onClick={() => onSelect(null)} />
 				<g ref={viewRef}>
-					<BaseLinks links={layout.links} focus={focus} />
+					<BaseLinks links={layout.links} focus={bright} />
 					<LitLinks links={layout.links} id={selectedId} tone="selected" />
 					{hoverId !== selectedId && <LitLinks links={layout.links} id={hoverId} tone="hover" />}
 					{ordered.map((place) => (
@@ -126,7 +122,7 @@ export function TopicMap({ topics, links, focus, selectedId, onSelect }: TopicMa
 							key={place.id}
 							topic={byId.get(place.id)!}
 							place={place}
-							faded={!!focus && !focus.has(place.id)}
+							faded={!!bright && !bright.has(place.id)}
 							hovered={hoverId === place.id}
 							selected={selectedId === place.id}
 							onHover={setHoverId}
@@ -146,23 +142,18 @@ export function TopicMap({ topics, links, focus, selectedId, onSelect }: TopicMa
 					<MapLegend />
 				</>
 			)}
-			{hover && tooltip && hoverNeighbors && (
-				<MapTooltip topic={hover} needs={hoverNeighbors.needs} leadsTo={hoverNeighbors.leadsTo} style={tooltip} />
-			)}
 		</div>
 	);
 }
 
-/** Beside the ring (right, or left when it would leave the map). */
-function tooltipPlace(layout: TopicLayout, id: string, t: ZoomTransform, size: { w: number; h: number }): React.CSSProperties | null {
-	const p = layout.byId.get(id);
-	if (!p) return null;
-	const [sx, sy] = t.apply([p.x, p.y]);
-	const r = (p.d / 2) * t.k;
-	let left = sx + r + 14;
-	if (size.w > 0 && left + TOOLTIP_WIDTH > size.w - 8) left = Math.max(8, sx - r - 14 - TOOLTIP_WIDTH);
-	const top = size.h > 0 ? Math.min(Math.max(8, sy - 24), Math.max(8, size.h - 170)) : sy - 24;
-	return { left, top };
+/** A topic and every topic one arrow away from it. */
+function linkedTopics(id: string, links: readonly PlacedLink[]): Set<string> {
+	const ids = new Set([id]);
+	for (const l of links) {
+		if (l.from === id) ids.add(l.to);
+		if (l.to === id) ids.add(l.from);
+	}
+	return ids;
 }
 
 function MapDefs({ dotsRef }: { dotsRef: React.RefObject<SVGPatternElement | null> }) {
@@ -219,6 +210,19 @@ function LitLinks({ links, id, tone }: { links: readonly PlacedLink[]; id: strin
 				<g key={`${l.from}>${l.to}`}>
 					<path d={l.path} fill="none" style={{ stroke: color }} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
 					<polygon points={l.arrow} style={{ fill: color }} />
+					{tone === "hover" && (
+						<text
+							x={l.mid[0]}
+							y={l.mid[1] + 4}
+							textAnchor="middle"
+							fontSize={11}
+							strokeWidth={4}
+							paintOrder="stroke"
+							className="fill-ink-2 stroke-background font-ui"
+						>
+							{l.to === id ? "needs" : "leads to"}
+						</text>
+					)}
 				</g>
 			))}
 		</g>

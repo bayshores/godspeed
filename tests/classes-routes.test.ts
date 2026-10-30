@@ -107,6 +107,16 @@ describe("class routes", () => {
 	});
 });
 
+describe("class icon route", () => {
+	it("sets a known icon and refuses an unknown one", async () => {
+		const id = await makeClass("CSE 29");
+		const set = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { icon: "cpu" }), ctx({ id }));
+		assert.equal((await set.json()).class.icon, "cpu");
+		const bad = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { icon: "rocket" }), ctx({ id }));
+		assert.equal(bad.status, 400);
+	});
+});
+
 describe("deadline routes (plan 2026-10-28; exams before that)", () => {
 	it("lists, adds, edits and removes deadlines; refuses bad input", async () => {
 		const id = await makeClass("CSE 21");

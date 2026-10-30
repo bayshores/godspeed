@@ -194,7 +194,7 @@ export function SidebarToggle() {
 				open ? "w-0 -mr-3" : "w-9 mr-0 lh-closed-toggle",
 			)}
 		>
-			<Hint label="Open sidebar" action="toggle-sidebar">
+			<Hint label="Open sidebar">
 			<Button
 				variant="ghost"
 				size="icon"
@@ -246,7 +246,7 @@ function SessionsSidebar() {
 				    44px tall so the lights (centered 22px down) line up with it;
 				    -mb-2.5 keeps the design's 48px to the class switcher. */}
 				<div className="lh-drag lh-lights-gutter -mb-2.5 flex h-11 w-full shrink-0 items-center justify-end px-1">
-					<Hint label="Close sidebar" action="toggle-sidebar">
+					<Hint label="Close sidebar">
 						<button
 							type="button"
 							aria-label="Close sidebar"

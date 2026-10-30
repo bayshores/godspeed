@@ -261,12 +261,26 @@ describe("Edit class dialog — deadlines", () => {
 		});
 	});
 
+	it("the icon: pick a subject icon and save it", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		assert.equal(q("class-icon-sigma")!.getAttribute("aria-checked"), "false");
+		await click(q("class-icon-sigma"));
+		assert.equal(q("class-icon-sigma")!.getAttribute("aria-checked"), "true");
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.equal((calls[0] as { body: { icon?: string } }).body.icon, "sigma");
+	});
+
 	it("New class: name and description only", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });
 		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "New class");
 		assert.equal(q("class-deadlines"), null);
 		assert.equal(q("class-signature"), null);
+		assert.equal(q("class-icon"), null);
 		assert.equal(q("class-save")!.textContent, "Create class");
 	});
 });

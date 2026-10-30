@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { ChevronDownIcon, GitForkIcon } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipRows, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { PlanStep, PlanStepBar, StepAnswer } from "@/core";
 
@@ -105,7 +105,7 @@ function StepBlock({ step, number, onJump }: { step: PlanStep; number: number; o
 				</button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" align="start" className="w-56">
-				<TooltipRows hint={target ? "Click to jump back to it" : undefined}>
+				<>
 					<div className="flex items-center gap-2 text-ink-3">
 						<span className="font-mono">Step {number}</span>
 						<span>{STATUS_WORD[step.status]}</span>
@@ -121,7 +121,7 @@ function StepBlock({ step, number, onJump }: { step: PlanStep; number: number; o
 							<span className="font-mono text-ink-2">{right}</span>
 						</div>
 					)}
-				</TooltipRows>
+				</>
 			</TooltipContent>
 		</Tooltip>
 	);

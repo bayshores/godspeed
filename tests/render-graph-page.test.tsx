@@ -175,17 +175,19 @@ describe("keyboard access to topics", () => {
 		const mini = host.querySelector('[data-topic="t-mini"]')!;
 		assert.match(mini.getAttribute("aria-label")!, /Minibatch noise, 3 of 7 right, overconfident, 6 facts/);
 
+		const faded = () => nodes.filter((n) => n.getAttribute("opacity") === "0.22").length;
 		await act(async () => fire(mini, "focusin"));
-		const tip = host.querySelector('[data-testid="topic-tooltip"]');
-		assert.ok(tip, "focus opens the tooltip");
-		assert.ok(tip!.textContent!.includes("Needs"));
-		assert.ok(tip!.textContent!.includes("Click for facts and practice"));
+		assert.equal(host.querySelector('[data-testid="topic-tooltip"]'), null, "no floating box");
+		assert.match(host.querySelector('[data-testid="topic-links-hover"]')!.textContent!, /needs/, "its arrows are labeled");
+		assert.ok(mini.querySelector('[data-testid="topic-answer-strip"]'), "its last answers show under the score");
+		assert.ok(faded() > 0, "topics it isn't linked to fade");
 
 		await act(async () => fire(mini, "keydown", { key: "Enter" }));
 		await act(async () => fire(mini, "keydown", { key: " " }));
 		assert.deepEqual(picked, ["t-mini", "t-mini"]);
 
 		await act(async () => fire(mini, "focusout"));
-		assert.equal(host.querySelector('[data-testid="topic-tooltip"]'), null, "blur hides it");
+		assert.equal(host.querySelector('[data-testid="topic-answer-strip"]'), null, "blur hides the strip");
+		assert.equal(faded(), 0, "and brings every topic back");
 	});
 });

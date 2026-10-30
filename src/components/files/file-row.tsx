@@ -8,7 +8,7 @@ import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { canRemove, canRetry, FILE_DRAG_TYPE, fileAnchorId, fileState, kindTitle, studiedFill, type FileState } from "./files-model";
 
 /**
- * ONE FILE ROW (Files page, docs/design/godspeed-redesign.pen "Files — panels"):
+ * ONE FILE ROW (Files page):
  * drag grip (on hover), icon, name (a folder mark when it comes from the
  * linked folder), the row's state ("12/31 facts studied"
  * with its bar, "Building facts…", "Waiting", "Failed · Retry") and the ⋯

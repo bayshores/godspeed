@@ -50,7 +50,7 @@ export function LinkedFolderChip({
 	const missing = problem === "missing";
 	return (
 		<>
-			<Tip title="Linked folder" hint="Click to see the folder or unlink it" side="bottom" align="end">
+			<Tip title="Linked folder" side="bottom" align="end">
 				<button
 					ref={anchorRef}
 					type="button"

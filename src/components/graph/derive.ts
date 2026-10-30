@@ -34,8 +34,8 @@ export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	dontKnow: "#5A5A5A",
 };
 
-/** Answer blocks in hover tooltips use the right/wrong tokens. */
-export const TIP_ANSWER_CLASS: Record<AnswerOutcome, string> = {
+/** The hovered topic's answer strip on the map uses the right/wrong tokens. */
+export const STRIP_ANSWER_CLASS: Record<AnswerOutcome, string> = {
 	right: "bg-ans-right",
 	wrong: "bg-ans-wrong",
 	dontKnow: "bg-ans-dontknow",

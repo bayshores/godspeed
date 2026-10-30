@@ -1,13 +1,15 @@
 /**
- * THE CLASS SWITCHER: the block at the top of the sidebar — the class
- * name and the up/down chevrons. Picking a class switches the whole window to it — the
+ * THE CLASS SWITCHER: the block at the top of the sidebar — the class's
+ * icon on a dark tile, its name and the up/down chevrons. The menu lists
+ * classes with plain icons. Picking a class switches the whole window to it — the
  * sidebar's lessons, the graph, where new lessons start. Menu entries: every active class, "No class",
  * the archived classes (folded under "Archived"), "Edit class…" for the
  * active one, and "New class…".
  */
 
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, ChevronsUpDownIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, CircleDashedIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ClassIcon } from "@/components/class-icon";
 import { MenuShell } from "@/components/menu-shell";
 import { ClassDialog } from "@/components/class-dialog";
 import { useClasses } from "@/components/class-context";
@@ -62,8 +64,17 @@ export function ClassSwitcher() {
 				aria-haspopup="menu"
 				aria-expanded={open}
 				aria-label={`Class: ${name}`}
-				className="lh-press flex w-full items-center gap-3 bg-panel px-3 py-2.5 text-left hover:bg-tone"
+				className="lh-press flex w-full items-center gap-2.5 bg-panel px-3 py-2.5 text-left hover:bg-tone"
 			>
+				{activeClass ? (
+					<span className="flex size-[30px] shrink-0 items-center justify-center bg-tone-2 text-ink">
+						<ClassIcon icon={activeClass.icon} className="size-[17px]" />
+					</span>
+				) : (
+					<span className="flex size-[30px] shrink-0 items-center justify-center text-ink-3">
+						<CircleDashedIcon className="size-[17px]" aria-hidden />
+					</span>
+				)}
 				<span className={cn("min-w-0 flex-1 truncate text-[15px] font-bold", activeClass ? "text-ink" : "text-ink-2")}>{name}</span>
 				<ChevronsUpDownIcon className="size-4 shrink-0 text-ink-2" aria-hidden />
 			</button>
@@ -78,11 +89,13 @@ export function ClassSwitcher() {
 			>
 				{current.map((c) => (
 					<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
+						<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-2" />
 						<span className="min-w-0 flex-1 truncate">{c.name}</span>
 						{active === c.id && <CheckIcon className="size-3.5" />}
 					</button>
 				))}
 				<button type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-ink-2")}>
+					<CircleDashedIcon className="size-4 shrink-0 text-ink-3" aria-hidden />
 					<span className="min-w-0 flex-1 truncate">No class</span>
 					{active === null && <CheckIcon className="size-3.5" />}
 				</button>
@@ -102,6 +115,7 @@ export function ClassSwitcher() {
 							<div className="flex flex-col gap-0.5" inert={!showArchived}>
 								{archived.map((c) => (
 									<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-ink-2")}>
+										<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-3" />
 										<span className="min-w-0 flex-1 truncate">{c.name}</span>
 										{active === c.id && <CheckIcon className="size-3.5" />}
 									</button>

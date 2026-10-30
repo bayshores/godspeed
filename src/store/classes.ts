@@ -17,13 +17,14 @@ import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import { sanitizeRules } from "../core/teaching-areas.ts";
 import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../core/ports.ts";
-import type { ClassDeadline, ClassFile, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind } from "../core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind } from "../core/contracts.ts";
 import {
 	ClassDeadlineError,
 	cleanSignature,
 	compareDeadlines,
 	CURRENT_CLASS_VERSION,
 	isCalendarDate,
+	isClassIcon,
 	isClassId,
 	isClockTime,
 	isDeadlineKind,
@@ -131,6 +132,7 @@ function getClass(id: string): ClassRecord | null {
 		files,
 		...(deadlines ? { deadlines: deadlines.map((d) => ({ ...d, fileIds: d.fileIds.filter((f) => fileIds.has(f)) })).sort(compareDeadlines) } : {}),
 		...(signature ? { signature } : {}),
+		...(isClassIcon(parsed.icon) ? { icon: parsed.icon } : {}),
 		...(isClassNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
 		...(rules.length ? { rules } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
@@ -148,6 +150,7 @@ function summarize(record: ClassRecord): ClassSummary {
 		...(record.linkedFolder ? { linkedFolder: record.linkedFolder } : {}),
 		fileCount: record.files.length,
 		...(record.signature ? { signature: record.signature } : {}),
+		...(record.icon ? { icon: record.icon } : {}),
 		...(record.note ? { note: record.note } : {}),
 	};
 }
@@ -156,7 +159,7 @@ function cleanName(name: string): string {
 	return name.trim().replace(/\s+/g, " ").slice(0, 120) || "Untitled class";
 }
 
-function createClass(init: { name: string; description?: string; signature?: ClassSignature }): ClassRecord {
+function createClass(init: { name: string; description?: string; signature?: ClassSignature; icon?: ClassIcon }): ClassRecord {
 	const now = new Date().toISOString();
 	const record: ClassRecord = {
 		id: `cls_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
@@ -167,6 +170,7 @@ function createClass(init: { name: string; description?: string; signature?: Cla
 		archived: false,
 		files: [],
 		...(init.signature ? { signature: init.signature } : {}),
+		...(init.icon ? { icon: init.icon } : {}),
 	};
 	writeClass(record);
 	emit("classes-changed", {});
@@ -210,6 +214,7 @@ function updateClass(id: string, patch: ClassPatch): ClassRecord {
 		if (patch.signature === null) delete record.signature;
 		else record.signature = patch.signature;
 	}
+	if (patch.icon !== undefined) record.icon = patch.icon;
 	if (patch.note !== undefined) record.note = patch.note;
 	// A new note alone doesn't count as an edit: the class list is ordered
 	// by updatedAt and shouldn't reshuffle after every lesson.

@@ -195,7 +195,7 @@ export function LessonsSection({
 		<div className="flex min-h-0 w-full flex-1 flex-col">
 			<div className="flex w-full items-center justify-between px-2.5 pt-1">
 				<span className="text-[13px] font-bold text-ink-3">Lessons</span>
-				<Hint label="Search lessons" action="sessions-search" side="right">
+				<Hint label="Search lessons" side="right">
 					<button
 						type="button"
 						data-testid="session-search-toggle"

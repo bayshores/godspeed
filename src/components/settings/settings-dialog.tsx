@@ -6,7 +6,7 @@
  *   appearance edits restyle the chat LIVE behind the dialog). Escape,
  *   backdrop, and ✕ all close. Modal-only — /settings redirects, so
  *   nothing links into a dead surface.
- * - Left section nav (docs/design/exports/settings.html): 920×720,
+ * - Left section nav: 920×720,
  *   "Settings" over icon + name rows (the open one lit), the section's
  *   title and ✕ over the scrolling content.
  * - The dialog is surface-agnostic by construction: the sections talk to
@@ -45,7 +45,7 @@ import { AppearanceSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
 import { CONNECTION_SECTION_HINT, ConnectionSection } from "./connection-section.tsx";
 
-/** The left nav (docs/design/godspeed-redesign.pen, boards 10 to 12).
+/** The left nav.
  *  A section's hint shows as a tooltip on the info icon by its title. */
 const SECTIONS = [
 	{ id: "connection", label: "Connection", icon: PlugIcon, hint: CONNECTION_SECTION_HINT },
@@ -285,12 +285,7 @@ export function SettingsDialogBody({
 							</Tip>
 						)}
 					</span>
-					<Hint
-						// Esc closes the dialog (its own listener) — surface it.
-						label="Close"
-						binding="escape"
-						side="left"
-					>
+					<Hint label="Close" side="left">
 						<button
 							type="button"
 							aria-label="Close settings"

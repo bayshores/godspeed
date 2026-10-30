@@ -27,6 +27,7 @@ import type {
 	ClassDeadline,
 	DeadlineKind,
 	ClassFile,
+	ClassIcon,
 	ClassNote,
 	ClassRecord,
 	ClassSignature,
@@ -150,6 +151,7 @@ export interface ClassPatch {
 	linkedFolder?: string | null;
 	/** null clears it. */
 	signature?: ClassSignature | null;
+	icon?: ClassIcon;
 	note?: ClassNote;
 	/** Replaces the class's rules; [] clears them. */
 	rules?: string[];
@@ -175,7 +177,7 @@ export interface DeadlinePatch {
 }
 
 export interface ClassStore {
-	createClass(init: { name: string; description?: string; signature?: ClassSignature }): ClassRecord;
+	createClass(init: { name: string; description?: string; signature?: ClassSignature; icon?: ClassIcon }): ClassRecord;
 	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
 	getClass(id: string): ClassRecord | null;
 	/** Every class's full record (archived included), most recently updated first. */

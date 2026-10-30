@@ -20,6 +20,15 @@ Rules:
 - When an app change affects what the site says (features, supported agents, platforms, download file names, version numbers, screenshots), tell the user the site may need the same update.
 - Before cleaning up, merging or reporting that "everything is committed", check both repos.
 
+# Keep the design files clean
+
+The pen.dev files hold only what someone still needs to look at, so they never pile up into old mockups.
+
+- A board stays only while it is waiting for the user's pick or being built. Once it is rejected or built, delete its boards in the same change: the code and the live page are the reference from then on.
+- Delete any image, shader or export in the design folders that no remaining board, README or code uses.
+- Code comments don't point at design boards or exports. The code is the reference once it's built.
+- pen.dev saves on ⌘S; ask the user to save after a cleanup.
+
 # No guessing
 
 All design authority belongs to the human. **Never guess a design or implementation decision.** If anything is ambiguous — naming, behavior, data shapes, UX, defaults, scope boundaries, prompt wording — STOP and ask with the ask-user-question tool before proceeding. If you are "a little unsure," you are unsure: ask. A wrong guess is far more expensive than a question. Ask early, ask specific, one question per call.

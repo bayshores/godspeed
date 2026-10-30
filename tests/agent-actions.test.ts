@@ -79,7 +79,7 @@ describe("agent actions from the MCP tools", () => {
 		await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "claude-code", version: "1" } } }, auth()));
 		let classId = "";
 		const [created] = await heard(async () => {
-			classId = (await call("create_class", { name: "CSE 21" })).body.class.id;
+			classId = (await call("create_class", { name: "CSE 21", icon: "sigma" })).body.class.id;
 		});
 		assert.deepEqual({ ...created, id: undefined, at: undefined }, { id: undefined, at: undefined, agent: "Claude Code", label: "Creating CSE 21", classId, target: { kind: "class", id: classId }, page: "/class" });
 		assert.match(created!.id, /^act_/);
@@ -111,7 +111,7 @@ describe("agent actions from the MCP tools", () => {
 	});
 
 	it("files and notes point at the Files page", async () => {
-		const classId = (await call("create_class", { name: "CSE 29" })).body.class.id as string;
+		const classId = (await call("create_class", { name: "CSE 29", icon: "cpu" })).body.class.id as string;
 		const file = path.join(scratch, "syllabus.md");
 		fs.writeFileSync(file, "# Syllabus\n");
 		const [addedFile] = await heard(() => call("add_class_file", { class_id: classId, path: file, kind: "info" }));

@@ -1,8 +1,8 @@
 /**
- * The shared tooltip (redesign 2026-10-27) opens on KEYBOARD FOCUS, not
- * only on hover, and Escape closes it — mounted with real React handlers
- * over linkedom. Also pins the box's look (tip surface, tone-2 edge,
- * bold title, "Click to …" hint row).
+ * The shared tooltip opens on KEYBOARD FOCUS, not only on hover, and
+ * Escape closes it — mounted with real React handlers over linkedom.
+ * Also pins its two flat looks: the box (tip surface, tone-2 edge, bold
+ * title) and the white tag (Hint).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -38,7 +38,8 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 
 // Imported AFTER the DOM globals: Radix picks its layout-effect hook (and so
 // whether its Portal ever mounts) when the module first loads.
-const { Tip, TooltipCard, TOOLTIP_DELAY_MS } = await import("../src/components/ui/tooltip.tsx");
+const { Hint } = await import("../src/components/ui/hint.tsx");
+const { Tip, TOOLTIP_DELAY_MS } = await import("../src/components/ui/tooltip.tsx");
 
 let root: Root | null = null;
 let host: HTMLElement | null = null;
@@ -56,7 +57,7 @@ async function mount() {
 	root = createRoot(host);
 	await act(async () => {
 		root!.render(
-			<Tip title="Waiting for your answer" body="Teacher replied 1 day ago" hint="Click to open the lesson">
+			<Tip title="Waiting for your answer" body="Teacher replied 1 day ago">
 				<button type="button" data-testid="trigger">Gradient descent</button>
 			</Tip>,
 		);
@@ -71,7 +72,7 @@ function tooltip(): Element | null {
 }
 
 describe("Tip — keyboard focus opens it, Escape closes it", () => {
-	it("focus opens the box at once with the title, body and hint", async () => {
+	it("focus opens the box at once with the title and body", async () => {
 		const trigger = await mount();
 		assert.equal(tooltip(), null, "closed until focused or hovered");
 		await act(async () => {
@@ -81,7 +82,6 @@ describe("Tip — keyboard focus opens it, Escape closes it", () => {
 		assert.ok(box, "focus opened the tooltip");
 		assert.match(box.textContent ?? "", /Waiting for your answer/);
 		assert.match(box.textContent ?? "", /Teacher replied 1 day ago/);
-		assert.match(box.textContent ?? "", /Click to open the lesson/);
 	});
 
 	it("Escape closes it", async () => {
@@ -105,17 +105,36 @@ describe("the tooltip's look", () => {
 		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 
-	it("TooltipCard: glass surface, square, bold title, click hint", () => {
-		const html = renderToStaticMarkup(
-			<TooltipCard title="Lecture 3 — Expectation" hint="Click to open the file">
-				<div>12 of 18 facts came up in lessons</div>
-			</TooltipCard>,
-		);
-		assert.match(html, /role="tooltip"/);
-		assert.match(html, /lh-glass/);
-		assert.doesNotMatch(html, /rounded/);
-		assert.match(html, /data-slot="tooltip-title" class="[^"]*font-bold[^"]*">Lecture 3 — Expectation</);
-		assert.match(html, /data-slot="tooltip-hint"[^>]*>.*<svg.*Click to open the file/s);
+	it("the box is flat: solid tip surface, tone-2 edge, no glass, bold title", async () => {
+		const trigger = await mount();
+		await act(async () => {
+			trigger.dispatchEvent(new dom.window.Event("focusin", { bubbles: true }));
+		});
+		const html = tooltip()!.outerHTML;
+		assert.match(html, /bg-tip/);
+		assert.match(html, /border-tone-2/);
+		assert.doesNotMatch(html, /lh-glass|shadow|rounded/);
+		assert.match(html, /class="[^"]*font-bold[^"]*" data-slot="tooltip-title">Waiting for your answer</);
+	});
+
+	it("Hint is the white tag: the label alone, no shortcut", async () => {
+		host = document.createElement("div");
+		document.body.appendChild(host);
+		root = createRoot(host);
+		await act(async () => {
+			root!.render(
+				<Hint label="Settings">
+					<button type="button" data-testid="hint-trigger">S</button>
+				</Hint>,
+			);
+		});
+		await act(async () => {
+			document.querySelector('[data-testid="hint-trigger"]')!.dispatchEvent(new dom.window.Event("focusin", { bubbles: true }));
+		});
+		const tag = tooltip()!;
+		assert.match(tag.className, /bg-ink/);
+		assert.match(tag.className, /text-background/);
+		assert.equal(tag.textContent, "Settings");
 	});
 
 	it("disabled: the trigger renders alone, no tooltip wiring", () => {

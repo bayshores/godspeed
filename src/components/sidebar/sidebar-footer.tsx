@@ -41,7 +41,7 @@ export function SidebarFooter() {
 				/>
 				<span className="truncate">{footerLabel(agent, jobs)}</span>
 			</button>
-			<Hint label="Settings" action="open-settings" side="right">
+			<Hint label="Settings" side="right">
 				<button
 					type="button"
 					onClick={() => openSettings()}

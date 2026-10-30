@@ -1,6 +1,5 @@
 /**
- * Thin settings primitives (settings-app wave; restyled 2026-10-27 to
- * docs/design/exports/settings.html): the control kit the settings dialog
+ * Thin settings primitives: the control kit the settings dialog
  * needs. Sections → groups → rows; everything SSRs clean (render tests
  * pin the sections' markup).
  *
@@ -33,8 +32,8 @@ export function SettingsSection({
 	);
 }
 
-/** A labeled sub-group inside a section (docs/design/exports/settings.html:
- *  "Access", "Setup" — a bold muted label over 2px-spaced rows). */
+/** A labeled sub-group inside a section ("Access", "Setup"): a bold muted
+ *  label over 2px-spaced rows. */
 export function SettingsGroup({
 	label,
 	children,
@@ -127,8 +126,7 @@ export function Toggle({
 				// lh-press eases the track colors and dips on press (motion wave,
 				// owner 2026-10-26); the disc below slides on the same clock.
 				"lh-press relative h-[18px] w-[34px] shrink-0",
-				// Redesign 2026-10-27 (docs/design/exports/settings.html): on is a white
-				// track with a black knob; off is the tone-2 track.
+				// On is a white track with a black knob; off is the tone-2 track.
 				checked ? "bg-ink" : "bg-tone-2",
 				disabled && "cursor-not-allowed",
 			)}

@@ -33,7 +33,7 @@ import {
 } from "../agent/agent-bridge.ts";
 import { getGraph } from "../core/graph.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
-import { cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassScope } from "../core/contracts.ts";
+import { CLASS_ICONS, cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassIcon, type ClassScope } from "../core/contracts.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -75,7 +75,7 @@ The work loop:
 
 Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.
 
-Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, and a one-line signature for the class's cover) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
+Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, a one-line signature for the class's cover, and a subject icon for the class switcher) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Every class needs a subject icon: create_class takes one, and when list_classes shows a class with icon null, set one with update_class without asking. Archived classes take no new lessons; ask the learner to unarchive one first. Classes can only be deleted in the godspeed window.`;
 
 // ─── Class arguments ────────────────────────────────────────────────────────
 
@@ -96,6 +96,14 @@ const SIGNATURE_ARG = z
 	.optional()
 	.describe(
 		`The class's signature: ONE line that sums up the subject, shown huge on the class's cover. kind "math" = LaTeX without $ (math, physics, chemistry, economics), "code" = a line of code (programming classes), "text" = anything else (a line from a primary source, a sequence, a date). At most ${SIGNATURE_MAX} characters. Pick something iconic for the course; ask the learner when unsure.`,
+	);
+
+const ICON_ARG = z
+	.enum(Object.keys(CLASS_ICONS) as [ClassIcon, ...ClassIcon[]])
+	.describe(
+		`The class's subject icon in the class switcher: ${Object.entries(CLASS_ICONS)
+			.map(([icon, subject]) => `"${icon}" ${subject}`)
+			.join(", ")}. Pick the closest subject.`,
 	);
 
 const CLASS_ID_ARG = z
@@ -382,6 +390,9 @@ function buildServer(): McpServer {
 			const arg = classArg(class_id);
 			if ("error" in arg) return failure(arg.error);
 			const scope = arg.scope;
+			if (scope && stores.classStore.getClass(scope)?.archived) {
+				return failure("This class is archived. Ask the learner to unarchive it in Edit class first.");
+			}
 			const created = createLesson({
 				title: topic,
 				kind: kind === "practice" ? "practice" : undefined,
@@ -422,6 +433,7 @@ function classView(classId: string) {
 		name: record.name,
 		description: record.description,
 		signature: record.signature ?? null,
+		icon: record.icon ?? null,
 		archived: record.archived,
 		linkedFolder: record.linkedFolder ?? null,
 		files: record.files.map((f) => ({
@@ -473,6 +485,7 @@ function registerClassTools(server: McpServer): void {
 				id: c.id,
 				name: c.name,
 				description: c.description,
+				icon: c.icon ?? null,
 				archived: c.archived,
 				linkedFolder: c.linkedFolder ?? null,
 				files: c.fileCount,
@@ -548,12 +561,13 @@ function registerClassTools(server: McpServer): void {
 				name: z.string().min(1).describe('The course, e.g. "MATH 20C – Calculus III".'),
 				description: z.string().optional().describe("What the teacher should know about the course, in the learner's terms."),
 				signature: SIGNATURE_ARG,
+				icon: ICON_ARG,
 			},
 		},
-		async ({ name, description, signature }) => {
+		async ({ name, description, signature, icon }) => {
 			const sig = signature ? cleanSignature(signature) : undefined;
 			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
-			const created = createClass({ name, description, ...(sig ? { signature: sig } : {}) });
+			const created = createClass({ name, description, icon, ...(sig ? { signature: sig } : {}) });
 			act({ label: `Creating ${created.name}`, classId: created.id, target: { kind: "class", id: created.id }, page: "/class" });
 			return result({ class: classView(created.id) });
 		},
@@ -563,19 +577,20 @@ function registerClassTools(server: McpServer): void {
 		"update_class",
 		{
 			title: "Update a class",
-			description: "Rename a class, change its description or signature, or archive / unarchive it (archiving hides it from the class switcher but keeps everything).",
+			description: "Rename a class, change its description, signature or icon, or archive / unarchive it (archiving hides it from the class switcher but keeps everything; an archived class takes no new lessons).",
 			inputSchema: {
 				class_id: z.string(),
 				name: z.string().min(1).optional(),
 				description: z.string().optional(),
 				signature: SIGNATURE_ARG,
+				icon: ICON_ARG.optional(),
 				archived: z.boolean().optional(),
 			},
 		},
-		async ({ class_id, name, description, signature, archived }) => {
+		async ({ class_id, name, description, signature, icon, archived }) => {
 			const sig = signature ? cleanSignature(signature) : undefined;
 			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
-			const outcome = updateClass(class_id, { name, description, archived, ...(sig ? { signature: sig } : {}) });
+			const outcome = updateClass(class_id, { name, description, archived, ...(icon ? { icon } : {}), ...(sig ? { signature: sig } : {}) });
 			if (!outcome.ok) return failure(outcome.error);
 			const cls = stores.classStore.getClass(class_id);
 			const verb = archived === true ? "Archiving" : archived === false ? "Unarchiving" : "Updating";

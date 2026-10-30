@@ -1,5 +1,5 @@
 /**
- * Settings → Appearance (docs/design/godspeed-redesign.pen, board 11 F):
+ * Settings → Appearance:
  * background presets on top, the type controls on the left and a live
  * lesson preview on the right. The preview uses the real lesson styles,
  * so every saved change shows in it (and in the app behind the dialog).

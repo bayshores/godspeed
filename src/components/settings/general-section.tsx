@@ -1,5 +1,5 @@
 /**
- * Settings → General (docs/design/godspeed-redesign.pen, board 12): the
+ * Settings → General: the
  * teacher's name, sounds, when long lessons get summarized, how the graph
  * grows, and updates.
  */

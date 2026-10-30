@@ -119,7 +119,7 @@
 	--lh-heading-weight: 900;
 }
 
-/* Pop-ups (menus, tooltips, Halley's panel) are see-through glass over
+/* Pop-ups (menus, Halley's panel) are see-through glass over
    the page: a soft light edge on top and a deep shadow instead of an
    outline. Rows that hover with bg-tone get a see-through tone inside. */
 .lh-glass {
@@ -1028,8 +1028,7 @@ body {
 
 /* ─────────────────────────────────────────────────────────────────────────
    Halley (src/components/halley/): the logo's comet as the on-screen
-   teacher. Design: docs/design/home/halley-preview.html and
-   teacher-preview.html. Bobbing,
+   teacher. Bobbing,
    blinking, one face per mood (data-mood on the svg). SVG lengths here are
    in the face's own units (the dot is 200 across).
    ───────────────────────────────────────────────────────────────────────── */

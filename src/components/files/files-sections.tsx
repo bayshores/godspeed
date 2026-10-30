@@ -22,7 +22,7 @@ const EMPTY = {
 export type SectionDrag = { type: "finder"; count: number } | { type: "row"; file: ClassFile };
 
 /**
- * ONE SECTION (Files page, docs/design/godspeed-redesign.pen "Files — panels"):
+ * ONE SECTION (Files page):
  * a dark panel with its header (title, count, the header extras, Add) and
  * its rows. The panel is a drop zone: files from Finder are added here as
  * this kind; a row dragged from the other section is moved here. While

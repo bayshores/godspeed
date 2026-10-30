@@ -62,7 +62,7 @@ export function LessonTopBar({
 					<TitleButton rename={rename} />
 				)}
 			</div>
-			<Hint label="Find" action="find" side="bottom">
+			<Hint label="Find" side="bottom">
 				<button
 					type="button"
 					data-testid="lesson-find"
@@ -79,7 +79,7 @@ export function LessonTopBar({
 
 function TitleButton({ rename }: { rename: ReturnType<typeof useTitleRename> }) {
 	return (
-		<Hint label="Rename lesson" action="rename-session" side="bottom">
+		<Hint label="Rename lesson" side="bottom">
 			<button
 				type="button"
 				data-testid="lesson-title"

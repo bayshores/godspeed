@@ -288,6 +288,16 @@ describe("deadlines (plan 2026-10-28; exams before that)", () => {
 		assert.equal(classStore.getClass(cls.id)?.signature, undefined);
 	});
 
+	it("keeps a subject icon; an unknown one on disk reads as none", () => {
+		const cls = classStore.createClass({ name: "BILD 1", icon: "dna" });
+		assert.equal(cls.icon, "dna");
+		assert.equal(classStore.listClasses().find((c) => c.id === cls.id)?.icon, "dna");
+		assert.equal(classStore.updateClass(cls.id, { icon: "brain" }).icon, "brain");
+		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		fs.writeFileSync(classFile(cls.id), JSON.stringify({ ...raw, icon: "rocket" }));
+		assert.equal(classStore.getClass(cls.id)?.icon, undefined);
+	});
+
 	it("cleans a signature: one line, trimmed, a known kind, at most 60 characters", () => {
 		assert.deepEqual(cleanSignature({ kind: "math", value: "  e^{i\\pi}\n+ 1 = 0 " }), { kind: "math", value: "e^{i\\pi} + 1 = 0" });
 		assert.equal(cleanSignature({ kind: "poem", value: "x" }), null);

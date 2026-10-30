@@ -106,6 +106,33 @@ export interface ClassSignature {
 /** Longest signature, in characters (one line on the cover). */
 export const SIGNATURE_MAX = 60;
 
+/** The subject icons a class can wear (lucide names), with the subject
+ *  each stands for. A class without one shows "book-open". */
+export const CLASS_ICONS = {
+	cpu: "Computer science",
+	code: "Programming",
+	sigma: "Math",
+	"chart-line": "Statistics",
+	atom: "Physics",
+	"flask-conical": "Chemistry",
+	dna: "Biology",
+	brain: "Psychology",
+	landmark: "History",
+	scale: "Law and politics",
+	"trending-up": "Economics",
+	globe: "Geography",
+	languages: "Languages",
+	"book-open": "Literature",
+	palette: "Art",
+	music: "Music",
+} as const;
+
+export type ClassIcon = keyof typeof CLASS_ICONS;
+
+export function isClassIcon(name: unknown): name is ClassIcon {
+	return typeof name === "string" && Object.hasOwn(CLASS_ICONS, name);
+}
+
 /** Halley's note on the cover: the teacher's two sentences on where the
  *  learner stands in the class and what's next (set_class_note). */
 export interface ClassNote {
@@ -148,6 +175,7 @@ export interface ClassRecord {
 	 *  never had one — absence reads as none). */
 	deadlines?: ClassDeadline[];
 	signature?: ClassSignature;
+	icon?: ClassIcon;
 	note?: ClassNote;
 	/** The learner's rules for lessons in this class (absent = none). */
 	rules?: string[];
@@ -218,6 +246,7 @@ export interface ClassSummary {
 	linkedFolder?: string;
 	fileCount: number;
 	signature?: ClassSignature;
+	icon?: ClassIcon;
 	note?: ClassNote;
 }
 

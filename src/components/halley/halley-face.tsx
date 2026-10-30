@@ -1,6 +1,5 @@
 /**
- * Halley's face (docs/design/home/halley-preview.html and
- * teacher-preview.html): the logo comet's white dot with plain black
+ * Halley's face: the logo comet's white dot with plain black
  * eyes. One SVG holds every mood; `data-mood` shows one of them and the
  * motion lives in globals.css (.lh-halley-face). The view box is the
  * dot itself, so the element's size is the dot's diameter; the thinking

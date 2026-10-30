@@ -284,13 +284,23 @@ describe("the /api/mcp door", () => {
 			const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json();
 			return { error: res.result.isError === true, body: (() => { try { return JSON.parse(res.result.content[0].text); } catch { return res.result.content[0].text; } })() };
 		};
-		const created = await call("create_class", { name: "PHYS 2B", description: "Griffiths, chapters 1-4" });
+		assert.equal((await call("create_class", { name: "PHYS 2B" })).error, true, "a new class needs an icon");
+		assert.equal((await call("create_class", { name: "PHYS 2B", icon: "rocket" })).error, true, "only the listed icons");
+		const created = await call("create_class", { name: "PHYS 2B", description: "Griffiths, chapters 1-4", icon: "atom" });
 		const id = created.body.class.id as string;
 		assert.match(id, /^cls_/);
+		assert.equal(created.body.class.icon, "atom");
 		const listed = await call("list_classes", {});
-		assert.ok(listed.body.classes.some((c: { id: string }) => c.id === id));
-		const updated = await call("update_class", { class_id: id, description: "Griffiths 1-5" });
+		assert.ok(listed.body.classes.some((c: { id: string; icon: string }) => c.id === id && c.icon === "atom"));
+		const updated = await call("update_class", { class_id: id, description: "Griffiths 1-5", icon: "sigma" });
 		assert.equal(updated.body.class.description, "Griffiths 1-5");
+		assert.equal(updated.body.class.icon, "sigma");
+		// An archived class takes no new lessons.
+		await call("update_class", { class_id: id, archived: true });
+		const refused = await call("start_lesson", { topic: "Gauss's law", class_id: id });
+		assert.equal(refused.error, true);
+		assert.match(String(refused.body), /archived/);
+		await call("update_class", { class_id: id, archived: false });
 		const read = await call("read_class", { class_id: id });
 		assert.deepEqual(read.body.files, []);
 		const bad = await call("search_graph", { class_id: "cls_missing" });

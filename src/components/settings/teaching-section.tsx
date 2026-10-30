@@ -1,5 +1,5 @@
 /**
- * Settings → Teaching (docs/design/godspeed-redesign.pen, board 10c): one
+ * Settings → Teaching: one
  * card per teaching area. The left side says what the area is and opens
  * its full instructions; the right side holds its switches and the
  * learner's rules. The instructions panel (instructions-panel.tsx) slides

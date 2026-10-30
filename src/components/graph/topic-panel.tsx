@@ -42,7 +42,7 @@ export function TopicPanel({
 	return (
 		<aside data-testid="topic-panel" className="flex h-full w-[400px] shrink-0 flex-col border-l border-tone-2 bg-panel">
 			<div className="min-h-0 flex-1 overflow-y-auto px-6 py-[22px]">
-				<Hint label="Close" binding="escape" side="bottom">
+				<Hint label="Close" side="bottom">
 					<button
 						type="button"
 						data-testid="topic-panel-close"

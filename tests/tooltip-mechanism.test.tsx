@@ -1,11 +1,7 @@
 /**
- * Tooltip-wave mechanism pins (owner, 2026-09-25): the composition rule —
- * icon/pill controls ride the styled Radix tooltip via Hint, the shortcut
- * appended as an em-dash suffix off the LIVE registry (a rebind changes
- * the suffix); truncation-reveals keep native title=; the copy carries no
- * internal vocabulary. Node 26 exposes the host platform through navigator,
- * so expectations cover Mac glyphs AND Ctrl+/Shift+ elsewhere. Composition
- * is the pin; running on a Mac must not be a test prerequisite.
+ * Tooltip mechanism pins: icon and pill controls ride the styled Radix
+ * tooltip via Hint with no wrapper DOM; the copy carries no internal
+ * vocabulary.
  */
 
 import React from "react";
@@ -15,35 +11,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Hint, hintText } from "../src/components/ui/hint.tsx";
+import { Hint } from "../src/components/ui/hint.tsx";
 import { TOOLTIP_DELAY_MS } from "../src/components/ui/tooltip.tsx";
 import { AUTO_UPDATE_HINT } from "../src/components/settings/update-settings.tsx";
-import { IS_MAC } from "../src/core/keyboard.ts";
 
-describe("hintText — the parenthesized composition", () => {
-	it("a registry action appends the LIVE binding (override-aware source)", () => {
-		assert.equal(hintText("Settings", "open-settings"), IS_MAC ? "Settings (⌘,)" : "Settings (Ctrl+,)");
-		assert.equal(hintText("Search lessons", "sessions-search"), IS_MAC ? "Search lessons (⌘⇧F)" : "Search lessons (Ctrl+Shift+F)");
-	});
-
-	it("surface-owned keys ride the binding prop (no registry entry)", () => {
-		assert.equal(hintText("Close", undefined, "escape"), "Close (Esc)");
-		assert.equal(hintText("Send", undefined, "enter"), "Send (↵)");
-	});
-
-	it("no shortcut = the label alone, no dangling dash", () => {
-		assert.equal(hintText("Home"), "Home");
-		assert.equal(hintText("Close panel (Esc)"), "Close panel (Esc)");
-	});
-});
-
-describe("hover delay (redesign 2026-10-27)", () => {
+describe("hover delay", () => {
 	it("tooltips open after a 150ms hover (focus opens them at once — tests/tooltip-focus)", () => {
 		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 });
 
-describe("spot-pins: the dev-speak cull (owner copy review at merge)", () => {
+describe("spot-pins: the dev-speak cull", () => {
 	it("the auto-update hint is honest user language — no stream jargon", () => {
 		assert.equal(AUTO_UPDATE_HINT, "Check at startup and every 24 hours. Turning this off does not stop updates already in progress or ready to install.");
 		assert.ok(!AUTO_UPDATE_HINT.includes("wave"), "no stream vocabulary");
@@ -55,7 +33,6 @@ describe("Hint — the mechanism (SSR: the tooltip itself stays closed)", () => 
 		const html = renderToStaticMarkup(
 			createElement(Hint, {
 				label: "Settings",
-				action: "open-settings",
 				children: createElement("button", { "data-testid": "settings-toggle", className: "the-quiet-chrome" }, "Settings"),
 			}),
 		);

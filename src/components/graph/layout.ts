@@ -57,9 +57,11 @@ export interface PlacedLink {
 	path: string;
 	/** SVG polygon points for the arrowhead. */
 	arrow: string;
+	/** The curve's midpoint, where a hover label sits. */
+	mid: [number, number];
 }
 
-export interface TopicLayout {
+interface TopicLayout {
 	topics: PlacedTopic[];
 	byId: Map<string, PlacedTopic>;
 	links: PlacedLink[];
@@ -188,6 +190,7 @@ export function layoutTopics(topics: readonly LayoutTopic[], links: readonly Lay
 			to: l.to,
 			path: `M${sx} ${a.y}C${mx} ${a.y} ${mx} ${b.y} ${tx} ${b.y}`,
 			arrow: `${tx},${r2(b.y - ARROW_HALF)} ${tip},${b.y} ${tx},${r2(b.y + ARROW_HALF)}`,
+			mid: [mx, r2((a.y + b.y) / 2)],
 		});
 	}
 

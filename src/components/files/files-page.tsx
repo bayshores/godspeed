@@ -25,7 +25,7 @@ import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-fo
 const FLASH_MS = 1600;
 
 /**
- * THE FILES PAGE (docs/design/godspeed-redesign.pen, "Files — panels"): the
+ * THE FILES PAGE: the
  * active class's files in two stacked panels, "Study material" and
  * "Course info" (files-sections.tsx). Each panel has its own Add and is a
  * drop zone for files from Finder; dragging a row into the other panel
