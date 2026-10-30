@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { footerLabel, useAgentStatus } from "@/components/agent-status";
 import { cn } from "@/lib/utils";
 import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
+import { RememberedNotes } from "./remembered-notes.tsx";
 
 interface AccessView {
 	token: string;
@@ -152,6 +153,8 @@ export function ConnectionSection() {
 					</span>
 				</SettingsRow>
 			</SettingsGroup>
+
+			<RememberedNotes />
 		</>
 	);
 }

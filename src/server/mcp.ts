@@ -4,7 +4,7 @@
  * guarded by a bearer token (data/mcp-token — always present, shown in
  * Settings → Connection).
  *
- * Three kinds of tools:
+ * Four kinds of tools:
  *  - THE WORK LOOP (wait_for_work / respond): every lesson turn, helper
  *    job, and graph-fact run parks its model request in agent-bridge.ts;
  *    the agent takes it, answers it, repeats.
@@ -13,6 +13,9 @@
  *  - CLASSES: agents set up the learner's classes — create/edit/archive,
  *    add files, link folders, read them, start lessons inside them.
  *    Deleting a class is app-only on purpose: no tool here can wipe a class.
+ *  - MEMORY: remember / forget save short notes about the learner; they
+ *    and a "Where you left off" briefing end the instructions an agent
+ *    gets when it connects, so it knows the learner in any folder.
  */
 import { timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -58,6 +61,9 @@ import { localToday } from "./progress.ts";
 import { createLesson } from "./lessons.ts";
 import { recordAgentAction, type AgentActionInput } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
+import { currentAgentBriefing } from "./agent-memory.ts";
+import { addAgentNote, removeAgentNote } from "../store/agent-notes.ts";
+import { NOTE_MAX_CHARS } from "../core/agent-notes.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 
 /** Codex's default MCP tool timeout is 60 s — every wait stays under it. */
@@ -75,7 +81,9 @@ The work loop:
 
 Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.
 
-Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, and a one-line signature for the class's cover) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.`;
+Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, and a one-line signature for the class's cover) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Classes can only be deleted in the godspeed window.
+
+Memory: godspeed remembers for you, whatever folder you were started in. "Where you left off" below shows the learner's classes, last lessons, next deadlines and saved notes as of when you connected; use list_lessons / read_class for anything newer. When the learner tells you something outside a lesson that will matter next time (an exam is over, what they want to study next, how they like to learn), save it with remember, one fact per note. Never save passwords or private details. Remove notes that are out of date with forget.`;
 
 // ─── Class arguments ────────────────────────────────────────────────────────
 
@@ -189,10 +197,10 @@ function waitMs(seconds: number | undefined): number {
 
 // ─── The server ─────────────────────────────────────────────────────────────
 
-function buildServer(): McpServer {
+function buildServer(instructions: string): McpServer {
 	const server = new McpServer(
 		{ name: "godspeed", version: packageMetadata.version },
-		{ instructions: INSTRUCTIONS },
+		{ instructions },
 	);
 
 	server.registerTool(
@@ -398,6 +406,33 @@ function buildServer(): McpServer {
 			}
 			return result({ status: "started", lessonId: chat.id, title: chat.title, note: `Open the lesson in the godspeed window. Call wait_for_work with lesson_id "${chat.id}" to begin teaching.` });
 		},
+	);
+
+	server.registerTool(
+		"remember",
+		{
+			title: "Remember a note",
+			description: `Save a short note about the learner. Every agent that connects to godspeed later sees it under "Where you left off", in any folder. Save what the learner tells you outside lessons that will matter next time: an exam that is over, what they plan to study next, how they like to learn. One fact per note, at most ${NOTE_MAX_CHARS} characters. Never save passwords or private details. The learner can see and delete notes in Settings → Connection.`,
+			inputSchema: {
+				text: z.string().min(1).max(NOTE_MAX_CHARS).describe("The note, one line."),
+				class_id: z.string().optional().describe("The class the note is about, if one (from list_classes)."),
+			},
+		},
+		async ({ text, class_id }) => {
+			if (class_id && !stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
+			const saved = addAgentNote(text, class_id);
+			return saved.ok ? result({ note: saved.value }) : failure(saved.error);
+		},
+	);
+
+	server.registerTool(
+		"forget",
+		{
+			title: "Forget a note",
+			description: 'Delete a saved note by its note_id (from "Where you left off" or from remember). Use it when a note is out of date or the learner asks.',
+			inputSchema: { note_id: z.string() },
+		},
+		async ({ note_id }) => (removeAgentNote(note_id) ? result({ removed: note_id }) : failure(`No note "${note_id}".`)),
 	);
 
 	registerClassTools(server);
@@ -723,18 +758,18 @@ function registerClassTools(server: McpServer): void {
 	);
 }
 
-/** The client's name from an MCP initialize request in the body, if any. */
-async function initializeName(req: Request): Promise<string | undefined> {
+/** The MCP initialize request in the body, if any, with the client's name. */
+async function initializeRequest(req: Request): Promise<{ name: string | undefined } | null> {
 	try {
 		const body: unknown = await req.clone().json();
 		for (const message of Array.isArray(body) ? body : [body]) {
 			const m = message as { method?: unknown; params?: { clientInfo?: { name?: unknown; title?: unknown } } } | null;
-			if (m?.method === "initialize") return displayAgentName(m.params?.clientInfo);
+			if (m?.method === "initialize") return { name: displayAgentName(m.params?.clientInfo) };
 		}
 	} catch {
 		/* not JSON: the transport reports it */
 	}
-	return undefined;
+	return null;
 }
 
 /** The /api/mcp transport: one stateless server per request. */
@@ -742,8 +777,10 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
 	const refused = refuse(req);
 	if (refused) return refused;
 	// Every authorized request is a check-in; initialize also names the agent.
-	if (req.method === "POST") recordCheckIn(await initializeName(req));
-	const server = buildServer();
+	const init = req.method === "POST" ? await initializeRequest(req) : null;
+	if (req.method === "POST") recordCheckIn(init?.name);
+	// Only initialize hands instructions to the agent, so only it builds the briefing.
+	const server = buildServer(init ? `${INSTRUCTIONS}\n\n${currentAgentBriefing()}` : INSTRUCTIONS);
 	const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
 	await server.connect(transport);
 	try {

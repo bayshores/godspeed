@@ -9,7 +9,7 @@ import type { LhMarkerMessage, LhMessage } from "../core/native-messages.ts";
 import { todayNoteText, todayNoteToAppend, wallClock, type TodayNoteClass } from "../core/today-note.ts";
 import { stores } from "./stores.ts";
 
-function localTimeZone(): string {
+export function localTimeZone(): string {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 

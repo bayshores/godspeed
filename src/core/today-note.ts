@@ -61,20 +61,20 @@ export function timeZoneLabel(now: Date, timeZone: string): string {
 }
 
 /** "Fri Oct 30" for 2026-10-30. */
-function dayLabel(day: string): string {
+export function dayLabel(day: string): string {
 	const [y, m, d] = day.split("-").map(Number) as [number, number, number];
 	const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 	return `${WEEKDAYS[weekday]} ${MONTHS[m - 1]} ${d}`;
 }
 
 /** "11:59 PM" for 23:59. */
-function clockLabel(time: string): string {
+export function clockLabel(time: string): string {
 	const [h, m] = time.split(":").map(Number) as [number, number];
 	return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
 /** "Fri Oct 30 11:59 PM", or just "Fri Oct 30" when the deadline has no time. */
-function whenLabel(d: ClassDeadline): string {
+export function whenLabel(d: ClassDeadline): string {
 	return d.time ? `${dayLabel(d.date)} ${clockLabel(d.time)}` : dayLabel(d.date);
 }
 
