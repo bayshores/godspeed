@@ -2,7 +2,8 @@
  * The settings dialog in a DOM: requested sections land where they live
  * (unknown ids open Connection), General holds the graph rows, and the
  * Connection section reads as the design's rows (Access: Connection,
- * Access token; Setup: Claude Code, Codex, Other MCP apps) with its helpers.
+ * Access token; Setup: Claude Code, Codex, Other MCP apps; Remembered) with
+ * its helpers.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -42,6 +43,11 @@ async function mount(element: React.ReactElement) {
 }
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 
+/** The Connection section's two reads: the access view and the saved notes. */
+function connectionFetch(access: object, notes: object[] = []) {
+	return (async (url: string) => Response.json(String(url).startsWith("/api/agent-notes") ? { notes } : access)) as unknown as typeof fetch;
+}
+
 afterEach(async () => {
 	await act(async () => root?.unmount());
 	host?.remove();
@@ -73,8 +79,7 @@ describe("settings restyle", () => {
 	});
 
 	it("Connection: Access and Setup rows, the token masked, connection status", async () => {
-		globalThis.fetch = (async () =>
-			Response.json({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, pendingWork: 1 })) as typeof fetch;
+		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, pendingWork: 1 });
 		const el = await mount(<ConnectionSection />);
 		const text = el.textContent!;
 		for (const label of ["Access", "Connection", "Access token", "Setup", "Claude Code", "Codex", "Other MCP apps"]) {
@@ -88,12 +93,29 @@ describe("settings restyle", () => {
 	});
 
 	it("access is always on: no on/off switch, setup always shown", async () => {
-		globalThis.fetch = (async () => Response.json({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 })) as typeof fetch;
+		globalThis.fetch = connectionFetch({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
 		const el = await mount(<ConnectionSection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.equal(el.querySelector('[role="switch"]'), null);
 		assert.ok(el.textContent!.includes("Setup"));
 		assert.equal(q("agent-status")!.textContent, "No agent connected");
+	});
+
+	it("Remembered lists the agent's notes with a Delete button", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, [
+			{ id: "note_1", text: "CSE 29 exam is done.", className: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },
+		]);
+		const el = await mount(<ConnectionSection />);
+		const list = q("remembered-notes")!;
+		assert.ok(list.textContent!.includes("CSE 29 exam is done."));
+		assert.ok(list.textContent!.includes("CSE 29, saved"));
+		assert.ok(el.querySelector('[aria-label="Delete note: CSE 29 exam is done."]'));
+	});
+
+	it("Remembered says there are no notes yet", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 });
+		await mount(<ConnectionSection />);
+		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
 	});
 
 	it("helpers: masked token, both Claude Code commands, the Codex block", () => {
