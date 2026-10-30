@@ -37,6 +37,7 @@ import type {
 // this subpath is a few small files.
 import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { CHAT_ID_PREFIX } from "../core/contracts.ts";
+import { continuesFrom, seenMark, type SeenMark, type SeenStore } from "../core/agent-seen.ts";
 import { emit } from "../core/events.ts";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "../core/settings.ts";
 
@@ -79,6 +80,16 @@ interface WorkItem {
 	context: TranscriptContext;
 	/** Set when an MCP client takes the item; cleared if it never answers. */
 	claimedAt?: number;
+	/** The session id of the agent that took it, when its client sends one. */
+	agent?: string;
+	/** The agent lost its context while holding this item, so its reply
+	 *  doesn't count as having seen the conversation. */
+	agentForgot?: boolean;
+	/** The item as the agent reads it, in pages (core/work-pages). Page 1
+	 *  goes out with the item, the rest through read_work. */
+	pages?: string[];
+	/** Pages the agent has not read yet; respond waits until none are left. */
+	unread?: Set<number>;
 	resolve: (message: AssistantMessage) => void;
 }
 
@@ -109,8 +120,10 @@ export interface WorkView {
 
 interface BridgeState {
 	items: Map<string, WorkItem>;
-	/** conversation → fingerprints of the messages the agent has seen. */
-	seen: Map<string, string[]>;
+	/** conversation → agent ("" = no id) → what that agent has seen of it. */
+	seenBy: Map<string, Map<string, SeenMark>>;
+	/** Where lesson marks of agents with an id are saved (server wires it). */
+	seenStore?: SeenStore;
 	/** Wake-ups for wait_for_work callers. */
 	waiters: Set<() => void>;
 	/** Last time an MCP client checked in (the "agent connected" signal). */
@@ -130,9 +143,10 @@ const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seen: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map(), held: new Map() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map(), held: new Map() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	g[STATE_KEY].held ??= new Map();
+	g[STATE_KEY].seenBy ??= new Map();
 	return g[STATE_KEY];
 }
 
@@ -147,7 +161,7 @@ export function labelConversation(conversation: string, label: string): void {
 export function forgetConversation(conversation: string): void {
 	const s = state();
 	s.labels.delete(conversation);
-	s.seen.delete(conversation);
+	s.seenBy.delete(conversation);
 	s.held.delete(conversation);
 }
 
@@ -257,14 +271,47 @@ function fingerprint(m: Message): string {
 	return JSON.stringify(renderMessage(m));
 }
 
-/** Present one item, sending only the unseen tail when the agent already
+/** Only lessons outlive a restart; background jobs never come back. */
+function savesSeen(agent: string | undefined, conversation: string): agent is string {
+	return !!agent && !!state().seenStore && conversation.startsWith(CHAT_ID_PREFIX);
+}
+
+function seenOf(agent: string | undefined, conversation: string): SeenMark | undefined {
+	const s = state();
+	const mark = s.seenBy.get(conversation)?.get(agent ?? "");
+	return mark ?? (savesSeen(agent, conversation) ? s.seenStore!.get(agent, conversation) : undefined);
+}
+
+function rememberSeen(agent: string | undefined, conversation: string, mark: SeenMark): void {
+	const s = state();
+	let byAgent = s.seenBy.get(conversation);
+	if (!byAgent) s.seenBy.set(conversation, (byAgent = new Map()));
+	byAgent.set(agent ?? "", mark);
+	if (savesSeen(agent, conversation)) s.seenStore!.set(agent, conversation, mark);
+}
+
+/** Save what agents have seen (the server wires data/agent-seen.json). */
+export function setSeenStore(store: SeenStore): void {
+	state().seenStore = store;
+}
+
+/** The agent lost its context (it compacted or cleared): its next items
+ *  come in full. */
+export function forgetAgent(agent: string): void {
+	const s = state();
+	for (const byAgent of s.seenBy.values()) byAgent.delete(agent);
+	for (const item of s.items.values()) if (item.agent === agent) item.agentForgot = true;
+	s.seenStore?.forgetAgent(agent);
+}
+
+/** Present one item, sending only the unseen tail when its agent already
  *  holds this conversation's earlier messages. */
 function view(item: WorkItem, forceFull: boolean): WorkView {
 	const all = item.context.messages;
 	const prints = all.map(fingerprint);
-	const seen = forceFull ? undefined : state().seen.get(item.conversation);
-	const continued = !!seen && seen.length <= prints.length && seen.every((p, i) => p === prints[i]);
-	const fresh = continued ? all.slice(seen!.length) : all;
+	const seen = forceFull ? undefined : seenOf(item.agent, item.conversation);
+	const continued = continuesFrom(seen, prints);
+	const fresh = continued ? all.slice(seen!.count) : all;
 	const images: WorkImage[] = [];
 	const messages = fresh
 		.filter((m) => m.role !== "system" || continued)
@@ -311,7 +358,7 @@ function pick(now: number, opts: { conversation?: string; andBackground?: boolea
 /** Wait up to `timeoutMs` for a request, claim it, and present it. */
 export async function waitForWork(
 	timeoutMs: number,
-	opts: { full?: boolean; conversation?: string; andBackground?: boolean } = {},
+	opts: { full?: boolean; conversation?: string; andBackground?: boolean; agent?: string } = {},
 ): Promise<WorkView | null> {
 	const s = state();
 	const deadline = Date.now() + timeoutMs;
@@ -321,6 +368,8 @@ export async function waitForWork(
 		const item = pick(now, opts);
 		if (item) {
 			item.claimedAt = now;
+			item.agent = opts.agent;
+			item.agentForgot = false;
 			if (isBackground(item)) emit("activity-changed", {});
 			return view(item, !!opts.full);
 		}
@@ -341,10 +390,18 @@ export async function waitForWork(
 /** Answer a work item. Its conversation's next item is held for the
  *  answering agent for `holdMs` (it waits for it right after; release with
  *  releaseConversation). Returns the item's conversation, or an error. */
-export function respondToWork(workId: string, reply: AgentReply, holdMs: number): { ok: true; conversation: string } | { ok: false; error: string } {
+export function respondToWork(
+	workId: string,
+	reply: AgentReply,
+	holdMs: number,
+): { ok: true; conversation: string; agent?: string } | { ok: false; error: string } {
 	const s = state();
 	const item = s.items.get(workId);
-	if (!item) return { ok: false, error: `No open work item "${workId}" — it was already answered or the request was cancelled. Call wait_for_work for the current one.` };
+	if (!item) return { ok: false, error: noItem(workId) };
+	const unread = [...(item.unread ?? [])].sort((a, b) => a - b);
+	if (unread.length > 0) {
+		return { ok: false, error: `Read the rest of this work item first: page(s) ${unread.join(", ")} of ${item.pages!.length} are unread. Call read_work with work_id "${workId}" and page ${unread[0]}.` };
+	}
 	const toolNames = new Set(instructionsAndTools(item.context.messages).tools.map((t) => t.name));
 	const unknown = (reply.toolCalls ?? []).map((c) => c.name).filter((n) => !toolNames.has(n));
 	if (unknown.length > 0) {
@@ -358,10 +415,32 @@ export function respondToWork(workId: string, reply: AgentReply, holdMs: number)
 	emit("agent-changed", {});
 	// The agent already knows its own reply: mark it seen so the next
 	// delivery in this conversation starts at the tool results.
-	s.seen.set(item.conversation, [...item.context.messages.map(fingerprint), fingerprint(message)]);
+	if (!item.agentForgot) rememberSeen(item.agent, item.conversation, seenMark([...item.context.messages.map(fingerprint), fingerprint(message)]));
 	s.held.set(item.conversation, Date.now() + holdMs);
 	item.resolve(message);
-	return { ok: true, conversation: item.conversation };
+	return { ok: true, conversation: item.conversation, ...(item.agent ? { agent: item.agent } : {}) };
+}
+
+/** Keep a presented item's pages; page 1 went out with it. */
+export function setWorkPages(workId: string, pages: string[]): void {
+	const item = state().items.get(workId);
+	if (!item) return;
+	item.pages = pages;
+	item.unread = new Set(pages.map((_, i) => i + 1).slice(1));
+}
+
+/** One page of an open work item, which then counts as read. */
+export function readWorkPage(workId: string, page: number): { ok: true; text: string; pages: number } | { ok: false; error: string } {
+	const item = state().items.get(workId);
+	if (!item) return { ok: false, error: noItem(workId) };
+	const pages = item.pages ?? [];
+	if (page < 1 || page > pages.length) return { ok: false, error: `Work item "${workId}" has page(s) 1 to ${pages.length}.` };
+	item.unread?.delete(page);
+	return { ok: true, text: pages[page - 1]!, pages: pages.length };
+}
+
+function noItem(workId: string): string {
+	return `No open work item "${workId}" — it was already answered or the request was cancelled. Call wait_for_work for the current one.`;
 }
 
 /** End a respondToWork hold (the answering agent stopped waiting). */

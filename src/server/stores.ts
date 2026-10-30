@@ -6,6 +6,8 @@
  * file (and the adapter implementations in src/store/).
  */
 
+import { agentSeenStore } from "../store/agent-seen.ts";
+import { setSeenStore } from "../agent/agent-bridge.ts";
 import { chatStore } from "../store/chats.ts";
 import { classStore } from "../store/classes.ts";
 import { createGraphStore, forgetLedgers, graphStore } from "../store/graph.ts";
@@ -25,6 +27,8 @@ export const stores = {
 	jobStore,
 	settingsStore,
 };
+
+setSeenStore(agentSeenStore);
 
 /** One adapter per class graph, built on first use (classes wave,
  *  2026-10-26). Adapters are stateless, so caching is only an allocation

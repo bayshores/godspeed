@@ -23,7 +23,7 @@ Then install the plugin in Claude Code.
 
 ## How it connects
 
-The plugin runs a small local bridge (`scripts/connect.mjs`) that passes requests to the godspeed app at 127.0.0.1. It reads the app's access token from the app's data folder and sends nothing to any other server. While you're thinking about an answer, a background script waits for you, so Claude doesn't spend tokens until you reply.
+The plugin runs a small local bridge (`scripts/connect.mjs`) that passes requests to the godspeed app at 127.0.0.1. It reads the app's access token from the app's data folder and sends nothing to any other server. While you're thinking about an answer, a background script waits for you, so Claude doesn't spend tokens until you reply. And when Claude Code shortens its memory in a long session, a small hook tells the app, so the next message comes with the whole lesson again.
 
 ## License
 

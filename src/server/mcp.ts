@@ -5,7 +5,7 @@
  * Settings → Connection).
  *
  * Four kinds of tools:
- *  - THE WORK LOOP (wait_for_work / respond): every lesson turn, helper
+ *  - THE WORK LOOP (wait_for_work / read_work / respond): every lesson turn, helper
  *    job, and graph-fact run parks its model request in agent-bridge.ts;
  *    the agent takes it, answers it, repeats.
  *  - DIRECT ACCESS: list/read lessons, search the knowledge graph and a
@@ -27,14 +27,18 @@ import {
 	agentConnected,
 	agentName,
 	displayAgentName,
+	forgetAgent,
 	pendingWorkCount,
+	readWorkPage,
 	recordCheckIn,
 	releaseConversation,
 	respondToWork,
+	setWorkPages,
 	waitForWork,
 	type WorkView,
 } from "../agent/agent-bridge.ts";
 import { getGraph } from "../core/graph.ts";
+import { splitPages } from "../core/work-pages.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
 import { CLASS_ICONS, cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassIcon, type ClassScope } from "../core/contracts.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
@@ -75,7 +79,7 @@ const INSTRUCTIONS = `godspeed is a learning app, and you are its AI: the teache
 
 The work loop:
 1. Call wait_for_work. It returns a work item (or "idle" after a while — then call it again).
-2. A work item holds "instructions" (your system prompt for this conversation — follow it exactly, it is the app's teaching method), "tools" (the tools you may call, with JSON schemas), and "messages" (the conversation so far). Later items in the same conversation have "continued": true and carry only the new messages. Images in the messages appear as "[image N]"; the images themselves come with the work item, in that order.
+2. A work item holds "instructions" (your system prompt for this conversation — follow it exactly, it is the app's teaching method), "tools" (the tools you may call, with JSON schemas), and "messages" (the conversation so far). Later items in the same conversation have "continued": true and carry only the new messages. A long work item comes in pages: read every page with read_work before you respond. Images in the messages appear as "[image N]"; the images themselves come with the work item, in that order.
 3. Answer with respond: your text and/or tool calls, exactly as a model would. The app runs the tools and, when it needs you again in the same conversation (e.g. tool results), respond returns the next work item directly.
 4. When respond says the turn is complete, the app is waiting on the learner (they read and answer in the godspeed window). Call wait_for_work again.
 
@@ -174,10 +178,21 @@ function result(value: unknown) {
 }
 
 /** A work item as a tool result: the item as JSON, then its images as
- *  real MCP images (the "[image N]" markers point at them in order). */
+ *  real MCP images (the "[image N]" markers point at them in order). A
+ *  long item sends page 1 of its JSON after a short header. */
 function workResult(view: WorkView) {
 	const images = (view.images ?? []).map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mimeType }));
-	return { content: [...result(describe(view)).content, ...images] };
+	const pages = splitPages(JSON.stringify(describe(view), null, 2));
+	setWorkPages(view.workId, pages);
+	if (pages.length === 1) return { content: [{ type: "text" as const, text: pages[0]! }, ...images] };
+	const header = {
+		status: "work",
+		workId: view.workId,
+		page: 1,
+		pages: pages.length,
+		note: `This work item is long, so it comes in ${pages.length} pages. Below is page 1 of its JSON. Read pages 2 to ${pages.length} with read_work before you respond.`,
+	};
+	return { content: [...result(header).content, { type: "text" as const, text: pages[0]! }, ...images] };
 }
 function failure(message: string) {
 	return { content: [{ type: "text" as const, text: message }], isError: true };
@@ -198,6 +213,23 @@ const IDLE = {
 	status: "idle",
 	note: "Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).",
 };
+
+/** The calling agent's session id, when its client sends one: the
+ *  Claude Code plugin's waiter sets "godspeed/agent", and Codex sends its
+ *  session id in "x-codex-turn-metadata". Each agent then gets only the
+ *  messages it hasn't seen. */
+function agentIdOf(meta: Record<string, unknown> | undefined): string | undefined {
+	let codex = meta?.["x-codex-turn-metadata"];
+	if (typeof codex === "string") {
+		try {
+			codex = JSON.parse(codex);
+		} catch {
+			codex = undefined;
+		}
+	}
+	const id = meta?.["godspeed/agent"] ?? (codex as { session_id?: unknown } | undefined)?.session_id;
+	return typeof id === "string" && id.length > 0 && id.length <= 200 ? id : undefined;
+}
 
 function waitMs(seconds: number | undefined): number {
 	return Math.min(Math.max(seconds ?? DEFAULT_WAIT_S, 1), MAX_WAIT_S) * 1000;
@@ -222,9 +254,9 @@ function buildServer(instructions: string): McpServer {
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
 			},
 		},
-		async ({ timeout_seconds, lesson_id, full_context }) => {
+		async ({ timeout_seconds, lesson_id, full_context }, extra) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true });
+			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(extra._meta) });
 			return view ? workResult(view) : result(IDLE);
 		},
 	);
@@ -250,7 +282,7 @@ function buildServer(instructions: string): McpServer {
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			if (lesson) act({ label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
-			const next = await waitForWork(waitMs, { conversation: answered.conversation }).finally(() => releaseConversation(answered.conversation));
+			const next = await waitForWork(waitMs, { conversation: answered.conversation, agent: answered.agent }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			return result({
@@ -259,6 +291,24 @@ function buildServer(instructions: string): McpServer {
 					? `Your turn is done. The learner is reading and will answer in the godspeed window. Call wait_for_work to continue (lesson_id "${chat.id}" to stay on this lesson).`
 					: "The task step is done. Call wait_for_work for more.",
 			});
+		},
+	);
+
+	server.registerTool(
+		"read_work",
+		{
+			title: "Read more of a work item",
+			description: "Read one page of a long work item. When a work item says it has several pages, read all of them before you respond.",
+			inputSchema: {
+				work_id: z.string().describe("The workId of the work item."),
+				page: z.number().int().min(1).describe("The page to read, from 2."),
+			},
+		},
+		async ({ work_id, page }) => {
+			const read = readWorkPage(work_id, page);
+			if (!read.ok) return failure(read.error);
+			const note = page < read.pages ? `Next: read_work page ${page + 1}.` : "That was the last page. Answer with respond.";
+			return { content: [...result({ workId: work_id, page, pages: read.pages, note }).content, { type: "text" as const, text: read.text }] };
 		},
 	);
 
@@ -785,6 +835,18 @@ async function initializeRequest(req: Request): Promise<{ name: string | undefin
 		/* not JSON: the transport reports it */
 	}
 	return null;
+}
+
+/** /api/mcp/forget: the Claude Code plugin's hook says an agent lost its
+ *  context (it compacted or cleared), so its next items come in full. */
+export async function handleAgentForget(req: Request): Promise<Response> {
+	const refused = refuse(req);
+	if (refused) return refused;
+	const body = (await req.json().catch(() => null)) as { agent?: unknown } | null;
+	const agent = agentIdOf({ "godspeed/agent": body?.agent });
+	if (!agent) return Response.json({ error: "Send the agent's session id as \"agent\"." }, { status: 400 });
+	forgetAgent(agent);
+	return Response.json({ ok: true });
 }
 
 /** The /api/mcp transport: one stateless server per request. */

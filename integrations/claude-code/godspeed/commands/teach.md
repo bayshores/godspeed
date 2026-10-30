@@ -13,7 +13,7 @@ If you are not in auto mode, first tell the user exactly this one line: "Turn on
 2. Loop:
    - **Wait without polling.** Run the waiter with the Bash tool and `run_in_background: true`:
      `node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-work.mjs"` (add `--lesson <lesson id>` to stay on one lesson; background jobs such as reading class files still come to you then). Then end your turn. The script waits for free and exits when the learner answers (or other work arrives), which wakes you. If the item lists "imageFiles", open each file to see the "[image N]" images in the messages. Never call `wait_for_work` in a loop yourself, and never poll the waiter's output file.
-   - When the waiter finishes, read its output file. Exit code 0: the output is one work item (JSON). Exit code 2: nothing arrived for 2 hours, so start it again. Exit code 1: tell the user its message and stop.
+   - When the waiter finishes, read its output file. Exit code 0: the output is one work item (JSON). If its first line says it has several `pages`, page 1 follows on the next lines, and you read the rest with `read_work` before you respond. Exit code 2: nothing arrived for 2 hours, so start it again. Exit code 1: tell the user its message and stop.
    - For a work item, follow its `instructions` exactly: that is the app's teaching method and your role for that conversation (teacher, helper, or knowledge-graph builder). Use only the tools listed in the item, with arguments matching their schemas.
    - Answer with `respond`. If it returns another work item, handle it the same way. If it returns `turn_complete`, start the waiter again.
    - If you lose track of a conversation, call `wait_for_work` with `full_context: true`.

@@ -19,6 +19,13 @@
  * Images: the item's "[image N]" markers point at real images, which stdout
  * can't carry. They are saved as files and listed in "imageFiles" (in
  * order), so the agent can open them.
+ *
+ * It sends Claude Code's session id (CLAUDE_CODE_SESSION_ID), so godspeed
+ * sends this session only the messages it hasn't seen yet.
+ *
+ * A long item comes in pages: the first line is a short header ("pages"),
+ * and page 1 of the item follows on the next lines. The agent reads the
+ * other pages with the read_work tool.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -31,6 +38,7 @@ const flag = (name) => {
 	return at >= 0 ? args[at + 1] : undefined;
 };
 const lessonId = flag("--lesson");
+const agent = process.env.CLAUDE_CODE_SESSION_ID;
 const maxMinutes = Number(flag("--max-minutes") ?? 120);
 const deadline = Date.now() + (Number.isFinite(maxMinutes) && maxMinutes > 0 ? maxMinutes : 120) * 60_000;
 const UNREACHABLE_LIMIT_MS = 5 * 60_000;
@@ -68,7 +76,11 @@ async function waitOnce() {
 			jsonrpc: "2.0",
 			id: 1,
 			method: "tools/call",
-			params: { name: "wait_for_work", arguments: { timeout_seconds: 55, ...(lessonId ? { lesson_id: lessonId } : {}) } },
+			params: {
+				name: "wait_for_work",
+				arguments: { timeout_seconds: 55, ...(lessonId ? { lesson_id: lessonId } : {}) },
+				...(agent ? { _meta: { "godspeed/agent": agent } } : {}),
+			},
 		}),
 	});
 	const body = await res.text();
@@ -91,14 +103,15 @@ async function waitOnce() {
 		const imageFiles = saveImages(rpc.result?.content, item.workId);
 		if (imageFiles.length) item.imageFiles = imageFiles;
 	}
-	return item;
+	const page = item.pages > 1 ? rpc.result?.content?.[1]?.text : undefined;
+	return { item, page };
 }
 
 let unreachableSince = null;
 while (Date.now() < deadline) {
-	let item;
+	let item, page;
 	try {
-		item = await waitOnce();
+		({ item, page } = await waitOnce());
 		unreachableSince = null;
 	} catch {
 		// The app may be restarting: keep trying for a while.
@@ -108,7 +121,7 @@ while (Date.now() < deadline) {
 		continue;
 	}
 	if (item.status === "work") {
-		process.stdout.write(`${JSON.stringify(item)}\n`);
+		process.stdout.write(`${JSON.stringify(item)}\n${page === undefined ? "" : `${page}\n`}`);
 		process.exit(0);
 	}
 }

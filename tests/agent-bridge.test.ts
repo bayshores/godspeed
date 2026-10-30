@@ -35,6 +35,7 @@ const bridge = await import("../src/agent/agent-bridge.ts");
 const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { subscribe } = await import("../src/core/events.ts");
+const { WORK_PAGE_CHARS } = await import("../src/core/work-pages.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -162,6 +163,40 @@ describe("outside agent as the model", () => {
 		assert.equal(bridge.pendingWorkCount(), 0);
 	});
 
+	it("each agent gets only what it hasn't seen, and that survives a restart", async () => {
+		const chat = agentChat("Two agents");
+		await handleChatInput(chat.id, { type: "text", text: "hello" });
+		const ls = { toolCalls: [{ name: "ls", arguments: {} }] };
+		const take = async (agent: string) => {
+			const work = await bridge.waitForWork(5000, { conversation: chat.id, agent });
+			assert.ok(work);
+			return work;
+		};
+
+		const first = await take("agent-a");
+		assert.equal(first.continued, false);
+		assert.ok(bridge.respondToWork(first.workId, ls, 0).ok);
+		const second = await take("agent-b");
+		assert.equal(second.continued, false, "agent b never saw this lesson, so it gets all of it");
+		assert.ok(bridge.respondToWork(second.workId, ls, 0).ok);
+		const third = await take("agent-a");
+		assert.equal(third.continued, true);
+		assert.deepEqual(third.messages.map((m) => m.role), ["toolResult", "assistant", "toolResult"], "what agent b added since");
+		assert.ok(bridge.respondToWork(third.workId, ls, 0).ok);
+
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "follow-up parked");
+		bridge.forgetConversation(chat.id); // the app's memory is gone, as after a restart
+		const fourth = await take("agent-a");
+		assert.equal(fourth.continued, true, "agent a's mark comes back from data/agent-seen.json");
+		assert.deepEqual(fourth.messages.map((m) => m.role), ["toolResult"]);
+		const saved = JSON.parse(fs.readFileSync(path.join(scratch, "data", "agent-seen.json"), "utf8"));
+		assert.ok(saved.agents["agent-a"].conversations[chat.id]);
+		assert.ok(saved.agents["agent-b"].conversations[chat.id]);
+
+		assert.ok(bridge.respondToWork(fourth.workId, { text: "Done." }, 0).ok);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
 	it("an answered lesson's next item is held for the answering agent until release or expiry", async () => {
 		const chat = agentChat("Held");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
@@ -253,6 +288,7 @@ describe("the /api/mcp door", () => {
 			"read_class",
 			"read_lesson",
 			"read_passage",
+			"read_work",
 			"remember",
 			"remove_class_deadline",
 			"respond",
@@ -277,6 +313,96 @@ describe("the /api/mcp door", () => {
 		const unknown = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1, lesson_id: "nope" } } }, auth))).json();
 		assert.equal(unknown.result.isError, true);
 		assert.match(unknown.result.content[0].text, /No lesson "nope"/);
+	});
+
+	it("a long work item comes in pages, and respond waits until every page was read", async () => {
+		const auth = { authorization: `Bearer ${ensureMcpToken()}` };
+		const call = async (id: number, name: string, args: Record<string, unknown>) =>
+			(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } }, auth))).json()).result;
+		const long = Array.from({ length: 3000 }, (_, i) => `line ${i} of a very long pasted transcript`).join("\n");
+		const stream = bridge.agentStream(bridge.agentModel(), { messages: [{ role: "user", content: long, timestamp: 1 }] } as never, { sessionId: "long-conversation" });
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "request parked");
+
+		const first = await call(1, "wait_for_work", { timeout_seconds: 1 });
+		const header = JSON.parse(first.content[0].text);
+		assert.equal(header.page, 1);
+		assert.ok(header.pages >= 3, `pages: ${header.pages}`);
+		const pages = [first.content[1].text];
+		for (const page of pages) assert.ok(page.length <= WORK_PAGE_CHARS);
+
+		const early = await call(2, "respond", { work_id: header.workId, text: "Done.", wait_seconds: 0 });
+		assert.equal(early.isError, true);
+		assert.match(early.content[0].text, /page\(s\) 2, 3/);
+
+		for (let page = 2; page <= header.pages; page++) {
+			const read = await call(10 + page, "read_work", { work_id: header.workId, page });
+			assert.equal(JSON.parse(read.content[0].text).page, page);
+			pages.push(read.content[1].text);
+		}
+		const past = await call(3, "read_work", { work_id: header.workId, page: header.pages + 1 });
+		assert.equal(past.isError, true);
+		const item = JSON.parse(pages.join(""));
+		assert.equal(item.workId, header.workId);
+		assert.equal(item.messages[0].text, long, "the pages join back into the whole item");
+
+		const answered = await call(4, "respond", { work_id: header.workId, text: "Done.", wait_seconds: 0 });
+		assert.equal(JSON.parse(answered.content[0].text).status, "turn_complete");
+		await stream.result();
+	});
+
+	it("the plugin's forget call makes that agent's next item come in full", async () => {
+		const token = ensureMcpToken();
+		const meta = { "godspeed/agent": "agent-forgets" };
+		const call = async (id: number, name: string, args: Record<string, unknown>) =>
+			(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args, _meta: meta } }, { authorization: `Bearer ${token}` }))).json()).result;
+		const forget = (body: unknown, auth = token) =>
+			mcp.handleAgentForget(new Request("http://127.0.0.1:3000/api/mcp/forget", {
+				method: "POST",
+				headers: { host: "127.0.0.1:3000", "content-type": "application/json", authorization: `Bearer ${auth}` },
+				body: JSON.stringify(body),
+			}));
+		/** A work item's JSON, reading every page. */
+		const whole = async (res: { content: { text: string }[] }) => {
+			const header = JSON.parse(res.content[0]!.text);
+			if (!header.pages) return header;
+			const pages = [res.content[1]!.text];
+			for (let page = 2; page <= header.pages; page++) pages.push((await call(20 + page, "read_work", { work_id: header.workId, page })).content[1].text);
+			return JSON.parse(pages.join(""));
+		};
+
+		const chat = agentChat("Forgets");
+		await handleChatInput(chat.id, { type: "text", text: "hi" });
+		const first = await whole(await call(1, "wait_for_work", { timeout_seconds: 5, lesson_id: chat.id }));
+		assert.equal(first.continued, false);
+		const second = await whole(await call(2, "respond", { work_id: first.workId, tool_calls: [{ name: "ls", arguments: {} }], wait_seconds: 5 }));
+		assert.equal(second.continued, true, "respond's next item knows the agent from its wait");
+
+		assert.equal((await forget({ agent: "agent-forgets" }, "wrong")).status, 401);
+		assert.equal((await forget({})).status, 400);
+		assert.equal((await forget({ agent: "agent-forgets" })).status, 200);
+		assert.ok(bridge.respondToWork(second.workId, { toolCalls: [{ name: "ls", arguments: {} }] }, 0).ok, "the item it held when it forgot");
+		const third = await whole(await call(3, "wait_for_work", { timeout_seconds: 5, lesson_id: chat.id }));
+		assert.equal(third.continued, false, "after forgetting, the whole lesson comes again");
+		assert.ok(third.instructions);
+
+		assert.ok(bridge.respondToWork(third.workId, { text: "Done." }, 0).ok);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("knows a Codex session by the id in its turn metadata, as an object or as JSON text", async () => {
+		const auth = { authorization: `Bearer ${ensureMcpToken()}` };
+		for (const turn of [{ session_id: "codex-object" }, JSON.stringify({ session_id: "codex-text" })]) {
+			const chat = agentChat("Codex");
+			await handleChatInput(chat.id, { type: "text", text: "hi" });
+			const wait = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 5, lesson_id: chat.id }, _meta: { "x-codex-turn-metadata": turn } } }, auth))).json();
+			const header = JSON.parse(wait.result.content[0].text);
+			for (let page = 2; page <= (header.pages ?? 1); page++) assert.ok(bridge.readWorkPage(header.workId, page).ok);
+			assert.ok(bridge.respondToWork(header.workId, { text: "Hello." }, 0).ok);
+			await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+			const saved = JSON.parse(fs.readFileSync(path.join(scratch, "data", "agent-seen.json"), "utf8"));
+			const id = typeof turn === "string" ? "codex-text" : "codex-object";
+			assert.ok(saved.agents[id]?.conversations[chat.id], `${id} is remembered`);
+		}
 	});
 
 	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {
