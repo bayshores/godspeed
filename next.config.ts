@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
 			"node_modules/onnxruntime-node/package.json",
 			"node_modules/onnxruntime-node/dist/**/*.js",
 			"node_modules/onnxruntime-common/dist/cjs/**/*.js",
+			// Marks dist/cjs as CommonJS; without it Node reads it as ESM.
+			"node_modules/onnxruntime-common/dist/cjs/package.json",
 			`node_modules/onnxruntime-node/bin/napi-v6/${process.platform}/${process.arch}/**/*`,
 			// transformers imports sharp; on Windows its .node needs the libvips
 			// DLLs beside it, which the tracer leaves out. npm installs only this
