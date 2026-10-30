@@ -23,6 +23,7 @@
 
 const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("electron");
 const { desktopAPIHeaders, trustedSender } = require("./desktop-api.cjs");
+const { isWebLink, isAppBundle } = require("./open-guards.cjs");
 const { bugReportURL } = require("./bug-report.cjs");
 const { recordRestart } = require("./server-restarts.cjs");
 const { randomBytes } = require("node:crypto");
@@ -101,6 +102,10 @@ if (process.argv.includes("--browser-service")) {
 			// Must land before app-ready for Chromium to pick it up.
 			app.commandLine.appendSwitch("remote-debugging-port", String(port));
 			await app.whenReady();
+			// Demo pages are model-written: they get no permissions at all
+			// (Electron's default grants every request).
+			session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+			session.defaultSession.setPermissionCheckHandler(() => false);
 			// A hidden window keeps the app lifecycle ordinary on every
 			// platform (no window-all-closed handler is installed here).
 			const win = new BrowserWindow({ show: false });
@@ -416,7 +421,8 @@ function killServer() {
  *  - deny-by-default permission handler allowing only our loopback origin
  *    (Electron auto-approves by default, we do not);
  *  - will-navigate pinned to the app origin; window.open always denied —
- *    external links go to the real browser via shell.openExternal. */
+ *    external web and mail links go to the real browser via
+ *    shell.openExternal, every other scheme is dropped. */
 function createWindow(url, serverUp = null) {
 	const win = new BrowserWindow({
 		width: 1440,
@@ -494,11 +500,11 @@ function createWindow(url, serverUp = null) {
 	win.webContents.on("will-navigate", (event, target) => {
 		if (new URL(target).origin !== allowedOrigin()) {
 			event.preventDefault();
-			void shell.openExternal(target);
+			if (isWebLink(target)) void shell.openExternal(target);
 		}
 	});
 	win.webContents.setWindowOpenHandler(({ url: target }) => {
-		void shell.openExternal(target);
+		if (isWebLink(target)) void shell.openExternal(target);
 		return { action: "deny" };
 	});
 
@@ -829,7 +835,6 @@ async function main() {
 	} else {
 		log(`dev mode: ${devUrl}`);
 		serverReady = true;
-		writeMcpEndpoint(url);
 	}
 
 	installMenu();
@@ -839,36 +844,36 @@ async function main() {
 	// interval fire after it below. setupAutoUpdater's contract: failures
 	// are log lines — this can never block boot.
 	setupAutoUpdater();
-	ipcMain.on("lh:update-install", () => installUpdateNow());
+	// Every IPC message must come from an app window's main frame, never a subframe.
+	const fromAppWindow = (event) =>
+		trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) && trustedSender(event, new URL(url).origin, BrowserWindow);
+	const untrusted = () => new Error("Untrusted desktop request.");
+	ipcMain.on("lh:update-install", (event) => {
+		if (fromAppWindow(event)) installUpdateNow();
+	});
 	ipcMain.handle("lh:update:get", (event) => {
-		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
+		if (!fromAppWindow(event)) throw untrusted();
 		return updateState;
 	});
 	ipcMain.handle("lh:update:check", (event) => {
-		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
+		if (!fromAppWindow(event)) throw untrusted();
 		checkForUpdates({ manual: true });
 	});
-	ipcMain.on("lh:report-bug", () => openBugReport());
+	ipcMain.on("lh:report-bug", (event) => {
+		if (fromAppWindow(event)) openBugReport();
+	});
 
-	// Sidebar-at-narrow-window (owner, 2026-09-17): the renderer auto-closes
-	// the sidebar below SIDEBAR_AUTOCLOSE (928px); opening it again at that
-	// width asks the window to widen instead — the layout never has to
-	// accommodate a narrow window + open sidebar. Top-left stays fixed, the
-	// window grows right. No-op when already wide.
-	// The renderer's first paint can race did-finish-load — it asks for
-	// the current factor itself (mirrors "lh:zoom" pushes).
-	// Classes wave (2026-10-26): the native folder picker for "Link folder…".
-	// Returns the chosen absolute path, or null when cancelled.
+	// The native folder picker for "Link folder…". Returns the chosen
+	// absolute path, or null when cancelled.
 	ipcMain.handle("lh:pick-folder", async (event) => {
-		const win = BrowserWindow.fromWebContents(event.sender);
-		const result = win
-			? await dialog.showOpenDialog(win, { properties: ["openDirectory"] })
-			: await dialog.showOpenDialog({ properties: ["openDirectory"] });
+		if (!fromAppWindow(event)) throw untrusted();
+		const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), { properties: ["openDirectory"] });
 		return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
 	});
 	// Appearance → Reading font: the installed font families. Chromium's
 	// queryLocalFonts returns nothing in this Electron, so the OS is asked.
-	ipcMain.handle("lh:fonts", async () => {
+	ipcMain.handle("lh:fonts", async (event) => {
+		if (!fromAppWindow(event)) throw untrusted();
 		try {
 			const fonts = await require("font-list").getFonts({ disableQuoting: true });
 			return [...new Set(fonts)].sort((a, b) => a.localeCompare(b));
@@ -878,21 +883,37 @@ async function main() {
 	});
 	// Show in Finder (a class file, selected) and open in the default app
 	// (the linked folder, a PDF the learner sent). Opening is limited to
-	// folders and PDFs so nothing can be launched.
+	// folders and PDFs so nothing can be launched: an app bundle is a folder
+	// too, so it is only shown, and links are resolved before any check.
 	ipcMain.handle("lh:show-in-folder", (event, target) => {
-		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
+		if (!fromAppWindow(event)) throw untrusted();
 		if (typeof target === "string" && path.isAbsolute(target)) shell.showItemInFolder(target);
 	});
 	ipcMain.handle("lh:open-path", async (event, target) => {
-		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
+		if (!fromAppWindow(event)) throw untrusted();
 		if (typeof target !== "string" || !path.isAbsolute(target)) return;
-		const stat = fs.statSync(target, { throwIfNoEntry: false });
-		if (stat?.isDirectory() || (stat?.isFile() && /\.pdf$/i.test(target))) await shell.openPath(target);
+		let real;
+		try {
+			real = fs.realpathSync(target);
+		} catch {
+			return;
+		}
+		const stat = fs.statSync(real);
+		if (stat.isDirectory() && isAppBundle(real)) shell.showItemInFolder(real);
+		else if (stat.isDirectory() || (stat.isFile() && /\.pdf$/i.test(real))) await shell.openPath(real);
 	});
-	ipcMain.handle("lh:zoom:get",(event) => BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1);
+	// The renderer's first paint can race did-finish-load, so it asks for
+	// the current factor itself (mirrors "lh:zoom" pushes).
+	ipcMain.handle("lh:zoom:get", (event) => {
+		if (!fromAppWindow(event)) throw untrusted();
+		return BrowserWindow.fromWebContents(event.sender).webContents.getZoomFactor();
+	});
+	// The renderer auto-closes the sidebar below SIDEBAR_AUTOCLOSE; opening
+	// it again at that width widens the window instead, so the layout never
+	// holds a narrow window and an open sidebar. Top-left stays fixed.
 	ipcMain.on("lh:expand-window", (event) => {
+		if (!fromAppWindow(event)) return;
 		const win = BrowserWindow.fromWebContents(event.sender);
-		if (!win) return;
 		const { x, y, width, height } = win.getBounds();
 		const target = SIDEBAR_AUTOCLOSE;
 		if (width < target) win.setBounds({ x, y, width: target, height });

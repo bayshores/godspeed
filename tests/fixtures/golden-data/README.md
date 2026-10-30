@@ -26,7 +26,7 @@ core tool surface must appear in real data here.
   practice-thinking ×2, conclude ×2, practice-next, problem-dismissed — the
   full marker cycle of a practice session, including the dismissal.
 - `graph/` — the real ledgers: nodes (282 lines), chains (160), sessions (8),
-  coverage (93), sources (4), render-settings, positions.
+  coverage (93), sources (4).
 - `jobs/` — five records covering kind × status: research done + aborted by
   learner, demo done, visual done, pdf error.
 - `settings.json` — the stamped settings record (version 1, model slots).

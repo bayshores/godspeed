@@ -10,8 +10,8 @@ import importPlugin from "eslint-plugin-import";
  *
  *   src/components/**  →  "@/core"  (the pure core barrel) — ONLY
  *   src/app/**         →  "@/core" + "@/server" (the server barrel) — ONLY
- *   (the core library = src/core, src/server, src/agent, src/store,
- *   src/utils.ts; components/, app/, lib/ and config.ts are not part of it)
+ *   (the core library = src/core, src/server, src/agent, src/store;
+ *   components/, app/, lib/ and config.ts are not part of it)
  *   src/core/**    →  never imports src/agent, src/server, src/store (pure
  *                    core: adapters implement core/ports.ts, never the reverse)
  *   src/agent/**   →  never imports src/server, src/store (dependencies —
@@ -58,7 +58,7 @@ export default defineConfig([
 						},
 						{
 							target: "./src/components",
-							from: ["./src/agent", "./src/server", "./src/store", "./src/utils.ts"],
+							from: ["./src/agent", "./src/server", "./src/store"],
 							message: SHELL_MESSAGE,
 						},
 						{
@@ -77,7 +77,7 @@ export default defineConfig([
 						},
 						{
 							target: "./src/app",
-							from: ["./src/agent", "./src/store", "./src/utils.ts"],
+							from: ["./src/agent", "./src/store"],
 							message: APP_MESSAGE,
 						},
 						{

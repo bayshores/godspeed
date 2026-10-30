@@ -64,12 +64,9 @@ case "$PORT" in
 	;;
 esac
 
+# --keep preserves prior sessions (multi-session testing).
 if [ "$KEEP" != "true" ]; then
 	rm -rf "$DATA_DIR"
-else
-	# --keep preserves prior sessions (multi-session testing); the dir is
-	# still created if this is the first run.
-	:
 fi
 mkdir -p "$DATA_DIR"
 
@@ -79,7 +76,6 @@ export PORT
 echo "── fresh-user instance ─────────────────────────────────"
 echo "  URL      : http://localhost:$PORT"
 echo "  data dir : $DATA_DIR ($( [ "$KEEP" = "true" ] && echo 'kept across runs' || echo 'wiped next launch unless --keep' ))"
-echo "  sign-ins : none (credentials live in the data dir)"
 echo "─────────────────────────────────────────────────────────"
 
 cd "$ROOT"

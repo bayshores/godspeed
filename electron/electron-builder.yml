@@ -171,6 +171,13 @@ dmg:
       type: link
       path: /Applications
 afterPack: scripts/after-pack.cjs
+electronFuses:
+  # The browser-service helper opens model-written demos from file://; without
+  # this they could fetch any other file on disk.
+  grantFileProtocolExtraPrivileges: false
+  # Flipping a fuse edits the binary; the ad-hoc re-sign keeps unsigned arm64
+  # builds (desktop:local) launchable. Signed builds are re-signed after.
+  resetAdHocDarwinSignature: true
 win:
   icon: electron/build/icon.ico
   target:
