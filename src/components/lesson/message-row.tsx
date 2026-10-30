@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
 	firstSourceTextParts,
+	isAttachmentPart,
 	messageAnchorId,
 	teachStepIndex,
 	textPartMessageId,
@@ -27,6 +28,7 @@ import {
 import { STEP_TOOLS } from "./agent-at-work-model";
 import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
+import { MessageAttachments } from "./message-attachments";
 
 // A plan diagram (and dagre, its layout engine) loads only for lessons
 // that have one; server rendering keeps it in the first paint.
@@ -78,26 +80,29 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 			</div>
 		);
 	}
-	if (m.role === "user" && m.parts.length > 0 && m.parts.every((p) => p.type.startsWith("data-"))) {
-		// Marker cards (custom messages): user-side scaffolding as cards.
+	if (m.role === "user" && m.parts.some((p) => p.type.startsWith("data-") && !isAttachmentPart(p))) {
+		// Marker cards (custom messages): user-side scaffolding as cards; a
+		// thinking card's files sit under it.
 		return (
 			<div className={cn("flex flex-col gap-4 empty:hidden", arrive(`${mi}`))}>
 				{m.parts.map((part, pi) => <MarkerPart key={pi} part={part} />)}
+				<MessageAttachments parts={m.parts} />
 			</div>
 		);
 	}
 	if (m.role === "user") {
 		// The document row: a full-width band with a "You" label, plain text
-		// (learner text never goes through the model's LaTeX pipeline).
+		// (learner text never goes through the model's LaTeX pipeline), then
+		// the learner's files.
+		const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
 		return (
 			<div
 				data-testid="user-message"
 				className={cn("my-2 w-full border-l-2 border-tone-2 bg-panel py-2 pl-4 pr-4 font-ui text-sm", arrive(`${mi}`))}
 			>
 				<div className="text-[13px] font-bold text-ink-3">You</div>
-				<div className="lh-prose whitespace-pre-wrap text-ink">
-					{m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n")}
-				</div>
+				{text && <div className="lh-prose whitespace-pre-wrap text-ink">{text}</div>}
+				<MessageAttachments parts={m.parts} />
 			</div>
 		);
 	}
@@ -227,6 +232,7 @@ function AssistantPart({
 		case "tool-ask_user_question":
 		case "tool-explain":
 		case "tool-recall":
+		case "tool-write_code":
 			// Pending questions live in the Your-turn panel; answered ones
 			// render as graded records (the step bar jumps to them).
 			if (part.state !== "output-available") return null;

@@ -20,8 +20,13 @@ import { phaseAt3Lh } from "../core/phases.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
 function chatFile(id: string): string {
+	return `${chatDir(id)}.json`;
+}
+
+/** The lesson's folder for files the learner sent (beside its record). */
+function chatDir(id: string): string {
 	if (!/^[A-Za-z0-9_-]+$/.test(id)) throw new Error(`Invalid chat id: ${id}`);
-	return path.join(PATHS.chats, `${id}.json`);
+	return path.join(PATHS.chats, id);
 }
 
 /** THE SILENCE LAW (push S6, 2026-10-02): chats-changed announces ONLY
@@ -220,11 +225,19 @@ function deleteChat(id: string): boolean {
 	try {
 		summaryCache.delete(id);
 		fs.unlinkSync(chatFile(id));
+		fs.rmSync(chatDir(id), { recursive: true, force: true });
 		emit("chats-changed", {}); // only a real removal — the present-entry law
 		return true;
 	} catch {
 		return false; // never existed, already deleted, or unreadable — same answer
 	}
+}
+
+function saveAttachment(id: string, fileName: string, data: Uint8Array): string {
+	if (fileName !== path.basename(fileName)) throw new Error(`Invalid attachment name: ${fileName}`);
+	const file = path.join(chatDir(id), fileName);
+	writeFileAtomic(file, data);
+	return file;
 }
 
 /** Set or clear the lesson's class (classes wave, 2026-10-26). Quiet like
@@ -259,6 +272,7 @@ export const chatStore: ChatStore = {
 	saveSettings,
 	renameChat,
 	deleteChat,
+	saveAttachment,
 	setChatClass,
 	appendTurnUsage,
 	appendExtractionUsage,

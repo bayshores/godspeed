@@ -395,7 +395,7 @@ export interface OptionAnswer {
 	index: number; // 1-based display index
 }
 
-export type QuestionKind = "quiz" | "ask" | "explain";
+export type QuestionKind = "quiz" | "ask" | "explain" | "code";
 export type SelectMode = "single-select" | "multi-select";
 export type QuestionMode = SelectMode | "text";
 
@@ -457,6 +457,8 @@ export interface QuestionAnswerData {
 	correct?: boolean; // quiz only
 	correctIndices?: number[]; // quiz only (rendering)
 	committed?: string; // explain only (rendering): the model's committed answer
+	code?: string; // code only: what the learner wrote (absent on "I don't know")
+	language?: string; // code only
 	explanation?: string; // quiz only (rendering)
 	dismissed?: boolean;
 	answeredAt: string;
@@ -470,7 +472,7 @@ export interface AnswerRequest {
 	text?: string; // ask text-mode
 	thinking?: string; // the reasoning-on-the-question channel (was `note`)
 	readingThinking?: string; // the thinking-while-reading channel (check answers)
-	confidence?: number; // quiz only: 0-100 raw probability — 50 is a real coin flip, always sent (owner, 2026-10-01)
+	confidence?: number; // quiz only: 0-100, sent only when the learner picked a level
 }
 
 /** The confidence meter's stops (redesign plan, owner-approved 2026-10-27):
@@ -478,9 +480,15 @@ export interface AnswerRequest {
  *  (shared/25-confidence.md) reads the same numbers it always has —
  *  level 1..5 ↔ 20/40/60/80/100. Older answers carry the previous grid
  *  (0/30/50/70/90/100) and display at the nearest level (confidenceLevel).
- *  The meter rests on level 3 (60). */
+ *  The meter starts unrated: no level, no confidence sent. */
 export const CONFIDENCE_STOPS: readonly number[] = [20, 40, 60, 80, 100];
-export const DEFAULT_CONFIDENCE_INDEX = 2;
+const MIDDLE_CONFIDENCE_INDEX = 2;
+
+/** One arrow press on the meter. Unrated counts as the middle level, so
+ *  the first press lands next to it. */
+export function stepConfidence(index: number | undefined, dir: 1 | -1): number {
+	return Math.min(CONFIDENCE_STOPS.length - 1, Math.max(0, (index ?? MIDDLE_CONFIDENCE_INDEX) + dir));
+}
 
 export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5;
 
@@ -519,7 +527,8 @@ export interface QuestionFormDraft {
 	thinking: string;
 	other: string;
 	text: string;
-	confidenceIndex: number;
+	/** Absent until the learner picks a level. */
+	confidenceIndex?: number;
 }
 
 export interface QuestionDraft {
@@ -778,6 +787,8 @@ export function compactAnswerForModel(ad: QuestionAnswerData): Record<string, un
 		out.answers = ad.answers.map((a) => ({ index: a.index, label: a.label }));
 	if (ad.text) out.text = ad.text;
 	if (ad.other) out.other = ad.other;
+	if (ad.code) out.code = ad.code;
+	if (ad.language) out.language = ad.language;
 	// The verdict + stated confidence are the learner's PERFORMANCE — new
 	// information the model needs for its next move. (dontKnow implies
 	// incorrect and carries no confidence: both stay implicit.)

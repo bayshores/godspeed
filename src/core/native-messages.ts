@@ -44,6 +44,7 @@ import type { ClassFileStatus } from "./contracts/class.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
 import { newMessageId } from "./message-id.ts";
+import type { AttachmentPart } from "./attachments.ts";
 
 /** The hard-invariant wording for an aborted turn's unanswered calls.
  *  Keep it verbatim so the model's view never drifts. */
@@ -78,6 +79,8 @@ export interface LhMarkerMessage {
 		| "compaction";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
+	/** Model-facing files after the text: a thinking submission's pictures and PDF notes. */
+	attachments?: AttachmentPart[];
 	display: boolean;
 	/** The UI payload — per-customType, never model-visible. */
 	details: unknown;
@@ -151,12 +154,13 @@ export function failedOutputCallIds(messages: readonly LhMessage[]): ReadonlySet
 // ─── constructors (the input-event → native append mapping lives in
 //     core/input-events.ts; steers in core/contracts/jobs.ts) ─────────────────
 
-/** A learner-authored user message (text input, verdict note). */
-export function newUserMessage(text: string): LhMessage & UserMessage {
+/** A learner-authored user message (text input, verdict note). Files ride
+ *  as content parts after the text; a message with files may have no text. */
+export function newUserMessage(text: string, attachments: readonly AttachmentPart[] = []): LhMessage & UserMessage {
 	return {
 		id: newMessageId(),
 		role: "user",
-		content: text,
+		content: attachments.length === 0 ? text : [...(text.trim() ? [{ type: "text" as const, text }] : []), ...attachments],
 		timestamp: Date.now(),
 	};
 }
@@ -363,12 +367,13 @@ export function newTodayContextMessage(text: string, day: string): LhMarkerMessa
  *  content label is the single "Your thinking"; `details` keeps the raw
  *  payload for the transcript card. One problem may carry many
  *  submissions. */
-export function newThinkingMessage(problemCallId: string, text: string): LhMarkerMessage {
+export function newThinkingMessage(problemCallId: string, text: string, attachments: readonly AttachmentPart[] = []): LhMarkerMessage {
 	return {
 		id: newMessageId(),
 		role: "custom",
 		customType: "practice-thinking",
 		content: `${THINKING_LABEL}:\n${text}`,
+		...(attachments.length > 0 ? { attachments: [...attachments] } : {}),
 		display: true,
 		details: { problemCallId, text },
 		timestamp: Date.now(),
@@ -682,8 +687,8 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 			if (marker.customType === "compaction" && head !== null && marker.id === active!.id) continue;
 			out.push({
 				role: "user",
-				content: [{ type: "text", text: marker.content }],
-			timestamp: marker.timestamp,
+				content: [{ type: "text", text: marker.content }, ...(marker.attachments ?? [])],
+				timestamp: marker.timestamp,
 			});
 			continue;
 		}

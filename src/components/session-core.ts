@@ -14,17 +14,19 @@
  */
 
 import type { AgentEvent } from "@earendil-works/pi-agent-core";
-import type { ToolResultMessage } from "@earendil-works/pi-ai";
+import type { ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
 import {
 	needsContinuation,
 	danglingQuestionOf,
 	answeredCallIds,
+	draftAttachmentParts,
 	measuredContextTokens,
 	newAnswerResult,
 	newNextMessage,
 	newProblemDismissedMarker,
 	newThinkingMessage,
 	newUserMessage,
+	pdfNoteOf,
 	projectView,
 	type ChatInput,
 	type LhMarkerMessage,
@@ -153,10 +155,8 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 	if (typeof m.id !== "string" || !m.id.startsWith("c_")) return false;
 	const role = (m as { role?: string }).role;
 	if (role === "user") {
-		const content = (m as { content?: unknown }).content;
-		return record.some(
-			(r) => (r as { role?: string }).role === "user" && (r as { content?: unknown }).content === content,
-		);
+		const key = userContentKey((m as UserMessage).content);
+		return record.some((r) => r.role === "user" && userContentKey(r.content) === key);
 	}
 	if (role === "toolResult") {
 		const toolCallId = (m as ToolResultMessage).toolCallId;
@@ -182,6 +182,14 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 		);
 	}
 	return false;
+}
+
+/** A user message's identity for absorption: its text, with each file by
+ *  kind and name (the saved copy's picture bytes and PDF path differ from
+ *  the optimistic one's). */
+function userContentKey(content: UserMessage["content"]): string {
+	if (typeof content === "string") return content;
+	return JSON.stringify(content.map((c) => (c.type === "image" ? "image" : (pdfNoteOf(c.text)?.name ?? c.text))));
 }
 
 /** Structural deep-equal for marker details (JSON-stable payloads — the
@@ -691,12 +699,13 @@ export class SessionModel {
 		// write-ahead will persist (inputAppends), with LOCAL ids so
 		// adoption can tell them from the record's absorbed copies.
 		const optimistic: LhMessage[] = [];
-		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text), id: localId() });
+		const files = "attachments" in input && input.attachments ? draftAttachmentParts(input.attachments) : [];
+		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text, files), id: localId() });
 		else if (input.type === "thinking") {
 			// The practice submissions (2026-10-04): the marker lands
 			// optimistically — the card renders from its details the
 			// moment the button fires.
-			optimistic.push({ ...newThinkingMessage(input.problemCallId, input.text), id: localId() });
+			optimistic.push({ ...newThinkingMessage(input.problemCallId, input.text, files), id: localId() });
 		} else if (input.type === "next") {
 			// The move-on signal (owner round 16): the NEXT PROBLEM line
 			// renders the instant the chip/Enter fires.

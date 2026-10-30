@@ -179,7 +179,11 @@ describe("status observation never controls the updater", () => {
 		const f = fixture(); const win = f.window(); f.run("setupAutoUpdater()");
 		f.updater.emit("checking-for-update"); assert.equal(f.state().status, "checking");
 		f.updater.emit("update-available", { version: "0.3.8" });
-		assert.equal(f.state().status, "downloading"); assert.equal(f.state().version, "0.3.8");
+		assert.equal(f.state().status, "downloading"); assert.equal(f.state().version, "0.3.8"); assert.equal(f.state().percent, 0);
+		const before = win.webContents.messages.length;
+		f.updater.emit("download-progress", { percent: 41.2 }); f.updater.emit("download-progress", { percent: 41.9 });
+		assert.equal(f.state().percent, 41); assert.equal(f.state().version, "0.3.8");
+		assert.equal(win.webContents.messages.length, before + 1, "one push per whole percent");
 		f.updater.emit("update-downloaded", { version: "0.3.8" });
 		const ready = f.state();
 		await f.check();

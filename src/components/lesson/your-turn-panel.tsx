@@ -3,11 +3,15 @@ import { LightbulbIcon } from "lucide-react";
 import { PracticeDock } from "@/components/practice-dock";
 import { QuestionDock, questionKindLabel, type QuestionDockProps } from "@/components/question-dock";
 import { ReadingThinkingField } from "@/components/reading-thinking";
-import type { findPendingToolCall, QuestionAnswerData, QuestionFormDraft } from "@/core";
+import type { ChatAttachment, findPendingToolCall, QuestionAnswerData, QuestionFormDraft } from "@/core";
 import { PanelComposer } from "./panel-composer";
 import { ActionBar, KindChip, PanelBody, PanelHeader } from "./panel-parts";
+import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
+
+/** The panel's width beside the reading pane (drag its border line). */
+const PANEL_WIDTH = { initial: 440, min: 340, max: 720 };
 
 /**
  * THE YOUR-TURN PANEL (redesign, lesson layout B): always on the right
@@ -16,7 +20,8 @@ type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
  * - an active practice problem (PracticeDock);
- * - otherwise the message box (PanelComposer).
+ * - otherwise the message box (PanelComposer), under the last graded
+ *   answer's result.
  * The lesson's stats row sits at the foot of every state.
  */
 export function YourTurnPanel({
@@ -45,7 +50,7 @@ export function YourTurnPanel({
 	onReadingThinking: (v: string) => void;
 	practice: { toolCallId: string; input: unknown } | null;
 	practiceNumber: number | null;
-	onSubmitThinking: (text: string) => void;
+	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => void;
 	/** This view's turn is running: a practice send now would be dropped. */
 	sessionBusy: boolean;
 	compacting: boolean;
@@ -53,6 +58,7 @@ export function YourTurnPanel({
 	composer: Omit<React.ComponentProps<typeof PanelComposer>, "footer">;
 	stats: React.ReactNode;
 }) {
+	const [width, setWidth] = usePaneWidth("your-turn", PANEL_WIDTH);
 	// The reveal: false until the learner opens the check. Reset during
 	// render when a new question lands — open at once only when it follows
 	// another question (the reading already happened).
@@ -144,8 +150,13 @@ export function YourTurnPanel({
 		<aside
 			data-testid="your-turn-panel"
 			data-mode={mode.split(":")[0]}
-			className="flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel max-[1099px]:max-h-[55dvh] max-[1099px]:min-h-[280px] min-[1100px]:w-[440px] min-[1100px]:border-t-0 min-[1100px]:border-l"
+			className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel max-[1099px]:max-h-[55dvh] max-[1099px]:min-h-[280px] min-[1100px]:w-(--lh-turn-w) min-[1100px]:border-t-0 min-[1100px]:border-l"
+			style={{ "--lh-turn-w": `${width}px` } as React.CSSProperties}
 		>
+			{/* Side by side only: stacked below 1100px, the panel is full width. */}
+			<div className="contents max-[1099px]:hidden">
+				<ResizeHandle paneKey="your-turn" edge="left" width={width} bounds={PANEL_WIDTH} onWidth={setWidth} label="Resize the Your turn panel" />
+			</div>
 			<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 				{body}
 			</div>

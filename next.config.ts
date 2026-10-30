@@ -104,6 +104,9 @@ const nextConfig: NextConfig = {
 	// Framework-free core lives in src/ (plain TS, imported by routes and CLI alike).
 	// The pi engine must stay external: its providers are runtime-loaded Node
 	// code (undici streams, catalog data) that breaks when bundled into routes.
+	// The proxy (src/proxy.ts) buffers every API body, 10 MB by default; a
+	// lesson message may carry 5 PDFs of 30 MB each as base64 (src/core/attachments.ts).
+	experimental: { proxyClientMaxBodySize: "210mb" },
 	serverExternalPackages: [
 		"@earendil-works/pi-ai",
 		"@earendil-works/pi-agent-core",

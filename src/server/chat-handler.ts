@@ -47,6 +47,8 @@ import {
 	type TurnInput,
 } from "../core/input-events.ts";
 import { steerDelivered } from "../core/contracts.ts";
+import type { AttachmentPart } from "../core/attachments.ts";
+import { storeAttachments } from "./attachments.ts";
 import type {CallUsage} from "../core/contracts.ts";
 
 /**
@@ -158,6 +160,18 @@ export async function handleChatInput(
 		return Response.json({ error: "Unknown chat" }, { status: 404 });
 	}
 
+	// The learner's files, stored first: no await may sit between the
+	// record read below and the write-ahead.
+	let attachments: AttachmentPart[] = [];
+	if ((input.type === "text" || input.type === "thinking") && input.attachments) {
+		try {
+			attachments = await storeAttachments(chatId, input.attachments);
+		} catch (err) {
+			if (err instanceof ChatInputError) return Response.json({ error: err.message }, { status: 400 });
+			throw err;
+		}
+	}
+
 	// The outside agent is the only model: no model or
 	// connection gate. With no agent connected the turn simply waits in the
 	// agent queue until one polls (the UI shows "Waiting for your agent").
@@ -202,7 +216,7 @@ export async function handleChatInput(
 		appends =
 			input.type === "steers"
 				? input.steers.filter((s) => !steerDelivered(record.messages, s.id))
-				: inputAppends(record, input);
+				: inputAppends(record, input, attachments);
 	} catch (err) {
 		if (err instanceof ChatInputError) {
 			return Response.json({ error: err.message }, { status: 400 });

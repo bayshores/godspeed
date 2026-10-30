@@ -13,6 +13,7 @@ import {
 	quizInputObject,
 	quizInputProblems,
 } from "../core/question-core.ts";
+import { writeCodeInputProblems, writeCodeInputSchema } from "../core/code-question.ts";
 import { filterEnabledTools, type EnabledTools } from "../core/pending.ts";
 import type { JobRecord } from "../core/contracts.ts";
 import type { JobStore } from "../core/ports.ts";
@@ -252,6 +253,26 @@ export const probeExplainTool: AgentTool<typeof explainInputBase> = {
 	},
 };
 
+/** The code question, the same tool in both phases (no plan position):
+ *  open to every quizzing mechanic, since the answer is code, not a pick. */
+export const writeCodeTool: AgentTool<typeof writeCodeInputSchema> = {
+	name: "write_code",
+	label: "write_code",
+	description:
+		"Ask the learner to WRITE CODE. He gets a code editor (line numbers, syntax highlighting) that starts with " +
+		"`starter`, an 'I don't know' choice, and an optional thinking field. The app never runs or grades the code: " +
+		'his answer returns to you as {"kind":"code","code":...,"language":...} (plus dontKnow: true instead of code ' +
+		"when he doesn't know, and thinking when he wrote some), and your next reply grades it. " +
+		"ONE question per turn: call a single write_code, then end your turn. His answer determines the next.",
+	parameters: writeCodeInputSchema,
+	executionMode: "sequential",
+	execute: async (_toolCallId, input) => {
+		const problems = writeCodeInputProblems(input);
+		if (problems.length > 0) return invalidInputResult("write_code", problems);
+		return questionResult();
+	},
+};
+
 /** The prober's registry context: the probe's own needs (probe_done —
  *  ProbeDoneContext) PLUS the job-dispatch wiring, since research + pdf
  *  are in the probe phase's registry too. */
@@ -316,6 +337,7 @@ export function createProberTools(
 			{
 				...quizzing,
 				ask_user_question: askUserQuestionTool,
+				write_code: writeCodeTool,
 				// The learner-filesystem set is always-on: the prober inspects
 				// and LOCATES learner-referenced files while assessing the edge.
 				// Read-only by construction.
@@ -446,6 +468,7 @@ export function createTeacherTools(
 			{
 			...quizzing,
 			ask_user_question: askUserQuestionTool,
+			write_code: writeCodeTool,
 			// The learner-filesystem set is always-on: the teacher locates and
 			// reads learner-referenced files on its own terms — nothing
 			// auto-injects. Read-only by construction (fs-shared.ts).

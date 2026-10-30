@@ -2,13 +2,17 @@
  * THE TOPIC MAP LAYOUT (redesign plan, Phase 5) — pure, computed once per
  * data change and cached by `layoutKey` (never a live simulation).
  *
+ * - Arrows: only the direct ones. A→C is dropped when A already leads to C
+ *   through other topics, so long arrows don't sweep across the map.
  * - x: the topic's `column` from progress (longest path from the
  *   foundations), left → right. A column with more than MAX_PER_COLUMN
  *   topics wraps into extra sub-columns, so a class with no arrows yet is
  *   a grid, not one tall line.
- * - y: centered per sub-column. The first column keeps the topics' given
- *   order; later columns sort by the average height of the topics that
- *   lead into them (fewer crossing arrows), ties in the given order.
+ * - y: each column is ordered by the average height of the topics it
+ *   connects to, swept left→right and back a few times (fewer crossing
+ *   arrows); ties keep the given order. Columns are centered.
+ * - Topics with no arrows at all, in a map that has arrows, sit in their
+ *   own row under it instead of posing as foundations.
  * - Rings grow with the topic's fact count.
  * - Arrows: a horizontal cubic curve from the right of A's ring to just
  *   before B's ring, plus a small arrowhead triangle.
@@ -76,39 +80,74 @@ export function layoutKey(topics: readonly LayoutTopic[], links: readonly Layout
 	return `${topics.map((t) => `${t.id}:${t.column}:${t.size}`).join("|")}#${links.map((l) => `${l.from}>${l.to}`).join("|")}`;
 }
 
+/** The arrows left after dropping every A→C that a longer path A→…→C
+ *  already implies. */
+function directLinks<L extends LayoutLink>(links: readonly L[]): L[] {
+	const out = new Map<string, string[]>();
+	for (const l of links) {
+		const list = out.get(l.from);
+		if (list) list.push(l.to);
+		else out.set(l.from, [l.to]);
+	}
+	const reachesWithout = (from: string, to: string): boolean => {
+		const seen = new Set<string>();
+		const stack = (out.get(from) ?? []).filter((n) => n !== to);
+		while (stack.length) {
+			const n = stack.pop()!;
+			if (n === to) return true;
+			if (seen.has(n)) continue;
+			seen.add(n);
+			stack.push(...(out.get(n) ?? []));
+		}
+		return false;
+	};
+	return links.filter((l) => !reachesWithout(l.from, l.to));
+}
+
+const SWEEPS = 4;
+
 export function layoutTopics(topics: readonly LayoutTopic[], links: readonly LayoutLink[]): TopicLayout {
 	const order = new Map(topics.map((t, i) => [t.id, i]));
-	const incoming = new Map<string, string[]>();
-	for (const l of links) {
-		if (!order.has(l.from) || !order.has(l.to)) continue;
-		const list = incoming.get(l.to);
-		if (list) list.push(l.from);
-		else incoming.set(l.to, [l.from]);
-	}
+	const known = links.filter((l) => order.has(l.from) && order.has(l.to) && l.from !== l.to);
+	const direct = directLinks(known);
+	const linked = new Set(direct.flatMap((l) => [l.from, l.to]));
+	const loose = direct.length > 0 ? topics.filter((t) => !linked.has(t.id)) : [];
+	const looseIds = new Set(loose.map((t) => t.id));
 
-	const depths = new Map<number, LayoutTopic[]>();
+	const columns = new Map<number, LayoutTopic[]>();
 	for (const t of topics) {
+		if (looseIds.has(t.id)) continue;
 		const col = Math.max(0, Math.floor(t.column));
-		const list = depths.get(col);
+		const list = columns.get(col);
 		if (list) list.push(t);
-		else depths.set(col, [t]);
+		else columns.set(col, [t]);
+	}
+	const depths = [...columns.keys()].sort((a, b) => a - b);
+
+	// Crossing reduction: each topic's height is its index in its column,
+	// centered; sort a column by its neighbors' average height on one side.
+	const height = new Map<string, number>();
+	const index = (col: LayoutTopic[]) => col.forEach((t, i) => height.set(t.id, i - (col.length - 1) / 2));
+	for (const d of depths) index(columns.get(d)!);
+	const sortBy = (col: LayoutTopic[], side: (id: string) => string[]) => {
+		const key = new Map(col.map((t) => {
+			const hs = side(t.id).map((id) => height.get(id)).filter((h): h is number => h !== undefined);
+			return [t.id, hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : height.get(t.id)!] as const;
+		}));
+		col.sort((a, b) => key.get(a.id)! - key.get(b.id)! || order.get(a.id)! - order.get(b.id)!);
+		index(col);
+	};
+	const into = (id: string) => direct.filter((l) => l.to === id).map((l) => l.from);
+	const outOf = (id: string) => direct.filter((l) => l.from === id).map((l) => l.to);
+	for (let sweep = 0; sweep < SWEEPS; sweep++) {
+		for (const d of depths.slice(1)) sortBy(columns.get(d)!, into);
+		for (const d of depths.slice(0, -1).reverse()) sortBy(columns.get(d)!, outOf);
 	}
 
 	const placed = new Map<string, PlacedTopic>();
 	let subColumn = 0;
-	for (const depth of [...depths.keys()].sort((a, b) => a - b)) {
-		const members = depths.get(depth)!;
-		const height = (t: LayoutTopic): number | null => {
-			const ys = (incoming.get(t.id) ?? []).map((id) => placed.get(id)?.y).filter((y): y is number => y !== undefined);
-			return ys.length === 0 ? null : ys.reduce((a, b) => a + b, 0) / ys.length;
-		};
-		const ranked = members
-			.map((t) => ({ t, h: height(t) }))
-			.sort((a, b) => {
-				if (a.h !== null && b.h !== null && a.h !== b.h) return a.h - b.h;
-				return order.get(a.t.id)! - order.get(b.t.id)!;
-			})
-			.map((e) => e.t);
+	for (const depth of depths) {
+		const ranked = columns.get(depth)!;
 		for (let start = 0; start < ranked.length; start += MAX_PER_COLUMN) {
 			const chunk = ranked.slice(start, start + MAX_PER_COLUMN);
 			chunk.forEach((t, i) => {
@@ -123,8 +162,20 @@ export function layoutTopics(topics: readonly LayoutTopic[], links: readonly Lay
 		}
 	}
 
+	// The loose row, under the deepest column.
+	const lowest = Math.max(0, ...[...placed.values()].map((p) => p.y));
+	const perRow = Math.max(4, subColumn);
+	loose.forEach((t, i) => {
+		placed.set(t.id, {
+			id: t.id,
+			x: (i % perRow) * COLUMN_GAP,
+			y: r2(lowest + ROW_GAP * (1.5 + Math.floor(i / perRow))),
+			d: ringDiameter(t.size),
+		});
+	});
+
 	const placedLinks: PlacedLink[] = [];
-	for (const l of links) {
+	for (const l of direct) {
 		const a = placed.get(l.from);
 		const b = placed.get(l.to);
 		if (!a || !b || b.x <= a.x) continue;

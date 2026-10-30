@@ -24,6 +24,8 @@ import {
 	userFacingTextOf,
 } from "./native-messages.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
+import type { QuestionAnswerData } from "./question-core.ts";
+import { fencedCode } from "./code-question.ts";
 
 /** The practice join context (owner-approved, 2026-10-06 export round):
  *  practice tool RESULTS are acks — the statement, outcome, and verdict
@@ -101,6 +103,17 @@ function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { hea
 		else if (typeof out?.text === "string" && out.text.trim()) body.push(`The learner answered in his own words: ${out.text.trim()}`);
 		if (typeof out?.note === "string" && out.note) body.push(`*(his thinking: ${out.note})*`);
 		return { heading, body };
+	}
+
+	if (result.toolName === "write_code") {
+		const code = result.details as Partial<QuestionAnswerData> | undefined;
+		const body = [`**Q:** ${code?.questionText || "(no question text)"}`];
+		if (code?.dismissed === true) body.push("The learner skipped this question.");
+		else if (code?.dontKnow === true) body.push("The learner did not know.");
+		else if (typeof code?.code === "string") body.push(`The learner wrote:\n\n${fencedCode(code.code, code.language ?? "")}`);
+		const thinking = code?.thinking ?? code?.note;
+		if (thinking) body.push(`*(his thinking: ${thinking})*`);
+		return { heading: "Code", body };
 	}
 
 	if (ctx !== undefined && result.toolName === PRACTICE_PROBLEM_TOOL) {

@@ -15,7 +15,7 @@ import {
 	dismissedAnswer,
 	coerceCorrectAnswer,
 	CONFIDENCE_STOPS,
-	DEFAULT_CONFIDENCE_INDEX,
+	stepConfidence,
 	confidenceLevel,
 	levelPercent,
 	isCorrect,
@@ -440,8 +440,15 @@ function quizData(overrides?: Partial<QuestionData>): QuestionData {
 describe("confidence stops", () => {
 	it("the 1–5 meter saves as 20/40/60/80/100 (redesign, 2026-10-27)", () => {
 		assert.deepEqual(CONFIDENCE_STOPS, [20, 40, 60, 80, 100]);
-		assert.equal(CONFIDENCE_STOPS[DEFAULT_CONFIDENCE_INDEX], 60, "rests on level 3");
 		assert.deepEqual(([1, 2, 3, 4, 5] as const).map(levelPercent), [20, 40, 60, 80, 100]);
+	});
+
+	it("arrows step from the middle when unrated, and stop at the ends", () => {
+		assert.equal(stepConfidence(undefined, 1), 3, "unrated → right lands on level 4");
+		assert.equal(stepConfidence(undefined, -1), 1, "unrated → left lands on level 2");
+		assert.equal(stepConfidence(0, -1), 0);
+		assert.equal(stepConfidence(4, 1), 4);
+		assert.equal(stepConfidence(1, 1), 2);
 	});
 
 	it("maps every stored percentage to its nearest level, ties to the lower one", () => {
@@ -503,7 +510,9 @@ describe("buildAnswer", () => {
 		assert.equal(buildAnswer(quizData(), { values: ["mercury"], confidence: 90 }).confidence, 90);
 		assert.equal(buildAnswer(quizData(), { values: ["mercury"], confidence: 150 }).confidence, 100);
 		assert.equal(buildAnswer(quizData(), { values: ["mercury"], confidence: -5 }).confidence, 0);
-		assert.equal(buildAnswer(quizData(), { values: ["mercury"] }).confidence, undefined);
+		const unrated = buildAnswer(quizData(), { values: ["mercury"] });
+		assert.ok(!("confidence" in unrated), "an unrated answer carries no confidence at all");
+		assert.ok(!("confidence" in compactAnswerForModel(unrated)), "and the model sees none");
 	});
 
 	it("drops confidence on dontKnow and on non-quiz kinds", () => {

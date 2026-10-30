@@ -46,7 +46,7 @@ describe("layoutTopics", () => {
 	const T = (id: string, column: number, size = 6) => ({ id, column, size });
 
 	it("puts columns left to right and centers each column", () => {
-		const l = layoutTopics([T("a", 0), T("b", 0), T("c", 1)], [{ from: "a", to: "c" }]);
+		const l = layoutTopics([T("a", 0), T("b", 0), T("c", 1)], [{ from: "a", to: "c" }, { from: "b", to: "c" }]);
 		assert.equal(l.byId.get("a")!.x, 0);
 		assert.equal(l.byId.get("c")!.x, COLUMN_GAP);
 		assert.equal(l.byId.get("a")!.y, -ROW_GAP / 2);
@@ -72,6 +72,28 @@ describe("layoutTopics", () => {
 		assert.deepEqual([...xs].sort((a, b) => a - b), [0, COLUMN_GAP]);
 		const next = layoutTopics([...many, T("deep", 1)], []);
 		assert.equal(next.byId.get("deep")!.x, 2 * COLUMN_GAP, "the next depth starts after the wrapped columns");
+	});
+
+	it("draws only direct arrows: A→C goes when A→B→C says it already", () => {
+		const l = layoutTopics([T("a", 0), T("b", 1), T("c", 2)], [{ from: "a", to: "b" }, { from: "b", to: "c" }, { from: "a", to: "c" }]);
+		assert.deepEqual(l.links.map((k) => `${k.from}>${k.to}`), ["a>b", "b>c"]);
+	});
+
+	it("puts topics with no arrows in their own row under a map that has arrows", () => {
+		const l = layoutTopics([T("a", 0), T("lone", 0), T("b", 1)], [{ from: "a", to: "b" }]);
+		assert.equal(l.byId.get("a")!.y, 0, "the linked column no longer makes room for it");
+		assert.ok(l.byId.get("lone")!.y > l.byId.get("a")!.y + ROW_GAP, "below the map");
+		assert.equal(l.byId.get("lone")!.x, 0);
+	});
+
+	it("sweeps back too: a foundation moves next to what it leads to", () => {
+		const l = layoutTopics(
+			[T("p", 0), T("q", 0), T("r", 0), T("x", 1), T("y", 1)],
+			[{ from: "p", to: "y" }, { from: "q", to: "x" }, { from: "r", to: "y" }, { from: "q", to: "y" }],
+		);
+		const ys = ["p", "q", "r"].map((id) => l.byId.get(id)!.y);
+		assert.equal(new Set(ys).size, 3);
+		assert.ok(l.byId.get("q")!.y < l.byId.get("p")!.y || l.byId.get("q")!.y < l.byId.get("r")!.y, "q, the one feeding x, is not last");
 	});
 
 	it("draws each arrow from A's right edge to just before B's ring, with an arrowhead", () => {

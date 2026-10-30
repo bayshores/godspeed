@@ -8,6 +8,8 @@ import { hasWhatsNew, openWhatsNew } from "@/components/whats-new";
 export type UpdateState = {
 	status: "idle" | "checking" | "downloading" | "up-to-date" | "downloaded" | "error" | "disabled";
 	version: string | null;
+	/** Download progress, 0 to 100, while downloading. */
+	percent?: number | null;
 	revision: number;
 };
 

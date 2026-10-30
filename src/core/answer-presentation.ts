@@ -2,14 +2,15 @@
  * projection: answer identities, ordering, grading, and learner text remain
  * the recorded facts; only model-authored display text comes from the call. */
 import { normalizeOptions, type QuestionAnswerData } from "./question-core.ts";
-import { parseAskInput, parseExplainInput, parseQuizInput } from "./tool-parts.ts";
+import { parseAskInput, parseExplainInput, parseQuizInput, parseWriteCodeInput } from "./tool-parts.ts";
 import { repairMathForDisplay } from "./math-delims.ts";
 
 export function answerForPresentation(answer: QuestionAnswerData, input: unknown): QuestionAnswerData {
 	if (answer.dismissed) return answer;
 	const quiz = answer.kind === "quiz" ? parseQuizInput(input) : undefined;
 	const explain = answer.kind === "explain" ? parseExplainInput(input) : undefined;
-	const source = quiz ?? explain ?? (answer.kind === "ask" ? parseAskInput(input) : undefined);
+	const source =
+		quiz ?? explain ?? (answer.kind === "ask" ? parseAskInput(input) : answer.kind === "code" ? parseWriteCodeInput(input) : undefined);
 	if (!source) return answer;
 	const projected = { ...answer, questionText: source.question };
 	if (quiz) projected.explanation = quiz.explanation;

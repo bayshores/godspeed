@@ -22,18 +22,19 @@ const BAR_HEIGHTS = [14, 21, 28, 35, 42];
  * The 5-bar meter: "4 · Fairly sure" in the level's color over five
  * rising bars. Bars up to the pick wear its color (the ones below at 55%),
  * the rest stay dark. Click a bar or use ←/→ (the question panel owns the
- * keys). "I don't know" grays it out and sends no confidence.
+ * keys). It starts unrated (all bars dark), and an unrated answer sends no
+ * confidence. "I don't know" grays it out and sends none either.
  */
 export function ConfidenceMeter({
 	level,
 	onChange,
 	disabled = false,
 }: {
-	level: ConfidenceLevel;
+	level: ConfidenceLevel | null;
 	onChange: (level: ConfidenceLevel) => void;
 	disabled?: boolean;
 }) {
-	const color = CONFIDENCE_COLORS[level - 1]!;
+	const color = level === null ? "var(--color-ink-3)" : CONFIDENCE_COLORS[level - 1]!;
 	return (
 		<div data-testid="confidence-meter" className={cn("flex flex-col gap-2", disabled && "opacity-40")}>
 			<div
@@ -41,12 +42,12 @@ export function ConfidenceMeter({
 				className="text-[13.5px] font-bold"
 				style={{ color: disabled ? "var(--color-ink-3)" : color }}
 			>
-				{`${level} · ${CONFIDENCE_WORDS[level - 1]}`}
+				{level === null ? "How sure are you?" : `${level} · ${CONFIDENCE_WORDS[level - 1]}`}
 			</div>
 			<div className="flex items-end gap-[3px]" role="radiogroup" aria-label="Confidence">
 				{BAR_HEIGHTS.map((h, i) => {
 					const n = (i + 1) as ConfidenceLevel;
-					const on = !disabled && n <= level;
+					const on = !disabled && level !== null && n <= level;
 					return (
 						<button
 							key={n}

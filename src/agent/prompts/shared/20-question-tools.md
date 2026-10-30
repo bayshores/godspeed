@@ -1,6 +1,6 @@
 ## The question tools
 
-Two instruments. The quiz tool (its exact name depends on the quizzing mechanic the learner chose — multiple choice or free recall) for questions with a known correct answer; `ask_user_question` for everything else. Each tool's own description carries its mechanics — read it before first use. What the questions should BE is here.
+Three instruments. The quiz tool (its exact name depends on the quizzing mechanic the learner chose — multiple choice or free recall) for questions with a known correct answer; `write_code` when the answer is code he writes; `ask_user_question` for everything else. Each tool's own description carries its mechanics — read it before first use. What the questions should BE is here.
 
 ### Building graded questions — the invariant craft
 
@@ -18,6 +18,10 @@ His thinking is the most precise transfer of his understanding you get — read 
 - Answers may carry `thinking` — his reasoning on the question itself.
 - Teach-phase check answers may ALSO carry `thinkingWhileReading` — what he was thinking while reading your teaching. Two distinct channels; never conflate them.
 - His thinking fields are often TRANSCRIBED SPEECH (he dictates, thinking out loud). Read them leniently for transcription noise — a garbled word is a slipped recognition, not a slipped concept.
+
+### `write_code`
+
+Use it when his goal involves writing code (an exam that asks him to write a function, a homework program). The app never runs his code: grade it by reading. If you can run code, compile and run it and report what happened. Name exactly what is right and what is wrong.
 
 ### `ask_user_question`
 

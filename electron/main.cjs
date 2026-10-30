@@ -584,13 +584,18 @@ const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 let autoUpdater = null; // electron-updater's, packaged builds only
 // Observational only: this snapshot NEVER gates a check, download or install.
 // The revision lets late subscribers reject an older in-flight IPC snapshot.
-let updateState = { status: "idle", version: null, revision: 0 };
+let updateState = { status: "idle", version: null, percent: null, revision: 0 };
 
-function reportUpdateStatus(status, version = null) {
+function reportUpdateStatus(status, version = null, percent = null) {
 	try {
 		// A later check/error must not hide an update already staged for quit.
 		if (updateState.status === "downloaded" && status !== "downloaded") return;
-		updateState = { status, version: typeof version === "string" ? version : null, revision: updateState.revision + 1 };
+		updateState = {
+			status,
+			version: typeof version === "string" ? version : null,
+			percent: typeof percent === "number" ? percent : null,
+			revision: updateState.revision + 1,
+		};
 		for (const win of BrowserWindow.getAllWindows()) {
 			try {
 				win.webContents.send("lh:update-status", updateState);
@@ -669,7 +674,13 @@ function setupAutoUpdater() {
 		error: (m) => log(`updater error: ${m}`),
 	};
 	autoUpdater.on("checking-for-update", () => reportUpdateStatus("checking"));
-	autoUpdater.on("update-available", (info) => reportUpdateStatus("downloading", info?.version));
+	autoUpdater.on("update-available", (info) => reportUpdateStatus("downloading", info?.version, 0));
+	// The pop-up's bar: one push per whole percent, not per chunk.
+	autoUpdater.on("download-progress", (progress) => {
+		const percent = Math.floor(progress?.percent ?? 0);
+		if (updateState.status !== "downloading" || updateState.percent === percent) return;
+		reportUpdateStatus("downloading", updateState.version, percent);
+	});
 	autoUpdater.on("update-not-available", () => reportUpdateStatus("up-to-date"));
 	autoUpdater.on("update-downloaded", (info) => {
 		log(`update downloaded: ${info?.version} — banner shown`);
@@ -865,15 +876,18 @@ async function main() {
 			return [];
 		}
 	});
-	// Show in Finder (a class file, selected) and Open in Finder (the linked
-	// folder). Opening is limited to folders so nothing can be launched.
+	// Show in Finder (a class file, selected) and open in the default app
+	// (the linked folder, a PDF the learner sent). Opening is limited to
+	// folders and PDFs so nothing can be launched.
 	ipcMain.handle("lh:show-in-folder", (event, target) => {
 		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
 		if (typeof target === "string" && path.isAbsolute(target)) shell.showItemInFolder(target);
 	});
-	ipcMain.handle("lh:open-folder", async (event, target) => {
+	ipcMain.handle("lh:open-path", async (event, target) => {
 		if (!trustedAppWindows.has(BrowserWindow.fromWebContents(event.sender)) || !trustedSender(event, new URL(url).origin, BrowserWindow)) throw new Error("Untrusted desktop request.");
-		if (typeof target === "string" && path.isAbsolute(target) && fs.statSync(target, { throwIfNoEntry: false })?.isDirectory()) await shell.openPath(target);
+		if (typeof target !== "string" || !path.isAbsolute(target)) return;
+		const stat = fs.statSync(target, { throwIfNoEntry: false });
+		if (stat?.isDirectory() || (stat?.isFile() && /\.pdf$/i.test(target))) await shell.openPath(target);
 	});
 	ipcMain.handle("lh:zoom:get",(event) => BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1);
 	ipcMain.on("lh:expand-window", (event) => {

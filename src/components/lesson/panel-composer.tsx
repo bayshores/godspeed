@@ -3,6 +3,7 @@ import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
 import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader } from "./panel-parts";
+import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
  * The Your-turn panel with no question waiting (redesign, your-turn
@@ -14,6 +15,9 @@ import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader } from "./panel-parts";
  * Enter follows enterAction: send (or steer) when
  * there is text, stop on an empty box while the teacher writes, and in a
  * practice pause an empty Enter asks for the next problem.
+ *
+ * Pictures and PDFs wait above the box. A steer is text only, so while the
+ * teacher writes they stay put and Send waits.
  */
 export function PanelComposer({
 	busy,
@@ -25,6 +29,7 @@ export function PanelComposer({
 	nextProblem = false,
 	onNext,
 	queuedSteers,
+	attachments,
 	notice,
 	footer,
 }: {
@@ -37,12 +42,13 @@ export function PanelComposer({
 	nextProblem?: boolean;
 	onNext?: () => void;
 	queuedSteers: QueuedSteerLine[];
+	attachments: AttachmentDraft;
 	/** A line under the box (the "Waiting for your agent" notice). */
 	notice?: React.ReactNode;
 	footer?: React.ReactNode;
 }) {
 	const act = () => {
-		const action = enterAction({ busy, canSend, nextProblem });
+		const action = enterAction({ busy, canSend, nextProblem, hasFiles: attachments.files.length > 0 });
 		if (action === "stop") onStop();
 		else if (action === "send") onSend();
 		else if (action === "next") onNext?.();
@@ -56,6 +62,7 @@ export function PanelComposer({
 				e.preventDefault();
 				act();
 			}}
+			{...attachmentInputProps(attachments)}
 		>
 			<PanelBody>
 				<PanelHeader
@@ -82,6 +89,7 @@ export function PanelComposer({
 						<QueuedSteersBody steers={queuedSteers} />
 					</div>
 				)}
+				<AttachmentTray draft={attachments} note={busy ? "Send pictures after the teacher finishes" : undefined} />
 				<textarea
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
@@ -98,17 +106,22 @@ export function PanelComposer({
 				/>
 				{footer}
 			</PanelBody>
-			{showNext ? (
-				<ActionBar type="submit" testId="next-problem-button" label="Next problem" />
-			) : (
-				<ActionBar
-					type="submit"
-					testId="composer-send"
-					label={busy ? "Send when ready" : "Send"}
-					waiting={busy}
-					disabled={!canSend}
-				/>
-			)}
+			<div className="flex shrink-0">
+				<AttachButton draft={attachments} />
+				<div className="min-w-0 flex-1">
+					{showNext ? (
+						<ActionBar type="submit" testId="next-problem-button" label="Next problem" />
+					) : (
+						<ActionBar
+							type="submit"
+							testId="composer-send"
+							label={busy ? "Send when ready" : "Send"}
+							waiting={busy}
+							disabled={!canSend}
+						/>
+					)}
+				</div>
+			</div>
 		</form>
 	);
 }

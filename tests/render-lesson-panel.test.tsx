@@ -43,6 +43,7 @@ const composer = (over: Partial<React.ComponentProps<typeof YourTurnPanel>["comp
 	onStop: () => {},
 	canSend: false,
 	queuedSteers: [],
+	attachments: { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {} },
 	...over,
 });
 

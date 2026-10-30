@@ -37,6 +37,7 @@ import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
 import { QUESTION_TOOLS } from "./pending.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
 import type { PlanBlockData } from "./contracts/chat.ts";
+import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
 
 /** A view part — the loose part vocabulary the renderers consume
  *  (UIMessage-style shape names, which the renderer switch and the
@@ -91,6 +92,19 @@ interface LiveTurnState {
 
 function textPart(text: string): LhViewPart {
 	return { type: "text", text, state: "done" };
+}
+
+/** A learner file's view part: a picture (data-image) or a saved PDF's
+ *  note (data-pdf). Any other text stays text. */
+function contentPart(part: AttachmentPart, id: string): LhViewPart {
+	if (part.type === "image") return { type: "data-image", id, data: { base64: part.data, mimeType: part.mimeType } };
+	const pdf = pdfNoteOf(part.text);
+	return pdf ? { type: "data-pdf", id, data: pdf } : textPart(part.text);
+}
+
+/** Is this view part one of the learner's files (a picture or a saved PDF)? */
+export function isAttachmentPart(part: LhViewPart): boolean {
+	return part.type === "data-image" || part.type === "data-pdf";
 }
 
 /** The result a tool part should show, from a native toolResult. */
@@ -176,12 +190,12 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 
 		if (role === "user") {
-			const content = m.content as string | Array<{ type: string; text?: string }>;
-			const texts =
-				typeof content === "string"
-					? [content]
-					: content.filter((c) => c.type === "text").map((c) => (c as { text: string }).text);
-			out.push({ id: m.id, role: "user", parts: texts.map(textPart) });
+			const content = m.content as string | AttachmentPart[];
+			out.push({
+				id: m.id,
+				role: "user",
+				parts: typeof content === "string" ? [textPart(content)] : content.map((c, i) => contentPart(c, `${m.id}-a${i}`)),
+			});
 			continue;
 		}
 
@@ -483,7 +497,10 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			out.push({
 				id: marker.id,
 				role: "user",
-				parts: [{ type: "data-practice-thinking", id: `pt_${marker.id}`, data: marker.details }],
+				parts: [
+					{ type: "data-practice-thinking", id: `pt_${marker.id}`, data: marker.details },
+					...(marker.attachments ?? []).map((c, i) => contentPart(c, `${marker.id}-a${i}`)),
+				],
 			});
 			return;
 		}

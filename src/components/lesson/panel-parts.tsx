@@ -44,6 +44,20 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
 export const PANEL_FIELD =
 	"lh-input min-h-28 w-full flex-1 resize-none bg-background px-3.5 py-3 text-[15px]! leading-[22px]! text-ink outline-none placeholder:text-ink-3";
 
+/** The panel fields' keys: Esc stays in the field (it must not abort the
+ *  turn); Enter submits, Shift+Enter is a newline, ⌘/Ctrl+Enter submits. */
+export function fieldKeys(e: React.KeyboardEvent<HTMLTextAreaElement>, submit: () => void) {
+	if (e.key === "Escape") {
+		e.preventDefault();
+		e.stopPropagation();
+		return;
+	}
+	if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
+		e.preventDefault();
+		submit();
+	}
+}
+
 /** The full-width action bar at the panel's foot: white for the main
  *  action, gray while it waits ("Send when ready"). */
 export function ActionBar({

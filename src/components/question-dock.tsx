@@ -3,7 +3,7 @@ import { LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter } from "@/components/confidence-rail";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, fieldKeys } from "@/components/lesson/panel-parts";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/components/sounds";
 import {
@@ -11,7 +11,6 @@ import {
 	buildAnswer,
 	normalizeQuizType,
 	CONFIDENCE_STOPS,
-	DEFAULT_CONFIDENCE_INDEX,
 	emptyDockSelection,
 	normalizeOptions,
 	resolveCorrect,
@@ -21,6 +20,8 @@ import {
 	parseAskInput,
 	parseQuizInput,
 	parseExplainInput,
+	parseWriteCodeInput,
+	stepConfidence,
 	toggleOption,
 	toggleOther,
 	type AnswerRequest,
@@ -34,7 +35,9 @@ import {
 	type QuestionMode,
 	type QuizToolInput,
 	type SelectMode,
+	type WriteCodeInput,
 } from "@/core";
+import { CodeQuestion } from "@/components/lesson/code-question";
 
 /**
  * THE QUESTION PANEL (redesign, lesson layout B): a waiting quiz/ask/
@@ -46,13 +49,13 @@ import {
  * "Your thinking" is the transfer channel of the whole product: never
  * called optional; Enter submits, Shift+Enter is a newline. The ask
  * "Other…" option is an editable row, so picking Other never displaces
- * the thinking.
+ * the thinking. A write_code question has its own form (CodeQuestion).
  */
 
 export interface QuestionDockProps {
-	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall";
+	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall" | "write_code";
 	toolCallId: string;
-	input: QuizToolInput | AskToolInput | ExplainToolInput;
+	input: QuizToolInput | AskToolInput | ExplainToolInput | WriteCodeInput;
 	onSubmit: (output: QuestionAnswerData) => void;
 	/** Restore only this call's unconfirmed submission after recovery. */
 	initialDraft?: QuestionFormDraft;
@@ -71,6 +74,7 @@ export function questionKindLabel(toolName: QuestionDockProps["toolName"], input
 	if (toolName === "recall") return "Recall";
 	if (toolName === "quiz") return normalizeQuizType((input as { type?: unknown } | null)?.type) === "predict" ? "Prediction" : "Check";
 	if (toolName === "explain") return "Explain";
+	if (toolName === "write_code") return "Code";
 	return "Question";
 }
 
@@ -82,7 +86,13 @@ export function QuestionDock(props: QuestionDockProps) {
 	// Parse, don't cast: the model authored this input. Anything that slips
 	// past the bridge's validation renders the quiet fallback, never a crash.
 	const parsed =
-		canonical === "quiz" ? parseQuizInput(input) : canonical === "explain" ? parseExplainInput(input) : parseAskInput(input);
+		canonical === "quiz"
+			? parseQuizInput(input)
+			: canonical === "explain"
+				? parseExplainInput(input)
+				: canonical === "write_code"
+					? parseWriteCodeInput(input)
+					: parseAskInput(input);
 	if (!parsed) {
 		return (
 			<PanelBody>
@@ -93,11 +103,13 @@ export function QuestionDock(props: QuestionDockProps) {
 			</PanelBody>
 		);
 	}
-	return <QuestionDockForm {...props} input={parsed} />;
+	if (canonical === "write_code") return <CodeQuestion {...props} input={parsed as WriteCodeInput} />;
+	return <QuestionDockForm {...props} input={parsed as QuizToolInput | AskToolInput | ExplainToolInput} />;
 }
 
 /** A picked row inverts: ink background, page-colored text. */
 const PICKED_INK = "var(--background)";
+const PICKED_TINT = "color-mix(in srgb, var(--background) 12%, transparent)";
 
 /** Lesson prose at a given size and color (the markdown renderer reads
  *  these variables), for the question and option text. */
@@ -106,8 +118,9 @@ function proseVars(size: number, leading: number, ink?: string): React.CSSProper
 		"--lh-prose-size": `${size}px`,
 		"--lh-prose-leading": `${leading / size}`,
 		...(ink ? { "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } : {}),
-		// Bold words' shaded block, made readable on the inverted picked row.
-		...(ink === PICKED_INK ? { "--lh-mark-bg": "color-mix(in srgb, var(--background) 12%, transparent)" } : {}),
+		// Bold words' block and inline code's block, made readable on the
+		// inverted picked row (their dark fills would hide the dark text).
+		...(ink === PICKED_INK ? { "--lh-mark-bg": PICKED_TINT, "--muted": PICKED_TINT } : {}),
 	} as React.CSSProperties;
 }
 
@@ -141,7 +154,7 @@ function QuestionDockForm({
 	onSaveDraft,
 	compactionRunning = false,
 	footer,
-}: QuestionDockProps) {
+}: Omit<QuestionDockProps, "input"> & { input: QuizToolInput | AskToolInput | ExplainToolInput }) {
 	const kind = toolQuestionKind(toolName);
 	const play = useSound();
 
@@ -197,8 +210,9 @@ function QuestionDockForm({
 	// window-level Enter) reads these.
 	const thinkingTextRef = useRef(initialDraft?.thinking ?? "");
 	const answerTextRef = useRef(initialDraft?.text ?? "");
-	// Confidence: an index into CONFIDENCE_STOPS (level − 1), resting at 3.
-	const [confIdx, setConfIdx] = useState<number>(initialDraft?.confidenceIndex ?? DEFAULT_CONFIDENCE_INDEX);
+	// Confidence: an index into CONFIDENCE_STOPS (level − 1), unset until
+	// the learner picks one.
+	const [confIdx, setConfIdx] = useState<number | undefined>(initialDraft?.confidenceIndex);
 	const selectMode: SelectMode = qd.mode === "multi-select" ? "multi-select" : "single-select";
 
 	const toggle = (idx: number) => setSel(toggleOption(selectMode, sel, idx));
@@ -218,8 +232,8 @@ function QuestionDockForm({
 			other: sel.otherSelected ? other : undefined,
 			text: qd.mode === "text" ? answerTextRef.current : undefined,
 			thinking: qd.mode !== "text" ? thinkingTextRef.current.trim() || undefined : undefined,
-			// Always sent on quiz answers; buildAnswer drops it on "I don't know".
-			confidence: kind === "quiz" ? CONFIDENCE_STOPS[confIdx] : undefined,
+			// Sent only once picked; buildAnswer drops it on "I don't know".
+			confidence: kind === "quiz" && confIdx !== undefined ? CONFIDENCE_STOPS[confIdx] : undefined,
 		};
 		// Snapshot before the optimistic submission unmounts the form.
 		onSaveDraft?.({
@@ -322,7 +336,7 @@ function QuestionDockForm({
 				// Confidence; dead on "I don't know" (nothing is sent).
 				if (kind !== "quiz" || sel.dontKnow) return;
 				e.preventDefault();
-				setConfIdx((i) => Math.min(CONFIDENCE_STOPS.length - 1, Math.max(0, i + (e.key === "ArrowRight" ? 1 : -1))));
+				setConfIdx((i) => stepConfidence(i, e.key === "ArrowRight" ? 1 : -1));
 			} else if (e.key === " ") {
 				if (kbdIdx === null) return; // plain Space keeps scrolling
 				e.preventDefault();
@@ -478,7 +492,7 @@ function QuestionDockForm({
 				{kind === "quiz" && (
 					<div className="mt-[18px] shrink-0">
 						<ConfidenceMeter
-							level={(confIdx + 1) as ConfidenceLevel}
+							level={confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel)}
 							onChange={(level) => setConfIdx(level - 1)}
 							disabled={sel.dontKnow}
 						/>
@@ -524,18 +538,4 @@ function QuestionDockForm({
 			/>
 		</form>
 	);
-}
-
-/** The panel fields' keys: Esc stays in the field (it must not abort the
- *  turn); Enter submits, Shift+Enter is a newline, ⌘/Ctrl+Enter submits. */
-function fieldKeys(e: React.KeyboardEvent<HTMLTextAreaElement>, submit: () => void) {
-	if (e.key === "Escape") {
-		e.preventDefault();
-		e.stopPropagation();
-		return;
-	}
-	if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
-		e.preventDefault();
-		submit();
-	}
 }

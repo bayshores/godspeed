@@ -68,6 +68,9 @@ export interface ChatStore {
 	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +
 	 *  the DELETE route), not the store's. */
 	deleteChat(id: string): boolean;
+	/** Save a file the learner sent into the lesson's own folder (deleted
+	 *  with the lesson); returns its absolute path. */
+	saveAttachment(id: string, fileName: string, data: Uint8Array): string;
 	/** Set or clear (null = "No class") the lesson's class. Quiet like
 	 *  rename: updatedAt stays put. The graph choreography of a move is the
 	 *  caller's (src/server/classes.ts). */

@@ -21,6 +21,7 @@ import { SidebarFooter } from "@/components/sidebar/sidebar-footer";
 import { toggledSidebar } from "@/components/sidebar-model";
 import { HalleyProvider } from "@/components/halley/halley-provider";
 import { Welcome } from "@/components/welcome/welcome";
+import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
 
 export { useRiseOnChange } from "@/components/sidebar/motion";
 export { SessionRow, RenameRow } from "@/components/sidebar/session-row";
@@ -65,8 +66,8 @@ declare global {
 			pickFolder?: () => Promise<string | null>;
 			/** Opens Finder (File Explorer) with this file selected. */
 			showInFolder?: (path: string) => Promise<void>;
-			/** Opens this folder in Finder (File Explorer). */
-			openFolder?: (path: string) => Promise<void>;
+			/** Opens this folder in Finder (File Explorer), or this PDF in its default app. */
+			openPath?: (path: string) => Promise<void>;
 			/** A dropped file's or folder's absolute path (onboarding drop zone). */
 			pathForFile?: (file: File) => string;
 			expandWindow: () => void;
@@ -212,6 +213,9 @@ export function SidebarToggle() {
 	);
 }
 
+/** The sidebar's width (drag its border line to change it). */
+const SIDEBAR_WIDTH = { initial: 256, min: 200, max: 360 };
+
 /** The sidebar's two buttons: tone blocks, 13.5px bold. */
 const NEW_BUTTON =
 	"lh-press flex flex-1 items-center justify-center gap-[7px] bg-tone py-[9px] text-[13.5px] font-bold text-ink hover:bg-tone-2";
@@ -227,13 +231,15 @@ function SessionsSidebar() {
 	const pathname = usePathname();
 	const { active: activeClassId, activeClass } = useClasses();
 	const due = useOpenDeadlines();
+	const [width, setWidth] = usePaneWidth("sidebar", SIDEBAR_WIDTH);
 
 	return (
 		<aside
-			className={cn("sidebar-motion shrink-0 overflow-hidden", SIDEBAR_MOTION, open ? "w-64" : "w-0")}
+			className={cn("sidebar-motion relative shrink-0 overflow-hidden", SIDEBAR_MOTION)}
+			style={{ width: open ? width : 0 }}
 			aria-hidden={!open}
 		>
-			<div className="flex h-full w-64 flex-col items-start gap-3.5 border-r border-tone-2 bg-background px-2.5 pb-3">
+			<div className="flex h-full flex-col items-start gap-3.5 border-r border-tone-2 bg-background px-2.5 pb-3" style={{ width }}>
 				{/* The window row: in Electron it is the window's drag surface and
 				    the native traffic lights sit in its left gutter
 				    (.lh-lights-gutter); the close toggle sits at the right edge.
@@ -276,6 +282,7 @@ function SessionsSidebar() {
 
 				<SidebarFooter />
 			</div>
+			{open && <ResizeHandle paneKey="sidebar" edge="right" width={width} bounds={SIDEBAR_WIDTH} onWidth={setWidth} label="Resize the sidebar" />}
 		</aside>
 	);
 }

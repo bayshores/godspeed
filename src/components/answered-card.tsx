@@ -5,9 +5,9 @@ import { ThinkingBlock } from "@/components/thinking-block";
 import { useFold } from "@/components/use-fold";
 import { useStepNumber } from "@/components/lesson/step-context";
 import { cn } from "@/lib/utils";
-import { ToolContentResponse } from "@/components/ai-elements/message";
+import { MessageResponse, ToolContentResponse } from "@/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/core";
-import { answerForPresentation, confidenceLevel, parseAskInput, parseQuizInput } from "@/core";
+import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput } from "@/core";
 
 /** Lesson prose at a given size/leading/color (the markdown renderer reads
  *  these variables). */
@@ -22,6 +22,7 @@ function kindLabel(answer: QuestionAnswerData): string {
 	if (answer.tool === "recall") return "Recall";
 	if (answer.kind === "quiz") return answer.questionType === "predict" ? "Prediction" : "Check";
 	if (answer.kind === "explain") return "Explain";
+	if (answer.kind === "code") return "Code";
 	return "Question";
 }
 
@@ -48,8 +49,9 @@ function ResultChip({ answer }: { answer: QuestionAnswerData }) {
  * thinking.
  *
  * Quiz answers are GRADED; ask answers are a plain record of what was
- * said (never graded); explain answers are graded by the teacher in its
- * next reply, so the card shows no verdict (owner ruling 2026-09-27).
+ * said (never graded); explain and code answers are graded by the teacher
+ * in its next reply, so the card shows no verdict (owner ruling 2026-09-27).
+ * A code answer shows the learner's code as a highlighted block.
  */
 export function AnsweredCard({
 	answer: savedAnswer,
@@ -76,6 +78,7 @@ export function AnsweredCard({
 	const isQuiz = answer.kind === "quiz";
 	const isExplain = answer.kind === "explain";
 	const isAsk = answer.kind === "ask";
+	const isCode = answer.kind === "code";
 	const selectedIdx = new Set(answer.answers.map((a) => a.index));
 	const correctIdx = new Set(answer.correctIndices ?? []);
 	// The question's own context rides the ORIGINAL CALL (owner, 2026-10-12):
@@ -89,7 +92,9 @@ export function AnsweredCard({
 		? (answer.options?.length ?? 0) > 0 || !!answer.explanation || !!thinking
 		: isExplain
 			? !!answer.committed || !!thinking
-			: !!parsedDetails || descByIndex.size > 0 || !!thinking;
+			: isCode
+				? !!thinking
+				: !!parsedDetails || descByIndex.size > 0 || !!thinking;
 	// What an ask or explain learner said stays in view (it is the record).
 	const said = isAsk ? (answer.options ?? []).filter((o) => selectedIdx.has(o.index)) : [];
 
@@ -145,6 +150,12 @@ export function AnsweredCard({
 					</div>
 				)}
 				{answer.text && <div className="lh-prose whitespace-pre-wrap text-ink">“{answer.text}”</div>}
+				{isCode && answer.code && (
+					<div data-testid="answered-code">
+						<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
+					</div>
+				)}
+				{isCode && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
 
 				{fold.mounted && (
 					<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">

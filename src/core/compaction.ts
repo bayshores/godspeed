@@ -38,8 +38,9 @@ import { derivePlanStatusesLh, derivedNodeStatus } from "./contracts/plan.ts";
 import { COMPACTED_HISTORY_HEADER } from "./contracts/chat.ts";
 import type { LhMessage, LhMarkerMessage } from "./native-messages.ts";
 import { newMessageId } from "./message-id.ts";
+import { contentText } from "./attachments.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { AssistantMessage, ToolResultMessage, SystemMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, ToolResultMessage, SystemMessage, UserMessage } from "@earendil-works/pi-ai";
 
 // ─── constants (the tunables, owner-approved) ────────────────────────────────
 
@@ -96,7 +97,7 @@ export function estimateMessageTokens(message: LhMessage | AgentMessage): number
 			else if (block.type === "toolCall") chars += (block.name?.length ?? 0) + JSON.stringify(block.arguments ?? {}).length;
 		}
 	} else {
-		chars += textCharsOfContent(content);
+		chars += textCharsOfContent(content) + textCharsOfContent((message as { attachments?: unknown }).attachments);
 		if (message.role === "system") {
 			const system = message as SystemMessage;
 			for (const section of Object.values(system.sections ?? {})) chars += section?.length ?? 0;
@@ -308,7 +309,7 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 	for (const m of messages) {
 		const role = (m as { role?: string }).role;
 		if (role === "user") {
-			lines.push(`[LEARNER] ${(m as { content: string }).content}`);
+			lines.push(`[LEARNER] ${contentText((m as UserMessage).content)}`);
 		} else if (role === "assistant") {
 			const assistant = m as AssistantMessage;
 			const blocks: string[] = [];
@@ -321,9 +322,7 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 			if (blocks.length > 0) lines.push(`[TUTOR] ${blocks.join("\n")}`);
 		} else if (role === "toolResult") {
 			const result = m as ToolResultMessage;
-			const text = result.content
-				.map((c) => (c.type === "text" ? c.text : JSON.stringify(c)))
-				.join("\n");
+			const text = contentText(result.content);
 			lines.push(
 				`[RESULT for ${result.toolName}${result.isError ? " (error)" : ""}] ${
 					text.length > SUMMARY_TOOL_RESULT_TRUNCATE ? `${text.slice(0, SUMMARY_TOOL_RESULT_TRUNCATE)}…[truncated]` : text
@@ -332,7 +331,7 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 		} else if (role === "custom") {
 			const marker = m as LhMarkerMessage;
 			if (marker.customType === "plan-block") continue; // UI-only
-			lines.push(`[SYSTEM NOTE] ${marker.content}`);
+			lines.push(`[SYSTEM NOTE] ${[marker.content, ...(marker.attachments ? [contentText(marker.attachments)] : [])].join("\n")}`);
 		}
 	}
 	return lines.join("\n\n");

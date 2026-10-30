@@ -89,7 +89,7 @@ function FilesPageBody() {
 			},
 		};
 	}, [classId, run]);
-	const openFolder = typeof window !== "undefined" ? window.lh?.openFolder : undefined;
+	const openPath = typeof window !== "undefined" ? window.lh?.openPath : undefined;
 
 	const link = useCallback(
 		(path: string) => {
@@ -199,7 +199,7 @@ function FilesPageBody() {
 										path={record.linkedFolder}
 										problem={folderProblem}
 										disabled={disabled}
-										open={openFolder && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openFolder(record.linkedFolder!) }}
+										open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
 										onPickAgain={onLinkFolder}
 										onUnlink={() => void run(() => unlinkClassFolder(record.id))}
 									/>

@@ -18,6 +18,10 @@ describe("enterAction", () => {
 		assert.equal(enterAction({ busy: true, canSend: false }), "stop");
 	});
 
+	it("busy stream with files waiting: Enter does nothing (no steer, no stop)", () => {
+		assert.equal(enterAction({ busy: true, canSend: false, hasFiles: true }), "none");
+	});
+
 	it("idle: send when there is the text, nothing when there is not", () => {
 		assert.equal(enterAction({ busy: false, canSend: true }), "send");
 		assert.equal(enterAction({ busy: false, canSend: false }), "none");

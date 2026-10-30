@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
+import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
+import type { ChatAttachment } from "@/core";
 
 /**
  * THE PRACTICE PANEL (redesign, practice lesson): an active problem fills
@@ -21,8 +23,8 @@ interface PracticeDockProps {
 	input: { statement: string };
 	/** The problem's number in this lesson ("Problem 3"). */
 	number?: number | null;
-	/** text — POST {type:"thinking"} (one lane). */
-	onSubmit: (text: string) => void;
+	/** text and files — POST {type:"thinking"} (one lane). */
+	onSubmit: (text: string, attachments: ChatAttachment[]) => void;
 	/** A turn is running: a send now would be dropped, so the field keeps its text. */
 	busy?: boolean;
 	/** Compaction is running: the POST would block on the server's gate. */
@@ -35,14 +37,18 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 	const [thinking, setThinking] = useState("");
 	// The ref mirrors the field: the window-level Enter reads the current trace.
 	const thinkingRef = useRef("");
+	const attachments = useAttachmentDraft();
+	const empty = thinking.trim().length === 0 && attachments.files.length === 0;
 
 	const submit = () => {
 		if (compactionRunning || busy) return;
 		const text = thinkingRef.current.trim();
-		if (text.length === 0) return;
+		const files = attachments.files.map((f) => f.attachment);
+		if (text.length === 0 && files.length === 0) return;
 		thinkingRef.current = "";
 		setThinking("");
-		onSubmit(text);
+		attachments.clear();
+		onSubmit(text, files);
 	};
 
 	// Enter submits from anywhere outside a typing surface (owner round 6).
@@ -57,6 +63,7 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 				e.preventDefault();
 				submit();
 			}}
+			{...attachmentInputProps(attachments)}
 		>
 			<PanelBody>
 				<PanelHeader
@@ -77,6 +84,7 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 				</div>
 				<div data-testid="practice-thinking-field" className="mt-5 flex min-h-0 flex-1 flex-col">
 					<FieldLabel>Your thinking</FieldLabel>
+					<AttachmentTray draft={attachments} />
 					<textarea
 						value={thinking}
 						onChange={(e) => {
@@ -102,12 +110,17 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 				</div>
 				{footer}
 			</PanelBody>
-			<ActionBar
-				type="submit"
-				testId="practice-send"
-				label={compactionRunning ? "Compacting the lesson…" : "Send"}
-				disabled={thinking.trim().length === 0 || compactionRunning || busy}
-			/>
+			<div className="flex shrink-0">
+				<AttachButton draft={attachments} />
+				<div className="min-w-0 flex-1">
+					<ActionBar
+						type="submit"
+						testId="practice-send"
+						label={compactionRunning ? "Compacting the lesson…" : "Send"}
+						disabled={empty || compactionRunning || busy}
+					/>
+				</div>
+			</div>
 		</form>
 	);
 }

@@ -28,6 +28,7 @@ import {
 	planStepBar,
 	questionNeedsReveal,
 	toolQuestionKind,
+	type ChatAttachment,
 	type LhMessage,
 	type QuestionAnswerData,
 } from "@/core";
@@ -40,6 +41,7 @@ import { useTitleRename } from "@/components/lesson/use-title-rename";
 import { LessonTopBar } from "@/components/lesson/lesson-top-bar";
 import { ReadingPane } from "@/components/lesson/reading-pane";
 import { YourTurnPanel } from "@/components/lesson/your-turn-panel";
+import { useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { useHalley, useHalleyLesson } from "@/components/halley/halley-provider";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
@@ -264,9 +266,13 @@ export function Chat({
 	}, []);
 	useFieldCycle(cycleChatFields);
 
-	// A running turn never gates the box: Enter while busy STEERS it. A
-	// waiting question or problem owns the panel; compaction gates sends.
-	const canSend = text.trim().length > 0 && !pending && !activeProblem && !compacting;
+	const attachments = useAttachmentDraft();
+	const hasFiles = attachments.files.length > 0;
+
+	// A running turn never gates the box: Enter while busy STEERS it (text
+	// only, so waiting files hold the send). A waiting question or problem
+	// owns the panel; compaction gates sends.
+	const canSend = (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && !pending && !activeProblem && !compacting;
 
 	/* THE PRACTICE PAUSE: between problems, once a problem
 	 * has ever been posed — Enter on an empty box (or anywhere) asks for the
@@ -290,10 +296,10 @@ export function Chat({
 	useEnterSubmits(sendNext);
 
 	const submitThinking = useCallback(
-		(t: string) => {
+		(t: string, files: ChatAttachment[]) => {
 			const problem = activeProblemRef.current;
 			if (!problem) return;
-			void send({ type: "thinking", problemCallId: problem.toolCallId, text: t });
+			void send({ type: "thinking", problemCallId: problem.toolCallId, text: t, ...(files.length > 0 ? { attachments: files } : {}) });
 		},
 		[send],
 	);
@@ -304,15 +310,19 @@ export function Chat({
 	const onSend = () => {
 		if (pending || compacting) return;
 		const t = textRef.current.trim();
-		if (!t) return;
-		applyText("");
+		const files = attachments.files.map((f) => f.attachment);
+		if (!t && files.length === 0) return;
 		if (busy) {
+			if (files.length > 0) return;
+			applyText("");
 			void steer(t).then((sent) => {
 				if (!sent) applyText(restoreUnsentSteer(t, textRef.current));
 			});
 			return;
 		}
-		void send({ type: "text", text: t });
+		applyText("");
+		attachments.clear();
+		void send({ type: "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) });
 	};
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
@@ -408,6 +418,7 @@ export function Chat({
 										nextProblem: nextReady,
 										onNext: sendNext,
 										queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
+										attachments,
 										notice: waitingForAgent ? (
 											<p data-testid="composer-waiting" className="text-xs text-ink-2">
 												{WAITING_NOTICE}

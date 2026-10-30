@@ -80,4 +80,31 @@ describe("update banner (Wave C)", () => {
 		root.unmount();
 		host.remove();
 	});
+
+	it("shows the download as soon as it starts, then Later hides the ready pop-up", async () => {
+		let pushed: ((s: UpdateState) => void) | null = null;
+		(window as { lh?: unknown }).lh = {
+			onUpdateStatus: (cb: (s: UpdateState) => void) => {
+				pushed = cb;
+				return () => {};
+			},
+			installUpdate: () => {},
+		};
+		const host = document.createElement("div");
+		document.body.appendChild(host);
+		const root = ReactDOMClient.createRoot(host);
+		flushSync(() => root.render(<UpdateBanner />));
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync(() => pushed?.({ status: "downloading", version: "0.5.4", percent: 40, revision: 1 }));
+		assert.ok(host.innerHTML.includes("godspeed 0.5.4 is downloading"));
+		assert.match(host.innerHTML, /width:\s*40%/, "the bar follows the download");
+		assert.ok(!host.innerHTML.includes("Restart now"), "nothing to restart yet");
+
+		flushSync(() => pushed?.({ status: "downloaded", version: "0.5.4", revision: 2 }));
+		assert.ok(host.innerHTML.includes("godspeed 0.5.4 is ready"));
+		flushSync(() => host.querySelector<HTMLButtonElement>("[data-testid='update-later']")!.click());
+		assert.equal(host.innerHTML, "", "Later hides it until the next launch");
+		root.unmount();
+		host.remove();
+	});
 });

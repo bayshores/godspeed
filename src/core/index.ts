@@ -20,6 +20,7 @@ export * from "./ports.ts";
 export * from "./chains.ts";
 
 export * from "./question-core.ts";
+export * from "./code-question.ts";
 // The event bus: vocabulary + emit/subscribe
 // for every layer; the browser shell consumes the types + the runtime names
 // through this barrel (shell law: pure core via @/core only).
@@ -39,6 +40,7 @@ export * from "./native-messages.ts";
 export * from "./today-note.ts";
 export * from "./compaction.ts";
 export * from "./input-events.ts";
+export * from "./attachments.ts";
 // The client view model — the grouping canon (one continuous assistant
 // document, step separators). Pure, browser-safe.
 export * from "./view.ts";

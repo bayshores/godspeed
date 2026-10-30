@@ -32,6 +32,7 @@ import type { TSchema } from "typebox";
 import { quizDisplayInputSchema, askInputSchema, askOptionProblems, quizInputProblems, explainInputProblems, explainDisplayInputSchema, type AskToolInput, type QuizToolInput, type ExplainToolInput } from "./question-core.ts";
 import { healEncodedArguments } from "./argument-heal.ts";
 import { probeDoneInputSchema, type ProbeDoneInput } from "./contracts/probe.ts";
+import { writeCodeInputProblems, writeCodeInputSchema, type WriteCodeInput } from "./code-question.ts";
 
 /** The pi-boundary parse step, mirrored here (live-smoke fix, 2026-09-26):
  *  pi-ai's validateToolArguments runs TypeBox's Value.Convert on the model's
@@ -110,6 +111,14 @@ export function parseExplainInput(input: unknown): ExplainToolInput | undefined 
 	const cleaned = boundaryParse<ExplainToolInput>(explainDisplayInputSchema, input);
 	if (!cleaned) return undefined;
 	if (explainInputProblems(cleaned).length > 0) return undefined;
+	return cleaned;
+}
+
+/** write_code parse for DISPLAY: the tool's own schema and refinement. */
+export function parseWriteCodeInput(input: unknown): WriteCodeInput | undefined {
+	const cleaned = boundaryParse<WriteCodeInput>(writeCodeInputSchema, input);
+	if (!cleaned) return undefined;
+	if (writeCodeInputProblems(cleaned).length > 0) return undefined;
 	return cleaned;
 }
 

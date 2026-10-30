@@ -5,6 +5,8 @@
  * toolCallId. The server-side record scans (danglingQuestionOf over native
  * LhMessage[]) live in native-messages.ts.
  */
+import type { QuestionKind } from "./question-core.ts";
+
 interface UIMessage {
 	role?: string;
 	parts: Array<Record<string, unknown> & { type: string }>;
@@ -48,13 +50,16 @@ export const QUESTION_TOOLS = [
 	"ask_user_question",
 	"explain",
 	"recall",
+	"write_code",
 ] as const;
 
 /** The tool→kind map (the dock's own fold, named once — the dismissal
  *  path and the dock must never disagree on what a tool is). The probe
  *  names fold onto their teach kinds — the dock is kind-driven. */
-export function toolQuestionKind(tool: string): "quiz" | "ask" | "explain" {
-	return tool === "quiz" || tool === "probe" ? "quiz" : tool === "explain" || tool === "recall" ? "explain" : "ask";
+export function toolQuestionKind(tool: string): QuestionKind {
+	if (tool === "quiz" || tool === "probe") return "quiz";
+	if (tool === "explain" || tool === "recall") return "explain";
+	return tool === "write_code" ? "code" : "ask";
 }
 
 // ─── Tool availability (2026-09 settings seam) ─────────────────────────────

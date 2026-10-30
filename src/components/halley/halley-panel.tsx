@@ -10,7 +10,7 @@ import { ArrowRightIcon } from "lucide-react";
 import type { AgentAction } from "@/core";
 import { ActivitySection } from "@/components/activity-dock";
 import { WAITING_NOTICE, type AgentStatus } from "@/components/agent-status";
-import { cn } from "@/lib/utils";
+import { SmallSwitch } from "@/components/ui/small-switch";
 import { HalleyFace } from "./halley-face";
 import type { Home } from "./engine";
 import { safePage } from "./follow";
@@ -96,22 +96,7 @@ export function HalleyPanel({
 				</span>
 				<span className="flex shrink-0 items-center gap-[7px]">
 					<span className="text-[13px] text-ink-2">Follow</span>
-					<button
-						type="button"
-						role="switch"
-						aria-checked={follow}
-						aria-label="Follow"
-						data-testid="halley-follow"
-						onClick={() => onFollow(!follow)}
-						className={cn("lh-press relative h-4 w-7 shrink-0", follow ? "bg-ink" : "bg-tone-2")}
-					>
-						<span
-							className={cn(
-								"absolute top-[3px] left-[3px] size-2.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-								follow ? "translate-x-3 bg-background" : "translate-x-0 bg-ink-2",
-							)}
-						/>
-					</button>
+					<SmallSwitch on={follow} onChange={onFollow} label="Follow" testId="halley-follow" />
 				</span>
 			</div>
 

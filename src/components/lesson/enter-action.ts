@@ -11,12 +11,14 @@ export function enterAction(state: {
 	/** The between-problems pause is live: practice session, nothing
 	 *  active, no turn/compaction in flight (the caller's fold). */
 	nextProblem?: boolean;
+	/** Files wait in the box: never an empty box, so never a stop. */
+	hasFiles?: boolean;
 }): "stop" | "send" | "next" | "none" {
 	// Composer steering (owner arc 2026-10-03): while a turn runs, typed
 	// text makes Enter a STEER (the queue-and-redirect send); Enter with
 	// an empty composer stays the stop shortcut. The button itself keeps
 	// the square — Stop stays one click away at all times.
-	if (state.busy) return state.canSend ? "send" : "stop";
+	if (state.busy) return state.canSend ? "send" : state.hasFiles ? "none" : "stop";
 	if (state.canSend) return "send";
 	if (state.nextProblem) return "next";
 	return "none";

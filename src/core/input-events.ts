@@ -39,17 +39,25 @@ import {
 	pendingProblemDismissalOf,
 } from "./native-messages.ts";
 import { toolQuestionKind } from "./pending.ts";
+import {
+	attachmentRefusal,
+	base64Bytes,
+	MAX_ATTACHMENTS,
+	TOO_MANY_REFUSAL,
+	type AttachmentPart,
+	type ChatAttachment,
+} from "./attachments.ts";
 
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
-	| { type: "text"; text: string }
+	| { type: "text"; text: string; attachments?: ChatAttachment[] }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData }
 	| { type: "continue" }
 	/** The practice dock's two buttons (owner, 2026-10-04): the learner's
 	 *  thinking on the ACTIVE problem — one lane (owner 2026-10-05):
 	 *  whether it claims an answer is read from the text. One
 	 *  problem may carry many submissions; each is its own turn. */
-	| { type: "thinking"; problemCallId: string; text: string }
+	| { type: "thinking"; problemCallId: string; text: string; attachments?: ChatAttachment[] }
 	/** The practice move-on signal (owner round 16): the learner's
 	 *  explicit go-ahead during the between-problems pause — the Next
 	 *  chip or Enter on an empty composer. Practice sessions only, and
@@ -155,11 +163,13 @@ export function parseChatInput(input: unknown): ChatInput {
 	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
 	const i = input as Record<string, unknown>;
 	switch (i.type) {
-		case "text":
-			if (typeof i.text !== "string" || (i.text as string).trim().length === 0) {
-				throw new ChatInputError("text input requires non-empty text");
+		case "text": {
+			const attachments = parseAttachments(i.attachments);
+			if (typeof i.text !== "string" || (i.text.trim().length === 0 && !attachments)) {
+				throw new ChatInputError("text input requires non-empty text or attachments");
 			}
-			return { type: "text", text: i.text };
+			return { type: "text", text: i.text, ...(attachments ? { attachments } : {}) };
+		}
 		case "answer":
 			if (typeof i.toolCallId !== "string" || i.toolCallId.length === 0) {
 				throw new ChatInputError("answer input requires toolCallId");
@@ -170,19 +180,43 @@ export function parseChatInput(input: unknown): ChatInput {
 			return { type: "answer", toolCallId: i.toolCallId, answer: i.answer as QuestionAnswerData };
 		case "continue":
 			return { type: "continue" };
-		case "thinking":
+		case "thinking": {
 			if (typeof i.problemCallId !== "string" || i.problemCallId.length === 0) {
 				throw new ChatInputError("thinking input requires problemCallId");
 			}
-			if (typeof i.text !== "string" || i.text.trim().length === 0) {
-				throw new ChatInputError("thinking input requires non-empty text");
+			const attachments = parseAttachments(i.attachments);
+			if (typeof i.text !== "string" || (i.text.trim().length === 0 && !attachments)) {
+				throw new ChatInputError("thinking input requires non-empty text or attachments");
 			}
-			return { type: "thinking", problemCallId: i.problemCallId, text: i.text };
+			return { type: "thinking", problemCallId: i.problemCallId, text: i.text, ...(attachments ? { attachments } : {}) };
+		}
 		case "next":
 			return { type: "next" };
 		default:
 			throw new ChatInputError(`unknown input type: ${String(i.type)}`);
 	}
+}
+
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
+/** An input's files: absent, or 1 to MAX_ATTACHMENTS well-formed files the
+ *  composer would have accepted. Anything else is a 400. */
+function parseAttachments(raw: unknown): ChatAttachment[] | undefined {
+	if (raw === undefined) return undefined;
+	if (!Array.isArray(raw) || raw.length === 0) throw new ChatInputError("attachments must be a non-empty list");
+	if (raw.length > MAX_ATTACHMENTS) throw new ChatInputError(TOO_MANY_REFUSAL);
+	return raw.map((a: unknown) => {
+		const { name, mimeType, data } = (a ?? {}) as Record<string, unknown>;
+		if (typeof name !== "string" || !name.trim() || typeof mimeType !== "string" || !mimeType) {
+			throw new ChatInputError("each attachment requires a name and a mimeType");
+		}
+		if (typeof data !== "string" || data.length % 4 !== 0 || !BASE64.test(data)) {
+			throw new ChatInputError(`${name} is not valid base64`);
+		}
+		const refusal = attachmentRefusal({ name, type: mimeType, size: base64Bytes(data) });
+		if (refusal) throw new ChatInputError(refusal);
+		return { name, mimeType, data };
+	});
 }
 
 /**
@@ -193,14 +227,18 @@ export function parseChatInput(input: unknown): ChatInput {
  * DANGLING QUESTION call in the record (posed, never answered) — anything
  * else 400s honestly instead of silently interrupting a question or
  * double-answering.
+ *
+ * `attachments` are the input's files as the server stored them (pictures
+ * normalized, PDFs saved): they join the learner's message.
  */
 export function inputAppends(
 	record: { messages: LhMessage[]; kind?: string },
 	input: ChatInput,
+	attachments: readonly AttachmentPart[] = [],
 ): LhMessage[] {
 	switch (input.type) {
 		case "text":
-			return [...dismissalConclusion(record), newUserMessage(input.text)];
+			return [...dismissalConclusion(record), newUserMessage(input.text, attachments)];
 		case "answer": {
 			const pending = danglingQuestionOf(record.messages);
 			if (!pending || pending.toolCallId !== input.toolCallId) {
@@ -215,7 +253,7 @@ export function inputAppends(
 			if (!active || active.toolCallId !== input.problemCallId) {
 				throw new ChatInputError("thinking input targets no active problem");
 			}
-			return [...dismissalConclusion(record), newThinkingMessage(input.problemCallId, input.text)];
+			return [...dismissalConclusion(record), newThinkingMessage(input.problemCallId, input.text, attachments)];
 		}
 		case "next": {
 			// Honest 400s, the thinking gate's discipline: the signal is a

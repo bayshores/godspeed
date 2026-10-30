@@ -1352,3 +1352,14 @@ body {
 		animation: none;
 	}
 }
+
+/* A pane border is being dragged (ResizeHandle): the pane follows the
+   pointer with no slide, and the whole page keeps the resize cursor
+   without selecting text. */
+:root[data-lh-resizing] {
+	cursor: col-resize;
+	user-select: none;
+}
+:root[data-lh-resizing] .sidebar-motion {
+	transition: none;
+}
