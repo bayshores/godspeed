@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * The lesson title and its rename (owner, 2026-09-17): F2 or a click on
+ * The lesson title and its rename: F2 or a click on
  * the title opens edit mode with everything selected; Enter or a click
  * away commits (PUT /api/chats/:id); Escape discards. The sidebar learns
  * at once through the lh:chat-renamed window event, and a rename made in

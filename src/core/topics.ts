@@ -1,5 +1,5 @@
 /**
- * TOPICS (redesign plan, owner-approved 2026-10-27): named groups of a
+ * TOPICS: named groups of a
  * graph's facts, the unit the Overview and the topic Graph show.
  *
  * The topic grouper (a background model job, agent/subagents/topic-grouper.ts)

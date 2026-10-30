@@ -5,14 +5,12 @@ import { graphSessionIndex, graphSessionPropositions } from "../../core/graph.ts
 import type { ChatStore, GraphStore } from "../../core/ports.ts";
 
 /**
- * THE PROBER'S GRAPH TOOLS (wave 7, owner-locked 2026-09-23): context
- * injection is dead — zero configuration beyond chat models. The prober
- * reads the learner's persistent knowledge map through two tools instead,
- * replacing the old injected block with on-demand eyes.
+ * THE PROBER'S GRAPH TOOLS: the prober reads the learner's persistent
+ * knowledge map on demand through two tools (nothing is injected).
  *
- * Names + levels + dating ONLY — no statement text, no session contents
- * (owner ruling: the map's ORGANIZATION is the prober's business, its
- * prose is not). The data comes from Platform's pure core seams
+ * Names + levels + dating ONLY, no statement text or session contents:
+ * the map's organization is the prober's business, its prose is not. The
+ * data comes from the pure core seams
  * (graphSessionIndex / graphSessionPropositions) over the same ports the
  * snapshot reads, so the prober and the learner's graph view can never
  * disagree.
@@ -27,11 +25,10 @@ import type { ChatStore, GraphStore } from "../../core/ports.ts";
 export interface GraphToolContext {
 	chatStore: ChatStore;
 	graphStore: GraphStore;
-	/** CROSS-CLASS READS (classes wave, owner ruling 2026-10-26): every
-	 *  class graph plus "No class", each named, `own` marking the lesson's
-	 *  class. Present = the map tools read across all of them (a strand
-	 *  held solid in another class needs no re-probing); absent = the one
-	 *  graphStore above, exactly as before. Read-only: nothing here writes. */
+	/** CROSS-CLASS READS: every class graph plus "No class", each named,
+	 *  `own` marking the lesson's class. Present = the map tools read across
+	 *  all of them (a strand held solid in another class needs no
+	 *  re-probing); absent = the one graphStore above. Read-only. */
 	graphs?: () => ScopedGraph[];
 }
 

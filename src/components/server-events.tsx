@@ -1,10 +1,9 @@
 "use client";
 
 /**
- * THE NOTIFICATION CHANNEL'S CLIENT HALF (push-architecture slice 3,
- * 2026-10-02): ONE EventSource("/api/events") per open window, held for
- * the window's lifetime — the channel that retires the app's poll
- * lattice. Every server-initiated change arrives as a named SSE frame;
+ * THE NOTIFICATION CHANNEL'S CLIENT HALF: ONE EventSource("/api/events")
+ * per open window, held for the window's lifetime, so nothing polls.
+ * Every server-initiated change arrives as a named SSE frame;
  * consumers respond by fetching truth (notify → fetch, the architecture's
  * whole trick — see src/core/events.ts and server/events-stream.ts).
  *

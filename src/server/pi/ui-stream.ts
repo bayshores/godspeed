@@ -2,9 +2,9 @@ import type { Agent, AgentEvent, AgentMessage } from "@earendil-works/pi-agent-c
 import { ToolCallIdUniquifier } from "./call-ids.ts";
 
 /**
- * THE NATIVE WIRE (Wave D, owner-approved 2026-09-26): one agent turn, streamed
+ * THE NATIVE WIRE: one agent turn, streamed
  * to every view as pi AgentEvents — no translation, no part assembly. The one
- * sanctioned rewrite (the Lacan fix, 2026-10-04): tool-call IDs uniquify at
+ * rewrite: tool-call IDs uniquify at
  * this boundary when the provider resets them per response (DeepSeek's
  * `call_0` every turn) — see call-ids.ts and PiTurnSpec.usedToolCallIds.
  * The SSE body is the agent's own event stream:
@@ -19,13 +19,13 @@ import { ToolCallIdUniquifier } from "./call-ids.ts";
  * - Every `message_update` carries the FULL partial assistant message (each
  *   AssistantMessageEvent ships `partial`) — a view REPLACES its streaming
  *   assistant with `event.message`; no delta assembly exists anywhere.
- * - WIRE DIET (owner, 2026-10-09 — the streaming-freeze postmortem): our
+ * - WIRE DIET: our
  *   boundary emits the SLIM message_update (`message` only). pi's event also
  *   carries the same full partial a SECOND time as `assistantMessageEvent`
  *   — nothing in this app ever reads it, and re-serializing it per chunk
  *   doubled every stream frame. Client reads `event.message`, always.
- * - Question tools (quiz / ask_user_question): NO suppression (owner ruling,
- *   Wave D fork 2) — the closing `tool_execution_end` with the in-memory
+ * - Question tools (quiz / ask_user_question): NO suppression. The closing
+ *   `tool_execution_end` with the in-memory
  *   "Question posed" placeholder flows to the client, which ignores it
  *   (question tools are client-owned; the answer arrives as the input event).
  *   The placeholder still never persists and never reaches the model.
@@ -39,7 +39,7 @@ import { ToolCallIdUniquifier } from "./call-ids.ts";
  * - Stream-level provider errors ride their message verbatim
  *   (message_end with stopReason "error" + errorMessage).
  *
- * BACKGROUND-TURN RUNNER (owner ruling, 2026-09-25): a turn executes as a
+ * BACKGROUND-TURN RUNNER: a turn executes as a
  * server-side background object decoupled from any single HTTP response —
  * clients are VIEWS. runPiTurn returns the handle (compacted state +
  * subscriber set); piTurnResponse wraps a subscriber stream as the SSE
@@ -47,13 +47,11 @@ import { ToolCallIdUniquifier } from "./call-ids.ts";
  * are BOTH exactly that. Cancelling a view detaches it ONLY — never aborts
  * the turn; the handle's abort() is the one remote kill.
  *
- * THE COMPACTION LAW (owner, 2026-10-09 — supersedes the unbounded-log ruling
- * of 2026-09-25): the turn log stores STATE, not chunks. pi's native events
- * are full snapshots — one per provider chunk — so retaining every one made
- * memory and replay cost quadratic in message length (a single
- * high-thinking message retained hundreds of MB and every reattach
- * re-serialized the whole history in one blocking stretch — the parallel-
- * session navigation freeze). The log now keeps settled events verbatim plus
+ * THE COMPACTION LAW: the turn log stores STATE, not chunks. pi's native
+ * events are full snapshots, one per provider chunk, so retaining every one
+ * would make memory and replay cost quadratic in message length (a single
+ * high-thinking message could hold hundreds of MB, and every reattach would
+ * re-serialize it in one blocking stretch). The log keeps settled events verbatim plus
  * the LATEST update per in-flight message/tool call, replaced in place;
  * live update fan-out is coalesced to at most one frame per flush window
  * (latest wins — views replace by slot, and message_end carries the full
@@ -83,8 +81,7 @@ interface PiTurnSpec {
 	 *  Receives the agent's FULL final state (native messages) — the caller
 	 *  persists the slice past its own base count. */
 	onFinish: (messages: AgentMessage[], isAborted: boolean) => void;
-	/** Tool-call ids already used in this chat's record (THE LACAN FIX,
-	 *  owner-approved 2026-10-04): when present, a ToolCallIdUniquifier
+	/** Tool-call ids already used in this chat's record: when present, a ToolCallIdUniquifier
 	 *  sits at this boundary — providers that reset ids every response
 	 *  (DeepSeek's `call_0` × every turn) get colliding ids reminted ONCE
 	 *  here, so wire views, the persisted record, the dock, answer
@@ -103,8 +100,7 @@ interface PiTurnSubscriber {
 	done(): void;
 }
 
-/** The server-side turn object (background-turn runner wave, 2026-09-25):
- *  runs the agent decoupled from any single HTTP response and owns the
+/** The server-side turn object: runs the agent decoupled from any single HTTP response and owns the
  *  in-memory event log + the live subscriber set. The POST response and
  *  the reattach stream are both subscribers onto it. */
 export interface PiTurnHandle {
@@ -127,13 +123,12 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 	let reportedErrorText: string | undefined;
 
 	// THE PER-TURN STATE LOG (memory-only — the settle-only disk writes
-	// are unchanged). COMPACTION LAW (owner, 2026-10-09, supersedes the
-	// 2026-09-25 unbounded-log ruling): settled events append verbatim;
+	// are unchanged). COMPACTION LAW: settled events append verbatim;
 	// in-flight `message_update` / `tool_execution_update` runs are reduced
 	// to their LATEST member, replaced in place. Retention is bounded by
 	// CONTENT (settled messages + one snapshot per streaming message), not
-	// by chunk count — the quadratic blowup that froze parallel sessions is
-	// structurally impossible now. The log dies with the turn at settle.
+	// by chunk count, so the log cannot grow quadratically. The log dies
+	// with the turn at settle.
 	const log: TurnWireEvent[] = [];
 	// Live-update slots: coalesce key → log index of the retained update.
 	// One assistant message streams at a time (pi's strict per-step
@@ -214,7 +209,7 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 	// The settle seam: the record write is the agent's OWN final state
 	// (native history — signatures, usage, provider stamps all real).
 	// Copy the array: the agent may outlive this call's read.
-	// 0.87.1 (transcript rework): the Agent seeds a leading SystemMessage
+	// The Agent seeds a leading SystemMessage
 	// from initialState.systemPrompt (prompt + tool declarations) — it is
 	// synthesized per turn and must NEVER persist (the record would bloat
 	// with tool declarations AND replay would see messages[0] === system,
@@ -238,7 +233,7 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 
 	const handle = (event: AgentEvent) => {
 		if (settled) return;
-		// THE LACAN FIX: ids uniquify HERE, before any view — the one seam
+		// Tool-call ids uniquify HERE, before any view — the one seam
 		// every consumer downstream shares. No uniquifier → verbatim.
 		const uniqued = uniquifier ? uniquifier.event(event) : event;
 		// WIRE DIET: slim the one event pi double-stuffs — our views read
@@ -321,7 +316,7 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 					if (settled) sub.done();
 				},
 				cancel() {
-					// THE OWNER RULING (2026-09-25): a view leaving NEVER kills
+					// A view leaving NEVER kills
 					// the turn — only the explicit abort channel does. The turn
 					// runs on; the compacted log keeps the state for the next view.
 					if (sub) subscribers.delete(sub);

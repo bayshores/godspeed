@@ -29,7 +29,7 @@ function chatDir(id: string): string {
 	return path.join(PATHS.chats, id);
 }
 
-/** THE SILENCE LAW (push S6, 2026-10-02): chats-changed announces ONLY
+/** THE SILENCE LAW: chats-changed announces ONLY
  *  list-SHAPE mutations — createChat, renameChat, deleteChat (below,
  *  each emits post-write). The content writers (saveMessages,
  *  appendTurnUsage, appendExtractionUsage, saveTree) are
@@ -49,7 +49,7 @@ function createChat(title: string, kind?: "practice", classId?: string): ChatRec
 		// Practice sessions carry the marker; teach stays ABSENT (absence
 		// reads as teach — pre-practice records never migrate).
 		...(kind === "practice" ? { kind: "practice" as const } : {}),
-		// The lesson's class; ABSENT = "No class" (classes wave, 2026-10-26).
+		// The lesson's class; ABSENT = "No class".
 		...(classId ? { classId } : {}),
 	};
 	writeChat(record);
@@ -57,7 +57,7 @@ function createChat(title: string, kind?: "practice", classId?: string): ChatRec
 	return { ...record, version: CURRENT_CHAT_VERSION }; // the in-memory twin of what landed on disk
 }
 
-/** THE WRITE CHOKE POINT (schema-versioning wave, owner 2026-10-10): every
+/** THE WRITE CHOKE POINT: every
  *  record persist goes through here and carries the CURRENT version stamp —
  *  lazy migration means existing files only get stamped on their next write.
  *  A future-version guard lives on the read side (getChat). */
@@ -73,7 +73,7 @@ function getChat(id: string): ChatRecord | null {
 	} catch {
 		return null;
 	}
-	// Honest refusal (owner ruling 2026-10-10): a record stamped NEWER than
+	// Honest refusal: a record stamped NEWER than
 	// this build (the downgrade scenario) reads as absent, never misparsed —
 	// the next read-modify-write must not rewrite what it doesn't understand.
 	const v = (parsed as { version?: unknown }).version;
@@ -84,9 +84,8 @@ function getChat(id: string): ChatRecord | null {
 	return parsed as ChatRecord;
 }
 
-/** Lesson summaries kept in memory (speed plan, owner 2026-10-27): listing
- *  re-read and re-parsed every lesson file on every sidebar refresh. A
- *  summary is reused while its file's size and modified-time are
+/** Lesson summaries kept in memory, so a sidebar refresh does not re-parse
+ *  every lesson file. A summary is reused while its file's size and modified-time are
  *  unchanged; writeChat/deleteChat also drop it. Summaries are SHARED —
  *  callers must never mutate them (frozen under tests). */
 const summaryCache = new Map<string, { mtimeMs: number; size: number; summary: ChatSummary | null }>();
@@ -125,10 +124,9 @@ function listChats(): ChatSummary[] {
 /** One record → its list summary (null when its messages can't be read). */
 function summarize(record: ChatRecord): ChatSummary | null {
 	const { messages, tree: _tree, turns: _turns, extractions: _extractions, ...summary } = record;
-	// Per-record isolation (Wave B): a record whose messages fail the
-	// projection (e.g. pre-Wave-B UIMessage-format scratch — the
-	// zero-back-compat wipe makes these "corrupt") must not blank the
-	// whole sidebar — same isolation getChat's per-file catch gives.
+	// Per-record isolation: a record whose messages fail the projection
+	// must not blank the whole sidebar — same isolation getChat's per-file
+	// catch gives.
 	try {
 		return {
 			// turns and extractions stay out of the list payload (list =
@@ -140,15 +138,14 @@ function summarize(record: ChatRecord): ChatSummary | null {
 			messageCount: messages.length,
 			// Record-derived status for the session picker: phase from the
 			// transcript's explicit events (probe_done concluded / verdict
-			// accepted — docs/probe-teach-split.md §4), pending question
-			// from the native dangling-call scan. Wave D: both folds read
+			// accepted — docs/archive/probe-teach-split.md §4), pending question
+			// from the native dangling-call scan. Both folds read
 			// the NATIVE record (core/phases.ts phaseAt3Lh +
 			// native-messages.ts danglingQuestionOf). Liveness (busy) is
 			// NOT record-derived — the API route merges it (ChatListItem).
 			phase: phaseAt3Lh(messages),
 			pendingQuestion: danglingQuestionOf(messages) !== null,
-			// Cast kept from the original list code: pendingProblem was never
-			// set here (unchanged by the speed plan).
+			// The cast covers pendingProblem, which the list never sets.
 		} as ChatSummary;
 	} catch (err) {
 		console.error(`[chat ${summary.id}] summary projection failed:`, err);
@@ -156,8 +153,8 @@ function summarize(record: ChatRecord): ChatSummary | null {
 	}
 }
 
-/** Persist the full native message list (the record IS the agent state —
- *  Wave B: replay is state.messages = record.messages). SILENT by the
+/** Persist the full native message list (the record IS the agent state:
+ *  replay is state.messages = record.messages). SILENT by the
  *  events law — see the SILENCE LAW comment at createChat. */
 function saveMessages(id: string, messages: LhMessage[]): void {
 	const record = getChat(id);
@@ -206,8 +203,7 @@ function renameChat(id: string, title: string): ChatRecord {
 	return record;
 }
 
-/** Delete the session record file entirely (session-deletion wave 6,
- *  owner 2026-09-22). False when the id is unknown — the route turns that
+/** Delete the session record file entirely. False when the id is unknown — the route turns that
  *  into a 404. The record's graph traces and jobs are the route's
  *  choreography (core/graph-deletion.ts), not the store's. */
 function deleteChat(id: string): boolean {
@@ -229,7 +225,7 @@ function saveAttachment(id: string, fileName: string, data: Uint8Array): string 
 	return file;
 }
 
-/** Set or clear the lesson's class (classes wave, 2026-10-26). Quiet like
+/** Set or clear the lesson's class. Quiet like
  *  rename — updatedAt stays put — but it changes which list the lesson
  *  shows in, so it announces chats-changed (a list-SHAPE mutation). */
 function setChatClass(id: string, classId: string | null): ChatRecord {

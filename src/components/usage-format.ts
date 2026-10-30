@@ -1,9 +1,9 @@
 /**
- * Money/token presentation helpers (wave-4 observability UI) — shared by the
- * activity dock and the stats bar. Pure; exported for tests.
+ * Usage/token presentation helpers, shared by the activity dock and the
+ * stats bar. Pure; exported for tests.
  */
 
-/** Who paid: the plan labels, or "–" when none (never a fake $0). */
+/** The plan labels, or "–" when none (never a fake zero). */
 export function planCostLabel(subscription: string | readonly string[] | undefined): string {
 	const labels = typeof subscription === "string" ? [subscription] : Array.isArray(subscription) ? [...new Set(subscription)] : [];
 	return labels.join(" + ") || "–";
@@ -16,9 +16,8 @@ export function formatTokens(n: number): string {
 	return String(n);
 }
 
-/** Split a provider-qualified stamp "provider:id" (the usage contracts'
- *  qualification, model-slots wave 2026-09-20) into its two coordinates.
- *  No colon = no provider qualification (a bare catalog id). */
+/** Split a provider-qualified stamp "provider:id" into its two
+ *  coordinates. No colon = a bare id. */
 function splitQualified(id: string): { provider: string | null; id: string } {
 	const colon = id.indexOf(":");
 	if (colon === -1) return { provider: null, id };
@@ -26,23 +25,19 @@ function splitQualified(id: string): { provider: string | null; id: string } {
 }
 
 /**
- * "z-ai/glm-5.3-flash" → "glm-5.3-flash" — vendor prefix dropped, the
- * name KEPT EXACTLY as its provider writes it (dashes stay, no
- * auto-caps — owner rounds 4-5, 2026-10-05); a trailing all-digit
- * segment (OpenRouter's date suffix, "qwen3.8-max-0902") is dropped.
- * Quiet-chip friendly.
+ * "z-ai/glm-5.3-flash" → "glm-5.3-flash": vendor prefix dropped, the
+ * name kept exactly as its provider writes it; a trailing all-digit
+ * date segment ("qwen3.8-max-0902") is dropped.
  *
  * A "provider:id" stamp keeps its provider as a quiet suffix
- * ("glm-5.3-flash · openrouter"): the same model via two providers is
- * different bookkeeping. Bare catalog ids are unchanged.
+ * ("glm-5.3-flash · provider"): the same model via two providers is
+ * different bookkeeping.
  */
 export function prettyModel(id: string): string {
 	const { provider, id: bare } = splitQualified(id);
 	const short = bare.includes("/") ? bare.slice(bare.lastIndexOf("/") + 1) : bare;
 	const parts = short.split("-");
 	const trimmed = /^\d+$/.test(parts[parts.length - 1] ?? "") ? parts.slice(0, -1) : parts;
-	// No auto-capitalization, dashes KEPT (owner rounds 4-5, 2026-10-05):
-	// model names render exactly as their providers write them.
 	const pretty = trimmed.join("-");
 	return provider ? `${pretty} · ${provider}` : pretty;
 }

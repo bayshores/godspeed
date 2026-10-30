@@ -10,15 +10,10 @@ export function formatContextMeasurement(tokens: number | null, limit: number | 
 }
 
 /**
- * The below-composer stats bar (wave 4 observability): the session's
- * money/context footprint as one quiet row beneath the composer —
- * context window + session cost. Clicking it opens the per-turn detail
- * popover.
- *
- *  Without a session yet there is NO left side at all (owner,
- *  wave 7 sweep: the knowledge-context budget slider that used to live
- *  there died with the injection; a "— · —" summary over an empty
- *  popover is pure noise).
+ * The below-composer stats bar: the session's context window + usage as
+ * one quiet row beneath the composer. Clicking it opens the per-turn
+ * detail popover. Without a session yet the summary doesn't render: an
+ * empty summary over an empty popover is noise.
  *
  * Lessons run on the outside agent's own plan, so cost reads as the plan's
  * label; missing cost stays "–", never fake zero. Context is a separate
@@ -38,7 +33,7 @@ export function StatsBar({
 	pricing?: SessionPricing;
 	/** The bound session: present on the in-session bar. */
 	chatId?: string;
-	/** The row's LEFT edge (practice sessions, 2026-10-04): the home
+	/** The row's LEFT edge: the home
 	 *  composer's teach | practice switch rides here — before the session
 	 *  data (which renders nothing pre-chat on that surface). */
 	leadingSlot?: ReactNode;
@@ -58,26 +53,20 @@ export function StatsBar({
 		<div
 			data-testid="stats-bar"
 			// pointer-events-auto: the sticky composer wrapper is pointer-events-none
-			// (so its transparent gradient area never blocks scrolling) — this row
-			// must re-enable events or every control on it is dead (the model-
-			// control wave caught this live: buttons rendered, clicks never landed).
+			// (so its transparent gradient area never blocks scrolling); this row
+			// must re-enable events or every control on it is dead.
 			className="pointer-events-auto relative flex items-center justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground"
 		>
-			{/* The summary button + its popover: the popover anchors to this
-			    wrapper, CENTERED over the button itself (owner, stats round 2)
-			    — not over the whole bar row, which made it line up oddly. The
-			    outside-close ref anchors HERE too (owner, round 3): on the whole
-			    bar it wrapped the model control, so clicking model/thinking never
-			    counted as outside — the asymmetry the owner observed. */}
-			{/* The leading slot (2026-10-04): the leftmost control surface —
-			    the home composer's mode switch. */}
+			{/* The leading slot: the leftmost control surface, the home
+			    composer's mode switch. */}
 			{leadingSlot}
 			{/* The left side: the session-data summary — only once a session
 			    exists (turns). Pre-chat renders nothing (see the header). */}
 			{(chatId || turns.length > 0) && (
 			<div ref={barRef} className="relative">
-				{/* No tooltip — the numbers describe themselves and the popover
-			    speaks on click (owner, subtlety round 2026-09-25). */}
+				{/* The popover and the outside-close ref anchor to this wrapper,
+				    so the popover centers over the button, not the whole row.
+				    No tooltip: the numbers describe themselves. */}
 			<button
 				type="button"
 				onClick={() => setOpen((o) => !o)}
@@ -94,7 +83,6 @@ export function StatsBar({
 				{detail.mounted && (
 					<div
 						data-testid="stats-detail"
-						// Pops up out of the bar and back (motion wave, owner 2026-10-26).
 						data-side="up"
 						data-state={detail.state}
 						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 lh-glass p-3 text-xs"

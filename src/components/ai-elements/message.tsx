@@ -55,7 +55,7 @@ type MessageResponseProps = ComponentProps<typeof Streamdown>;
 // streamdown@2.5 expects shiki@4 types. Both work at runtime (each ships its
 // own highlighter); the cast papers over the .d.ts mismatch.
 //
-// Standard dollar authoring (owner, 2026-10-12): $...$ inline, $$ fenced
+// Standard dollar authoring: $...$ inline, $$ fenced
 // on separate lines for display. transformMathDelimiters stays as the
 // compatibility reader for old \(...\)/\[...\] content; its two-dollar
 // output remains valid alongside native single-dollar math.
@@ -69,10 +69,9 @@ type MessageResponseProps = ComponentProps<typeof Streamdown>;
 // SHIKI loads on the first code block (src/components/lazy-code-plugin.ts),
 // so it stays out of the lesson's startup JS.
 //
-// MERMAID is app-owned since the chrome-melt wave (2026-09-19): the md-blocks
-// `code` override intercepts mermaid fences and renders via
-// src/components/mermaid-render.ts — streamdown's internal mermaid machinery
-// (the plugin entry + the `mermaid` prop) is retired with it.
+// MERMAID is app-owned: the md-blocks `code` override intercepts mermaid
+// fences and renders via src/components/mermaid-render.ts, so no
+// streamdown mermaid plugin is registered.
 export const streamdownPlugins = {
   cjk: {
     ...cjk,

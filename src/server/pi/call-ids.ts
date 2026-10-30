@@ -1,14 +1,12 @@
 import type { AgentEvent } from "@earendil-works/pi-agent-core";
 
 /**
- * TOOL-CALL ID UNIQUIFICATION (owner-approved fix, 2026-10-04 — the Lacan
- * incident): some providers (DeepSeek via OpenRouter, observed live) return
+ * TOOL-CALL ID UNIQUIFICATION: some providers (DeepSeek, for one) return
  * tool-call ids that reset every response — `call_0`, `call_1`, … — so a
  * one-call-per-turn session names EVERY call `call_0`. Everything in this
  * app keys on toolCallId (the view fold's call↔result join, the pending-
  * question gate, answer routing, the option-shuffle seed), so cross-turn
- * duplicates corrupted all of them at once: the fold applied the quiz
- * answer to the ASK card, the ask question vanished, the order scrambled.
+ * duplicates would corrupt all of them at once.
  *
  * THE LAW: ids are uniquified ONCE, at the wire boundary — this class sits
  * inside runPiTurn, sees every AgentEvent before any view, and applies the
@@ -19,7 +17,7 @@ import type { AgentEvent } from "@earendil-works/pi-agent-core";
  * OpenAI-compatible APIs accept — pi itself synthesizes ids for providers
  * that return none, so arbitrary-but-paired ids are already protocol-legal.
  * History is NEVER rewritten: record messages pass through untouched, and
- * pre-fix duplicate records heal at the fold (view.ts pairs results
+ * duplicates already in a record heal at the fold (view.ts pairs results
  * newest-first).
  *
  * SCHEME: a per-chat seen-set (seeded from the record at turn start) plus

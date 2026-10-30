@@ -1,8 +1,7 @@
 /**
- * LOCAL TRANSCRIPTION (classes wave, owner-approved 2026-10-26, Phase 7):
- * recordings (.mp3 .m4a .wav .mp4 .mov) become text on the learner's own
- * computer with whisper.cpp — no API, no cost (owner ruling: the learner
- * installs it with `brew install whisper-cpp ffmpeg`; godspeed finds it).
+ * Local transcription: recordings (.mp3 .m4a .wav .mp4 .mov) become text on
+ * the learner's own computer with whisper.cpp, at no cost. The learner
+ * installs it with `brew install whisper-cpp ffmpeg`; godspeed finds it.
  *
  *   1. ffmpeg converts the recording to 16 kHz mono WAV (whisper's input)
  *   2. whisper-cli writes the transcript (.txt)

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# THE EXACT NEW-USER SIMULATOR (owner, interlude 2026-09-22): one command,
-# a fresh instance with no sign-ins and zero data — setup stage 1, every
-# launch. The owner's repeatable first-run test bed.
+# THE EXACT NEW-USER SIMULATOR: one command, a fresh instance with zero
+# data — onboarding from the start, every launch. A repeatable first-run
+# test bed.
 #
 #   bash scripts/dev-fresh.sh            # http://localhost:3005
 #   npm run dev:fresh                    # the same, via package.json

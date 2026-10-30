@@ -1,8 +1,7 @@
 import { FieldLabel, PANEL_FIELD } from "@/components/lesson/panel-parts";
 
 /**
- * The reading-thinking field (owner design 2026-10-03, "two questions per
- * teaching unit"): thinking WHILE READING the teaching, the same transfer
+ * The reading-thinking field: thinking WHILE READING the teaching, the same transfer
  * channel "Your thinking" gives the answer, opened one step earlier. It
  * fills the Your-turn panel while a teach-phase check waits behind
  * "Check your understanding", rides the check's answer as the separate
@@ -15,8 +14,8 @@ export function ReadingThinkingField({
 }: {
 	value: string;
 	onChange: (v: string) => void;
-	/** The check waits closed — Enter opens it (owner, keyboard round
-	 *  2026-10-06). Absent = the check is open: Enter is a newline. */
+	/** The check waits closed — Enter opens it. Absent = the check is
+	 *  open: Enter is a newline. */
 	onOpen?: () => void;
 }) {
 	return (

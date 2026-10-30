@@ -1,11 +1,11 @@
 /**
- * The onboarding constellation (design: "Onboarding — pick an opening", row
- * D, and the setup screens' backdrop). One SVG drawn in a 1440×900 space
- * and cropped to the window. In the intro a comet streaks in from the
- * bottom-left and drops topic dots along its trail; they link up and light
- * red → green, then dim to a faint backdrop that stays behind every setup
- * step. The welcome screen draws the same sky without this comet (it flies
- * its own, into the logo). Pure SVG + CSS animation (src/app/globals.css,
+ * The onboarding constellation: the intro and the setup screens'
+ * backdrop. One SVG drawn in a 1440×900 space and cropped to the window.
+ * In the intro a comet streaks in from the bottom-left and drops topic
+ * dots along its trail; they link up and light red → green, then dim to
+ * a faint backdrop that stays behind every setup step. The welcome
+ * screen draws the same sky without this comet (it flies its own, into
+ * the logo). Pure SVG + CSS animation (src/app/globals.css,
  * "Onboarding"); with reduced motion every element simply shows its final
  * state.
  */

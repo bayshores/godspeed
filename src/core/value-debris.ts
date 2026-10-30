@@ -1,13 +1,11 @@
 /**
- * MODEL-VALUE DEBRIS STRIP (owner, 2026-10-09 — the whitehead incident):
- * glm-5.3 emitted `correctAnswer: [":parmenides"]` — the option value with
- * the JSON key-value COLON glued on — across four rejected quiz calls
- * (and `type: "\"predict\""` — the literal with QUOTES baked in — across a
- * ten-retry death loop; see tools/heal.ts for that half). Membership
- * fields (correctAnswer against option values, quiz type against the
- * literal pair, practice targets against proposition ids) are copied by
- * the model from its own context, and the copy picks up surrounding
- * syntax: colons, quotes, backticks, whitespace.
+ * MODEL-VALUE DEBRIS STRIP: weak models emit values like
+ * `correctAnswer: [":parmenides"]` (the JSON colon glued on) or
+ * `type: "\"predict\""` (quotes baked in), and retry the same mistake.
+ * Membership fields (correctAnswer against option values, quiz type
+ * against the literal pair, practice targets against proposition ids)
+ * are copied by the model from its own context, and the copy picks up
+ * surrounding syntax: colons, quotes, backticks, whitespace.
  *
  * THE SEAM: strip at every MEMBERSHIP comparison — never on free text
  * (statements, questions, explanations may legitimately carry any of

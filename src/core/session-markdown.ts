@@ -7,8 +7,8 @@
  * Pure core: native messages in (LhMessage), string out. Content parity
  * with the coverage line builder (core/coverage.ts messageViewLines) is
  * deliberate — every message that produces view lines produces a markdown
- * block, in the same order — but the formats are SEPARATE by design
- * (2026-09-27): coverage fingerprints hash the line format and stay stable
+ * block, in the same order — but the formats are SEPARATE by design:
+ * coverage fingerprints hash the line format and stay stable
  * (no mass re-extraction when presentation changes); markdown is
  * presentation. A failed tool call renders nothing (retry context, not
  * learning evidence); custom markers are invisible, same as the view.
@@ -27,8 +27,7 @@ import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import type { QuestionAnswerData } from "./question-core.ts";
 import { fencedCode } from "./code-question.ts";
 
-/** The practice join context (owner-approved, 2026-10-06 export round):
- *  practice tool RESULTS are acks — the statement, outcome, and verdict
+/** The practice join context: practice tool RESULTS are acks — the statement, outcome, and verdict
  *  all live in the assistant's call arguments, and the model solution
  *  commits at POSE time. The markdown blocks join them the same way the
  *  view seam folds cards (clean-only: a refused pose's result is errored
@@ -131,7 +130,7 @@ function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { hea
 		if (outcome === "dismissed") return { heading: "Concluded", body: ["The learner skipped this problem."] };
 		const label = outcome !== "" ? `**${outcomeLabel(outcome)}.**` : "**Concluded.**";
 		const body = [verdict !== undefined ? `${label} ${verdict}` : label];
-		// The reveal (owner round, 2026-10-05): the solution committed at
+		// The reveal: the solution committed at
 		// pose time — the newest cleanly-posed problem before this conclude.
 		const input = problemInputForConclude(ctx.messages, result.toolCallId);
 		const solution = typeof input?.modelSolution === "string" && input.modelSolution.trim() ? input.modelSolution.trim() : undefined;

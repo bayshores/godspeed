@@ -1,5 +1,5 @@
 /**
- * THE CHANGELOG (owner, 2026-10-27): src/changelog.json lists each
+ * THE CHANGELOG: src/changelog.json lists each
  * release's changes, newest first. The app shows them in the "What's new"
  * dialog after an update, and the release workflow copies the tag's entry
  * into the GitHub release page, so both always say the same thing.

@@ -42,7 +42,7 @@ function ResultChip({ answer }: { answer: QuestionAnswerData }) {
 }
 
 /**
- * An answered question in the lesson (redesign, lesson layout B): one
+ * An answered question in the lesson: one
  * compact card — "Right · Check · step 10 · Sure 4 · Why ▾" over the
  * question. The rest opens under the toggle: the graded options and the
  * explanation (quiz), the committed answer (explain), the learner's
@@ -50,7 +50,7 @@ function ResultChip({ answer }: { answer: QuestionAnswerData }) {
  *
  * Quiz answers are GRADED; ask answers are a plain record of what was
  * said (never graded); explain and code answers are graded by the teacher
- * in its next reply, so the card shows no verdict (owner ruling 2026-09-27).
+ * in its next reply, so the card shows no verdict.
  * A code answer shows the learner's code as a highlighted block.
  */
 export function AnsweredCard({
@@ -81,7 +81,7 @@ export function AnsweredCard({
 	const isCode = answer.kind === "code";
 	const selectedIdx = new Set(answer.answers.map((a) => a.index));
 	const correctIdx = new Set(answer.correctIndices ?? []);
-	// The question's own context rides the ORIGINAL CALL (owner, 2026-10-12):
+	// The question's own context rides the ORIGINAL CALL:
 	// the details line and ask option descriptions re-render from the call.
 	const askInput = isAsk ? parseAskInput(input) : undefined;
 	const parsedDetails = askInput?.details ?? (isQuiz ? parseQuizInput(input)?.details : undefined);

@@ -1,5 +1,5 @@
 /**
- * Fuzzy search scoring (model-control wave, 2026-09-12) — pi's `/model`
+ * Fuzzy search scoring — pi's `/model`
  * picker pattern: space-separated tokens, each token must match SOME field
  * (case-insensitive substring), ranked so exact field matches beat
  * prefixes beat buried substrings. Pure core; the picker sorts by score.

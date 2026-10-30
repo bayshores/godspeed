@@ -13,8 +13,7 @@ export const APP_IDENTITY = Object.freeze({
  * An "engine" is the model + the stream function an agent loop runs on —
  * the two things a test fake replaces.
  *
- * There is ONE production engine (owner, 2026-10-27: the built-in ChatGPT /
- * Copilot / Grok sign-ins were removed): the outside agent. Its stream parks
+ * There is one production engine: the outside agent. Its stream parks
  * every request as a work item that the agent connected over /api/mcp picks
  * up and answers (src/agent/agent-bridge.ts). The agent chooses its own
  * model and effort in its own harness.

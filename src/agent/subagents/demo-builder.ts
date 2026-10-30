@@ -9,17 +9,17 @@ import { getHeadless, type DemoRunResult, type HeadlessApi } from "./headless.ts
 import { healToolRecord } from "../tools/heal.ts";
 
 /**
- * The demo-builder sub-agent (vision §2 interactive demos + §2.5 "sub-agents
- * verify; they never one-shot"): given a brief it writes a self-contained
+ * The demo-builder sub-agent (docs/vision.md §2.5: sub-agents verify, they
+ * never one-shot): given a brief it writes a self-contained
  * single-file HTML/JS demo, TESTS IT HEADLESSLY (run_demo), and iterates
  * fix → re-run until clean — before anything reaches the lesson.
  *
- * Shape: a ToolLoopAgent with two executable tools (write_demo / run_demo) —
+ * Shape: an agent loop with two executable tools (write_demo / run_demo) —
  * the engine is injectable (tests use a scripted faux engine) and the headless
  * API is injectable (tests use a fake; production uses the app's own
  * Chromium browser service, system Chrome as fallback).
  *
- * Failure semantics (decided in the W6 brief): `tested: true` means "the
+ * Failure semantics: `tested: true` means "the
  * verify loop ran"; on failure the result is { title, html: "", tested: true,
  * notes: "FAILED: <reason>" } — the card renders the failure note, no iframe.
  * The job wrapper treats html === "" as failure and marks the job error.
@@ -31,16 +31,16 @@ interface DemoBuilderInput {
 }
 
 interface DemoBuilderOptions {
-	/** Test seam: scripted engine; production uses the demoBuilder role. */
+	/** Test seam: scripted engine; production runs on the outside agent. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
 	/** Max agent steps (each write/run/fix is one step). Default 24 ≈ 6 cycles. */
 	maxSteps?: number;
 	/** Live activity-line callback (updates the job record). */
 	onActivity?: (line: string) => void;
-	/** Kills the run mid-model-call (2026-09 real-kill abort semantics). */
+	/** Kills the run mid-model-call. */
 	abortSignal?: AbortSignal;
-	/** Money channel: one call per agent step, folded into JobRecord.usage. */
+	/** Token usage: one call per agent step, folded into JobRecord.usage. */
 	onUsage?: (usage: Usage) => void;
 }
 

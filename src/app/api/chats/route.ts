@@ -5,12 +5,12 @@ import type { ChatListItem } from "@/core";
 /** The session picker's list: record-derived summaries (phase, pending
  *  question) + live liveness — a running turn marks the session busy
  *  (contracts.ts ChatListItem; the store can't see liveness, the route is
- *  the merge point). Owner, minimal-color round: background jobs NO LONGER
- *  count — the sidebar's Background agents section is their channel now
- *  (a running spinner per row would double-signal them), so busy means
- *  exactly "a teach turn is in flight".
+ *  the merge point). Background jobs do not count: the sidebar's
+ *  Background agents section is their channel (a running spinner per row
+ *  would double-signal them), so busy means exactly "a teach turn is in
+ *  flight".
  *
- *  Classes wave (2026-10-26): ?class=<id|none> narrows the list to one
+ *  ?class=<id|none> narrows the list to one
  *  class's lessons ("none" = No class); absent = every lesson. */
 export async function GET(req: Request) {
 	startClassScanner();
@@ -30,13 +30,13 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
 	const body = (await req.json().catch(() => ({}))) as { title?: unknown; kind?: unknown; graphContext?: unknown; classId?: unknown };
 	const title = typeof body.title === "string" ? body.title : "";
-	// Practice sessions (owner, 2026-10-04): kind "practice" marks the
+	// Practice sessions: kind "practice" marks the
 	// record — the practice agent + its tools from turn 1, no extraction.
 	const kind = body.kind === "practice" ? ("practice" as const) : undefined;
-	// Classes wave: the lesson's class (absent/"none" = No class).
+	// The lesson's class (absent/"none" = No class).
 	const classId = parseClassScope(typeof body.classId === "string" ? body.classId : undefined);
 	if (classId === undefined) return Response.json({ error: "bad classId" }, { status: 400 });
-	// The session's map context (owner, 2026-10-04): the picked
+	// The session's map context: the picked
 	// propositions ride the CREATION as a graph-context marker (a separate
 	// custom message BEFORE the learner's first user message), carrying
 	// the picks plus the reasoning chains among them (src/server/lessons.ts).

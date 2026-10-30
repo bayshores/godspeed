@@ -10,7 +10,7 @@ import { SvgImage } from "@/components/artifacts/svg-image";
 import type { ArtifactPartProps, VisualResult } from "@/core";
 
 /**
- * Visual artifact card (W6 → ack protocol): the tool part's output is the
+ * Visual artifact card: the tool part's output is the
  * dispatch ack, so the tool-call box is the DispatchCard (live status via
  * the chat view's jobs feed). The SVG itself renders from the steer message
  * (sub-agent result delivery) via VisualOutputCard.
@@ -20,8 +20,8 @@ import type { ArtifactPartProps, VisualResult } from "@/core";
  */
 
 /** The svg root's DECLARED width in px, when there is one — the natural
- *  size the card displays at instead of stretching to full width (owner,
- *  2026-10-07). %, em, "auto", or a missing attribute → null (the caller
+ *  size the card displays at instead of stretching to full width.
+ *  %, em, "auto", or a missing attribute → null (the caller
  *  falls back to full-width). Pure. */
 export function svgNaturalWidth(svg: string): number | null {
 	const m = /<svg\b[^>]*?\bwidth\s*=\s*["']([^"']+)["'][^>]*>/i.exec(svg);
@@ -51,7 +51,7 @@ export function VisualOutputCard({
 	const result = output as VisualResult | undefined;
 	const overlay = useSessionMermaid();
 	const actions = useContext(ChatActionsContext);
-	// Brightness inversion (owner, 2026-10-07): the switch state PERSISTS on
+	// Brightness inversion: the switch state PERSISTS on
 	// the steer record (details.ui.inverted) — seeded here, written through
 	// the silent artifact-ui route on toggle; without a chat page (tests,
 	// previews) it stays local-only. The toggled state also feeds the
@@ -87,7 +87,7 @@ export function VisualOutputCard({
 		);
 	}
 	return (
-		/* NO CARD CHROME (owner round, 2026-10-07): the figure is document
+		/* NO CARD CHROME: the figure is document
 		   material — no border, no padding box. Image first, then the CAPTION
 		   ROW below: "Figure" left, the controls right, both edges following
 		   the IMAGE's own width (the wrapper carries the natural-sizing law,
@@ -100,7 +100,7 @@ export function VisualOutputCard({
 			}
 			data-testid="visual-card"
 		>
-			{/* Natural sizing (owner, 2026-10-07): a declared-width svg sits at
+			{/* Natural sizing: a declared-width svg sits at
 			   ITS size; max-w-full still shrinks oversized ones to fit. No
 			   declared size (viewBox-only, %-width) keeps the full-width law.
 			   The invert filter rides the bg-white holder, so the backing flips
@@ -124,7 +124,7 @@ export function VisualOutputCard({
 			<div className="mt-2 flex items-center justify-between gap-2">
 				<div className="text-xs font-semibold text-muted-foreground">Figure</div>
 				<div className="flex items-center gap-1.5">
-					{/* The invert affordance (owner round, 2026-10-07): the disc IS
+					{/* The invert affordance: the disc IS
 					    the half-filled contrast circle; the tooltip names it. */}
 					<Toggle
 						checked={inverted}

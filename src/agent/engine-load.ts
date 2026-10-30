@@ -1,11 +1,9 @@
 import type * as AgentCore from "@earendil-works/pi-agent-core";
 
 /**
- * The agent engine, loaded on first use (speed plan, owner-approved
- * 2026-10-27). pi-agent-core (and the full pi-ai it pulls in) costs
- * ~0.25 s warm / ~0.5 s cold to load; the server used to pay that at
- * startup, ahead of the first lesson-list request. Now the first lesson
- * turn or background job pays it instead.
+ * The agent engine, loaded on first use. pi-agent-core (and the full pi-ai
+ * it pulls in) costs ~0.25 s warm / ~0.5 s cold to load, so startup skips
+ * it and the first lesson turn or background job pays instead.
  *
  * Async entry points await loadAgentCore() before building an Agent; the
  * sync builders (teacher-agent.ts) read agentCore() and fail loudly if

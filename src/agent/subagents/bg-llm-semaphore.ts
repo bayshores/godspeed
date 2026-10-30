@@ -6,12 +6,10 @@
  * FIFO; abort-aware (a queued caller that aborts marks its ticket dead —
  * the permit handoff skips it and hands to the next waiter).
  *
- * FRESH-TAKE / HANDED-OFF-PERMIT discipline (the double-count deadlock
- * lesson, extraction 2026-09-28): fresh takers increment `active`
- * themselves; a HANDED-OFF permit does not (the releaser left `active`
- * untouched for the inheritor) — counting both sides is how a semaphore
- * slowly deadlocks at 3-with-empty-queue.
- *
+ * FRESH-TAKE / HANDED-OFF-PERMIT discipline: fresh takers increment
+ * `active` themselves; a HANDED-OFF permit does not (the releaser left
+ * `active` untouched for the inheritor). Counting both sides is how a
+ * semaphore slowly deadlocks at 3-with-empty-queue.
  */
 
 /** Total background LLM concurrency, process-wide. */

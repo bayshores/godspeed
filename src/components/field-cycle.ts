@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 
 /**
- * TAB CYCLES THE ACTIVE SURFACE'S TEXT FIELDS (owner, keyboard round
- * 2026-10-06): forward-only, wrapping; Tab from outside the chain
- * focuses the FIRST field — "navigate in". Shift+Tab is NOT ours (the
- * global thinking-level cycle owns it — owner ruling the same round),
- * so there is no reverse gear; the chain wraps.
+ * TAB CYCLES THE ACTIVE SURFACE'S TEXT FIELDS: forward-only, wrapping;
+ * Tab from outside the chain focuses the FIRST field. Shift+Tab is NOT
+ * ours (the global thinking-level cycle owns it), so there is no reverse
+ * gear; the chain wraps.
  *
  * The event (not a prop bridge): the global Tab handler dispatches
  * `lh:kbd-cycle-fields` and each composer-bearing surface answers with

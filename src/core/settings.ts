@@ -140,12 +140,10 @@ export interface GraphSettings {
 	 *  explicit user value always wins.
 	 *
 	 *  FLOOR 500 (EXTRACTION_CHUNK_TOKENS_FLOOR): every run pays the graph-carrying
-	 *  prompt overhead out of the write channel's money — a budget below
-	 *  ~500 tokens would fire penny-batches that cost more per extracted
-	 *  token than the content is worth, so the sanitizer clamps and the
-	 *  PUT rejects below it. NO CEILING on purpose: a large budget just
-	 *  delays extraction — the user's stated cost/thoroughness tradeoff,
-	 *  not a misconfiguration to police. */
+	 *  prompt overhead — a budget below ~500 tokens would fire tiny
+	 *  batches where the overhead outweighs the content, so the sanitizer
+	 *  clamps and the PUT rejects below it. NO CEILING on purpose: a large
+	 *  budget just delays extraction, a tradeoff the user may choose. */
 	extractionChunkTokens?: number;
 }
 
@@ -380,7 +378,7 @@ export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 	}
 	// Unknown top-level keys ride along untouched (forward-compat). Known-
 	// DEAD keys are stripped instead of riding: `chat` (a removed default-
-	// settings section) and `models` (removed model slots) — a fossil copy
+	// settings section) and `models` (a removed section) — a fossil copy
 	// on disk must never resurrect through reads (and any later write
 	// flushes it for good).
 	for (const [key, value] of Object.entries(r)) {

@@ -1,5 +1,5 @@
 /**
- * THE QUEUED-STEER INDICATOR (owner spec 2026-10-03): steers sent but not
+ * THE QUEUED-STEER INDICATOR: steers sent but not
  * yet drained render as quiet one-liners ABOVE the composer shell —
  * right-aligned to where the shell's corner rounding starts, truncated
  * with an ellipsis, no background, no container, roughly half opacity.

@@ -1,10 +1,9 @@
 /**
- * POST /api/graph/coverage/extract — the manual extraction affordance
- * (vision-extraction-coverage.md): run the pipeline over ONE session's
- * uncovered content, whatever its size — the user's answer to an aborted
- * run, a pipeline error, or a session that went dormant under the chunk
- * budget. The pipeline itself batches under the graph.extractionChunkTokens setting (extraction-UX redesign,
- * 2026-09-24) and
+ * POST /api/graph/coverage/extract — the manual extraction affordance: run
+ * the pipeline over ONE session's uncovered content, whatever its size —
+ * the user's answer to an aborted run, a pipeline error, or a session that
+ * went dormant under the chunk budget. The pipeline itself batches under
+ * the graph.extractionChunkTokens setting and
  * checkpoints coverage per merged batch, so this is the same run the
  * trigger fires, just user-initiated. 409 while a run is already in
  * flight (the dock is the source of truth for that); failures are logged

@@ -1,5 +1,5 @@
 /**
- * usePresence (motion wave, owner 2026-10-26): keeps an element mounted
+ * usePresence: keeps an element mounted
  * long enough to play its exit animation. Pair the returned `state` with
  * the motion classes in src/app/globals.css (.lh-pop / .lh-dialog / .lh-fade
  * read data-state="open" | "closed").

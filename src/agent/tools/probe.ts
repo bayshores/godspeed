@@ -16,7 +16,7 @@ export interface ProbeDoneContext {
 }
 
 /**
- * probe_done — the probe→planning seam (docs/probe-teach-split.md §2).
+ * probe_done — the probe→planning seam.
  *
  * SERVER-SIDE. The prober concludes the probe by authoring the learner
  * assessment (the tool INPUT — it streams to the learner live and is
@@ -28,9 +28,8 @@ export interface ProbeDoneContext {
  *     doctrine, same as nodeId validation).
  *   ok:true — the assessment is recorded, and the HANDOFF is queued: a
  *     steer through the wake pipeline that fires the teacher's first turn
- *     (plan authoring) the moment the prober's turn ends. Auto-wake is the
- *     user-decided trigger — the learner experiences assessment → plan as
- *     one continuous flow. CONTEXT-SLIM (owner, context diet 2026-10-09):
+ *     (plan authoring) the moment the prober's turn ends, so the learner
+ *     experiences assessment → plan as one continuous flow. CONTEXT-SLIM:
  *     the call's arguments already carry the assessment (durable, streamed
  *     live), so the agent sees the fixed PROBE_DONE_ACK_TEXT — never an
  *     echo. details = {ok:true} only.
@@ -78,10 +77,9 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 					// constructs the teacher off the transcript seam) — record the
 					// assessment anyway; the wake is an optimization, not a gate.
 				}
-				// Context diet (owner, 2026-10-09): the assessment lives ONCE — as
-				// this call's arguments. content is the fixed ack (the agent never
-				// sees an echo); details = {ok:true} for the record/UI — the
-				// probe-done card reads the call's input, which it always preferred.
+				// The assessment lives once, as this call's arguments: content is
+				// the fixed ack (no echo for the agent), and the probe-done card
+				// reads the call's input.
 				return {
 					text: PROBE_DONE_ACK_TEXT,
 					details: { ok: true },

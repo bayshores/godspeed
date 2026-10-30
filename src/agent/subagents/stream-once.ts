@@ -1,5 +1,5 @@
 import type { AssistantMessage, Message, Tool, ToolResultMessage } from "@earendil-works/pi-ai";
-// Subpath, not the package root (speed plan): the root loads every provider.
+// Subpath, not the package root: the root loads every provider.
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import type { PiEngine } from "../models.ts";
 

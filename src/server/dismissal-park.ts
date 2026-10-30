@@ -1,13 +1,10 @@
 /**
- * PARKED DISMISSALS (owner, 2026-10-04): ESC-discard while the turn is
- * still working. Mid-turn the STORED record holds no pending question or
- * problem (the turn hasn't persisted — its messages land at settle), so a
- * dismissal arriving now CANNOT validate; the old behavior was a hard 409,
- * which left the learner trapped with a phantom question until the turn
- * died (the GLM practice-loop incident: the only escape was killing the
- * dev server).
+ * Parked dismissals: ESC-discard while the turn is still working. Mid-turn
+ * the stored record holds no pending question or problem (its messages land
+ * at settle), so a dismissal arriving now cannot validate. Refusing it would
+ * trap the learner with a phantom question until the turn ends.
  *
- * The park (owner ruling: "server-side park"): the dismiss route, finding
+ * The dismiss route, finding
  * a live turn, parks the intent and answers 202; the turn's settle path
  * (chat-handler onFinish, AFTER persistTurn, BEFORE endTurn — the same
  * ordering law that makes turn-settled imply durable truth) applies it

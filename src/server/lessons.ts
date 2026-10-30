@@ -1,7 +1,7 @@
 /**
- * LESSON CREATION — the one place a new lesson record is born (classes
- * wave, 2026-10-26: POST /api/chats and MCP start_lesson both come
- * through here, so a lesson in a class always opens with its class card).
+ * LESSON CREATION — the one place a new lesson record is born (POST
+ * /api/chats and MCP start_lesson both come through here, so a lesson in
+ * a class always opens with its class card).
  *
  * Message order at birth: [class card] → [graph-context picks] → the
  * learner's first message (sent by the client / the MCP tool).

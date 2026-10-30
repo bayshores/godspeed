@@ -5,12 +5,12 @@ import type { JobRecord } from "../../core/contracts.ts";
 import type { JobStore } from "../../core/ports.ts";
 
 /**
- * Async sub-agent job tools (vision §2.5; W2/W6 kinds + the pi-model
- * protocol). SERVER-EXECUTED: each call creates the job record, fires the
+ * Async sub-agent job tools (docs/vision.md §2.5). SERVER-EXECUTED: each
+ * call creates the job record, fires the
  * background runner (via the injected spawn seam — the agent layer never
  * imports one), and resolves IMMEDIATELY with a fire-and-forget ack. The
  * teacher's turn does NOT end at the call; the result arrives later as a
- * steer message that wakes the teacher in a new turn. See contracts.ts
+ * steer message that wakes the teacher in a new turn. See contracts/jobs.ts
  * "THE ASYNC PROTOCOL".
  */
 
@@ -64,7 +64,7 @@ export const pdfInputSchema = Type.Object({
 
 /**
  * The per-call dispatch: create the job (idempotent by toolCallId), fire the
- * runner, and return the ack. Shared by all three tools — only kind differs.
+ * runner, and return the ack. Shared by every job tool; only kind differs.
  */
 function dispatch(
 	ctx: JobToolContext,

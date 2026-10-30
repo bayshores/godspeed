@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useFold } from "@/components/use-fold";
 
 /**
- * The graph-context card (owner, 2026-10-04): the session's map pick —
+ * The graph-context card: the session's map pick —
  * message[0] of a session started with propositions picked from the
  * graph. Scaffolding, not a turn: minimal, muted, collapsed by default;
  * expand reveals the picked propositions (name — statement) and the
@@ -21,7 +21,7 @@ export interface GraphContextData {
 
 export function GraphContextCard({ data }: { data: GraphContextData }) {
 	const [open, setOpen] = useState(false);
-	const fold = useFold(open); // eases open/shut (motion wave, owner 2026-10-26)
+	const fold = useFold(open); // eases open/shut
 	const { propositions = [], chains = [] } = data ?? {};
 	const noun = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 	return (
@@ -75,7 +75,7 @@ export interface ClassContextData {
 }
 
 /**
- * The class card (classes wave, owner-approved 2026-10-26): message[0] of
+ * The class card: message[0] of
  * a lesson in a class — the class name, the learner's description, and
  * the class files the teacher can open. Same scaffolding look as the
  * graph-context card: muted, collapsed by default.

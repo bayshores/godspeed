@@ -14,7 +14,7 @@ type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 const PANEL_WIDTH = { initial: 440, min: 340, max: 720 };
 
 /**
- * THE YOUR-TURN PANEL (redesign, lesson layout B): always on the right
+ * THE YOUR-TURN PANEL: always on the right
  * (440px), below the text in narrow windows. What it holds, in order:
  * - a teach-phase check waiting behind "Check your understanding" (the
  *   learner reads first, can note thoughts while reading, then opens it);
@@ -74,7 +74,7 @@ export function YourTurnPanel({
 	const revealRef = useRef(() => setRevealed(true));
 
 	// Enter opens the waiting check from anywhere a typing surface or a
-	// button doesn't own it (owner, keyboard round 2026-10-06).
+	// button doesn't own it.
 	useEffect(() => {
 		if (!revealPending) return;
 		const onKeyDown = (e: KeyboardEvent) => {

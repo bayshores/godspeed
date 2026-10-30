@@ -1,6 +1,6 @@
 /**
- * Extraction coverage — the pure core. THE TEACHER'S PROSE IS THE UNIT
- * (owner ruling, 2026-09-28): the extractor sees ONLY the teacher agent's
+ * Extraction coverage — the pure core. THE TEACHER'S PROSE IS THE UNIT:
+ * the extractor sees ONLY the teacher agent's
  * prose — ordinary text blocks and explicit send_to_user messages. No
  * learner messages, thinking, other tool calls/results, or quiz blocks.
  * Everything else is INVISIBLE to coverage: it neither opens nor joins a run, so answering a quiz or editing a learner
@@ -13,10 +13,7 @@
  * (fingerprint the current transcript, diff against the ledger) — never
  * dual-tracked. Runs are token-budgeted batches of the oldest uncovered
  * teacher-prose messages: greedy consecutive fill, a message is never
- * split, a single over-budget message rides alone. (The old
- * inseparability bond — call + results in one chunk — died with the
- * ruling: tool results are invisible now, so nothing needs keeping
- * together.)
+ * split, a single over-budget message rides alone.
  */
 
 import { createHash } from "node:crypto";
@@ -28,7 +25,7 @@ import { failedOutputCallIds, userFacingTextOf, type LhMessage } from "./native-
 /**
  * The extraction-relevant lines of ONE native message — the shared seam
  * between the extractor's prompt and messageFingerprint (coverage).
- * TEACHER PROSE ONLY (owner, 2026-09-28): an assistant message yields one
+ * TEACHER PROSE ONLY: an assistant message yields one
  * line per learner-facing prose block; everything else (user messages,
  * tool results, markers) yields NOTHING and is invisible to coverage.
  * `mid` is the message id — part of the hash input, so the same prose in two messages

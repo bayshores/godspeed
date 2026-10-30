@@ -5,18 +5,16 @@ import { toolActivityLabel } from "@/core";
 import type { ArtifactPartProps } from "@/core";
 
 /**
- * The LIVE tool-input card (owner, streaming round 2026-10-01): what a
- * tool call looks like while the agent WRITES it. A tool part sits in
- * `input-streaming` for its whole execution (the bridge defers
- * input-available to tool_execution_end), so this card IS the working
- * state — spinner + shimmered activity label in the header (the retired
- * transcript bottom line's text, same recipe as the thinking row), and
- * the streaming input itself watchable on expand. The moment the call
+ * The LIVE tool-input card: what a tool call looks like while the agent
+ * WRITES it. A tool part sits in `input-streaming` for its whole execution
+ * (the bridge defers input-available to tool_execution_end), so this card
+ * IS the working state: spinner + shimmered activity label in the header,
+ * and the streaming input itself watchable on expand. The moment the call
  * settles, the part re-renders through the artifact registry and the
  * quiet settled card replaces this one.
  *
- * The one working-state grammar everywhere (owner): Braille spinner +
- * Shimmer — the thinking row, this card, the sidebar row.
+ * The one working-state look everywhere: Braille spinner + Shimmer (the
+ * thinking row, this card, the sidebar row).
  */
 interface StreamingToolPart {
 	type: string;

@@ -1,5 +1,5 @@
 /**
- * Artifact download helpers (release polish, 2026-10-07): the tiny
+ * Artifact download helpers: the tiny
  * save-a-blob seam shared by the demo + figure cards, plus the filename
  * slug. The slug is pure (test-pinned); downloadFile touches the DOM and
  * only runs on click.

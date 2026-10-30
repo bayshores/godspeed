@@ -1,5 +1,5 @@
 /**
- * godspeed — the Electron shell (wrapper milestone, 2026-09-17).
+ * godspeed — the Electron shell.
  *
  * What this process is and is not:
  *   IS:  a thin launcher + security guard around the app's real server —
@@ -8,17 +8,16 @@
  *   NOT: a host for any app logic. Everything — teacher turns, extraction,
  *        the graph — runs in the Next server, unchanged.
  *
- * Pattern (fact-checked 2026-09-17 against current Electron 44 / Next 16
- * docs — see .memory release-strategy + electron-wrapper notes):
+ * Pattern (Electron 44 / Next 16):
  *   - spawn via process.execPath + ELECTRON_RUN_AS_NODE=1 (Electron's
  *     bundled Node 24; the runAsNode fuse must stay enabled);
  *   - the server dir ships UNPACKED via extraResources (asar archives are
  *     read-only and native .node/dylib can't dlopen from one);
  *   - all mutable state under userData (never inside the .app bundle —
  *     translocated apps are read-only);
- *   - secrets ride the child's ENV, never argv. There are no API keys and
- *     no built-in sign-ins: the only AI is an outside agent (Claude Code,
- *     Codex, any MCP client) that connects to the server's /api/mcp.
+ *   - secrets ride the child's ENV, never argv. The only AI is an outside
+ *     agent (Claude Code, Codex, any MCP client) that connects to the
+ *     server's /api/mcp.
  */
 
 const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("electron");
@@ -39,12 +38,9 @@ const SIDEBAR_AUTOCLOSE = 928;
 
 const PRODUCT_NAME = "godspeed";
 
-// APP NAME → userData (owner, 2026-10-10): the Application Support dir is
-// exactly "godspeed" in dev AND packaged. Packaged Electron would
-// otherwise derive it from package.json "name" (now lowercase
-// "godspeed"), and productName metadata alone doesn't reach app.name.
-// Must run before the LH_DEV_URL suffix below — dev becomes
-// "godspeed-dev".
+// The Application Support dir is exactly "godspeed" in dev AND packaged:
+// productName metadata alone doesn't reach app.name. Must run before the
+// LH_DEV_URL suffix below — dev becomes "godspeed-dev".
 app.setName(PRODUCT_NAME);
 const DATA_DIR = () => path.join(app.getPath("userData"), "data");
 
@@ -58,7 +54,7 @@ function serverEntry() {
 }
 
 // ─── Single instance: two instances would fight over the data dir ─────────
-// ─── Browser-service helper (Wave E stage 3, owner 2026-10-10) ────────
+// ─── Browser-service helper ───────────────────────────────────────────
 // The render engines for agent jobs: PDFs and SVGs rasterize natively
 // (pdfjs+Skia, resvg — no browser); DEMOS execute JS and need one. The
 // app's own Chromium serves that via this helper — the server spawns
@@ -428,14 +424,9 @@ function createWindow(url, serverUp = null) {
 		width: 1440,
 		height: 900,
 		title: PRODUCT_NAME,
-		// Merged chrome (owner, 2026-09-17): the system title bar is gone;
-		// the app's own 60px header bands ARE the title bar. The traffic
-		// lights float over the sidebar's LH wordmark band, vertically
-		// Aligned to the PHASE PILL's drawn box, not the band's geometric
-		// center (owner ask, 2026-09-17): macOS centers each 12px circle at
-		// y+6.75, and the pill box center measures 29.25 in the running app
-		// (band 0–59.5, pill box 19–39.5) — y 22.5 lands the circles at
-		// 29.25, exactly on the pill. Wordmark gutter: src/components/sidebar.tsx.
+		// Merged chrome: the system title bar is gone; the app's own 60px
+		// header bands ARE the title bar. macOS centers each 12px traffic
+		// light at y+6.75, so y 22.5 puts them at 29.25, about mid-band.
 		// Dragging comes from the renderer's .lh-drag bands (src/app/globals.css).
 		...(process.platform === "darwin"
 			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 22.5 } }
@@ -458,7 +449,7 @@ function createWindow(url, serverUp = null) {
 			// without a click first.
 			autoplayPolicy: "no-user-gesture-required",
 		},
-		// Live-resize + first-paint flash (owner, 2026-09-17): during a resize
+		// Live-resize + first-paint flash: during a resize
 		// the native window surface changes size before Chromium's compositor
 		// has a frame at the new size, and the gap shows the window's NATIVE
 		// background — Electron's default is white, glaring on a dark app.
@@ -467,7 +458,7 @@ function createWindow(url, serverUp = null) {
 		// appears only once the page has actually rendered.
 		backgroundColor: "#141414",
 		show: false,
-		// Narrow-window behavior (owner, 2026-09-17): 640px is the floor —
+		// Narrow-window behavior: 640px is the floor —
 		// below it even a wrapped chrome row gets cramped and the chat header
 		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
 		// auto-closes below 928 = 640 + 288 (sidebar) in the renderer
@@ -480,12 +471,10 @@ function createWindow(url, serverUp = null) {
 	trustedAppWindows.add(win);
 	win.once("closed", () => trustedAppWindows.delete(win));
 	const allowedOrigin = () => new URL(url).origin;
-	// Deny-by-default; the ONLY grants are clipboard-sanitized-write — the copy affordances in the transcript
-	// (md-blocks copy corners) call navigator.clipboard.writeText(), which
-	// Chromium only honors with that permission (chrome-melt tweaks wave,
-	// 2026-09-19; before this grant every copy silently rejected). Still
-	// loopback-origin only — Electron's default is auto-approve-everything,
-	// and we do not ship that.
+	// Deny-by-default; the ONLY grant is clipboard-sanitized-write: the copy
+	// buttons call navigator.clipboard.writeText(), which Chromium only
+	// honors with that permission. Still loopback-origin only — Electron's
+	// default is auto-approve-everything, and we do not ship that.
 	const allowedPermissions = new Set(["clipboard-sanitized-write"]);
 	const fromOwnOrigin = (origin, permission) =>
 		origin === allowedOrigin() && allowedPermissions.has(permission);
@@ -541,32 +530,26 @@ function createWindow(url, serverUp = null) {
 	return win;
 }
 
-/* ── Zoom (owner round 7, 2026-10-05): ⌘±/⌘0 as an OWNED ladder ──────────
- * The stock zoomIn/zoomOut roles change zoomLevel silently — the renderer
- * never learns the factor, and the native traffic lights (physical-fixed,
- * hiddenInset) drift out of relation to the scaled chrome: the graph
- * button rides away from them zoomed in, content slides under them
- * zoomed out. Here zoom is explicit: a factor ladder, applied through
- * setZoomFactor, and broadcast to the renderer ("lh:zoom" — it publishes
- * --lh-zoom so gutter lengths can divide by it and stay PHYSICAL-
- * constant). The traffic lights themselves stay at their construction
- * position ({x:16, y:22.5} — Electron 44 has NO runtime setter, only
- * the BrowserWindow option), which is HIG-correct anyway: native lights
- * hug the window corner while the web chrome compensates around them.
- * Vertical note: at large factors the taller bands' content centers
- * drift below the fixed lights — accepted (the alternative, moving the
- * lights, is impossible without rebuilding the window). */
+/* ── Zoom: ⌘±/⌘0 as an OWNED ladder ──────────────────────────────────────
+ * The stock zoomIn/zoomOut roles change zoomLevel silently, so the renderer
+ * never learns the factor and the fixed native traffic lights drift out of
+ * relation to the scaled chrome. Here each factor is applied through
+ * setZoomFactor and broadcast as "lh:zoom"; the renderer publishes
+ * --lh-zoom so gutters can divide by it and stay physically constant.
+ * The lights stay where the window was built: Electron 44 has no runtime
+ * setter for their position. At large factors the band content sits a
+ * little below the lights; that is accepted. */
 const ZOOM_LADDER = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 
-/* ── Auto-update (Wave C, owner 2026-10-10: silent download + restart ─────
- * banner; checks at startup + every 24h) ─────────────────────────────────
+/* ── Auto-update: silent download + restart banner; checks at startup ─────
+ * and every 24h ──────────────────────────────────────────────────────────
  *
  * Feed: GitHub Releases (electron/electron-builder.yml publish → app-update.yml,
  * baked + signed into the bundle). macOS needs the app signed (it is —
  * Developer ID) and updates ride the zip target (Squirrel.Mac); blockmaps
  * give differential downloads for free. Windows uses NSIS; Linux uses
- * AppImage or DebUpdater (6.8.9 supports deb; installation can request
- * administrator permission via the package manager — owner 2026-10-11).
+ * AppImage or DebUpdater (a deb install can ask for administrator
+ * permission via the package manager).
  *
  * Hard rules:
  *  - DEV NEVER UPDATES: !app.isPackaged skips the updater entirely — the
@@ -765,9 +748,8 @@ function installMenu() {
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
 				// OWNED zoom (see applyZoom): the roles change zoomLevel
-				// silently; these broadcast the factor and re-seat the
-				// traffic lights. The renderer's --lh-zoom depends on
-				// hearing every change.
+				// silently; these broadcast the factor, and the renderer's
+				// --lh-zoom depends on hearing every change.
 				{
 					label: "Actual Size",
 					accelerator: "CommandOrControl+0",
@@ -839,10 +821,8 @@ async function main() {
 
 	installMenu();
 
-	// Auto-update (Wave C): wire the updater before the window so the
-	// banner channel is live from first paint; the first check and the 24h
-	// interval fire after it below. setupAutoUpdater's contract: failures
-	// are log lines — this can never block boot.
+	// Wire the updater before the window so the banner channel is live from
+	// first paint. Its failures are log lines: it can never block boot.
 	setupAutoUpdater();
 	// Every IPC message must come from an app window's main frame, never a subframe.
 	const fromAppWindow = (event) =>

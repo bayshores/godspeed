@@ -1,7 +1,6 @@
 /**
- * THE REATTACH STREAM (background-turn runner wave, owner ruling
- * 2026-09-25) — and, since CONNECTION DIET B (owner, 2026-10-10), THE
- * turn wire, period: POST /api/chat acknowledges and closes, so the
+ * THE REATTACH STREAM, and the only turn wire: POST /api/chat
+ * acknowledges and closes, so the
  * submitter too attaches here. One SSE stream per chat: a running turn →
  * subscribe to the live turn object: FULL replay of the event log, then
  * live chunks until settle ([DONE]). No running turn → the cheap terminal

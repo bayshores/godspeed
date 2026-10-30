@@ -3,9 +3,9 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * PDF plumbing for the pdf-reader sub-agent — sources v0 (2026-09): Node
- * ports of the four pdf-reader skill scripts (pdf_info / pdf_extract /
- * pdf_search / pdf_render), on the user-chosen hybrid stack:
+ * PDF plumbing for the pdf-reader sub-agent: Node ports of the four
+ * pdf-reader skill scripts (pdf_info / pdf_extract / pdf_search /
+ * pdf_render), on a hybrid stack:
  *
  * - TEXT (info / extract / search): pdfjs-dist — pure JS, no native deps.
  * - RENDER: subagents/headless.ts uses the same pdfjs engine with
@@ -43,8 +43,8 @@ async function loadPdfjs() {
 	return pdfjs;
 }
 
-/** Standard-font data dir (live-smoke finding 2026-09-19: without it pdfjs
- *  warns and falls back on non-embedded standard fonts — Helvetica, Times…).
+/** Standard-font data dir (without it pdfjs warns and falls back on
+ *  non-embedded standard fonts — Helvetica, Times…).
  *  The node side takes a plain filesystem path, shared by text and rendering.
  *  pdfjs checks endsWith("/") even on Windows: use a literal trailing slash,
  *  NOT path.sep ("\\" on Windows). Node fs accepts this path on every OS. */
@@ -58,7 +58,7 @@ async function openDocument(filePath: string) {
 	// The legacy build in plain node runs on a main-thread fake worker (no
 	// workerSrc needed); teardown is the loading task's destroy().
 	// verbosity 0 = errors only — scanned PDFs (JBIG2 XObjects) otherwise
-	// flood the log with per-page warnings (live-smoke finding 2026-09-19).
+	// flood the log with per-page warnings.
 	const task = pdfjs.getDocument({ data, standardFontDataUrl: standardFontsDir(), verbosity: 0 });
 	return { doc: await task.promise, task };
 }

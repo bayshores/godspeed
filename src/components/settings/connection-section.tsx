@@ -1,9 +1,9 @@
 /**
  * Settings → Connection: outside agents (Claude Code, Codex, any MCP client)
- * connect to godspeed and act as its AI — always on, the only model
- * (owner, 2026-10-27). "Access": the connection status and the access
- * token; "Setup": copy-ready setup for each agent. Explanations live in
- * the labels' hover tooltips.
+ * connect to godspeed and act as its AI, always on and the only model.
+ * "Access": the connection status and the access token; "Setup":
+ * copy-ready setup for each agent. Explanations live in the labels' hover
+ * tooltips.
  */
 
 import { useCallback, useEffect, useState } from "react";

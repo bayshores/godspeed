@@ -3,12 +3,12 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import type { ArtifactPartProps, PdfResult, ResearchResult } from "@/core";
 
 /**
- * The research tool-call box (contracts.ts "THE ASYNC PROTOCOL" §4).
+ * The research tool-call box (contracts/jobs.ts "THE ASYNC PROTOCOL" §4).
  *
  * The part's output is the fire-and-forget dispatch ACK — the box itself is
  * the DispatchCard (live status via the chat view's jobs feed; quiet one-liner
- * once delivered). The research brief itself no longer renders from the
- * tool part at all: it rides the steer message (the user-role delivery
+ * once delivered). The research brief doesn't render from the tool part:
+ * it rides the steer message (the user-role delivery
  * injected after the wake turn) and renders there via ResearchBriefCard.
  */
 export function JobCard({ part }: ArtifactPartProps) {
@@ -17,7 +17,7 @@ export function JobCard({ part }: ArtifactPartProps) {
 }
 
 /**
- * The pdf dispatch box (sources v0) — the same async-protocol idiom as
+ * The pdf dispatch box — the same async-protocol idiom as
  * JobCard: the ack output drives a DispatchCard (live "PDF reader" status
  * via the chat view's jobs feed); the brief itself rides the steer message
  * and renders under the PDF-complete badge in the transcript.
@@ -28,7 +28,7 @@ export function PdfJobCard({ part }: ArtifactPartProps) {
 }
 
 /**
- * The PDF reading brief (sources v0) — markdown body + the consulted-pages
+ * The PDF reading brief — markdown body + the consulted-pages
  * line. Exported: the steer card renders it under the PDF-complete badge,
  * the same expand-on-demand idiom as research.
  */

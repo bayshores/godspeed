@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils";
 
 /**
- * THE BRAILLE SPINNER (owner, minimal-color round): the one working-state
- * indicator, in the terminal's own glyph language. Pure function + CSS —
- * no JS frame timer, no React re-render per frame; each frame is a tiny
- * <g> whose opacity is compositor-animated, so the cost is below the old
- * breathing dot's (which animated opacity AND transform).
+ * THE BRAILLE SPINNER: the one working-state indicator, in the terminal's
+ * own glyph language. Pure function + CSS — no JS frame timer, no React
+ * re-render per frame; each frame is a tiny <g> whose opacity is
+ * compositor-animated, so it stays cheap.
  *
  * Geometry: the classic cli-spinner sequence (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏, 10 frames,
  * 80ms each — 800ms cycle) as EXACT dot bitmaps in a 2×4 braille cell

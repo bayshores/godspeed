@@ -6,15 +6,14 @@ import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
 import { forgetConversation, labelConversation } from "../agent-bridge.ts";
 
 /**
- * The shared sub-agent runner (docs/pi-engine-swap.md §6): one helper every
+ * The shared sub-agent runner: one helper every
  * background agent (researcher, demo-builder, visual-maker, extractor,
  * topic grouper) runs on — a stateless pi Agent built per call, driven to
- * completion, with the seams the job runner and the money channel need.
+ * completion, with the seams the job runner and usage reporting need.
  *
- * Error semantics mirror the old ToolLoopAgent.generate: provider/loop
- * failures THROW (pi encodes them in the stream; this helper surfaces
- * them), and an abort throws an AbortError so every existing
- * `signal.aborted` early-return keeps working unchanged.
+ * Provider/loop failures THROW (pi encodes them in the stream; this helper
+ * surfaces them), and an abort throws an AbortError so callers'
+ * `signal.aborted` early-returns work.
  */
 
 interface SubagentRunOptions {
@@ -25,11 +24,11 @@ interface SubagentRunOptions {
 	messages?: AgentMessage[];
 	/** Fresh-run prompt text (mutually exclusive with a continuation). */
 	prompt?: string;
-	/** Max model calls (the old stepCountIs safety net). */
+	/** Max model calls (a safety net). */
 	maxTurns: number;
 	/** Abort mid-model-call (the real-kill semantics). */
 	abortSignal?: AbortSignal;
-	/** Money channel: one call per model request. */
+	/** Token usage: one call per model request. */
 	onUsage?: (usage: Usage) => void;
 	/** Activity line per tool execution (job record progress). */
 	onToolStart?: (toolName: string, args: unknown) => void;
@@ -53,7 +52,7 @@ interface SubagentRunResult {
 export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRunOptions): Promise<SubagentRunResult> {
 	// The engine loads on the first run only. Once loaded, no await happens
 	// here: everything from the abort listener on stays synchronous with
-	// the caller, exactly as before (an await here let an abort slip past).
+	// the caller (an await here would let an abort slip past).
 	let core = loadedAgentCore();
 	if (!core) core = await loadAgentCore();
 	// Cancelled before the run started (or while the engine loaded): an
@@ -79,8 +78,7 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,
-		// 0.87.1: shouldStopAfterTurn → finishTurn (same call point; "end"
-		// exits before the steering poll, exactly the old boolean-true).
+		// "end" exits before the steering poll.
 		finishTurn: (turn) => {
 			turns++;
 			return turns >= opts.maxTurns || opts.shouldStop?.(turn.message, turn.toolResults) === true
@@ -104,8 +102,8 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 					if ((event.message as { role?: string }).role === "assistant") {
 						const m = event.message as AssistantMessage;
 						if (m.stopReason === "aborted") {
-							// The call was cancelled — no completed step, no billed
-							// usage (the abort path asserts zero steps).
+							// The call was cancelled: no completed step and no usage
+							// (the abort path asserts zero steps).
 								aborted = true;
 							break;
 						}
@@ -138,9 +136,9 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 	}
 	if (errorMessage !== undefined) throw new Error(errorMessage);
 
-	// 0.87.1: drop the seeded leading SystemMessage (transcript rework —
-	// see ui-stream's settleWith) before slicing past the input count, or
-	// the seed displaces the slice and the last INPUT message leaks in.
+	// Drop the seeded leading SystemMessage before slicing past the input
+	// count, or the seed displaces the slice and the last INPUT message
+	// leaks in.
 	const newMessages = agent.state.messages
 		.filter((m) => (m as { role?: string }).role !== "system")
 		.slice(before);

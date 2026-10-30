@@ -8,19 +8,17 @@ import { getHeadless, type HeadlessApi } from "./headless.ts";
 import { streamOnce, toolText as textResult } from "./stream-once.ts";
 
 /**
- * The visual-maker sub-agent (vision §2.5): authors ONE precise SVG from a
- * brief, renders it to a PNG with the same rasterizer the transcript
- * will use, LOOKS at the
- * result, and iterates until correct — a direct port of the vault POC's
- * svg-maker doctrine ("the one rule that matters: verify by looking").
+ * The visual-maker sub-agent (docs/vision.md §2.5): authors ONE precise SVG
+ * from a brief, renders it to a PNG with the same rasterizer the transcript
+ * will use, LOOKS at the result, and iterates until correct ("the one rule
+ * that matters: verify by looking").
  *
- * LOOP SHAPE (decided in the W6 brief): hand-rolled with generateText + a
- * messages array, because the loop must feed an IMAGE back to the model after
- * each render. write_svg / render_svg are declared WITHOUT execute — when the
- * model calls them generateText stops with the tool calls, and this loop
- * appends the tool results itself, followed by a user message containing the
- * rendered PNG as a file part ("Here is the current render"). ToolLoopAgent's
- * execute-tool plumbing can't express that image-in-the-loop shape cleanly.
+ * LOOP SHAPE: hand-rolled with streamOnce + a messages array, because the
+ * loop must feed an IMAGE back to the model after each render. The tools
+ * are declared WITHOUT execute: the model call stops with the tool calls,
+ * and this loop appends the tool results itself, followed by a user
+ * message containing the rendered PNG ("Here is the current render"). The
+ * agent loop's execute-tool plumbing can't express that shape cleanly.
  *
  * Doctrine enforcement in code: if the model tries to finish while the
  * current SVG has never been rendered (or changed since its last render), the
@@ -35,17 +33,17 @@ interface VisualMakerInput {
 }
 
 interface VisualMakerOptions {
-	/** Test seam: scripted engine; production uses the visualMaker role. */
+	/** Test seam: scripted engine; production runs on the outside agent. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
 	/** Max model rounds (write/render cycles + final answer). Default 8. */
 	maxIterations?: number;
 	/** Live activity-line callback (updates the job record). */
 	onActivity?: (line: string) => void;
-	/** Kills the run mid-model-call (2026-09 real-kill abort semantics). */
+	/** Kills the run mid-model-call. */
 	abortSignal?: AbortSignal;
-	/** Money channel: one call per loop iteration (streamSimple), folded
-	 * into JobRecord.usage. */
+	/** Token usage: one call per loop iteration, folded into
+	 * JobRecord.usage. */
 	onUsage?: (usage: Usage) => void;
 }
 
@@ -155,8 +153,8 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 
 	try {
 		for (let iteration = 0; iteration < maxIterations; iteration++) {
-			// One model call per iteration (streamSimple, no agent loop — this
-			// loop owns tool execution and the image-in-the-loop injection).
+			// One model call per iteration (no agent loop: this loop owns tool
+			// execution and the image-in-the-loop injection).
 			const result = await streamOnce(
 				engine,
 				INSTRUCTIONS,
@@ -165,7 +163,6 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 				sessionId,
 				opts.abortSignal,
 			);
-			// Money channel: each iteration is one model call.
 			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 

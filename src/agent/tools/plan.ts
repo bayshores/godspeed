@@ -5,11 +5,10 @@ import type { ChatStore } from "../../core/ports.ts";
 import { createTree, PlanTreeError } from "../../core/plan-tree.ts";
 import { parseMermaidPlan } from "./mermaid-plan.ts";
 
-/** The binding-id reminder riding plan_init's slim content (owner,
- *  2026-10-09): plan_init is the exact moment the node ids become
- *  load-bearing — every later quiz/explain call must reference one. The
- *  field-drop incidents (tools_fails_2) showed the turn's tail is where
- *  discipline slips; the reminder lands right there. */
+/** The binding-id reminder riding plan_init's slim content: plan_init is
+ *  the moment the node ids become load-bearing, and every later
+ *  quiz/explain call must reference one. Models drop fields at the turn's
+ *  tail, so the reminder lands right there. */
 const PLAN_NODE_IDS_REMINDER =
 	"These are the plan's node ids — the only valid nodeId values for every quiz and explain call from here on. Reference them exactly.";
 
@@ -21,13 +20,13 @@ export interface PlanToolContext {
 }
 
 /**
- * The plan tool — AUTHOR-ONCE protocol (2026-09-03 design pass): the teacher
+ * The plan tool, AUTHOR-ONCE protocol: the teacher
  * WRITES the map and never tracks progress. One tool, plan_init, takes the
  * whole dependency map as a mermaid `graph TD` block:
  *
  *   - call it ONCE right after the probe concludes, to present the map (the
  *     LEARNER'S ACCEPTANCE of the presented plan, not this call, ends
- *     planning — docs/probe-teach-split.md §4)
+ *     planning)
  *   - statuses (current / visited / upcoming) are DERIVED from the quiz
  *     nodeId tags the teacher fires (contracts.ts derivePlanStatuses) — the
  *     teacher never declares them, and there is no "done" bookkeeping
@@ -38,10 +37,9 @@ export interface PlanToolContext {
  *     live tree at the call boundary) — that tag is the only thing statuses
  *     derive from
  *
- * The former mutation tools (add/update/remove node/edge, set_current,
- * mark_done) are gone by design: restructuring is a rewrite, tracking is
- * derived. SERVER-SIDE with execute: parse → validate → persist. The
- * result is CONTEXT-SLIM (owner, context diet 2026-10-09): the model
+ * There are no mutation tools by design: restructuring is a rewrite,
+ * tracking is derived. SERVER-SIDE with execute: parse → validate →
+ * persist. The result is CONTEXT-SLIM: the model
  * WROTE the mermaid one message ago, so content never echoes the tree —
  * it carries the validated nodeIds + the binding-nodeId reminder (the
  * exact moment the ids become load-bearing); `details` keeps the full
@@ -78,8 +76,7 @@ export function planTools(ctx: PlanToolContext): Record<string, AgentTool<any>> 
 				const parsed = parseMermaidPlan(mermaid);
 				if (!parsed.ok || !parsed.plan) {
 					// The parser collects every problem; the teacher fixes and retries.
-					// No tree echo — the model needs the problems, not a restatement of
-					// the map it is rewriting (owner, context diet 2026-10-09).
+					// No tree echo: the model needs the problems, not its own map back.
 					return { ok: false, error: parsed.problems.join("\n") };
 				}
 				try {
@@ -87,10 +84,8 @@ export function planTools(ctx: PlanToolContext): Record<string, AgentTool<any>> 
 					// edge endpoints, self-loops, cycles → PlanTreeError).
 					const next = createTree(parsed.plan.nodes, parsed.plan.edges);
 					chatStore.saveTree(chatId, next);
-					// Context diet: content = the validated nodeIds + the reminder (the
-				// ids just became binding for every quiz/explain call); details =
-					// the full tree for the record/UI — the plan popup's latestTree
-					// seam, agent-invisible (the serializer sends content only).
+					// content = the validated nodeIds + the reminder; details = the
+					// full tree for the record/UI (the serializer sends content only).
 					return {
 						text: JSON.stringify({
 							ok: true,

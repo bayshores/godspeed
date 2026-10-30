@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * THE ACTIVE CLASS (classes wave, owner-approved 2026-10-26): the class the
+ * THE ACTIVE CLASS: the class the
  * whole window shows — the sidebar's lessons, home's graph, where new
  * lessons start and where "Import notes…" imports. null = "No class".
  *
@@ -89,7 +89,7 @@ export function ClassProvider({ children, initialActive }: { children: ReactNode
 			} catch {
 				/* the switch still applies to this window */
 			}
-			// Switching to a class rescans its linked folder (owner ruling).
+			// Switching to a class rescans its linked folder.
 			if (id) void fetch(`/api/classes/${encodeURIComponent(id)}?scan=1`, { cache: "no-store" }).catch(() => {});
 		})();
 	}, []);

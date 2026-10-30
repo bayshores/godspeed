@@ -1,5 +1,5 @@
 /**
- * CLASS FILES → TEXT (classes wave, owner-approved 2026-10-26, Phase 3).
+ * CLASS FILES → TEXT.
  *
  * The one "to text" step every class file passes through before the
  * existing notes pipeline (extractor → merge) turns it into
@@ -26,8 +26,8 @@ import {
 } from "../core/contracts.ts";
 
 /** sha256 of the file's bytes, 16 hex chars — the change detector.
- *  Streamed (speed plan, 2026-10-27): a whole-file sync read of a big PDF
- *  blocked every other request while it hashed. */
+ *  Streamed: a whole-file sync read of a big PDF would block every other
+ *  request while it hashed. */
 export function fingerprintFile(absPath: string): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const hash = createHash("sha256");

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * The Settings dialog's always-mounted half (speed plan, owner 2026-10-27):
- * the open() context the sidebar and the mod+, chord call. The dialog itself
+ * The Settings dialog's always-mounted half: the open() context the
+ * sidebar and the mod+, chord call. The dialog itself
  * (settings-dialog.tsx and every section) is a separate chunk: it starts
  * loading once the page is idle, so the first open is still instant, and
  * it never weighs on a page's startup.
@@ -20,7 +20,7 @@ const DialogContext = createContext<{ open: (section?: string) => void }>({ open
  *  `open(section)` lands the dialog on a specific section. */
 export function SettingsDialogProvider({ children }: { children: React.ReactNode }) {
 	const [show, setShow] = useState(false);
-	// Mounted from the first open on, so it can fade out (motion wave).
+	// Mounted from the first open on, so it can fade out.
 	const [mounted, setMounted] = useState(false);
 	const [landOn, setLandOn] = useState<string | undefined>(undefined);
 	const open = useCallback((section?: string) => {

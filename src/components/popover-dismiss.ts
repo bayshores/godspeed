@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
 /**
- * Close-on-dismissal for floating panels (graph chrome, 2026-09-17):
+ * Close-on-dismissal for floating panels:
  * any pointerdown landing OUTSIDE the control's root closes it; Escape
  * closes it too. The root contains both the toggle button and the panel,
  * so clicks on the control's own button stay "inside" — its toggle keeps
@@ -21,7 +21,7 @@ export function usePopoverDismiss(
 		};
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// Claim the Esc (keyboard wave A): the window-level dismiss
+				// Claim the Esc: the window-level dismiss
 				// chain must not ALSO abort a turn under
 				// this popover. Popovers are the chain's topmost layer.
 				e.stopPropagation();

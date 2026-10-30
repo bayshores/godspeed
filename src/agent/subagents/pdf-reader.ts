@@ -11,10 +11,10 @@ import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "./pdf-ops.ts";
 import { streamOnce, toolText as textResult } from "./stream-once.ts";
 
 /**
- * The pdf-reader sub-agent (sources v0, 2026-09): reads a learner-provided
- * PDF on the teacher's behalf — a hand-rolled loop like the visual-maker's
- * (image-in-the-loop can't ride the execute-tool plumbing: rendered pages
- * are shown to THIS agent's eyes, never delivered onward — user-decided).
+ * The pdf-reader sub-agent: reads a learner-provided PDF on the teacher's
+ * behalf — a hand-rolled loop like the visual-maker's (image-in-the-loop
+ * can't ride the execute-tool plumbing: rendered pages are shown to THIS
+ * agent's eyes, never delivered onward).
  *
  * System prompt = the pdf-reader skill's reading doctrine, verbatim in
  * strategy: triage with pdf_info FIRST, then size-based strategy — short
@@ -79,8 +79,8 @@ interface PdfReaderInput extends PdfToolInput {}
  *  pdfExtractText bodies below, pdf_search/pdf_render dispatch inline in
  *  the loop (search hits must join the citation set; renders feed the
  *  image-in-the-loop message) — so the declarations carry no execute.
- *  dpi/context_lines/literal carry the old zod `.default()`s as schema
- *  descriptions + loop-side ??-fills (the loop reads them via numOr). */
+ *  dpi/context_lines/literal defaults live in the schema descriptions +
+ *  loop-side ??-fills (the loop reads them via numOr). */
 export function createPdfTools(_pdfPath: string): Record<string, Tool> {
 	return {
 		pdf_info: {
@@ -167,9 +167,8 @@ export async function runPdfReaderAgent(
 	if (openError) {
 		return { path: pdfPath, question: input.question, brief: `PDF failed: ${openError}`, pagesRead: [], pagesConsulted: [] };
 	}
-	// No Chrome gate (Wave E, 2026-10-10): pdf_render is native now
-	// (pdfjs paints into @napi-rs/canvas in-process) — the whole pdf-reader
-	// runs browser-free; text tools always worked without one.
+	// No Chrome gate: pdf_render paints into @napi-rs/canvas in-process, so
+	// the whole pdf-reader runs browser-free.
 
 	const tools = createPdfTools(pdfPath);
 	const toolDeclarations = Object.values(tools);
@@ -187,8 +186,8 @@ export async function runPdfReaderAgent(
 	/** Every page the reader extracted or rendered (the citation set). */
 	const consulted = new Set<number>();
 	/** Pages genuinely READ — extract or render output entered the loop.
-	 *  Search-hit context lines consult but don't read (the "78 pages
-	 *  consulted" overstatement split, sources v1 2026-09-19). */
+	 *  Search-hit context lines consult but don't read, so a search can't
+	 *  overstate how much was read. */
 	const read = new Set<number>();
 	let finalText = "";
 	let nudged = false;
@@ -203,7 +202,6 @@ export async function runPdfReaderAgent(
 				sessionId,
 				opts.abortSignal,
 			);
-			// Money channel: each iteration is one model call.
 			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 

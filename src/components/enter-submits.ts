@@ -1,5 +1,5 @@
 /**
- * ENTER SUBMITS — regardless of where focus is (owner round 6, 2026-10-05).
+ * ENTER SUBMITS — regardless of where focus is.
  * The learner's focus often isn't on the dock's field, so Enter must submit
  * from ANYWHERE — body focus, a scroll, a stray link. The field's own Enter handler still fires first
  * when it IS focused (this listener sits at the window level, bubble's last
@@ -12,17 +12,16 @@
  *   surface owns its Enter (the dock field, the composer, settings);
  * - modified Enter (⇧↵ is a newline, ⌘/Ctrl↵ belongs to the surface).
  *
- * BUTTONS — the pointer/keyboard split (owner, keyboard round 2026-10-10):
- * a mouse click on a transcript control (a thinking toggle, a copy button)
- * leaves focus ON that button; the learner's next Enter must SUBMIT, not
- * re-activate the toggle — the report that born this rule. But two button
+ * BUTTONS — the pointer/keyboard split: a mouse click on a transcript
+ * control (a thinking toggle, a copy button) leaves focus ON that button;
+ * the learner's next Enter must SUBMIT, not re-activate the toggle. But two button
  * populations keep native Enter-activates:
  *   1. KEYBOARD-focused buttons — :focus-visible means focus arrived by
  *      keyboard (the arrow-walked menus; Tab is dead app-wide, so this
  *      only happens inside overlays);
  *   2. buttons inside an OPEN OVERLAY — menus walk focus with arrows and
  *      Enter activates the walked button natively (menu-shell's contract),
- *      dialogs are their own surfaced layer (the ONE-ESC LAW's layers).
+ *      dialogs are their own surfaced layer.
  * The pointer-clicked transcript button fails both tests → Enter is ours
  * (preventDefault also suppresses the browser's default activation, so
  * the toggle does not fire underneath the submit).

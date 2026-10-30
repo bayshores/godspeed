@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * "WHAT'S NEW" (owner, 2026-10-27): after an update, the first launch
+ * "WHAT'S NEW": after an update, the first launch
  * opens this dialog with the changelog entries the learner skipped over
  * (src/changelog.json, newest first). The root layout passes `since` from
  * src/server/whats-new.ts; Settings → General → Release notes reopens it

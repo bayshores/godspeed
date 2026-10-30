@@ -15,7 +15,7 @@
  * Process-global state on globalThis (the turn-runs.ts idiom): Next can
  * load this module more than once, and every copy must share one queue.
  *
- * CHECK-INS (owner, 2026-10-27): every authorized MCP request counts as
+ * CHECK-INS: every authorized MCP request counts as
  * the agent checking in; the MCP initialize handshake also names it
  * ("Claude Code"). Status changes go out as the "agent-changed" event so
  * open windows (onboarding, the sidebar, the activity panel) update live.
@@ -32,9 +32,8 @@ import type {
 	ToolCall,
 	JsonObject,
 } from "@earendil-works/pi-ai";
-// The faux provider's own entry, not the package root (speed plan,
-// 2026-10-27): the root loads every provider (~0.15–0.3 s at startup);
-// this subpath is a few small files.
+// The faux provider's own entry, not the package root: the root loads
+// every provider (~0.15–0.3 s at startup); this subpath is a few small files.
 import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { CHAT_ID_PREFIX } from "../core/contracts.ts";
 import { continuesFrom, seenMark, type SeenMark, type SeenStore } from "../core/agent-seen.ts";

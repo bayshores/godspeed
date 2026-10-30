@@ -148,8 +148,8 @@ export function useLessonServer({
 		prevStatusRef.current = status;
 		if (!transitioned) return;
 		void syncTurns();
-		// Canonize onto the record when our own turn's settle was announced
-		// (the duplicate-previous-message fix, 2026-10-02).
+		// Canonize onto the record when our own turn's settle was announced,
+		// so the previous message never shows twice.
 		if (settleAnnouncedRef.current) {
 			settleAnnouncedRef.current = false;
 			void syncFromServer();

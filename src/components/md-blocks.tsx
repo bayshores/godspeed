@@ -1,22 +1,19 @@
 /**
- * MARKDOWN BLOCKS, MELTED INTO THE MESSAGE (owner wave, 2026-09-19): the
- * boxed streamdown chrome — the double-framed tables (border + sidebar bg +
- * a second inner border + copy/download/fullscreen button rows), the mermaid
- * container (border box + mono label header + action pill + inner border +
- * in-chart zoom buttons), the code header bars — is REPLACED by this
- * component set, wired into Streamdown via its `components` prop:
+ * MARKDOWN BLOCKS, MELTED INTO THE MESSAGE: streamdown's boxed chrome
+ * (framed tables, the mermaid container, code header bars) is replaced by
+ * this component set, wired into Streamdown via its `components` prop:
  *
  * - Tables: a plain PROSE table (no box, no sidebar bg, no buttons bar) —
  *   hairline row rules + a stronger header underline (globals.css), wide
  *   tables scroll inside the column.
  * - Mermaid: the bare chart, part of the message — no label, no container,
- *   no zoom pill (zoom/pan lives in the session-scoped focus overlay now).
+ *   no zoom pill (zoom/pan lives in the session-scoped focus overlay).
  * - Code: streamdown's CodeBlock skeleton keeps the shiki plumbing, but the
  *   container melts (subtle bg tint, no border, no header — globals.css) and
  *   the buttons go.
  * - Display math: untouched visually, but gains the corner copy.
  *
- * THE ONE AFFORDANCE (user-decided): a small muted COPY icon at each block's
+ * THE ONE AFFORDANCE: a small muted COPY icon at each block's
  * top-right corner, revealed on hover — copying the SOURCE (table →
  * Markdown, code → text, mermaid → chart source, math → the raw TeX). It
  * never fakes a table column or shifts layout, and hover-reveal keeps the
@@ -47,9 +44,8 @@ import { Hint } from "@/components/ui/hint";
  *  `clipboard-sanitized-write` permission, which Electron's deny-by-default
  *  handler (electron/main.cjs) must grant from the loopback origin — and
  *  browsers with a stale/absent API reject too. The hidden-textarea
- *  execCommand path is the belt under that: a failed write would otherwise
- *  be a silent no-op, which is exactly what the owner saw. Returns whether
- *  the copy landed (drives the Copied pill). */
+ *  execCommand path is the fallback: a failed write would otherwise be a
+ *  silent no-op. Returns whether the copy landed. */
 async function copyText(text: string): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);
@@ -76,11 +72,9 @@ async function copyText(text: string): Promise<boolean> {
 /** A small muted copy icon for a block's top-right corner. The CONSUMER'S
  *  wrapper carries `group/md relative` (a NAMED group — the message container
  *  is also a `group`, and an unnamed group-hover would light EVERY corner in
- *  the message at once, the all-at-once the owner saw) and positions this
- *  via className; the icon self-hides until hover (opacity-0 →
- *  group-hover/md:opacity-100). Copies getText() on click; the icon flips
- *  to a check for a beat — enough feedback on its own (a "Copied" pill was
- *  tried and removed by owner ask, 2026-09-19). */
+ *  the message at once) and positions this via className; the icon
+ *  self-hides until hover (opacity-0 → group-hover/md:opacity-100). Copies
+ *  getText() on click; the icon flips to a check for a beat. */
 function CopyCorner({
 	getText,
 	label,
@@ -110,7 +104,7 @@ function CopyCorner({
 					});
 				}}
 			>
-				{/* The copied check settles in (motion wave, owner 2026-10-26). */}
+				{/* The copied check settles in. */}
 				{copied ? <CheckIcon className="size-3.5 motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]" /> : <CopyIcon className="size-3.5" />}
 			</button>
 		</span>
@@ -143,7 +137,7 @@ function MermaidInline({ chart }: { chart: string }) {
 	const [attempt, setAttempt] = useState(0);
 	const overlay = useSessionMermaid();
 	const incomplete = useIsCodeFenceIncomplete();
-	// The font-parity cap (owner rule, 2026-09-19): the house CSS
+	// The font-parity cap: the house CSS
 	// (`max-width: 100% !important`) overrides mermaid's own natural-size cap,
 	// so a chart would otherwise stretch to the full column and render its
 	// text larger than the session's own text. Cap the holder at the width
@@ -270,8 +264,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
  *  million READMEs. The PROMPT teaches only [!IMPORTANT] (one emphasis
  *  device, one meaning: load-bearing); the renderer accepts all five and
  *  boxes them identically — a stray [!NOTE] still meant "this deserves
- *  emphasis", and a literal marker line must never leak as text (owner
- *  design, callout round 2026-10-07). */
+ *  emphasis", and a literal marker line must never leak as text. */
 const ALERT_MARKER_RE = /^\[!(note|tip|important|warning|caution)\][ \t]*(?:\n|$)/i;
 
 interface ParsedAlert {
@@ -327,7 +320,7 @@ export function parseAlertMarker(children: ReactNode): ParsedAlert | null {
 	return { kind, children: restChildren };
 }
 
-/** The key-idea callout (owner rulings, 2026-10-07): SHARP corners, a white
+/** The key-idea callout: SHARP corners, a white
  *  stroke, NO background, NO label, NO icon — just the outline. The box
  *  hugs its text (width: fit-content, capped at the column) instead of
  *  stretching full-width into empty space. */
@@ -337,8 +330,7 @@ function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
 	if (!alert) {
 		// Plain quote — Streamdown's own styling, restored by hand: overriding
 		// `blockquote` displaced its styled component (the classes below are
-		// its verbatim defaults), and bare <blockquote> rendered unstyled
-		// (owner report, 2026-10-07).
+		// its verbatim defaults), and bare <blockquote> renders unstyled.
 		return (
 			<blockquote
 				{...rest}
@@ -373,9 +365,8 @@ function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 	return (
 		<div className="group/md relative my-4" data-testid="md-table">
 			<CopyCorner
-				// Contained in the table's top-right corner (owner note, 2026-09-19:
-				// the old -top-3 lifted only half the 24px button above the 12px
-				// offset, so it straddled the top outline). 4px inset, z above the
+				// Contained in the table's top-right corner, not straddling the
+				// top outline. 4px inset, z above the
 				// cells it hovers over; the scroll container stays under it (the
 				// corner is fixed to the wrapper, not the scrolling table).
 				className="absolute top-1 right-1 z-10"
@@ -386,9 +377,8 @@ function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 				<table
 					ref={ref}
 					// No text-sm here — the table text runs at the session prose size
-				// (owner note, 2026-09-19: streamdown's cells pin their own text-sm
-				// 12.5px; globals.css overrides cells to inherit, so tables match the
-				// 16px chat text for a consistent look).
+				// (streamdown's cells pin their own text-sm 12.5px; globals.css
+				// overrides cells to inherit, so tables match the chat text).
 					className="w-full border-collapse"
 					data-streamdown="table"
 					{...rest}
@@ -422,8 +412,7 @@ function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 		// (KaTeX's CSS), and an inline wrapper around a block child gets
 		// FRAGMENTED by the anonymous-block rules — the absolutely positioned
 		// corner then has no clean containing block and pointer events never
-		// land on it (owner report: the math corner neither highlights on hover
-		// nor copies; everything else works). display:block gives the corner a
+		// land on it. display:block gives the corner a
 		// real box; z-10 keeps it above the equation spans it overlays.
 		<span className="group/md relative block z-0" data-testid="md-math">
 			<CopyCorner
@@ -440,14 +429,10 @@ function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 
 // ─── The stable override set (module identity: Streamdown is memoized) ────────
 
-/** Bold as the REAL element (appearance fix, 2026-09-23): streamdown's
- *  default `strong` renders `<span class="font-semibold" data-streamdown=
- *  "strong">` — and `.lh-prose :where(strong, b)` matches strong/b
- *  ELEMENTS, so neither the factory ink (#ee928c) nor a settings
- *  boldColor ever landed on bold text (italic worked: streamdown leaves
- *  `em` native). Rendering the semantic element restores screen-reader
- *  emphasis AND lets the designed token rule apply unmodified — color
- *  --lh-ink-strong, weight 700 (beating the old 600 utility). */
+/** Bold as the REAL element: streamdown's default `strong` renders a
+ *  `<span>`, and `.lh-prose :where(strong, b)` matches strong/b ELEMENTS,
+ *  so the bold color would never land. The semantic element also keeps
+ *  screen-reader emphasis. */
 function MarkdownStrong(props: ComponentProps<"strong"> & ExtraProps) {
 	const { children, className, node, ...rest } = props;
 	return (

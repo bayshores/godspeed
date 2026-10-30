@@ -6,9 +6,8 @@ import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader } from "./panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
- * The Your-turn panel with no question waiting (redesign, your-turn
- * states): a message box and Send. While the teacher writes, the header
- * says so with a Stop button (Esc also stops), and the bar turns gray:
+ * The Your-turn panel with no question waiting: a message box and Send.
+ * While the teacher writes, the header says so with a Stop button (Esc also stops), and the bar turns gray:
  * "Send when ready". A message typed now steers the running turn and
  * shows as a queued line until it lands in the lesson.
  *

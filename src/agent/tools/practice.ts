@@ -39,7 +39,7 @@ export interface PracticeToolContext {
 	graphNodes?: () => ReadonlyArray<Pick<import("../../core/contracts/graph.ts").GraphNode, "id" | "name">>;
 	/** THE RARELY-NEEDED SET: the map readers
 	 *  behind the SAME settings gate as the prober's (graphToolsEnabled at
-	 *  the composition root); the research + pdf jobs (both keyless).
+	 *  the composition root); the research + pdf jobs.
 	 *  Each absent context (tests) = absent from the registry. */
 	graph?: GraphToolContext;
 	jobs?: JobToolContext;
@@ -222,8 +222,8 @@ export function practiceTools(ctx: PracticeToolContext): Record<string, AgentToo
 	const gate = createPracticeGate(ctx);
 	// THE RARELY-NEEDED SET: read/ls/find/grep over the
 	// learner's files (always — the same read-only set the teacher and
-	// prober carry), the research + pdf jobs (available without search
-	// keys; demo/visual stay teach-only), and
+	// prober carry), the research + pdf jobs (demo/visual stay
+	// teach-only), and
 	// the prober's map readers when the settings gate opened. None are
 	// toggle-filtered: problem/conclude are the session; these are
 	// exceptions the doctrine says to reach for rarely.

@@ -3,13 +3,11 @@ import { createPortal } from "react-dom";
 import { usePresence } from "@/components/presence";
 
 /**
- * THE shared menu shell (menu standardization, fix wave chunk B): one
- * placement body for the app's dropdown menus — portaled to document.body
- * (never clipped by an ancestor's overflow), fixed-anchored to the trigger's
- * rect, viewport-capped. PLACEMENT-ONLY by design: every site keeps its own
- * open/close/Esc contract (the layered-dismissal machinery differs
- * legitimately by surface — settings sections, the keys editor, the setup
- * dialog each own their Escape).
+ * THE shared menu shell: one placement body for the app's dropdown menus,
+ * portaled to document.body (never clipped by an ancestor's overflow),
+ * fixed-anchored to the trigger's rect, viewport-capped. PLACEMENT-ONLY
+ * by design: every site keeps its own open/close/Esc contract, since
+ * layered dismissal differs by surface.
  *
  *  - Side: each site declares its preferred side — the composer opens UP
  *    (its control sits at screen bottom), the settings rows open DOWN;
@@ -26,13 +24,13 @@ import { usePresence } from "@/components/presence";
  * Sites: the class switcher, file rows, the files page, graph fact lists
  * and the settings font menu (the graph popovers and the stats-bar summary
  * popover stay bespoke). Menus portal out of any overflow-hidden frame so
- * they can extend beyond a dialog (owner, chunk B item 7).
+ * they can extend beyond a dialog.
  *
  * SSR: menus only mount client-side while open; the hidden measuring pass
  * below is the only pre-placement render, so a server render never emits
  * a positioned menu.
  *
- * Motion (motion wave, owner 2026-10-26): the placed body carries .lh-pop
+ * Motion: the placed body carries .lh-pop
  * (data-side from the placement, data-state from presence). Sites pass
  * `open` and render the shell unconditionally, so it stays mounted ~110ms
  * through its exit; while closing it is inert — no focus, no keys, no
@@ -45,9 +43,8 @@ const CAP_VH = 0.6; // 60vh — the graph pattern's cap
 const MIN_USABLE = 96; // floor: a shorter cap is an unusable sliver; the
 // cap then overflows the edge instead of crushing the menu
 
-/** A MenuShell mounted = a dropdown open (fix wave, owner ruling:
- *  the settings dialog's content column locks while any menu is down —
- *  no scrolling under a dropdown). The shell stays placement-only: it
+/** A MenuShell mounted = a dropdown open (the settings dialog's content
+ *  column locks while any menu is down). The shell stays placement-only: it
  *  just ANNOUNCES, surfaces decide what to do with the fact (the
  *  settings dialog locks; anything un-lockable keeps the re-place-on-
  *  scroll fallback below). Count-based: overlapping menus open/close in
@@ -110,7 +107,7 @@ export function MenuShell({ open, ...body }: MenuShellProps) {
 }
 
 interface MenuShellProps extends MenuBodyProps {
-	/** Open flag (motion wave): given, the site renders the shell always and
+	/** Open flag: given, the site renders the shell always and
 	 *  the shell plays its exit before unmounting. Omitted: mounted = open. */
 	open?: boolean;
 }
@@ -155,7 +152,7 @@ function MenuShellBody({
 		};
 	}, [closing]);
 
-	// Closing: drop focus that was still inside (unmount used to do this),
+	// Closing: drop focus that was still inside (the shell stays mounted),
 	// and re-arm the focus-on-open below in case the menu re-opens mid-exit.
 	useEffect(() => {
 		if (!closing) return;
@@ -166,7 +163,7 @@ function MenuShellBody({
 		}
 	}, [closing]);
 
-	// Focus on open (owner, fix wave): the search menus land focus IN the
+	// Focus on open: the search menus land focus IN the
 	// search; menus without one land it on the body (tabIndex -1 below) so
 	// the arrow machine has a home. Once only — re-placements (scroll/
 	// resize) must never steal focus back mid-walk. The lists' own mount
@@ -182,19 +179,18 @@ function MenuShellBody({
 		(input ?? el).focus();
 	}, [placed, closing]);
 
-	// The standard arrow machine for menus WITHOUT a search (owner: when a
-	// dropdown is expanded, the arrow keys cycle the options and never
-	// scroll the screen): ArrowDown/Up move DOM focus among the option
-	// buttons with WRAP, Home/End hit the ends; Enter activates the
-	// focused button natively. Search menus own their arrows inside the
-	// input (their clamped-walk machine, 2026-09-17) — those events never
-	// bubble here, and the input/textarea guard is belt-and-braces.
+	// The arrow machine for menus WITHOUT a search, so the arrow keys cycle
+	// the options and never scroll the screen: ArrowDown/Up move DOM focus
+	// among the option buttons with WRAP, Home/End hit the ends; Enter
+	// activates the focused button natively. Search menus own their arrows
+	// inside the input; those events never bubble here, and the
+	// input/textarea guard is belt-and-braces.
 	const onBodyKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
 		if (closing) return;
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 		const { key } = e;
 		if (key !== "ArrowDown" && key !== "ArrowUp" && key !== "Home" && key !== "End") return;
-		// Folded sections stay mounted but inert (motion wave) — skip them.
+		// Folded sections stay mounted but inert; skip them.
 		const buttons = Array.from(
 			menuRef.current?.querySelectorAll<HTMLElement>("button:not([disabled])") ?? [],
 		).filter((b) => !b.closest("[inert]"));
@@ -284,8 +280,8 @@ function MenuShellBody({
 			style={{ position: "fixed", zIndex: 60, ...placed.style, maxHeight: placed.maxHeight, overflowY: "auto" }}
 			// The body is the arrow machine's focus home (input-less menus
 			// land focus here on open) — the focus STAYS, but the browser's
-			// default blue ring around it must not draw (owner, polish
-			// round). Arrow cycling moves DOM focus to the buttons, which
+			// default blue ring around it must not draw. Arrow cycling moves
+			// DOM focus to the buttons, which
 			// carry their own hover/highlight; the ring is pure noise.
 			// .lh-pop lands on the PLACED body only: the animation starts on
 			// the first visible frame, already at its anchor.

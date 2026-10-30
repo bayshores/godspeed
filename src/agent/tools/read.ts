@@ -6,32 +6,26 @@ import { serverExecute, type ImageFileResult } from "../tool-execute.ts";
 import { formatSize, resolveSourcePath } from "./fs-shared.ts";
 
 /**
- * The read tool — sources v0 (2026-09): a Node port of pi's read semantics
- * for the learner's local files. The flow is learner-owned: he pastes file
- * paths into the chat, the agent reads on its own terms (nothing is
- * auto-injected). Unrestricted local reads are the user-decided v0 scope —
- * this is a personal study harness, not a multi-tenant service.
+ * The read tool: a Node port of pi's read semantics for the learner's
+ * local files. The learner pastes file paths into the chat and the agent
+ * reads on its own terms (nothing is auto-injected). Reads are
+ * unrestricted: this is a personal study app, not a multi-tenant service.
  *
  * Ported behaviors (mirroring pi's dist/core/tools/read.js):
  * - text files: utf-8, offset (1-indexed) / limit slicing, and the
  *   2000-line / 50KB truncation ceiling with actionable "use offset=N"
  *   continuation notices — a huge file never silently floods the context.
  * - image files (jpg/png/gif/webp/bmp): returned as native image content
- *   parts so the vision-capable model actually SEES them (teacher's
- *   glm-5.3-flash accepts image input per pi's zai catalog; tool-execute's
- *   toToolResult maps ImageFileResult to pi's ImageContent).
+ *   parts so the model actually SEES them (toToolResult maps
+ *   ImageFileResult to pi's ImageContent).
  * - unreadable/missing files throw — pi turns that into an error tool
  *   result the model sees and recovers from.
- *
- * Usage guidance ships in the description (the self-contained-tools
- * principle, user-decided 2026-09: system prompts reference only
- * always-on tools — read IS always-on, but its doctrine still lives here).
  */
 
 const MAX_LINES = 2000;
 const MAX_BYTES = 50 * 1024;
 
-/** Extension map for v0 (pi sniffs magic bytes; extensions suffice here —
+/** Extension map (pi sniffs magic bytes; extensions suffice here —
  *  learner files are pasted paths, not adversarial uploads). */
 const IMAGE_MIME: Record<string, string> = {
 	".jpg": "image/jpeg",
@@ -85,11 +79,10 @@ function readTextSlice(text: string, offset: number | undefined, limit: number |
 }
 
 /**
- * The read tool, shared verbatim by the prober and the teacher. Sources v1
- * (2026-09-19): the description is pi-verbatim (user: copy tool usage
- * guidance exactly) — the teaching doctrine moved to the shared prompt
- * fragment (prompts/shared/). Relative paths resolve against the
- * learner's home (fs-shared.ts), the harness's anchor.
+ * The read tool, shared by the prober and the teacher. The description is
+ * pi-verbatim; the teaching doctrine lives in the shared prompt fragments
+ * (prompts/shared/). Relative paths resolve against the learner's home
+ * (fs-shared.ts).
  */
 export const readTool: AgentTool<typeof readInput> = {
 	name: "read",
@@ -102,9 +95,8 @@ export const readTool: AgentTool<typeof readInput> = {
 		const mime = IMAGE_MIME[ext];
 		const buffer = await fs.readFile(absolute); // ENOENT/EACCES → error result the model sees
 		if (mime) {
-			// NOTE v0: no resize — raw bytes as base64. Learner files are study
-			// material (screenshots, figures), not adversarial payloads; a resize
-			// step (sharp) can land later if large images prove wasteful.
+			// No resize, raw bytes as base64: learner files are study material
+			// (screenshots, figures), not adversarial payloads.
 			return {
 				text: `Read image file [${mime}] — ${path.basename(absolute)} (${formatSize(buffer.byteLength)}), attached as an image.`,
 				images: [{ data: buffer.toString("base64"), mimeType: mime }],

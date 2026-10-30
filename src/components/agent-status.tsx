@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * THE OUTSIDE AGENT'S LIVE STATUS (owner, 2026-10-27): one read of
+ * THE OUTSIDE AGENT'S LIVE STATUS: one read of
  * GET /api/mcp-access shared by every surface (sidebar footer, activity
  * panel, lesson composer, onboarding). It refreshes on the server's
  * "agent-changed" event (a check-in, a lapse, work starting or stopping

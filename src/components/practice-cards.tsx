@@ -3,8 +3,7 @@ import { cn } from "@/lib/utils";
 import type { ArtifactPartProps } from "@/core";
 
 /**
- * The practice transcript cards (practice sessions, owner design
- * 2026-10-04): three quiet records in the stream —
+ * The practice transcript cards: three quiet records in the stream —
  *
  * - ProblemCard — a posed problem: the statement, compact-expandable
  *   (like every card here; the dock is the working surface, this is the
@@ -14,8 +13,8 @@ import type { ArtifactPartProps } from "@/core";
  *   synthesis (outcome:"dismissed") renders as one muted line.
  * - ThinkingCard — the learner's own submission, user-side: the register
  *   is the two buttons' (Nudge = working trace, Commit = answer). The
- *   UNIFIED ThinkingBlock (owner round 2026-10-05): the quiz quote-block
- *   language in a faint user-side shell, never collapsible.
+ *   unified ThinkingBlock: the quiz quote-block language in a faint
+ *   user-side shell, never collapsible.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -26,14 +25,11 @@ import { usePopoverDismiss } from "@/components/popover-dismiss";
 import { usePresence } from "@/components/presence";
 import { classQuery, useClasses } from "@/components/class-context";
 
-/* TARGET NAMES (owner round 17, 2026-10-06): targets are normalized to
- * opaque node ids at the record seam (owner round 9 — the mastery trace
- * groups on them), so the drawer resolves names at render time. One
- * lazy module-cached fetch of the graph view (the id → name map is a
- * few KB); failures degrade to raw ids — observability never breaks the
- * card. */
-// Classes wave (2026-10-26): one cached map per class graph — names come
-// from the class the window shows (where the lesson lives).
+/* TARGET NAMES: targets are normalized to opaque node ids at the record
+ * seam (the mastery trace groups on them), so the drawer resolves names
+ * at render time. One lazy cached fetch of the graph view per class
+ * graph (the class the window shows); failures degrade to raw ids, so
+ * observability never breaks the card. */
 const nodeNameMapPromises = new Map<string, Promise<Record<string, string>>>();
 function nodeNameMap(classId: string | null): Promise<Record<string, string>> {
 	const key = classId ?? "none";
@@ -56,16 +52,15 @@ function nodeNameMap(classId: string | null): Promise<Record<string, string>> {
 /** The practice-thinking marker's details (native-messages.ts). */
 export interface PracticeThinkingData {
 	problemCallId: string;
-	/** Legacy records (pre 2026-10-05) carry the old two-lane flag; ignored. */
+	/** Old records carry a two-lane flag; ignored. */
 	commit?: boolean;
 	text: string;
 }
 
 export function ProblemCard({ part }: ArtifactPartProps) {
-	// Always open, no chevron (owner round, 2026-10-05): the record IS the
-	// statement — same container + eyebrow discipline as the answered card
-	// and the dock (which mirrors this in Slice D). The commitment never
-	// renders — only the call's statement.
+	// Always open, no chevron: the record IS the statement, in the same
+	// container + eyebrow as the answered card and the dock. The
+	// commitment never renders, only the call's statement.
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";
 	return (
@@ -86,7 +81,7 @@ const OUTCOME_LABEL: Record<string, string> = {
 	dismissed: "Dismissed",
 };
 
-/* The outcome chips (owner round 3, 2026-10-05): the EXACT register of the
+/* The outcome chips: the EXACT register of the
  * quiz cards' correct/incorrect bubbles. Colors per outcome — solved reads
  * green (the "correct" twin), solved-with-hints amber (succeeded with
  * cost), surrendered red (the problem beat the learner), moved on muted
@@ -100,12 +95,10 @@ const OUTCOME_CHIP: Record<string, string> = {
 };
 
 export function ConcludeCard({ part }: ArtifactPartProps) {
-	// The conclusion redesigned (owner round, 2026-10-05): the SOLUTION is
-	// the hero — the modelSolution committed at pose time (part.reveal, the
-	// view-seam join), shown verbatim, never re-authored. The verdict sits
-	// below in the quiz-explanation register (small, muted, low-key).
-	// Nothing collapsible. Legacy inputs (pre-slim records) that carry
-	// their own solutionReveal fall back to it.
+	// The SOLUTION is the hero: the modelSolution committed at pose time
+	// (part.reveal, the view-seam join), shown verbatim, never re-authored.
+	// The verdict sits below in the quiz-explanation register. Old records
+	// that carry their own solutionReveal fall back to it.
 	const input = (part.input ?? {}) as { outcome?: string; verdict?: string; solutionReveal?: string };
 	const outcome = typeof input.outcome === "string" ? input.outcome : "";
 	const verdict = typeof input.verdict === "string" ? input.verdict : "";
@@ -124,9 +117,8 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 
 	return (
 		<div data-testid="conclude-card" className="relative my-1 border bg-card p-4">
-			{/* The heading row (owner round 3, 2026-10-05): plain 'Concluded'
-			    eyebrow + the outcome in the quiz cards' EXACT chip register —
-			    no more two same-weight headings stacked. */}
+			{/* The heading row: plain 'Concluded' eyebrow + the outcome in the
+			    quiz cards' chip register. */}
 			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				Concluded
 				{(OUTCOME_LABEL[outcome] ?? "") !== "" && outcome !== "dismissed" && (
@@ -135,15 +127,15 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 					</span>
 				)}
 			</div>
-			{/* The verdict — plain prose under the heading, no 'Verdict:' label
-			    (owner round 3): the same quiet 50% register as quiz explanations. */}
+			{/* The verdict: plain prose under the heading, no 'Verdict:' label,
+			    in the same quiet 50% register as quiz explanations. */}
 			{verdict.length > 0 && (
 				<div className="text-sm text-foreground/50">
 					<ToolContentResponse>{verdict}</ToolContentResponse>
 				</div>
 			)}
-			{/* Then the divider, then the labeled model solution (Slice G: the
-			    hero is the pose's commitment, verbatim). */}
+			{/* Then the divider, then the labeled model solution (the pose's
+			    commitment, verbatim). */}
 			{reveal.length > 0 && (
 				<>
 					<div className="my-3 border-t" />
@@ -163,19 +155,13 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	);
 }
 
-/* THE METADATA POPOVER (owner round 17 refinement, 2026-10-06 — full
- * transparency): a quiet METADATA trigger at the very bottom of the
- * conclude card (no divider — it just sits there); click opens the
- * info-box register of the graph-view node cards (rounded-xl border
- * bg-card p-4 shadow-lg, opening BELOW the trigger — always); any scroll or
- * click outside closes it (plus Esc, claimed from the layered chain
- * per the popover law). Shows every field the agent filled in both the
- * problem call (mode, targets — names resolved lazily) and the
- * conclude call (outcome, rung, miss class, retest). Statement and
- * modelSolution stay out — they are the visible card. The data keeps
- * the original SMALL register (text-xs rows, mono values — owner
- * correction: the 15px pass was way too large); the trigger matches
- * the eyebrow size; the box opens BELOW the trigger, always. */
+/* THE METADATA POPOVER: a quiet METADATA trigger at the bottom of the
+ * conclude card opens the graph-view node-card info box, always BELOW the
+ * trigger; any scroll or click outside closes it (plus Esc). Shows every
+ * field the agent filled in both the problem call (mode, targets, names
+ * resolved lazily) and the conclude call (outcome, rung, miss class,
+ * retest). Statement and modelSolution stay out: they are the visible
+ * card. Small register: text-xs rows, mono values. */
 function MetadataPopover({
 	concludeInput,
 	problemInput,
@@ -186,7 +172,7 @@ function MetadataPopover({
 	const [open, setOpen] = useState(false);
 	const triggerRef = useRef<HTMLButtonElement | null>(null);
 	const rootRef = useRef<HTMLDivElement | null>(null);
-	// The portal's anchor (owner fix, 2026-10-06): the box is placed from
+	// The portal's anchor: the box is placed from
 	// the trigger's viewport rect AT OPEN TIME — any scroll closes the
 	// box, so there is nothing to track.
 	const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
@@ -208,9 +194,9 @@ function MetadataPopover({
 	}, [open, targets.length, names]);
 
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
-	// The box fades out before unmounting (motion wave, owner 2026-10-26).
+	// The box fades out before unmounting.
 	const box = usePresence(open);
-	// ANY scroll closes it (owner law): capture-phase, so every scroller
+	// ANY scroll closes it: capture-phase, so every scroller
 	// in the tree counts — the transcript's own scroll included.
 	useEffect(() => {
 		if (!open) return;
@@ -256,12 +242,10 @@ function MetadataPopover({
 					<div
 						data-testid="metadata-box"
 						data-state={box.state}
-						// PORTALED TO BODY (owner fix, 2026-10-06): the transcript's
-						// MessageContent boxes carry overflow-hidden — an absolutely
-						// positioned child clips at its own message block's edge (the
-						// cut-off bug). A fixed-position portal sits on top of
-						// EVERYTHING, the dialogs' law. Node-card info-box register;
-						// opening BELOW the trigger — always.
+						// PORTALED TO BODY: the transcript's MessageContent boxes
+						// carry overflow-hidden, so an absolutely positioned child
+						// would clip at its message block's edge. A fixed-position
+						// portal sits on top of everything, like the dialogs.
 						style={{ position: "fixed", top: anchor.top, left: anchor.left }}
 						className="lh-pop z-50 lh-glass w-80 max-w-[calc(100vw-1rem)] p-4 text-left"
 					>
@@ -300,9 +284,8 @@ function MetadataPopover({
 }
 
 export function ThinkingCard({ data }: { data: PracticeThinkingData }) {
-	// The unified row (owner rounds, 2026-10-05): one style, one label —
-	// 50%-italic quote block on expand. Legacy records' commit flag is
-	// deliberately unread (one lane now). A TRANSCRIPT row (owner round,
-	// 2026-10-07): full-width band + rail, arriving expanded.
+	// One style, one label: 50%-italic quote block. Old records' commit
+	// flag is deliberately unread (one lane). A transcript row: full-width
+	// band + rail, arriving expanded.
 	return <ThinkingBlock testId="thinking-card" label="YOUR THINKING" text={data.text} defaultOpen />;
 }

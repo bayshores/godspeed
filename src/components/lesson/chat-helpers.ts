@@ -1,7 +1,7 @@
 /** Pure helpers for the lesson view (src/components/chat.tsx). */
 import type { LhViewMessage } from "@/core";
 
-/** The layered-Esc ruling (owner, 2026-10-04): an open overlay claims Esc
+/** Layered Esc: an open overlay claims Esc
  *  — closing itself — before the abort chain may open its confirm.
  *  Priority is stacking order: the abort confirm (claims via its own
  *  dialog), the session overlays (mermaid above plan), then question →

@@ -13,23 +13,22 @@
  *                                      another line; readers merge)
  *   sessions.jsonl  SessionCheckpoint— emission checkpoints (foldedAt)
  *   coverage.jsonl  CoverageEntry    — per-message extraction coverage
- *   topics.jsonl    TopicSnapshot    — the topic grouper's full snapshots
- *                                      (redesign 2026-10-27); readers take
- *                                      the LAST valid line
+ *   topics.jsonl    TopicSnapshot    — the topic grouper's full snapshots;
+ *                                      readers take the LAST valid line
  *
- * CHAINS-PRIMARY (owner, 2026-09-30): there is NO edges ledger — the edge
+ * CHAINS-PRIMARY: there is NO edges ledger — the edge
  * view (implication nodes + untyped arrows) is derived in core/graph.ts on
- * every read and never persisted. A stale edges.jsonl left by a pre-chains
- * build is deleted once, here, at adapter load (same doctrine as the
- * events-ledger purge below).
+ * every read and never persisted. A stale edges.jsonl left by an older
+ * build is deleted once, here, at adapter load (like the events-ledger
+ * purge below).
  *
  * Plus config.SOURCES_FILE (sources.json): the imported-notes bookkeeping
  * (NOT a ledger) — one JSON map, src-id → NotesSource, read-modify-write
- * like a chat file. The format-agnostic front door (2026-09-13).
+ * like a chat file.
  *
  * Implements core/ports.ts GraphStore. data/graph/* is exclusively this
- * adapter's. Reads are strict against the contracts.ts shapes (the 2026-09-02
- * graph redesign): corrupt lines are skipped, never guessed at — the ledgers
+ * adapter's. Reads are strict against the contracts.ts shapes: corrupt
+ * lines are skipped, never guessed at — the ledgers
  * are the source of truth and everything else is derived (core/graph.ts,
  * which takes this port as a parameter). Same idioms as src/store/chats.ts:
  * sync fs, no framework.
@@ -63,8 +62,8 @@ function appendLine<T>(files: GraphFiles, file: string, record: T): void {
 	fs.appendFileSync(file, `${JSON.stringify(record)}\n`, "utf-8");
 }
 
-/** Parsed ledgers kept in memory (speed plan, owner 2026-10-27): every graph
- *  read re-parsed whole JSONL files. A cached parse is reused while the
+/** Parsed ledgers kept in memory, so a graph read does not re-parse whole
+ *  JSONL files. A cached parse is reused while the
  *  file's size and modified-time are unchanged; this module's own writes
  *  also drop it. Cached records are SHARED — callers must never mutate
  *  them (frozen under tests so a mutation fails loudly). */
@@ -120,7 +119,7 @@ function parseRawLines(file: string): unknown[] {
 	return out;
 }
 
-/** Strict shape guards — anything not matching a W4 ledger shape is skipped. */
+/** Strict shape guards — anything not matching a ledger shape is skipped. */
 function readValid<T>(files: GraphFiles, file: string, isValid: (v: unknown) => v is T): T[] {
 	assertGraphFormat(files.format); // honest refusal on a newer-stamped data dir
 	return readRawLines(file).filter(isValid);
@@ -171,9 +170,8 @@ const isCoverageEntry = (v: unknown): v is CoverageEntry =>
 
 // ─── the port implementation ────────────────────────────────────────────────
 
-/** One graph family's store, rooted at `files` (classes wave, 2026-10-26:
- *  the "No class" graph and every class graph share this adapter — only
- *  the folder differs). */
+/** One graph family's store, rooted at `files` (the "No class" graph and
+ *  every class graph share this adapter — only the folder differs). */
 export function createGraphStore(files: GraphFiles): GraphStore {
 	return {
 		appendNode(node: GraphNode): void {
@@ -247,7 +245,7 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 			writeSourceMap(files, all);
 		},
 
-		/** THE DESTRUCTIVE SEAM (wave 6 session deletion): atomic full-content
+		/** THE DESTRUCTIVE SEAM: atomic full-content
 		 *  replacement per provided ledger (writeFileAtomic: never a torn
 		 *  ledger). Empty arrays write an empty file — a purged ledger reads
 		 *  as "nothing yet", same as never-emitted. */
@@ -274,7 +272,7 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 	};
 }
 
-/** The "No class" graph (data/graph) — today's graph, untouched. */
+/** The "No class" graph (data/graph). */
 export const graphStore: GraphStore = createGraphStore(graphFilesIn(PATHS.graph));
 
 /** sources.json — { id: NotesSource }. Read-modify-write, NOT append-only:
@@ -305,9 +303,8 @@ function writeSourceMap(files: GraphFiles, map: Record<string, NotesSource>): vo
 	writeFileAtomic(files.sources, JSON.stringify(map, null, "\t"));
 }
 
-// ─── one-way purges at adapter load: dead ledgers are exactly the confusion
-// the cleanup removes (owner doctrine — nothing reads them, nothing writes
-// them, a stale file lying around is a lie). ────────────────────────────────
+// ─── one-way purges at adapter load: nothing reads or writes these dead
+// ledgers, and a stale file lying around would mislead. ────────────────────
 {
 	const graphDir = path.dirname(LEDGER_FILES.nodes);
 	for (const legacy of ["edges.jsonl", "events.jsonl"]) {

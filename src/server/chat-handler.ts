@@ -287,7 +287,7 @@ export async function handleChatInput(
 	}
 
 	try {
-		// MONEY CHANNEL: one collector per request, fed by the agent's
+		// Usage: one collector per request, fed by the agent's
 		// message_end events. Every model call's usage lands in the chat record's
 		// append-only turns log at onFinish — idempotent per turn id.
 		const turnUsageId = crypto.randomUUID();
@@ -304,7 +304,7 @@ export async function handleChatInput(
 			});
 		};
 
-		// AGENT CONSTRUCTION BRANCH (docs/probe-teach-split.md §2): the transcript
+		// AGENT CONSTRUCTION BRANCH (docs/archive/probe-teach-split.md §2): the transcript
 		// is the seam — a successful probe_done call in the record means the
 		// probe is concluded: build the TEACHER (planning + the full toolset). Otherwise
 		// the session is still probing: build the PROBER (quiz/ask + probe_done).
@@ -313,8 +313,6 @@ export async function handleChatInput(
 		const teaching = hasProbeDone(merged);
 		// (Built once above the compaction gate; reused verbatim.)
 		const engine = conversationEngine;
-		// Provider-qualified stamp: matches the price table's
-		// provider:id keys.
 		const modelId = `${engine.model.provider}:${engine.model.id}`;
 		// Tests inject a factory: the agent is stateless per turn, so each
 		// request builds a fresh one off the record — the factory mirrors that
@@ -377,8 +375,8 @@ export async function handleChatInput(
 							chatStore: stores.chatStore,
 							// TARGET VALIDATION: the practice tools read the
 							// WHOLE graph fresh per pose — targets validate against every
-							// proposition, not just the session's picks (pickless sessions
-							// and future graph-tools poses stay valid).
+							// proposition, not just the session's picks (so pickless
+							// sessions stay valid).
 							// Targets are the lesson's OWN class graph (writes never cross
 							// classes).
 							graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
@@ -430,7 +428,7 @@ export async function handleChatInput(
 					);
 
 		// A test-injected agent gets no usage collector (tests assert the
-		// transcript, not the money channel); when it's ours, usage flows through
+		// transcript, not usage); when it's ours, usage flows through
 		// the factory's subscription (wired above via onUsage).
 		// THE TURN AS A BACKGROUND OBJECT: runPiTurn executes decoupled from
 		// this response — the POST stream is just the FIRST subscriber (a view).
@@ -451,7 +449,7 @@ export async function handleChatInput(
 			// tighten it via LH_UPDATE_FLUSH_MS; production rides the 100ms
 			// default in ui-stream.
 			...(process.env.LH_UPDATE_FLUSH_MS ? { updateFlushMs: Number(process.env.LH_UPDATE_FLUSH_MS) } : {}),
-			// THE LACAN FIX: seed the uniquifier with every
+			// Seed the uniquifier with every
 			// tool-call id the record already holds — a provider that resets
 			// ids per response (DeepSeek) then gets fresh unique ids for this
 			// turn's calls at the wire boundary, on the wire, in the record,

@@ -71,9 +71,9 @@ interface JobRunnerDeps {
 	 * on it. Its persisted pending obligation survives process restart.
 	 */
 	deliver: (steer: SteerMessage) => Promise<void>;
-	/** The engine per role — production always passes the outside agent
-	 *  (owner, 2026-10-27). Test overrides (below) still win; with neither,
-	 *  runJob refuses the spawn honestly. */
+	/** The engine per role — production always passes the outside agent.
+	 *  Test overrides (below) still win; with neither, runJob refuses the
+	 *  spawn. */
 	engineFor?: (role: ModelRole) => PiEngine | undefined;
 }
 
@@ -85,19 +85,18 @@ interface JobRunner {
 	runJob(jobId: string, input?: JobToolInput): Promise<void>;
 }
 
-/** One job loop's injected machinery: the kill switch (real abort, 2026-09
- * semantics) and the usage tap (money channel — every model call folds into
- * JobRecord.usage as it completes). */
+/** One job loop's injected machinery: the kill switch (real abort) and the
+ * usage tap (every model call folds into JobRecord.usage as it completes). */
 interface LoopContext {
 	/** Fires when abortJob kills the run; abortSignal is passed into every
-	 * model call so the spend stops mid-call, not at the next loop check. */
+	 * model call so work stops mid-call, not at the next loop check. */
 	abortSignal: AbortSignal;
 	/** Fold one model call's usage into the job record (progress write). */
 	onUsage: (step: UsageStepLike) => void;
 }
 
-/** The kind→role table (model slots wave, 2026-09-20): which ModelRole's
- * engine each sub-agent kind runs — the engineFor injection key. */
+/** The kind→role table: the engineFor injection key for each sub-agent
+ * kind. */
 const KIND_ROLE: Record<JobKind, ModelRole> = {
 	research: "researcher",
 	demo: "demoBuilder",
@@ -113,12 +112,10 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 	const usageTotals = new Map<string, JobUsage>();
 
 	function makeLoopContext(jobId: string, engine: PiEngine): LoopContext {
-		// Provider-qualified stamp: the engine's actual model — the only
-		// thing that ran (BYOK: no config-pin fallback stamps exist).
+		// Provider-qualified stamp of the engine's actual model.
 		const model = `${engine.model.provider}:${engine.model.id}`;
-		// Real-kill wiring (2026-09 abort semantics): the controller is what
-		// the abort endpoint fires (agent/subagents/aborts.ts registry); the
-		// signal rides into every model call of the loop.
+		// Real-kill wiring: the controller is what the abort endpoint fires
+		// (aborts.ts registry); the signal rides into every model call.
 		const controller = new AbortController();
 		registerJobAbort(jobId, controller);
 		return {
@@ -139,11 +136,8 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 		return jobStore.getJob(jobId)?.status === "running";
 	}
 
-	/** The kind→runner map: one sub-agent loop per kind. Each kind's
-	 *  runner narrows the union input itself (dispatch-time inputs are
-	 *  kind-correct by construction; transcript fallbacks are cast after). */
-	/** The engine one job runs on: test override first (the old seam —
-	 *  tests swap scripted engines without touching deps), then the injected
+	/** The engine one job runs on: test override first (tests swap
+	 *  scripted engines without touching deps), then the injected
 	 *  engineFor. undefined = nothing to run on — runJob refuses below. */
 	function pickEngine(kind: JobKind): PiEngine | undefined {
 		const testOverride: Record<string, { current?: PiEngine } | undefined> = {
@@ -155,6 +149,8 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 		return testOverride[KIND_ROLE[kind]]?.current ?? deps.engineFor?.(KIND_ROLE[kind]);
 	}
 
+	/** One sub-agent loop per kind; each runner narrows the union input
+	 *  itself (dispatch-time inputs are kind-correct by construction). */
 	const KIND_RUNNERS: Record<
 		JobKind,
 		(jobId: string, engine: PiEngine, input: JobToolInput | undefined, loop: LoopContext) => Promise<void>
@@ -244,8 +240,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 		if (job.input !== undefined) return job.input as JobToolInput;
 		const chat = chatStore.getChat(job.chatId);
 		if (!chat) return undefined;
-		// Wave D: the record is native history — the scan reads the native
-		// assistant blocks directly (a toolCall's arguments are the input).
+		// The record is native history: a toolCall's arguments are the input.
 		for (const m of chat.messages) {
 			if ((m as { role?: string }).role !== "assistant") continue;
 			const content = (m as { content?: unknown }).content;
@@ -283,7 +278,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 		});
 	}
 
-	/** Chat-record + input resolution shared by all three runners. */
+	/** Chat-record + input resolution shared by the runners. */
 	function jobContext(jobId: string): { job: JobRecord; chatId: string } | null {
 		const job = jobStore.getJob(jobId);
 		if (!job || job.status !== "running") return null;
@@ -325,9 +320,8 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			.join("\n\n");
 
 		const fetchedUrls: string[] = [];
-		// Per-job PDF dir (researcher PDF wave, 2026-10-07): web_fetch_pdf
-		// downloads land here; every pdf tool is scoped to it; it dies with
-		// the job (never enters the record).
+		// Per-job PDF dir: web_fetch_pdf downloads land here; every pdf tool
+		// is scoped to it; it dies with the job (never enters the record).
 		const pdfDir = await fs.mkdtemp(path.join(os.tmpdir(), "lh-research-"));
 
 		try {
@@ -337,8 +331,8 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 				pdfDir,
 				abortSignal: loop.abortSignal,
 				taskLabel: `Research · ${question}`,
-				// Money channel: each agent step is one model call — fold its
-				// usage into the record as it completes (progress write).
+				// Each agent step is one model call: fold its usage into the
+				// record as it completes (progress write).
 				onUsage: (usage) => loop.onUsage(piUsageToStep(usage)),
 					onToolStart: (toolName, args) => {
 					const input = args as { query?: string; url?: string } | undefined;
@@ -352,7 +346,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			const research: ResearchResult = { brief: brief.trim(), sources: parseSources(brief.trim(), fetchedUrls) };
 			await finishJob(jobId, research);
 		} catch (err) {
-			// Real-kill abort (2026-09): the abort path flipped the record and
+			// Real-kill abort: the abort path flipped the record and
 			// queued the abort steer — unwind silently, keep the usage
 			// folded so far (flushed by runJob's finally).
 			if (loop.abortSignal.aborted) return;
@@ -437,7 +431,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 		}
 	}
 
-	// ─── pdf reading (sources v0) ────────────────────────────────────────────
+	// ─── pdf reading ─────────────────────────────────────────────────────────
 
 	async function runPdfJob(
 		jobId: string,
@@ -480,7 +474,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 
 // ─── module-level pure helpers ──────────────────────────────────────────────
 
-/** Failure shape (W6 brief): html === "" with "FAILED: …" notes. */
+/** Failure shape: html === "" with "FAILED: …" notes. */
 function isDemoFailure(result: DemoResult): boolean {
 	return typeof result.html !== "string" || result.html.length === 0;
 }

@@ -2,11 +2,9 @@ import { ChevronRight } from "lucide-react";
 import type { ArtifactPartProps } from "@/core";
 
 /**
- * The generic tool-call card (sources v1, 2026-09-19): a quiet, collapsed
- * one-liner per synchronous tool call — the tool name plus the headline
- * argument — expandable to the full input and output. The user's spec:
- * "at least the tool name; for read, the file name; everything collapsed
- * by default; not distracting — background stuff." Unregistered tools
+ * The generic tool-call card: a quiet, collapsed one-liner per
+ * synchronous tool call (the tool name plus the headline argument, e.g.
+ * read's file name), expandable to the full input and output. Unregistered tools
  * still render nothing (chat.tsx's registry default); this card is only
  * for the learner-filesystem set (read/ls/find/grep) where the call IS
  * worth a trace in the transcript.

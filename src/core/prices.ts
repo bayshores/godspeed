@@ -12,7 +12,7 @@ export interface SessionPricing {
 /** Plan-billed model ids → the plan's label. The outside agent (MCP) runs
  *  on the agent's own plan: no per-token price here. The other prefixes
  *  only appear in records from before the built-in sign-ins were removed
- *  (owner, 2026-10-27) and keep their historical labels. */
+ *  and keep their historical labels. */
 const PLAN_LABELS: readonly (readonly [prefix: string, label: string])[] = [
 	["agent:", "Outside agent"],
 	["chatgpt:", "ChatGPT"],

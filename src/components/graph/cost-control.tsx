@@ -42,10 +42,9 @@ export function displayUnpricedRuns(costs: Pick<GraphCostSummary, "stages">): nu
 }
 
 /**
- * The graph's cost label (no pill chrome), hover-highlighted; click
- * toggles the breakdown panel. Same dismiss pattern as the settings gear:
- * outside click or Escape closes. The panel is viewport-capped +
- * scrollable like the coverage dropdown.
+ * The graph's cost label, hover-highlighted; click toggles the breakdown
+ * panel, and an outside click or Escape closes it. The panel is
+ * viewport-capped and scrolls.
  */
 export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	const [open, setOpen] = useState(false);
@@ -53,7 +52,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	// wraps button + panel, so the toggle itself keeps working.
 	const rootRef = useRef<HTMLDivElement>(null);
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
-	// The panel pops in and out (motion wave, owner 2026-10-26).
+	// The panel pops in and out.
 	const panel = usePresence(open);
 	return (
 		<div ref={rootRef} className="relative">

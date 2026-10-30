@@ -1,5 +1,5 @@
 /**
- * FIRST-LAUNCH ONBOARDING — who sees it (owner, 2026-10-27). The root
+ * FIRST-LAUNCH ONBOARDING — who sees it. The root
  * layout asks on every page load; the answer lives in settings.json as
  * general.onboarded:
  *  - true  → done (finished, or an existing user who skipped it);

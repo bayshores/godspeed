@@ -5,14 +5,10 @@ import { fileURLToPath } from "node:url";
 export const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 /**
- * THE data-location seam (the Electron contract, 2026-09-17): LH_DATA_DIR
- * relocates every MUTABLE record — chat sessions, graph ledgers, the
- * embedding model cache — when set. The desktop shell points it at
- * userData so nothing is written inside the read-only .app bundle
- * (macOS translocation guarantees the bundle is read-only anyway).
- * Unset (plain web dev / repo work) it resolves to the repo's data/,
- * byte-for-byte as before. Read-only assets (prompts) stay ROOT-anchored
- * on purpose: they ship inside the app bundle by design.
+ * LH_DATA_DIR moves every mutable record (chats, graph ledgers, the
+ * embedding model cache). The desktop app points it at userData because the
+ * .app bundle is read-only. Unset, it is the repo's data/. Read-only assets
+ * (prompts) stay under ROOT because they ship inside the bundle.
  */
 const DATA_ROOT = process.env.LH_DATA_DIR
 	? path.resolve(process.env.LH_DATA_DIR)
@@ -26,7 +22,7 @@ export const PATHS = {
 	/** Chat sessions (AI SDK UIMessage transcripts, one JSON file per chat). */
 	chats: path.join(DATA_ROOT, "chats"),
 	graph: path.join(DATA_ROOT, "graph"),
-	/** Classes (classes wave, 2026-10-26): one folder per class —
+	/** One folder per class:
 	 *  classes/<id>/class.json (the record), files/ (copied class files),
 	 *  graph/ (that class's own graph family, same files as PATHS.graph). */
 	classes: path.join(DATA_ROOT, "classes"),
@@ -34,7 +30,7 @@ export const PATHS = {
 
 // ─── Models ────────────────────────────────────────────────────────────────
 // There are no model settings: every engine is the outside agent (MCP),
-// which picks its own model in its own harness (owner, 2026-10-27).
+// which picks its own model in its own harness.
 
 /** Every helper job role (each one's work goes to the outside agent). */
 export type ModelRole =
@@ -46,8 +42,8 @@ export type ModelRole =
 
 /**
  * The LIVE graph store (src/store/graph.ts) — owned by the app's extraction
- * pipeline. Line shapes: src/core/contracts.ts. CHAINS ARE THE STORED
- * TRUTH (owner, 2026-09-30): edges are a derived view, never stored.
+ * pipeline. Line shapes: src/core/contracts.ts. Chains are the stored
+ * truth: edges are a derived view, never stored.
  */
 export interface GraphFiles {
 	nodes: string;
@@ -68,8 +64,7 @@ export interface GraphFiles {
 	topics: string;
 }
 
-/** Every file of one graph family rooted at `dir` (classes wave,
- *  2026-10-26): the "No class" graph lives at PATHS.graph, each class's
+/** Every file of one graph family rooted at `dir`: the "No class" graph lives at PATHS.graph, each class's
  *  graph at PATHS.classes/<id>/graph — same layout, same adapter. */
 export function graphFilesIn(dir: string): GraphFiles {
 	return {
@@ -95,35 +90,25 @@ export const LEDGER_FILES = {
 
 export const SOURCES_FILE = NO_CLASS_GRAPH.sources;
 
-/** The graph-family FORMAT STAMP sidecar (schema-versioning wave,
- *  2026-10-10): one version for the whole family — the JSONL ledgers and
+/** The graph-family format stamp sidecar: one version for the whole family — the JSONL ledgers and
  *  sources.json. LAZY v1: absent = v1; the first graph-family write
  *  creates it. */
 export const GRAPH_FORMAT_FILE = NO_CLASS_GRAPH.format;
 
 /**
- * THE USER SETTINGS RECORD (settings-storage wave, 2026-09-19): one
- * versioned, DELTA-shaped JSON blob at the data-dir seam holding every
- * non-secret product preference — general, agent (tool toggles +
- * prompt-override switches), appearance, graph. Explicit user choices only: ABSENT keys resolve to the
- * factory defaults compiled into src/core/settings.ts (FACTORY_SETTINGS), so
- * a software update that adds a knob (new tool, new role, new appearance
- * field) needs no migration — old records simply lack the new keys. The
- * version field is a PRIVATE schema counter for breaking shape changes
- * only (field renamed/meaning changed), unrelated to the app release
- * version. Secrets NEVER live here. (The `chat` and `models` sections
- * died with the built-in sign-ins, owner 2026-10-27.)
+ * The user settings record: a versioned JSON delta holding only the
+ * learner's explicit choices. Absent keys resolve to FACTORY_SETTINGS
+ * (src/core/settings.ts), so an update that adds a setting needs no
+ * migration. The version field counts breaking shape changes only, not app
+ * releases. Secrets never live here.
  */
 export const SETTINGS_FILE = path.join(DATA_ROOT, "settings.json");
 
 /**
- * User prompt-override files (settings-storage wave, 2026-09-19): the
- * per-segment system-prompt overrides mirroring the SOURCE layout
- * (src/agent/prompts/) — the shared base as prompts/system-prompt.md,
- * fragments as prompts/teacher/<file> / prompts/prober/<file>. A file
- * that exists is the learner's version and is used. The segment list itself is ALWAYS derived from source at runtime (the
- * loader in src/store/prompt-overrides.ts) — code updates that add,
- * remove, or reorder fragments adapt automatically; an override keyed to
- * a vanished segment stops composing but stays on disk.
+ * User prompt-override files, mirroring the source layout
+ * (src/agent/prompts/). A file that exists is the learner's version and is
+ * used. The segment list is always derived from source at runtime
+ * (src/store/prompt-overrides.ts), so an override for a removed segment
+ * stops applying but stays on disk.
  */
 export const PROMPTS_OVERRIDE_DIR = path.join(DATA_ROOT, "prompts");

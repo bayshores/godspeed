@@ -1,5 +1,5 @@
 /**
- * /api/classes (classes wave, owner-approved 2026-10-26).
+ * /api/classes
  *  GET  — every class (archived included; the switcher filters)
  *  POST — create a class { name, description? }
  */

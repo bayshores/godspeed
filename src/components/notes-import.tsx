@@ -39,7 +39,7 @@ export function parseNotesImportResults(body: unknown, files: readonly File[]): 
 export async function postNotesImport(files: readonly File[], classId: string | null = null): Promise<NotesImportResult[]> {
 	const form = new FormData();
 	for (const file of files) form.append("files", file);
-	// Classes wave: imports land in the active class (as study material).
+	// Imports land in the active class (as study material).
 	const response = await fetch(`/api/graph/import${classId ? `?class=${encodeURIComponent(classId)}` : ""}`, { method: "POST", body: form });
 	let body: unknown;
 	try { body = await response.json(); }
@@ -86,7 +86,6 @@ export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () 
 
 export function NotesImportErrors({ errors }: { errors: readonly string[] }) {
 	return <>{errors.map((error, i) => (
-		// Each error rises in once (motion wave, owner 2026-10-26).
 		<p key={i} role="alert" className="lh-rise max-w-full whitespace-pre-wrap break-words text-xs text-red-400">{error}</p>
 	))}</>;
 }

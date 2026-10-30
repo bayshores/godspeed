@@ -7,7 +7,7 @@ import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import type { ChatAttachment } from "@/core";
 
 /**
- * THE PRACTICE PANEL (redesign, practice lesson): an active problem fills
+ * THE PRACTICE PANEL: an active problem fills
  * the Your-turn panel — "Your turn" with "Problem 3", the statement, and
  * "Your thinking" with one Send (Enter sends, Shift+Enter is a newline).
  * Whether a submission claims an answer is read from the thinking by the
@@ -59,7 +59,7 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 		});
 	};
 
-	// Enter submits from anywhere outside a typing surface (owner round 6).
+	// Enter submits from anywhere outside a typing surface.
 	useEnterSubmits(submit);
 
 	return (

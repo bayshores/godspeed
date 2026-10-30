@@ -1,5 +1,5 @@
 /**
- * THE TOPIC MAP LAYOUT (redesign plan, Phase 5) — pure, computed once per
+ * THE TOPIC MAP LAYOUT — pure, computed once per
  * data change and cached by `layoutKey` (never a live simulation).
  *
  * - Arrows: only the direct ones. A→C is dropped when A already leads to C

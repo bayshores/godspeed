@@ -1,27 +1,19 @@
 /**
  * Knowledge-graph contracts — nodes, ledgers, extraction findings
  *
- * The minimal implementation of the graph vision (docs/vision.md §1, the
- * 2026-09-02 redesign): every node is a TRUE proposition; edges are follows
- * (derivable) and supports (grounds without entailing); provenance is
- * message-granular; extraction is free-form and post-hoc, fully decoupled
- * from the session's plan tree. The graph is an extraction of the reasoning
- * chains from all teaching sessions (and imported notes) — NOTHING else:
- * no quiz outcomes, no understanding assessments (2026-09-27 cleanup).
- * Anything not
- * yet decided (the state model, strength derivation, selection strategies) is deliberately NOT here — transitional
- * stubs carry the renderer until those land.
+ * The graph vision (docs/vision.md §1): every node is a TRUE proposition;
+ * provenance is message-granular; extraction is post-hoc, decoupled from
+ * the session's plan tree. The graph holds the reasoning chains from all
+ * lessons (and imported notes) and nothing else: no quiz outcomes, no
+ * understanding assessments.
  *
- * Part of the domain-split contracts (src/core/contracts/): each domain file
- * is owned outright by its stream — cross-domain schema changes go through
- * master. Pure types + protocol docs + tiny pure helpers. See docs/vision.md.
+ * Pure types + protocol docs + tiny pure helpers.
  */
 // ─── Knowledge graph (vision §1 — global, cross-session) ────────────────────
 
 import type { ExtractionRunUsage } from "./chat.ts";
 
-/** One relation of the DERIVED view — chains are the stored truth (owner,
- *  2026-09-30: "the graph is a lossy image of what is truly stored"), and
+/** One relation of the DERIVED view. Chains are the stored truth, and
  *  the snapshot derives UNTYPED arrows from them: every premise → the
  *  chain's implication node, the implication node → the conclusion.
  *  Nothing stores or mutates these — they are rebuilt after every change
@@ -32,7 +24,7 @@ export interface GraphEdge {
 }
 
 /** One stored REASONING CHAIN — an argument: premises that JOINTLY entail
- *  the conclusion (chains-primary, owner 2026-09-30). Independent arguments
+ *  the conclusion. Independent arguments
  *  for the same conclusion are separate chains (they may share `conclusion`);
  *  co-premises within one chain are used TOGETHER. The snapshot derives an
  *  implication NODE per chain (id = the chain id — the arg_ namespace is its
@@ -57,21 +49,20 @@ export interface GraphChain {
  *  output, also persisted in extraction-run usage records (contracts/chat).
  *  `chains` is OPTIONAL IN OLD RECORDS ONLY: usage history from the
  *  pre-chains era carries `edges` instead — tolerated at read, never
- *  written again (no-backward-compat regime, owner 2026-09-30). */
+ *  written again. */
 export interface EmissionStats {
 	/** New graph nodes appended. */
 	nodes: number;
 	/** New reasoning chains appended. */
 	chains?: number;
-	/** Chains the simplification pass removed in this merge (owner,
-	 *  2026-09-30 evening — ancestry-cover / prefer-fewest-premises).
-	 *  Maintenance, not extraction: appends are counted in `chains`
+	/** Chains the simplification pass removed in this merge
+	 *  (ancestry-cover / prefer-fewest-premises). Maintenance, not extraction: appends are counted in `chains`
 	 *  regardless. Undefined when nothing dropped (pre-simplification
 	 *  records read as zero). */
 	droppedChains?: number;
 }
 
-/** One provenance point — message-granular (DECIDED 2026-09-02): nodes and
+/** One provenance point — message-granular: nodes and
  *  edges record every (chat, message) where they came up, deep-linkable to
  *  the exact transcript point. */
 export interface ProvenancePoint {
@@ -82,8 +73,8 @@ export interface ProvenancePoint {
 	messageId: string;
 }
 
-/** One imported notes file — the format-agnostic front door's bookkeeping
- *  (DECIDED 2026-09-13): personal notes in ARBITRARY formats run through the
+/** One imported notes file — the format-agnostic front door's bookkeeping:
+ *  personal notes in ARBITRARY formats run through the
  *  same extractor → merger pipeline, with the file itself as the
  *  provenance anchor. There is no chat: the detail card shows the file path
  *  as a STATIC entry (not a link). The run's usage log lives here,
@@ -104,8 +95,7 @@ export interface NotesSource {
 	extractions?: ExtractionRunUsage[];
 }
 
-/** One topic: a named group of a graph's facts (redesign plan, owner-
- *  approved 2026-10-27). Named by the topic grouper (a background model
+/** One topic: a named group of a graph's facts. Named by the topic grouper (a background model
  *  job) in the course's own terms. */
 export interface GraphTopic {
 	/** "tpc_" + 10 hex — stable across regroupings (the grouper keeps ids). */
@@ -160,8 +150,7 @@ export interface SessionCheckpoint {
 	foldedAt: string;
 }
 
-/** coverage.jsonl line (vision-extraction-coverage.md, settled 2026-09-15):
- *  ONE MESSAGE of one chat has been extracted — by content fingerprint over
+/** coverage.jsonl line: ONE MESSAGE of one chat has been extracted — by content fingerprint over
  *  exactly what the extraction view sees. The MESSAGE is the unit of
  *  coverage; "uncovered" is derived (fingerprint the current transcript,
  *  diff) — never dual-tracked. A quiz answer merging into the asking
@@ -182,7 +171,7 @@ export interface CoverageEntry {
  * Store format (src/store/graph.ts): JSONL ledgers at config.LEDGER_FILES
  * (nodes/chains/sessions), all append-only. Edges are NEVER stored — the
  * derived view (implication nodes + untyped arrows) is rebuilt from chains
- * on every read (chains-primary, owner 2026-09-30).
+ * on every read.
  *
  *   nodes.jsonl    one line per node — the FIRST line for an id defines
  *                  name/statement/createdAt; later lines for the
@@ -220,29 +209,22 @@ export interface ExtractedProposition {
 	/** The minimal proposition — a true, self-contained, world-facing
 	 *  statement, at full precision. No learner / teacher / session
 	 *  references: misconceptions are stated as the true correction, and
-	 *  wrongness is never recorded in the graph (2026-09-27: the event
-	 *  ledger is gone). */
+	 *  wrongness is never recorded in the graph. */
 	statement: string;
 	/** Verbatim phrasings the session used. */
 	aliases: string[];
-	/* Submit-schema slim (owner, 2026-09-28): `messages` and `evidence`
-	 * are GONE. The verbatim-quote fields were never persisted and weak
-	 * models burned their retries on them ("propositions.0: must be
-	 * object" — the stringified-payload collapse). The extractor reports
-	 * propositions + structure, nothing else. */
-	/** OPTIONAL, SESSION PATH ONLY (owner, 2026-10-13): the message id of
+	/** OPTIONAL, SESSION PATH ONLY: the message id of
 	 *  the ONE teacher passage this proposition came from — the extractor
 	 *  copies it from the view's "TEACHER [id]" label (core/coverage.ts
 	 *  messageViewLines) and the submit seam validates it against the
 	 *  CURRENT batch. The merger stamps it into the node's provenance
 	 *  point {chatId, messageId} (new nodes AND link-appends); chains
-	 *  stay chat-level. Notes imports and legacy/core callers have none:
-	 *  undefined → messageId "" (chat-level), so NO persisted shape or
-	 *  format version changes (GraphNode / ProvenancePoint untouched). */
+	 *  stay chat-level. Notes imports have none: undefined → messageId ""
+	 *  (chat-level). */
 	messageId?: string;
 }
 
-/** One proposed argument (extractor redesign, 2026-09-30). Endpoints are
+/** One proposed argument. Endpoints are
  *  extractor-local proposition ids ("p1", …) — the extractor is the ONLY
  *  stage that ever proposes chains; the merger resolves them to node ids. */
 export interface ExtractedChain {
@@ -290,11 +272,11 @@ export interface GraphSnapshot {
 	/** DERIVED LOGICAL arrows: every chain contracted to direct premise→
 	 *  conclusion over PROPOSITION ids only (the imp hop collapsed). The
 	 *  depth pass consumes these — inference depth is a property of
-	 *  propositions, never of the geometry point (owner, 2026-09-30). */
+	 *  propositions, never of the geometry point. */
 	logicalEdges: GraphEdge[];
 	/** DERIVED imp linkage (one per MULTI-premise live chain): the depth
 	 *  pass anchors each junction at the average of the highest premise
-	 *  row and the conclusion's row (owner, 2026-09-30) — strictly
+	 *  row and the conclusion's row — strictly
 	 *  above the premises, strictly below the conclusion. */
 	impLinks: Array<{ id: string; premises: string[]; conclusion: string }>;
 	/** The STORED reasoning chains (merged by (premises, conclusion) at
@@ -318,14 +300,13 @@ export interface GraphSnapshot {
 	clusters: Cluster[];
 }
 
-/** The auto-title's character cap (owner, 2026-10-06): long enough to
- *  stay informative in the sidebar and the top bar, short enough that a
- *  first message never reads as a paragraph. Tunable — one number, one
- *  place. */
+/** The auto-title's character cap: long enough to stay informative in
+ *  the sidebar and the top bar, short enough that a first message never
+ *  reads as a paragraph. */
 export const TITLE_MAX_CHARS = 72;
 
 /** Derive a short chat title from the learner's first message (pure).
- *  Smart truncation (owner, 2026-10-06): the cut snaps to a word boundary
+ *  The cut snaps to a word boundary
  *  AT OR UNDER the cap — a title never ends mid-word. The one exception
  *  is a single word longer than the cap (rare, but real: identifiers,
  *  URLs): it cuts at the cap, splitting the word. Whitespace collapses to
@@ -343,8 +324,7 @@ export function titleFromPrompt(prompt: string): string {
 			break;
 		}
 	}
-	// One long word: no boundary exists under the cap — split it (owner's
-	// special case). This also lands correctly when the first word exactly
+	// One long word: no boundary exists under the cap — split it. This also lands correctly when the first word exactly
 	// fills the cap: cutting at the cap IS the boundary.
 	if (cut < 0) cut = TITLE_MAX_CHARS;
 	return `${oneLine.slice(0, cut)}…`;

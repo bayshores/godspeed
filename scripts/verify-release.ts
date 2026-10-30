@@ -1,5 +1,5 @@
 /**
- * verify-release.ts — the final desktop-release gate (2026-10-13).
+ * verify-release.ts — the final desktop-release gate.
  *
  * Runs in the release workflow's LAST job, after all three packaging jobs
  * have uploaded to the tag's single draft GitHub Release, and fails the
@@ -12,7 +12,7 @@
  * builder (app-builder-lib 26.15.3) — these are the artifacts it actually
  * emits for this repo's electron/electron-builder.yml, not pattern guesses:
  *
- * The download files carry no version (owner ruling, 2026-10-28), so the
+ * The download files carry no version, so the
  * README can link to releases/latest/download/<name>:
  *
  *   mac (dmg + zip, arm64; dmg.artifactName "${productName}-mac-apple-silicon.${ext}",

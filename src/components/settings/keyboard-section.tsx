@@ -1,5 +1,5 @@
 /**
- * The Keyboard section (thin settings wave): view / rebind / reset over
+ * The Keyboard section: view / rebind / reset over
  * core/keyboard.ts's registry. The overrides persist in localStorage
  * (lh:keymap, overrides-only, merged over DEFAULT_BINDINGS), so rebinding
  * is INSTANT — the dispatcher reads the map per keydown, no reload.
@@ -10,9 +10,8 @@
  * actions (a surface owns those keys — the question dock's row machine)
  * are listed for reading but never rebindable.
  *
- * Thin: no conflict detection — if a new binding collides with another
- * action's, the first match in registry order wins; the cheat sheet shows
- * both. Detection belongs to the designed wave.
+ * No conflict detection: if a new binding collides with another action's,
+ * the first match in registry order wins; the cheat sheet shows both.
  */
 
 import { useEffect, useState } from "react";

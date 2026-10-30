@@ -2,18 +2,11 @@
  * THE SETTINGS DIALOG: a centered modal over everything, left section nav
  * + one scrolling content column.
  *
- * - Dialog, not a page: opens over whatever screen you're on (the payoff:
- *   appearance edits restyle the chat LIVE behind the dialog). Escape,
- *   backdrop, and ✕ all close. There is no /settings page.
- * - Left section nav: 920×720,
- *   "Settings" over icon + name rows (the open one lit), the section's
- *   title and ✕ over the scrolling content.
- * - The dialog is surface-agnostic by construction: the sections talk to
- *   /api/settings* and localStorage only, so this shell can be re-mounted
- *   as a true OS window with near-zero churn.
+ * A dialog, not a page, so appearance edits restyle the lesson live behind
+ * it. Escape, the backdrop and ✕ all close.
  *
- * One record instance for the whole dialog, sections write through the
- * single `write` seam, switching sections never refetches.
+ * One record instance for the whole dialog: sections write through the
+ * single `write` seam, and switching sections never refetches.
  */
 
 import {
@@ -116,13 +109,10 @@ export function SettingsDialogBody({
 	// MenuShell open-count — drives the content column's scroll lock.
 	const [openMenus, setOpenMenus] = useState(0);
 	const contentRef = useRef<HTMLDivElement | null>(null);
-	// Scroll-lock (the scrollbar MAY stay, scrolling must NOT happen,
-	// nothing may move): the content column
-	// keeps overflow-y-auto — the scrollbar and every width stay exactly
-	// as they are — and while any MenuShell is open, non-passive wheel +
-	// touchmove listeners on the column preventDefault. React attaches
-	// synthetic wheel/touch passively at the root, so this needs the
-	// native-listener ref seam.
+	// While any MenuShell is open, the content column must not scroll, but
+	// nothing may move either, so its scrollbar stays and wheel/touchmove
+	// are blocked instead. React's wheel/touch listeners are passive, so
+	// this uses native ones.
 	useEffect(() => {
 		const el = contentRef.current;
 		if (!el || openMenus === 0) return;
@@ -168,16 +158,13 @@ export function SettingsDialogBody({
 			.catch(() => setRecord(null));
 	}, []);
 
-	// Escape closes — the layered-dismiss convention (Esc is dead for the
-	// sections' own editors while they hold focus; this listener is the
-	// dialog's outer layer).
+	// Escape closes the dialog.
 	useEffect(() => {
 		if (state === "closed") return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// THE ONE-ESC LAW: claim
-				// at the document level — the window chain (abort) must
-				// not also act. One Esc, one action.
+				// Claimed at the document level so the window's Esc
+				// (abort) does not also act: one Esc, one action.
 				e.preventDefault();
 				e.stopPropagation();
 				onClose();
@@ -297,12 +284,7 @@ export function SettingsDialogBody({
 					</Hint>
 				</header>
 
-				{/* Content column — one section at a time, this scrolls — and
-				    LOCKS while any MenuShell is open (no scrolling with a
-				    dropdown down; MenuShell announces
-				    open/close, the count keeps overlap honest). The lock
-				    intercepts wheel/touch instead of hiding the scrollbar —
-				    nothing may shift when the lock engages. */}
+				{/* One section at a time; scrolling locks while a menu is open. */}
 				<div
 					ref={contentRef}
 					className="min-h-0 flex-1 overflow-y-auto px-7 pb-[22px]"

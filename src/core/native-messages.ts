@@ -429,9 +429,9 @@ export function concludedByDismissalPair(
 	const callId = `call_conc_${problemCallId}`;
 	const now = Date.now();
 	// The stamps are placeholders by design: history serialization reads
-	// ONLY the content blocks (verified in pi-ai's converters), and the
-	// app's money channel is the parallel turns log, never message
-	// objects — so "synthetic" never corrupts a wire view or a cost fold.
+	// ONLY the content blocks (verified in pi-ai's converters), and usage
+	// lives in the parallel turns log, never message objects — so
+	// "synthetic" never corrupts a wire view or a usage fold.
 	const syntheticStamps = {
 		api: "faux",
 		provider: "synthetic",

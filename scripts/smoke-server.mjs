@@ -1,28 +1,17 @@
 /**
  * smoke-server.mjs — boot the packaged standalone server and prove it serves.
  *
- * The payload gate that pays for itself (2026-10-08): `next build` success
- * and a completed electron-builder run say NOTHING about whether the
- * packaged server actually starts. On its first day this smoke caught two
- * real defects nothing else saw: (1) a trace-exclude regression that
- * stripped the pi engine packages to bare package.jsons — the server
- * answered 500 on every route with ERR_MODULE_NOT_FOUND; (2) before that,
- * a dev secrets file shipping inside the bundle. It runs
- * between build-server.mjs and electron-builder so a broken payload fails
- * in seconds, not after a full packaging pass.
+ * `next build` success and a completed electron-builder run say NOTHING
+ * about whether the packaged server actually starts. This runs between
+ * build-server.mjs and electron-builder so a broken payload fails in
+ * seconds, not after a full packaging pass.
  *
- * What it does: spawns .next/standalone/server.js exactly the way the
- * Electron shell does (electron/main.cjs) — with --electron it uses
- * Electron's bundled Node via ELECTRON_RUN_AS_NODE, otherwise host Node —
- * 127.0.0.1 on a kernel-assigned
- * free port, NODE_ENV=production, a THROWAWAY LH_DATA_DIR and credential
- * dir under os.tmpdir() (no real credentials or data ever touch it) —
- * polls GET / until 200, then probes the GET-only API surface (graph /
- * settings — no side effects). Any non-200, an early server
- * exit, or a 30s boot timeout fails the gate and prints the server's own
- * log tail for diagnosis. The child is ALWAYS killed before exit — a
- * leaked server holds its port against the next run (learned the hard
- * way, same day).
+ * It spawns .next/standalone/server.js the way electron/main.cjs does
+ * (with --electron, through Electron's bundled Node) on a free 127.0.0.1
+ * port with a THROWAWAY LH_DATA_DIR under os.tmpdir(), polls GET / until
+ * 200, then probes GET-only API routes. Any non-200, an early exit, or a
+ * 30s boot timeout fails and prints the server's log tail. The child is
+ * ALWAYS killed: a leaked server holds its port against the next run.
  */
 import { spawn } from "node:child_process";
 import { probeEnv, verifyDemoRuntime } from "./smoke-demo-runtime.mjs";
@@ -42,7 +31,7 @@ const RUNTIME = ELECTRON_MODE ? createRequire(import.meta.url)("electron") : pro
 
 const POLL_MS = 500;
 const BOOT_TIMEOUT_MS = 30_000;
-/** GET-only probes — the routes that exercised today's failure class. */
+/** GET-only probes with no side effects. */
 const PROBES = ["/api/graph", "/api/settings"];
 
 if (!fs.existsSync(SERVER)) {

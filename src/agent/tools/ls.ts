@@ -6,7 +6,7 @@ import { serverExecute } from "../tool-execute.ts";
 import { capOutput, formatSize, MAX_OUTPUT_BYTES, resolveSourcePath } from "./fs-shared.ts";
 
 /**
- * The ls tool — sources v1 (2026-09-19): a Node port of pi's
+ * The ls tool: a Node port of pi's
  * dist/core/tools/ls.js, home-anchored (fs-shared.ts). Schemas and the
  * output format are pi-verbatim; the only semantic deltas: the default
  * directory is the learner's home, and the path description says so.

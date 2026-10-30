@@ -1,21 +1,16 @@
 /**
- * Session deletion — the FIRST destructive operation on the append-only
- * graph ledgers (owner ruling 2026-09-22, wave 6 chunk A).
- *
- * Until now mergeFindings has been the sole writer; deletion is the second,
- * and it is held to the same discipline: PURE code over the storage ports
+ * Session deletion — the destructive operation on the append-only graph
+ * ledgers. It is held to the merger's discipline: PURE code over the storage ports
  * (core/ports.ts), no LLM judgment anywhere, deterministic and idempotent.
  * The caller (the DELETE /api/chats/[id] route through the server
  * orchestration) owns the cross-store choreography (chat record, jobs,
  * extraction wind-down); this module owns the LEDGERS.
  *
- * CHAINS-PRIMARY (owner, 2026-09-30): the stored truth is propositions +
- * reasoning chains; edges are a derived view. Deletion therefore operates
- * on CHAIN LINES where it used to operate on edge lines — a chain dies
- * when its provenance empties or any member node died — and the derived
- * view follows on the next read, never rewritten here.
+ * The stored truth is propositions + reasoning chains; edges are a derived
+ * view. A chain dies when its provenance empties or any member node died,
+ * and the derived view follows on the next read.
  *
- * Two modes (owner-locked semantics):
+ * Two modes:
  *
  *   preserve-graph  the chat's extraction bookkeeping dies — its coverage
  *                   rows and its legacy checkpoint lines — and NOTHING else:
@@ -33,17 +28,16 @@
  *                   whose references all came from this chat disappears
  *                   entirely.
  *
- * Shared nodes survive automatically (the ruling): a node lives iff ANY
+ * Shared nodes survive automatically: a node lives iff ANY
  * surviving reference remains — a provenance point from another chat or
  * notes source. The create line of a surviving node is special:
  * name/statement/createdAt are the node's IDENTITY — the shared anchor
  * other sessions' link verdicts recognized — so they stay even when the
  * deleted chat created the node; but that session's phrasings (the line's
- * aliases) are stripped and its provenance points removed (owner ruling
- * 2026-09-23: all traces, identity survives).
+ * aliases) are stripped and its provenance points removed.
  *
- * Imported-notes sources (src_…) ride the same purge since the classes
- * wave (deleteSourceTraces below): their id sits in the same provenance
+ * Imported-notes sources (src_…) ride the same purge (deleteSourceTraces
+ * below): their id sits in the same provenance
  * slot, so "this source never happened" is the same computation.
  *
  * Resurrection safety: the deletion runs as ONE synchronous block (no
@@ -56,7 +50,7 @@
 import type { GraphChain, GraphNode } from "./contracts.ts";
 import type { GraphStore } from "./ports.ts";
 
-/** The two deletion modes (owner-locked 2026-09-22). Machine-checkable on
+/** The two deletion modes. Machine-checkable on
  *  the API as the required `mode` query param — no default, so no
  *  accidental destructive choice. */
 export type ChatDeleteMode = "preserve-graph" | "delete-nodes";
@@ -92,8 +86,7 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 	}
 
 	// The bookkeeping rows die in BOTH modes — coverage and checkpoints
-	// are extraction state, not graph content (owner semantics: even
-	// preserve-graph deletes "the chat's coverage rows").
+	// are extraction state, not graph content.
 	const coverage = graphStore.readCoverage().filter((row) => row.chatId !== chatId);
 	const checkpoints = graphStore.readCheckpoints().filter((row) => row.chatId !== chatId);
 	const stats: ChatDeletionStats = {
@@ -153,8 +146,8 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 	//      partially-deleted     kept with the chat's points stripped
 	//                           (defensive — single-run lines never mix chats)
 	//      all points deleted    CREATE line: identity survives, aliases
-	//                           stripped (owner ruling 2026-09-23), points
-	//                           empty / LINK line: dies with its phrasings
+	//                           stripped, points empty / LINK line: dies
+	//                           with its phrasings
 	const outNodes: GraphNode[] = [];
 	const seenIds = new Set<string>();
 	for (const line of nodeLines) {
@@ -174,7 +167,7 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 			// The create line of a surviving node the deleted chat minted:
 			// name/statement/createdAt are the shared identity other
 			// sessions recognized — they stay; the session's phrasings and
-			// provenance die (all traces, owner 2026-09-23).
+			// provenance die.
 			outNodes.push({ ...line, provenance: [], aliases: [] });
 		}
 		// else: the deleted chat's link line — dies with its phrasings.
@@ -211,7 +204,7 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 	return stats;
 }
 
-// ─── source deletion (classes wave, owner-approved 2026-10-26) ───────────────
+// ─── source deletion ─────────────────────────────────────────────────────────
 
 /**
  * Remove one imported-notes source's traces — the class-file twin of a
@@ -228,10 +221,10 @@ export function deleteSourceTraces(graphStore: GraphStore, sourceId: string): Ch
 	return stats;
 }
 
-// ─── single-node deletion (node interlude, owner-locked full-death) ───────────
+// ─── single-node deletion ────────────────────────────────────────────────────
 
 /**
- * FULL DEATH for one node, by id (owner ruling 2026-09-23): the user
+ * FULL DEATH for one node, by id: the user
  * pointing at the node IS the intent — references from other sessions do
  * NOT preserve it. The remedy for undeletable nodes (preserve-graph
  * orphans from session deletion; notes-import nodes with no chat behind
@@ -242,10 +235,9 @@ export function deleteSourceTraces(graphStore: GraphStore, sourceId: string): Ch
  *   - every line of the node (create + link lines)
  *   - every CHAIN referencing it (as premise or conclusion), whatever
  *     session asserted it — a chain with a dead member is not a chain
- *   - its resting position (and every dead chain's)
  *
- * An ARGUMENT deletion is the same call with an arg_-prefixed id (owner,
- * 2026-09-30: the chain table's fenced delete kills chains): the "node"
+ * An ARGUMENT deletion is the same call with an arg_-prefixed id (the
+ * chain table's delete): the "node"
  * is the derived implication node whose id IS the chain's id.
  *
  * The blast radius is exactly the rows naming the id: other nodes'
@@ -258,8 +250,8 @@ export function deleteSourceTraces(graphStore: GraphStore, sourceId: string): Ch
  * ledgers.
  *
  * Synchronous, one rewriteLedgers call, no awaits (the same atomicity
- * argument as the chat cascade); idempotent in the wave-6 sense — a
- * second run finds no lines and changes nothing.
+ * argument as the chat cascade); idempotent — a second run finds no
+ * lines and changes nothing.
  */
 export interface NodeDeletionStats {
 	/** Chain assertion LINES removed (every chain referencing the node). */

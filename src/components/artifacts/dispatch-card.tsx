@@ -55,10 +55,7 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 			data-testid="dispatch-card"
 		>
 			<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-				{/* The working-state grammar (owner, streaming round 2026-10-01):
-				    the Braille spinner replaces the pulsing dot — one indicator
-				    everywhere. This is the ONLY dispatch-card change; the card's
-				    shape is untouched. */}
+				{/* The Braille spinner: one working indicator everywhere. */}
 				<BrailleSpinner label={`${label} running`} />
 				{label}
 				{elapsed !== null && <span className="font-normal">· {elapsed}s</span>}

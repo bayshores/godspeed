@@ -1,5 +1,5 @@
 /**
- * /api/classes/[id]/folder (classes wave, 2026-10-26).
+ * /api/classes/[id]/folder
  *  PUT    — { path } link (or re-link) a folder on this computer; its
  *           supported files are added as study material
  *  DELETE — unlink: the folder's files leave the class with their facts

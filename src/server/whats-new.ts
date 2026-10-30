@@ -1,5 +1,5 @@
 /**
- * WHO SEES "WHAT'S NEW" (owner, 2026-10-27). The root layout asks on every
+ * WHO SEES "WHAT'S NEW". The root layout asks on every
  * page load; the answer lives in settings.json as general.lastSeenVersion:
  *  - older than this version → show the notes since it, then record this
  *    version so they show once;

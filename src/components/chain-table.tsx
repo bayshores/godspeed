@@ -1,55 +1,32 @@
 /**
- * THE CHAIN TABLE (chains overlay; owner refinements round 2, 2026-09-29):
- * every reasoning chain of the graph in one FULL-BLEED surface — the blur
- * + translucent background IS the surface, no inner card. The top bar is
- * THE shared TopBar (standardization ruling: one element, every surface —
- * h-15, lh-drag with carve-outs, select-none, sidebar reopen, traffic-
- * light gutter; born from this overlay's hand-rolled bar breaking every
- * rule at once). The overlay (z-40) covers home's floating header while
- * open, so the TopBar's own SidebarToggle is the reopen path.
+ * THE CHAIN TABLE: every reasoning chain of the graph in one full-bleed
+ * surface (the blur + translucent background IS the surface, no inner
+ * card). It uses the shared TopBar; the overlay (z-40) covers home's
+ * floating header while open, so the TopBar's own SidebarToggle is the
+ * reopen path.
  *
- * HIERARCHY (three levels, one click each): CLUSTER (the birth session —
- * a chat or a notes file; a chain lives where its CONCLUSION was born,
- * owner ruling) → REASONING CHAIN → PROPOSITION STATEMENTS. Expanding a
- * chain reveals its members' statement text directly — names live in the
- * chain line, never twice; a singleton reveals its one statement in one
- * click. Everything starts collapsed. PROMINENT indentation carries the
- * structure (owner ruling: chains deep under folders, statements deeper)
- * — the ONLY lines are the horizontal separators between cluster groups
- * (vertical column hairlines removed with them, owner ruling: "anything
- * else is better without them").
+ * HIERARCHY (three levels, one click each): CLUSTER (the birth session: a
+ * chat or a notes file; a chain lives where its CONCLUSION was born) →
+ * REASONING CHAIN → PROPOSITION STATEMENTS. Names live in the chain line,
+ * never twice. Everything starts collapsed. Indentation carries the
+ * structure; the only lines are the separators between cluster groups.
  *
- * THE CHAIN LINE: every proposition name is a faint-outlined CHIP
- * with the LOGIC as the connectives (owner rulings, 2026-09-30):
- * premises join with the LaTeX LAND (∧) and the conclusion separates
- * by the LaTeX IMPLICATION (⟹) — `A ∧ B ⟹ C`, never the misleading
- * `A → B → C`. The glyphs are REAL KaTeX renders (src/components/
- * latex-glyph.tsx — the app's math engine, never SVGs), PROMINENT in
- * the theme foreground (white), not dim gray. A lonely chip (no
- * premises) carries no glyph — it reads as a standalone proposition;
- * "(no premises)" survives only as the row's aria-label.
+ * THE CHAIN LINE: every proposition name is a faint-outlined chip with the
+ * logic as the connectives: `A ∧ B ⟹ C`, never the misleading
+ * `A → B → C`. The glyphs are real KaTeX renders (latex-glyph.tsx). A
+ * lonely chip (no premises) carries no glyph; "(no premises)" survives
+ * only as the row's aria-label.
  *
- * SORTING: all three columns sortable (owner ruling — "consistency is
- * key"): Name (A→Z), Props (largest-first), Created (newest-first);
- * click toggles asc/desc; a SMALL chevron marks the active header. Sort
- * orders cluster rows AND chains within.
+ * SORTING: Name (A→Z), Props (largest-first), Created (newest-first);
+ * click toggles asc/desc. Sort orders cluster rows AND chains within.
  *
- * SELECTION never shifts layout (owner ruling): a floating bottom bar —
- * the Google-Photos pattern — appears only when something is selected,
- * showing the agents' ACTUAL input (chainsForSelection over the flat
- * node-id selection: a premise without its conclusion counts as the
- * singleton it becomes) + Clear. DELETE (owner,
- * 2026-09-29 night: "this is really the view deletion should be done
- * in") rides the same bar FENCED at the right end — divider + the
- * destructive red pair — and opens the SAME full-death confirm dialog
- * the canvas uses (multi-selections list their names + the unioned
- * impact); this ends the overlay's read-only stance: it is the graph's
- * MANAGEMENT surface now. The fuzzy
- * search (names, aliases, statements) filters chains grouped +
- * auto-expanded under their clusters (non-matching clusters hide; the
- * collapsed view returns on clear).
- *
- * Read-only toward the graph.
+ * SELECTION never shifts layout: a floating bottom bar appears only when
+ * something is selected, showing the agents' ACTUAL input
+ * (chainsForSelection: a premise without its conclusion counts as the
+ * singleton it becomes) + Clear. DELETE sits fenced at the bar's right end
+ * and opens the same confirm dialog the canvas uses. The fuzzy search
+ * (names, aliases, statements) filters chains grouped and auto-expanded
+ * under their clusters.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -71,7 +48,7 @@ import { TopBar } from "@/components/top-bar";
 import { DeleteNodeDialog } from "@/components/delete-node-dialog";
 import { LatexGlyph } from "@/components/latex-glyph";
 
-/** The sortable columns (owner ruling: all three — consistency). */
+/** The sortable columns. */
 export type ChainSortCol = "name" | "props" | "created";
 export interface ChainSort {
 	col: ChainSortCol;
@@ -79,7 +56,7 @@ export interface ChainSort {
 	dir: 1 | -1;
 }
 
-/** A cluster's chains share the conclusion's birth (owner ruling). This
+/** A cluster's chains share the conclusion's birth. This
  *  record is assembled per render from the visible chains. */
 interface ClusterGroup {
 	key: string;
@@ -132,10 +109,10 @@ export function ChainTableBody({
 	 *  proposition checks all reduce to this. */
 	onToggleNodes: (ids: string[], next: boolean) => void;
 	onClear: () => void;
-	/** Opens the full-death confirm dialog (owner, 2026-09-29 night). */
+	/** Opens the full-death confirm dialog. */
 	onDelete: () => void;
 	onClose: () => void;
-	/** PRACTICE SELECT (2026-10-04): the floating bar's confirm becomes
+	/** PRACTICE SELECT: the floating bar's confirm becomes
 	 *  "Practice these" — no delete fence; the caller owns what the
 	 *  selection becomes. */
 	selectMode?: boolean;
@@ -145,7 +122,7 @@ export function ChainTableBody({
 	const names = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, { name: n.name }])), [nodes]);
 	const chains = useMemo(() => chainsForSelection(nodes, storedChains), [nodes, storedChains]);
 	const searching = query.trim() !== "";
-	// The selection bar fades out before unmounting (motion wave, owner 2026-10-26).
+	// The selection bar fades out before unmounting.
 	const bar = usePresence(selection.size > 0);
 
 	// The fuzzy filter: a chain is visible when ANY member matches on
@@ -170,7 +147,7 @@ export function ChainTableBody({
 			.map(({ chain }) => chain);
 	}, [chains, byId, query, searching]);
 
-	// Group the visible chains by their CONCLUSION's birth (owner ruling).
+	// Group the visible chains by their CONCLUSION's birth.
 	// Unlabeled births (provenance gone / never named) form one honest
 	// muted group, sorted last under name-sort.
 	const groups = useMemo(() => {
@@ -196,8 +173,7 @@ export function ChainTableBody({
 		}
 		const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 		const list = [...map.values()];
-		// Sort law (owner ruling: all three columns sortable — consistency):
-		// the active column orders BOTH cluster rows and chains within; name
+		// The active column orders BOTH cluster rows and chains within; name
 		// is the universal tiebreak (asc). Unlabeled clusters sort last under
 		// name-sort (￿ sentinel).
 		const nameKey = (g: ClusterGroup) => g.label ?? "\uffff";
@@ -238,13 +214,10 @@ export function ChainTableBody({
 
 	return (
 		<div data-testid="chain-table" className="relative flex h-full min-h-0 flex-col">
-			{/* THE shared top bar (standardization ruling): drag mechanics,
-			    sidebar reopen, traffic-light gutter — the same element as every
-			    chat surface. NO TITLE (owner round 11, 2026-10-05): the serif
-			    title register is RESERVED — it always names a session; the
-			    chain table names nothing, so its bar carries counts + search +
-			    close only. Search + close carve out with lh-no-drag (the mask
-			    law: later in the DOM). */}
+			{/* No title: the serif title register always names a session, and
+			    the chain table names nothing, so its bar carries counts +
+			    search + close only. Search + close carve out with lh-no-drag
+			    (later in the DOM). */}
 			<TopBar>
 				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
 					{chains.length} {chains.length === 1 ? "chain" : "chains"} · {nodes.length} {nodes.length === 1 ? "node" : "nodes"}
@@ -272,15 +245,13 @@ export function ChainTableBody({
 				</button>
 			</TopBar>
 
-			{/* The list: NO per-row lines (owner ruling) — the ONLY horizontal
-			    separators sit between cluster groups; the ALIGNMENT STAIRCASE
-			    carries the hierarchy (owner round 4, "double the indentation":
-			    two-column steps — chains pl-12 aligned with the folder icon,
-			    statements pl-21 where a chain icon would sit).
-			    All three columns sort, small chevron on active. */}
+			{/* The list: no per-row lines; the only horizontal separators sit
+			    between cluster groups. The indentation staircase carries the
+			    hierarchy: chains pl-12 aligned with the folder icon,
+			    statements pl-21 where a chain icon would sit. */}
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				{/* The TOP rule (owner round 5: the table is framed — a line under
-			    the header, a line under the last group, lines between groups). */}
+				{/* The TOP rule: the table is framed (a line under the header, a
+			    line under the last group, lines between groups). */}
 				<div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border/60 bg-background/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground/70 backdrop-blur">
 					<button
 						type="button"
@@ -324,12 +295,12 @@ export function ChainTableBody({
 						<div
 							key={group.key}
 							data-testid={`cluster-group-${group.key}`}
-							// The horizontal rules (owner rulings, rounds 2 + 5): between
-							// cluster groups AND under the last one — the table is framed
+							// The horizontal rules: between cluster groups AND under the
+							// last one, so the table is framed
 							// top (header) and bottom. Never on individual rows.
 							className="relative border-b border-border/60"
 						>
-							{/* The TREE THREAD (owner rounds 5–6): a vertical guide at the
+							{/* The TREE THREAD: a vertical guide at the
 							    expander arrow's column (center 37px: pl-3 + checkbox 14 +
 							    gap 4 + half the 14px expander), BRACKETED by checkbox
 							    bottom edges — it starts at the cluster row's own checkbox
@@ -367,8 +338,8 @@ export function ChainTableBody({
 								</span>
 							</div>
 
-							{/* The chain rows — clearly indented under the folder
-							    (owner ruling); visible only when the cluster is open
+							{/* The chain rows, indented under the folder;
+							    visible only when the cluster is open
 							    (searching auto-expands). */}
 							{open &&
 								group.chains.map((chain) => {
@@ -377,7 +348,7 @@ export function ChainTableBody({
 									const selectedInChain = memberIds.filter((id) => selection.has(id)).length;
 									return (
 										<div key={chain.id} data-testid={`chain-block-${chain.id}`} className="lh-rise relative">
-												{/* The chain's own thread (owner rounds 5–6): the same
+												{/* The chain's own thread: the same
 												    bracket law one level down — at the chain arrow's column
 												    (center 73px), from the chain row's checkbox bottom
 												    (top-[22px]) to the LAST statement row's checkbox bottom
@@ -402,15 +373,9 @@ export function ChainTableBody({
 												/>
 												<Expander open={chainOpen} onClick={() => onToggleChain(chain.id)} testid={`chain-toggle-${chain.id}`} label={`Expand chain ${nameOf(chain.conclusion)}`} />
 												{/* The chain line: proposition names as faint-outlined
-												    chips. THE LOGIC IS THE PAYLOAD (owner rulings,
-												    2026-09-30): premises join with the LaTeX LAND (∧),
-												    the conclusion separates by the LaTeX IMPLICATION
-												    (⟹) — `A ∧ B ⟹ C`, never the misleading `A → B →
-												    C` — the glyphs render through KaTeX (the app's
-												    math engine), PROMINENT in the theme foreground
-												    (white), not the old dim gray. A lonely chip reads
-												    as a standalone proposition (no glyphs at all);
-												    the row's aria-label keeps the plain-text form. */}
+												    chips joined by the logic, `A ∧ B ⟹ C`, rendered
+												    through KaTeX. A lonely chip has no glyphs; the
+												    row's aria-label keeps the plain-text form. */}
 												<span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-0.5 gap-y-1 text-[13px] leading-tight">
 													{memberIds.map((id, i) => {
 														const isConclusion = i === memberIds.length - 1;
@@ -447,9 +412,9 @@ export function ChainTableBody({
 												</span>
 											</div>
 
-											{/* The propositions — their STATEMENT text directly (owner
-											    ruling: names live in the line; a singleton reveals its
-											    one statement in one click). PLAIN rows: the derivation
+											{/* The propositions: their STATEMENT text directly (names
+											    live in the line; a singleton reveals its one statement
+											    in one click). PLAIN rows: the derivation
 											    is already encoded in the chain line — no conclusion
 											    marker down here. Deepest indent. */}
 											{chainOpen &&
@@ -484,8 +449,7 @@ export function ChainTableBody({
 				})}
 			</div>
 
-			{/* The floating selection bar (owner ruling: never shifts layout —
-			    the Google-Photos pattern). Appears only when something is
+			{/* The floating selection bar never shifts layout. Appears only when something is
 			    selected; floats over the table's bottom edge. */}
 			{bar.mounted && (
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-4">
@@ -519,7 +483,7 @@ export function ChainTableBody({
 							</button>
 						) : (
 							<>
-							{/* The danger fence (owner ruling): a divider quarantines
+							{/* The danger fence: a divider quarantines
 								    the destructive action at the bar's right end — the
 								    safe actions and the kill switch never blend. The
 								    full-death confirm dialog catches the misclick. */}
@@ -543,8 +507,7 @@ export function ChainTableBody({
 	);
 }
 
-/** The rotating chevron — collapsed points right, expanded rotates down
- *  (owner ruling: the affordance must read on every expandable row). */
+/** The rotating chevron: collapsed points right, expanded rotates down. */
 function Expander({ open, onClick, testid, label }: { open: boolean; onClick: () => void; testid: string; label: string }) {
 	return (
 		<button
@@ -592,9 +555,8 @@ function RowCheckbox({
 
 /** The graph view's overlay wrapper: owns query + sort + selection +
  *  expansion; mounts ABSOLUTE INSIDE the
- *  graph area, full-bleed (owner ruling: the translucent blurred surface
- *  IS the overlay — no inner card). Esc + the top-bar X dismiss (there
- *  is no backdrop margin to click anymore). Read-only toward the graph. */
+ *  graph area, full-bleed. Esc + the top-bar X dismiss (there is no
+ *  backdrop margin to click). */
 export function ChainTableOverlay({
 	open,
 	nodes,
@@ -602,7 +564,7 @@ export function ChainTableOverlay({
 	sessions,
 	fileSources,
 	onClose,
-	/** PRACTICE SELECT (owner vision, 2026-10-04): the selection is
+	/** PRACTICE SELECT: the selection is
 	 *  PERSISTENT and caller-owned — when these props are present the
 	 *  table is CONTROLLED (every check/clear/delete-prune reports up
 	 *  immediately; the composer-side chip reflects it live). selectMode
@@ -643,8 +605,7 @@ export function ChainTableOverlay({
 		if (!open || deleteOpen) return;
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// THE ONE-ESC LAW (owner, keyboard round 2026-10-06): claim
-				// at the document level — the window chain (abort) must
+				// Claim at the document level: the window chain (abort) must
 				// not also act. One Esc, one action.
 				e.preventDefault();
 				e.stopPropagation();

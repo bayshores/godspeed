@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * THE GRAPH PAGE (redesign plan, Phase 5): the class's topics as a map
+ * THE GRAPH PAGE: the class's topics as a map
  * with a right panel — "Where you're at" when nothing is selected, the
  * topic's details when one is. Data: useProgress (GET /api/progress); the
  * chain table reads the raw graph (GET /api/graph) only while it is open.

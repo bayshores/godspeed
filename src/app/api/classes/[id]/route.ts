@@ -1,5 +1,5 @@
 /**
- * /api/classes/[id] (classes wave, owner-approved 2026-10-26).
+ * /api/classes/[id]
  *  GET    — { class, folderProblem }: the full record and what is wrong with
  *           its linked folder (null: nothing); ?scan=1 rescans the folder first
  *           (the switcher asks when you switch to the class)

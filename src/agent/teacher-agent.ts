@@ -18,12 +18,11 @@ import { QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
- * The two teaching-side agents (docs/probe-teach-split.md): the PROBER and
- * the TEACHER. Same transcript, different prompts and tool sets; the
- * chat-handler constructs ONE per request off the transcript's seam
- * (probe_done = teacher) — the STATELESS per-turn engine (docs/
- * pi-engine-swap.md §2): the persisted record is the source of truth, the
- * agent is rebuilt from it every POST and discarded at turn end.
+ * The two teaching-side agents: the PROBER and the TEACHER. Same
+ * transcript, different prompts and tool sets; the chat-handler constructs
+ * ONE per request off the transcript's seam (probe_done = teacher). The
+ * engine is stateless per turn: the persisted record is the source of
+ * truth, the agent is rebuilt from it every POST and discarded at turn end.
  *
  * Engines are injectable so tests can pass a scripted faux engine and drive
  * deterministic lessons (see tests/chat-flow.test.ts).
@@ -33,22 +32,17 @@ import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts
  * that agent's directory (src/agent/prompts/prober/ or
  * src/agent/prompts/teacher/), in sorted filename order, then the shared/
  * fragments as a trailing appendix (question tools, learner files,
- * formatting) — the 2026-09-27 reorder: the agent's job and method lead,
- * the mechanics trail. Joined with `---` separators.
+ * formatting): the agent's job and method lead, the mechanics trail.
+ * Joined with `---` separators.
  *
  * ONLY numeric-prefix files load — the loader enforces the convention, so
  * non-fragment documentation (README.md, …) can live in the directories
  * without ever leaking into the model's prompt.
  */
 
-/** Which agent's prompt directory to compose. Practice (2026-10-04)
- *  composes ONLY its own directory — see prompt-segments.ts. */
+/** Which agent's prompt directory to compose. Practice composes its own
+ *  directory plus a curated shared set (see prompt-segments.ts). */
 type AgentKind = "prober" | "teacher" | "practice";
-
-// P2 (2026-09-19): segment discovery + override resolution live in ONE
-// canonical place now — src/store/prompt-overrides.ts (listSourceSegments
-// mirrors this loader's rules, shared/ included). The agent imports it for
-// the static-file seam; the local fragment discovery helpers are retired.
 
 /** Exported for tests: assert what composes into the model's prompt.
  *  Composition order: shared base → the agent's own fragments → shared/
@@ -62,9 +56,8 @@ export function composeInstructions(kind: AgentKind): string {
 		.join("\n\n---\n\n");
 }
 
-// Money channel (wave 4): the chat-handler passes a per-turn collector;
-// every model call's usage lands in the chat record's turns log
-// (ChatStore.appendTurnUsage). The narrow param keeps the seam honest.
+// The chat-handler passes a per-turn collector; every model call's token
+// usage lands in the chat record's turns log (ChatStore.appendTurnUsage).
 export type StepUsageCollector = (usage: Usage) => void;
 
 /** Per-request construction options (the handler wires all of these). */
@@ -73,16 +66,14 @@ export interface AgentBuildOptions {
 	engine?: PiEngine;
 	/** The initial transcript, as pi messages (the record IS agent state). */
 	messages?: AgentMessage[];
-	/** Money channel: one call per model request. */
+	/** Token usage: one call per model request. */
 	onUsage?: StepUsageCollector;
 	/** Tests may pass a bare tool registry to drive deterministic flows.
 	 *  An explicit registry is NEVER toggle-filtered — the caller owns it. */
 	tools?: Record<string, AgentTool<any>>;
-	/** The resolved per-user tool toggles (core/pending EnabledTools — the
-	 *  2026-09-19 P2 bridge: Platform's chat-handler passes
-	 *  effective.agent.tools; the factories drop any tool explicitly false.
-	 *  THE DEFINITIVE toggleable set is TOGGLEABLE_TOOLS (job tools only);
-	 *  the filtering is generic, but writes validate against the list). */
+	/** The resolved per-user tool toggles (core/pending EnabledTools); the
+	 *  factories drop any tool explicitly false. The toggleable set is
+	 *  TOGGLEABLE_TOOLS (job tools only). */
 	toolToggles?: EnabledTools;
 	/** The learner's rules section (core learnerRulesSection), appended
 	 *  after the instructions; "" or absent = none. */
@@ -93,22 +84,17 @@ export interface AgentBuildOptions {
 }
 
 /**
- * The turn's question-stop rule (docs/pi-engine-swap.md §2; Wave A
- * 2026-09-26, owner Option A): a question tool call (quiz /
- * ask_user_question) that RESOLVED — its synthetic "question posed" result
- * is not an error — ends the run: the learner's answer arrives as the next
- * POST. A call that FAILED authoring validation (error result) must NOT
- * stop the run — the model retries within the same turn, exactly the old
- * InvalidToolInputError semantics.
+ * The turn's question-stop rule: a question
+ * tool call (quiz / ask_user_question) that resolved cleanly ends the
+ * run; the learner's answer arrives as the next POST. A call that failed
+ * authoring validation must NOT stop the run, so the model can retry
+ * within the same turn.
  *
- * Question results also carry terminate: true (tool-execute's
- * questionResult), so single-question batches stop natively at the pi
- * loop's own batch check; this finishTurn hook (0.87.1 rename of
- * shouldStopAfterTurn) is the
- * belt-and-suspenders HALF for the mixed batch (a question + other calls
- * in one message) that terminate-only semantics would let run on — the
- * learner cannot answer while a turn is in flight (per-chat 409), so a
- * cleanly-posed question MUST always end the turn. Practice's problem pose
+ * Question results also carry terminate: true, so single-question batches
+ * stop natively; this finishTurn hook covers the mixed batch (a question +
+ * other calls in one message). The learner cannot answer while a turn is
+ * in flight (per-chat 409), so a cleanly-posed question MUST always end
+ * the turn. Practice's problem pose
  * has the same wait-for-the-learner contract, including mixed batches;
  * failed poses must still retry. There is no maximum-turns net on the
  * teaching turn.
@@ -150,23 +136,17 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,
-		// 0.87.1: shouldStopAfterTurn → finishTurn. Same call point (after
-		// tool results attach, before turn_end) and `{ action: "end" }` still
-		// exits BEFORE the steering poll — the parked-marker stranding our
-		// Wave C registerLiveAgent-before-runPiTurn design depends on.
-		// undefined preserves normal scheduling (the old boolean false).
+		// Runs after tool results attach, before turn_end; `{ action: "end" }`
+		// exits BEFORE the steering poll, which the registerLiveAgent-before-
+		// runPiTurn design depends on. undefined keeps normal scheduling.
 		finishTurn: (turn) => (stopper(turn) ? { action: "end" } : undefined),
-		// Wave C (2026-09-26, owner correction same day): markers handed to a
-		// live run drain from pi's STEERING queue — the lesson loop is one
-		// continuous teach→quiz→teach run, so delivery must inject at turn
-		// boundaries INSIDE the run, not wait for it to stop (follow-ups).
-		// "all" joins every handed marker at one boundary, matching the idle
-		// wake's carry-everything semantics (the default "one-at-a-time"
-		// would spend one teacher turn per marker).
+		// Markers handed to a live run drain from pi's STEERING queue: the
+		// lesson loop is one continuous teach→quiz→teach run, so delivery
+		// must inject at turn boundaries inside the run. "all" joins every
+		// handed marker at one boundary (the default "one-at-a-time" would
+		// spend one teacher turn per marker).
 		steeringMode: "all",
-		// Wave B (owner-approved 2026-09-26): the model-facing conversion is
-		// THE app seam — markers flatten to their canonical user text
-		// (HANDOFF_TEXT / steer text, all single-sourced),
+		// The model-facing conversion: markers flatten to their user text,
 		// UI-only markers (plan-block) drop, the app's id fields strip, and
 		// an abort's dangling question call gets its INTERRUPTED result. It
 		// must never throw (pi's convertToLlm contract).
@@ -175,8 +155,8 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 	if (opts.onUsage) {
 		agent.subscribe((event: AgentEvent) => {
 			if (event.type === "message_end" && event.message.role === "assistant" && "usage" in event.message) {
-				// A cancelled call is not a billed step (partial/estimated
-				// usage on an aborted message is not money spent).
+				// Skip cancelled calls: usage on an aborted message is only
+				// partial or estimated.
 				if (event.message.stopReason === "aborted") return;
 				opts.onUsage!(event.message.usage);
 			}
@@ -215,10 +195,8 @@ export function createTeacherAgent(
 }
 
 /** The bare teach question set (tests, bare agents): quiz with the shared
- *  authoring refinement (quizInputProblems, run in execute — returns an
- *  invalidInputResult isError result the model retries on, pi 1.0
- *  convention) but NO per-session nodeId check (no record to read),
- *  plus ask. */
+ *  authoring refinement (quizInputProblems) but NO per-session nodeId
+ *  check (no record to read), plus ask. */
 export function bareQuestionTools(): Record<string, AgentTool<any>> {
 	// A typed const (not an inline literal): the specific AgentTool typing
 	// gives execute its precise Static input; heterogeneous records take
@@ -235,9 +213,6 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
 			return questionResult();
 		},
 	};
-	// healToolRecord (owner, 2026-10-09 — the whitehead generalization):
-	// the bare quiz carried NO prepareArguments at all — not even the
-	// options-unwrap; now it gets the full standard heal like every tool.
 	return healToolRecord({
 		quiz,
 		ask_user_question: askUserQuestionTool,
@@ -245,7 +220,7 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
 }
 
 /**
- * The PRACTITIONER (practice sessions, owner design 2026-10-04): built
+ * The PRACTITIONER (practice sessions): built
  * from turn 1 of a kind:"practice" session — no prober→teacher split,
  * no plan tools, no question tools. Its ENTIRE registry is
  * problem + conclude (tools/practice.ts); the doctrine prompt

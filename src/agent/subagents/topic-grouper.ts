@@ -1,5 +1,5 @@
 /**
- * THE TOPIC GROUPER (redesign plan, owner-approved 2026-10-27): one model
+ * THE TOPIC GROUPER: one model
  * call that groups a class graph's facts into the topics a student would
  * name. Built on the extractor's single-submit seam (runSubmitAgent): the
  * model reads the facts and the current topics, then calls submit_topics
@@ -18,7 +18,7 @@ import type { GraphChain, GraphTopic } from "../../core/contracts.ts";
 import { repairTopics, topicNameProblem, type TopicDraft } from "../../core/topics.ts";
 import { runSubmitAgent } from "./submit-agent.ts";
 
-/** The approved core instruction (owner, 2026-10-27) — verbatim. */
+/** The core grouping instruction, approved word for word: keep the wording. */
 export const TOPIC_GROUPING_RULE =
 	'Group these facts into the topics a student would name when studying this course: 4–20 facts per topic, a 1–4 word name in the course\'s own terms ("Expected value", "Conditional probability"). Keep existing topics and names stable; only add, split, or merge when facts don\'t fit. Every fact goes in exactly one topic.';
 

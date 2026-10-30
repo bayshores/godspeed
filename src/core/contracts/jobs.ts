@@ -1,16 +1,12 @@
 /**
- * Sub-agent job contracts — the async ack-and-steer protocol
- *
- * Part of the domain-split contracts (src/core/contracts/): each domain file
- * is owned outright by its stream — cross-domain schema changes go through
- * master. Pure types + protocol docs + tiny pure helpers; type-only imports
- * of "ai" (safe everywhere: server, client, tests). See docs/vision.md.
+ * Sub-agent job contracts — the async ack-and-steer protocol.
+ * Pure types + protocol docs + tiny pure helpers.
  */
 import type { CallUsage } from "./chat.ts";
 import type { LhMessage, LhMarkerMessage } from "../native-messages.ts";
 import { newHandoffMessage } from "../native-messages.ts";
 
-// ─── Async sub-agent jobs (vision §2.5; plan.md Wave 0 protocol) ────────────
+// ─── Async sub-agent jobs (vision §2.5) ─────────────────────────────────────
 
 export type JobKind = "research" | "demo" | "visual" | "pdf";
 export type JobStatus = "running" | "done" | "error";
@@ -36,8 +32,7 @@ export interface JobRecord {
 	result?: unknown;
 	error?: string;
 	/** Accumulated token usage of the sub-agent's run, written by the runner
-	 * as steps complete. Cost is inferred at read time (core/prices.ts).
-	 * Absent on older jobs and until the first step lands; renderers show
+	 * as steps complete. Absent on older jobs and until the first step lands; renderers show
 	 * "–", never zero. */
 	usage?: JobUsage;
 }
@@ -45,11 +40,11 @@ export interface JobRecord {
 /** A sub-agent run's accumulated usage — the same accounting shape as a
  * chat turn (contracts/chat.ts CallUsage), flattened to one running total
  * plus a step count. Token fields are optional exactly like CallUsage: a
- * field NO model call reported stays undefined — absent is not zero (the
- * money-channel doctrine; cost renders "–", never $0). */
+ * field NO model call reported stays undefined — absent is not zero
+ * (renderers show "–"). */
 export interface JobUsage {
-	/** The model that ran the sub-agent, provider-qualified ("provider:id" —
-	 *  model slots wave, 2026-09-20; matches Pi catalog lookup keys). */
+	/** The model that ran the sub-agent, provider-qualified ("provider:id",
+	 *  matching Pi catalog lookup keys). */
 	model: string;
 	/** Running totals summed over the run's model calls so far. */
 	inputTokens: number | undefined;
@@ -58,12 +53,12 @@ export interface JobUsage {
 	cacheWriteTokens: number | undefined;
 	reasoningTokens: number | undefined;
 	cacheWrite1hTokens?: number;
-	/** Individual calls for current-catalog per-call tier pricing. Absent on
-	 * older jobs; never backfill them from cumulative totals. */
+	/** Individual calls. Absent on older jobs; never backfill them from
+	 * cumulative totals. */
 	calls?: CallUsage[];
-	/** How many model calls the run has made (each bills separately). */
+	/** How many model calls the run has made. */
 	steps: number;
-	/** The MOST RECENT model call's accounting (2026-09 dock contract): the
+	/** The MOST RECENT model call's accounting: the
 	 *  per-blob context line reads last-step input+output against the
 	 *  model's LIVE catalog limit (server-joined onto the activity feed —
 	 *  never the cumulative totals, never a client-side table). Absent
@@ -72,9 +67,8 @@ export interface JobUsage {
 	lastStep?: CallUsage;
 }
 
-/** The per-model-call usage shape we fold into JobUsage — the SDK's
- * LanguageModelUsage narrowed structurally (no runtime "ai" import: any
- * object with these fields folds, including the real thing and test fakes). */
+/** The per-model-call usage shape we fold into JobUsage. Structural: any
+ * object with these fields folds, test fakes included. */
 export interface UsageStepLike {
 	inputTokens?: number | undefined;
 	inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number; cacheWrite1hTokens?: number } | undefined;
@@ -103,8 +97,8 @@ export function piUsageToStep(usage: {
 
 /** Fold one model call's usage into the run's running total (pure). A
  * field neither the total nor the step reported stays undefined; once
- * reported, later unreported calls contribute 0. The `steps` counter is
- * the billing count: one per model call, reported or not. */
+ * reported, later unreported calls contribute 0. `steps` counts one per
+ * model call, reported or not. */
 export function accumulateJobUsage(
 	total: JobUsage | undefined,
 	model: string,
@@ -149,7 +143,7 @@ export function accumulateJobUsage(
  *     is the ack, forever.
  *
  *  2. The background runner (src/agent/subagents/runner.ts) runs the kind's
- *     sub-agent loop — isolated context, modelFor(role), the
+ *     sub-agent loop — isolated context, the
  *     verify-never-one-shot doctrine (headless-tested demos, looked-at SVGs,
  *     sourced briefs) — tracking a live activity line in the job record.
  *     ONE central client poll of GET /api/jobs?chatId=… (in Chat) drives every
@@ -224,11 +218,10 @@ export interface VisualResult {
 	notes?: string;
 }
 
-/** The pdf-reader (sources v0, 2026-09): reads a learner-provided PDF on
- *  the teacher's behalf — triage, targeted extraction, look-at-the-page
- *  renders inside its own loop — and returns a text brief with page
- *  citations (user-decided: rendered images never leave the sub-agent's
- *  context; the teacher gets text). */
+/** The pdf-reader: reads a learner-provided PDF on the teacher's behalf —
+ *  triage, targeted extraction, look-at-the-page renders inside its own
+ *  loop — and returns a text brief with page citations (rendered images
+ *  never leave the sub-agent's context; the teacher gets text). */
 export interface PdfToolInput {
 	/** Path to the learner's PDF (relative or absolute). */
 	path: string;
@@ -244,8 +237,7 @@ export interface PdfResult {
 	brief: string;
 	/** Pages the reader actually READ — extract or render output entered the
 	 *  loop (the honest count for the UI badge; search-hit snippets don't
-	 *  count — sources v1 split, 2026-09-19, after the "78 pages consulted"
-	 *  overstatement on a long-book search-first read). */
+	 *  count, or a search-first read of a long book overstates it). */
 	pagesRead: number[];
 	/** Every page whose content entered the loop, search-hit context lines
 	 *  included — the full audit set (the brief's citations may point here). */
@@ -254,7 +246,7 @@ export interface PdfResult {
 
 // ─── Sub-agent steer messages (THE ASYNC PROTOCOL §3–4) ─────────────────────
 //
-// Wave B (owner-approved 2026-09-26): steers are NATIVE record messages —
+// Steers are NATIVE record messages —
 // LhMarkerMessage customs (role "custom"), the custom-message taxonomy's
 // wake members. The model-facing text rides `content` (single-sourced
 // below); the UI payload (the artifact, the abort badge) rides `details`
@@ -267,7 +259,7 @@ export interface SubagentResultMeta {
 	jobId: string;
 	kind: JobKind;
 	toolCallId: string;
-	/** Present only on an abort steer (2026-09 abort semantics): the
+	/** Present only on an abort steer: the
 	 * learner aborted the job (it lands as error "Aborted by learner");
 	 * the teacher is told so its promise of a result doesn't hang
 	 * silently in the lesson. */
@@ -286,7 +278,7 @@ export interface SubagentArtifactData {
  *  payload (the projection splits it into metadata + data part). */
 export interface SteerDetails extends SubagentResultMeta {
 	result: ResearchResult | DemoResult | VisualResult | PdfResult;
-	/** LEARNER UI state pinned onto the artifact (owner, 2026-10-07): the
+	/** LEARNER UI state pinned onto the artifact: the
 	 *  invert switch's position, persisted so navigating away and back (or
 	 *  restarting) keeps it. A VIEW preference — never enters the teacher's
 	 *  context, never exports (the markdown engine reads `result` only). */
@@ -415,7 +407,7 @@ function abortText(kind: JobKind): string {
 	return "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).";
 }
 
-// ─── the probe handoff steer (the probe→teach split, docs/probe-teach-split.md §2) ──
+// ─── the probe handoff steer (docs/archive/probe-teach-split.md §2) ──────────
 //
 // probe_done's execute queues this through the same wake pipeline; the
 // pump fires it once the prober's turn ends (gates + grace). It carries no

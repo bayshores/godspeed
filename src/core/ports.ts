@@ -50,8 +50,7 @@ export interface ChatStore {
 	saveMessages(id: string, messages: LhMessage[]): void;
 	/** Persist the session plan tree (plan tools call this in execute). */
 	saveTree(id: string, tree: PlanTree): void;
-	/** Append one usage entry to the record's turn log (the money
-	 * channel): idempotent per turn id — each request carries its own, so
+	/** Append one usage entry to the record's turn log: idempotent per turn id — each request carries its own, so
 	 * a turn persisted twice appends once while continuation turns (which
 	 * share a response message id) each keep their usage. */
 	appendTurnUsage(id: string, entry: TurnUsage): void;

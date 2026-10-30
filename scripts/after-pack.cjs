@@ -1,6 +1,6 @@
 // electron-builder afterPack hook — mac only.
 //
-// WHY (owner ruling 2026-10-13): mac.icon is the Icon Composer document
+// WHY: mac.icon is the Icon Composer document
 // (electron/build/icon.icon); actool compiles it into Assets.car (the macOS 26
 // Liquid Glass render) PLUS a backwards-compat icns — but actool's
 // fallback icns caps at 256px (known actool behavior), which looks soft

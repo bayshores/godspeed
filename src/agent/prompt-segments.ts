@@ -1,24 +1,19 @@
 /**
- * THE canonical prompt-segment discovery + override resolution (P2
- * reconciliation, 2026-09-19). The agent layer owns it because composition
- * lives here: composeInstructions (teacher-agent.ts) composes through
- * effectivePromptSegments, and the discovery reads THIS layer's own tree
- * (src/agent/prompts — base, shared/, per-agent fragments) — the exact
- * rules the pre-P2 loader used, now in one place.
+ * Prompt-segment discovery + override resolution. The agent layer owns it
+ * because composition lives here: composeInstructions (teacher-agent.ts)
+ * composes through effectivePromptSegments, reading this layer's own tree
+ * (src/agent/prompts).
  *
- * The architecture law pins the layout: the agent layer never imports the
- * store adapters, so the override-file READ lives here too (config-anchored
- * static file, same discipline as reading the source fragments); the
- * override-file CRUD (write/delete/list — the mutating store behind the
- * core port) stays in src/store/prompt-overrides.ts. Both sides share the
- * pure path grammar (src/core/prompt-segments.ts).
+ * The agent layer never imports the store adapters, so the override-file
+ * READ lives here too; the override-file writes stay in
+ * src/store/prompt-overrides.ts. Both share the pure path grammar
+ * (src/core/prompt-segments.ts).
  *
- * SEGMENTS: the SHARED base (src/agent/system-prompt.md), then every
+ * SEGMENTS: the shared base (src/agent/system-prompt.md), then every
  * numeric-prefix *.md fragment in the agent's own directory (sorted by
- * filename), then the shared/ fragments directory (composed by BOTH
- * agents as a trailing appendix — the 2026-09-27 reorder). The segment
- * list adapts to the code: an override keyed to a segment the source no
- * longer ships stops composing automatically.
+ * filename), then the shared/ fragments as a trailing appendix. An
+ * override keyed to a segment the source no longer ships stops composing
+ * automatically.
  *
  * OVERRIDES: override files mirror the source layout under
  * config.PROMPTS_OVERRIDE_DIR — "system-prompt.md" at the root,
@@ -33,12 +28,11 @@ import { FRAGMENT_RE, isValidSegmentPath, type PromptAgent, type PromptSegmentIn
 
 const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");
 
-/** Shared fragments the PRACTICE agent composes: the VOICE, ACCURACY,
- *  and MENTAL-MODEL chunks joined the formatting guide (owner rounds 13
- *  and the prompt-refinement round of 2026-10-07) — personality, the
- *  truth contract, and the thinking-fields doctrine are ONE law across
- *  every agent. The question/confidence/file mechanics stay out
- *  (practice has no such tools). */
+/** Shared fragments the PRACTICE agent composes: voice, accuracy and the
+ *  mental model are one law across every agent, and formatting too
+ *  (practice writes the same $...$ / $$...$$ LaTeX and markdown). The
+ *  question/confidence/file mechanics stay out (practice has no such
+ *  tools). */
 const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "12-class-context.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
 
 /** Absolute path for an override file (unchecked — validate first). */
@@ -58,18 +52,11 @@ function readPromptOverride(segmentPath: string): string | null {
 	}
 }
 
-/** List the SOURCE segments for one agent, in composition order — the
- *  shared base, then the agent's own fragments sorted by filename, then
- *  the shared/ fragments (the 2026-09-27 reorder: the agent's job and
- *  method lead; the shared tool/file/format mechanics are an appendix).
- *  The exact order composeInstructions composes them in. */
+/** List the SOURCE segments for one agent, in composition order: the
+ *  agent's job and method lead, the shared mechanics are an appendix. */
 function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: boolean; file: string }> {
-	// PRACTICE (owner, 2026-10-04): its own directory plus a CURATED
-	// shared appendix — the teaching base and the question/confidence/
-	// file mechanics stay out (the doctrine contradicts them; 00-base.md
-	// plays the base role), but the FORMATTING guide composes for every
-	// agent (owner, 2026-10-04 late): LaTeX delimiters and markdown apply
-	// in all settings — practice shares the $...$/$$...$$ authoring contract.
+	// Practice skips the teaching base (its doctrine contradicts it;
+	// 00-base.md plays that role) and takes only a curated shared appendix.
 	const segments: Array<{ path: string; shared: boolean; file: string }> = agent === "practice" ? [] : [
 		{ path: "system-prompt.md", shared: true, file: PATHS.teacherPrompt },
 	];
@@ -82,7 +69,6 @@ function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: b
 	}
 	const sharedDir = path.join(PROMPTS_DIR, "shared");
 	if (fs.existsSync(sharedDir)) {
-		// The practice allowlist (owner, 2026-10-04 late): formatting only.
 		const allow = agent === "practice" ? PRACTICE_SHARED_FRAGMENTS : null;
 		const sharedFragments = fs
 			.readdirSync(sharedDir)

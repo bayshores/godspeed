@@ -1,5 +1,5 @@
-// POST /api/chats/[id]/steer — the composer's mid-turn steering rail
-// (owner arc 2026-10-03). The learner's message for a RUNNING turn rides
+// POST /api/chats/[id]/steer — the composer's mid-turn steering rail.
+// The learner's message for a RUNNING turn rides
 // pi's steering queue: drained at the next response boundary INSIDE the
 // same run (agent.steer + steeringMode "all"), forwarded verbatim on the
 // live stream (the client upserts the card by the client-minted id), and

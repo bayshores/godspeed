@@ -1,5 +1,5 @@
 /**
- * The graph-family FORMAT STAMP (schema-versioning wave, owner 2026-10-10):
+ * The graph-family FORMAT STAMP:
  * data/graph/format.json — one sidecar versioning the whole graph dir
  * family (the JSONL ledgers and sources.json).
  * JSONL ledgers can't carry inline stamps without per-line bloat, and the
@@ -8,7 +8,7 @@
  * The contract:
  *  - LAZY v1: NO sidecar = v1 (the pre-stamp world stays valid forever);
  *    the first graph-family WRITE creates it. Reads never write.
- *  - Honest refusal (owner: refuse-honestly ruling): a sidecar stamped
+ *  - Honest refusal: a sidecar stamped
  *    NEWER than this build (the downgrade scenario — user reverted the
  *    app) makes graph-family reads THROW. Read-modify-write stores must
  *    never rewrite what they don't understand; a ledger store must never
@@ -16,7 +16,7 @@
  *
  * Version constants: contracts/graph.ts CURRENT_GRAPH_FORMAT_VERSION.
  *
- * Classes wave (2026-10-26): each graph family (the "No class" graph and
+ * Each graph family (the "No class" graph and
  * every class's own graph) carries its own sidecar — the functions take
  * the family's format file, defaulting to the "No class" one.
  */

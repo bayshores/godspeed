@@ -26,18 +26,15 @@ export function scrollSessionTarget(target: Range | HTMLElement, scope: HTMLElem
  * SPA arrivals (graph links) and later hash changes. The mount path polls on
  * a short interval ON PURPOSE: the transcript scroller's ref is attached by a
  * LATER SIBLING (StickToBottom.Content), hydration orderings vary, and a
- * frame-chained rAF proved cancellable mid-flight in dev (the owner's
- * every-link-lands-at-bottom report, 2026-10-13) — a synchronous tick that
- * retries until both elements exist has no cancellation window. */
+ * frame-chained rAF can be cancelled mid-flight in dev. A synchronous tick
+ * that retries until both elements exist has no cancellation window. */
 export function SessionMessageNavigation() {
 	const context = useStickToBottomContext();
-	// ABSORB IDENTITY CHURN (the 2026-10-13 heisenbug): use-stick-to-bottom
-	// re-creates stopScroll (and thus this context) while its initial scroll
-	// settles. Reading it through a ref keeps `jump`'s identity STABLE, so the
-	// effects below run once — a dep-churned cleanup used to cancel the queued
-	// jump / strip the flash mid-flight, which is exactly the owner's
-	// every-link-lands-at-bottom report (it only reproduced WITHOUT debug
-	// logging shifting the timing).
+	// ABSORB IDENTITY CHURN: use-stick-to-bottom re-creates stopScroll (and
+	// thus this context) while its initial scroll settles. Reading it through
+	// a ref keeps `jump`'s identity STABLE, so the effects below run once; a
+	// dep-churned cleanup would cancel the queued jump mid-flight and every
+	// link would land at the bottom.
 	const contextRef = useRef(context);
 	contextRef.current = context;
 	const lastJump = useRef<{ hash: string; target: HTMLElement } | null>(null);
@@ -77,8 +74,8 @@ export function SessionMessageNavigation() {
 		let ticks = 0;
 		const id = window.setInterval(() => {
 			// Keep watching PAST the first success: hydration / record adoption
-			// can REPLACE the node that was just jumped to (observed on cold
-			// dev loads, 2026-10-13) — jump() re-targets the fresh node and
+			// can REPLACE the node that was just jumped to (cold dev loads);
+			// jump() re-targets the fresh node and
 			// re-flashes it, while steady-state ticks are no-ops via the
 			// lastJump guard. ~20s watchdog covers a cold compile (observed
 			// 6.8s SSR flush) or slow first load; a deleted-message anchor

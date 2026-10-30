@@ -10,7 +10,7 @@ import type TurndownService from "turndown";
  *   web_fetch(url) → readable markdown text (Readability + Turndown, Jina
  *                    Reader fallback for JS-rendered pages)
  *
- * Keyless by design: there is no search engine (API keys were removed).
+ * There is no search engine tool.
  *
  * Tool contract: NEVER throw into the agent loop — every failure path
  * returns a clear error STRING as the tool output, so the researcher can
@@ -27,8 +27,7 @@ const MAX_CONTENT_CHARS = 40_000;
 const MIN_USEFUL_CONTENT = 200;
 
 /** The page reader (Readability + linkedom + Turndown, ~1 MB of code),
- *  loaded on the first web_fetch (speed plan, 2026-10-27), not at server
- *  start. */
+ *  loaded on the first web_fetch, not at server start. */
 let reader: Promise<{
 	Readability: typeof import("@mozilla/readability").Readability;
 	parseHTML: typeof import("linkedom").parseHTML;
@@ -91,15 +90,13 @@ async function fetchAndExtract(url: string, signal?: AbortSignal): Promise<strin
 	});
 	if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
 
-	// Final URL after redirects + status — the researcher's only way to
-	// tell a real page from a 200-served error body (owner-reported
-	// "ill-formed request" case: the SITE answered, we just relayed it).
+	// Final URL after redirects + status: the researcher's only way to
+	// tell a real page from a 200-served error body.
 	const sourceLine = `Source: ${resp.url || url} (HTTP ${resp.status})`;
 
 	const contentType = resp.headers.get("content-type") ?? "";
 	if (contentType.includes("application/pdf")) {
-		// Pointer, not dead-end (researcher PDF wave, 2026-10-07): the
-		// researcher's web_fetch_pdf tool downloads + triages PDFs.
+		// Pointer, not dead-end: web_fetch_pdf downloads + triages PDFs.
 		return `web_fetch: this URL is a PDF document — call web_fetch_pdf on it to download and read it.`;
 	}
 	if (/image\/|audio\/|video\/|zip|octet-stream/.test(contentType)) {
@@ -140,10 +137,7 @@ export const webTools: Record<string, AgentTool<any>> = {
 		execute: serverExecute("web_fetch", webFetchInput, async ({ url }, { signal }): Promise<string> => {
 			try {
 				const parsed = new URL(url);
-				// URL.protocol carries a TRAILING COLON ("https:", WHATWG) — the
-				// colon-less comparison born from the py-harness port (urlparse's
-				// scheme has NO colon) rejected every valid URL ever fetched
-				// (owner-reported via OpenRouter logs, 2026-10-07).
+				// URL.protocol carries a TRAILING COLON ("https:", WHATWG).
 				if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
 					throw new Error("Only http(s) URLs are supported");
 			} catch {

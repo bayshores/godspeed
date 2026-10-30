@@ -56,11 +56,10 @@ if (exists(leakedData)) {
 }
 
 // 2b) Safety: the repo's dev SECRETS must never ride along either — the
-// same trace sweep that catches data/ shipped a repo-root secrets file
-// byte-identical into the DMG (caught in the 2026-10-08 payload audit;
-// excluded in next.config.ts — this guard makes a regression loud instead
-// of silent). auth.json is the retired API-key store: old checkouts may
-// still hold one, so it stays refused.
+// same trace sweep that catches data/ can copy repo-root secrets files
+// into the DMG. next.config.ts excludes them; this guard makes a
+// regression loud instead of silent. auth.json is the retired API-key
+// store: old checkouts may still hold one, so it stays refused.
 const subscriptionSecrets = fs.readdirSync(STANDALONE).filter((name) => /^(chatgpt|github-copilot|xai)-credentials\.json/.test(name));
 for (const secret of ["auth.json", ...subscriptionSecrets, ".env", ".env.local"]) {
 	if (exists(path.join(STANDALONE, secret))) {
@@ -70,7 +69,7 @@ for (const secret of ["auth.json", ...subscriptionSecrets, ".env", ".env.local"]
 	}
 }
 
-// 2c) Payload curation (2026-10-11): the trace sweep can copy repo-root
+// 2c) Payload curation: the trace sweep can copy repo-root
 // dist/ (previous installers, recursively) and the development Electron
 // runtime (the demo helper's dev-only require). Neither belongs in the
 // server: packaged helpers use process.execPath, the app's own binary.

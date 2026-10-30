@@ -26,9 +26,9 @@ function jobFile(id: string): string {
 }
 
 /** Writes announce on the events channel AFTER the write lands (the
- *  notify-after-write law, beginTurn precedent) — jobs-changed is what
- *  retires the view's interval poll (push S4, 2026-10-02): dispatch cards,
- *  progress lines, settles, and aborts all surface as one fetch. */
+ *  notify-after-write law, beginTurn precedent) — jobs-changed lets the view
+ *  skip polling: dispatch cards, progress lines, settles, and aborts all
+ *  surface as one fetch. */
 function createJob(init: CreateJobInit): JobRecord {
 	const now = new Date().toISOString();
 	const record: JobRecord = {
@@ -95,7 +95,7 @@ function findJobByToolCallId(chatId: string, toolCallId: string): JobRecord | nu
 	return listJobs(chatId).find((j) => j.toolCallId === toolCallId) ?? null;
 }
 
-/** Delete every job record file for a chat (session-deletion wave 6) —
+/** Delete every job record file for a chat —
  *  running or finished, they are the chat's records and die with it.
  *  Returns how many files were removed. The deletion route refuses while
  *  jobs are still running, so every record here is terminal. */

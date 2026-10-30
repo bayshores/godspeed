@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 /**
- * Rename (2026-09-17): the header's click-to-edit title commits here.
+ * Rename: the header's click-to-edit title commits here.
  * Validation is a single rule — a non-empty string after trim (the store's
  * "Untitled session" floor is never reached from this route). updatedAt is
  * deliberately NOT bumped: a rename must not reorder the sidebar (same
@@ -41,8 +41,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 /**
- * DELETE /api/chats/[id]?mode=preserve-graph|delete-nodes — session deletion
- * (wave 6, owner rulings 2026-09-22/23). The mode is REQUIRED and explicit:
+ * DELETE /api/chats/[id]?mode=preserve-graph|delete-nodes — session
+ * deletion. The mode is REQUIRED and explicit:
  * no default, because the two differ in destructiveness —
  *
  *   preserve-graph  the session record, its jobs, and its extraction
@@ -50,7 +50,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  *                   keeps every contribution the session merged.
  *   delete-nodes    "this session never happened": every ledger trace of
  *                   the session goes too — provenance, link lines,
- *                   events, mappings — and orphaned nodes die entirely
+ *                   coverage rows — and orphaned nodes die entirely
  *                   (shared nodes survive automatically, their other
  *                   sessions' content intact).
  *
@@ -58,7 +58,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
  * 409 while a turn or background job is running, 503 while the session's
  * extraction is winding down after its abort — both retryable. The
  * response carries what was removed plus the new graphRevision (the
- * version stamp the UI polls to refetch clusters/layout).
+ * version stamp that tells the UI to refetch the graph).
  */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;

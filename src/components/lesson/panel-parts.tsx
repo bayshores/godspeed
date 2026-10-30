@@ -2,7 +2,7 @@ import { CornerDownLeftIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * The Your-turn panel's shared pieces (redesign, lesson layout B): every
+ * The Your-turn panel's shared pieces: every
  * state of the right panel — a waiting question, a practice problem, the
  * message box — is a padded content column over a full-width action bar.
  */

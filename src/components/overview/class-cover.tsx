@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { SIGNATURE_LEFT, fitScale, firstSentence, labelHangsLeft, noteWhen, studiedShare } from "./class-cover-model";
 
 /**
- * THE CLASS COVER (top of a class's Overview, pen board 10b · H2): the
+ * THE CLASS COVER (top of a class's Overview): the
  * class's signature set huge and dim behind its name, inked a shade
  * brighter as far as the learner has studied; the description's first
  * sentence; a progress line along the bottom; Halley's note

@@ -1,8 +1,7 @@
 /**
- * The Files page's small pure helpers (redesign plan, Phase 6). Every
- * value comes from the class record (src/core/contracts/class.ts) and the
- * progress payload's file coverage (src/core/progress.ts); unit-tested on
- * their own.
+ * The Files page's small pure helpers. Every value comes from the class
+ * record (src/core/contracts/class.ts) and the progress payload's file
+ * coverage (src/core/progress.ts).
  */
 import type { ClassFile, FileCoverage } from "@/core";
 
@@ -77,7 +76,7 @@ export function fileState(file: ClassFile, coverage: FileCoverage | undefined): 
 	}
 }
 
-/** Retry is offered while a file is stuck or failed (the old dialog's rule). */
+/** Retry is offered while a file is stuck or failed. */
 export function canRetry(file: ClassFile): boolean {
 	return file.status === "failed" || file.status === "needs-whisper" || file.status === "pending";
 }

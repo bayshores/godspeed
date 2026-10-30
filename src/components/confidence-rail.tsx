@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { type ConfidenceLevel } from "@/core";
 
 /**
- * CONFIDENCE, 1–5 (redesign 2026-10-27). The learner picks a level; it is
+ * CONFIDENCE, 1–5. The learner picks a level; it is
  * saved as 20/40/60/80/100% (CONFIDENCE_STOPS) so the teacher's prompts,
  * which read percentages, stay unchanged. Old answers (0/30/50/70/90/100)
  * show at their nearest level (confidenceLevel).

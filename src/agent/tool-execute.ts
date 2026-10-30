@@ -3,48 +3,36 @@ import type { Static, TSchema } from "typebox";
 import { CONCLUDE_ACK_TEXT } from "../core/contracts/chat.ts";
 
 /**
- * tool-execute — the execution machinery every server-side lh tool shares,
- * expressed natively (Wave A of the pi-native migration, 2026-09-26): tools
- * are authored as pi-agent-core AgentTools (TypeBox parameters, native
- * execute), and this module owns the semantics the old LhTool wrapper
- * (lh-tool.ts, deleted) used to add around every execute:
+ * The execution machinery every server-side tool shares. Tools are
+ * pi-agent-core AgentTools (TypeBox parameters, native execute); this
+ * module adds:
  *
- * - the system-level per-call timeout + abort cascade (runWithAbortGuard),
- * - the authoring-refinement failure shape (invalidInputResult —
- *   returned from execute as an isError result; pi 1.0's convention, the
- *   model sees the same retryable problem list it always did, and
- *   `details` keeps the problems as data),
- * - the result mapping (string verbatim / object JSON / image results to
- *   native content parts; details carries the record-facing value),
+ * - the per-call timeout + abort cascade (runWithAbortGuard),
+ * - the authoring-refinement failure shape (invalidInputResult, an
+ *   isError result the model retries on; `details` keeps the problems),
+ * - the result mapping (string verbatim / object JSON / images to native
+ *   content parts; details carries the record-facing value),
  * - the question-tool placeholder (quiz / ask_user_question): a synthetic
- *   "question posed" result that is NEVER persisted — the record keeps the
- *   tool part output-less until the client answers; the learner's answer
- *   re-enters the next turn as this call's result. terminate: true (owner
- *   Option A, 2026-09-25) ends single-question batches natively; the slim
- *   shouldStopAfterTurn stopper (teacher-agent.ts) holds the belt-and-
- *   suspenders rule for mixed batches.
+ *   "question posed" result that is never persisted; the learner's answer
+ *   re-enters the next turn as this call's result. terminate: true ends
+ *   single-question batches; the finishTurn hook (teacher-agent.ts)
+ *   covers mixed batches.
  *
- * Structural validation is NOT here: pi's loop validates arguments against
- * the tool's TypeBox parameters before execute ever runs (pi-ai's
- * validateToolArguments — the fast TypeBox path). Refinements that no
+ * Structural validation is not here: pi's loop validates arguments
+ * against the TypeBox parameters before execute runs. Refinements no
  * schema can carry (quizInputProblems, the live-tree nodeId check) run at
- * the top of the tool's own execute and throw ToolInputError.
+ * the top of the tool's own execute.
  */
 
 /**
- * System-level per-call timeout (2026-09-19, the abort-cascade fix): pi
- * passes every run's AbortSignal to tool execute, but the signal only
- * lands at a step boundary — so a long-running local tool (the grep that
- * outlived its turn by minutes) could hold the turn hostage until the dev
- * server's memory restart killed the run mid-tool, freezing the record at
- * its write-ahead state (the "went back in time" rollback). The guard
- * races every execute against (a) the run's signal and (b) this timeout,
- * rejecting with pi's own wording ("Operation aborted") on abort and a
- * clear timeout message otherwise — pi turns the throw into an error tool
- * result the model can see.
+ * Per-call timeout: pi's AbortSignal only lands at a step boundary, so a
+ * long-running local tool could hold the turn hostage. The guard races
+ * every execute against the run's signal and this timeout, rejecting with
+ * pi's own wording ("Operation aborted") on abort and a clear timeout
+ * message otherwise; pi turns the throw into an error result the model sees.
  */
 const TOOL_TIMEOUT_MS = 30_000;
-/** Test seam (runner.ts's pdfModelOverride idiom). */
+/** Test seam. */
 export const toolTimeoutMs = { current: TOOL_TIMEOUT_MS };
 
 /** How long an aborted/timed-out call may take to settle on its own before
@@ -108,12 +96,9 @@ function runWithAbortGuard<T>(
 		.finally(cleanup);
 }
 
-/** The 1.0-native authoring-failure result (pi convention, agent-core
- *  1.0): return an isError result instead of throwing — the model sees the
- *  same retryable problem list it always did (pi minted exactly this shape
- *  from a thrown ToolInputError), but `details` now keeps the problems as
- *  DATA for the record and the UI instead of the throw path's empty {}.
- *  Content text is byte-identical to the old thrown message. */
+/** The authoring-failure result: an isError result (pi's convention) so
+ *  the model sees a retryable problem list and `details` keeps the
+ *  problems as data for the record and the UI. */
 export function invalidInputResult(
 	toolName: string,
 	problems: string[],
@@ -131,13 +116,10 @@ export function invalidInputResult(
 }
 
 /**
- * Rich tool-result escape hatch (2026-09 sources v0): a tool whose result
- * includes IMAGES (the read tool reading an image file) returns this shape
- * instead of a plain value — toToolResult maps it to pi's native
- * tool-result content parts (TextContent | ImageContent)[] so the
- * vision-capable model actually SEES the image. `images` carries base64
- * data + mimeType, exactly as pi's ImageContent wants. `details` rides
- * through to the record untouched.
+ * Rich tool result: a tool whose result includes images (the read tool
+ * reading an image file) returns this shape so toToolResult maps it to
+ * pi's native content parts and the model actually sees the image.
+ * `details` rides through to the record untouched.
  */
 export interface ImageFileResult {
 	text: string;
@@ -153,11 +135,10 @@ function isImageResult(v: unknown): v is ImageFileResult {
 }
 
 /**
- * Map a tool body's return to the native AgentToolResult — the parity the
- * old toPiTool tail owned: string results pass verbatim to the model,
- * objects as JSON; `details` carries the RAW value (the record's tool part
- * output reads it, ui-stream), and image results become native content
- * parts with details ?? null.
+ * Map a tool body's return to the native AgentToolResult: strings pass
+ * verbatim to the model, objects as JSON; `details` carries the raw value
+ * (the record's tool part output reads it), and image results become
+ * native content parts with details ?? null.
  */
 export function toToolResult(result: unknown): AgentToolResult<unknown> {
 	if (isImageResult(result)) {
@@ -187,9 +168,8 @@ export interface ToolExecuteContext {
 }
 
 /**
- * Build a native AgentTool execute from a tool body — the guard (timeout +
- * abort cascade) plus the shared result mapping, byte-identical to the old
- * toPiTool pipeline for every server-side tool. Question tools do NOT use
+ * Build a native AgentTool execute from a tool body: the guard (timeout +
+ * abort cascade) plus the shared result mapping. Question tools do NOT use
  * this: their placeholder is instant (questionResult below) and their
  * refinement checks run before it.
  */
@@ -214,10 +194,9 @@ export function serverExecute<P extends TSchema>(
 /**
  * The synthetic question-tool result (in-memory only; the record's tool
  * part keeps no output until the learner answers). terminate: true ends
- * the batch natively — pi stops the loop when every finalized result in
- * the batch terminates; the shouldStopAfterTurn stopper covers the mixed
- * batch (question + other calls in one message) that terminate-only
- * semantics would let run on (owner Option A, 2026-09-25).
+ * the batch natively (pi stops when every result in the batch
+ * terminates); the finishTurn hook covers the mixed batch (question +
+ * other calls in one message) that terminate alone would let run on.
  */
 export function questionResult(): AgentToolResult<null> {
 	return {
@@ -232,7 +211,7 @@ export function questionResult(): AgentToolResult<null> {
 	};
 }
 
-/** The practice pose's ack (practice sessions, owner 2026-10-04): unlike
+/** The practice pose's ack: unlike
  *  a question, this result is FINAL — it persists (persistTurn filters
  *  only QUESTION_TOOLS placeholders), because the learner's submissions
  *  arrive as MESSAGES, never as this call's result. terminate: true ends

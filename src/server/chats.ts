@@ -11,11 +11,9 @@ import { discardChatDeliveries } from "./jobs.ts";
 
 /**
  * Server-side chat entries for the transport layer (src/app/api/chats*,
- * src/app/chat/[id]). Today these delegate straight to the ChatStore port; the
- * services stage carves the real orchestration behind this same surface.
+ * src/app/chat/[id]). Most delegate straight to the ChatStore port.
  *
- * deleteChatSession (wave 6, session deletion — the FIRST destructive
- * operation on the graph ledgers) is the one real orchestration here:
+ * deleteChatSession is the one real orchestration here:
  * gates → extraction wind-down → one synchronous deletion block. See
  * core/graph-deletion.ts for the ledger semantics and the atomicity
  * argument.
@@ -45,8 +43,7 @@ type ChatDeleteOutcome =
 	  };
 
 /**
- * Delete a session (owner rulings 2026-09-22/23): gates first, then the
- * purge. The owner-locked choreography:
+ * Delete a session: gates first, then the purge.
  *
  *   1. GATES — a turn in flight or a running background job refuses with
  *      409 (they write the chat record and steer into it; deleting
@@ -95,7 +92,7 @@ export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, {
 }
 
 /** Quiesce one lesson before a synchronous graph rewrite (deletion, or a
- *  class move — classes wave 2026-10-26): refuse while a turn or job runs,
+ *  class move): refuse while a turn or job runs,
  *  abort and wait out its extraction. Null = safe to run the sync block
  *  NOW (no await may sit between this and the rewrite). */
 export async function quiesceChatForRewrite(chatId: string): Promise<Extract<ChatDeleteOutcome, { ok: false }> | null> {
@@ -165,8 +162,7 @@ interface SessionCoverage {
 export function sessionCoverage(record: ChatRecord): SessionCoverage {
 	const chatId = record.id;
 	const entries = graphStoreFor(record.classId ?? null).readCoverage();
-	// Wave B: the record is native history — coverage reads through the
-	// projection (same view the extraction pipeline folds).
+	// Coverage reads through the same projection the extraction pipeline folds.
 	const cov = coverageOf(record.messages, entries, chatId);
 	let lastFoldedAt: string | null = null;
 	for (const entry of entries) {

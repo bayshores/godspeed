@@ -1,10 +1,6 @@
 /**
- * Plan-tree contracts — the session-scoped dependency tree
- *
- * Part of the domain-split contracts (src/core/contracts/): each domain file
- * is owned outright by its stream — cross-domain schema changes go through
- * master. Pure types + protocol docs + tiny pure helpers; type-only imports
- * of "ai" (safe everywhere: server, client, tests). See docs/vision.md.
+ * Plan-tree contracts — the session-scoped dependency tree.
+ * Pure types + protocol docs + tiny pure helpers.
  */
 // ─── Plan tree (vision §2 "formal plan tree") ────────────────────────────────
 // A session-scoped dependency tree authored by the teacher via plan tools.
@@ -33,18 +29,16 @@ export interface PlanTree {
 	version: number;
 }
 
-// NOTE (2026-09-11 pivot, docs/probe-teach-split.md): the tree once carried
-// `currentNodeId` / `doneNodeIds` — progress fields. They are GONE by
-// design: the tree carries structure ONLY; position and visited-ness derive
-// from the transcript at render time (derivePlanStatuses below). There is no
-// done ledger of any kind. No backwards compatibility for old records.
+// The tree carries structure ONLY: position and visited-ness derive from the
+// transcript at render time (derivePlanStatuses below). There is no done
+// ledger of any kind.
 
 /** Derived, never stored: status of a node for the panel (vision §2). */
 export type PlanNodeStatus = "current" | "visited" | "upcoming";
 
 // ─── derived statuses: position from CALLS, never from results ─────────────
 //
-// (2026-09-11 pivot — docs/probe-teach-split.md §3.) The teacher AUTHORS the
+// (docs/archive/probe-teach-split.md §3.) The teacher AUTHORS the
 // map (plan_init, mermaid — re-callable rewrite) and never tracks progress.
 // The quiz `nodeId` means "this question is ABOUT this node" — a position
 // signal, never a completion signal. Derivation reads CALLS only:
@@ -55,8 +49,7 @@ export type PlanNodeStatus = "current" | "visited" | "upcoming";
 // node is the teacher's judgment the previous one is finished, regardless of
 // check outcomes (a failed check then a move-on is still visited); results
 // feed nothing; there is NO fallback current (before the first tagged check
-// nothing is current). Untagged checks no longer exist (nodeId is required
-// on the teach quiz, owner ruling 2026-09-26). NodeIds missing from the
+// nothing is current). nodeId is required on the teach quiz. NodeIds missing from the
 // current tree are ignored (a rewrite may have dropped the node).
 
 /** Minimal structural message slice — anything with typed parts (mirrors
@@ -86,7 +79,7 @@ export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarri
 	for (const m of messages) {
 		for (const part of m.parts) {
 			// Either quizzing tool (quiz/explain) tags position — the mechanic
-			// is a settings switch; the fold recognizes both (owner 2026-09-27).
+			// is a settings switch; the fold recognizes both.
 			if (part.type !== "tool-quiz" && part.type !== "tool-explain") continue;
 			const nodeId = (part.input as { nodeId?: unknown } | undefined)?.nodeId;
 			if (typeof nodeId !== "string" || !ids.has(nodeId)) continue; // untagged/unknown — moves nothing
@@ -101,7 +94,7 @@ export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarri
 	return { current, visited };
 }
 
-// ─── the native fold (Wave D: derivePlanStatuses over LhMessage[]) ───────────
+// ─── the native fold (derivePlanStatuses over LhMessage[]) ───────────────────
 
 import type { LhMessage } from "../native-messages.ts";
 

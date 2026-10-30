@@ -1,5 +1,5 @@
 /**
- * THE ARTIFACT-UI ROUTE (owner, 2026-10-07): persists the learner's invert
+ * THE ARTIFACT-UI ROUTE: persists the learner's invert
  * switch onto a demo/figure steer message (details.ui.inverted) so it
  * survives session navigation and restarts. Modeled on the dismissal
  * route's SILENCE: no wake, no agent, no tokens, no SSE — the record is

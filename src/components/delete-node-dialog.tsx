@@ -4,28 +4,21 @@ import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 
-/** The 409 extraction_running line (owner phrasing, node interlude):
- *  the server's error names the extraction; the ACTIVITY DOCK is the
+/** The 409 extraction_running line: the server's error names the
+ *  extraction; the ACTIVITY DOCK is the
  *  surface the user actually watches drain. Exported pure for pins. */
 export const EXTRACTION_RETRY_LINE = "An extraction is running. Try again when the activity dock drains.";
 
 /**
- * Node deletion (node interlude, Platform's 50bfcba engine) — the
- * confirm surface, portaled z-50 like the session-delete dialog whose
- * tone it follows. FULL DEATH by owner ruling: the node, every edge
- * touching it, every event naming it, its position.
+ * Node deletion: the confirm surface, portaled z-50 like the
+ * session-delete dialog. FULL DEATH: the node, every edge touching it,
+ * every event naming it.
  *
- * MINIMAL BY OWNER RULING (2026-09-30): NO pre-flight impact read —
- * what full death takes is obvious (the edges die with the node), the
- * fetch flickered the dialog open-closed, and richer facts would only
- * grow more confusing as deletion semantics evolve (rewiring talk is
- * on the table). The screen is: title, names, one permanence line,
- * Cancel / Delete. The 409 extraction_running still gets the dock
- * phrasing with a Try-again — the run is never aborted server-side,
- * it clears on its own; other failures state themselves plainly.
- *
- * WORDING: "node"/"nodes" — THE UI word for graph objects (owner
- * ruling, same day, standardized everywhere in the UI).
+ * Minimal on purpose: no pre-flight impact read (a fetch would flicker
+ * the dialog open-closed). The screen is: title, names, one permanence
+ * line, Cancel / Delete. The 409 extraction_running gets the dock
+ * phrasing with a Try-again (the run clears on its own); other failures
+ * state themselves plainly.
  */
 /** The dialog's pure body — exported for SSR pins (the settings-dialog
  *  body pattern). The wrapper owns state + effects + the portal. */
@@ -45,7 +38,7 @@ export function DeleteNodeBody({
 	failure: { code: string; error: string } | null;
 	onClose: () => void;
 	onRun: () => void;
-	/** Motion (motion wave): "closed" while the exit plays. */
+	/** "closed" while the exit plays. */
 	state?: "open" | "closed";
 }) {
 	return (
@@ -61,15 +54,10 @@ export function DeleteNodeBody({
 			<h2 className="text-sm font-semibold text-destructive">
 				{nodes.length === 1 ? "Delete node?" : `Delete ${nodes.length} nodes?`}
 			</h2>
-			{/* The node name(s) below the title in JetBrains Mono (owner,
-			    2026-09-24): the name is the payload — mono suits it, and
-			    NO code-block chrome (the font already says code). Owner,
-			    2026-10-13 polish: title loses the serif display look for the
-			    abort-turn look (text-sm font-semibold mono, red kept), and
-			    the names drop the sized-up text-lg for normal text-sm —
-			    still white, still mono. Same shape as the session dialog.
-			    A multi-selection lists its names (capped at 8 + "and K
-			    more" — the count in the title carries the full number). */}
+			{/* The node name(s) below the title in mono, no code-block
+			    chrome. Same shape as the session dialog. A multi-selection
+			    lists its names (capped at 8 + "and K more"; the count in the
+			    title carries the full number). */}
 			<div className="mt-1.5">
 				{nodes.length === 1 ? (
 					<code data-testid="node-name-code" className="font-mono text-sm text-foreground">
@@ -122,9 +110,8 @@ export function DeleteNodeBody({
 					data-testid="node-delete-confirm"
 					onClick={onRun}
 					disabled={busy}
-					// Destructive red (owner, polish round) — the
-					// app's established destructive pair (chat's
-					// refusal banner): border + text, fill on hover.
+					// The app's destructive red pair: border + text,
+					// fill on hover.
 					className="lh-press border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-40"
 				>
 					{busy ? "Deleting…" : "Delete"}
@@ -151,7 +138,7 @@ export function DeleteNodeDialog({
 	onDeleted: (nodeIds: string[], graphRevision: number) => void;
 }) {
 	const { active: activeClassId } = useClasses();
-	// Exit motion (motion wave, owner 2026-10-26): the last names stay on
+	// Exit motion: the last names stay on
 	// screen while the dialog fades out.
 	const isOpen = !!nodes && nodes.length > 0;
 	const presence = usePresence(isOpen);
@@ -177,8 +164,7 @@ export function DeleteNodeDialog({
 		if (!nodes || nodes.length === 0) return;
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// THE ONE-ESC LAW (keyboard round 2026-10-06): claim at the
-				// document level — a window-level stopPropagation cannot stop
+				// Claim Esc at the document level: a window-level stopPropagation cannot stop
 				// the earlier-registered global window listener.
 				e.preventDefault();
 				e.stopPropagation();

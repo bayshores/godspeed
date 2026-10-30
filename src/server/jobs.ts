@@ -1,7 +1,7 @@
 /**
  * THE WAKE PIPELINE (contracts.ts "THE ASYNC PROTOCOL" §4) — server-side
- * steer delivery for finished sub-agent jobs. Wave C (2026-09-26):
- * delivery rides pi's OWN steering queue when a run is live, and the
+ * steer delivery for finished sub-agent jobs.
+ * Delivery rides pi's OWN steering queue when a run is live, and the
  * idle wake otherwise. One registry, two vehicles.
  *
  *   deliverJobResult(steer) — the runner calls this on job completion.
@@ -16,8 +16,7 @@
  *          BEFORE its first LLM call) — and CONTINUES THE SAME RUN: the
  *          marker joins the context mid-lesson, rides the live event
  *          stream (message_start/message_end), and lands in the record
- *          at that run's persist. This is the owner's 2026-09-26
- *          correction: a real lesson is one continuous teach→quiz→teach
+ *          at that run's persist. Why: a real lesson is one continuous teach→quiz→teach
  *          loop, so delivery must happen BETWEEN messages inside the
  *          run — waiting for the run to stop (follow-ups) only ever
  *          fires at a stopper exit, which is exactly when it must not.
@@ -25,9 +24,8 @@
  *          exits the loop, so a quiz-terminated run never injects: the
  *          handed marker strands (see settleSteers) and waits — the
  *          ANSWER run then picks it up at its start poll. probe-handoff
- *          markers NEVER take this path (owner ruling: the handoff must
- *          start the TEACHER's run — a record-level branch only a fresh
- *          wake can make).
+ *          markers NEVER take this path: the handoff must start the
+ *          TEACHER's run, a record-level branch only a fresh wake can make.
  *       2. IDLE WAKE: no live turn. WAIT FOR IDLE (turn-liveness OR a
  *          dangling question — an unanswered client-side tool call breaks
  *          provider conversion), then fire ONE server-side wake turn
@@ -73,7 +71,7 @@ import { isTurnRunning } from "./turn-liveness.ts";
 import type { Agent } from "@earendil-works/pi-agent-core";
 
 /** Fires one server-side teacher turn: (chatId, input) → HTTP-ish status.
- *  Wave C: the input is the IDLE WAKE — every queued marker as the turn's
+ *  The input is the IDLE WAKE: every queued marker as the turn's
  *  input appends (the handler appends them natively under the wake's own
  *  turn claim; one composition for every turn). */
 export type TurnRunner = (chatId: string, input: TurnInput) => Promise<number>;
@@ -104,11 +102,10 @@ interface WakeState {
 	turnRunner?: TurnRunner;
 	respawn?: JobRespawn;
 	/** chatId → steers awaiting delivery, in arrival order. The single
-	 *  delivery registry (Wave C: the agent's own follow-up queue is a
-	 *  per-run VEHICLE, not the registry — settlement reconciles here). */
+	 *  delivery registry (the agent's own follow-up queue is a per-run
+	 *  vehicle, not the registry; settlement reconciles here). */
 	queues: Map<string, QueuedSteer[]>;
-	/** chatId → user-steered messages awaiting drain (composer steering,
-	 *  2026-10-03). Same deliver-or-requeue lifecycle as job markers: the
+	/** chatId → user-steered messages awaiting drain. Same deliver-or-requeue lifecycle as job markers: the
 	 *  live agent's steering queue is the VEHICLE, this is the registry —
 	 *  a steer stranded behind a question or an abort stays parked here
 	 *  and rides the chat's NEXT run (handOffEligible). */
@@ -154,9 +151,7 @@ const POLL_MS = 400;
  *  is 2.5× the worst realistic flight. A miss self-heals: the pump rechecks
  *  the gates after the grace AND the wake pipeline retries 409s with a
  *  backoff ramp — and since the transport's merge-retry (chat-transport.ts)
- *  made client 409s non-fatal, even a pathological RTT degrades gracefully.
- *  (Was 1500 — pure guess; 750 claws back 750ms of post-answer delivery
- *  latency without weakening the guard.) */
+ *  made client 409s non-fatal, even a pathological RTT degrades gracefully. */
 const GRACE_MS = 750;
 /** 409 backoff: capped ramp so a busy client can't spin the pump. */
 const RETRY_BACKOFF_MS = [500, 1000, 2000, 5000] as const;
@@ -243,8 +238,7 @@ function queueSteer(chatId: string, steer: SteerMessage): QueuedSteer {
  *  must not wait for the pump loop to notice the new run: the handler
  *  registers the answer run's agent BEFORE runPiTurn, so this hand-off
  *  beats the loop's synchronous start-poll drain and the marker rides the
- *  run's FIRST LLM call (the native equivalent of the old continuation
- *  coalescing). */
+ *  run's FIRST LLM call. */
 function handOffEligible(chatId: string, agent: Agent): void {
 	const queue = state().queues.get(chatId);
 	// Job results first, then learner steers (deliverable from the first
@@ -257,7 +251,7 @@ function handOffEligible(chatId: string, agent: Agent): void {
 			}
 		}
 	}
-	// User steers (2026-10-03): same hand-off, any live run — a steer
+	// User steers: same hand-off, any live run — a steer
 	// stranded behind a question or abort rides the chat's next run's
 	// first boundary. No probe-handoff exclusion: these are learner
 	// words, owed to whatever run is live.
@@ -296,7 +290,7 @@ interface UserSteerEntry {
 	handedTo?: Agent;
 }
 
-/** The steer route's live hand-off (composer steering, 2026-10-03).
+/** The steer route's live hand-off.
  *  Synchronous by design — no interleaving between the live-agent check
  *  and the queue() means a settling turn can never race the hand-off.
  *  Returns false when no turn is live: the caller 409s and the client
@@ -335,7 +329,7 @@ export function unregisterLiveAgent(chatId: string): void {
 	state().liveAgents.delete(chatId);
 }
 
-/** TURN SETTLEMENT RECONCILIATION (Wave C): the handler calls this AFTER
+/** TURN SETTLEMENT RECONCILIATION: the handler calls this AFTER
  * unregisterLiveAgent, with the run's persisted messages. Two jobs:
  *
  *   - entries whose marker the run DELIVERED (in-run follow-up injection —
@@ -380,10 +374,9 @@ interface AbortOutcome {
 }
 
 /**
- * ABORT (2026-09 dock semantics, user-decided): real kill, error with
- * reason, the teacher still learns. The dock's END button reaches this
- * through POST /api/activity/abort (body {kind: "job", id: jobId}); the
- * route is master's thin composition — this is the job-side mechanism.
+ * ABORT: real kill, error with reason, the teacher still learns. The
+ * dock's END button reaches this through POST /api/activity/abort (body
+ * {kind: "job", id: jobId}); this is the job-side mechanism.
  * Four things happen, in order:
  *
  *   1. KILL the spend: fire the job's registered AbortController (the
@@ -399,7 +392,7 @@ interface AbortOutcome {
  *      doesn't hang silently in the lesson.
  *
  * The runner writes the usage folded so far in its finally (merge patch),
- * so an aborted job's money record survives the kill.
+ * so an aborted job's usage record survives the kill.
  */
 export function abortJob(jobId: string): AbortOutcome {
 	const job = stores.jobStore.getJob(jobId);
@@ -485,8 +478,8 @@ async function pump(chatId: string): Promise<void> {
 			if (live && isTurnRunning(chatId)) {
 				handOffEligible(chatId, live);
 				const handable = stillPending.filter((e) => e.handedTo === live);
-				// probe-handoffs never ride a live run (owner ruling: the
-				// handoff must START the teacher's run) — if any remain
+				// probe-handoffs never ride a live run (the handoff must
+				// START the teacher's run) — if any remain
 				// pending, wait the run out and loop to the wake below.
 				const handoffWaits = stillPending.some(
 					(e) => e.steer.customType === "probe-handoff",
@@ -529,7 +522,7 @@ async function pump(chatId: string): Promise<void> {
 			const fire = (s.queues.get(chatId) ?? []).filter((entry) => !entry.waking && !entry.deferred && !entry.handedTo);
 			if (fire.length === 0) return;
 
-			// THE DISMISSAL PAUSE (owner design 2026-10-03, "A2"): the record
+			// THE DISMISSAL PAUSE: the record
 			// ends in a user dismissal — the session waits for the USER. Hold
 			// every marker in the queue (no wake fires) and return; the user's
 			// next send is the wake that carries them (the in-run vehicle below
@@ -669,13 +662,12 @@ async function waitForIdle(chatId: string): Promise<void> {
 const SWEEP_THROTTLE_MS = 30_000;
 
 /**
- * Lazy sweep (called off the /api/jobs poll, throttled), LIVENESS-GATED
- * (accuracy wave, 2026-09-19): a "running" record without a live loop
- * registration (subagents/aborts.ts) is an orphan of a process death —
- * re-deliver its stored result (idempotently) or re-spawn the loop, at
- * once (the old 15-minute age heuristic waited on ghosts AND re-ran
- * hung-but-alive loops beside themselves — the figure-maker incident,
- * 2026-09-18). A record WITH a live registration is provably executing
+ * Lazy sweep (called off the /api/jobs poll, throttled), LIVENESS-GATED:
+ * a "running" record without a live loop registration
+ * (subagents/aborts.ts) is an orphan of a process death — re-deliver its
+ * stored result (idempotently) or re-spawn the loop, at once. An age
+ * heuristic would wait on ghosts and re-run hung-but-alive loops beside
+ * themselves. A record WITH a live registration is provably executing
  * in THIS process — never touched, however old: a hung first model call
  * stays honestly running until END kills it. Terminal workers with known
  * pending delivery are restored independently; old terminal records without

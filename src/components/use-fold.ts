@@ -1,5 +1,5 @@
 /**
- * useFold (motion wave, owner 2026-10-26): a folding section that stays
+ * useFold: a folding section that stays
  * UNMOUNTED while closed (tests and SSR keep pinning hidden text as
  * absent) but still eases open and shut with `.lh-collapse`.
  *

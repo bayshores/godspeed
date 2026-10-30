@@ -26,7 +26,7 @@ import { VisualOutputCard } from "@/components/artifacts/visual-card";
 export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 	const artifactPart = message.parts.find((p) => p.type === "data-subagent-artifact");
 	const data = artifactPart?.data as SubagentArtifactData | undefined;
-	// The abort steer (2026-09 dock semantics): its message-type part is
+	// The abort steer: its message-type part is
 	// data-subagent-aborted (the custom-message scheme — the part, not
 	// metadata, is the marker) — a quiet chip, mirroring the complete-badge.
 	if (!data) {
@@ -78,8 +78,8 @@ function AbortedBadge({ kind }: { kind: string }) {
  * the badge marks delivery, the collapsed details carries the full text
  * + consulted pages. */
 function PdfCompleteBadge({ result }: { result: PdfResult }) {
-	// The honest count is READ pages (extract/render — sources v1 split);
-	// the ?? is runtime tolerance for pre-split persisted steers.
+	// The honest count is READ pages (extract/render); the ?? reads older
+	// persisted steers that only have pagesConsulted.
 	const readPages = result.pagesRead ?? result.pagesConsulted;
 	return (
 		<details data-testid="pdf-complete-badge" className="group w-full text-xs text-muted-foreground">
@@ -104,8 +104,8 @@ function PdfCompleteBadge({ result }: { result: PdfResult }) {
 
 /** Quiet one-liner, the dispatch-settled idiom — the lesson lives in the
  * teacher's wake turn; the badge just marks delivery. The persisted brief
- * rides along in a collapsed <details> (the wave-1 "view full research"
- * affordance): full markdown + sources, one click away, no extra fetch —
+ * rides along in a collapsed <details>: full markdown + sources, one
+ * click away, no extra fetch —
  * the artifact part in the record is the single source of truth. */
 function ResearchCompleteBadge({ result }: { result: ResearchResult }) {
 	return (

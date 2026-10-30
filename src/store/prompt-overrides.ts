@@ -1,6 +1,5 @@
 /**
- * The prompt-override STORE (settings-storage wave, 2026-09-19; P2
- * reconciliation same day): the override-file CRUD behind the core port —
+ * The prompt-override STORE: the override-file CRUD behind the core port —
  * list/read/write/delete under config.PROMPTS_OVERRIDE_DIR.
  *
  * The CANONICAL segment discovery + resolution (listSourceSegments,

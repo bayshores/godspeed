@@ -1,5 +1,5 @@
 /**
- * COMPACTION (owner round 14, 2026-10-05): the context-fitting mechanic,
+ * COMPACTION: the context-fitting mechanic,
  * with a bounded local port of Pi coding-agent 1.4.0 cutoff selection.
  * No coding-agent dependency. See docs/compaction-accounting.md for the
  * behavior boundary, native golden fixtures, and upstream MIT notice.
@@ -15,16 +15,14 @@
  * compaction kicks at turn settle (running during the pause) and every
  * turn start awaits the gate. No mid-run surgery exists.
  *
- * Trigger threshold (owner ruling): effective = min(settings threshold,
- * model contextWindow − 16k reserve). Defaults: threshold 150k, kept
- * tail ~20k recent tokens (pi's defaults, owner-approved). Token
- * estimation follows pi's law (2026-10-05 incident fix): anchor on the
+ * Trigger threshold: effective = min(settings threshold, model
+ * contextWindow − 16k reserve). Defaults: threshold 150k, kept tail ~20k
+ * recent tokens (pi's defaults). Token estimation follows pi: anchor on the
  * provider-reported usage of the last assistant message, chars/4 only
  * for messages appended after that anchor; the heuristic alone runs
  * only when no usage exists yet.
  *
- * Summary content (owner's three requirements + continuity): the
- * learner's understanding and its EVOLUTION (quiz outcomes, confidence,
+ * Summary content: the learner's understanding and its EVOLUTION (quiz outcomes, confidence,
  * misconceptions — a detailed picture of what the user knows), the
  * teaching arc / session progression, and the plan dependency tree
  * VERBATIM (from record.tree — the plan_init tool result may fall before
@@ -42,9 +40,9 @@ import { contentText } from "./attachments.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage, SystemMessage, UserMessage } from "@earendil-works/pi-ai";
 
-// ─── constants (the tunables, owner-approved) ────────────────────────────────
+// ─── constants (the tunables) ────────────────────────────────────────────────
 
-/** Kept-recent tail budget (pi's default, owner-approved 2026-10-05):
+/** Kept-recent tail budget (pi's default):
  * ~20k tokens of verbatim recent transcript always ride after the
  * summary — recency is cheap insurance against summary loss. */
 export const KEEP_RECENT_TOKENS = 20_000;
@@ -79,8 +77,8 @@ export function calculateContextTokens(usage: {
 /** Pi 1.4.0's heuristic: text + thinking + toolCall name/args for
  * assistants, content text plus a fixed image allowance for other roles. NEVER JSON.stringify of the
  * whole message — record scaffolding (ids, usage, responseId, app-side
- * details, escaped quotes/backslashes) inflates ~3x (measured on the
- * 2026-10-05 relational-databases incident: 84k estimated vs ~30k real). */
+ * details, escaped quotes/backslashes) inflates ~3x (once measured at 84k
+ * estimated vs ~30k real). */
 export function estimateMessageTokens(message: LhMessage | AgentMessage): number {
 	const content: unknown = (message as { content?: unknown }).content;
 	let chars = 0;
@@ -248,7 +246,7 @@ export interface CompactionDetails {
 	 * (provenance for the divider's tooltip/dialog). */
 	tokensBefore: number;
 	/** provider:id of the model that wrote the summary (the session's
-	 * own model — owner ruling; provenance, never a routing input). */
+	 * own model; provenance, never a routing input). */
 	model?: string;
 	/** ISO timestamp of the compaction moment. */
 	at: string;
@@ -337,8 +335,8 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 	return lines.join("\n\n");
 }
 
-/** Render the plan dependency tree verbatim (owner requirement: the tree
- * persists through compaction). Structure from record.tree, statuses
+/** Render the plan dependency tree verbatim (the tree persists through
+ * compaction). Structure from record.tree, statuses
  * derived from the transcript (the record's own law: the tree carries
  * structure only). Empty tree → absent section (nothing persisted). */
 export function planTreeToText(tree: PlanTree | undefined, messages: readonly LhMessage[]): string | null {
@@ -360,10 +358,10 @@ export function planTreeToText(tree: PlanTree | undefined, messages: readonly Lh
 }
 
 /**
- * The summarizer prompt. The summary's REQUIRED SHAPE (owner rulings):
- * the learner's understanding AND its evolution, the teaching arc, the
- * plan tree verbatim, and the current moment — in that order of stress.
- * The summarizer is the session's own model (owner ruling), writing for
+ * The summarizer prompt. The summary's REQUIRED SHAPE: the learner's
+ * understanding AND its evolution, the teaching arc, the plan tree
+ * verbatim, and the current moment — in that order of stress.
+ * The summarizer is the session's own model, writing for
  * its own future self: the summary replaces everything before the cut.
  */
 export function buildCompactionPrompt(input: {

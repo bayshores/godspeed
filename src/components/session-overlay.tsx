@@ -8,15 +8,12 @@ import { Hint } from "@/components/ui/hint";
 import { SvgImage } from "@/components/artifacts/svg-image";
 
 /**
- * SESSION-SCOPED OVERLAYS (owner wave, 2026-09-19): the "fullscreen"
- * expansions — the plan focus, this mermaid focus — do NOT cover the app
- * chrome. They mount ABSOLUTE INSIDE THE SESSION AREA (the `relative` div
- * below the top bar, right of the sidebar, where the transcript and dock
- * live), so the 60px drag bar stays sharp, visible, and draggable and the X
- * can never land in drag territory — the old `fixed inset-0` overlays put it
- * exactly there, which is what drove this redesign. Surface: 80% background +
- * blur (user-decided) — the transcript ghosts through while the focus owns
- * the session area.
+ * SESSION-SCOPED OVERLAYS: the "fullscreen" expansions (the plan focus,
+ * this mermaid focus) do NOT cover the app chrome. They mount ABSOLUTE
+ * INSIDE THE SESSION AREA (the `relative` div below the top bar, right of
+ * the sidebar), so the 60px drag bar stays draggable and the X can never
+ * land in drag territory. Surface: 80% background + blur, so the
+ * transcript ghosts through.
  *
  * The chart source registers from wherever it lives in the transcript
  * (md-blocks' expand button) via the context below; the CHAT PAGE owns the
@@ -41,7 +38,7 @@ export function useSessionMermaid() {
 
 /** A chart svg's natural size — mermaid always emits a viewBox; this is the
  *  extent at zoom 1 (1 svg unit = 1 px), like the plan diagram's natural
- *  size. Figure svgs (2026-10-07) may declare width/height instead — that
+ *  size. Figure svgs may declare width/height instead — that
  *  pair is the fallback. The final fallback covers a degenerate svg with
  *  neither. Pure. */
 export function chartSize(svg: string): { w: number; h: number } {
@@ -66,8 +63,8 @@ export function chartSize(svg: string): { w: number; h: number } {
 /** The diagram focus: the chart at natural size inside a pan/zoom viewport
  *  (the plan popup's fit-floor semantics — fitGraphView/zoomedGraphView in
  *  pan-zoom.ts), Esc/X close. Renders its own copy of the chart (mermaid
- *  ids are per-render), not the injected inline svg. FIGURE MODE
- *  (2026-10-07): pass a raw `svg` instead of a mermaid `chart` — the same
+ *  ids are per-render), not the injected inline svg. FIGURE MODE: pass a
+ *  raw `svg` instead of a mermaid `chart` — the same
  *  shell then focuses a figure card's svg on a white stage, with the
  *  caller's invert state carried over (the filter rides the white stage,
  *  exactly like the in-card holder). */
@@ -108,8 +105,7 @@ export function MermaidOverlay({
 		};
 	}, [rawSvg, chart, attempt]);
 
-	// Esc closes — claimed at the document level (THE ONE-ESC LAW, owner
-	// keyboard round 2026-10-06): one Esc, one action; the window chain
+	// Esc closes, claimed at the document level: one Esc, one action; the window chain
 	// (abort) never fires under a surfaced layer.
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -212,9 +208,7 @@ export function MermaidOverlay({
 			data-testid="mermaid-overlay"
 			// SESSION-SCOPED (not fixed): mounts absolute inside the chat
 			// page's session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through (owner
-			// decision, 2026-09-19).
-			// Fades in (motion wave, owner 2026-10-26).
+			// sidebar. 80% + blur: the transcript ghosts through.
 			className="absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm lh-fade"
 			role="dialog"
 			aria-modal="true"
@@ -259,9 +253,9 @@ export function MermaidOverlay({
 								transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
 								// Hidden until the first fit has APPLIED: the fit runs in an
 							// effect (after paint), and the chart would otherwise flash
-							// at the initial top-left zoom:1 state for a frame (the
-							// owner saw exactly that; transition-gating alone doesn't
-							// hide it — VISIBILITY must be gated on settled too).
+							// at the initial top-left zoom:1 state for a frame
+							// (transition-gating alone doesn't hide it, so VISIBILITY
+							// is gated on settled too).
 								opacity: settled ? 1 : 0,
 								transition:
 									panning || !settled

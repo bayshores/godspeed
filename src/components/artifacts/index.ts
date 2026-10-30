@@ -11,8 +11,8 @@ import { ProblemCard, ConcludeCard } from "@/components/practice-cards";
  * Artifact renderer registry — the extension point for tool-part UI.
  *
  * chat.tsx renders any tool part it doesn't specially handle (i.e. not
- * quiz/ask) by looking the tool name up here. Add your renderer — do NOT
- * edit chat.tsx (see docs/plan.md file-ownership rules).
+ * quiz/ask) by looking the tool name up here. Add new renderers here, not
+ * in chat.tsx.
  *
  * Typical shape: while the part is input-available render an activity card
  * (the chat view's jobs feed reads GET /api/jobs?chatId=…; on completion call
@@ -21,32 +21,28 @@ import { ProblemCard, ConcludeCard } from "@/components/practice-cards";
  */
 export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>> = {
 	research: JobCard,
-	pdf: PdfJobCard, // sources v0 — live smoke 2026-09-19 caught the gap: without this the tool-pdf dispatch part rendered nothing
+	pdf: PdfJobCard,
 	// plan_* parts render nothing inline by design: the phase seam is a
 	// message-level boundary, drawn by PhaseDivider in lesson/message-row.tsx.
-	// Artifacts (W6 fills in the components):
 	demo: DemoCard,
 	visual: VisualCard,
 	// The probe conclusion: the assessment belongs to the learner as much as
-	// to the transcript (docs/probe-teach-split.md §2). Plain v1 card.
+	// to the transcript.
 	probe_done: ProbeDoneCard,
-	// The learner-filesystem set (sources v1): one quiet expandable
+	// The learner-filesystem set: one quiet expandable
 	// tool-call card each — collapsed one-liner (tool name + headline
 	// argument), full input/output on expand.
 	read: ToolCallCard,
 	ls: ToolCallCard,
 	find: ToolCallCard,
 	grep: ToolCallCard,
-	// The practice pair (2026-10-04): the pose renders the statement ONLY
+	// The practice pair: the pose renders the statement ONLY
 	// (the commitment lives in the call's arguments and never renders);
 	// the conclusion carries the outcome + verdict + the reveal.
 	problem: ProblemCard,
 	conclude: ConcludeCard,
-	// The prober's graph tools (wave 7): same quiet expandable card —
-	// collapsed one-liner (tool name + the session id for
-	// list_propositions), the tool's own compact row-per-line output
-	// (name / level / date) verbatim on expand, exactly the read/ls
-	// discipline (their results are pre-formatted strings too).
+	// The prober's graph tools: same quiet expandable card, the tool's own
+	// pre-formatted output verbatim on expand.
 	list_sessions: ToolCallCard,
 	list_propositions: ToolCallCard,
 };

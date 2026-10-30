@@ -108,14 +108,14 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          /* The heading register (owner round 4, 2026-10-05): the small
-             mono caps of the card eyebrows — matching YOUR THINKING, whose
-             rail offsets it by exactly the one-character difference. */
+          /* The heading register: the small mono caps of the card
+             eyebrows, matching YOUR THINKING, whose rail offsets it by
+             exactly the character difference. */
           "flex w-full items-center gap-2 text-muted-foreground text-xs font-semibold transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground",
           className
         )}
         {...props}
-        /* FOCUS HYGIENE (owner, keyboard round 2026-10-10): a pointer click
+        /* FOCUS HYGIENE: a pointer click
            on the thinking toggle must not leave focus here — the learner's
            next Enter submits, it must not re-toggle. Radix composes this
            with its own toggle handler. */
@@ -151,8 +151,7 @@ export const ReasoningContent = memo(
     <CollapsibleContent
       className={cn(
         "mt-4 text-sm text-muted-foreground outline-none",
-        /* The app's motion tokens (motion wave, owner 2026-10-26): the old
-           tw-animate classes were dead (the plugin is not loaded). Opening
+        /* The app's motion tokens (tw-animate is not loaded). Opening
            rises in; closing fades, and Radix waits for it before unmounting. */
         "motion-safe:data-[state=open]:animate-[lh-rise-in_var(--lh-dur)_var(--lh-ease-out)] motion-safe:data-[state=closed]:animate-[lh-fade-out_var(--lh-dur-fast)_var(--lh-ease-in)_both]",
         className

@@ -3,16 +3,15 @@
  * needs. Sections → groups → rows; everything SSRs clean (render tests
  * pin the sections' markup).
  *
- * The dependency graying (owner, 2026-09-20) follows the graph viewer's
- * render-panel convention: the WHOLE row dims (opacity-40, label and
- * control together) and the control itself locks — the row owns the dim.
+ * Dependency graying: the WHOLE row dims (label and control together) and
+ * the control itself locks; the row owns the dim.
  */
 
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Tip } from "@/components/ui/tooltip";
 
-/** A section block (redesign 2026-10-27): the dialog's head shows the
+/** A section block: the dialog's head shows the
  *  section's title, so the block is just its groups and rows. */
 export function SettingsSection({
 	title,
@@ -67,7 +66,7 @@ export function SettingsRow({
 	tip?: ReactNode;
 	children: React.ReactNode;
 	testid?: string;
-	/** Dependency graying, graph-view style: the whole row dims when the
+	/** Dependency graying: the whole row dims when the
 	 *  control is inert (parent off, no file yet, …). */
 	dimmed?: boolean;
 }) {
@@ -105,9 +104,8 @@ export function Toggle({
 	onChange: (next: boolean) => void;
 	/** Accessible name for the switch role. */
 	label: string;
-	/** Optional icon disc (owner round, 2026-10-07): the figure cards' invert
-	 *  toggle renders the half-filled contrast circle AS the disc — the icon
-	 *  carries the meaning; plain toggles keep the plain disc. */
+	/** Optional icon disc: the figure cards' invert toggle draws its
+	 *  contrast circle AS the disc; plain toggles keep the plain disc. */
 	discIcon?: ReactNode;
 	/** Optional native tooltip on the switch. */
 	title?: string;
@@ -123,8 +121,8 @@ export function Toggle({
 			data-testid={`toggle-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
 			onClick={() => onChange(!checked)}
 			className={cn(
-				// lh-press eases the track colors and dips on press (motion wave,
-				// owner 2026-10-26); the disc below slides on the same clock.
+				// lh-press eases the track colors and dips on press; the disc
+				// below slides on the same clock.
 				"lh-press relative h-[18px] w-[34px] shrink-0",
 				// On is a white track with a black knob; off is the tone-2 track.
 				checked ? "bg-ink" : "bg-tone-2",
@@ -225,10 +223,8 @@ export function CommitInput({
 	testid,
 	type = "text",
 }: {
-	/** "" = unset (the factory default). Mirrors the STORED record —
-	 *  after a clamped/normalized commit this flows back and the field
-	 *  snaps to the stored truth (owner repro: a negative size kept
-	 *  displaying "-5" while 12 was stored). */
+	/** "" = unset (the factory default). Mirrors the STORED record, so
+	 *  after a clamped commit the field shows what was really saved. */
 	value: string;
 	placeholder?: string;
 	onCommit: (next: string) => void;
@@ -237,8 +233,7 @@ export function CommitInput({
 	type?: "text" | "number";
 }) {
 	// The draft exists only while editing; a blur shows the record's value
-	// again — commit-on-blur/Enter (owner ruling), the field honest about
-	// what landed.
+	// again, so the field is honest about what landed.
 	const [draft, setDraft] = useState(value);
 	const [editing, setEditing] = useState(false);
 	return (

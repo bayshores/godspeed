@@ -1,6 +1,5 @@
 /**
- * The running-turn registry (background-turn runner wave, owner ruling
- * 2026-09-25): chatId → the live PiTurnHandle. THE reattach surface —
+ * The running-turn registry: chatId → the live PiTurnHandle. The reattach surface:
  * GET /api/chats/[id]/stream resolves here, and the remote abort
  * (/api/activity/abort, kind "turn") kills through here.
  *
@@ -18,8 +17,7 @@
  * not mistake an unsaved reply for success. The per-chat
  * 409 guard means a chatId can hold at most one handle.
  *
- * App-quit mid-turn (the process dying with an un-persisted turn) is the
- * SAME residual as before the wave: the registry is memory-only, the
+ * If the app quits mid-turn, the registry is lost (memory only); the
  * write-ahead record covers the next mount.
  */
 

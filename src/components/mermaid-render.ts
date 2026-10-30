@@ -1,12 +1,10 @@
 /**
- * The app's ONE mermaid renderer (the chrome-melt wave, 2026-09-19): both the
- * in-chat block (src/components/md-blocks.tsx) and the session-scoped focus
- * overlay (src/components/session-overlay.tsx) render charts through this module
- * — one dark-theme config, one plugin instance, unique render ids. This
- * REPLACES streamdown's internal mermaid path entirely: its fullscreen portal
- * was hard-wired `fixed inset-0` (covering the window-drag bar, X landing in
- * drag territory) with no styling hook, which is what drove the custom
- * component in the first place.
+ * The app's ONE mermaid renderer: both the in-chat block (md-blocks.tsx)
+ * and the session-scoped focus overlay (session-overlay.tsx) render charts
+ * through this module, with one dark-theme config, one plugin instance and
+ * unique render ids. Streamdown's own mermaid path isn't used: its
+ * fullscreen portal is hard-wired `fixed inset-0` (covering the window-drag
+ * bar) with no styling hook.
  */
 
 import type { MermaidConfig } from "mermaid";
@@ -15,13 +13,11 @@ import type { MermaidConfig } from "mermaid";
  *  this, so it's the number the display-width cap (md-blocks) divides by:
  *  a chart shown at its natural width renders text at exactly this size.
  *  Pinned explicitly so a mermaid default change can't silently shift the
- *  cap (owner rule, chrome-melt tweaks wave, 2026-09-19: chart text must
- *  never render larger than the session's own text). */
+ *  cap (chart text must never render larger than the session's own text). */
 export const MERMAID_FONT_SIZE = 16;
 
-// The app is dark-only (html.dark in the root layout) — diagrams render in
-// mermaid's dark theme. (Moved from ai-elements/message.tsx when the
-// renderer became app-owned; the old `mermaid` prop wiring is retired.)
+// The app is dark-only (html.dark in the root layout), so diagrams render in
+// mermaid's dark theme.
 const mermaidTheme: MermaidConfig = {
 	fontFamily: "ui-sans-serif, system-ui, sans-serif",
 	fontSize: MERMAID_FONT_SIZE,

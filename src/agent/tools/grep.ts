@@ -17,7 +17,7 @@ import {
 } from "./fs-shared.ts";
 
 /**
- * The grep tool — sources v1 (2026-09-19): pi's dist/core/tools/grep.js
+ * The grep tool: pi's dist/core/tools/grep.js
  * ported to a pure-Node scan (pi shells out to rg). Schemas and output
  * formats are pi-verbatim — `relative/path:LINE: text` matches,
  * `relative/path-LINE- text` context lines, the 500-char line cap, the
@@ -97,10 +97,10 @@ export const grepTool: AgentTool<typeof grepInput> = {
 		let matchCount = 0;
 		let limitReached = false;
 		let linesTruncated = false;
-		// The scan phase is bounded too (2026-09-19): the walk's 10s deadline
-		// bounds COLLECTION, but reading every collected file was unbounded —
-		// the grep that outlived its turn by minutes. Same budget, checked per
-		// file; abort lands mid-scan with partial results.
+		// The scan is bounded too: the walk's deadline only bounds
+		// COLLECTION, and reading every collected file could run for
+		// minutes. Same budget, checked per file; abort lands mid-scan with
+		// partial results.
 		const scanDeadline = Date.now() + WALK_TIMEOUT_MS;
 		let scanTimedOut = false;
 

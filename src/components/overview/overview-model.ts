@@ -46,8 +46,8 @@ export function mostMissesTakeaway(lessons: readonly LessonProgress[]): string |
 	return best ? `${best.title} has the most misses.` : null;
 }
 
-/** A level is overconfident (drawn red) when it is a "sure" level (4–5,
- *  the plan's definition) and was right less often than it claims. */
+/** A level is overconfident (drawn red) when it is a "sure" level (4–5)
+ *  and was right less often than it claims. */
 export function isLevelOverconfident(level: CalibrationLevel): boolean {
 	return level.level >= 4 && level.rate !== null && level.rate * 100 < level.target;
 }

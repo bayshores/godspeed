@@ -46,7 +46,7 @@ export function DeleteSessionDialog({
 	/** Success path — the sidebar owns navigation + list patching. */
 	onDeleted: (id: string, mode: ChatDeleteMode, graphRevision: number) => void;
 }) {
-	// Exit motion (motion wave, owner 2026-10-26): the last session stays on
+	// Exit motion: the last session stays on
 	// screen while the dialog fades out.
 	const presence = usePresence(chat !== null);
 	const [lastChat, setLastChat] = useState(chat);
@@ -78,8 +78,7 @@ export function DeleteSessionDialog({
 		if (!chat) return;
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// THE ONE-ESC LAW (keyboard round 2026-10-06): claim at the
-				// document level — a window-level stopPropagation cannot stop
+				// Claim Esc at the document level: a window-level stopPropagation cannot stop
 				// the earlier-registered global window listener.
 				e.preventDefault();
 				e.stopPropagation();
@@ -161,7 +160,7 @@ export function DeleteSessionBody({
 	onTraces: (next: boolean) => void;
 	onClose: () => void;
 	onRun: () => void;
-	/** Motion (motion wave): "closed" while the exit plays. */
+	/** "closed" while the exit plays. */
 	state?: "open" | "closed";
 }) {
 	return (

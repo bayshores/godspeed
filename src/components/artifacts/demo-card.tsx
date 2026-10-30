@@ -8,12 +8,12 @@ import { DispatchCard } from "@/components/artifacts/dispatch-card";
 import type { ArtifactPartProps, DemoResult } from "@/core";
 
 /**
- * Demo artifact card (W6): while the part is input-available, a job activity
+ * Demo artifact card: while the part is input-available, a job activity
  * card (the chat view's jobs feed — the job-card idiom); when output-available, the demo
  * runs in a SANDBOXED iframe (sandbox="allow-scripts", no allow-same-origin →
  * no access to app storage/cookies/DOM).
  *
- * The bridge script (contracts.ts "Demo iframe bridge") is auto-injected into
+ * The bridge script is auto-injected into
  * every demo by buildDemoSrcDoc — never the model's job: ResizeObserver →
  * postMessage {type:"demo-resize",height} (parent sizes the iframe) and
  * window.onerror → {type:"demo-error",message} (error chip on the card, with
@@ -88,7 +88,7 @@ export function DemoCard({ part }: ArtifactPartProps) {
 
 /** The demo artifact — exported: the steer card renders the delivered
  *  result. `messageId` + `initialInverted` carry the PERSISTED invert
- *  switch (details.ui.inverted via the artifact-ui route, owner 2026-10-07). */
+ *  switch (details.ui.inverted via the artifact-ui route). */
 export function DemoOutputCard({
 	output,
 	messageId,
@@ -137,7 +137,7 @@ function DemoFrame({
 	const actions = useContext(ChatActionsContext);
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [state, setState] = useState<DemoBridgeState>(INITIAL_DEMO_BRIDGE_STATE);
-	// Brightness inversion (owner, 2026-10-07): the switch state PERSISTS on
+	// Brightness inversion: the switch state PERSISTS on
 	// the steer record (details.ui.inverted) — seeded here, written through
 	// the silent artifact-ui route on toggle. Without a chat page (tests,
 	// previews) the toggle stays local-only. The filter rides the iframe
@@ -169,7 +169,7 @@ function DemoFrame({
 
 	return (
 		<div className=" border bg-card p-4 text-card-foreground" data-testid="demo-card">
-			{/* Caption header (owner, 2026-10-07): kind label + title in the
+			{/* Caption header: kind label + title in the
 			   label's size/tracking (title normal-case, foreground) — the
 			   figure card's grammar plus a name. Switch + download far right. */}
 			<div className="flex items-center justify-between gap-2">
@@ -213,7 +213,7 @@ function DemoFrame({
 				// but never touch the app's storage, cookies, or DOM.
 				sandbox="allow-scripts"
 				srcDoc={srcDoc}
-				// scrolling OFF (owner, 2026-10-07): the bridge auto-sizes the
+				// scrolling OFF: the bridge auto-sizes the
 				// iframe to its content, so an internal scrollbar can only appear
 				// before the first resize lands — and a scrollable iframe TRAPS
 				// the wheel (session scrolling stalls over the demo). With
@@ -222,7 +222,7 @@ function DemoFrame({
 				className="mt-2 w-full border bg-white"
 				// content-box: the bridge reports the CONTENT height — with the
 				// preflight's border-box the 2px border would eat into it and clip
-				// the bottom of the demo (smoke finding, 2026-10-07).
+				// the bottom of the demo.
 				style={{
 					height: state.height ?? 360,
 					boxSizing: "content-box",

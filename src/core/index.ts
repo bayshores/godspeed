@@ -25,10 +25,8 @@ export * from "./code-question.ts";
 // for every layer; the browser shell consumes the types + the runtime names
 // through this barrel (shell law: pure core via @/core only).
 export * from "./events.ts";
-// clusters.ts (Louvain) is deliberately NOT re-exported: nothing in the
-// shell runs community detection — the snapshot carries the partition
-// from the server. Keeping it out keeps the heavy clustering deps out of the
-// client bundle.
+// clusters.ts is deliberately NOT re-exported: the snapshot carries the
+// partition from the server.
 export * from "./plan-tree.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";

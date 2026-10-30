@@ -1,5 +1,5 @@
 /**
- * THE cross-surface settings signal (fix wave, owner ruling 2026-09-22):
+ * THE cross-surface settings signal:
  * every WRITER dispatches after a successful PUT, every READER re-reads —
  * a section changed in one surface shows up in every other, by
  * construction. CustomEvent on the window, the lh:chat-renamed

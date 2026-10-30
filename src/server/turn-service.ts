@@ -4,7 +4,7 @@
  * implementing. Each takes its dependencies explicitly (storage ports, the
  * job runner) — no module here imports an adapter.
  *
- *   persistTurn        — the canonical state write (Wave B: native history;
+ *   persistTurn        — the canonical state write (native history;
  *                        id stamping, placeholder filtering, plan-block
  *                        emission, abort-partial persistence)
  *   triggerExtraction  — the graph write channel: fires the extraction
@@ -34,7 +34,7 @@ export class TurnPersistenceError extends Error {
 }
 
 /**
- * The canonical state write (Wave B, owner-approved 2026-09-26): append the
+ * The canonical state write: append the
  * turn's own messages — the agent loop's native history, provider/model/
  * usage/thinkingSignature stamped by pi itself. Persists even when aborted
  * — the partial transcript (including a pending question's unanswered
@@ -44,10 +44,9 @@ export class TurnPersistenceError extends Error {
  *   per message (client keys, append-only adoption, the continuation
  *   seam). Minted here, at the single canonical write.
  * - Placeholder filtering: a cleanly-posed question's synthetic
- *   "question posed" result is an in-memory loop device (Wave A's
- *   terminate) — NEVER persisted (fork 1: the record ends at the
- *   unanswered call; the learner's answer arrives as the real tool
- *   result). Errored question calls DO persist — the model's retry
+ *   "question posed" result is an in-memory loop device that ends the
+ *   run — NEVER persisted (the record ends at the unanswered call; the
+ *   learner's answer arrives as the real tool result). Errored question calls DO persist — the model's retry
  *   context.
  * - Plan blocks: one frozen snapshot per successful plan_init call,
  *   idempotent (persist replays are safe).
@@ -94,10 +93,8 @@ export function persistTurn(
 /**
  * The graph write channel (vision §1 construction): the extraction pipeline
  * (extractor → merger — the sole graph writer) runs ASYNC once a
- * chat's UNCOVERED transcript tokens reach the chunk budget
- * (vision-extraction-coverage.md, 2026-09-15). Coverage reads through the
- * projection (the record is native history; the extraction view stays
- * client-shaped until Wave D). Fire-and-forget — never blocks the turn;
+ * chat's UNCOVERED transcript tokens reach the chunk budget. Coverage reads
+ * through the projection of the native record. Fire-and-forget — never blocks the turn;
  * failures are logged by the pipeline and leave coverage untouched, so the
  * next trigger (or the manual extract button) re-runs what's left.
  *

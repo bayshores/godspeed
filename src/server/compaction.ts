@@ -1,5 +1,5 @@
 /**
- * THE COMPACTION SERVICE (owner round 14, 2026-10-05): the trigger
+ * The compaction service: the trigger
  * plumbing around core/compaction's pure cuts and markers.
  *
  * TOPOLOGY (why this is simple): question and problem poses TERMINATE
@@ -15,16 +15,14 @@
  *     if the record is STILL over threshold (cold sessions, kicks that
  *     lost their engine), compaction runs synchronously inside the
  *     request. Structurally gated: nothing model-facing for the chat
- *     interleaves with a running compaction (owner ruling — minimal
- *     surface for anything to go wrong).
+ *     interleaves with a running compaction, so little can go wrong.
  *   - OVERFLOW RECOVERY — a run that dies on context length needs no
  *     special path: the next turn's gate compacts and the fresh run
  *     starts small.
  *
- * The summary is written by the session's OWN conversation model (owner
- * ruling) via the zero-tool one-shot sub-agent seam; its usage lands in
- * the chat's append-only turns log (the money channel) keyed by the
- * marker's id.
+ * The summary is written by the session's own conversation model via the
+ * zero-tool one-shot sub-agent seam; its usage lands in the chat's
+ * append-only turns log keyed by the marker's id.
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
@@ -54,8 +52,7 @@ const SUMMARIZER_SYSTEM_PROMPT =
 	"You are the session-compaction summarizer for a tutoring agent. You receive the transcript span to summarize and write exactly the summary the instructions demand — nothing else, no preamble, no meta-commentary.";
 
 /** The one-shot summary call: zero tools, one turn, text out. The engine
- *  is the chat's own conversation engine (owner ruling: the session's
- *  model writes its own summary). Injectable for tests. */
+ *  is the chat's own conversation engine. Injectable for tests. */
 export type Summarizer = (prompt: string, engine: PiEngine) => Promise<{ summary: string; usage: Usage }>;
 
 /** The production summarizer over the sub-agent seam. */
@@ -93,9 +90,8 @@ export interface CompactionDeps {
 	/** The session kind (summarizer wording: tutor vs practice). */
 	kind: "teach" | "practice" | "probe";
 	/** The effective trigger threshold, RESOLVED by the caller:
-	 *  min(settings threshold, contextWindow − reserve) — the owner's
-	 *  effective-trigger ruling. The catalog window lookup is the
-	 *  caller's (chat-handler has the model id at hand). */
+	 *  min(settings threshold, contextWindow − reserve). The catalog window
+	 *  lookup is the caller's (chat-handler has the model id at hand). */
 	thresholdTokens: number;
 	/** The composed system prompt's token estimate (chars/4) — the
 	 *  projection the provider actually receives starts with it. */
@@ -127,7 +123,7 @@ export async function awaitCompaction(chatId: string): Promise<void> {
 	if (running) await running;
 }
 
-// ─── the effective threshold (owner ruling: min(setting, window − reserve)) ─
+// ─── the effective threshold: min(setting, window − reserve) ───────────────
 
 /** Resolve the effective trigger. Unknown window → the setting alone
  *  (honest: no fake window — the catalog-index precedent). */
@@ -140,7 +136,7 @@ export function effectiveThresholdTokens(settingTokens: number | undefined, cont
 // ─── the estimate over the ACTIVE projection ────────────────────────────────
 
 /** The projected context estimate: what the next LLM call would carry.
- *  THE TRIGGER LAW (pi's, verified 2026-10-05): anchor on the last
+ *  The trigger rule (pi's): anchor on the last
  *  assistant message's provider-reported usage — it already counted
  *  the system prompt, tool declarations, and the provider's own
  *  tokenizer — and chars/4-estimate ONLY messages appended after it.
@@ -224,9 +220,8 @@ async function compact(deps: CompactionDeps, chatId: string): Promise<void> {
 		};
 		const marker = newCompactionMarker(trimmed, details);
 		deps.chatStore.saveMessages(chatId, [...fresh.messages, marker]);
-		// The money channel: the summary is a real model call on the
-		// session's own engine — its usage keys to the marker (provenance:
-		// the transcript shows the compaction divider at the marker).
+		// The summary is a real model call on the session's own engine; its
+		// usage keys to the marker, where the transcript shows the divider.
 		deps.chatStore.appendTurnUsage(chatId, {
 			id: crypto.randomUUID(),
 			messageId: marker.id,
@@ -259,7 +254,7 @@ async function compact(deps: CompactionDeps, chatId: string): Promise<void> {
 /**
  * The gate + trigger in one: await any in-flight compaction, then — if
  * the record is STILL over threshold — run one synchronously (the
- * caller's request waits; the owner's structural-gate ruling). Idempotent
+ * caller's request waits). Idempotent
  * under concurrency through the registry mutex.
  */
 export async function ensureCompacted(deps: CompactionDeps, chatId: string): Promise<void> {

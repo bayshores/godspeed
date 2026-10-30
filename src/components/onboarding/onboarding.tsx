@@ -1,10 +1,8 @@
 "use client";
 
 /**
- * FIRST-LAUNCH ONBOARDING (owner, 2026-10-27 — designs in the pen file:
- * "Onboarding — pick an opening" row D, "Onboarding — setup flow
- * (centered)"). Rendered by src/app/layout.tsx INSTEAD of the app shell while
- * src/server/onboarding.ts says it is needed:
+ * FIRST-LAUNCH ONBOARDING. Rendered by src/app/layout.tsx INSTEAD of the
+ * app shell while src/server/onboarding.ts says it is needed:
  *
  *   intro → 1 Connect your agent → 2 Add your first class → You're all set
  *

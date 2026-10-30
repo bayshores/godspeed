@@ -1,6 +1,5 @@
 /**
- * PUT /api/chats/[id]/class — move a lesson to another class (classes
- * wave, 2026-10-26). Body { classId: "<id>" | "none" }. The lesson's facts
+ * PUT /api/chats/[id]/class — move a lesson to another class. Body { classId: "<id>" | "none" }. The lesson's facts
  * leave the old class graph and are rebuilt in the new one; refused while
  * a turn or job runs.
  */

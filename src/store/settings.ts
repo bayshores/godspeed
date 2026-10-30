@@ -1,15 +1,13 @@
 /**
- * Server-side persistence for THE user settings record (settings-storage
- * wave, 2026-09-19): data/settings.json (config.SETTINGS_FILE), under the
+ * Server-side persistence for THE user settings record:
+ * data/settings.json (config.SETTINGS_FILE), under the
  * LH_DATA_DIR seam — read-modify-write, NOT a ledger. Non-secret product
- * preferences only; secrets stay in the subscription credential files.
+ * preferences only.
  *
  * This adapter OWNS the lazy migrations:
  *  1. schema-version bumps (CURRENT_SETTINGS_VERSION) slot in here — the
  *     chain is empty today (v1 is the first shape); pure additions never
  *     bump, so an up-to-date file is always a no-op pass-through.
- *    (The legacy default-settings.json fold died with the chat section —
- *     per-session models, owner 2026-09-28.)
  *  2. the retired prompt switches (dropPromptSwitches).
  *
  * Everything off disk is sanitized (core/settings.ts) before it reaches a

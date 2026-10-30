@@ -1,10 +1,10 @@
 /**
  * POST /api/activity/abort — the dock's END/ABORT control, uniform across
- * process kinds (user-decided contract): body {kind: "job"|"extraction"|"turn", id}
+ * process kinds: body {kind: "job"|"extraction"|"turn", id}
  * where id is the jobId for sub-agent jobs, the chatId for extraction runs
  * (the pipeline registry is chat-keyed), and the chatId for turns
- * (background-turn wave, 2026-09-25: a running turn is a background
- * object — any client may stop it here; a view leaving NEVER kills it).
+ * (a running turn is a background object — any client may stop it here;
+ * a view leaving NEVER kills it).
  * Mechanisms live in their domains — abortJob (server/jobs.ts, agents
  * stream), abortExtraction (the pipeline module, graph stream), and
  * abortTurn (server/turn-runs.ts, the running-turn registry); this route

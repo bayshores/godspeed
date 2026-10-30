@@ -1,5 +1,5 @@
 /**
- * /api/classes/[id]/files/[fileId] (classes wave, 2026-10-26).
+ * /api/classes/[id]/files/[fileId]
  *  GET    — { path }: the file's full path on this computer (Show in Finder)
  *  PUT    — { kind: "study" | "info" } switch, or { retry: true }
  *  DELETE — remove a copied file and its facts

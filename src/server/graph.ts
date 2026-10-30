@@ -27,7 +27,7 @@ export function graphView(scope: ClassScope = null): GraphSnapshot {
 export function graphCosts(scope: ClassScope = null): GraphCostSummary {
 	const chats = stores.chatStore
 		.listChats()
-		// Classes wave: a graph's costs are its own class's lessons only.
+		// A graph's costs are its own class's lessons only.
 		.filter((summary) => (summary.classId ?? null) === scope)
 		.flatMap((summary) => {
 			const record = stores.chatStore.getChat(summary.id);
@@ -42,7 +42,7 @@ export function graphCosts(scope: ClassScope = null): GraphCostSummary {
 	return graphCostSummary({ chats, sources });
 }
 
-/** The graph's version stamp (session-deletion wave 6): the max mtime
+/** The graph's version stamp: the max mtime
  * across every graph data file (the ledgers). Moves on ANY graph write
  * (merge append or a deletion's atomic rewrite),
  * never moves on reads, and needs no bookkeeping of its own: the fs
@@ -61,7 +61,7 @@ export function graphRevision(scope: ClassScope = null): number {
 	return revision;
 }
 
-// ─── single-node deletion (node interlude, owner-locked full-death) ──────────
+// ─── single-node deletion (full death) ───────────────────────────────────────
 
 /** What deleteGraphNode did — the route maps it straight to HTTP. */
 type NodeDeleteOutcome =
@@ -82,8 +82,7 @@ type NodeDeleteOutcome =
  *   - THE EXTRACTION GATE — 409 while ANY pipeline run is registered,
  *     anywhere. A mid-flight run holds findings extracted from
  *     transcripts that predate the deletion; its merges could re-add
- *     aliases, provenance, or events to the dying node (the
- *     re-reference risk the dispatch flags). Unlike chat deletion we
+ *     aliases, provenance, or events to the dying node. Unlike chat deletion we
  *     do NOT abort the run: it belongs to some session, and killing
  *     that session's spend is outside this deletion's blast radius —
  *     the UI retries once the dock drains. A run that starts AFTER

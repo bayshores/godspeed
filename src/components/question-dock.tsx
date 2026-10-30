@@ -40,7 +40,7 @@ import {
 import { CodeQuestion } from "@/components/lesson/code-question";
 
 /**
- * THE QUESTION PANEL (redesign, lesson layout B): a waiting quiz/ask/
+ * THE QUESTION PANEL: a waiting quiz/ask/
  * explain fills the Your-turn panel — "Your turn" with the question's
  * kind, the question, numbered options (keys 1–n, 0 = I don't know), the
  * 5-bar confidence meter (quiz only; ←/→ or click), "Your thinking", and
@@ -67,8 +67,8 @@ export interface QuestionDockProps {
 	footer?: React.ReactNode;
 }
 
-/** The kind chip's label. The probe-phase names keep their own labels
- *  (owner 2026-10-09); a predict-type quiz reads "Prediction". */
+/** The kind chip's label. The probe-phase names keep their own labels;
+ *  a predict-type quiz reads "Prediction". */
 export function questionKindLabel(toolName: QuestionDockProps["toolName"], input: unknown): string {
 	if (toolName === "probe") return "Probe";
 	if (toolName === "recall") return "Recall";
@@ -249,12 +249,12 @@ function QuestionDockForm({
 		onSubmit(answer);
 	};
 
-	// Enter submits from anywhere outside a typing surface (owner round 6).
+	// Enter submits from anywhere outside a typing surface.
 	useEnterSubmits(submit);
 
 	const selectOther = () => setSel(toggleOther(selectMode, sel));
 
-	/* ── The keyboard machine (owner rounds 2026-09-17 → redesign) ──
+	/* ── The keyboard machine ──
 	   1–9 pick an option, 0 = "I don't know" (quiz). ↑/↓ walk every row,
 	   clamped at the ends; Space acts on the walked row like a click; Enter
 	   submits once an answer exists. ←/→ move the confidence level. Tab

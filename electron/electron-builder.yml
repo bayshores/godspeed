@@ -5,21 +5,21 @@
 # Paths below are relative to the PROJECT dir (the repo root, where
 # electron-builder runs), not to this file's folder.
 #
-# Shape (fact-checked 2026-09-17):
+# Shape:
 #   - the app's real server (.next/standalone, curated by
 #     scripts/build-server.mjs) ships via extraResources — OUTSIDE the asar,
 #     because native .node/dylib can't dlopen from a read-only archive and
 #     server.js process.chdir()s into its own dir;
 #   - the asar holds only the shell (electron/main.cjs + package.json);
-#   - signed + notarized since 2026-10-08 (Developer ID Application cert in
-#     the login keychain; notary credentials in the LH_NOTARY keychain
-#     profile; the profile + team env vars are baked into desktop:dist).
+#   - signed + notarized (Developer ID Application cert in the login
+#     keychain; notary credentials in the LH_NOTARY keychain profile; the
+#     profile + team env vars are baked into desktop:dist).
 appId: com.bayshores.godspeed
 productName: godspeed
 directories:
   output: dist
   buildResources: electron/build
-# Icons (owner ruling, 2026-10-13) — per-platform sources in electron/build/:
+# Icons — per-platform sources in electron/build/:
 #   mac   electron/build/icon.icon  — the Icon Composer document (layered Liquid
 #         Glass); actool (Xcode 26+) compiles Assets.car (CFBundleIconName,
 #         macOS 26+ renders the true layered icon) + an actool fallback icns
@@ -30,33 +30,19 @@ directories:
 #   win   electron/build/icon.ico  — generated (16→256) from the flat design by
 #         scripts/make-icons.mjs.
 #   linux electron/build/icon.png  — 512×512, same script. Rounded squircle with
-#         baked transparency on both (owner ruling) — Windows/Linux don't
+#         baked transparency on both — Windows/Linux don't
 #         mask, the shape ships in the artwork.
 files:
-  # Only the shell goes into the asar. ORDER IS LOAD-BEARING (payload
-  # wave, 2026-09-24): electron-builder's dependency collector packs the
-  # whole production dep tree into node_modules/ REGARDLESS of this
-  # allow-list — normalizeFiles turns this array into one {filter: [...]}
-  # fileSet, getNodeModuleFileMatcher feeds EVERY filter entry (positives
-  # included) to the per-dep copier, and without a negation its implicit
-  # '**/*' passes everything (the measured result: a 502MB asar holding
-  # next/@ai-sdk/pdfjs/mermaid/puppeteer… while the launcher requires
-  # nothing but electron + node builtins — the server ships via
-  # extraResources).
+  # Only the shell goes into the asar. ORDER IS LOAD-BEARING:
+  # electron-builder's dependency collector packs the whole production dep
+  # tree into node_modules/ REGARDLESS of this allow-list unless a negation
+  # comes first (without one, the asar held every server dependency while
+  # the launcher needs only electron + node builtins).
   #
-  # The fix is gitignore-style ordering (verified against the installed
-  # app-builder-lib 26.15.3 + a DEBUG-mode rebuild): '!**/*' first excludes
-  # EVERYTHING, the two positives after it re-include only the shell.
-  # The per-dep collector then contributes ZERO files — app-builder-lib's
-  # filter evaluates each dep file's DESTINATION path (the
-  # stat.moduleFullFilePath quirk in util/filter.js getRelativePath), so
-  # '!**/*' matches every 'node_modules/<dep>/...' path and the bare
-  # positives can never re-include one (DEBUG logs confirm filesCount=0
-  # for all 566 modules). If a future electron-builder fixes that quirk,
-  # ~1MB of package.json stubs would start landing — harmless. The
-  # two-package.json layout avoids the collector entirely but
-  # restructures the repo. app.asar.unpacked dies with it: the natives
-  # were only unpacked because their packages were packed.
+  # Gitignore-style ordering: '!**/*' first excludes EVERYTHING, the
+  # positives after it re-include only the shell. app-builder-lib's filter
+  # checks each dep file's DESTINATION path, so '!**/*' matches every
+  # 'node_modules/<dep>/...' path and the bare positives never re-include one.
   - "!**/*"
   - electron/**/*
   # electron/ also holds the packaging inputs (icons, entitlements, dmg
@@ -64,12 +50,11 @@ files:
   - "!electron/build{,/**/*}"
   - "!electron/electron-builder.yml"
   - package.json
-  # Auto-update (Wave C, 2026-10-10): electron-updater + its runtime tree
-  # re-included explicitly. The negation above excludes node_modules, and
-  # the shell's bare positives can't re-include them — these explicit
-  # node_modules positives do (gitignore order: the LAST matching pattern
-  # wins; verified post-build by listing the asar — see desktop:dist notes).
-  # Tree fact-checked via each package's declared dependencies:
+  # Auto-update: electron-updater + its runtime tree re-included explicitly.
+  # The negation above excludes node_modules, and the shell's bare positives
+  # can't re-include them — these explicit node_modules positives do
+  # (gitignore order: the LAST matching pattern wins).
+  # The tree, from each package's declared dependencies:
   # electron-updater → fs-extra, js-yaml, lazy-val, lodash.escaperegexp,
   # lodash.isequal, semver, tiny-typed-emitter, builder-util-runtime;
   # builder-util-runtime → debug, sax; fs-extra → graceful-fs, jsonfile,
@@ -124,7 +109,7 @@ mac:
     - from: electron/server-title-guard.cjs
       to: server-title-guard.cjs
   icon: electron/build/icon.icon
-  # zip rides next to dmg (flipped 2026-10-08): Squirrel.Mac — Electron's
+  # zip rides next to dmg: Squirrel.Mac — Electron's
   # macOS auto-updater — installs from ZIP and cannot read DMGs. DMG is
   # for humans; ZIP + blockmap are the updater's payload.
   target:
@@ -134,15 +119,13 @@ mac:
     - target: zip
       arch:
         - arm64
-  # Locale trim (payload wave, 2026-09-24): English-only app — cuts
-  # every non-en .lproj from the frameworks. Revisit only if
-  # localization ever lands.
+  # English-only app: cuts every non-en .lproj from the frameworks.
   electronLanguages:
     - en
   category: public.app-category.education
   hardenedRuntime: true
   entitlements: electron/build/entitlements.mac.plist
-  # Signing + notarization (flipped 2026-10-08): identity auto-detects the
+  # Signing + notarization: identity auto-detects the
   # Developer ID Application certificate from the login keychain;
   # notarize: true makes electron-builder sign → submit to Apple's notary
   # service → staple the ticket, all inside this one build (credentials
@@ -151,14 +134,14 @@ mac:
   # codesign --verify --deep / spctl --assess / stapler validate.
   notarize: true
 dmg:
-  # Download names (owner ruling, 2026-10-28): the files people download
+  # Download names: the files people download
   # carry no version, so the README can link to
   # releases/latest/download/<name> and it always gets the newest one.
   # The updater's own files (the mac zip, blockmaps, latest*.yml) keep
   # their default names.
   artifactName: "${productName}-mac-apple-silicon.${ext}"
   title: "${productName} ${version}"
-  # Owner artwork: 540×380 at 1×; the sibling background@2x.png is
+  # Artwork: 540×380 at 1×; the sibling background@2x.png is
   # combined into a Retina TIFF by dmg-builder. Centres use 1× coordinates.
   background: electron/build/background.png
   iconSize: 80
@@ -185,7 +168,7 @@ win:
       arch:
         - x64
   artifactName: "${productName}-windows-x64-setup.${ext}"
-  # Unsigned Windows release (owner ruling): preserve icon/version metadata,
+  # Unsigned Windows release: preserve icon/version metadata,
   # skip signing, and do not require a publisher signature for updates.
   signExecutable: false
   verifyUpdateCodeSignature: false
@@ -209,12 +192,12 @@ linux:
   # Both targets update via electron-updater 6.8.9. AppImage replaces its
   # own file; deb uses dpkg/apt and may request administrator permission.
 publish:
-  # Update feed = GitHub Releases (decided 2026-10-08): latest-mac.yml +
-  # zip/blockmap live on releases; electron-updater reads them anonymously.
-  # REQUIRES THE REPO TO BE PUBLIC before 0.3.0 ships — anonymous downloads
-  # from a private repo are impossible, and a token baked into the app
-  # would be a leak. desktop:dist passes no --publish flag, so builds never
-  # upload; publishing happens at release time (GH_TOKEN + --publish).
+  # Update feed = GitHub Releases: latest-mac.yml + zip/blockmap live on
+  # releases; electron-updater reads them anonymously. REQUIRES THE REPO TO
+  # BE PUBLIC — anonymous downloads from a private repo are impossible, and
+  # a token baked into the app would be a leak. desktop:dist passes no
+  # --publish flag, so builds never upload; publishing happens at release
+  # time (GH_TOKEN + --publish).
   - provider: github
     owner: bayshores
     repo: godspeed

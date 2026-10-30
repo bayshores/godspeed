@@ -5,8 +5,8 @@ import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
 
 /**
- * The researcher sub-agent (vision §2.5): a SEPARATE ToolLoopAgent instance
- * from the teacher — an isolated loop with only web_fetch (+ the PDF
+ * The researcher sub-agent (docs/vision.md §2.5): a SEPARATE agent from
+ * the teacher — an isolated loop with only web_fetch (+ the PDF
  * tools), so raw fetch churn never touches the teacher's context window.
  * There is no search engine: the researcher fetches sources by URL.
  *
@@ -63,7 +63,7 @@ What couldn't be answered. Suggested next steps.`;
 
 interface ResearcherRunOptions {
 	engine?: PiEngine;
-	/** The researcher's PDF dir (PDF wave, 2026-10-07): when present, the
+	/** The researcher's PDF dir: when present, the
 	 *  toolset gains web_fetch_pdf + pdf_info/pdf_extract/pdf_search scoped
 	 *  to this per-job temp dir — PDFs from the web, read page-level. The
 	 *  runner owns its lifecycle (mkdtemp before, rm after). */

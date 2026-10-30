@@ -4,7 +4,7 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 
 /**
- * The ESC-abort guard (owner, 2026-10-02): the global Esc → abort chain
+ * The ESC-abort guard: the global Esc → abort chain
  * opens this confirm popup EVERYWHERE — mid-stream aborts and pending-
  * question dismissals alike. Esc on the popup itself cancels (claimed —
  * it must never chain into another abort), which is also why Chat's
@@ -17,7 +17,7 @@ import { usePresence } from "@/components/presence";
  *
  * What "abort" means is mode-dependent: from a running turn it kills
  * the turn (partial stays); from a pending question there is no turn to
- * kill — abort IS dismissal (A2, 2026-10-03): the silent route writes
+ * kill — abort IS dismissal: the silent route writes
  * the skipped toolResult and wakes NOTHING; the session pauses until
  * the user's next plain message, which carries the dismissal to the
  * model in its context.
@@ -56,10 +56,10 @@ export function AbortTurnBody({
 	mode: AbortMode;
 	onClose: () => void;
 	onConfirm: () => void;
-	/** The dismiss doubles as the abort when a turn is still running
-	 * (owner, 2026-10-04): the line says so. */
+	/** The dismiss doubles as the abort when a turn is still running;
+	 * the line says so. */
 	busy?: boolean;
-	/** Motion (motion wave): "closed" while the exit plays — inert. */
+	/** "closed" while the exit plays — inert. */
 	state?: "open" | "closed";
 }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
@@ -124,7 +124,7 @@ export function AbortTurnDialog({
 	onConfirm: (mode: AbortMode) => void;
 	busy?: boolean;
 }) {
-	// Exit motion (motion wave, owner 2026-10-26): the last mode stays on
+	// Exit motion: the last mode stays on
 	// screen while the dialog fades out.
 	const presence = usePresence(mode !== null);
 	const [lastMode, setLastMode] = useState(mode);
@@ -136,8 +136,7 @@ export function AbortTurnDialog({
 		if (mode === null) return;
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// THE ONE-ESC LAW (keyboard round 2026-10-06): claim at the
-				// document level — a window-level stopPropagation cannot stop
+				// Claim Esc at the document level: a window-level stopPropagation cannot stop
 				// the earlier-registered global window listener.
 				e.preventDefault();
 				e.stopPropagation();

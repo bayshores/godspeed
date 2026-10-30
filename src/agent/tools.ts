@@ -31,18 +31,17 @@ import type { GraphStore } from "../core/ports.ts";
 
 
 /**
- * The agent-split tool composition (docs/probe-teach-split.md §1): the
+ * The agent-split tool composition: the
  * PROBER and the TEACHER are different agents with different tool sets.
  * The question tools share a NAME but are genuinely DIFFERENT tools —
  * the prober's quiz has NO nodeId field at all (its declaration is built
  * from quizInputBase; the model's schema never mentions nodeId), the
- * teacher's carries the validated position field.
+ * teacher's carries the validated nodeId.
  *
  * - Question tools (quiz / ask_user_question): CLIENT-ANSWERED. Their
  *   execute validates the authoring refinements (the cross-field rules no
  *   schema carries — quizInputProblems / askOptionProblems; a failure
- *   throws ToolInputError, which pi's loop converts to an error tool
- *   result the model retries on), then returns the synthetic
+ *   returns an error result the model retries on), then returns the synthetic
  *   "question posed" placeholder (questionResult: terminate: true — the
  *   turn ends; the call streams to the browser in `input-available`
  *   state; the learner answers in the dock; the client grades and sends
@@ -57,11 +56,10 @@ import type { GraphStore } from "../core/ports.ts";
  *   only.
  */
 
-/** GLM wobble guard: models sometimes emit
- *  `options` as a JSON-encoded string instead of an array; pi runs this
- *  BEFORE schema validation, so a double-encoded call lands instead of
- *  bouncing back as a validation error + wasted retry turn. Anything unparseable passes through untouched: validation then reports
- *  honestly and the agent retries with a real error to learn from. */
+/** Models sometimes emit `options` as a JSON-encoded string instead of an
+ *  array; pi runs this BEFORE schema validation, so a double-encoded call
+ *  lands instead of costing a retry turn. Anything unparseable passes
+ *  through untouched, so validation reports a real error. */
 function prepareQuestionArguments<T extends object>(args: unknown): T {
 	if (args && typeof args === "object" && !Array.isArray(args)) {
 		const o = args as { options?: unknown };
@@ -362,7 +360,7 @@ export function createProberTools(
 		});
 }
 
-// ─── the teacher's question tools (quiz carries the position field) ──────────
+// ─── the teacher's question tools (quiz carries nodeId) ──────────────────────
 
 /** The nodeId-against-live-tree check the teacher's quiz chains after the
  *  shared authoring contract. */
@@ -419,17 +417,6 @@ export interface TeacherToolContext extends PlanToolContext {
 	classNote?: ClassToolContext["setNote"];
 }
 
-/**
- * Per-request teacher tool registry: teach questions (validated nodeId) +
- * plan tools + job tools, all closing over the ctx.
- *
- * `enabled` is the resolved settings seam (core/pending.ts EnabledTools —
- * Platform's chat-handler wiring passes it through from settings). Today
- * only the sub-agent tools (research/demo/visual) are user-toggleable, but
- * the filtering is GENERIC: any name explicitly false is dropped, so
- * future toggleables need no change here.
- * Absent/undefined = enabled — tests and old records see today's set.
- */
 /** The quizzing mechanics: `tools.explain === true` in the resolved
  *  settings ⇒ free-recall checks (explain armed, quiz dropped) — anything
  *  else ⇒ multiple choice. Mechanics-managed, NOT individually
@@ -447,6 +434,9 @@ function withoutMechanics(enabled?: EnabledTools): EnabledTools | undefined {
 	return rest;
 }
 
+/** Per-request teacher tool registry: teach questions (validated nodeId) +
+ *  plan tools + job tools, all closing over the ctx. Any tool `enabled`
+ *  sets explicitly false is dropped; absent = enabled. */
 export function createTeacherTools(
 	ctx: TeacherToolContext,
 	enabled?: EnabledTools,

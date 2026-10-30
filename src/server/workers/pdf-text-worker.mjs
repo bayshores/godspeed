@@ -1,5 +1,5 @@
 /**
- * PDF → text on a worker thread (speed plan, owner 2026-10-27).
+ * PDF → text on a worker thread.
  *
  * pdfjs in plain Node parses on the thread that calls it. Run on the server's
  * main thread, a big class PDF froze every API request for 0.5–2 s. This

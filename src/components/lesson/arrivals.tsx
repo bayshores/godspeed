@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/* ARRIVAL MOTION (motion wave, owner 2026-10-26): a message or card that
+/* ARRIVAL MOTION: a message or card that
  * appears DURING the live session rises in once (.lh-rise). Whatever the
  * first render shows — a reopened lesson — never animates. Slots are keyed
  * by POSITION (message index, part index), not id: an optimistic message

@@ -1,6 +1,5 @@
 /**
- * POST /api/classes/[id]/files — add files to a class (classes wave,
- * 2026-10-26). Multipart: field "files" (one or more) and "kind"
+ * POST /api/classes/[id]/files — add files to a class. Multipart: field "files" (one or more) and "kind"
  * ("study" = turned into the class's graph facts, "info" = course info the
  * teacher can read but that never becomes facts).
  */

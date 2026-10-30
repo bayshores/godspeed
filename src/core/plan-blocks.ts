@@ -1,5 +1,5 @@
 /**
- * Plan-block emission (docs/probe-teach-split.md §6): the INTERIM plan
+ * Plan-block emission (docs/archive/probe-teach-split.md §6): the INTERIM plan
  * presentation seam. The plan renders IN FLOW once, at authoring — a
  * frozen snapshot attached right after the assistant group carrying the
  * successful plan_init call. It is the presentation moment for the plan
@@ -8,11 +8,10 @@
  * a mid-lesson rewrite, in which case the snapshot shows what was true
  * then).
  *
- * Wave B (owner-approved 2026-09-26): the block is a native plan-block
- * MARKER appended at the turn's persist (idempotent per plan_init call);
- * the projection splices its data part into the assistant group IN FLOW,
- * exactly where the UIMessage-era attach put it. The neighborhood-block
- * machinery stays retired: position derives live from the transcript.
+ * The block is a native plan-block MARKER appended at the turn's persist
+ * (idempotent per plan_init call); the projection splices its data part
+ * into the assistant group IN FLOW. Position derives live from the
+ * transcript.
  */
 
 import type { PlanBlockData, PlanTree } from "./contracts.ts";
@@ -21,10 +20,9 @@ import type { LhMessage } from "./native-messages.ts";
 import { newPlanBlockMessage } from "./native-messages.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
 
-/** The snapshot payload (unchanged since wave 4): statuses derived AT
- *  EMISSION time from the transcript — the block never re-derives. Wave D:
- *  the derivation reads the NATIVE transcript (quiz CALLS only — results
- *  feed nothing, contracts/plan.ts derivePlanStatusesLh). */
+/** The snapshot payload: statuses derived AT EMISSION time from the
+ *  NATIVE transcript (quiz CALLS only — results feed nothing) — the block
+ *  never re-derives. */
 function snapshot(tree: PlanTree, messages: readonly LhMessage[]): PlanBlockData {
 	const statuses = derivePlanStatusesLh(tree, messages);
 	return {
@@ -57,8 +55,7 @@ function emittedPlanBlockCalls(messages: readonly LhMessage[]): Set<string> {
 /**
  * The native emission seam (pure): ONE plan-block marker per TURN — for
  *  the turn's LAST successful plan_init call (a same-turn rewrite presents
- *  once; a later turn's rewrite gets its own block — the golden-master
- *  rule the UIMessage-era attach had) that the record hasn't already
+ *  once; a later turn's rewrite gets its own block) that the record hasn't already
  *  emitted. `tree` is the record's current tree (the plan tool saved it
  *  during the turn); `transcript` is the full NATIVE transcript the status
  *  derivation reads.

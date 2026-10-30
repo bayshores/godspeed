@@ -1,17 +1,16 @@
 /**
- * Keyboard shortcuts (shortcut wave, 2026-09-17) — the single source of truth
- * for every app action that has a binding. This module is PURE (no React, no
- * window access at module scope beyond the guarded helpers) so it can render
- * a cheat sheet, match events, and — at the settings milestone — drive a
- * user-editable key map without touching any component.
+ * Keyboard shortcuts — the single source of truth for every app action that
+ * has a binding. This module is PURE (no React, no window access at module
+ * scope beyond the guarded helpers) so it can render a cheat sheet, match
+ * events, and drive the user-editable key map without touching any component.
  *
- * Design (owner-approved plan):
+ * Design:
  * - Tab is DEAD: browser tab-focus navigation is abandoned entirely. Tab
  *   does nothing.
  * - Esc is a layered dismiss: topmost popover (each popover stopPropagation's
  *   its own Esc) → abort in-flight turn.
  * - The key map persists overrides in localStorage (`lh:keymap`, overrides
- *   only) merged over DEFAULT_BINDINGS — the settings wave adds the editor.
+ *   only) merged over the default bindings.
  *
  * Binding strings are normalized, cross-platform:
  *   "mod+d"    — mod = ⌘ on macOS, Ctrl elsewhere (both are accepted live)
@@ -55,10 +54,6 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "open-settings", label: "Open settings", scope: "global", binding: "mod+," },
 	{ id: "toggle-sidebar", label: "Toggle sidebar", scope: "global", binding: "mod+b" },
 	{ id: "sessions-search", label: "Search lessons", scope: "global", binding: "mod+shift+f" },
-	// (The Alt+↑/↓/↵ session cycle was RETIRED, owner 2026-10-10: barely
-	// used, felt laggy. Session navigation lives IN the search now — ↑/↓
-	// walk the filtered list, Enter opens (first match when nothing
-	// walked) — see sidebar.tsx's search input.)
 	{ id: "jump-graph", label: "Graph view", scope: "global", binding: "mod+g" },
 	{ id: "new-session", label: "New lesson", scope: "global", binding: "mod+n" },
 	{ id: "rename-session", label: "Rename lesson", scope: "chat", binding: "f2" },
@@ -67,14 +62,10 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	// one action/binding. Only the currently mounted surface listens.
 	{ id: "find", label: "Find", scope: "global", binding: "mod+f" },
 	{ id: "cheat-sheet", label: "Shortcut cheat sheet", scope: "global", binding: "?" },
-	// The question dock's row machine (wave B) — displayOnly: the dock owns
+	// The question dock's row machine — displayOnly: the dock owns
 	// the keys while a question is expanded; the registry never dispatches
 	// them, so bare arrows stay free everywhere else.
 	{ id: "question-focus", label: "Question · focus thinking ↔ rows", scope: "chat", binding: "tab", displayOnly: true },
-	// (The model-menu entries — "walk results" ↑/↓, "pick result" ↵ — were
-	// REMOVED, owner 2026-10-10: obvious in-field menu navigation, never
-	// dispatched, never rebindable — not settings material. The menu's own
-	// arrow machine (menu-shell.tsx) is unchanged.)
 	{ id: "question-next-row", label: "Question · next row", scope: "chat", binding: "arrowdown", displayOnly: true },
 	{ id: "question-prev-row", label: "Question · previous row", scope: "chat", binding: "arrowup", displayOnly: true },
 	{ id: "question-pick-row", label: "Question · pick row", scope: "chat", binding: "space", displayOnly: true },
@@ -83,8 +74,8 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 
 const STORAGE_KEY = "lh:keymap";
 
-/** localStorage overrides ({actionId: binding}) — read once per module
- *  instance; the settings editor will write this key. Guarded: SSR and a
+/** localStorage overrides ({actionId: binding}), written by the settings
+ *  editor. Guarded: SSR and a
  *  corrupt/absent store both fall back to defaults. */
 export function loadOverrides(): Partial<Record<KeyAction, string>> {
 	if (typeof window === "undefined") return {};
@@ -158,11 +149,8 @@ export function eventBinding(e: KeyboardEvent): string {
 
 /** The window event name a registry action dispatches/answers on —
  *  the ONE spelling shared by the dispatcher (keyboard-shortcuts) and
- *  every surface listener. Born from the ⌘B bug (owner interlude
- *  2026-09-25): the sidebar listened on the pre-convention name
- *  "lh:toggle-sidebar" while the dispatcher sent "lh:kbd-toggle-sidebar",
- *  so ⌘B silently did nothing. With both sides composing through this
- *  helper the mismatch is structurally impossible.
+ *  every surface listener, so a name mismatch (a shortcut that silently
+ *  does nothing) is structurally impossible.
  */
 export function kbdEventForAction(action: KeyAction): string {
 	return `lh:kbd-${action}`;

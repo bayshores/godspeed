@@ -1,24 +1,20 @@
 /**
- * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26: "input
- * events now, in the same pass"): POST /api/chat carries `{chatId, input}`
- * — ONE explicit event, never a client transcript. The server owns the
+ * THE INPUT-EVENTS CONTRACT: POST /api/chat carries `{chatId, input}` —
+ * ONE explicit event, never a client transcript. The server owns the
  * record; a send tells it what HAPPENED, not what the client's list looks
- * like. The 409 merge-retry died with the full-list body (an input event
- * retries idempotently: nothing was appended when a POST is refused).
+ * like. An input event retries safely: nothing was appended when a POST
+ * is refused.
  *
- * The four events (the complete client-originated input taxonomy):
+ * The teach events (practice adds `thinking` and `next`, below):
  *   text    — a learner-authored user message (composer send, initial
  *             topic, the demo error-fix loop)
  *   answer  — the pending question's graded result (QuestionAnswerData,
  *             built client-side exactly as today; a dismissal is an answer
  *             carrying its flag). Server-side this becomes the call's
- *             native tool result — fork 1's normal agent history.
+ *             native tool result.
  *   continue — run the next turn on the current record (mount
  *             continuations, job-settle re-syncs: the record ends at an
  *             answered question with no teacher reaction yet).
- *
- * (The plan verdict input died 2026-09-26 with the verdict itself — the
- * learner's post-plan reply is a natural text message.)
  *
  * Server-originated delivery (the wake pipeline's steers) is NOT a client
  * input — the handler accepts it on the same path (TurnInput) so every
@@ -53,28 +49,26 @@ export type ChatInput =
 	| { type: "text"; text: string; attachments?: ChatAttachment[] }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData }
 	| { type: "continue" }
-	/** The practice dock's two buttons (owner, 2026-10-04): the learner's
-	 *  thinking on the ACTIVE problem — one lane (owner 2026-10-05):
+	/** The learner's thinking on the ACTIVE practice problem — one lane:
 	 *  whether it claims an answer is read from the text. One
 	 *  problem may carry many submissions; each is its own turn. */
 	| { type: "thinking"; problemCallId: string; text: string; attachments?: ChatAttachment[] }
-	/** The practice move-on signal (owner round 16): the learner's
+	/** The practice move-on signal: the learner's
 	 *  explicit go-ahead during the between-problems pause — the Next
 	 *  chip or Enter on an empty composer. Practice sessions only, and
 	 *  only with nothing active (mid-problem input rides the dock). */
 	| { type: "next" };
 
 /** A wake-pipeline steer delivery — same turn composition, server-origin.
- *  Wave C (2026-09-26): the idle wake carries EVERY queued marker as its
- *  input appends — with claimSteers deleted, the pump's wake is the only
- *  steer appender left (the in-run path hands markers to pi's own
- *  follow-up queue instead, so it never builds an input event). */
+ *  The idle wake carries EVERY queued marker as its input appends (the
+ *  in-run path hands markers to pi's own follow-up queue instead, so it
+ *  never builds an input event). */
 export type SteerInput = { type: "steers"; steers: LhMessage[] };
 
 /** Every input the turn composition accepts. */
 export type TurnInput = ChatInput | SteerInput;
 
-/** The dismissal event (owner design 2026-10-03, "A2"): NEVER composes a
+/** The dismissal event: NEVER composes a
  *  turn — the silent route appends + persists and wakes nothing. The
  *  answer rides the event (mirroring the answer event) but must actually
  *  BE a dismissal: the silent path must never inject a live answer
@@ -82,7 +76,7 @@ export type TurnInput = ChatInput | SteerInput;
  *  results reference their calls by id, so the appends stay independent. */
 type DismissInput =
 	| { type: "dismiss"; toolCallId: string; answer: QuestionAnswerData }
-	/** The problem discard (practice, owner 2026-10-04): ask-style — the
+	/** The problem discard (practice): ask-style — the
 	 *  silent route appends the UI-only marker and wakes nothing; the
 	 *  conclude pair rides the user's NEXT input (inputAppends). */
 	| { type: "dismiss-problem"; problemCallId: string };
@@ -111,7 +105,7 @@ export function parseDismissInput(input: unknown): DismissInput {
 	return { type: "dismiss", toolCallId: i.toolCallId, answer };
 }
 
-/** A mid-turn steer (owner arc 2026-10-03): the learner's composer message
+/** A mid-turn steer: the learner's composer message
  *  for a RUNNING turn — queued on pi's steering rail (agent.steer, drained
  *  at the next response boundary INSIDE the same run). NOT a follow-up:
  *  it never extends an ended run, and it never composes a turn of its own
@@ -271,7 +265,7 @@ export function inputAppends(
 	}
 }
 
-/** The deferred conclude synthesis (owner ruling, 2026-10-04): a
+/** The deferred conclude synthesis: a
  *  problem-dismissal marker waits for the user's next input — the pair
  *  (synthetic conclude call + ack) rides ahead of it, so the agent reads
  *  the dismissal through its own vocabulary and the slot frees. Pure;

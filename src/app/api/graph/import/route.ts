@@ -1,6 +1,6 @@
 /**
- * POST /api/graph/import — the format-agnostic front door's transport
- * (vision §1, 2026-09-13): raw personal-notes files in, one extraction run
+ * POST /api/graph/import — the format-agnostic front door's transport:
+ * raw personal-notes files in, one extraction run
  * per file through the SAME pipeline the sessions use. Multipart form data
  * (field "files", any text format — the extractor is format-agnostic); the
  * pipeline mints a deterministic source id per file path, persists the
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 		return Response.json({ results: [] as ImportResult[], error: "no files" }, { status: 400 });
 	}
 
-	// Classes wave (2026-10-26): ?class=<id> imports into that class — each
+	// ?class=<id> imports into that class — each
 	// file becomes a class file (study material) and runs through the class
 	// file pipeline into the class's own graph. Absent / "none" = No class.
 	const scope = requestClassScope(request);

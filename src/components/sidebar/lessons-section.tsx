@@ -38,7 +38,7 @@ export function LessonsSection({
 	const searchRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 	const [kbdIndex, setKbdIndex] = useState<number | null>(null);
-	// Switching class swaps the list: it rises in (motion wave).
+	// Switching class swaps the list: it rises in.
 	useRiseOnChange(listRef, activeClassId ?? "");
 
 	const shown = useMemo(() => {

@@ -1,8 +1,7 @@
 /**
- * Phase derivation (docs/probe-teach-split.md §4) — EXPLICIT EVENTS, never
- * occupancy. The probe→teach agent split (2026-09-11) gave the first
- * boundary a transcript event; the second is INFERRED (owner ruling
- * 2026-09-26, the verdict death):
+ * Phase derivation (docs/archive/probe-teach-split.md §4) — EXPLICIT EVENTS, never
+ * occupancy. The first boundary is a transcript event; the second is
+ * INFERRED:
  *
  *   probe  — until the prober's `probe_done` call CONCLUDES (a clean
  *            toolResult for it; the assessment rides the call's arguments)
@@ -13,19 +12,13 @@
  *            its answer: the block that poses the first node question is
  *            where teaching starts.
  *
- * There is no verdict gate anymore: presenting the plan ends the teacher's
- * turn, and the learner's next message is a natural reply (a change
- * request, or the go-ahead). The live indicator LAGS by design (owner
- * accepted): "teach" shows only once the first node's question is posed.
- * A teacher that never tags a quiz can no longer exist — nodeId is
- * schema-required at the teach quiz boundary (owner ruling 2026-09-26),
- * so the seam signal is structural, not prompt-mandated.
+ * Presenting the plan ends the teacher's turn, and the learner's next
+ * message is a natural reply (a change request, or the go-ahead). The live
+ * indicator LAGS by design: "teach" shows only once the first node's
+ * question is posed. nodeId is schema-required at the teach quiz
+ * boundary, so the seam signal is structural, not prompt-mandated.
  *
- * The former derived-occupancy seam (phase-of-tree via `currentNodeId`)
- * is GONE, as is the verdict-marker fold: no backwards compatibility
- * (legacy sessions are wiped data).
- *
- * TWO FOLDS over the same events (Wave D): `phaseAt3`/`phaseTimeline` fold
+ * TWO FOLDS over the same events: `phaseAt3`/`phaseTimeline` fold
  * VIEW messages (the client's dividers and dock — part shapes, pure and
  * structural); `phaseAt3Lh` folds the NATIVE record (server summaries,
  * tests) — probe→plan advances at the probe_done RESULT message, plan→teach
@@ -103,8 +96,7 @@ function advance(
 }
 
 /**
- * WHERE inside the flipping message teaching begins (owner round 8,
- * 2026-10-05 — the stacked-dividers bug): plan→teach flips at the first
+ * WHERE inside the flipping message teaching begins: plan→teach flips at the first
  * tagged quiz/explain CALL, but the plan PRESENTATION often lives in the
  * same assistant message — an earlier provider STEP than the quiz call.
  * A message-level seam therefore drew the Teaching divider before the
@@ -157,7 +149,7 @@ export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
 	return out;
 }
 
-// ─── the native fold (Wave D: record-side phase over LhMessage[]) ───────────
+// ─── the native fold (record-side phase over LhMessage[]) ───────────────────
 
 import type { LhMessage } from "./native-messages.ts";
 

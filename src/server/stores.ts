@@ -30,9 +30,9 @@ export const stores = {
 
 setSeenStore(agentSeenStore);
 
-/** One adapter per class graph, built on first use (classes wave,
- *  2026-10-26). Adapters are stateless, so caching is only an allocation
- *  saving; a deleted class's entry is dropped by forgetGraphStore. */
+/** One adapter per class graph, built on first use. Adapters are
+ *  stateless, so caching is only an allocation saving; a deleted class's
+ *  entry is dropped by forgetGraphStore. */
 const classGraphStores = new Map<string, GraphStore>();
 
 /** The folder a scope's graph family lives in. */
@@ -72,8 +72,8 @@ export function forgetGraphStore(classId: string): void {
 }
 
 /** Every graph scope that exists: "No class" first, then each class
- *  (archived included). The cross-class READ surface (owner ruling: reads
- *  may cross classes, writes never do). */
+ *  (archived included). The cross-class READ surface: reads may cross
+ *  classes, writes never do. */
 export function allGraphScopes(): { scope: ClassScope; name: string }[] {
 	return [
 		{ scope: null, name: "No class" },
@@ -83,11 +83,9 @@ export function allGraphScopes(): { scope: ClassScope; name: string }[] {
 
 /**
  * The resolved view of the settings record (core/settings-resolution.ts):
- * every knob concrete over its factory default — EXCEPT MODELS (BYOK all
- * the way down, owner 2026-09-22): no factory pins exist, so unset model
- * slots resolve to null and per-need refusal gates fire downstream. Read
- * fresh on every call — the record is a small file and turns are rare, so
- * no caching layer (stale toggles after a settings PUT would be worse).
+ * every knob concrete over its factory default. Read fresh on every call:
+ * the record is a small file and turns are rare, so no caching layer
+ * (stale toggles after a settings PUT would be worse).
  */
 export function effectiveSettings(): EffectiveSettings {
 	return resolveSettings(settingsStore.readSettings());

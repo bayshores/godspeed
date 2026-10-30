@@ -158,7 +158,7 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 		if (ranges[index] && scopeRef.current) scrollSessionTarget(ranges[index]!, scopeRef.current, scrollContextRef.current);
 	};
 
-	// The bar fades in and out (motion wave, owner 2026-10-26).
+	// The bar fades in and out.
 	if (!presence.mounted) return null;
 	const buttonClass = "lh-press flex size-7 shrink-0 items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40";
 	return (

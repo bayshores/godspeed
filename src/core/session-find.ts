@@ -1,4 +1,4 @@
-/** Literal, case-insensitive session Find (owner, 2026-10-13). The DOM seam
+/** Literal, case-insensitive session Find. The DOM seam
  * supplies only displayed text; no transcript/Markdown/TeX indexing lives here. */
 interface SessionTextMatch {
 	start: number;

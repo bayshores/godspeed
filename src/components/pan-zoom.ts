@@ -8,8 +8,8 @@
  * tests can pin it (tests/pan-zoom.test.ts).
  */
 
-/** Zoom ceiling for every surface that uses this math (raised 2×→4× for
- *  reading node titles closely, owner, plan-graph round 3). */
+/** Zoom ceiling for every surface that uses this math; 4× is enough to
+ *  read node titles closely. */
 export const ZOOM_MAX = 4;
 /** Viewport breathing room subtracted by the fit. */
 const FIT_PAD = 16;

@@ -1,25 +1,18 @@
 /**
- * The reading-font menu (appearance wave, 2026-09-26): FontMenuList — the
- * user's installed font families plus the always-offerable DEFAULT row and
- * a custom-family escape input.
+ * The reading-font menu: the user's installed font families, the DEFAULT
+ * row, and a custom family typed into the search.
  *
- * Keyboard machine (owner polish, 2026-09-17): focus STAYS in the search
- * field — ↑/↓ walk the filtered results (clamped, no wrap), Enter picks
- * the walked row (or the first result when nothing is walked).
- * stopPropagation keeps these keys out of every other listener while the
- * menu is open.
+ * Focus stays in the search field: ↑/↓ walk the results, Enter picks the
+ * walked row (or the first). stopPropagation keeps these keys out of every
+ * other listener while the menu is open.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { fuzzyScore } from "@/core";
 
-/** The reading-font dropdown's row set — the SAME fuzzy + arrow-walk +
- *  Enter machine over font families (appearance wave, 2026-09-26). The
- *  DEFAULT row (null) is a candidate like any family: it matches empty
- *  and "source"/"sans"/"default" queries, so an unfiltered list opens
- *  with the default first and a searched list drops it honestly — Enter
- *  can never pick a row that isn't on screen. Pure — exported for
- *  tests. */
+/** The menu's rows. The DEFAULT row (null) is searched like any family
+ *  (it matches "source", "sans" and "default"), so Enter can never pick a
+ *  row that isn't on screen. */
 export function fontMenuResults(query: string, families: string[]): Array<string | null> {
 	const scored = families
 		.map((f) => ({ f, s: fuzzyScore(query, f) }))
@@ -33,23 +26,18 @@ export function fontMenuResults(query: string, families: string[]): Array<string
 	return scored;
 }
 
-/** The custom-family action row's decision (pure, 2026-09-26): a typed
- *  query that matches NO family becomes the "Use '<query>'" custom pick —
- *  a matching family is the better pick, so the action row only exists
- *  when there is nothing else to pick. Exported for tests. */
+/** A typed query that matches no family becomes the "Use '<query>'" pick;
+ *  a matching family is always the better pick. */
 export function customFamilyFor(query: string, families: string[]): string | null {
 	const trimmed = query.trim();
 	if (trimmed === "") return null;
 	return fontMenuResults(query, families).length === 0 ? trimmed : null;
 }
 
-/** The reading-font dropdown body — ONE search field (owner ask
- *  2026-09-26: "why two?"): the fuzzy machine filters the families, and
- *  when nothing matches, a "Use '<query>'" action row commits the typed
- *  text as a custom family — the old separate custom input is gone, the
- *  search field absorbed its job. `families === undefined` is the
- *  enumerating state; the curated fallback arrives as plain families with
- *  a footer that says so honestly. */
+/** The reading-font dropdown body: one search field filters the families,
+ *  and when nothing matches, "Use '<query>'" picks the typed text as a
+ *  custom family. `families === undefined` means the list is still
+ *  loading. */
 export function FontMenuList({
 	families,
 	effectiveFamily,

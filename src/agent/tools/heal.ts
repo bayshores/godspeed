@@ -1,18 +1,10 @@
 /**
- * THE UNIVERSAL ARGUMENT HEAL — the agent-boundary wiring (owner,
- * 2026-10-09 — generalize the 2026-10-04 practice heal).
- *
- * Every weak-model argument wobble incident produced a heal wired ONLY
- * to the tool where it landed — parseOptionsIfString (questions,
- * 2026-09-26), healStringifiedArrays (extraction),
- * healEncodedArguments (practice, 2026-10-04) — and the whitehead death
- * loop (2026-10-09: quiz `type: "\"predict\""` rejected ten times,
- * byte-identical, in a session the lesson never reached) happened
- * precisely because the practice heal never reached the quiz tools. The
- * owner ruling: this is ONE standard pattern, applied at EVERY tool —
- * heal what is mechanically recognizable (a JSON-encoded stand-in for
- * the schema-expected shape; the membership-value debris strip lives in
- * core/value-debris), let validation reject the rest honestly.
+ * The universal argument heal, wired at every tool. A heal wired only to
+ * the tool where a bad argument once landed misses the next tool (a quiz
+ * once looped on `type: "\"predict\""` because only practice was healed).
+ * So every tool heals what is mechanically recognizable (a JSON-encoded
+ * stand-in for the schema-expected shape; the membership-value debris
+ * strip lives in core/value-debris) and validation rejects the rest.
  *
  * The pure function lives in core/argument-heal (the display seam needs
  * it too — the tool-parts law); this module is the per-tool/registry
@@ -39,9 +31,8 @@ function withArgumentHeal(tool: AgentTool<any>): AgentTool<any> {
 	};
 }
 
-/** The registry-wide form (the owner's "standard pattern everywhere"):
- *  wrap every tool in a tool record. Applied at the registry-assembly
- *  points — createProberTools, createTeacherTools, practiceTools,
+/** The registry-wide form: wrap every tool in a tool record. Applied at
+ *  the registry-assembly points — createProberTools, createTeacherTools, practiceTools,
  *  bareQuestionTools, the subagent sets — so no tool can ship unwrapped. */
 export function healToolRecord(tools: Record<string, AgentTool<any>>): Record<string, AgentTool<any>> {
 	return Object.fromEntries(Object.entries(tools).map(([name, tool]) => [name, withArgumentHeal(tool)]));

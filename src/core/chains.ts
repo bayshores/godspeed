@@ -3,9 +3,7 @@ import { stripModelValueDebris } from "./value-debris.ts";
 
 /**
  * Selection-facing chain views — pure + browser-safe (the shell's chain
- * table consumes these; the barrel exports them). Born in the practice
- * contracts (2026-09-29), orphaned onto their own module when the batch
- * practice module was replaced by practice sessions (2026-10-04).
+ * table consumes these; the barrel exports them).
  */
 
 /** One reasoning chain — a selection-facing VIEW of stored follows-edges:
@@ -23,8 +21,7 @@ interface ReasoningChain {
 	conclusion: string;
 }
 
-/** The stored chains filtered to a selection (chains-primary, owner
- *  2026-09-30): a chain rides along iff its conclusion AND every premise
+/** The stored chains filtered to a selection: a chain rides along iff its conclusion AND every premise
  *  are selected; a node in no surviving chain is a singleton chain
  *  (premises: []). Premise-only nodes whose chain was excluded are
  *  singletons — the same inclusion law as the pre-chains edge grouping.
@@ -53,19 +50,12 @@ export function chainsForSelection(
 	return included.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
-/** A chain as one world-facing line — the propositions' NAMES joined
- *  by the derivation arrow: "Premise one, Premise two → Conclusion"; a
- *  singleton shows its "(no premises)" marker. Pure + browser-safe.
- *  Unknown ids fall back to the raw id (honest, never guessed).
- *  Premises sort by id — the same determinism law as chainsForSelection. */
-/** Resolve ONE target string to a canonical proposition id (owner round
- *  9, 2026-10-05 — the mastery-trace contract): id first (exact), then
+/** Resolve ONE target string to a canonical proposition id: id first (exact), then
  *  name (case-insensitive, trimmed — names are presentational handles,
  *  not unique; an ambiguous name resolves to the FIRST node in store
  *  order). Returns null when nothing matches — the caller rejects.
  *  Validation set is the WHOLE graph, not the session's picks: pickless
- *  sessions and future graph-tools poses stay valid. The debris strip
- *  (whitehead, 2026-10-09) heals copy-syntax (`:node-id`, quoted ids)
+ *  sessions stay valid. The debris strip heals copy-syntax (`:node-id`, quoted ids)
  *  before matching — targets are membership values like correctAnswer. */
 export function resolveTargetId(
 	target: string,
@@ -81,6 +71,10 @@ export function resolveTargetId(
 	return null;
 }
 
+/** A chain as one world-facing line — the propositions' NAMES joined
+ *  by the derivation arrow: "Premise one, Premise two → Conclusion"; a
+ *  singleton shows its "(no premises)" marker. Unknown ids fall back to
+ *  the raw id. Premises sort by id, like chainsForSelection. */
 export function formatChainLine(
 	chain: Pick<ReasoningChain, "premises" | "conclusion">,
 	propositions: Readonly<Record<string, { name: string }>>,

@@ -1,6 +1,5 @@
 /**
- * The pure prompt-segment grammar (P2 reconciliation, 2026-09-19):
- * segment-path validation + the shared segment types, ZERO fs. Discovery
+ * The pure prompt-segment grammar: segment-path validation + the shared segment types, ZERO fs. Discovery
  * (reading the agent's prompt tree) lives in the agent layer
  * (src/agent/prompt-segments.ts — the canonical loader composeInstructions
  * composes through); the override-file CRUD lives in the store adapter
@@ -8,7 +7,7 @@
  * mirror-layout rules are defined exactly once.
  *
  * Path grammar: "system-prompt.md" (the shared base), "shared/<fragment>"
- * (sources v1: fragments composed by BOTH agents), "prober/<fragment>" /
+ * (fragments composed by BOTH agents), "prober/<fragment>" /
  * "teacher/<fragment>" — where <fragment> is numeric-prefixed + .md
  * (e.g. 20-teaching.md). POSIX-relative, no traversal, no nesting.
  */
@@ -16,10 +15,9 @@
 /** A prompt fragment: numeric order key + .md (e.g. 20-teaching.md). Nothing else loads. */
 export const FRAGMENT_RE = /^\d+-[\w.-]+\.md$/;
 
-/** Which agent's prompt directory to compose. */
-/** Practice (2026-10-04): composes ONLY its own directory — no shared
- *  teaching base, no shared fragments (the doctrine contradicts the
- *  teaching philosophy; its 00-base.md plays the base role). */
+/** Which agent's prompt directory to compose. Practice composes ONLY its
+ *  own directory — no shared base or fragments (its doctrine contradicts
+ *  the teaching philosophy; its 00-base.md plays the base role). */
 export type PromptAgent = "prober" | "teacher" | "practice";
 
 /** One segment of one agent's composed prompt. */

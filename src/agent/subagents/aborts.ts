@@ -11,9 +11,8 @@
  * object in each. Placed under src/agent (server→agent imports are an
  * established direction; agent→server is not — see chat-handler).
  *
- * 2026-09 abort semantics (user-decided): REAL KILL, not mark-and-abandon —
- * the controller aborts the in-flight model call (agent.generate /
- * generateText abortSignal); headless tool runs are best-effort (the next
+ * Abort is a REAL KILL, not mark-and-abandon: the controller aborts the
+ * in-flight model call; headless tool runs are best-effort (the next
  * model call is where a hung one dies). The route owns the bookkeeping
  * (status error "Aborted by learner" + the abort steer); the runner only unwinds.
  */

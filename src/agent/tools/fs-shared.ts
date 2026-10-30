@@ -3,12 +3,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 /**
- * Shared plumbing for the learner-filesystem tools (ls / find / grep) —
- * sources v1 (2026-09-19): the agent locates and reads the learner's files
- * itself, so paths need no UI affordance (user decision: no attachments —
- * the learner references files in messages; the agent finds them).
+ * Shared plumbing for the learner-filesystem tools (ls / find / grep): the
+ * agent locates and reads the learner's files itself (no attachments; the
+ * learner references files in messages and the agent finds them).
  *
- * Safety posture (user-locked): READ-ONLY by construction — no shell-out,
+ * Safety posture: READ-ONLY by construction — no shell-out,
  * no user-controlled process args, no mutation APIs anywhere here. The one
  * deliberate scope widening vs pi: relative paths and default roots resolve
  * against the LEARNER'S HOME, not a project cwd — the harness has no
@@ -29,8 +28,8 @@ export const WALK_TIMEOUT_MS = 10_000;
 
 /**
  * Directory names never entered during walks. node_modules/.git mirror pi's
- * fd/rg defaults; Library/.Trash are the home-root noise the user approved
- * (2026-09-19) — caches, app support, and the trash live under them.
+ * fd/rg defaults; Library/.Trash are home-root noise (caches, app support
+ * and the trash live under them).
  * Explicit paths (ls/read of ~/Library/…) are NOT filtered — only walks.
  */
 const EXCLUDED_DIR_NAMES = new Set(["node_modules", ".git", "Library", ".Trash"]);

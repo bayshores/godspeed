@@ -33,7 +33,7 @@ export function jumpTarget(step: PlanStep): string | null {
 }
 
 /**
- * THE PLAN STEP BAR (redesign, lesson layout B): one small block per plan
+ * THE PLAN STEP BAR: one small block per plan
  * step — gray when done, white and wide for the current step, dark when
  * upcoming — then "11 / 14", the step name and a chevron that opens the
  * full plan map. Hovering (or focusing) a step shows its answers; clicking
