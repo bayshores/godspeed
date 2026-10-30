@@ -2,7 +2,7 @@
 
 > **Historical planning notes (2026-10-06), not the current release checklist.**
 > Several items below have since shipped, including signing/notarization and
-> automatic updates. See [Desktop builds and releases](desktop-release.md) for
+> automatic updates. See [Desktop builds and releases](../desktop-release.md) for
 > the current build, verification, and release procedure.
 
 Started 2026-10-06, owner brain-dump round. Priority 1 — everything else (assessment levels → docs/vision-assessment.md) comes after. Items are captured as spoken; design decisions inside them are **unruled** unless marked.

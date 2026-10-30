@@ -17,7 +17,7 @@ from typing import Any
 
 from _data import DataError, add_common_arguments, data_root, print_json, read_chat, safe_path
 
-QUESTION_TOOLS = {"quiz", "probe", "ask_user_question", "explain", "recall"}
+QUESTION_TOOLS = {"quiz", "probe", "ask_user_question", "explain", "recall", "write_code"}
 LEARNING_TOOLS = QUESTION_TOOLS | {"problem", "conclude", "probe_done", "plan_init", "research", "pdf", "visual", "demo"}
 OPERATION_TOOLS = {
     "read", "ls", "grep", "find", "bash", "write", "edit", "list_sessions",

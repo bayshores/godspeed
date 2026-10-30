@@ -1,8 +1,8 @@
 # godspeed — Vision & Plans
 
-Living document. Started 2026-08-22, capturing the current vision and all agreed decisions. Amend as things evolve.
+Started 2026-08-22 as the product's vision and decision log. Much of it is now history: the auditor stage, understanding levels, `follows`/`supports` edges, the graph as the home page and the sigma and canvas renderers are all gone. For how the app works today, read [architecture.md](architecture.md) and [development.md](development.md).
 
-Master frame: the three-part learning model and the extensibility/plugin direction live in [`vision-extensibility.md`](vision-extensibility.md) (2026-10-02).
+Master frame: the three-part learning model and the extensibility/plugin direction were written up in `vision-extensibility.md` (2026-10-02). That file is not in this repo.
 
 Prior art: `knowledge graph design.md` in the Obsidian vault (2025-08-20 ideation) — was canonical for the epistemic model; the 2026-09-02 node-theory + construction redesign in §1 amends it further (no misconception nodes, `follows`/`supports`, no taught events, message-granular provenance). This document records what today's decisions **amend** in it, and adds the session-experience and presentation layers the original doc deferred.
 
@@ -43,7 +43,7 @@ Every node records every **(chat, message) point** where it came up; every edge 
 
 ### Construction: free-form extraction, fully decoupled from sessions (DECIDED 2026-09-02 — supersedes live emission)
 
-*Coverage settled 2026-09-15 — see `vision-extraction-coverage.md`: the message is the unit of coverage (a covered-fingerprint ledger per chat), runs are token-budgeted batches of the oldest uncovered messages, and the trigger is uncovered tokens ≥ a chunk budget (replacing everyNQuizAnswers — quiz-less sessions extract too).*
+*Coverage settled 2026-09-15 — see `vision-extraction-coverage.md` (not in this repo): the message is the unit of coverage (a covered-fingerprint ledger per chat), runs are token-budgeted batches of the oldest uncovered messages, and the trigger is uncovered tokens ≥ a chunk budget (replacing everyNQuizAnswers — quiz-less sessions extract too).*
 
 **Second amendment, reversing the 2026-08-22 live-emission decision.** The session's plan tree is the teacher's scaffolding for the session experience (§2); the global graph does not depend on it — structurally or otherwise. What the teacher formalizes is session-relative; the graph must not inherit those choices. (The original design doc's post-hoc stance was right after all.)
 
@@ -115,7 +115,7 @@ When the graph fills up, the canvas needs a readable at-a-glance structure: **cl
 
 ### The graph as session context (DECIDED 2026-08-22)
 
-*Selection problem V1 settled 2026-09-14 — see `vision-context-injection.md`: semantic-closeness top-K under a per-session token budget, delivered as a steer. The structural-neighborhood and diagnostic-hotspot strategies below stay parked.*
+*Selection problem V1 settled 2026-09-14 — see `vision-context-injection.md` (not in this repo): semantic-closeness top-K under a per-session token budget, delivered as a steer. The structural-neighborhood and diagnostic-hotspot strategies below stay parked.*
 
 Every session starts with the learner's knowledge graph as base context for the teacher. This is what makes probing *precise* — probe questions can target subtleties and nuances at the boundary of what the learner actually holds, instead of re-discovering it from scratch each session. Personalization compounds across sessions.
 

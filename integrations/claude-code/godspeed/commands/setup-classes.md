@@ -21,7 +21,7 @@ Request: $ARGUMENTS
 Rules:
 - Never delete anything. Deleting a class is only possible in the godspeed window.
 - Supported files: .md .txt .pdf .vtt .srt .mp3 .m4a .wav .mp4 .mov. Skip others and say so.
-- Turning study files into facts uses the learner's background model. Large folders take a while; progress shows in the godspeed window.
+- Turning study files into facts is work for you (the connected agent): it comes through `wait_for_work`, and it waits until an agent is taking work. Large folders take a while; progress shows in the godspeed window. Tell the learner to run `/godspeed:teach` so the files get read.
 - To teach inside a class afterwards, use `/godspeed:teach`, or `start_lesson` with the class's `class_id`.
 
 If a tool says godspeed is unreachable or its access token was not found, tell the user exactly that message and stop.

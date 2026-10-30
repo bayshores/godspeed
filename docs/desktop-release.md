@@ -8,7 +8,7 @@
 | Windows, x64 | `windows-2025` | unsigned per-user NSIS installer | NSIS |
 | Linux, x64 | `ubuntu-24.04` | AppImage + `.deb` | AppImage replacement; `.deb` through dpkg/apt with elevation if needed |
 
-Windows signing is deliberately disabled for this first release. SmartScreen may warn about an unknown publisher on initial installation. AppImage is the primary Linux download because it is self-contained and updates without administrator permission. The installed `electron-updater` 6.8.9 also supports `.deb` updates; an update may request an administrator password. Both use the same download/restart banner.
+Windows signing is deliberately disabled. SmartScreen may warn about an unknown publisher on initial installation. AppImage is the primary Linux download because it is self-contained and updates without administrator permission. The installed `electron-updater` 6.8.9 also supports `.deb` updates; an update may request an administrator password. Both use the same download/restart banner.
 
 The custom app bar stays on all three platforms. macOS keeps its left-side traffic lights; Windows/Linux use Electron's native right-side Window Controls Overlay, with CSS space reserved from the overlay's actual geometry. Windows/Linux hide the native menu until Alt is pressed. macOS keeps its system menu.
 
@@ -20,14 +20,15 @@ Each OS installs its own dependencies and builds its own Next standalone tree:
 
 1. `npm ci`
 2. Native PDF/SVG renderer tests for that OS, running in Electron's bundled Node (no display needed).
-3. `npm run build` (`output: "standalone"`).
-4. `node scripts/build-server.mjs` — copy static assets, refuse leaked data/keys, remove only standalone-root `dist/` and `node_modules/electron/` (old installers and the development runtime), check prompt assets. Runtime dependencies' own `dist/` directories and native renderer binaries stay intact.
-5. `node scripts/smoke-server.mjs --electron` — boot the standalone server in Electron's bundled Node, using empty temporary data/auth, then check the home route and GET-only APIs.
-6. `npx electron-builder -c electron/electron-builder.yml <platform flags> --publish <policy>`.
+3. `node scripts/fetch-model.mjs`: download the class-search model into `models/`.
+4. `npm run build` (`output: "standalone"`).
+5. `node scripts/build-server.mjs` — copy static assets, refuse leaked data, old secret files and `.env` files, remove only standalone-root `dist/` and `node_modules/electron/` (old installers and the development runtime), check prompt assets. Runtime dependencies' own `dist/` directories and native renderer binaries stay intact.
+6. `node scripts/smoke-server.mjs --electron` — boot the standalone server in Electron's bundled Node, using an empty temporary data folder, then check the home route and GET-only APIs.
+7. `npx electron-builder -c electron/electron-builder.yml <platform flags> --publish <policy>`.
 
 The shell/updater live in `app.asar`; the standalone server and native renderer binaries ship unpacked as `extraResources`. **Do not cross-build the server payload.** Next traces the build machine's native binaries, so a macOS-built standalone tree is not a Windows/Linux payload.
 
-`npm run desktop:dist` remains the local macOS signing path, using the `LH_NOTARY` keychain profile. For a local Windows/Linux build, run steps 1–5 above, then:
+`npm run desktop:dist` remains the local macOS signing path, using the `LH_NOTARY` keychain profile. For a local Windows/Linux build, run steps 1–6 above, then:
 
 ```sh
 # On Windows:
@@ -41,7 +42,7 @@ npx electron-builder -c electron/electron-builder.yml --linux --x64 --publish ne
 
 `.github/workflows/ci.yml` runs on main pushes and pull requests:
 
-- Typecheck, full deterministic test suite, and lint on Ubuntu.
+- Typecheck, full deterministic test suite, lint, and the dead-code check (knip) on Ubuntu. This is the same as `npm run check`. The tag-push gates in `release.yml` run typecheck, tests and lint.
 - Native renderer tests plus standalone build/boot-smoke on macOS (`macos-15`), Windows, and Linux. This macOS job does not compile the Icon Composer asset; only release packaging needs the newer runner.
 
 `.github/workflows/release.yml` has two deliberately separate modes:
@@ -86,13 +87,11 @@ Add these under repository **Settings → Secrets and variables → Actions**:
 
 The workflow maps the certificate secrets to electron-builder's `CSC_LINK` / `CSC_KEY_PASSWORD`. GitHub's built-in `GITHUB_TOKEN` supplies `GH_TOKEN` with job-scoped `contents: write`; no separate GitHub token secret is required. Signing credentials are present only for the packaging step, not the Next build. Never commit certificates, passwords, or `.env.local`.
 
-## First release runbook
+## Release runbook
 
-1. Push the implementation; run the manual Desktop release workflow.
-2. Human smoke on Windows/Linux: install/open, window buttons and dragging, sidebar at narrow widths, zoom, setup/keys, session/resume, native PDF/SVG verification and demo helper. macOS remains signed/notarized through the production path.
-3. Add macOS signing/notarization secrets.
-4. Bump `package.json` and the lockfile to the agreed release version; run local gates and push a matching `v...` tag.
-5. Wait for **all three** packaging jobs **and the final Verify draft release job** — the gate mechanically checks the draft's 11 assets and the three update feeds (single draft, right names/version/sizes/upload state, feeds referencing only what the release actually holds). If it fails, fix the cause and re-run the workflow before publishing; electron-builder replaces same-named assets on re-upload, and the gate rejects leftovers.
-6. Owner makes the repository public, publishes the complete draft, then checks the real GitHub update path using a prior installed version.
+1. Push the change. If it touches `electron/`, native modules, packaging or updater configuration, or Electron itself, run the manual Desktop release workflow and smoke-test the Windows/Linux artifacts by hand: install and open, window buttons and dragging, sidebar at narrow widths, zoom, onboarding and agent connection, a lesson and resume, native PDF/SVG verification and the demo helper.
+2. Bump `package.json` and the lockfile to the release version, run `npm run check`, and push a matching `v...` tag.
+3. Wait for **all three** packaging jobs **and the final Verify draft release job**. The gate checks the draft's 11 assets and the three update feeds (single draft, right names/version/sizes/upload state, feeds referencing only what the release actually holds). If it fails, fix the cause and re-run the workflow before publishing; electron-builder replaces same-named assets on re-upload, and the gate rejects leftovers.
+4. The owner publishes the complete draft, then checks the real update path from a prior installed version.
 
-A full human pass is required before the first three-platform release. Subsequent content-only updates rely on the deterministic suite plus the per-OS build/boot-smoke matrix. Changes to `electron/`, native modules, packaging/updater configuration, or Electron itself call for another platform smoke pass.
+Content-only updates rely on the deterministic suite plus the per-OS build/boot-smoke matrix.

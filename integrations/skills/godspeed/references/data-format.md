@@ -12,17 +12,17 @@ Paths below are relative to the selected **data** directory:
 
 ```text
 chats/<session-id>.json    Full session: messages, optional plan, usage metadata
+chats/<session-id>/        PDFs the learner attached to that session (messages name their path)
+agent-notes.json          Short notes agents saved about the learner (remember/forget); the learner sees them in Settings → Connection
 graph/nodes.jsonl          Proposition assertions; IDs can repeat
 graph/chains.jsonl         Reasoning-chain assertions; logical chains can repeat
 graph/sources.json        Imported-note source metadata, keyed by source ID
 graph/format.json         Graph-family format stamp: {"version": 1}
 graph/sessions.jsonl       Extraction checkpoints, NOT the session index
 graph/coverage.jsonl       Extraction fingerprints, NOT learner assessment
-graph/positions.json      Canvas layout, not semantic relationships
-graph/render-settings.json  Presentation preferences, not learning evidence
 graph/topics.jsonl        Topic groupings of propositions; each line a full snapshot, the last line wins
 jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
-classes/<class-id>/class.json   A class (course): name, description, archived, file list, deadlines
+classes/<class-id>/class.json   A class (course): name, description, archived, linkedFolder, files, deadlines, signature, icon, note, rules
 classes/<class-id>/files/       The class's copied files (and recording transcripts)
 classes/<class-id>/graph/       That class's OWN graph: the same files as graph/ above
 ```
@@ -37,20 +37,21 @@ A class record may list `deadlines`: `{id, kind, name, date: "YYYY-MM-DD", time?
 fileIds, done, doneAt?}`. `kind` is `exam`, `homework`, `quiz` or `project`; `time`
 is a 24-hour `"HH:MM"` on the learner's own clock (absent means due at the end of
 that day); `fileIds` are the class files it covers; `doneAt` is the ISO time it was
-ticked done. Class records are stamped `"version": 3` since deadlines replaced
-exams. A version-2 record lists `exams` instead (`{id, name, date, fileIds}`),
-which read as deadlines of kind `exam`, not done; an unstamped or version-1
-record has neither.
+ticked done. Class records are stamped `"version": 5` (v3: deadlines replaced
+exams; v4: `signature` and `note`; v5: `rules`). A version-2 record lists `exams`
+instead (`{id, name, date, fileIds}`), which read as deadlines of kind `exam`, not
+done; an unstamped or version-1 record has neither.
 
 **Topics.** `topics.jsonl` (in any graph folder) holds lines
 `{"at": ISO time, "topics": [{"id": "tpc_…", "name", "members": [proposition ids]}]}`.
 Only the last valid line counts. Members that are no longer propositions are
 ignored; propositions in no topic are "Ungrouped".
 
-`settings.json`, downloaded models, caches, and provider debug logs are not needed
-to interpret learning history. `auth.json` is normally one directory above data;
-do not read it. Imported-note paths, research URLs, and artifact references are not
-automatically followed by the readers.
+`mcp-token` is the app's access secret: never read or print it. `mcp-endpoint.json`,
+`agent-seen.json`, `settings.json`, `prompts/`, downloaded models, caches, and
+provider debug logs are not needed to interpret learning history. Imported-note
+paths, research URLs, and artifact references are not automatically followed by
+the readers.
 
 ## A session record
 
@@ -65,7 +66,8 @@ Each `chats/*.json` file is an object with:
 | `messages` | Complete stored chronological history, including custom app markers |
 | `tree` | Optional session plan: nodes, prerequisite edges, revision number |
 | `turns`, `extractions` | Parallel usage/cost-observation logs, not learner answers |
-| `settings` | Per-session model/thinking overrides, not an understanding assessment |
+| `classId` | The class the session belongs to; absent means "No class" |
+| `settings` | Only on older records: an old per-session model choice, not an understanding assessment |
 
 The plan is session scaffolding, not the persistent knowledge graph. Its visited
 or current positions are not proof of mastery. Context compaction changes what the
@@ -115,10 +117,11 @@ can also be present in the source; a readable transcript is not a data-repair pa
 
 ### Questions and answers: where the evidence actually lives
 
-Question tools include `ask_user_question`, `probe`, `quiz`, `recall`, and `explain`.
-Probe/quiz are multiple-choice checks; recall/explain use a teacher-committed answer
-and the learner's own words. Ask questions clarify goals/preferences and are not
-graded quizzes. Older records can use older tool names or lack newer type fields.
+Question tools include `ask_user_question`, `probe`, `quiz`, `recall`, `explain`,
+and `write_code`. Probe/quiz are multiple-choice checks; recall/explain use a
+teacher-committed answer and the learner's own words. `write_code` asks the learner
+to write code in an editor; the teacher grades it by reading it, and the app never
+runs it. Ask questions clarify goals/preferences and are not graded quizzes. Older records can use older tool names or lack newer type fields.
 
 A question's learner response is a separate `toolResult` message. Prefer its
 **`details`** payload: `content[*].text` deliberately omits material already in
@@ -131,25 +134,27 @@ Important answer-detail fields:
 
 | Field | Meaning |
 | --- | --- |
-| `kind` | `quiz`, `ask`, or `explain` |
+| `kind` | `quiz`, `ask`, `explain`, or `code` |
 | `tool`, `questionType` | Optional tool/role snapshots; a quiz can be `predict` or `check` |
 | `questionText`, `options` | Question and displayed-option snapshots |
 | `answers` | Selected `{label, value, index}` tuples; index is 1-based **display order** |
 | `text`, `other` | Free-text response or ask's Other answer |
+| `code`, `language` | A `write_code` answer: the learner's code and its language (no `code` on don't-know) |
 | `dontKnow`, `dismissed` | Explicit don't-know or skipped state |
 | `thinking` | Learner reasoning about the question |
 | `note` | Legacy name for that same channel; use `thinking ?? note` |
 | `readingThinking` | Separate learner thinking while reading the teaching |
-| `confidence` | Self-reported 0–100 probability that the selected quiz answer is correct |
+| `confidence` | Self-reported confidence that the selected quiz answer is right, saved as 20/40/60/80/100 for levels 1 to 5 (older answers use 0/30/50/70/90/100) |
 | `correct`, `correctIndices` | Mechanical quiz grading in displayed-option order |
 | `committed`, `explanation` | Teacher's committed answer / quiz explanation, not learner speech |
 | `answeredAt` | ISO answer timestamp |
 
 **Options are shuffled.** Never apply a learner's display index to the raw call's
 authored option order. Use the answer snapshot and its label/value tuples. Missing
-confidence is not zero, and no confidence is sent for don't-know. The slider's 50%
-resting value is a real recorded 50%, but the record cannot tell whether it was
-left untouched or chosen deliberately.
+confidence is not zero: the meter starts unrated, and nothing is saved unless the
+learner picks a level. No confidence is sent for don't-know. Older answers always
+carried a value: the earlier slider started at 50 and the earlier five-level meter
+at 60, so on those records a 50 or 60 may be the untouched start, not a choice.
 
 Retain incorrect responses, failed attempts, skipped questions, and don't-know;
 they are evidence, not noise to clean up. Do not invent a numeric grade for a
@@ -161,6 +166,8 @@ recall/explain response: the teacher's subsequent prose is its interpretation.
 | --- | --- |
 | `practice-thinking` | **Learner-authored work**, including intermediate attempts and claimed answers; raw text is `details.text`, associated through `details.problemCallId` |
 | `graph-context` | Picked propositions/chains supplied as session context; app-injected, not learner speech |
+| `class-context` | The class card shown at the start of a class lesson; app-injected |
+| `today-context` | Today's date and the class's open deadlines, given to the teacher only; app-injected |
 | `plan-block` | Historical plan presentation snapshot in `details.block` |
 | `subagent-steer` | Delivered teaching artifact; `details.kind` and `details.result` identify the payload |
 | `subagent-abort` | Background work was aborted; no result should be invented |
@@ -217,9 +224,8 @@ chains with the same conclusion are separate arguments, not one pooled premise
 set. Merge repeated assertions by the sorted premise list plus conclusion, keeping
 the first assertion's ID, premise order, and date; union provenance.
 
-The graph canvas derives arrows and implication junctions from these records.
-Those visual edges are not the stored truth and can lose the joint-premise
-structure. Read chains directly. Missing endpoints are reported as missing, not
+The app's topic map draws arrows between topics derived from these records.
+Those arrows are not the stored truth and lose the joint-premise structure. Read chains directly. Missing endpoints are reported as missing, not
 silently substituted or repaired.
 
 ### Sources, birth sessions, and provenance

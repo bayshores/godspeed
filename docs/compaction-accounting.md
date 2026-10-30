@@ -33,26 +33,22 @@ counts, and all-zero usage do not replace the last measurement. A successful
 compaction marker invalidates earlier measurements: show `? / maximum` until a
 new qualifying response completes. Summarizer usage never supplies this meter.
 
-The denominator follows the selected model's catalog limit, independently of the
-last numeric measurement. Changing models preserves that numerator. No catalog
-limit means no invented denominator; no percentage display is added.
+The denominator is the context window godspeed assumes for the outside agent:
+a fixed 200,000 tokens (`OUTSIDE_AGENT_CONTEXT_WINDOW` in `src/core/settings.ts`),
+independent of the last numeric measurement. The meter shows `tokens / maximum`,
+never a percentage.
 
-## Spending
+## Usage, not dollars
 
-`src/server/pricing.ts` uses Pi AI's full, key-independent catalog and public
-`calculateCost` on a new usage object. The browser receives derived costs, not a
-second calculator/rate table. Totals are estimates using the currently shipped
-catalog, not provider invoices; catalog updates can reprice history.
+Every model call runs on the outside agent, which bills the learner's own plan.
+So nothing has a dollar price. `src/core/prices.ts` and `src/core/cost-summary.ts`
+only fold token counts and name the plan ("Outside agent"). Records from before
+the built-in sign-ins were removed keep their old plan labels (ChatGPT, GitHub
+Copilot, Grok). A call with no plan shows as unpriced, never as zero.
 
 Saved input is Pi-normalized **fresh input**, disjoint from cache buckets. Never
 subtract cached reads from it again or migrate old logs as raw inclusive prompt
-tokens. New captures preserve the one-hour subset of cache writes and individual
-background-job calls. Older write-bearing records with a lost retention split,
-and tier-priced multi-call jobs with only aggregate usage, remain unpriced when
-the lost detail can change the answer. They are not reconstructed from totals.
-Flat-rate historical jobs with sufficient counts remain priceable. Missing models
-or required usage stay unpriced; plan usage (the outside agent, and older
-ChatGPT runs) is never counted as API dollars. Summarizer costs continue to count toward session spending.
+tokens. Missing usage stays missing.
 
 ## Upstream attribution
 

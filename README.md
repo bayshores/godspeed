@@ -17,9 +17,9 @@
   <a href="https://github.com/bayshores/godspeed/issues">Issues</a>
 </p>
 
-godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or exam, teaches one step at a time, then quizzes you. Every class gets its own lessons, files (PDFs, notes, lecture recordings), knowledge graph and exam prep. It runs on Mac, Windows and Linux, and needs no API keys.
+godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or exam, teaches one step at a time, then quizzes you. Every class gets its own lessons, files (PDFs, notes, lecture recordings), knowledge graph and deadlines. It runs on Mac, Windows and Linux, and needs no API keys.
 
-godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist, and keeps its teaching method. The fork changes who teaches (an agent you already use) and adds classes, files, graphs and exams.
+godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist, and keeps its teaching method. The fork changes who teaches (an agent you already use) and adds classes, files, graphs and deadlines.
 
 ![The old LearnHarness lesson and graph turning into the new godspeed lesson and topic graph as a before/after line slides across](docs/assets/learnharness-to-godspeed.gif)
 
@@ -29,12 +29,12 @@ godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharne
 |---|---|---|
 | **Who teaches** | Models from 30+ providers, through your API keys or a ChatGPT sign-in | An agent you already use: Claude Code, Codex, or any MCP app |
 | **API keys and sign-ins** | An API key, or sign in with ChatGPT. Agents that can't be signed into, like Claude Code, are left out | Neither. godspeed is an MCP server, so there is no key to paste and no account to sign in to |
-| **Organization** | One graph for everything | Classes, each with its own lessons, knowledge graph, files and exams |
+| **Organization** | One graph for everything | Classes, each with its own lessons, knowledge graph, files and deadlines |
 | **Course files** | Import notes | Add PDFs, notes, transcripts and recordings (transcribed locally with whisper.cpp), or link a folder that's rescanned every minute |
 | **Graph** | A canvas of individual facts | A topic map. The AI groups facts into topics, colors each by how often you get it right, and draws arrows for "learn this first" |
 | **Progress** | None | A class Overview: coverage per file, how each lesson went, and whether your confidence matches your results |
-| **Exams** | None | Add exams with dates and the files they cover. The Graph shows days left and what to work on next |
-| **Lessons** | Chat with a floating answer dock | A reading column, a plan step bar, and an always-open "Your turn" panel with number keys for answers |
+| **Deadlines** | None | Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's coming up, and the Graph shows days left and what to work on next |
+| **Lessons** | Chat with a floating answer dock | A reading column, a plan step bar, and an always-open "Your turn" panel with number keys for answers. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor |
 | **Confidence** | Percent slider | Five levels |
 | **Look** | Rounded corners | OLED black, square corners, CMU Serif titles, Source Sans 3 text |
 | **Dictation and web search keys** | Deepgram, Tavily, Brave | Removed |
@@ -78,7 +78,7 @@ While godspeed is open it runs an MCP server, and an agent you already use is it
    - **Other MCP apps:** use the address and token shown under **Settings → Connection** (Streamable HTTP, `Authorization: Bearer <token>`).
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-While you think, the Claude Code plugin waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph, import notes, and manage classes and exams. Only programs on your computer that hold the token can connect.
+While you think, the Claude Code plugin waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph and your class files, import notes, and manage classes and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
 ## Your plans, your data
 
@@ -90,10 +90,11 @@ While you think, the Claude Code plugin waits in a background script, so the age
 ## Development
 
 ```bash
-npm test             # deterministic: no LLM, no network
-npm run typecheck
-npm run lint
+npm run check        # typecheck + tests + lint + dead-code check (knip): what CI runs
+npm test             # tests only. deterministic: no LLM, no network
 ```
+
+A change is done when `npm run check` passes.
 
 See the [development guide](docs/development.md) and [architecture](docs/architecture.md). Bugs and requests go to [GitHub Issues](https://github.com/bayshores/godspeed/issues).
 
