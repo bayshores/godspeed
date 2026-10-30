@@ -1,6 +1,7 @@
 /**
  * Where the running godspeed app is, and its access token. Shared by the
- * MCP connector (connect.mjs) and the background waiter (wait-for-work.mjs).
+ * MCP connector (connect.mjs), the background waiter (wait-for-work.mjs)
+ * and the forget hook (forget.mjs).
  *
  * Where it looks (first match wins):
  *   URL:   $GODSPEED_MCP_URL → <data>/mcp-endpoint.json → http://127.0.0.1:47613/api/mcp
@@ -13,7 +14,7 @@ import path from "node:path";
 
 const DEFAULT_URL = "http://127.0.0.1:47613/api/mcp";
 
-function dataDir() {
+export function dataDir() {
 	if (process.env.GODSPEED_DATA_DIR) return process.env.GODSPEED_DATA_DIR;
 	const home = os.homedir();
 	if (process.platform === "darwin") return path.join(home, "Library", "Application Support", "godspeed", "data");

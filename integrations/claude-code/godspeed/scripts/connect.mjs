@@ -2,11 +2,17 @@
 /**
  * godspeed MCP connector: a stdio MCP server that forwards every message
  * to the running godspeed app (its /api/mcp endpoint), adding the access
- * token from the app's data folder (found by target.mjs). No
- * dependencies — Node 18+.
+ * token from the app's data folder (found by target.mjs). Tool calls carry
+ * Claude Code's session id, so godspeed sends this session only the
+ * messages it hasn't seen yet. No dependencies — Node 18+.
  */
 import readline from "node:readline";
 import { NO_TOKEN, target } from "./target.mjs";
+
+const agent = process.env.CLAUDE_CODE_SESSION_ID;
+
+/** Request id → the request still waiting for godspeed's answer. */
+const inFlight = new Map();
 
 function send(message) {
 	process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -24,12 +30,20 @@ async function forward(line) {
 	} catch {
 		return;
 	}
+	// Closing a cancelled call's request makes godspeed stop its wait, so it
+	// doesn't take a work item for an answer nobody reads.
+	if (message?.method === "notifications/cancelled") inFlight.get(message.params?.requestId)?.abort();
+	if (message?.method === "tools/call" && agent) {
+		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/agent": agent } };
+	}
 	const { url, token } = target();
 	if (!token) {
 		replyError(message.id, NO_TOKEN);
 		return;
 	}
-	let res;
+	const controller = new AbortController();
+	if (message.id !== undefined) inFlight.set(message.id, controller);
+	let res, body;
 	try {
 		res = await fetch(url, {
 			method: "POST",
@@ -38,13 +52,16 @@ async function forward(line) {
 				accept: "application/json, text/event-stream",
 				authorization: `Bearer ${token}`,
 			},
-			body: line,
+			body: JSON.stringify(message),
+			signal: controller.signal,
 		});
+		body = await res.text();
 	} catch {
-		replyError(message.id, `Can't reach godspeed at ${url}. Is the app open?`);
+		if (!controller.signal.aborted) replyError(message.id, `Can't reach godspeed at ${url}. Is the app open?`);
 		return;
+	} finally {
+		if (inFlight.get(message.id) === controller) inFlight.delete(message.id);
 	}
-	const body = await res.text();
 	if (!res.ok && res.status !== 202) {
 		let detail = body;
 		try {

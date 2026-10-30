@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { splitPages, WORK_PAGE_CHARS } from "../src/core/work-pages.ts";
+import { splitPages, WORK_PAGE_BYTES } from "../src/core/work-pages.ts";
 
 test("short text is one page", () => {
 	assert.deepEqual(splitPages("hello"), ["hello"]);
 	assert.deepEqual(splitPages(""), [""]);
-	assert.equal(splitPages("x".repeat(WORK_PAGE_CHARS)).length, 1);
+	assert.equal(splitPages("x".repeat(WORK_PAGE_BYTES)).length, 1);
 });
 
 test("pages join back to the text, and none is over the limit", () => {
@@ -32,4 +32,12 @@ test("a cut never splits an emoji or other surrogate pair", () => {
 	const pages = splitPages(text, 100);
 	assert.equal(pages[0], "a".repeat(99));
 	assert.equal(pages.join(""), text);
+});
+
+test("pages are measured in UTF-8 bytes, so Chinese or Japanese text gets shorter pages", () => {
+	const text = "日本語の授業ノート".repeat(4000);
+	const pages = splitPages(text);
+	assert.equal(pages.join(""), text);
+	for (const page of pages) assert.ok(Buffer.byteLength(page, "utf8") <= WORK_PAGE_BYTES);
+	assert.equal(pages[0]!.length, WORK_PAGE_BYTES / 3);
 });

@@ -8,6 +8,8 @@
  *
  *   node wait-for-work.mjs [--lesson <lesson id>] [--max-minutes <n>]
  *
+ * If the --lesson lesson is deleted, it waits for any work instead.
+ *
  * Exit codes: 0 = work item printed; 2 = nothing arrived within
  * --max-minutes (default 120; run it again to keep waiting); 1 = godspeed
  * refused or is unreachable for over 5 minutes (the message says why).
@@ -37,7 +39,7 @@ const flag = (name) => {
 	const at = args.indexOf(name);
 	return at >= 0 ? args[at + 1] : undefined;
 };
-const lessonId = flag("--lesson");
+let lessonId = flag("--lesson");
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
 const maxMinutes = Number(flag("--max-minutes") ?? 120);
 const deadline = Date.now() + (Number.isFinite(maxMinutes) && maxMinutes > 0 ? maxMinutes : 120) * 60_000;
@@ -97,6 +99,11 @@ async function waitOnce() {
 	const rpc = JSON.parse(body);
 	if (rpc.error) fail(`godspeed error: ${rpc.error.message}`);
 	const text = rpc.result?.content?.[0]?.text ?? "";
+	if (rpc.result?.isError && lessonId && text.startsWith("No lesson")) {
+		// The learner deleted the lesson it stayed on: wait for any work instead.
+		lessonId = undefined;
+		return { item: { status: "idle" } };
+	}
 	if (rpc.result?.isError) fail(`wait_for_work failed: ${text}`);
 	const item = JSON.parse(text);
 	if (item.status === "work") {

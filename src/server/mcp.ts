@@ -22,8 +22,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
 import {
-	AGENT_MODEL_ID,
-	AGENT_PROVIDER,
 	agentConnected,
 	agentName,
 	displayAgentName,
@@ -173,8 +171,9 @@ function folderName(path: string | undefined): string {
 	return path?.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "a folder";
 }
 
+/** Compact JSON: indentation costs the agent tokens and tells it nothing. */
 function result(value: unknown) {
-	return { content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] };
+	return { content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value) }] };
 }
 
 /** A work item as a tool result: the item as JSON, then its images as
@@ -182,7 +181,7 @@ function result(value: unknown) {
  *  long item sends page 1 of its JSON after a short header. */
 function workResult(view: WorkView) {
 	const images = (view.images ?? []).map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mimeType }));
-	const pages = splitPages(JSON.stringify(describe(view), null, 2));
+	const pages = splitPages(JSON.stringify(describe(view)));
 	setWorkPages(view.workId, pages);
 	if (pages.length === 1) return { content: [{ type: "text" as const, text: pages[0]! }, ...images] };
 	const header = {
@@ -215,9 +214,9 @@ const IDLE = {
 };
 
 /** The calling agent's session id, when its client sends one: the
- *  Claude Code plugin's waiter sets "godspeed/agent", and Codex sends its
- *  session id in "x-codex-turn-metadata". Each agent then gets only the
- *  messages it hasn't seen. */
+ *  Claude Code plugin (its connector and its waiter) sets "godspeed/agent",
+ *  and Codex sends its session id in "x-codex-turn-metadata". Each agent
+ *  then gets only the messages it hasn't seen. */
 function agentIdOf(meta: Record<string, unknown> | undefined): string | undefined {
 	let codex = meta?.["x-codex-turn-metadata"];
 	if (typeof codex === "string") {
@@ -237,7 +236,9 @@ function waitMs(seconds: number | undefined): number {
 
 // ─── The server ─────────────────────────────────────────────────────────────
 
-function buildServer(instructions: string): McpServer {
+/** `signal` aborts when the request's caller goes away, so its waits end
+ *  without claiming work nobody will answer. */
+function buildServer(instructions: string, signal: AbortSignal): McpServer {
 	const server = new McpServer(
 		{ name: "godspeed", version: packageMetadata.version },
 		{ instructions },
@@ -256,7 +257,7 @@ function buildServer(instructions: string): McpServer {
 		},
 		async ({ timeout_seconds, lesson_id, full_context }, extra) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(extra._meta) });
+			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(extra._meta), signal });
 			return view ? workResult(view) : result(IDLE);
 		},
 	);
@@ -282,7 +283,7 @@ function buildServer(instructions: string): McpServer {
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			if (lesson) act({ label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
-			const next = await waitForWork(waitMs, { conversation: answered.conversation, agent: answered.agent }).finally(() => releaseConversation(answered.conversation));
+			const next = await waitForWork(waitMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			return result({
@@ -332,7 +333,6 @@ function buildServer(instructions: string): McpServer {
 					phase: c.phase,
 					waitingForLearner: c.pendingQuestion || c.pendingProblem,
 					running: isTurnRunning(c.id),
-					model: c.settings?.model ? `${c.settings.model.provider}:${c.settings.model.id}` : null,
 					updatedAt: c.updatedAt,
 				}))
 				.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -455,7 +455,6 @@ function buildServer(instructions: string): McpServer {
 				title: topic,
 				kind: kind === "practice" ? "practice" : undefined,
 				classId: scope,
-				settings: { model: { provider: AGENT_PROVIDER, id: AGENT_MODEL_ID } },
 			});
 			if (!created.ok) return failure(created.error);
 			const chat = created.chat;
@@ -480,8 +479,9 @@ function buildServer(instructions: string): McpServer {
 			},
 		},
 		async ({ text, class_id }) => {
-			if (class_id && !stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
-			const saved = addAgentNote(text, class_id);
+			const arg = classArg(class_id);
+			if ("error" in arg) return failure(arg.error);
+			const saved = addAgentNote(text, arg.scope ?? undefined);
 			return saved.ok ? result({ note: saved.value }) : failure(saved.error);
 		},
 	);
@@ -838,14 +838,15 @@ async function initializeRequest(req: Request): Promise<{ name: string | undefin
 }
 
 /** /api/mcp/forget: the Claude Code plugin's hook says an agent lost its
- *  context (it compacted or cleared), so its next items come in full. */
+ *  context (it compacted, or "cleared": /clear ended the session), so its
+ *  next items come in full. */
 export async function handleAgentForget(req: Request): Promise<Response> {
 	const refused = refuse(req);
 	if (refused) return refused;
-	const body = (await req.json().catch(() => null)) as { agent?: unknown } | null;
+	const body = (await req.json().catch(() => null)) as { agent?: unknown; cleared?: unknown } | null;
 	const agent = agentIdOf({ "godspeed/agent": body?.agent });
 	if (!agent) return Response.json({ error: "Send the agent's session id as \"agent\"." }, { status: 400 });
-	forgetAgent(agent);
+	forgetAgent(agent, body?.cleared === true);
 	return Response.json({ ok: true });
 }
 
@@ -857,7 +858,7 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
 	const init = req.method === "POST" ? await initializeRequest(req) : null;
 	if (req.method === "POST") recordCheckIn(init?.name);
 	// Only initialize hands instructions to the agent, so only it builds the briefing.
-	const server = buildServer(init ? `${INSTRUCTIONS}\n\n${currentAgentBriefing()}` : INSTRUCTIONS);
+	const server = buildServer(init ? `${INSTRUCTIONS}\n\n${currentAgentBriefing()}` : INSTRUCTIONS, req.signal);
 	const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
 	await server.connect(transport);
 	try {

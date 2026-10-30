@@ -41,12 +41,8 @@ import { continuesFrom, seenMark, type SeenMark, type SeenStore } from "../core/
 import { emit } from "../core/events.ts";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "../core/settings.ts";
 
-export const AGENT_PROVIDER = OUTSIDE_AGENT_PROVIDER;
-export const AGENT_MODEL_ID = OUTSIDE_AGENT_MODEL_ID;
 const AGENT_MODEL_NAME = "Outside agent (MCP)";
 const AGENT_API = "godspeed-agent";
-
-const AGENT_CONTEXT_WINDOW = OUTSIDE_AGENT_CONTEXT_WINDOW;
 
 /** One tool the agent may call in its reply. */
 export interface WorkTool {
@@ -82,6 +78,9 @@ interface WorkItem {
 	claimedAt?: number;
 	/** The session id of the agent that took it, when its client sends one. */
 	agent?: string;
+	/** How often it was taken. The workId an agent sees ends in this count,
+	 *  so a late reply from an earlier claim can't answer for the latest. */
+	claims: number;
 	/** The agent lost its context while holding this item, so its reply
 	 *  doesn't count as having seen the conversation. */
 	agentForgot?: boolean;
@@ -137,16 +136,19 @@ interface BridgeState {
 	/** conversation → until when (ms) its next item is held for the agent
 	 *  that just answered it, so another waiting agent can't take it. */
 	held: Map<string, number>;
+	/** Background conversations whose run hasn't ended (forgetConversation). */
+	backgroundRuns: Set<string>;
 }
 
 const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map(), held: new Map() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map(), held: new Map(), backgroundRuns: new Set() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	g[STATE_KEY].held ??= new Map();
 	g[STATE_KEY].seenBy ??= new Map();
+	g[STATE_KEY].backgroundRuns ??= new Set();
 	return g[STATE_KEY];
 }
 
@@ -157,12 +159,14 @@ export function labelConversation(conversation: string, label: string): void {
 }
 
 /** Drop a finished background run's state: it is never delivered again,
- *  and its seen transcript would otherwise stay in memory until restart. */
+ *  and its seen transcript would otherwise stay in memory until restart.
+ *  A respond still waiting for the run's next item stops waiting. */
 export function forgetConversation(conversation: string): void {
 	const s = state();
 	s.labels.delete(conversation);
 	s.seenBy.delete(conversation);
 	s.held.delete(conversation);
+	if (s.backgroundRuns.delete(conversation)) wake();
 }
 
 function wake(): void {
@@ -267,8 +271,13 @@ function instructionsAndTools(messages: Message[]): { instructions: string; tool
 	return { instructions, tools: [...tools.values()] };
 }
 
+/** A system message counts its tool names too: the prompt text stays the
+ *  same when the learner changes tools in Settings, and the agent must then
+ *  get the item in full with the new tools. */
 function fingerprint(m: Message): string {
-	return JSON.stringify(renderMessage(m));
+	if (m.role !== "system") return JSON.stringify(renderMessage(m));
+	const names = (tools: { name: string }[] | undefined) => (tools ?? []).map((t) => t.name).sort();
+	return JSON.stringify({ ...renderMessage(m), tools: names(m.toolsAdded), removed: names(m.toolsRemoved) });
 }
 
 /** Only lessons outlive a restart; background jobs never come back. */
@@ -296,12 +305,18 @@ export function setSeenStore(store: SeenStore): void {
 }
 
 /** The agent lost its context (it compacted or cleared): its next items
- *  come in full. */
-export function forgetAgent(agent: string): void {
+ *  come in full. A cleared session is gone for good, so the items it held
+ *  go to the next agent at once. */
+export function forgetAgent(agent: string, cleared: boolean): void {
 	const s = state();
 	for (const byAgent of s.seenBy.values()) byAgent.delete(agent);
-	for (const item of s.items.values()) if (item.agent === agent) item.agentForgot = true;
+	for (const item of s.items.values()) {
+		if (item.agent !== agent) continue;
+		item.agentForgot = true;
+		if (cleared) item.claimedAt = undefined;
+	}
 	s.seenStore?.forgetAgent(agent);
+	if (cleared) wake();
 }
 
 /** Present one item, sending only the unseen tail when its agent already
@@ -319,9 +334,17 @@ function view(item: WorkItem, forceFull: boolean): WorkView {
 		.filter((m): m is WorkMessage => m !== null);
 	const label = state().labels.get(item.conversation);
 	const extra = { ...(label ? { label } : {}), ...(images.length ? { images } : {}) };
-	if (continued) return { workId: item.id, conversation: item.conversation, continued, messages, ...extra };
+	const workId = `${item.id}_${item.claims}`;
+	if (continued) return { workId, conversation: item.conversation, continued, messages, ...extra };
 	const { instructions, tools } = instructionsAndTools(all);
-	return { workId: item.id, conversation: item.conversation, continued, instructions, tools, messages, ...extra };
+	return { workId, conversation: item.conversation, continued, instructions, tools, messages, ...extra };
+}
+
+/** The open item a workId names, only while that claim is its latest. */
+function openItem(workId: string): WorkItem | undefined {
+	const at = workId.lastIndexOf("_");
+	const item = state().items.get(workId.slice(0, at));
+	return item && workId.slice(at + 1) === String(item.claims) ? item : undefined;
 }
 
 // ─── The MCP-facing operations ──────────────────────────────────────────────
@@ -332,57 +355,72 @@ function isBackground(item: WorkItem): boolean {
 	return !item.conversation.startsWith(CHAT_ID_PREFIX);
 }
 
-function claimable(item: WorkItem, now: number, conversation: string | undefined): boolean {
-	if (item.conversation !== conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
+interface Taker {
+	conversation?: string;
+	agent?: string;
+}
+
+function claimable(item: WorkItem, now: number, taker: Taker): boolean {
+	if (item.conversation !== taker.conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
+	// An agent may take its own item again (a compaction lost its workId).
+	if (taker.agent !== undefined && item.agent === taker.agent) return true;
 	return item.claimedAt === undefined || now - item.claimedAt > CLAIM_TIMEOUT_MS;
 }
 
 /** Oldest first, so jobs are answered in the order they were asked. */
-function oldestClaimable(now: number, conversation: string | undefined, keep: (i: WorkItem) => boolean): WorkItem | undefined {
+function oldestClaimable(now: number, taker: Taker, keep: (i: WorkItem) => boolean): WorkItem | undefined {
 	const items = [...state().items.values()].sort((a, b) => a.createdAt - b.createdAt);
-	return items.find((i) => keep(i) && claimable(i, now, conversation));
+	return items.find((i) => keep(i) && claimable(i, now, taker));
 }
 
 /** Pick the next item. With a conversation, that conversation's item;
  *  `andBackground` also allows background jobs, so an agent staying on one
  *  lesson still does the file reading and graph work nobody else would. */
-function pick(now: number, opts: { conversation?: string; andBackground?: boolean }): WorkItem | undefined {
+function pick(now: number, opts: Taker & { andBackground?: boolean }): WorkItem | undefined {
 	const { conversation } = opts;
-	if (!conversation) return oldestClaimable(now, undefined, () => true);
+	if (!conversation) return oldestClaimable(now, opts, () => true);
 	return (
-		oldestClaimable(now, conversation, (i) => i.conversation === conversation) ??
-		(opts.andBackground ? oldestClaimable(now, conversation, isBackground) : undefined)
+		oldestClaimable(now, opts, (i) => i.conversation === conversation) ??
+		(opts.andBackground ? oldestClaimable(now, opts, isBackground) : undefined)
 	);
 }
 
-/** Wait up to `timeoutMs` for a request, claim it, and present it. */
+/** Wait up to `timeoutMs` for a request, claim it, and present it. Stops
+ *  without claiming once `signal` aborts (the caller went away). */
 export async function waitForWork(
 	timeoutMs: number,
-	opts: { full?: boolean; conversation?: string; andBackground?: boolean; agent?: string } = {},
+	opts: Taker & { full?: boolean; andBackground?: boolean; signal?: AbortSignal } = {},
 ): Promise<WorkView | null> {
 	const s = state();
 	const deadline = Date.now() + timeoutMs;
 	for (;;) {
+		if (opts.signal?.aborted) return null;
 		const now = Date.now();
 		recordCheckIn(undefined, now);
 		const item = pick(now, opts);
 		if (item) {
 			item.claimedAt = now;
+			item.claims++;
 			item.agent = opts.agent;
 			item.agentForgot = false;
 			if (isBackground(item)) emit("activity-changed", {});
 			return view(item, !!opts.full);
 		}
+		// A background run that ended sends nothing more.
+		const { conversation } = opts;
+		if (conversation && !conversation.startsWith(CHAT_ID_PREFIX) && !s.backgroundRuns.has(conversation)) return null;
 		const remaining = deadline - now;
 		if (remaining <= 0) return null;
 		await new Promise<void>((resolve) => {
 			const done = () => {
 				clearTimeout(timer);
 				s.waiters.delete(done);
+				opts.signal?.removeEventListener("abort", done);
 				resolve();
 			};
 			const timer = setTimeout(done, Math.min(remaining, 15_000));
 			s.waiters.add(done);
+			opts.signal?.addEventListener("abort", done, { once: true });
 		});
 	}
 }
@@ -396,7 +434,7 @@ export function respondToWork(
 	holdMs: number,
 ): { ok: true; conversation: string; agent?: string } | { ok: false; error: string } {
 	const s = state();
-	const item = s.items.get(workId);
+	const item = openItem(workId);
 	if (!item) return { ok: false, error: noItem(workId) };
 	const unread = [...(item.unread ?? [])].sort((a, b) => a - b);
 	if (unread.length > 0) {
@@ -411,7 +449,7 @@ export function respondToWork(
 		return { ok: false, error: "A reply needs text, tool calls, or both." };
 	}
 	const message = toAssistant(reply);
-	s.items.delete(workId);
+	s.items.delete(item.id);
 	emit("agent-changed", {});
 	// The agent already knows its own reply: mark it seen so the next
 	// delivery in this conversation starts at the tool results.
@@ -423,7 +461,7 @@ export function respondToWork(
 
 /** Keep a presented item's pages; page 1 went out with it. */
 export function setWorkPages(workId: string, pages: string[]): void {
-	const item = state().items.get(workId);
+	const item = openItem(workId);
 	if (!item) return;
 	item.pages = pages;
 	item.unread = new Set(pages.map((_, i) => i + 1).slice(1));
@@ -431,7 +469,7 @@ export function setWorkPages(workId: string, pages: string[]): void {
 
 /** One page of an open work item, which then counts as read. */
 export function readWorkPage(workId: string, page: number): { ok: true; text: string; pages: number } | { ok: false; error: string } {
-	const item = state().items.get(workId);
+	const item = openItem(workId);
 	if (!item) return { ok: false, error: noItem(workId) };
 	const pages = item.pages ?? [];
 	if (page < 1 || page > pages.length) return { ok: false, error: `Work item "${workId}" has page(s) 1 to ${pages.length}.` };
@@ -465,8 +503,8 @@ function toAssistant(reply: AgentReply): AssistantMessage {
 
 const core = createFauxCore({
 	api: AGENT_API,
-	provider: AGENT_PROVIDER,
-	models: [{ id: AGENT_MODEL_ID, name: AGENT_MODEL_NAME, reasoning: false, input: ["text", "image"], contextWindow: AGENT_CONTEXT_WINDOW, maxTokens: 32_000 }],
+	provider: OUTSIDE_AGENT_PROVIDER,
+	models: [{ id: OUTSIDE_AGENT_MODEL_ID, name: AGENT_MODEL_NAME, reasoning: false, input: ["text", "image"], contextWindow: OUTSIDE_AGENT_CONTEXT_WINDOW, maxTokens: 32_000 }],
 });
 
 /** The bridge's single model entry (catalog + engine). */
@@ -491,12 +529,14 @@ function awaitAgent(context: TranscriptContext, sessionId: string | undefined, s
 			conversation,
 			createdAt: Date.now(),
 			context,
+			claims: 0,
 			resolve: (message) => {
 				signal?.removeEventListener("abort", onAbort);
 				resolve(message);
 			},
 		};
 		state().items.set(id, item);
+		if (sessionId !== undefined && isBackground(item)) state().backgroundRuns.add(conversation);
 		emit("agent-changed", {});
 		if (isBackground(item)) emit("activity-changed", {});
 		wake();
@@ -506,5 +546,7 @@ function awaitAgent(context: TranscriptContext, sessionId: string | undefined, s
 /** The stream function the "agent" provider's engine uses. */
 export const agentStream: StreamFunction<Api> = (model, context, options) => {
 	core.appendResponses([(ctx, opts) => awaitAgent(ctx, opts?.sessionId, opts?.signal)]);
-	return core.streamSimple(model as Model<string>, context, options);
+	// The faux prompt cache only makes up cache numbers, and it keeps every
+	// session's whole prompt in memory until the app quits.
+	return core.streamSimple(model as Model<string>, context, { ...options, cacheRetention: "none" });
 };

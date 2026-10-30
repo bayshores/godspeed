@@ -16,7 +16,6 @@ process.env = {
 	...(originalEnv.NODE_OPTIONS ? { NODE_OPTIONS: originalEnv.NODE_OPTIONS } : {}),
 	NODE_ENV: "test",
 	LH_DATA_DIR: path.join(scratch, "data"),
-	LH_AUTH_FILE: path.join(scratch, "auth.json"),
 	HOME: path.join(scratch, "home"),
 };
 fs.mkdirSync(path.join(scratch, "home"), { recursive: true });
@@ -35,7 +34,7 @@ const bridge = await import("../src/agent/agent-bridge.ts");
 const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { subscribe } = await import("../src/core/events.ts");
-const { WORK_PAGE_CHARS } = await import("../src/core/work-pages.ts");
+const { WORK_PAGE_BYTES } = await import("../src/core/work-pages.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -49,12 +48,6 @@ function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Pro
 	});
 }
 
-function agentChat(title: string) {
-	const chat = chatStore.createChat(title);
-	chatStore.saveSettings(chat.id, { model: { provider: bridge.AGENT_PROVIDER, id: bridge.AGENT_MODEL_ID } });
-	return chat;
-}
-
 function textOf(message: unknown): string {
 	const content = (message as { content?: unknown }).content;
 	return Array.isArray(content) ? content.filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("") : String(content);
@@ -64,7 +57,7 @@ describe("outside agent as the model", () => {
 	ensureMcpToken();
 
 	it("a lesson turn waits for the agent, and the agent's reply is saved", async () => {
-		const chat = agentChat("Photosynthesis");
+		const chat = chatStore.createChat("Photosynthesis");
 		const ack = await handleChatInput(chat.id, { type: "text", text: "Teach me photosynthesis" });
 		assert.equal(ack.status, 200, await ack.clone().text());
 
@@ -88,7 +81,7 @@ describe("outside agent as the model", () => {
 	});
 
 	it("tool calls run in the app and their results come back as continued work", async () => {
-		const chat = agentChat("Tools");
+		const chat = chatStore.createChat("Tools");
 		await handleChatInput(chat.id, { type: "text", text: "hello" });
 		const first = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(first);
@@ -105,7 +98,7 @@ describe("outside agent as the model", () => {
 	});
 
 	it("refuses tool names the work item does not offer", async () => {
-		const chat = agentChat("Unknown tool");
+		const chat = chatStore.createChat("Unknown tool");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
 		const work = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(work);
@@ -116,8 +109,8 @@ describe("outside agent as the model", () => {
 	});
 
 	it("an agent staying on one lesson also takes background jobs, but not other lessons", async () => {
-		const lesson = agentChat("Stay here");
-		const other = agentChat("Other lesson");
+		const lesson = chatStore.createChat("Stay here");
+		const other = chatStore.createChat("Other lesson");
 		await handleChatInput(other.id, { type: "text", text: "hi" });
 		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "other lesson parked");
 
@@ -164,7 +157,7 @@ describe("outside agent as the model", () => {
 	});
 
 	it("each agent gets only what it hasn't seen, and that survives a restart", async () => {
-		const chat = agentChat("Two agents");
+		const chat = chatStore.createChat("Two agents");
 		await handleChatInput(chat.id, { type: "text", text: "hello" });
 		const ls = { toolCalls: [{ name: "ls", arguments: {} }] };
 		const take = async (agent: string) => {
@@ -198,7 +191,7 @@ describe("outside agent as the model", () => {
 	});
 
 	it("an answered lesson's next item is held for the answering agent until release or expiry", async () => {
-		const chat = agentChat("Held");
+		const chat = chatStore.createChat("Held");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
 		const ls = { toolCalls: [{ name: "ls", arguments: {} }] };
 		const first = await bridge.waitForWork(5000, { conversation: chat.id });
@@ -228,7 +221,7 @@ describe("outside agent as the model", () => {
 	});
 
 	it("stopping the turn withdraws the parked request", async () => {
-		const chat = agentChat("Abort");
+		const chat = chatStore.createChat("Abort");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
 		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "request parked");
 		abortTurn(chat.id);
@@ -328,7 +321,7 @@ describe("the /api/mcp door", () => {
 		assert.equal(header.page, 1);
 		assert.ok(header.pages >= 3, `pages: ${header.pages}`);
 		const pages = [first.content[1].text];
-		for (const page of pages) assert.ok(page.length <= WORK_PAGE_CHARS);
+		for (const page of pages) assert.ok(Buffer.byteLength(page) <= WORK_PAGE_BYTES);
 
 		const early = await call(2, "respond", { work_id: header.workId, text: "Done.", wait_seconds: 0 });
 		assert.equal(early.isError, true);
@@ -370,7 +363,7 @@ describe("the /api/mcp door", () => {
 			return JSON.parse(pages.join(""));
 		};
 
-		const chat = agentChat("Forgets");
+		const chat = chatStore.createChat("Forgets");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
 		const first = await whole(await call(1, "wait_for_work", { timeout_seconds: 5, lesson_id: chat.id }));
 		assert.equal(first.continued, false);
@@ -392,7 +385,7 @@ describe("the /api/mcp door", () => {
 	it("knows a Codex session by the id in its turn metadata, as an object or as JSON text", async () => {
 		const auth = { authorization: `Bearer ${ensureMcpToken()}` };
 		for (const turn of [{ session_id: "codex-object" }, JSON.stringify({ session_id: "codex-text" })]) {
-			const chat = agentChat("Codex");
+			const chat = chatStore.createChat("Codex");
 			await handleChatInput(chat.id, { type: "text", text: "hi" });
 			const wait = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 5, lesson_id: chat.id }, _meta: { "x-codex-turn-metadata": turn } } }, auth))).json();
 			const header = JSON.parse(wait.result.content[0].text);
@@ -546,7 +539,6 @@ describe("the [Today] note and the outside agent (plan 2026-10-28, Phase 2)", ()
 		const { classStore } = await import("../src/store/classes.ts");
 		const cls = classStore.createClass({ name: "CSE 21" });
 		const chat = chatStore.createChat("Counting", undefined, cls.id);
-		chatStore.saveSettings(chat.id, { model: { provider: bridge.AGENT_PROVIDER, id: bridge.AGENT_MODEL_ID } });
 
 		const first = await turn(chat.id, "teach me counting");
 		assert.equal(first.continued, false);
@@ -573,10 +565,115 @@ describe("the [Today] note and the outside agent (plan 2026-10-28, Phase 2)", ()
 
 	it("a practice lesson gets the note too; a lesson with no class gets only the date", async () => {
 		const practice = chatStore.createChat("Practice", "practice");
-		chatStore.saveSettings(practice.id, { model: { provider: bridge.AGENT_PROVIDER, id: bridge.AGENT_MODEL_ID } });
 		const work = await turn(practice.id, "practice counting");
 		const users = userTexts(work);
 		assert.match(users.at(-2) ?? "", /^\[Today\] [^\n]+$/);
 		assert.equal(users.at(-1), "practice counting");
+	});
+});
+
+describe("claims, lost context and finished runs", () => {
+	const user = (text: string) => ({ role: "user", content: text, timestamp: 1 });
+	const park = (sessionId: string, messages: unknown[]) => bridge.agentStream(bridge.agentModel(), { messages } as never, { sessionId });
+	const forget = (body: unknown) =>
+		mcp.handleAgentForget(new Request("http://127.0.0.1:3000/api/mcp/forget", {
+			method: "POST",
+			headers: { host: "127.0.0.1:3000", "content-type": "application/json", authorization: `Bearer ${ensureMcpToken()}` },
+			body: JSON.stringify(body),
+		}));
+
+	it("after a compaction only the same session can take its item again; after /clear anyone can", async () => {
+		const stream = park("job_lost_context", [user("hi")]);
+		const first = await bridge.waitForWork(5000, { agent: "session-old" });
+		assert.ok(first);
+		assert.equal(await bridge.waitForWork(50, { agent: "session-other" }), null, "the item is claimed");
+
+		assert.equal((await forget({ agent: "session-old" })).status, 200);
+		assert.equal(await bridge.waitForWork(50, { agent: "session-other" }), null, "a compacted session may still be answering");
+		const again = await bridge.waitForWork(50, { agent: "session-old", full: true });
+		assert.ok(again, "the compacted session takes its own item back");
+		assert.equal(again.continued, false);
+
+		assert.equal((await forget({ agent: "session-old", cleared: true })).status, 200);
+		const taken = await bridge.waitForWork(50, { agent: "session-new" });
+		assert.ok(taken, "a cleared session's item goes to the next agent at once");
+		assert.ok(bridge.respondToWork(taken.workId, { text: "Done." }, 0).ok);
+		await stream.result();
+	});
+
+	it("a reply from an earlier claim is refused once another agent took the item", async () => {
+		const stream = park("job_reclaimed", [user("hi")]);
+		const late = await bridge.waitForWork(5000, { agent: "agent-a" });
+		assert.ok(late);
+		const realNow = Date.now;
+		Date.now = () => realNow() + 11 * 60_000; // past the claim timeout
+		let current;
+		try {
+			current = await bridge.waitForWork(50, { agent: "agent-b" });
+		} finally {
+			Date.now = realNow;
+		}
+		assert.ok(current);
+		assert.equal(bridge.respondToWork(late.workId, { text: "Too late." }, 0).ok, false);
+		assert.equal(bridge.readWorkPage(late.workId, 1).ok, false);
+		assert.ok(bridge.respondToWork(current.workId, { text: "Done." }, 0).ok);
+		assert.equal(textOf(await stream.result()), "Done.");
+	});
+
+	it("a wait whose caller went away ends at once and claims nothing", async () => {
+		const gone = new AbortController();
+		const started = Date.now();
+		const ghost = bridge.waitForWork(5000, { signal: gone.signal });
+		gone.abort();
+		assert.equal(await ghost, null);
+		assert.ok(Date.now() - started < 1000);
+
+		const caller = new AbortController();
+		const request = mcp.handleMcpRequest(new Request("http://127.0.0.1:3000/api/mcp", {
+			method: "POST",
+			headers: { host: "127.0.0.1:3000", "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${ensureMcpToken()}` },
+			body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 30 } } }),
+			signal: caller.signal,
+		}));
+		setTimeout(() => caller.abort(), 50);
+		await request;
+		assert.ok(Date.now() - started < 3000, "the closed request's 30 s wait ended with it");
+		const stream = park("job_after_ghost", [user("hi")]);
+		const work = await bridge.waitForWork(1000);
+		assert.ok(work, "the next caller gets the item");
+		assert.ok(bridge.respondToWork(work.workId, { text: "Done." }, 0).ok);
+		await stream.result();
+	});
+
+	it("a wait for a background run's next item ends as soon as the run finishes", async () => {
+		const stream = park("job_finishes", [user("hi")]);
+		const work = await bridge.waitForWork(5000);
+		assert.ok(work);
+		assert.ok(bridge.respondToWork(work.workId, { text: "Done." }, 0).ok);
+		await stream.result();
+		const started = Date.now();
+		const next = bridge.waitForWork(5000, { conversation: "job_finishes" });
+		setTimeout(() => bridge.forgetConversation("job_finishes"), 50);
+		assert.equal(await next, null);
+		assert.ok(Date.now() - started < 1000);
+	});
+
+	it("a new tool set under the same prompt text comes in full", async () => {
+		const system = (tool: string) => ({ role: "system", content: "Teach well.", toolsAdded: [{ name: tool, description: tool, parameters: { type: "object", properties: {} } }], timestamp: 1 });
+		const turn = async (messages: unknown[]) => {
+			const stream = park("job_tool_change", messages);
+			const work = await bridge.waitForWork(5000);
+			assert.ok(work);
+			assert.ok(bridge.respondToWork(work.workId, { text: "Okay." }, 0).ok);
+			return { work, reply: await stream.result() };
+		};
+		const first = await turn([system("quiz"), user("hi")]);
+		assert.equal(first.reply.usage.cacheWrite, 0, "no faux prompt cache is kept");
+		const second = await turn([system("explain"), user("hi"), first.reply, user("next")]);
+		assert.equal(second.work.continued, false);
+		assert.deepEqual(second.work.tools?.map((t) => t.name), ["explain"]);
+		const third = await turn([system("explain"), user("hi"), first.reply, user("next"), second.reply, user("more")]);
+		assert.equal(third.work.continued, true, "the same tools again: only what is new");
+		bridge.forgetConversation("job_tool_change");
 	});
 });
