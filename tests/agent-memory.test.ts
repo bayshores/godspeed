@@ -17,7 +17,6 @@ process.env = {
 	...(originalEnv.NODE_OPTIONS ? { NODE_OPTIONS: originalEnv.NODE_OPTIONS } : {}),
 	NODE_ENV: "test",
 	LH_DATA_DIR: path.join(scratch, "data"),
-	LH_AUTH_FILE: path.join(scratch, "auth.json"),
 	HOME: path.join(scratch, "home"),
 };
 fs.mkdirSync(path.join(scratch, "home"), { recursive: true });

@@ -49,7 +49,7 @@ export function assertGraphFormat(file: string = GRAPH_FORMAT_FILE): void {
 	if (v !== null && v > CURRENT_GRAPH_FORMAT_VERSION) {
 		throw new Error(
 			`Graph data is stamped with format version ${v}, but this build understands only ${CURRENT_GRAPH_FORMAT_VERSION}. ` +
-				"The app is older than its data — upgrade the app before touching the knowledge map.",
+				"This version of godspeed is older than your data. Update the app to open your graph.",
 		);
 	}
 }

@@ -163,11 +163,12 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 		const blocker = await quiesceChatForRewrite(lesson.id);
 		if (blocker) return fail(blocker.status, blocker.code, `${lesson.title}: ${blocker.error}`);
 	}
-	// The class's file imports: abort and wait them out.
-	const sourceIds = new Set(record.files.map((f) => f.sourceId).filter((s): s is string => !!s));
-	for (const sid of sourceIds) abortExtraction(sid);
+	// The class's file imports: abort and wait them out. Aborted again on
+	// every pass, since the queue can start the next file during the wait.
+	const sourceIds = new Set(record.files.map((f) => sourceIdFor(id, f.id)));
 	const deadline = Date.now() + 10_000;
 	while (extractionStatuses().some((run) => sourceIds.has(run.chatId))) {
+		for (const sid of sourceIds) abortExtraction(sid);
 		if (Date.now() > deadline) return fail(503, "extraction_winding_down", "The class's file imports are still stopping. Try again in a moment.");
 		await new Promise((r) => setTimeout(r, 50));
 	}
@@ -312,7 +313,7 @@ export function replaceCopiedFile(classId: string, fileId: string, bytes: Uint8A
 	const record = stores.classStore.getClass(classId);
 	const file = record?.files.find((f) => f.id === fileId);
 	if (!record || file?.origin !== "copied") return fail(404, "not_found", "No such copied class file");
-	if (file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId)) {
+	if (importRunning(classId, file)) {
 		return fail(409, "extraction_running", "This file is being turned into facts. Try again when it finishes.");
 	}
 	writeFileAtomic(classFilePath(record, file)!, bytes);
@@ -365,18 +366,30 @@ export function removeFile(classId: string, fileId: string): ClassOutcome<null> 
 	if (file.origin === "linked") {
 		return fail(409, "linked_file", "This file is in your linked folder. Remove it from the folder (or switch it to course info) instead.");
 	}
-	if (file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId)) {
+	if (importRunning(classId, file)) {
 		return fail(409, "extraction_running", "This file is being turned into facts. Try again when it finishes.");
 	}
 	dropFile(record, file);
 	return { ok: true, value: null };
 }
 
-/** The sync removal: facts, transcript, copy, list entry. */
+/** A file's import runs under sourceIdFor, which a first import has not saved on the file yet. */
+function importRunning(classId: string, file: ClassFile): boolean {
+	const sourceId = sourceIdFor(classId, file.id);
+	return extractionStatuses().some((r) => r.chatId === sourceId);
+}
+
+/** A recording's transcript and a document's saved text. */
+function dropFileTexts(classId: string, fileId: string): void {
+	fs.rmSync(transcriptPathOf(classId, fileId), { force: true });
+	dropCachedTexts(classId, fileId);
+}
+
+/** The sync removal: facts, transcript, copy, list entry. Facts go by
+ *  sourceIdFor, so an import that never saved its id leaves nothing. */
 function dropFile(record: ClassRecord, file: ClassFile): void {
-	if (file.sourceId) deleteSourceTraces(graphStoreFor(record.id), file.sourceId);
-	fs.rmSync(transcriptPathOf(record.id, file.id), { force: true });
-	dropCachedTexts(record.id, file.id);
+	deleteSourceTraces(graphStoreFor(record.id), sourceIdFor(record.id, file.id));
+	dropFileTexts(record.id, file.id);
 	dropClassFile(record.id, file.id).catch((err: unknown) => console.error(`[classes] could not drop ${file.id} from search:`, err));
 	if (file.origin === "copied") {
 		fs.rmSync(path.join(stores.classStore.filesDir(record.id), file.id), { recursive: true, force: true });
@@ -411,7 +424,7 @@ export function unlinkFolder(classId: string): ClassOutcome<ClassRecord> {
 	if (!record) return fail(404, "not_found", "No such class");
 	if (!record.linkedFolder) return fail(400, "no_folder", "This class has no linked folder");
 	const linked = record.files.filter((f) => f.origin === "linked");
-	if (linked.some((f) => f.sourceId && extractionStatuses().some((r) => r.chatId === f.sourceId))) {
+	if (linked.some((f) => importRunning(classId, f))) {
 		return fail(409, "extraction_running", "A linked file is being turned into facts. Try again when it finishes.");
 	}
 	for (const file of linked) dropFile(stores.classStore.getClass(classId)!, file);
@@ -441,12 +454,14 @@ export function scanLinkedFolder(classId: string): void {
 	if (!record?.linkedFolder || record.archived) return;
 	let present: string[];
 	let unreadable: string[];
+	let capped: boolean;
 	try {
 		if (!fs.statSync(record.linkedFolder).isDirectory()) throw new Error("not a folder");
 		const walk = walkLinkedFolder(record.linkedFolder);
 		present = walk.files;
 		unreadable = walk.unreadable;
-		setFolderProblem(classId, walk.capped ? "too-many-files" : null);
+		capped = walk.capped;
+		setFolderProblem(classId, capped ? "too-many-files" : null);
 	} catch {
 		// Folder gone (moved, renamed, drive unplugged): its files and facts
 		// stay, and the Files page says so.
@@ -457,12 +472,13 @@ export function scanLinkedFolder(classId: string): void {
 	const known = new Map(record.files.filter((f) => f.origin === "linked").map((f) => [f.path, f]));
 	const toProcess: string[] = [];
 	// Removed from the folder → facts go. Files in a subfolder that can't be
-	// read are not known to be gone, so they stay.
+	// read, or past the file cap where the walk stopped, are not known to be
+	// gone, so they stay.
 	const inUnreadable = (rel: string) => unreadable.some((dir) => rel.startsWith(`${dir}/`));
 	for (const [rel, file] of known) {
-		if (!presentSet.has(rel) && !inUnreadable(rel) && !(file.sourceId && extractionStatuses().some((r) => r.chatId === file.sourceId))) {
-			dropFile(stores.classStore.getClass(classId)!, file);
-		}
+		if (presentSet.has(rel) || inUnreadable(rel) || importRunning(classId, file)) continue;
+		if (capped && fs.existsSync(path.join(record.linkedFolder, rel))) continue;
+		dropFile(stores.classStore.getClass(classId)!, file);
 	}
 	const added: ClassFile[] = [];
 	for (const rel of present) {
@@ -556,6 +572,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		patchFile(classId, fileId, { status: "failed", error: "The file could not be found" });
 		return;
 	}
+	const stillThere = () => stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId) === true;
 	// Saved on failure too, so the folder scan stops re-queuing an unreadable file until it changes.
 	let statSig: string | undefined;
 	try {
@@ -592,11 +609,17 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 			}
 			return;
 		}
+		// Removed, or its class deleted, while the text was read: undo what the read wrote back.
+		if (!stillThere()) {
+			if (cancelledClasses.has(classId)) stores.classStore.deleteClass(classId);
+			else dropFileTexts(classId, fileId);
+			return;
+		}
 		await indexForSearch(classId, file, abs, fp, text);
 
 		// REBUILD: the old version's facts go first — shared facts survive by the deletion law.
 		const sourceId = sourceIdFor(classId, fileId);
-		if (stores.classStore.getClass(classId) === null) return;
+		if (!stillThere()) return;
 		deleteSourceTraces(store, sourceId);
 		try {
 			await extraction.importNotes({ filePath: file.name, text, graphStore: store, sourceId });
@@ -612,9 +635,11 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 				patchFile(classId, fileId, { status: "failed", contentFp: fp, sourceId, error: message });
 			}
 		}
+		// Removed while it was imported: the facts it merged go too.
+		if (stores.classStore.getClass(classId) && !stillThere()) deleteSourceTraces(store, sourceId);
 	} catch (err) {
 		// An unreadable file (or a failed graph write) shows as failed with a Retry, not stuck in progress.
-		if (!stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId)) return;
+		if (!stillThere()) return;
 		patchFile(classId, fileId, { status: "failed", error: err instanceof Error ? err.message : String(err), ...(statSig ? { statSig } : {}) });
 	}
 }

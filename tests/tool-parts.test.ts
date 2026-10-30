@@ -134,8 +134,12 @@ describe("parseAskInput", () => {
 		assert.ok(parseAskInput({ question: "Which topics?", options: [{ label: "Physics" }, { label: "Logic" }], multiSelect: true }));
 	});
 
-	it("the live crash shape — stringified options — does not parse", () => {
-		assert.equal(parseAskInput({ question: "q", options: "[]" }), undefined);
+	it("boundary parity: string-encoded options heal on read, like the boundary", () => {
+		const options = [{ label: "Physics" }, { label: "Logic" }];
+		const parsed = parseAskInput({ question: "q?", options: JSON.stringify(options) });
+		assert.ok(parsed, "the healed-at-boundary record must parse on read");
+		assert.deepEqual(parsed.options, options);
+		assert.equal(parseAskInput({ question: "q?", options: "not json" }), undefined);
 	});
 });
 

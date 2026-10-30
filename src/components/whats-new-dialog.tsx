@@ -35,8 +35,9 @@ export function WhatsNewDialog({
 				onClose();
 			}
 		};
-		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
+		// Capture phase: it opens over Settings, whose own Esc listener must not see the key.
+		document.addEventListener("keydown", onKeyDown, true);
+		return () => document.removeEventListener("keydown", onKeyDown, true);
 	}, [onClose, state]);
 
 	const single = entries.length === 1;

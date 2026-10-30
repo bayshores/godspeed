@@ -52,7 +52,7 @@ export function chartSize(svg: string): { w: number; h: number } {
 		if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) return { w, h };
 	}
 	const attr = (name: string): number | null => {
-		const a = new RegExp(`<svg\\b[^>]*?\\b${name}\\s*=\\s*["'](\\d+(?:\\.\d+)?)(?:px)?["']`, "i").exec(svg);
+		const a = new RegExp(`<svg\\b[^>]*?\\b${name}\\s*=\\s*["'](\\d+(?:\\.\\d+)?)(?:px)?["']`, "i").exec(svg);
 		if (!a) return null;
 		const n = Number.parseFloat(a[1]!);
 		return Number.isFinite(n) && n > 0 ? n : null;

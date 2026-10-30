@@ -71,8 +71,8 @@ interface ResearcherRunOptions {
 	abortSignal?: AbortSignal;
 	onUsage?: (usage: Usage) => void;
 	onToolStart?: (toolName: string, args: unknown) => void;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
-	chatId?: string;
+	/** The task's name on outside-agent work items (pi-run taskLabel). */
+	taskLabel?: string;
 }
 
 /**
@@ -84,7 +84,6 @@ export async function runResearcherAgent(prompt: string, opts: ResearcherRunOpti
 	const tools = Object.values(webTools);
 	if (opts.pdfDir) tools.push(...Object.values(createPdfReadTools(opts.pdfDir)));
 	const { text } = await runSubagent(tools, {
-		role: "researcher",
 		prompt,
 		engine: opts.engine,
 		systemPrompt: INSTRUCTIONS,
@@ -92,7 +91,7 @@ export async function runResearcherAgent(prompt: string, opts: ResearcherRunOpti
 		abortSignal: opts.abortSignal,
 		onUsage: opts.onUsage,
 		onToolStart: opts.onToolStart,
-		chatId: opts.chatId,
+		taskLabel: opts.taskLabel,
 	});
 	return text;
 }

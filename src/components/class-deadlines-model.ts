@@ -1,9 +1,10 @@
 /**
- * The Edit class dialog's deadline drafts. The dialog edits a copy of the
- * class's deadlines; Save turns the differences into the deadline routes'
- * writes (POST new, PUT changed, DELETE removed). Pure and unit-tested.
+ * The Edit class dialog's drafts. The dialog edits a copy of the class's
+ * fields and deadlines; Save turns the differences from that copy into
+ * writes (POST new, PUT changed, DELETE removed), so an agent's change
+ * made while the dialog is open is never undone. Pure and unit-tested.
  */
-import { isCalendarDate, isClockTime, type ClassDeadline, type DeadlineKind } from "@/core";
+import { clockLabel as coreClockLabel, dayLabel, isCalendarDate, isClockTime, type ClassDeadline, type DeadlineKind } from "@/core";
 
 export interface DeadlineDraft {
 	/** Stable React key: the deadline id, or "new-<n>" before its first save. */
@@ -87,8 +88,18 @@ function sameIds(a: readonly string[], b: readonly string[]): boolean {
 	return b.every((id) => set.has(id));
 }
 
-/** The writes that make `saved` match `drafts` (removals first, so a
- *  replaced deadline never collides). Unchanged deadlines write nothing. */
+/** The fields of `now` that differ from `seeded` (compared by value). */
+export function changedFields<T extends object>(seeded: T, now: T): Partial<T> {
+	const changed: Partial<T> = {};
+	for (const key of Object.keys(now) as (keyof T)[]) {
+		if (JSON.stringify(now[key]) !== JSON.stringify(seeded[key])) changed[key] = now[key];
+	}
+	return changed;
+}
+
+/** The writes that make `saved` (the deadlines the drafts came from) match
+ *  `drafts` (removals first, so a replaced deadline never collides).
+ *  Unchanged deadlines write nothing. */
 export function deadlineWrites(saved: readonly ClassDeadline[] | undefined, drafts: readonly DeadlineDraft[]): DeadlineWrite[] {
 	const before = new Map((saved ?? []).map((d) => [d.id, d]));
 	const kept = new Set(drafts.flatMap((d) => (d.id ? [d.id] : [])));
@@ -114,23 +125,15 @@ export function deadlineWrites(saved: readonly ClassDeadline[] | undefined, draf
 	return writes;
 }
 
-const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 /** "2026-10-29" → "Thu Oct 29" (a calendar date: no time zone shifts);
- *  "" for anything else. */
+ *  "" for a draft's unfinished date. */
 export function deadlineDateLabel(date: string): string {
-	if (!isCalendarDate(date)) return "";
-	const [y, m, d] = date.split("-").map(Number) as [number, number, number];
-	const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-	return `${WEEKDAY[day]} ${MONTH[m - 1]} ${d}`;
+	return isCalendarDate(date) ? dayLabel(date) : "";
 }
 
-/** "23:59" → "11:59 PM", "00:05" → "12:05 AM"; "" for anything else. */
+/** "23:59" → "11:59 PM", "00:05" → "12:05 AM"; "" for a draft's unfinished time. */
 export function clockLabel(time: string): string {
-	if (!isClockTime(time)) return "";
-	const [h, m] = time.split(":").map(Number) as [number, number];
-	return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+	return isClockTime(time) ? coreClockLabel(time) : "";
 }
 
 /** "Fri Oct 30, 11:59 PM", or "Fri Oct 30" with no time. */

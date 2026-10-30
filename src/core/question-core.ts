@@ -56,10 +56,9 @@ const askOptionProps = {
 
 /** GLM wobble guard (owner-approved, 2026-09-26): models sometimes emit
  *  `options` as a JSON-ENCODED STRING instead of an array. Parse it before
- *  use. Shared by the tools' prepareArguments (server, pre-validation) and
- *  normalizeOptions (client — the persisted call keeps the raw string, so
- *  the dock must coerce again). Returns the input untouched when it isn't
- *  a parseable array — validation then reports honestly. */
+ *  use. Used by the tools' prepareArguments, before validation. Returns
+ *  the input untouched when it isn't a parseable array — validation then
+ *  reports honestly. */
 export function parseOptionsIfString<T>(options: string | T[] | undefined): unknown {
 	if (typeof options !== "string") return options;
 	try {
@@ -566,17 +565,10 @@ export function toggleOther(mode: SelectMode, sel: DockSelection): DockSelection
 // ─── options ────────────────────────────────────────────────────────────────
 
 export function normalizeOptions(
-	options: string | Array<{ label: string; value?: string; description?: string }> | undefined,
+	options: Array<{ label: string; value?: string; description?: string }> | undefined,
 ): QuizOption[] {
 	const seen = new Set<string>();
-	// The persisted tool call can carry GLM's string-encoded options —
-	// parseOptionsIfString is the same coercion the server's
-	// prepareArguments runs pre-validation (see parseOptionsIfString).
-	const coerced = parseOptionsIfString(options);
-	const list = Array.isArray(coerced)
-		? (coerced as Array<{ label: string; value?: string; description?: string }>)
-		: [];
-	return list
+	return (options ?? [])
 		.map((option) => ({
 			label: option.label.trim(),
 			value: option.value?.trim() || option.label.trim(),

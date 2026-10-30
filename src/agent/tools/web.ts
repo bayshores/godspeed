@@ -21,7 +21,6 @@ import type TurndownService from "turndown";
 
 const USER_AGENT =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-const FETCH_TIMEOUT_MS = 30_000;
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 /** Keep the researcher's context sane — long pages truncate with a marker. */
 const MAX_CONTENT_CHARS = 40_000;
@@ -50,11 +49,11 @@ function truncate(text: string): string {
 }
 
 /** Jina Reader fallback for JS-rendered pages (no deps — plain fetch). */
-async function fetchViaJina(url: string): Promise<string | null> {
+async function fetchViaJina(url: string, signal?: AbortSignal): Promise<string | null> {
 	try {
 		const res = await fetch(`https://r.jina.ai/${url}`, {
 			headers: { Accept: "text/markdown", "X-No-Cache": "true" },
-			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			signal,
 		});
 		if (!res.ok) return null;
 		const content = await res.text();
@@ -79,14 +78,16 @@ async function htmlToMarkdown(html: string): Promise<{ title: string; content: s
 	return { title: article.title ?? "", content: markdown };
 }
 
-async function fetchAndExtract(url: string): Promise<string> {
+/** `signal` is the tool guard's (its timeout or Stop): one deadline for the
+ *  page and the Jina fallback together, and an abandoned fetch is cancelled. */
+async function fetchAndExtract(url: string, signal?: AbortSignal): Promise<string> {
 	const resp = await fetch(url, {
 		headers: {
 			"User-Agent": USER_AGENT,
 			Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 			"Accept-Language": "en-US,en;q=0.9",
 		},
-		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+		signal,
 	});
 	if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
 
@@ -116,8 +117,9 @@ async function fetchAndExtract(url: string): Promise<string> {
 		return header + truncate(extracted.content);
 	}
 	// Readability failed — likely JS-rendered. Try Jina Reader.
-	const jina = await fetchViaJina(url);
+	const jina = await fetchViaJina(url, signal);
 	if (jina) return truncate(jina);
+	signal?.throwIfAborted(); // say "aborted", not "could not extract"
 	throw new Error("Could not extract readable content (the page may be JavaScript-rendered)");
 }
 
@@ -135,7 +137,7 @@ export const webTools: Record<string, AgentTool<any>> = {
 			"Fetch a web page and extract its readable content as markdown (Readability). " +
 			"Handles HTML pages and plain text; JS-rendered pages fall back to a reader service.",
 		parameters: webFetchInput,
-		execute: serverExecute("web_fetch", webFetchInput, async ({ url }): Promise<string> => {
+		execute: serverExecute("web_fetch", webFetchInput, async ({ url }, { signal }): Promise<string> => {
 			try {
 				const parsed = new URL(url);
 				// URL.protocol carries a TRAILING COLON ("https:", WHATWG) — the
@@ -148,7 +150,7 @@ export const webTools: Record<string, AgentTool<any>> = {
 				return `web_fetch failed: invalid URL "${url}"`;
 			}
 			try {
-				return await fetchAndExtract(url);
+				return await fetchAndExtract(url, signal);
 			} catch (err) {
 				return `web_fetch failed for ${url}: ${err instanceof Error ? err.message : String(err)}`;
 			}

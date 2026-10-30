@@ -18,7 +18,9 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	const settingsReads: string[] = [];
 	const order: string[] = [];
 	const intervals: { callback: () => void; delay: number }[] = [];
-	const handles = new Map<string, (event: unknown) => unknown>();
+	const handles = new Map<string, (event: unknown, ...args: unknown[]) => unknown>();
+	const osCalls: string[] = [];
+	const links: Record<string, string> = {};
 	const windows: FakeWindow[] = [];
 	let enumerationFails = false;
 	let userData = "/fixture/custom-user-data";
@@ -49,7 +51,8 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 			this.messages.push({ channel, value: JSON.parse(JSON.stringify(value)) });
 		}
 		isLoadingMainFrame() { return this.loading; }
-		setWindowOpenHandler() {}
+		openHandler: ((details: { url: string }) => unknown) | null = null;
+		setWindowOpenHandler(fn: (details: { url: string }) => unknown) { this.openHandler = fn; }
 		getZoomFactor() { return 1; }
 	}
 	class FakeWindow extends EventEmitter {
@@ -82,7 +85,16 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	const electron = {
 		app, BrowserWindow: FakeWindow, autoUpdater: nativeUpdater,
 		Menu: { buildFromTemplate: (value: typeof menu) => value, setApplicationMenu: (value: typeof menu) => { menu = value; } },
-		ipcMain: { on() {}, handle: (channel: string, fn: (event: unknown) => unknown) => handles.set(channel, fn) },
+		ipcMain: {
+			on: (channel: string, fn: (event: unknown) => unknown) => handles.set(channel, fn),
+			handle: (channel: string, fn: (event: unknown) => unknown) => handles.set(channel, fn),
+		},
+		dialog: { showOpenDialog: async () => { osCalls.push("pick-folder"); return { canceled: true, filePaths: [] }; } },
+		shell: {
+			openExternal: (target: string) => { osCalls.push(`external ${target}`); },
+			openPath: async (target: string) => { osCalls.push(`open ${target}`); return ""; },
+			showItemInFolder: (target: string) => { osCalls.push(`show ${target}`); },
+		},
 		session: { defaultSession: { setPermissionRequestHandler() {}, setPermissionCheckHandler() {} } },
 	};
 	const context = createContext({
@@ -98,6 +110,9 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 					if (settings instanceof Error) throw settings;
 					return settings;
 				}, mkdirSync() {}, appendFileSync() {},
+				writeFileSync: (file: string) => { osCalls.push(`write ${path.basename(file)}`); },
+				realpathSync: (file: string) => links[file] ?? file,
+				statSync: (file: string) => ({ isDirectory: () => !file.endsWith(".pdf"), isFile: () => file.endsWith(".pdf") }),
 			};
 			return mainRequire(id);
 		},
@@ -110,7 +125,7 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	runInContext(mainSource, context, { filename: mainFile });
 	const run = (code: string) => runInContext(code, context);
 	return {
-		run, updater, nativeUpdater, windows, intervals, handles, settingsReads, order, app,
+		run, updater, nativeUpdater, windows, intervals, handles, settingsReads, order, app, osCalls, links,
 		setSettings: (value: unknown) => { settings = JSON.stringify(value); },
 		setSettingsFailure: (value: string | Error) => { settings = value; },
 		setEnumerationFailure: (value: boolean) => { enumerationFails = value; },
@@ -302,5 +317,50 @@ describe("startup, timer, trusted IPC and menu wiring", () => {
 		const f = fixture(); f.setSettings({ general: { autoUpdate: false } }); await f.run("main()");
 		f.windows[0]!.webContents.fails = true; f.windows[0]!.webContents.loading = false;
 		f.menuCheck(); assert.equal(f.updater.checks, 1);
+	});
+});
+
+describe("desktop shell guards", () => {
+	it("every IPC channel ignores a subframe or a foreign sender", async () => {
+		const f = fixture(); f.setSettings({ general: { autoUpdate: false } }); await f.run("main()");
+		const sender = f.windows[0]!.webContents;
+		const channels = ["lh:update-install", "lh:update:get", "lh:update:check", "lh:report-bug", "lh:pick-folder", "lh:fonts", "lh:show-in-folder", "lh:open-path", "lh:zoom:get", "lh:expand-window"];
+		assert.deepEqual([...f.handles.keys()].sort(), [...channels].sort());
+		const sendOnly = new Set(["lh:update-install", "lh:report-bug", "lh:expand-window"]);
+		for (const bad of [{ sender: {}, senderFrame: sender.mainFrame }, { sender, senderFrame: { url: sender.mainFrame.url } }]) {
+			for (const channel of channels) {
+				const call = async () => f.handles.get(channel)!(bad, "/Users/me/CSE 21");
+				if (sendOnly.has(channel)) assert.equal(await call(), undefined, channel);
+				else await assert.rejects(call, /Untrusted/, channel);
+			}
+		}
+		assert.deepEqual(f.osCalls, []);
+		assert.equal(f.updater.checks, 0);
+		assert.ok(!f.order.includes("install"));
+	});
+
+	it("open-path shows an app bundle in Finder instead of launching it, links included", async () => {
+		const f = fixture(); await f.run("main()");
+		const sender = f.windows[0]!.webContents;
+		const event = { sender, senderFrame: sender.mainFrame };
+		f.links["/Users/me/Notes"] = "/Applications/Utilities/Terminal.app";
+		const open = f.handles.get("lh:open-path")!;
+		for (const target of ["/Applications/Utilities/Terminal.app", "/Users/me/Notes", "/Users/me/CSE 21", "/Users/me/hw.pdf"]) await open(event, target);
+		assert.deepEqual(f.osCalls, ["show /Applications/Utilities/Terminal.app", "show /Applications/Utilities/Terminal.app", "open /Users/me/CSE 21", "open /Users/me/hw.pdf"]);
+	});
+
+	it("only web and mail links leave the app", async () => {
+		const f = fixture(); await f.run("main()");
+		const contents = f.windows[0]!.webContents;
+		for (const target of ["smb://attacker.example/share", "https://example.com/a", "vscode://file/x", "mailto:me@example.com"]) {
+			contents.openHandler!({ url: target });
+			contents.emit("will-navigate", { preventDefault() {} }, target);
+		}
+		assert.deepEqual(f.osCalls, ["external https://example.com/a", "external https://example.com/a", "external mailto:me@example.com", "external mailto:me@example.com"]);
+	});
+
+	it("dev mode writes no MCP endpoint file the dev server never reads", async () => {
+		const f = fixture(); await f.run("main()");
+		assert.ok(!f.osCalls.some((call) => call.startsWith("write")));
 	});
 });

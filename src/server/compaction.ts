@@ -69,11 +69,6 @@ async function subagentSummarizer(prompt: string, engine: PiEngine): Promise<{ s
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 	};
 	const { text } = await runSubagent([], {
-		// The engine override is always present (the chat's own conversation
-		// engine — owner ruling), so the role label never resolves an
-		// engine; "researcher" is the least-wrong existing ModelRole label
-		// for a one-shot text job (the cast documents the dead path).
-		role: "researcher" as never,
 		prompt,
 		engine,
 		systemPrompt: SUMMARIZER_SYSTEM_PROMPT,

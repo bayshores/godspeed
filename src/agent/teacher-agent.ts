@@ -146,7 +146,6 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		initialState: {
 			systemPrompt,
 			model: engine.model,
-			thinkingLevel: engine.level,
 			tools,
 			messages: opts.messages ?? [],
 		},

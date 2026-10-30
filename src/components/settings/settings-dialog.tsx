@@ -4,8 +4,7 @@
  *
  * - Dialog, not a page: opens over whatever screen you're on (the payoff:
  *   appearance edits restyle the chat LIVE behind the dialog). Escape,
- *   backdrop, and ✕ all close. Modal-only — /settings redirects, so
- *   nothing links into a dead surface.
+ *   backdrop, and ✕ all close. There is no /settings page.
  * - Left section nav: 920×720,
  *   "Settings" over icon + name rows (the open one lit), the section's
  *   title and ✕ over the scrolling content.

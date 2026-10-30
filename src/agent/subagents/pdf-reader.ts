@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
-import type { AssistantMessage, Message, ToolResultMessage, Usage, Tool } from "@earendil-works/pi-ai";
-// Subpath, not the package root (speed plan): the root loads every provider.
-import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
+import * as path from "node:path";
+import type { Message, ToolResultMessage, Usage, Tool } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { resolveSourcePath } from "../tools/fs-shared.ts";
-import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
-import { forgetConversation } from "../agent-bridge.ts";
+import { agentEngine, type PiEngine } from "../models.ts";
+import { forgetConversation, labelConversation } from "../agent-bridge.ts";
 import type { PdfResult, PdfToolInput } from "../../core/contracts.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
 import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "./pdf-ops.ts";
+import { streamOnce, toolText as textResult } from "./stream-once.ts";
 
 /**
  * The pdf-reader sub-agent (sources v0, 2026-09): reads a learner-provided
@@ -70,8 +70,6 @@ interface PdfReaderOptions {
 	onActivity?: (line: string) => void;
 	headless?: HeadlessApi;
 	maxIterations?: number;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
-	chatId?: string;
 }
 
 interface PdfReaderInput extends PdfToolInput {}
@@ -146,14 +144,7 @@ async function pdfExtractText(pdfPath: string, pages: string): Promise<string> {
 }
 
 function toolText(toolCallId: string, toolName: string, value: string): ToolResultMessage {
-	return {
-		role: "toolResult",
-		toolCallId,
-		toolName,
-		content: [{ type: "text", text: value }],
-		isError: value.startsWith("ERROR:"),
-		timestamp: Date.now(),
-	};
+	return textResult(toolCallId, toolName, value, value.startsWith("ERROR:"));
 }
 
 /** Doctrine gate (the visual-maker's unlooked-finish rule, ported): never
@@ -183,8 +174,8 @@ export async function runPdfReaderAgent(
 	const tools = createPdfTools(pdfPath);
 	const toolDeclarations = Object.values(tools);
 	const engine = opts.engine ?? agentEngine();
-	const reasoning = engine.level;
 	const sessionId = randomUUID();
+	labelConversation(sessionId, `PDF reading · ${path.basename(pdfPath)}`);
 	const prompt = [
 		`PDF path: ${pdfPath}`,
 		`Question (what the teacher needs from this document): ${input.question || "(no question — give a structural overview)"}`,
@@ -210,7 +201,6 @@ export async function runPdfReaderAgent(
 				messages,
 				toolDeclarations,
 				sessionId,
-				reasoning,
 				opts.abortSignal,
 			);
 			// Money channel: each iteration is one model call.
@@ -258,9 +248,11 @@ export async function runPdfReaderAgent(
 						opts.onActivity?.(`pdf_extract: ${spec}`);
 						const r = await pdfExtractText(pdfPath, spec);
 						toolResults.push(toolText(call.id, call.name, String(r)));
-						for (const p of specNumbers(spec, Infinity)) {
-							consulted.add(p);
-							read.add(p);
+						// The pages the model got back: "all" and ranges are clamped
+						// to the document, and a truncated result loses its last pages.
+						for (const [, n] of r.matchAll(/^--- Page (\d+) ---$/gm)) {
+							consulted.add(Number(n));
+							read.add(Number(n));
 						}
 					} else if (call.name === "pdf_search") {
 						const query = String(args.query ?? "");
@@ -282,7 +274,7 @@ export async function runPdfReaderAgent(
 					} else if (call.name === "pdf_render") {
 						const spec = String(args.pages ?? "1");
 						const dpi = numOr(args.dpi, 150);
-						const wanted = specNumbers(spec, RENDER_BATCH_CAP);
+						const wanted = renderBatch(spec);
 						opts.onActivity?.(`pdf_render: ${spec} @${dpi}dpi`);
 						const pages = await headless.renderPdfPages(pdfPath, wanted, { dpi });
 						for (const p of pages) {
@@ -351,11 +343,11 @@ export async function runPdfReaderAgent(
 
 // ─── small helpers ───────────────────────────────────────────────────────────
 
-/** Parse a page spec into concrete page numbers, capped. */
-function specNumbers(spec: string, cap: number): number[] {
-	// total = Infinity: bounds come from the document at execution time; the
-	// cap alone protects the batch.
-	const parts = spec.trim().toLowerCase() === "all" ? [`${cap}`] : spec.split(",");
+/** A render spec's page numbers, at most RENDER_BATCH_CAP of them. Pages
+ *  past the end are skipped by the renderer. */
+function renderBatch(spec: string): number[] {
+	const cap = RENDER_BATCH_CAP;
+	const parts = spec.trim().toLowerCase() === "all" ? [`1-${cap}`] : spec.split(",");
 	const out = new Set<number>();
 	for (const part of parts) {
 		const p = part.trim();
@@ -390,38 +382,4 @@ async function probeReadable(pdfPath: string): Promise<string | null> {
 	} catch (err) {
 		return err instanceof Error ? err.message : String(err);
 	}
-}
-
-/** One raw model call (no agent loop): the visual-maker's streamOnce,
- *  duplicated here because its module keeps it private. */
-async function streamOnce(
-	engine: PiEngine,
-	systemPrompt: string,
-	messages: Message[],
-	tools: Tool[],
-	sessionId: string,
-	reasoning: ThinkingLevel | undefined,
-	abortSignal?: AbortSignal,
-): Promise<AssistantMessage> {
-	// 0.87.1: provider-facing contexts are TranscriptContexts — the prompt
-	// and tool declarations fold into a leading system message.
-	// normalizeContext is the library's only Context→TranscriptContext entry.
-	const stream = engine.streamFn(engine.model, normalizeContext({ systemPrompt, messages, tools }), {
-		sessionId,
-		reasoning: reasoning && reasoning !== "off" ? reasoning : undefined,
-		signal: abortSignal,
-	} as never);
-	for await (const event of stream) {
-		if (event.type === "done") return event.message;
-		if (event.type === "error") {
-			if (event.reason === "aborted") {
-				const err = new Error("aborted");
-				const abortedErr = err as Error & { name: string };
-				abortedErr.name = "AbortError";
-				throw abortedErr;
-			}
-			throw new Error(event.error.errorMessage ?? "the model call failed");
-		}
-	}
-	throw new Error("the model stream ended without a result");
 }

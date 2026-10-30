@@ -3,7 +3,6 @@ import { loadAgentCore, loadedAgentCore } from "../engine-load.ts";
 import type { AssistantMessage, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
 import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
-import type { ModelRole } from "../../config.ts";
 import { forgetConversation, labelConversation } from "../agent-bridge.ts";
 
 /**
@@ -19,9 +18,7 @@ import { forgetConversation, labelConversation } from "../agent-bridge.ts";
  */
 
 interface SubagentRunOptions {
-	/** The role whose engine (model + thinking level) this run uses. */
-	role: ModelRole;
-	/** Test seam: a scripted engine replaces the role's production one. */
+	/** The runner's or a test's engine; without one, the outside agent runs it. */
 	engine?: PiEngine;
 	systemPrompt: string;
 	/** Initial transcript (continuation semantics: ends user / toolResult). */
@@ -40,8 +37,6 @@ interface SubagentRunOptions {
 	onAssistantMessage?: (message: AssistantMessage, step: number) => void;
 	/** Extra stop rule (extractor: stop after a clean submit). */
 	shouldStop?: (message: AssistantMessage, toolResults: ToolResultMessage[]) => boolean;
-	/** The job's chat, when the run belongs to one. */
-	chatId?: string;
 	/** A short name for the task ("Topic grouping · CSE 21"). An outside
 	 *  agent (MCP) sees it on the run's work items, so it can tell which
 	 *  background job it is answering. */
@@ -55,28 +50,21 @@ interface SubagentRunResult {
 	text: string;
 }
 
-function subagentEngine(role: ModelRole, override?: PiEngine): PiEngine {
-	// The runner injects the engine; without one, the outside agent runs it.
-	void role;
-	return override ?? agentEngine();
-}
-
 export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRunOptions): Promise<SubagentRunResult> {
 	// The engine loads on the first run only. Once loaded, no await happens
 	// here: everything from the abort listener on stays synchronous with
 	// the caller, exactly as before (an await here let an abort slip past).
 	let core = loadedAgentCore();
-	if (!core) {
-		core = await loadAgentCore();
-		// Cancelled while the engine loaded: end as an abort, before any call.
-		if (opts.abortSignal?.aborted) {
-			const err = new Error("aborted");
-			err.name = "AbortError";
-			throw err;
-		}
+	if (!core) core = await loadAgentCore();
+	// Cancelled before the run started (or while the engine loaded): an
+	// aborted signal never fires "abort" again, so end now, before any call.
+	if (opts.abortSignal?.aborted) {
+		const err = new Error("aborted");
+		err.name = "AbortError";
+		throw err;
 	}
 	const { Agent } = core;
-	const engine = subagentEngine(opts.role, opts.engine);
+	const engine = opts.engine ?? agentEngine();
 	let turns = 0;
 	// One unsaved conversation per invocation, stable through every turn.
 	const sessionId = randomUUID();
@@ -87,7 +75,6 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 		initialState: {
 			systemPrompt: opts.systemPrompt,
 			model: engine.model,
-			thinkingLevel: engine.level,
 			tools,
 			messages: opts.messages ?? [],
 		},

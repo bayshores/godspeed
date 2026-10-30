@@ -42,8 +42,8 @@ export function isSubagentSteer(m: LhViewMessage): boolean {
 	return (m.metadata as { subagentResult?: unknown } | undefined)?.subagentResult != null;
 }
 
-/** A steer the settle race left unsent goes back in the composer, ahead
+/** Text a send or steer could not deliver goes back in its box, ahead
  *  of anything typed since, so the learner never loses it. */
-export function restoreUnsentSteer(unsent: string, draft: string): string {
+export function restoreUnsent(unsent: string, draft: string): string {
 	return draft.trim() ? `${unsent}\n${draft}` : unsent;
 }

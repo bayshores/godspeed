@@ -237,11 +237,9 @@ function dismissPost(chatId: string, toolCallId: string, kind: "quiz" | "ask" | 
 	);
 }
 
-/** A scripted test chat: stamped with the outside agent's model like
- *  POST /api/chats does (the injected faux engine still runs the loop). */
+/** A scripted test chat (the injected faux engine runs the loop). */
 function createConfiguredChat(title: string) {
 	const chat = chatStore.createChat(title);
-	chatStore.saveSettings(chat.id, { model: { provider: "agent", id: "outside-agent" } });
 	// nodeId is required on teach quizzes (owner ruling 2026-09-26) — the
 	// scripted lessons quiz against this seeded tree.
 	chatStore.saveTree(chat.id, {
@@ -827,20 +825,6 @@ describe("chat store", () => {
 		const loaded = chatStore.getChat(chat.id)!;
 		assert.equal(loaded.messages.length, 1);
 		assert.equal(loaded.title, "Store test");
-	});
-
-	it("persist the per-chat model settings (replace-whole, no updatedAt churn)", async () => {
-		const chat = chatStore.createChat("Settings test");
-		createdChats.push(chat.id);
-		const before = chatStore.getChat(chat.id)!.updatedAt;
-		chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" }, thinkingLevel: "high" });
-		const saved = chatStore.getChat(chat.id)!;
-		assert.deepEqual(saved.settings, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" }, thinkingLevel: "high" });
-		assert.equal(saved.updatedAt, before, "a picker write is not conversation activity");
-		// replace-whole: a settings-less write clears the override (an empty
-		// object persists — every field absent = config defaults)
-		chatStore.saveSettings(chat.id, {});
-		assert.deepEqual(chatStore.getChat(chat.id)!.settings, {});
 	});
 });
 

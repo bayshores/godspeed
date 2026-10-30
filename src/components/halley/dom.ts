@@ -77,20 +77,30 @@ export function isInView(el: HTMLElement): boolean {
 	return cx >= region.left && cx <= region.left + region.width && cy >= region.top && cy <= region.top + region.height;
 }
 
+/** Elements mid-glow: their own inline look and the pending restore. */
+const glowing = new WeakMap<HTMLElement, { before: { transition: string; background: string; shadow: string }; timer: number }>();
+
 /** Light an element up for a moment, then let it fade back. Inline styles
- *  only, restored afterwards, so the element's own look is untouched. */
+ *  only, restored afterwards, so the element's own look is untouched. A
+ *  glow that starts before the last one ended restarts it and keeps the
+ *  look saved by the first, never the glow itself. */
 export function glow(el: HTMLElement, reduce: boolean): void {
 	const s = el.style;
-	const before = { transition: s.transition, background: s.backgroundColor, shadow: s.boxShadow };
+	const prev = glowing.get(el);
+	if (prev) window.clearTimeout(prev.timer);
+	const before = prev?.before ?? { transition: s.transition, background: s.backgroundColor, shadow: s.boxShadow };
+	const entry = { before, timer: 0 };
+	glowing.set(el, entry);
 	s.transition = "none";
 	s.backgroundColor = "color-mix(in srgb, var(--foreground) 14%, var(--background))";
 	s.boxShadow = "inset 2px 0 0 var(--lh-ink-max)";
-	window.setTimeout(() => {
+	entry.timer = window.setTimeout(() => {
 		s.transition = reduce ? "none" : `background-color ${GLOW_FADE_MS}ms ease, box-shadow ${GLOW_FADE_MS}ms ease`;
 		s.backgroundColor = before.background;
 		s.boxShadow = before.shadow;
-		window.setTimeout(() => {
+		entry.timer = window.setTimeout(() => {
 			s.transition = before.transition;
+			glowing.delete(el);
 		}, reduce ? 0 : GLOW_FADE_MS);
 	}, GLOW_HOLD_MS);
 }

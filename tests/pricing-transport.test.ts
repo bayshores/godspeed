@@ -8,7 +8,7 @@ process.env.LH_DATA_DIR = scratch;
 
 const { chatStore } = await import("../src/store/chats.ts");
 const { GET } = await import("../src/app/api/chats/[id]/route.ts");
-const { sessionCost } = await import("../src/server/pricing.ts");
+const { sessionCost } = await import("../src/core/prices.ts");
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 
 test("chat GET supplies derived costs without persisting dollars or changing native history", async () => {
@@ -25,9 +25,7 @@ test("chat GET supplies derived costs without persisting dollars or changing nat
 	const body = await response.json();
 	assert.deepEqual(body.messages, chatStore.getChat(record.id)!.messages);
 	assert.deepEqual(body.pricing, sessionCost(chatStore.getChat(record.id)!));
-	assert.equal(body.pricing.cost, 0);
 	assert.equal(body.pricing.subscription, 2, "the outside agent and the old ChatGPT turn are plan usage");
 	assert.equal(body.pricing.unpriced, 1);
-	assert.deepEqual(body.pricing.turnCosts, { agent: null, plan: null, unknown: null });
 	assert.equal(fs.readFileSync(file, "utf8"), before, "read-time estimates must never rewrite the usage log");
 });

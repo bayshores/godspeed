@@ -60,10 +60,7 @@ import type { GraphStore } from "../core/ports.ts";
 /** GLM wobble guard: models sometimes emit
  *  `options` as a JSON-encoded string instead of an array; pi runs this
  *  BEFORE schema validation, so a double-encoded call lands instead of
- *  bouncing back as a validation error + wasted retry turn. NOTE: pi
- *  persists the tool call with its RAW arguments — the client coerces
- *  again in normalizeOptions (question-core), the same parseOptionsIfString.
- *  Anything unparseable passes through untouched: validation then reports
+ *  bouncing back as a validation error + wasted retry turn. Anything unparseable passes through untouched: validation then reports
  *  honestly and the agent retries with a real error to learn from. */
 function prepareQuestionArguments<T extends object>(args: unknown): T {
 	if (args && typeof args === "object" && !Array.isArray(args)) {

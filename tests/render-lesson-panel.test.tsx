@@ -43,7 +43,7 @@ const composer = (over: Partial<React.ComponentProps<typeof YourTurnPanel>["comp
 	onStop: () => {},
 	canSend: false,
 	queuedSteers: [],
-	attachments: { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {} },
+	attachments: { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {}, restore: () => {} },
 	...over,
 });
 
@@ -58,7 +58,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			onReadingThinking={() => {}}
 			practice={null}
 			practiceNumber={null}
-			onSubmitThinking={() => {}}
+			onSubmitThinking={async () => true}
 			sessionBusy={false}
 			compacting={false}
 			composer={composer()}

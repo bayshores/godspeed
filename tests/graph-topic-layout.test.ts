@@ -18,7 +18,6 @@ import {
 import {
 	countdownText,
 	defaultDeadlineId,
-	deadlineDateText,
 	deadlineFilesText,
 	pickableDeadlines,
 	factMark,
@@ -196,7 +195,6 @@ describe("panel helpers", () => {
 		assert.equal(countdownText(1), "1 day");
 		assert.equal(countdownText(0), "Today");
 		assert.equal(countdownText(-2), "2 days ago");
-		assert.equal(deadlineDateText("2026-11-05"), "Thu Nov 5");
 		assert.equal(deadlineFilesText([{ name: "Lecture 1" }]), "Lecture 1");
 		assert.equal(deadlineFilesText([{ name: "a" }, { name: "b" }]), "2 files");
 	});

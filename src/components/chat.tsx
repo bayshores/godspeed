@@ -32,7 +32,7 @@ import {
 	type LhMessage,
 	type QuestionAnswerData,
 } from "@/core";
-import { escAbortTarget, initialPromptOwed, restoreUnsentSteer } from "@/components/lesson/chat-helpers";
+import { escAbortTarget, initialPromptOwed, restoreUnsent } from "@/components/lesson/chat-helpers";
 import { useArrivals } from "@/components/lesson/arrivals";
 import { LessonStepsContext, answerAnchorSelector } from "@/components/lesson/step-context";
 import { practiceProgress } from "@/components/lesson/practice-progress";
@@ -298,8 +298,8 @@ export function Chat({
 	const submitThinking = useCallback(
 		(t: string, files: ChatAttachment[]) => {
 			const problem = activeProblemRef.current;
-			if (!problem) return;
-			void send({ type: "thinking", problemCallId: problem.toolCallId, text: t, ...(files.length > 0 ? { attachments: files } : {}) });
+			if (!problem) return Promise.resolve(false);
+			return send({ type: "thinking", problemCallId: problem.toolCallId, text: t, ...(files.length > 0 ? { attachments: files } : {}) });
 		},
 		[send],
 	);
@@ -316,13 +316,18 @@ export function Chat({
 			if (files.length > 0) return;
 			applyText("");
 			void steer(t).then((sent) => {
-				if (!sent) applyText(restoreUnsentSteer(t, textRef.current));
+				if (!sent) applyText(restoreUnsent(t, textRef.current));
 			});
 			return;
 		}
+		const drafts = attachments.files;
 		applyText("");
 		attachments.clear();
-		void send({ type: "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) });
+		void send({ type: "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
+			if (sent) return;
+			applyText(restoreUnsent(t, textRef.current));
+			attachments.restore(drafts);
+		});
 	};
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
@@ -358,13 +363,21 @@ export function Chat({
 		el.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
 	}, []);
 
+	// The demo's error report follows the message box's rules: never past a
+	// waiting question, problem or compaction, and a running turn is steered.
+	const canSendText = !pending && !activeProblem && !compacting;
 	const chatActions = useMemo(
 		() => ({
 			chatId,
 			syncFromServer,
-			sendText: (t: string) => void send({ type: "text", text: t }),
+			canSendText,
+			sendText: (t: string) => {
+				if (!canSendText) return;
+				if (busyRef.current) void steer(t);
+				else void send({ type: "text", text: t });
+			},
 		}),
-		[chatId, syncFromServer, send],
+		[chatId, syncFromServer, send, steer, canSendText],
 	);
 	const mermaidActions = useMemo(
 		() => ({ openMermaid: setMermaidFocus, openFigure: (svg: string, inverted: boolean) => setFigureFocus({ svg, inverted }) }),

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClassDeadline } from "../src/core/index.ts";
 import {
+	changedFields,
 	clockLabel,
 	deadlineDateLabel,
 	deadlineWrites,
@@ -85,6 +86,21 @@ describe("class-deadlines-model", () => {
 	it("a created draft (id set after its POST) is never added twice", () => {
 		const after: ClassDeadline[] = [{ id: "ddl_9", kind: "quiz", name: "Quiz", date: "2026-11-02", fileIds: [], done: false }];
 		assert.deepEqual(deadlineWrites(after, [draft({ id: "ddl_9" })]), []);
+	});
+
+	it("diffs against the seeded copy, so an agent's change while the dialog is open survives", () => {
+		// The agent added ddl_new and edited exm_1 after the drafts were seeded
+		// from SAVED; the learner only ticked HW 3 undone.
+		const drafts = draftsFrom(SAVED);
+		drafts[1] = { ...drafts[1]!, done: false };
+		assert.deepEqual(deadlineWrites(SAVED, drafts), [{ op: "update", key: "ddl_2", id: "ddl_2", body: { done: false } }]);
+	});
+
+	it("changedFields: only fields that differ by value", () => {
+		const seeded = { name: "CSE 21", signature: null as { kind: string; value: string } | null, rules: ["a"] };
+		assert.deepEqual(changedFields(seeded, { ...seeded, rules: ["a"] }), {});
+		assert.deepEqual(changedFields(seeded, { ...seeded, name: "CSE 29", rules: ["a", "b"] }), { name: "CSE 29", rules: ["a", "b"] });
+		assert.deepEqual(changedFields({ ...seeded, signature: { kind: "math", value: "x" } }, seeded), { signature: null });
 	});
 
 	it("draftProblem: every deadline needs a name, a real date, and a real time or none", () => {

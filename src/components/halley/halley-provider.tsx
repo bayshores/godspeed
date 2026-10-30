@@ -427,36 +427,42 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		const done: AgentAction[] = [];
 		try {
 			for (;;) {
-				if (!alive.current) return;
-				await waitUntilFollowReady();
-				const names = (id: string) => live.current.classes.classes.find((c) => c.id === id)?.name;
-				// A Recent click jumps the line and always goes to its page.
-				const forcedId = [...forced.current][0];
-				if (forcedId) {
-					forced.current.delete(forcedId);
-					const i = queue.current.findIndex((a) => a.id === forcedId);
-					const [action] = i >= 0 ? queue.current.splice(i, 1) : [];
-					if (action) await visit(action, true);
-					continue;
+				for (;;) {
+					if (!alive.current) return;
+					await waitUntilFollowReady();
+					const names = (id: string) => live.current.classes.classes.find((c) => c.id === id)?.name;
+					// A Recent click jumps the line and always goes to its page.
+					const forcedId = [...forced.current][0];
+					if (forcedId) {
+						forced.current.delete(forcedId);
+						const i = queue.current.findIndex((a) => a.id === forcedId);
+						const [action] = i >= 0 ? queue.current.splice(i, 1) : [];
+						if (action) await visit(action, true);
+						continue;
+					}
+					const step = nextStep(queue.current, names);
+					if (step.step === "done") break;
+					if (step.step === "burst") {
+						queue.current = [];
+						// The summary counts this run's earlier visits too ("Added 8").
+						const all = [...done, ...step.actions];
+						done.push(...step.actions);
+						await burst(step.actions, summarize(all, names));
+					} else {
+						queue.current = step.rest;
+						done.push(step.action);
+						await visit(step.action, false);
+					}
 				}
-				const step = nextStep(queue.current, names);
-				if (step.step === "done") break;
-				if (step.step === "burst") {
-					queue.current = [];
-					// The summary counts this run's earlier visits too ("Added 8").
-					const all = [...done, ...step.actions];
-					done.push(...step.actions);
-					await burst(step.actions, summarize(all, names));
-				} else {
-					queue.current = step.rest;
-					done.push(step.action);
-					await visit(step.action, false);
-				}
+				engineRef.current?.pointAt(null);
+				engineRef.current?.goHome();
+				await sleep(500);
+				// A change or Recent click that came in on the way home is visited
+				// now: its own run() returned early while this one held the lock.
+				if (alive.current && (queue.current.length > 0 || forced.current.size > 0)) continue;
+				setTourBubble(null);
+				break;
 			}
-			engineRef.current?.pointAt(null);
-			engineRef.current?.goHome();
-			await sleep(500);
-			setTourBubble(null);
 		} finally {
 			running.current = false;
 		}

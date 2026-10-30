@@ -103,8 +103,6 @@ export function KeyboardShortcuts() {
 					handlersRef.current.router.push("/new");
 					break;
 				case "open-settings":
-					// The dialog is the settings surface; /settings redirects
-					// to Home.
 					handlersRef.current.openSettings();
 					break;
 				case "jump-graph":

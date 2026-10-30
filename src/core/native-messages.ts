@@ -792,7 +792,12 @@ export function endsInDismissal(messages: readonly LhMessage[]): boolean {
  * dangling question — the dock's domain — fails the all-answered rule and
  * never fires a turn).
  */
-export function needsContinuation(messages: readonly LhMessage[]): boolean {
+export function needsContinuation(record: readonly LhMessage[]): boolean {
+	// Compaction can append its marker between a question call and its
+	// answer; it is not part of the turn, so the fold reads past it.
+	const messages = record.filter(
+		(m) => !((m as { role?: string }).role === "custom" && (m as LhMarkerMessage).customType === "compaction"),
+	);
 	const last = messages[messages.length - 1];
 	if (!last || (last as { role?: string }).role !== "toolResult") return false;
 	// The trailing results batch (contiguous by construction — the agent

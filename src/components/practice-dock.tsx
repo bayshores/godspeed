@@ -3,6 +3,7 @@ import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
+import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import type { ChatAttachment } from "@/core";
 
 /**
@@ -23,8 +24,9 @@ interface PracticeDockProps {
 	input: { statement: string };
 	/** The problem's number in this lesson ("Problem 3"). */
 	number?: number | null;
-	/** text and files — POST {type:"thinking"} (one lane). */
-	onSubmit: (text: string, attachments: ChatAttachment[]) => void;
+	/** text and files — POST {type:"thinking"} (one lane). Resolves false
+	 *  when the send was not taken. */
+	onSubmit: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** A turn is running: a send now would be dropped, so the field keeps its text. */
 	busy?: boolean;
 	/** Compaction is running: the POST would block on the server's gate. */
@@ -43,12 +45,18 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 	const submit = () => {
 		if (compactionRunning || busy) return;
 		const text = thinkingRef.current.trim();
-		const files = attachments.files.map((f) => f.attachment);
+		const drafts = attachments.files;
+		const files = drafts.map((f) => f.attachment);
 		if (text.length === 0 && files.length === 0) return;
 		thinkingRef.current = "";
 		setThinking("");
 		attachments.clear();
-		onSubmit(text, files);
+		void onSubmit(text, files).then((sent) => {
+			if (sent) return;
+			thinkingRef.current = restoreUnsent(text, thinkingRef.current);
+			setThinking(thinkingRef.current);
+			attachments.restore(drafts);
+		});
 	};
 
 	// Enter submits from anywhere outside a typing surface (owner round 6).

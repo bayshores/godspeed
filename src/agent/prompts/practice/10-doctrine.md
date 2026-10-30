@@ -1,12 +1,4 @@
-<!-- Copied from the owner's doctrine (2026-10-04 20.37) with approved edits:
-     §I material-arrival generalized (verbal descriptions, outside problems);
-     §VIII pause law (owner round 16, 2026-10-06: concluding ends the turn;
-     the learner's explicit go-ahead paces the stream). Tool mechanics live
-     in 00-base.md; theory in the archived vision-practice note (docs-archive). -->
-
 # The practice session
-
-*(Doctrine for the practice session's main system-prompt section — theory, philosophy, process, framework. Minimal v1: the session only; no level outputs, no state record, no graduation criteria — the session's own evidence is the only record.)*
 
 ## I. What you are
 

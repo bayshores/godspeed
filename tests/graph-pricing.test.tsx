@@ -3,47 +3,29 @@ import React from "react";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GraphCostControl, displayCostTotals } from "../src/components/graph/cost-control.tsx";
+import { GraphCostControl, displayUnpricedRuns } from "../src/components/graph/cost-control.tsx";
 import { graphCostSummary } from "../src/core/cost-summary.ts";
 import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
 
-/** A fixture pricer (the app itself prices nothing now — the outside agent
- *  bills its own plan): the default model is priced unless cache writes
- *  lack their one-hour split (an unknown historical split stays unpriced). */
-function callCost(call: Partial<CallUsage>, model: string): number | null {
-	if (model !== "anthropic:claude-haiku-4-5") return null;
-	if ((call.cacheWriteTokens ?? 0) > 0 && call.cacheWrite1hTokens === undefined) return null;
-	return ((call.inputTokens ?? 0) + (call.outputTokens ?? 0) * 5 + (call.cacheWriteTokens ?? 0)) / 1e6;
-}
-
 const usage = (over: Partial<CallUsage> = {}): CallUsage => ({ inputTokens: 1000, outputTokens: 100, cacheReadTokens: 0, cacheWriteTokens: 20_000, reasoningTokens: 0, ...over });
 const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): ExtractionRunUsage => ({ startedAt: at, at: "fixture", durationMs: 1, stages: { extractor: { model, steps } } });
-const summary = (runs: ExtractionRunUsage[]) => graphCostSummary({ chats: [{ title: "fixture", extractions: runs }], sources: [] }, callCost);
+const summary = (runs: ExtractionRunUsage[]) => graphCostSummary({ chats: [{ title: "fixture", extractions: runs }], sources: [] });
 const headline = (runs: ExtractionRunUsage[]) => renderToStaticMarkup(<GraphCostControl costs={summary(runs)} />);
 
-test("wholly unpriced historical graph costs render unknown, not known-zero dollars", () => {
-	const historical = run([usage()]); // missing long-cache split
-	const costs = summary([historical]);
-	assert.equal(costs.stages.extraction.dollars, 0);
-	assert.equal(costs.stages.extraction.unpricedRuns, 1);
+test("wholly unpriced historical graph costs render unknown, never a dollar figure", () => {
+	const historical = run([usage()]);
+	assert.equal(displayUnpricedRuns(summary([historical])), 1);
 	const html = headline([historical]);
 	assert.match(html, />–<\/button>/);
-	assert.doesNotMatch(html, /\$0\.00/);
+	assert.doesNotMatch(html, /\$/);
 });
 
-test("known zero, mixed priced/unknown, and subscription headline semantics stay distinct", () => {
-	const zero = run([usage({ inputTokens: 0, outputTokens: 0, cacheWriteTokens: 0 })]);
-	assert.match(headline([zero]), />\$0\.00<\/button>/, "known zero is not unknown");
-	const priced = run([usage({ cacheWrite1hTokens: 0 })]);
-	const historical = run([usage()], undefined, 2);
-	const mixed = summary([priced, historical]);
-	const { totalDollars, unpricedRuns } = displayCostTotals(mixed);
-	assert.equal(unpricedRuns, 1);
-	assert.ok(totalDollars > 0);
-	assert.match(headline([priced, historical]), new RegExp(`>\\$${totalDollars.toFixed(2).replace(".", "\\.")}<\\/button>`));
+test("plan runs read the plan's label, with or without unpriced history", () => {
 	const plan = run([usage()], "agent:outside-agent");
+	const historical = run([usage()], undefined, 2);
 	assert.match(headline([plan]), />Outside agent<\/button>/);
-	assert.match(headline([plan, zero]), />\$0\.00 \+ Outside agent<\/button>/);
+	assert.match(headline([plan, historical]), />Outside agent<\/button>/);
+	assert.equal(displayUnpricedRuns(summary([plan, historical])), 1);
 });
 
 test("graph stage and recent-run aggregates preserve known one-hour cache writes", () => {

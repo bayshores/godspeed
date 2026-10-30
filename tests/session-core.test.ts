@@ -323,6 +323,35 @@ describe("send (one input event, verbatim consumption)", () => {
 		);
 	});
 
+	it("a refused text send resolves false and drops its optimistic card", async () => {
+		globalThis.fetch = (async () => new Response("scan.pdf is not a PDF.", { status: 400 })) as typeof globalThis.fetch;
+		const m = model();
+		assert.equal(await m.send({ type: "text", text: "my long paragraph" }), false);
+		assert.equal(m.getState().nativeMessages.length, 0, "the text goes back to the box, not the lesson");
+		assert.equal(m.status, "error");
+	});
+
+	it("a send refused after a Stop still resolves false and drops its card", async () => {
+		let refuse!: (res: Response) => void;
+		globalThis.fetch = (() => new Promise<Response>((resolve) => (refuse = resolve))) as typeof globalThis.fetch;
+		const m = model();
+		const sent = m.send({ type: "text", text: "my long paragraph" });
+		await new Promise((r) => setTimeout(r, 0));
+		m.stop();
+		refuse(new Response("scan.pdf is not a PDF.", { status: 400 }));
+		assert.equal(await sent, false);
+		assert.equal(m.getState().nativeMessages.length, 0);
+	});
+
+	it("a send whose acceptance is unknown resolves true and keeps its card", async () => {
+		globalThis.fetch = (async () => {
+			throw new TypeError("offline");
+		}) as typeof globalThis.fetch;
+		const m = model();
+		assert.equal(await m.send({ type: "text", text: "q" }), true, "restoring could send it twice");
+		assert.equal(m.getState().nativeMessages.length, 1);
+	});
+
 	it("the optimistic answer result attaches to the pending quiz part at once", async () => {
 		const quizCall = {
 			id: "call-1",
@@ -677,9 +706,10 @@ describe("provider-error banner (live and saved)", () => {
 		m.fetch = async () => new Response("request refused", { status: 500 });
 		await m.send({ type: "text", text: "retry" });
 		assert.equal(m.getState().error?.message, "request refused");
-		assert.equal(model({ initialMessages: m.getState().nativeMessages }).getState().error, null, "request errors are not fabricated as saved messages");
+		// The refused retry left no card, so the saved failure is still the record's last word.
+		assert.equal(model({ initialMessages: m.getState().nativeMessages }).getState().error?.message, "Google 500: fixture failure", "request errors are not fabricated as saved messages");
 		m.clearError();
-		assert.equal(m.getState().error, null);
+		assert.equal(m.getState().error?.message, "Google 500: fixture failure");
 	});
 });
 
@@ -1470,6 +1500,23 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 
 	it("an orphan result (no asking assistant) never continues", () => {
 		assert.equal(needsContinuation([userText("u1", "topic"), resultMsg("call-x")]), false);
+	});
+
+	it("a compaction marker between a call and its answer does not hide the owed reaction", () => {
+		const marker = () =>
+			newCompactionMarker("summary", { firstKeptMessageId: "u1", tokensBefore: 100, model: "fixture", at: "2026-01-01T00:00:00Z" }) as LhMessage;
+		const quiz = assistantWithCall("a1", "call-q1", "quiz");
+		assert.equal(needsContinuation([userText("u1", "topic"), quiz, marker(), resultMsg("call-q1", "quiz")]), true);
+		const parallel = {
+			...assistantWithCall("a1", "call-a"),
+			content: [
+				{ type: "toolCall", id: "call-a", name: "quiz", arguments: {} },
+				{ type: "toolCall", id: "call-b", name: "quiz", arguments: {} },
+			],
+		} as unknown as LhMessage;
+		const split = [userText("u1", "topic"), parallel, resultMsg("call-a", "quiz"), marker()];
+		assert.equal(needsContinuation(split), false, "the open quiz still belongs to the dock");
+		assert.equal(needsContinuation([...split, resultMsg("call-b", "quiz")]), true);
 	});
 });
 

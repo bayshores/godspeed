@@ -7,12 +7,13 @@
  * active one, and "New class…".
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { CheckIcon, ChevronsUpDownIcon, CircleDashedIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { ClassIcon } from "@/components/class-icon";
 import { MenuShell } from "@/components/menu-shell";
 import { ClassDialog } from "@/components/class-dialog";
 import { useClasses } from "@/components/class-context";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { cn } from "@/lib/utils";
 
 export function ClassSwitcher() {
@@ -21,28 +22,8 @@ export function ClassSwitcher() {
 	const [showArchived, setShowArchived] = useState(false);
 	const [dialog, setDialog] = useState<{ kind: "create" } | { kind: "edit"; classId: string } | null>(null);
 	const anchorRef = useRef<HTMLButtonElement>(null);
-
-	useEffect(() => {
-		if (!open) return;
-		const onPointerDown = (e: PointerEvent) => {
-			const target = e.target as Node;
-			if (target instanceof Element && target.closest("[data-lh-menu]")) return;
-			if (anchorRef.current?.contains(target)) return;
-			setOpen(false);
-		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.stopPropagation();
-				setOpen(false);
-			}
-		};
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [open]);
+	const close = useCallback(() => setOpen(false), []);
+	useMenuDismiss(open, close, anchorRef);
 
 	const pick = (id: string | null) => {
 		setActive(id);

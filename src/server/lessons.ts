@@ -8,7 +8,7 @@
  */
 
 import { chainsForSelection, formatChainLine } from "../core/chains.ts";
-import type { ChatRecord, ChatSettings, ClassScope } from "../core/contracts.ts";
+import type { ChatRecord, ClassScope } from "../core/contracts.ts";
 import { titleFromPrompt } from "../core/contracts.ts";
 import { newClassContextMessage, newGraphContextMessage, type GraphContextPick, type LhMessage } from "../core/native-messages.ts";
 import { classCardFor } from "./class-card.ts";
@@ -20,8 +20,6 @@ interface CreateLessonInput {
 	classId: ClassScope;
 	/** Practice picks from the class's graph. */
 	picks?: GraphContextPick[];
-	/** The session model (absent = the strong slot, stamped by the caller). */
-	settings?: ChatSettings;
 }
 
 type CreateLessonOutcome = { ok: true; chat: ChatRecord } | { ok: false; status: 404; code: "class_not_found"; error: string };
@@ -32,7 +30,6 @@ export function createLesson(input: CreateLessonInput): CreateLessonOutcome {
 		return { ok: false, status: 404, code: "class_not_found", error: "No such class" };
 	}
 	const chat = stores.chatStore.createChat(titleFromPrompt(input.title || "Untitled session"), input.kind, cls?.id);
-	if (input.settings) stores.chatStore.saveSettings(chat.id, input.settings);
 	const messages: LhMessage[] = [];
 	if (cls) messages.push(newClassContextMessage(classCardFor(cls)) as LhMessage);
 	const picks = input.picks ?? [];

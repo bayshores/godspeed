@@ -10,6 +10,7 @@ import { useRiseOnChange } from "@/components/sidebar/motion";
 import { RenameRow, SessionRow } from "@/components/sidebar/session-row";
 import { LessonMenu } from "@/components/sidebar/lesson-menu";
 import { useLessonList } from "@/components/sidebar/use-lesson-list";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 
 /**
  * THE LESSONS SECTION: the "Lessons" heading with its search toggle, the
@@ -102,29 +103,8 @@ export function LessonsSection({
 		setCtxMenuId(chat.id);
 	}, []);
 
-	// Any pointerdown outside the menu or its row closes it; Esc is claimed
-	// so it never also aborts a turn or folds the sidebar.
-	useEffect(() => {
-		if (ctxChatId === null) return;
-		const onPointerDown = (e: PointerEvent) => {
-			const target = e.target as Node;
-			if (target instanceof Element && target.closest("[data-lh-menu]")) return;
-			if (ctxAnchorRef.current?.contains(target)) return;
-			setCtxChatId(null);
-		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.stopPropagation();
-				setCtxChatId(null);
-			}
-		};
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [ctxChatId]);
+	const closeCtx = useCallback(() => setCtxChatId(null), []);
+	useMenuDismiss(ctxChatId !== null, closeCtx, ctxAnchorRef);
 
 	// Inline rename: PUT the title, then lh:chat-renamed patches every
 	// listener (this list and an open lesson header). Empty = discard.
@@ -265,7 +245,7 @@ export function LessonsSection({
 					chatId={ctxMenuId}
 					open={ctxChatId === ctxMenuId}
 					anchorRef={ctxAnchorRef}
-					onClose={() => setCtxChatId(null)}
+					onClose={closeCtx}
 					onRename={() => {
 						setRenamingId(ctxChatId);
 						setCtxChatId(null);

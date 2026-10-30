@@ -203,6 +203,7 @@ function DemoFrame({
 				<DemoErrorChip
 					message={state.error}
 					onSend={actions ? () => actions.sendText(`The demo "${title}" threw an error: ${state.error}`) : undefined}
+					canSend={actions?.canSendText ?? false}
 				/>
 			)}
 			<iframe
@@ -236,9 +237,11 @@ function DemoFrame({
 function DemoErrorChip({
 	message,
 	onSend,
+	canSend,
 }: {
 	message: string;
 	onSend?: () => void;
+	canSend: boolean;
 }) {
 	return (
 		<div
@@ -253,7 +256,8 @@ function DemoErrorChip({
 				<button
 					type="button"
 					onClick={onSend}
-					className=" border border-red-500/40 px-2 py-1 text-xs font-medium hover:bg-red-500/15"
+					disabled={!canSend}
+					className=" border border-red-500/40 px-2 py-1 text-xs font-medium hover:bg-red-500/15 disabled:opacity-50"
 					data-testid="demo-error-send"
 				>
 					Send to teacher

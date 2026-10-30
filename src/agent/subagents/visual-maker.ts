@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { AssistantMessage, Message, Tool, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
-// Subpath, not the package root (speed plan): the root loads every provider.
-import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
+import type { Message, Tool, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
-import { agentEngine, type PiEngine, type ThinkingLevel } from "../models.ts";
-import { forgetConversation } from "../agent-bridge.ts";
+import { agentEngine, type PiEngine } from "../models.ts";
+import { forgetConversation, labelConversation } from "../agent-bridge.ts";
 import type { VisualResult } from "../../core/contracts.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
+import { streamOnce, toolText as textResult } from "./stream-once.ts";
 
 /**
  * The visual-maker sub-agent (vision §2.5): authors ONE precise SVG from a
@@ -48,8 +47,6 @@ interface VisualMakerOptions {
 	/** Money channel: one call per loop iteration (streamSimple), folded
 	 * into JobRecord.usage. */
 	onUsage?: (usage: Usage) => void;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
-	chatId?: string;
 }
 
 const INSTRUCTIONS = `You are a visual maker — a diagram author + renderer for precise, spatial figures. You
@@ -141,8 +138,8 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 	const tools = createVisualTools();
 	const toolDeclarations = Object.values(tools);
 	const engine = opts.engine ?? agentEngine();
-	const reasoning = engine.level;
 	const sessionId = randomUUID();
+	labelConversation(sessionId, `Visual · ${brief.split("\n")[0]}`);
 	const prompt = [
 		"Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):",
 		brief,
@@ -166,7 +163,6 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 				messages,
 				toolDeclarations,
 				sessionId,
-				reasoning,
 				opts.abortSignal,
 			);
 			// Money channel: each iteration is one model call.
@@ -248,7 +244,10 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 						);
 						continue;
 					}
-					currentSvg = currentSvg.replace(edit.old_text, edit.new_text);
+					// A replacer function inserts new_text as written ("$&", "$$"
+					// in a string replacement would be expanded as patterns).
+					const newText = edit.new_text;
+					currentSvg = currentSvg.replace(edit.old_text, () => newText);
 					opts.onActivity?.("edit_svg: applied");
 					toolResults.push(toolText(call.id, call.name, "OK — replaced 1 occurrence. Call render_svg to look at the edited SVG."));
 				} else if (call.name === "render_svg") {
@@ -302,48 +301,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 }
 
 function toolText(toolCallId: string, toolName: string, value: string): ToolResultMessage {
-	return {
-		role: "toolResult",
-		toolCallId,
-		toolName,
-		content: [{ type: "text", text: value }],
-		isError: value.startsWith("ERROR:") || value.startsWith("RENDER ERROR"),
-		timestamp: Date.now(),
-	};
-}
-
-/** One raw model call (no agent loop): drain the event stream to the final
- *  AssistantMessage; provider errors and aborts throw so the loop's catch
- *  path keeps its old generateText semantics. */
-async function streamOnce(
-	engine: PiEngine,
-	systemPrompt: string,
-	messages: Message[],
-	tools: Tool[],
-	sessionId: string,
-	reasoning: ThinkingLevel | undefined,
-	abortSignal?: AbortSignal,
-): Promise<AssistantMessage> {
-	// 0.87.1: provider-facing contexts are TranscriptContexts — the prompt
-	// and tool declarations fold into a leading system message.
-	// normalizeContext is the library's only Context→TranscriptContext entry.
-	const stream = engine.streamFn(engine.model, normalizeContext({ systemPrompt, messages, tools }), {
-		sessionId,
-		reasoning: reasoning && reasoning !== "off" ? reasoning : undefined,
-		signal: abortSignal,
-	} as never);
-	for await (const event of stream) {
-		if (event.type === "done") return event.message;
-		if (event.type === "error") {
-			if (event.reason === "aborted") {
-				const err = new Error("aborted");
-				err.name = "AbortError";
-				throw err;
-			}
-			throw new Error(event.error.errorMessage ?? "the model call failed");
-		}
-	}
-	throw new Error("the model stream ended without a result");
+	return textResult(toolCallId, toolName, value, value.startsWith("ERROR:") || value.startsWith("RENDER ERROR"));
 }
 
 /** A 3-line numbered context window around the closest fuzzy match for a

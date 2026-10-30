@@ -585,8 +585,7 @@ export async function handleChatInput(
 		return Response.json({ ok: true });
 	} catch (err) {
 		// The turn never started (agent load, build or runPiTurn threw), so no
-		// onFinish will fire — clear the registry or the chat stays locked
-		// until the TTL eviction.
+		// onFinish will fire — clear the registry or the chat stays locked.
 		endTurn(chatId);
 		// The live-agent registration (if it happened) dies with the
 		// turn here too - nothing was handed (the loop never ticked).

@@ -83,13 +83,10 @@ test("activityFeed: outside-agent jobs carry the agent's context budget; nothing
 		const feed = activityFeed();
 		const knownJob = feed.jobs.find((j) => j.id === known.id)!;
 		assert.equal(knownJob.contextLimit, 200_000, "the outside agent's context budget");
-		assert.equal(knownJob.costUsd, null, "the agent bills its own plan — no API price");
 		const unknownJob = feed.jobs.find((j) => j.id === unknown.id)!;
 		assert.equal(unknownJob.contextLimit, null, "another model → null, never a guessed window");
-		assert.equal(unknownJob.costUsd, null);
 		const bareJob = feed.jobs.find((j) => j.id === bare.id)!;
 		assert.equal(bareJob.contextLimit, null, "no usage yet → no context line");
-		assert.equal(bareJob.costUsd, null);
 	} finally {
 		fs.unlinkSync(`${PATHS.chats}/${chat.id}.json`);
 		const jobsDir = path.join(PATHS.data, "jobs");

@@ -18,6 +18,7 @@ import { execFile } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { pipeline } from "node:stream/promises";
 import { PATHS } from "../config.ts";
 
 /** Shown on a file's badge when the programs are missing. */
@@ -91,18 +92,11 @@ async function ensureWhisperModel(signal?: AbortSignal): Promise<string> {
 	const response = await fetch(WHISPER_MODEL_URL, { signal });
 	if (!response.ok || !response.body) throw new Error(`Speech model download failed (HTTP ${response.status})`);
 	const tmp = `${file}.tmp-${crypto.randomUUID().slice(0, 8)}`;
-	const out = fs.createWriteStream(tmp);
 	try {
-		for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
-			if (!out.write(chunk)) await new Promise<void>((r) => out.once("drain", () => r()));
-		}
-		await new Promise<void>((resolve, reject) => {
-			out.once("error", reject);
-			out.end(() => resolve());
-		});
+		// pipeline turns a write error (a full disk) into a rejection instead of a hang.
+		await pipeline(response.body as unknown as AsyncIterable<Uint8Array>, fs.createWriteStream(tmp));
 		fs.renameSync(tmp, file);
 	} catch (err) {
-		out.destroy();
 		fs.rmSync(tmp, { force: true });
 		throw err;
 	}

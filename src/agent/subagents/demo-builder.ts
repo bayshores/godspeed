@@ -42,8 +42,6 @@ interface DemoBuilderOptions {
 	abortSignal?: AbortSignal;
 	/** Money channel: one call per agent step, folded into JobRecord.usage. */
 	onUsage?: (usage: Usage) => void;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
-	chatId?: string;
 }
 
 const INSTRUCTIONS = `You are a demo builder — a specialist sub-agent inside a learning application. You
@@ -205,7 +203,6 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 	let finalText = "";
 	try {
 		const result = await runSubagent(Object.values(createDemoBuilderTools(state, headless, opts.onActivity)), {
-			role: "demoBuilder",
 			engine: opts.engine,
 			systemPrompt: INSTRUCTIONS,
 			prompt,
@@ -213,7 +210,7 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 			abortSignal: opts.abortSignal,
 			onUsage: (usage) => opts.onUsage?.(usage),
 			onToolStart: (toolName) => opts.onActivity?.(toolName),
-			chatId: opts.chatId,
+			taskLabel: `Demo · ${title}`,
 		});
 		finalText = result.text;
 	} catch (err) {

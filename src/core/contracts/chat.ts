@@ -5,7 +5,6 @@
  * is owned outright by its stream — cross-domain schema changes go through
  * master. Pure types + protocol docs + tiny pure helpers. See docs/vision.md.
  */
-import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { LhMessage } from "../native-messages.ts";
 import type { Phase3 } from "../phases.ts";
 import type { PlanNodeStatus, PlanTree } from "./plan.ts";
@@ -58,8 +57,6 @@ export interface ChatRecord {
 	 *  spend too. Same parallel-log discipline as `turns` (nothing rides
 	 *  inside messages). Keyed by startedAt; idempotent appends. */
 	extractions?: ExtractionRunUsage[];
-	/** Per-chat model/thinking overrides for the conversation agents. */
-	settings?: ChatSettings;
 	/** SCHEMA STAMP (schema-versioning wave, owner 2026-10-10): LAZY v1 —
 	 *  existing records stay unstamped (absence reads as v1); every write
 	 *  stamps the current version. A record stamped NEWER than this build
@@ -70,23 +67,6 @@ export interface ChatRecord {
 
 /** The chat record format this build writes and understands. */
 export const CURRENT_CHAT_VERSION = 1;
-
-/** The conversation agents' runtime model choice (model-control wave,
- *  2026-09-12): a per-chat override of src/config.ts's pinned prober/teacher
- *  spec. Absent fields fall back to config; written by the model picker
- *  (PUT /api/chats/[id]/settings) and read at turn composition — the
- *  agents are stateless per turn, so a change takes effect on the next
- *  turn by construction. Background sub-agents are NEVER overridden
- *  (config-pinned: they're infrastructure, not conversation). */
-export interface ChatSettings {
-	/** pi-ai catalog coordinates: the provider that owns the model. Only
-	 *  "openrouter" is configured today; the field exists so a second
-	 *  provider needs no schema change. */
-	model?: { provider: string; id: string };
-	/** pi thinking level — must be in the chosen model's supported list
-	 *  (getSupportedThinkingLevels; enforced by the settings route). */
-	thinkingLevel?: ThinkingLevel;
-}
 
 
 // ─── Background-extraction usage (the money channel, extraction side) ────────
@@ -282,10 +262,6 @@ export interface ChatSummary {
 	/** Practice sessions (2026-10-04): a posed problem with no conclude —
 	 *  the sidebar meta's "Problem waiting". Absent on teaching sessions. */
 	pendingProblem: boolean;
-	/** The record's model-control settings — rides the list payload via the
-	 *  summary spread (the picker never needs it from here; the full record
-	 *  is its source). */
-	settings?: ChatSettings;
 }
 
 /** The sidebar's session row: a summary + live liveness. The chats list

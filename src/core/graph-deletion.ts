@@ -31,8 +31,7 @@
  *                   phrasings die with them), its coverage/checkpoint
  *                   rows — and orphans die: a node
  *                   whose references all came from this chat disappears
- *                   entirely, pruned from the positions ledger too (dead
- *                   members would break cluster hulls).
+ *                   entirely.
  *
  * Shared nodes survive automatically (the ruling): a node lives iff ANY
  * surviving reference remains — a provenance point from another chat or
@@ -129,17 +128,22 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 	}
 
 	// 1. Survival: a node lives iff a reference from ANY surviving source
-	//    remains — another chat/src's provenance point on any of its lines.
-	//    (Chain members are deliberately NOT survival references: a
-	//    chain's asserting session always left provenance on its endpoints,
-	//    so endpoint-only liveness cannot occur in a consistent ledger —
-	//    and counting it would keep nodes alive whose lines we would then
-	//    drop, dangling the chain.)
+	//    remains — another chat/src's provenance point on any of its lines,
+	//    or membership in a chain another source still asserts. (A chain can
+	//    cite an existing node by id without crediting it, so its members
+	//    may carry no provenance from the chain's source.)
 	const survives = (points: ReadonlyArray<{ chatId: string }>): boolean =>
 		points.some((pt) => pt.chatId !== chatId);
+	const nodeIds = new Set(nodeLines.map((line) => line.id));
 	const live = new Set<string>();
 	for (const line of nodeLines) {
 		if (survives(line.provenance)) live.add(line.id);
+	}
+	for (const line of chainLines) {
+		if (!survives(line.provenance)) continue;
+		for (const id of [line.conclusion, ...line.premises]) {
+			if (nodeIds.has(id)) live.add(id);
+		}
 	}
 
 	// 2. Node lines. Per-line (each line is ONE extraction run's append, so
@@ -182,7 +186,7 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 	//    a chain whose members never resolved as nodes is foreign data the
 	//    deletion leaves alone: destructive rewriting may not exceed the
 	//    deleted chat's blast radius.)
-	const deadNodes = new Set([...new Set(nodeLines.map((line) => line.id))].filter((id) => !live.has(id)));
+	const deadNodes = new Set([...nodeIds].filter((id) => !live.has(id)));
 	const outChains: GraphChain[] = [];
 	for (const line of chainLines) {
 		if (deadNodes.has(line.conclusion) || line.premises.some((premise) => deadNodes.has(premise))) continue;
@@ -194,7 +198,7 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 		outChains.push(points.length === line.provenance.length ? line : { ...line, provenance: points });
 	}
 
-	stats.nodesRemoved = [...new Set(nodeLines.map((line) => line.id))].filter((id) => !live.has(id)).length;
+	stats.nodesRemoved = deadNodes.size;
 	stats.chainsRemoved = chainLines.length - outChains.length;
 
 	graphStore.rewriteLedgers({

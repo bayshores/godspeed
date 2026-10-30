@@ -4,9 +4,8 @@ import * as fs from "node:fs";
 import { chatStore } from "../src/store/chats.ts";
 import { graphStore } from "../src/store/graph.ts";
 import { PATHS, SOURCES_FILE } from "../src/config.ts";
-import { callCost, jobCost, sessionCost, turnCost } from "../src/server/pricing.ts";
-import { sumSteps } from "../src/core/prices.ts";
-import type { CallUsage, ExtractionRunUsage, JobRecord, TurnUsage } from "../src/core/contracts.ts";
+import { sessionCost, sumSteps } from "../src/core/prices.ts";
+import type { CallUsage, ExtractionRunUsage, TurnUsage } from "../src/core/contracts.ts";
 
 const call = (over: Partial<CallUsage> = {}): CallUsage => ({
 	inputTokens: 0, outputTokens: 0, cacheReadTokens: undefined,
@@ -23,25 +22,10 @@ test("sumSteps: absent stays absent; unknown long-cache detail stays unknown", (
 	assert.equal(sumSteps([call({ cacheWriteTokens: 10 }), call({ cacheWriteTokens: 20, cacheWrite1hTokens: 5 })]).cacheWrite1hTokens, undefined);
 });
 
-test("no call has an API price: the outside agent bills its own plan (owner, 2026-10-27)", () => {
-	const usage = call({ inputTokens: 100_000, outputTokens: 20_000, cacheReadTokens: 10_000 });
-	for (const model of ["agent:outside-agent", "openrouter:z-ai/glm-5.3-flash", "not/a-model"]) assert.equal(callCost(usage, model), null, model);
-});
-
-test("turn/session costs count plan turns and unpriced turns separately, never a fake zero", () => {
+test("session costs count plan turns and unpriced turns separately", () => {
 	const turn: TurnUsage = { id: "t1", messageId: "m1", at: "x", model: "agent:outside-agent", steps: [call({ inputTokens: 10_000, outputTokens: 2_000 })] };
 	const totals = sessionCost({ turns: [turn, { ...turn, id: "t2", model: "not/a-model" }] });
-	assert.equal(totals.subscription, 1, "the outside agent's turn is plan usage");
-	assert.equal(totals.unpriced, 1);
-	assert.equal(totals.cost, 0);
-	assert.equal(turnCost(turn), null);
-	assert.deepEqual(totals.turnCosts, { t1: null, t2: null });
-});
-
-test("jobs have no API price; missing usage stays absent", () => {
-	assert.equal(jobCost({}), null);
-	const job: Pick<JobRecord, "usage"> = { usage: { model: "agent:outside-agent", inputTokens: 1_000_000, outputTokens: 100_000, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0, steps: 4 } };
-	assert.equal(jobCost(job), null);
+	assert.deepEqual(totals, { unpriced: 1, subscription: 1, subscriptionProviders: ["Outside agent"] });
 });
 
 test("appendTurnUsage: idempotent per turn; continuations survive saveMessages; list omits log", () => {

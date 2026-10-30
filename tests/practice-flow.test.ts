@@ -69,7 +69,6 @@ after(() => {
 
 function createPracticeChat(title: string) {
 	const chat = chatStore.createChat(title, "practice");
-	chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
 	createdChats.push(chat.id);
 	return chat;
 }

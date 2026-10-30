@@ -93,9 +93,11 @@ export function parseQuizInput(input: unknown): QuizToolInput | undefined {
  * mode is the options-less shape), plus the option-sanity refinement the
  * boundary enforced (askOptionProblems — duplicate values break the dock's
  * keying, so they parse to undefined exactly like the zod seam did).
+ * Every display parse heals first, like the boundary does, because the
+ * record keeps the raw arguments.
  */
 export function parseAskInput(input: unknown): AskToolInput | undefined {
-	const cleaned = boundaryParse<AskToolInput>(askInputSchema, input);
+	const cleaned = boundaryParse<AskToolInput>(askInputSchema, healEncodedArguments(input, askInputSchema));
 	if (!cleaned) return undefined;
 	if (askOptionProblems(cleaned.options ?? []).length > 0) return undefined;
 	return cleaned;
@@ -108,7 +110,7 @@ export function parseAskInput(input: unknown): AskToolInput | undefined {
  *  variants share the same fields; the teacher's nodeId is an unknown
  *  key Value.Clean strips, same as the quiz seam. */
 export function parseExplainInput(input: unknown): ExplainToolInput | undefined {
-	const cleaned = boundaryParse<ExplainToolInput>(explainDisplayInputSchema, input);
+	const cleaned = boundaryParse<ExplainToolInput>(explainDisplayInputSchema, healEncodedArguments(input, explainDisplayInputSchema));
 	if (!cleaned) return undefined;
 	if (explainInputProblems(cleaned).length > 0) return undefined;
 	return cleaned;
@@ -116,7 +118,7 @@ export function parseExplainInput(input: unknown): ExplainToolInput | undefined 
 
 /** write_code parse for DISPLAY: the tool's own schema and refinement. */
 export function parseWriteCodeInput(input: unknown): WriteCodeInput | undefined {
-	const cleaned = boundaryParse<WriteCodeInput>(writeCodeInputSchema, input);
+	const cleaned = boundaryParse<WriteCodeInput>(writeCodeInputSchema, healEncodedArguments(input, writeCodeInputSchema));
 	if (!cleaned) return undefined;
 	if (writeCodeInputProblems(cleaned).length > 0) return undefined;
 	return cleaned;
@@ -124,5 +126,5 @@ export function parseWriteCodeInput(input: unknown): WriteCodeInput | undefined 
 
 /** probe_done parse — the core-owned schema the tool itself declares. */
 export function parseProbeDoneInput(input: unknown): ProbeDoneInput | undefined {
-	return boundaryParse<ProbeDoneInput>(probeDoneInputSchema, input);
+	return boundaryParse<ProbeDoneInput>(probeDoneInputSchema, healEncodedArguments(input, probeDoneInputSchema));
 }

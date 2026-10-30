@@ -712,6 +712,18 @@ describe("the extraction pipeline (extractor → merger)", () => {
 		const runB = pipelineB.runExtraction(b.chatId);
 		await until(() => extractionStatuses().some((r) => r.chatId === b.chatId && r.phase === "waiting"));
 
+		// C queues behind B while A still holds the lock.
+		let cExtractorCalled = false;
+		const pipelineC = createExtractionPipeline({
+			chatStore,
+			graphStore: ledgers,
+			extractor: submitModel("submit_findings", single("pc", "Gamma claim", "Gamma statement"), () => {
+				cExtractorCalled = true;
+			}),
+		});
+		const runC = pipelineC.runExtraction(c.chatId);
+		await until(() => extractionStatuses().some((r) => r.chatId === c.chatId && r.phase === "waiting"));
+
 		// The dock's abort button, pressed while B waits.
 		assert.equal(abortExtraction(b.chatId), true);
 		assert.deepEqual(await runB, { nodes: 0, chains: 0 }, "aborted before extracting — zero emissions");
@@ -719,16 +731,16 @@ describe("the extraction pipeline (extractor → merger)", () => {
 		assert.ok(!extractionStatuses().some((r) => r.chatId === b.chatId), "B left the registry");
 		assert.equal(ledgers.readCoverage().some((row) => row.chatId === b.chatId), false, "B checkpointed nothing");
 
-		// The lock link B abandoned still resolved: A finishes, and a THIRD
-		// run extracts normally — no deadlock residue.
+		// B leaving must not hand the lock to C while A still holds it.
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		assert.ok(!cExtractorCalled, "C still waits for A, not for the aborted B");
+		assert.equal(extractionStatuses().find((r) => r.chatId === c.chatId)?.phase, "waiting");
+
+		// A finishes, then C extracts normally — no deadlock residue.
 		gateOpen();
 		assert.deepEqual(await runA, { nodes: 1, chains: 0 });
-		const pipelineC = createExtractionPipeline({
-			chatStore,
-			graphStore: ledgers,
-			extractor: submitModel("submit_findings", single("pc", "Gamma claim", "Gamma statement")),
-		});
-		assert.deepEqual(await pipelineC.runExtraction(c.chatId), { nodes: 1, chains: 0 });
+		assert.deepEqual(await runC, { nodes: 1, chains: 0 });
+		assert.ok(cExtractorCalled);
 	});
 
 	it("persists the run's usage into the chat record (extractor stage only)", async () => {

@@ -194,9 +194,60 @@ const helperIdle = createIdleCloser(BROWSER_SERVICE_IDLE_MS, () => {
 	if (proc && proc.exitCode === null) proc.kill();
 });
 
+/** The helper start in progress: jobs that arrive during its handshake wait
+ *  for it instead of spawning a second helper nothing would ever close. */
+let helperStarting: Promise<number | null> | null = null;
+
+/** Spawn the helper and wait for its CDP port (null = it did not start). */
+async function startBrowserService(): Promise<number | null> {
+	const { spawn } = await import("node:child_process");
+	const binary = browserServiceBinary();
+	if (!binary) return null;
+	// Packaged: execPath runs the bundled app (flag reaches main.cjs).
+	// Dev: the bare electron binary needs the repo root as the app arg —
+	// flagless it would open Electron's default app instead of our shell.
+	const appArgs = process.versions.electron ? ["--browser-service"] : [
+		// src/agent/subagents → repo root
+		path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", ".."),
+		"--browser-service",
+	];
+	const proc = spawn(binary, appArgs, {
+		// Cast: the sanitizer is pure over a loose record; NODE_ENV is
+		// always present in a real process.env.
+		env: browserServiceSpawnEnv(process.env) as NodeJS.ProcessEnv,
+		stdio: ["ignore", "pipe", "pipe", "ipc"] as const,
+	});
+	browserServiceProc = proc;
+	const port = await new Promise<number | null>((resolve) => {
+		let buf = "";
+		const timer = setTimeout(() => {
+			proc.kill();
+			resolve(null);
+		}, BROWSER_SERVICE_TIMEOUT_MS);
+		const onData = (chunk: Buffer) => {
+			buf += chunk.toString("utf8");
+			const line = buf.split("\n").find((l) => parseBrowserServiceLine(l) !== null);
+			if (line !== undefined) {
+				clearTimeout(timer);
+				resolve(parseBrowserServiceLine(line));
+			}
+		};
+		proc.stdout!.on("data", onData);
+		proc.once("exit", () => {
+			clearTimeout(timer);
+			resolve(null);
+		});
+	});
+	if (port === null) {
+		if (browserServiceProc === proc) browserServiceProc = null;
+		return null;
+	}
+	(proc as { __cdpPort?: number }).__cdpPort = port;
+	return port;
+}
+
 async function connectBrowserService(): Promise<import("puppeteer-core").Browser | null> {
 	const puppeteer = (await import("puppeteer-core")).default;
-	const { spawn } = await import("node:child_process");
 	let port: number | null = null;
 
 	if (browserServiceProc && browserServiceProc.exitCode === null) {
@@ -204,56 +255,19 @@ async function connectBrowserService(): Promise<import("puppeteer-core").Browser
 		port = (browserServiceProc as { __cdpPort?: number }).__cdpPort ?? null;
 	}
 	if (port === null) {
-		const binary = browserServiceBinary();
-		if (!binary) return null;
-		// Packaged: execPath runs the bundled app (flag reaches main.cjs).
-		// Dev: the bare electron binary needs the repo root as the app arg —
-		// flagless it would open Electron's default app instead of our shell.
-		const appArgs = process.versions.electron ? ["--browser-service"] : [
-			// src/agent/subagents → repo root
-			path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", ".."),
-			"--browser-service",
-		];
-		const proc = spawn(binary, appArgs, {
-			// Cast: the sanitizer is pure over a loose record; NODE_ENV is
-			// always present in a real process.env.
-			env: browserServiceSpawnEnv(process.env) as NodeJS.ProcessEnv,
-			stdio: ["ignore", "pipe", "pipe", "ipc"] as const,
+		helperStarting ??= startBrowserService().finally(() => {
+			helperStarting = null;
 		});
-		browserServiceProc = proc;
-		port = await new Promise<number | null>((resolve) => {
-			let buf = "";
-			const timer = setTimeout(() => {
-				proc.kill();
-				resolve(null);
-			}, BROWSER_SERVICE_TIMEOUT_MS);
-			const onData = (chunk: Buffer) => {
-				buf += chunk.toString("utf8");
-				const line = buf.split("\n").find((l) => parseBrowserServiceLine(l) !== null);
-				if (line !== undefined) {
-					clearTimeout(timer);
-					resolve(parseBrowserServiceLine(line));
-				}
-			};
-			proc.stdout!.on("data", onData);
-			proc.once("exit", () => {
-				clearTimeout(timer);
-				resolve(null);
-			});
-		});
-		if (port === null) {
-			browserServiceProc = null;
-			return null;
-		}
-		(proc as { __cdpPort?: number }).__cdpPort = port;
+		port = await helperStarting;
+		if (port === null) return null;
 	}
 
 	try {
 		const version = await fetch(`http://127.0.0.1:${port}/json/version`);
 		const info = (await version.json()) as { webSocketDebuggerUrl?: string };
 		if (!info.webSocketDebuggerUrl) return null;
-		// connect ≠ launch: browser.close() below merely disconnects — the
-		// helper stays resident for the next job (IPC-owned lifetime).
+		// connect ≠ launch: withBrowserPage disconnects when its job ends,
+		// and the helper stays running for the next job (IPC-owned lifetime).
 		return await puppeteer.connect({
 			browserWSEndpoint: info.webSocketDebuggerUrl,
 			defaultViewport: null,
@@ -282,14 +296,19 @@ async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => P
 	}
 	if (helper) {
 		const run = async (): Promise<T> => {
-			const pages = await helper.pages();
-			const page = pages.find((p) => p.target().type() === "page");
-			if (!page) throw new Error("browser service: no page target");
 			try {
-				return await fn(page);
+				const pages = await helper.pages();
+				const page = pages.find((p) => p.target().type() === "page");
+				if (!page) throw new Error("browser service: no page target");
+				try {
+					return await fn(page);
+				} finally {
+					// Drop all page state (JS heap, listeners) between jobs.
+					await page.goto("about:blank").catch(() => {});
+				}
 			} finally {
-				// Drop all page state (JS heap, listeners) between jobs.
-				await page.goto("about:blank").catch(() => {});
+				// Disconnect, never close(): close() would quit the shared helper.
+				await helper.disconnect().catch(() => {});
 			}
 		};
 		const next = helperPageChain.then(run, run);

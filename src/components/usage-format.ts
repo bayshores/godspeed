@@ -3,14 +3,10 @@
  * activity dock and the stats bar. Pure; exported for tests.
  */
 
-/** USD for cent-scale money: >= $1 keeps two decimals, smaller keeps four. */
-export function formatUsd(c: number): string {
-	return c >= 1 ? `$${c.toFixed(2)}` : `$${c.toFixed(4)}`;
-}
-
-export function planCostLabel(dollars: number | null, subscription: string | readonly string[] | undefined, format = formatUsd): string {
+/** Who paid: the plan labels, or "–" when none (never a fake $0). */
+export function planCostLabel(subscription: string | readonly string[] | undefined): string {
 	const labels = typeof subscription === "string" ? [subscription] : Array.isArray(subscription) ? [...new Set(subscription)] : [];
-	return [...(dollars === null ? [] : [format(dollars)]), ...labels].join(" + ") || "–";
+	return labels.join(" + ") || "–";
 }
 
 /** 38000 → "38k", 1234567 → "1.2M" — trimmed, never "38.0k". */
@@ -36,12 +32,11 @@ function splitQualified(id: string): { provider: string | null; id: string } {
  * segment (OpenRouter's date suffix, "qwen3.8-max-0902") is dropped.
  * Quiet-chip friendly.
  *
- * With `qualified` (usage stamps are "provider:id", model-slots wave):
- * the provider rides as a quiet suffix — "glm-5.3-flash · openrouter" —
- * because with federation the same model via two providers is genuinely
+ * A "provider:id" stamp keeps its provider as a quiet suffix
+ * ("glm-5.3-flash · openrouter"): the same model via two providers is
  * different bookkeeping. Bare catalog ids are unchanged.
  */
-export function prettyModel(id: string, qualified = false): string {
+export function prettyModel(id: string): string {
 	const { provider, id: bare } = splitQualified(id);
 	const short = bare.includes("/") ? bare.slice(bare.lastIndexOf("/") + 1) : bare;
 	const parts = short.split("-");
@@ -49,5 +44,5 @@ export function prettyModel(id: string, qualified = false): string {
 	// No auto-capitalization, dashes KEPT (owner rounds 4-5, 2026-10-05):
 	// model names render exactly as their providers write them.
 	const pretty = trimmed.join("-");
-	return qualified && provider ? `${pretty} · ${provider}` : pretty;
+	return provider ? `${pretty} · ${provider}` : pretty;
 }

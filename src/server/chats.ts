@@ -110,7 +110,7 @@ export async function quiesceChatForRewrite(chatId: string): Promise<Extract<Cha
 					ok: false,
 					status: 503,
 					code: "extraction_winding_down",
-					error: "The session's extraction is still winding down — try again in a moment",
+					error: "This lesson is still finishing its graph work. Try again in a moment.",
 				};
 			}
 			await new Promise((resolve) => setTimeout(resolve, WIND_DOWN_POLL_MS));
@@ -125,7 +125,7 @@ export async function quiesceChatForRewrite(chatId: string): Promise<Extract<Cha
 export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): Promise<ChatDeleteOutcome> {
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) {
-		return { ok: false, status: 404, code: "not_found", error: "No such session" };
+		return { ok: false, status: 404, code: "not_found", error: "No such lesson" };
 	}
 	const blocker = await quiesceChatForRewrite(chatId);
 	if (blocker) return blocker;

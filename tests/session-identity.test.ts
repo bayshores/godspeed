@@ -55,21 +55,30 @@ describe("native app and conversation identity", { concurrency: false }, () => {
 
 	it("separate extractor/topic-grouper/compaction invocations own distinct stable unsaved conversations", async () => {
 		const ids = new Set<unknown>();
-		// Compaction uses the shared runner with the researcher role.
-		for (const role of ["extractor", "topicGrouper", "researcher"] as const) {
+		for (let run = 0; run < 3; run++) {
 			const { engine, requests } = recordingEngine();
 			let usage = 0;
-			const result = await runSubagent([again], { role, engine, chatId: "chat_shared_debug_only", systemPrompt: "offline", prompt: "offline", maxTurns: 3, onUsage: () => usage++ });
+			const result = await runSubagent([again], { engine, systemPrompt: "offline", prompt: "offline", maxTurns: 3, onUsage: () => usage++ });
 			assert.equal(requests.length, 2);
 			assert.equal(usage, 2);
 			const id = requests[0]!.sessionId;
 			assert.match(id ?? "", /^[0-9a-f-]{36}$/);
-			assert.notEqual(id, "chat_shared_debug_only");
 			assert.ok(!ids.has(id));
 			ids.add(id);
 			for (const options of requests) { assert.equal(options.sessionId, id); assert.deepEqual(options.identity, APP_IDENTITY); }
 			assert.ok(result.newMessages.some((m) => m.role === "toolResult" && typeof m.durationMs === "number"), "new native tool duration fields are preserved");
 			assert.ok(result.newMessages.some((m) => m.role === "assistant" && typeof m.durationMs === "number"), "new native assistant duration fields are preserved");
 		}
+	});
+
+	it("a run whose signal was aborted before it started ends as an abort without a model call", async () => {
+		const { engine, requests } = recordingEngine();
+		const stop = new AbortController();
+		stop.abort();
+		await assert.rejects(
+			runSubagent([again], { engine, systemPrompt: "offline", prompt: "offline", maxTurns: 3, abortSignal: stop.signal }),
+			{ name: "AbortError" },
+		);
+		assert.equal(requests.length, 0);
 	});
 });

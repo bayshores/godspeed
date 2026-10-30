@@ -92,9 +92,6 @@ interface LoopContext {
 	/** Fires when abortJob kills the run; abortSignal is passed into every
 	 * model call so the spend stops mid-call, not at the next loop check. */
 	abortSignal: AbortSignal;
-	/** The job's chat (debug: raw provider-event recording under
-	 * LH_PROVIDER_EVENTS=1 — forwarded into every subagent run). */
-	chatId?: string;
 	/** Fold one model call's usage into the job record (progress write). */
 	onUsage: (step: UsageStepLike) => void;
 }
@@ -116,7 +113,6 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 	const usageTotals = new Map<string, JobUsage>();
 
 	function makeLoopContext(jobId: string, engine: PiEngine): LoopContext {
-		const chatId = jobStore.getJob(jobId)?.chatId;
 		// Provider-qualified stamp: the engine's actual model — the only
 		// thing that ran (BYOK: no config-pin fallback stamps exist).
 		const model = `${engine.model.provider}:${engine.model.id}`;
@@ -127,7 +123,6 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 		registerJobAbort(jobId, controller);
 		return {
 			abortSignal: controller.signal,
-			chatId,
 			onUsage: (step) => {
 				const next = accumulateJobUsage(usageTotals.get(jobId), model, step);
 				usageTotals.set(jobId, next);
@@ -341,7 +336,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 				engine: model,
 				pdfDir,
 				abortSignal: loop.abortSignal,
-				chatId: loop.chatId,
+				taskLabel: `Research · ${question}`,
 				// Money channel: each agent step is one model call — fold its
 				// usage into the record as it completes (progress write).
 				onUsage: (usage) => loop.onUsage(piUsageToStep(usage)),
@@ -392,7 +387,6 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 				{
 					engine: model,
 					abortSignal: loop.abortSignal,
-					chatId: loop.chatId,
 					onUsage: (usage) => loop.onUsage(piUsageToStep(usage)),
 					onActivity: (line) => jobStore.updateJob(jobId, { activity: line }),
 				},
@@ -428,7 +422,6 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 				{
 					engine: model,
 					abortSignal: loop.abortSignal,
-					chatId: loop.chatId,
 					onUsage: (usage) => loop.onUsage(piUsageToStep(usage)),
 					onActivity: (line) => jobStore.updateJob(jobId, { activity: line }),
 				},
@@ -467,7 +460,6 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 			{
 				engine: model,
 				abortSignal: loop.abortSignal,
-				chatId: loop.chatId,
 				onUsage: (usage) => loop.onUsage(piUsageToStep(usage)),
 				onActivity: (line) => jobStore.updateJob(jobId, { activity: line }),
 			},

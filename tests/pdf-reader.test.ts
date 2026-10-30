@@ -146,6 +146,45 @@ describe("pdf-reader loop (faux engine)", () => {
 		assert.deepEqual(result.pagesConsulted, [1, 2]);
 	});
 
+	it("extract 'all' records every page of the document, so the finish is not nudged", async () => {
+		let modelCalls = 0;
+		const engine = fauxEngine([
+			fauxAssistantMessage([fauxToolCall("pdf_extract", { pages: "all" }, { id: "e1" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage([fauxText("Read the whole document (p. 1, p. 2, p. 3).")]),
+			fauxAssistantMessage([fauxText("a nudged second brief")]),
+		]);
+		const stream = engine.streamFn;
+		engine.streamFn = (...args) => {
+			modelCalls++;
+			return stream(...args);
+		};
+		const result = await runPdfReaderAgent({ path: FIXTURE, question: "everything" }, { engine });
+		assert.match(result.brief, /^Read the whole document/);
+		assert.equal(modelCalls, 2, "no unread-finish nudge");
+		assert.deepEqual(result.pagesRead, [1, 2, 3]);
+		assert.deepEqual(result.pagesConsulted, [1, 2, 3]);
+	});
+
+	it("render 'all' asks for pages 1-6, not just page 6", async () => {
+		const headless = fakeHeadless();
+		const engine = fauxEngine([
+			fauxAssistantMessage([fauxToolCall("pdf_render", { pages: "all" }, { id: "r1" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage([fauxText("Looked at every page (p. 1).")]),
+		]);
+		await runPdfReaderAgent({ path: FIXTURE, question: "everything" }, { engine, headless });
+		assert.deepEqual(headless.calls, ["render:1,2,3,4,5,6"]);
+	});
+
+	it("an extract range past the end records only pages that exist", async () => {
+		const engine = fauxEngine([
+			fauxAssistantMessage([fauxToolCall("pdf_extract", { pages: "2-50" }, { id: "e1" })], { stopReason: "toolUse" }),
+			fauxAssistantMessage([fauxText("Pages 2 and 3 (p. 2, p. 3).")]),
+		]);
+		const result = await runPdfReaderAgent({ path: FIXTURE, question: "the end" }, { engine });
+		assert.deepEqual(result.pagesRead, [2, 3]);
+		assert.deepEqual(result.pagesConsulted, [2, 3]);
+	});
+
 	it("the unread-finish gate: a brief with zero consultation is bounced, not delivered", async () => {
 		let nudged = false;
 		const engine = fauxEngine([
@@ -221,6 +260,17 @@ describe("pdf-reader loop (faux engine)", () => {
 		assert.match(result.brief, /Extracted instead/);
 		assert.deepEqual(result.pagesRead, [1]);
 		assert.deepEqual(result.pagesConsulted, [1]);
+	});
+
+	it("the outside agent's work items name the task (which PDF)", async () => {
+		const bridge = await import("../src/agent/agent-bridge.ts");
+		const run = runPdfReaderAgent({ path: FIXTURE, question: "anything" }, { headless: fakeHeadless() });
+		const work = await bridge.waitForWork(5000);
+		assert.equal(work?.label, "PDF reading · sample-3page.pdf");
+		assert.ok(bridge.respondToWork(work!.workId, { toolCalls: [{ name: "pdf_extract", arguments: { pages: "1" } }] }, 0).ok);
+		const next = await bridge.waitForWork(5000);
+		assert.ok(bridge.respondToWork(next!.workId, { text: "Page one (p. 1)." }, 0).ok);
+		assert.equal((await run).brief, "Page one (p. 1).");
 	});
 
 	it("an unreadable source fails deterministically before any model call", async () => {

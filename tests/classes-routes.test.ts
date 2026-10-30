@@ -17,6 +17,7 @@ import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
+import { MAX_LINKED_FILES } from "../src/core/contracts.ts";
 
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-routes-"));
 const LINKED = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-linked-"));
@@ -281,6 +282,54 @@ describe("the class file pipeline", () => {
 		const unlinked = await folderRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
 		assert.equal((await unlinked.json()).class.linkedFolder, undefined);
 		assert.ok(fs.existsSync(LINKED), "the learner's folder is never touched");
+	});
+
+	it("a file removed during its first import leaves no facts behind", async () => {
+		const id = await makeClass("CSE 110");
+		const stub = extraction.importNotes;
+		let entered!: () => void;
+		let release!: () => void;
+		const started = new Promise<void>((r) => (entered = r));
+		const gate = new Promise<void>((r) => (release = r));
+		extraction.importNotes = async (input) => {
+			entered();
+			await gate;
+			return stub(input);
+		};
+		try {
+			const up = await (await upload(id, "study", [["draft.md", "Sorting"]])).json();
+			await started;
+			const del = await fileRoute.DELETE(json("/x", "DELETE"), ctx({ id, fileId: up.results[0].file.id }));
+			assert.equal(del.status, 200);
+			release();
+			await classIdle(id);
+		} finally {
+			extraction.importNotes = stub;
+		}
+		assert.equal(stores.classStore.getClass(id)!.files.length, 0);
+		assert.deepEqual(getNames(id), [], "the facts it merged went with it");
+	});
+
+	it("a linked folder past the file cap keeps the files the walk no longer reaches", async () => {
+		const id = await makeClass("CSE 120");
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-capped-"));
+		try {
+			for (let i = 1; i <= MAX_LINKED_FILES; i++) fs.writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.md`), `Topic ${i}`);
+			await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+			await classIdle(id);
+			fs.writeFileSync(path.join(dir, "000.md"), "Syllabus");
+			server.scanLinkedFolder(id);
+			await classIdle(id);
+			const last = `${MAX_LINKED_FILES}.md`;
+			assert.ok(stores.classStore.getClass(id)!.files.some((f) => f.path === last), "the file past the cap stays");
+			assert.ok(getNames(id).includes(`Topic ${MAX_LINKED_FILES}`), "and so do its facts");
+			fs.rmSync(path.join(dir, last));
+			server.scanLinkedFolder(id);
+			await classIdle(id);
+			assert.ok(!getNames(id).includes(`Topic ${MAX_LINKED_FILES}`), "a file really deleted still loses its facts");
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("unlinking a class with no folder is refused and changes nothing", async () => {

@@ -78,8 +78,6 @@ async function runLoop(loop: Loop, engine: PiEngine, signal = new AbortControlle
 		engine, headless: fakeHeadless(renders), abortSignal: signal,
 		onActivity: (line: string) => activities.push(line),
 		onUsage: (usage: Usage) => usages.push(usage),
-		// Direct recording cases enable the observer into an isolated temp dir.
-		chatId: "provider-neutral-offline",
 	};
 	const result = loop === "visual"
 		? await runVisualMaker({ brief: "A white square, no external resources" }, opts)
@@ -118,7 +116,7 @@ describe("provider-neutral raw agent loops", { concurrency: false }, () => {
 				const requests: { context: TranscriptContext; options: Record<string, unknown> }[] = [];
 				const signal = new AbortController().signal;
 				const engine: PiEngine = {
-					model: faux.getModel(), level: "medium",
+					model: faux.getModel(),
 					streamFn: (model, context, options) => {
 						requests.push({ context, options: { ...options } });
 						return faux.streamSimple(model, context, options);
@@ -129,13 +127,12 @@ describe("provider-neutral raw agent loops", { concurrency: false }, () => {
 				assert.equal(requests.length, 3);
 				const sessionId = requests[0]!.options.sessionId;
 				assert.match(String(sessionId), /^[0-9a-f-]{36}$/);
-				assert.notEqual(sessionId, "provider-neutral-offline");
 				for (const { options } of requests) {
 					assert.equal(options.sessionId, sessionId);
 					for (const key of ["apiKey", "getApiKey", "auth", "headers"]) {
 						assert.ok(!Object.hasOwn(options, key), `${loop} stream must not supply ${key}`);
 					}
-					assert.equal(options.reasoning, "medium");
+					assert.ok(!Object.hasOwn(options, "reasoning"), `${loop} stream leaves reasoning to the agent`);
 					assert.equal(options.signal, signal);
 				}
 				assert.match(JSON.stringify(requests[2]!.context), /image\/png/);

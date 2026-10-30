@@ -215,11 +215,3 @@ describe("nextOverrides — the rebind persistence map", () => {
 		assert.deepEqual(next, { find: "mod+f" });
 	});
 });
-
-describe("the outside agent's one provider name", () => {
-	it("the UI and the bridge name the same provider", async () => {
-		const { OUTSIDE_AGENT_PROVIDER } = await import("../src/core/settings.ts");
-		const { AGENT_PROVIDER } = await import("../src/agent/agent-bridge.ts");
-		assert.equal(OUTSIDE_AGENT_PROVIDER, AGENT_PROVIDER);
-	});
-});

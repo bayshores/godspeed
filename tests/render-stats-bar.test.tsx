@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { StatsBar, formatContextMeasurement } from "../src/components/stats-bar.tsx";
-import { sessionCost } from "../src/server/pricing.ts";
+import { sessionCost } from "../src/core/prices.ts";
 import { prettyModel } from "../src/components/usage-format.ts";
 import type { TurnUsage } from "../src/core/contracts.ts";
 
@@ -67,14 +67,10 @@ describe("prettyModel", () => {
 		assert.equal(prettyModel("qwen/qwen3.8-max-0902"), "qwen3.8-max");
 	});
 
-	it("provider-qualified stamps (usage contract, model-slots wave)", () => {
-		// qualified: the provider rides as a quiet suffix — federation makes
-		// the same model via two providers different bookkeeping
-		assert.equal(prettyModel("openrouter:z-ai/glm-5.3-flash", true), "glm-5.3-flash · openrouter");
-		assert.equal(prettyModel("openai:gpt-5.2", true), "gpt-5.2 · openai");
-		// unqualified on a qualified stamp: provider silently dropped (old shape)
-		assert.equal(prettyModel("openrouter:z-ai/glm-5.3-flash"), "glm-5.3-flash");
-		// qualified on a bare id: no suffix invented
-		assert.equal(prettyModel("z-ai/glm-5.3-flash", true), "glm-5.3-flash");
+	it("provider-qualified stamps keep the provider as a quiet suffix", () => {
+		assert.equal(prettyModel("openrouter:z-ai/glm-5.3-flash"), "glm-5.3-flash · openrouter");
+		assert.equal(prettyModel("openai:gpt-5.2"), "gpt-5.2 · openai");
+		// a bare id: no suffix invented
+		assert.equal(prettyModel("z-ai/glm-5.3-flash"), "glm-5.3-flash");
 	});
 });

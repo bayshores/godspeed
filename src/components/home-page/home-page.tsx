@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon } from "lucide-react";
 import type { ClassSummary, DeadlineProgress } from "@/core";
@@ -9,6 +9,7 @@ import { ClassDialog, type ClassDialogMode } from "@/components/class-dialog";
 import { useMinute } from "@/components/countdown";
 import { byDue, longDateLine } from "@/components/deadlines-model";
 import { MenuShell } from "@/components/menu-shell";
+import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { lessonHref } from "@/components/overview/overview-model";
 import { TopBar } from "@/components/top-bar";
 import { useOpenDeadlines } from "@/components/use-open-deadlines";
@@ -143,29 +144,8 @@ function LoadFailed() {
 function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; onPick: (classId: string) => void }) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
-
-	// The menu contract: a pointerdown outside closes it; Esc is claimed.
-	useEffect(() => {
-		if (!open) return;
-		const onPointerDown = (e: PointerEvent) => {
-			const target = e.target as Node;
-			if (target instanceof Element && target.closest("[data-lh-menu]")) return;
-			if (anchorRef.current?.contains(target)) return;
-			setOpen(false);
-		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.stopPropagation();
-				setOpen(false);
-			}
-		};
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [open]);
+	const close = useCallback(() => setOpen(false), []);
+	useMenuDismiss(open, close, anchorRef);
 
 	const single = classes.length === 1 ? classes[0]! : null;
 	return (

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/core";
-import { formatTokens, formatUsd, planCostLabel, prettyModel } from "@/components/usage-format";
+import { formatTokens, planCostLabel, prettyModel } from "@/components/usage-format";
 import { usePresence } from "@/components/presence";
+import { usePopoverDismiss } from "@/components/popover-dismiss";
 
 export function formatContextMeasurement(tokens: number | null, limit: number | null): string {
 	const numerator = tokens === null ? "?" : formatTokens(tokens);
@@ -46,34 +47,12 @@ export function StatsBar({
 	const detail = usePresence(open);
 	// Dropdown discipline: close on any pointerdown outside the bar or on Escape.
 	const barRef = useRef<HTMLDivElement>(null);
-	useEffect(() => {
-		if (!open) return;
-		const onPointerDown = (e: PointerEvent) => {
-			if (barRef.current && !barRef.current.contains(e.target as Node)) setOpen(false);
-		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				// THE ONE-ESC LAW (keyboard round 2026-10-06): claim — the
-				// window chain must not also act under this popover.
-				e.preventDefault();
-				e.stopPropagation();
-				setOpen(false);
-			}
-		};
-		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
-	}, [open]);
+	const close = useCallback(() => setOpen(false), []);
+	usePopoverDismiss(barRef, open, close);
 	const contextLabel = formatContextMeasurement(contextTokens, OUTSIDE_AGENT_CONTEXT_WINDOW);
-	const { cost = 0, unpriced = turns.length, subscription = 0 } = pricing ?? {};
-	// Honest cost: show dollars only when at least one turn priced;
-	// otherwise "–" (never a fake $0.0000).
-	const pricedCount = turns.length - unpriced - subscription;
+	const { unpriced = turns.length, subscription = 0 } = pricing ?? {};
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
-	const costLabel = planCostLabel(pricedCount > 0 ? cost : null, providers);
+	const costLabel = planCostLabel(providers);
 
 	return (
 		<div
@@ -147,20 +126,17 @@ export function StatsBar({
 									Turns
 								</div>
 								<ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
-									{turns.map((turn, i) => {
-										const c = pricing?.turnCosts[turn.id] ?? null;
-										return (
-											<li key={`${turn.messageId}-${i}`} className="flex items-center justify-between gap-2">
-												<span className="truncate text-muted-foreground">
-													#{i + 1} · {prettyModel(turn.model, true)}
-												</span>
-												<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-card-foreground">
-													<span className="text-muted-foreground">{turn.steps.length} steps</span>
-													<span>{subscriptionLabel(turn.model) ?? (c === null ? "–" : formatUsd(c))}</span>
-												</span>
-											</li>
-										);
-									})}
+									{turns.map((turn, i) => (
+										<li key={`${turn.messageId}-${i}`} className="flex items-center justify-between gap-2">
+											<span className="truncate text-muted-foreground">
+												#{i + 1} · {prettyModel(turn.model)}
+											</span>
+											<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-card-foreground">
+												<span className="text-muted-foreground">{turn.steps.length} steps</span>
+												<span>{subscriptionLabel(turn.model) ?? "–"}</span>
+											</span>
+										</li>
+									))}
 								</ul>
 							</>
 						)}

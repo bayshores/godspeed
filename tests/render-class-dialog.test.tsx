@@ -55,6 +55,10 @@ const RECORD: ClassRecord = {
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
 const originalFetch = globalThis.fetch;
+/** The record the server holds now (an agent may change it mid-test). */
+let served: ClassRecord = RECORD;
+/** The mounted dialog's server event handlers, by event name. */
+const events = new Map<string, (raw: string) => void>();
 function fakeFetch() {
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = String(input);
@@ -62,7 +66,7 @@ function fakeFetch() {
 		const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
 		if (method !== "GET") calls.push({ method, url, body });
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
-		if (url === "/api/classes/cls_a" && method === "GET") return Response.json({ class: RECORD });
+		if (url === "/api/classes/cls_a" && method === "GET") return Response.json({ class: served });
 		if (url === "/api/classes/cls_a/deadlines" && method === "POST")
 			return Response.json({ deadline: { id: "ddl_new", done: false, ...body } }, { status: 201 });
 		return Response.json({ ok: true });
@@ -76,7 +80,7 @@ async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string 
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
-	const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
+	const connect = () => ({ onEvent: (name: string, cb: (raw: string) => void) => events.set(name, cb), onOpen() {}, close() {} });
 	await act(async () => {
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
@@ -136,6 +140,8 @@ afterEach(async () => {
 	host = undefined;
 	closed = 0;
 	calls.length = 0;
+	served = RECORD;
+	events.clear();
 	globalThis.fetch = originalFetch;
 });
 
@@ -217,7 +223,6 @@ describe("Edit class dialog — deadlines", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.deepEqual(calls, [
-			{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21", description: "Discrete math", signature: null, rules: [] } },
 			{ method: "DELETE", url: "/api/classes/cls_a/deadlines/exm_2", body: undefined },
 			{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { time: null, fileIds: ["f1", "f2", "f3"], done: true } },
 			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_3", body: { kind: "quiz", done: false } },
@@ -257,8 +262,33 @@ describe("Edit class dialog — deadlines", () => {
 		assert.deepEqual(calls[0], {
 			method: "PUT",
 			url: "/api/classes/cls_a",
-			body: { name: "CSE 21", description: "Discrete math", signature: { kind: "code", value: "int *p = &x;" }, rules: [] },
+			body: { signature: { kind: "code", value: "int *p = &x;" } },
 		});
+	});
+
+	it("Save writes only the learner's edits, never undoing an agent's change made while the dialog was open", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		const [midterm, , final] = RECORD.deadlines!;
+		// The agent moves Midterm 1, removes HW 1, adds Quiz 1 and sets a signature.
+		served = {
+			...RECORD,
+			signature: { kind: "math", value: "n choose k" },
+			deadlines: [{ ...midterm!, date: "2026-10-30" }, final!, { id: "ddl_9", kind: "quiz", name: "Quiz 1", date: "2026-11-05", fileIds: [], done: false }],
+		};
+		assert.ok(events.has("classes-changed"));
+		await act(async () => {
+			events.get("classes-changed")!("{}");
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		// The learner only renames the class.
+		await typeInto(q("class-name"), "CSE 21A");
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(calls, [{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21A" } }]);
+		assert.equal(closed, 1);
 	});
 
 	it("the icon: pick a subject icon and save it", async () => {
@@ -302,6 +332,7 @@ describe("Esc on the class dialogs", () => {
 			return fallback(input, init);
 		}) as typeof fetch;
 		await mount({ kind: "edit", classId: "cls_a" });
+		await typeInto(q("class-name"), "CSE 21A");
 		await click(q("class-save"));
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);

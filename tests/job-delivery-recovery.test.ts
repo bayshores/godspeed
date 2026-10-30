@@ -12,7 +12,6 @@ import { buildSubagentSteer, type JobKind, type SteerMessage } from "../src/core
 // Install isolation before importing any storage/configuration composition.
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lh-job-delivery-"));
 process.env.LH_DATA_DIR = path.join(directory, "data");
-process.env.LH_CREDENTIALS_DIR = directory;
 
 const { stores } = await import("../src/server/stores.ts");
 const { jobTools } = await import("../src/agent/tools/jobs.ts");
@@ -288,7 +287,7 @@ test("fresh process restores a pending delivery on registration without a jobs p
 	`;
 	const child = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
 		cwd: process.cwd(), encoding: "utf8", timeout: 15000,
-		env: { PATH: process.env.PATH, HOME: path.join(directory, "home"), NODE_ENV: "test", LH_DATA_DIR: process.env.LH_DATA_DIR, LH_CREDENTIALS_DIR: process.env.LH_CREDENTIALS_DIR },
+		env: { PATH: process.env.PATH, HOME: path.join(directory, "home"), NODE_ENV: "test", LH_DATA_DIR: process.env.LH_DATA_DIR },
 	});
 	assert.equal(child.status, 0, child.stderr);
 	assert.deepEqual(JSON.parse(child.stdout.trim()), [steer.id]);

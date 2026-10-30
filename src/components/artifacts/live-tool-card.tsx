@@ -16,7 +16,7 @@ import type { ArtifactPartProps } from "@/core";
  * quiet settled card replaces this one.
  *
  * The one working-state grammar everywhere (owner): Braille spinner +
- * Shimmer(duration 1) — the thinking row, this card, the sidebar row.
+ * Shimmer — the thinking row, this card, the sidebar row.
  */
 interface StreamingToolPart {
 	type: string;
@@ -46,7 +46,7 @@ export function LiveToolCard({ part }: ArtifactPartProps) {
 		>
 			<summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
 				<BrailleSpinner label={`${toolActivityLabel(tool)} (live)`} />
-				<Shimmer duration={1} className="text-xs">
+				<Shimmer className="text-xs">
 					{toolActivityLabel(tool)}
 				</Shimmer>
 				{arg && <span className="truncate">{arg}</span>}

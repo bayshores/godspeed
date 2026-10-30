@@ -35,11 +35,12 @@ export const WALK_TIMEOUT_MS = 10_000;
  */
 const EXCLUDED_DIR_NAMES = new Set(["node_modules", ".git", "Library", ".Trash"]);
 
-/** Resolve a tool path argument: absolute stays, relative/absent → home.
- *  (pi resolves against the project cwd; the harness's "project" is the
- *  learner's life, so the home directory is the anchor.) */
+/** Resolve a tool path argument: absolute stays, a leading ~ means home,
+ *  relative/absent → home. (pi resolves against the project cwd; the
+ *  harness's "project" is the learner's life, so home is the anchor.) */
 export function resolveSourcePath(p?: string): string {
 	if (!p) return os.homedir();
+	if (/^~(?=$|[\\/])/.test(p)) return path.join(os.homedir(), p.slice(1));
 	return path.isAbsolute(p) ? p : path.join(os.homedir(), p);
 }
 

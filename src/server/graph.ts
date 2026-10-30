@@ -10,7 +10,6 @@ import {
 } from "../core/graph-deletion.ts";
 import { extractionStatuses } from "../agent/subagents/extraction.ts";
 import { graphDirFor, graphStoreFor, stores } from "./stores.ts";
-import { callCost } from "./pricing.ts";
 
 /**
  * Server-side graph entry for the home view (GET /api/graph). A PURE READ:
@@ -22,12 +21,9 @@ export function graphView(scope: ClassScope = null): GraphSnapshot {
 	return graphSnapshot({ chatStore: stores.chatStore, graphStore: graphStoreFor(scope) });
 }
 
-/** The graph view's cost surface (GET /api/graph/costs — the 2026-09 cost
- *  pill): fold every usage channel into stage totals + recent runs. A pure
- *  read over the chat records (chat-front-door runs), the notes sources
- *  (notes-front-door runs), and the naming ledger (graph-global runs);
- *  dollars are inferred by the pure core fold (core/cost-summary.ts +
- *  prices.ts) — nothing here stores or caches money. */
+/** The graph view's cost surface (GET /api/graph/costs): a pure read of
+ *  the chat records (chat-front-door runs) and the notes sources
+ *  (notes-front-door runs), folded into stage totals + recent runs. */
 export function graphCosts(scope: ClassScope = null): GraphCostSummary {
 	const chats = stores.chatStore
 		.listChats()
@@ -43,7 +39,7 @@ export function graphCosts(scope: ClassScope = null): GraphCostSummary {
 		.readSources()
 		.filter((s) => s.extractions?.length)
 		.map((s) => ({ filePath: s.filePath, extractions: s.extractions! }));
-	return graphCostSummary({ chats, sources }, callCost);
+	return graphCostSummary({ chats, sources });
 }
 
 /** The graph's version stamp (session-deletion wave 6): the max mtime

@@ -16,9 +16,9 @@ import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
 import { DeadlinesEditor } from "@/components/class-deadlines";
 import { RuleChips } from "@/components/rule-chips";
-import { deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/components/class-deadlines-model";
+import { changedFields, deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
-import type { ClassDeadline, ClassIcon, ClassRecord, SignatureKind } from "@/core";
+import type { ClassDeadline, ClassIcon, ClassRecord, ClassSignature, SignatureKind } from "@/core";
 import { ClassSignatureField } from "@/components/class-signature-field";
 import { ClassIconField } from "@/components/class-icon-field";
 
@@ -43,12 +43,15 @@ export function ClassDialog({ mode, onClose }: { mode: Mode | null; onClose: () 
 
 type MotionState = "open" | "closed";
 
+/** The class's own fields as the Edit class dialog sends them. */
+type ClassFields = { name: string; description: string; signature: ClassSignature | null; icon?: ClassIcon; rules: string[] };
+
 const LABEL = "text-[13px] font-bold text-ink-2";
 const FIELD =
 	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-tone-2 placeholder:text-ink-3 focus:border-ink-3";
 
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
-	const { setActive } = useClasses();
+	const { active, setActive } = useClasses();
 	const classId = mode.kind === "edit" ? mode.classId : null;
 	const { record, reload } = useClassRecord(classId);
 	const [name, setName] = useState("");
@@ -63,11 +66,15 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const newCount = useRef(0);
 
-	// First load fills the fields; later refreshes keep your edits.
-	const seeded = useRef(false);
+	// First load fills the fields; later refreshes keep your edits. Save
+	// writes only what changed since this first load (the seeded copy).
+	const seeded = useRef<{ fields: ClassFields; deadlines: ClassDeadline[] } | null>(null);
 	useEffect(() => {
 		if (record && !seeded.current) {
-			seeded.current = true;
+			seeded.current = {
+				fields: { name: record.name, description: record.description, signature: record.signature ?? null, icon: record.icon, rules: record.rules ?? [] },
+				deadlines: record.deadlines ?? [],
+			};
 			setName(record.name);
 			setDescription(record.description);
 			if (record.signature) setSignature(record.signature);
@@ -125,27 +132,40 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		setDrafts((ds) => ds.filter((d) => d.key !== key));
 	}, []);
 
-	/** Save the deadline drafts: each write in turn; a created deadline
-	 *  keeps its new id so a retried Save never adds it twice. */
-	const saveDeadlines = async (current: ClassRecord): Promise<string | null> => {
-		const base = `/api/classes/${encodeURIComponent(current.id)}/deadlines`;
-		for (const w of deadlineWrites(current.deadlines, drafts)) {
+	/** Save the deadline drafts: each write in turn, and each one that lands
+	 *  updates the seeded copy, so a retried Save sends only what is left. */
+	const saveDeadlines = async (classId: string, seed: { deadlines: ClassDeadline[] }): Promise<string | null> => {
+		const base = `/api/classes/${encodeURIComponent(classId)}/deadlines`;
+		const settle = (id: string, deadline?: ClassDeadline) => {
+			seed.deadlines = seed.deadlines.flatMap((d) => (d.id !== id ? [d] : deadline ? [deadline] : []));
+		};
+		const gone = (body: unknown) => (body as { code?: string } | null)?.code === "deadline_not_found";
+		for (const w of deadlineWrites(seed.deadlines, drafts)) {
 			if (w.op === "remove") {
-				const { error: failed } = await send(`${base}/${encodeURIComponent(w.id)}`, { method: "DELETE" });
-				if (failed) return failed;
+				const { error: failed, body } = await send(`${base}/${encodeURIComponent(w.id)}`, { method: "DELETE" });
+				// Already removed (by an agent) is what the learner asked for.
+				if (failed && !gone(body)) return failed;
+				settle(w.id);
 			} else if (w.op === "update") {
-				const { error: failed } = await send(`${base}/${encodeURIComponent(w.id)}`, jsonInit("PUT", w.body));
-				if (failed) return failed;
+				const { error: failed, body } = await send(`${base}/${encodeURIComponent(w.id)}`, jsonInit("PUT", w.body));
+				if (failed) {
+					// Removed while the dialog was open: a retried Save adds the draft back.
+					if (gone(body)) settle(w.id);
+					return failed;
+				}
+				settle(w.id, (body as { deadline?: ClassDeadline } | null)?.deadline);
 			} else {
 				const { error: failed, body } = await send(base, jsonInit("POST", w.body));
 				if (failed) return failed;
 				const deadline = (body as { deadline?: ClassDeadline } | null)?.deadline;
 				if (!deadline) continue;
 				// A retried Save sees the new id; a ticked one then PUTs done.
+				seed.deadlines = [...seed.deadlines, deadline];
 				setDrafts((ds) => ds.map((d) => (d.key === w.key ? { ...d, id: deadline.id } : d)));
 				if (w.done) {
-					const { error: doneFailed } = await send(`${base}/${encodeURIComponent(deadline.id)}`, jsonInit("PUT", { done: true }));
+					const { error: doneFailed, body: doneBody } = await send(`${base}/${encodeURIComponent(deadline.id)}`, jsonInit("PUT", { done: true }));
 					if (doneFailed) return doneFailed;
+					settle(deadline.id, (doneBody as { deadline?: ClassDeadline } | null)?.deadline);
 				}
 			}
 		}
@@ -165,7 +185,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			}
 			return;
 		}
-		if (!record) return;
+		const seed = seeded.current;
+		if (!record || !seed) return;
 		const problem = draftProblem(drafts);
 		if (problem) {
 			setError(problem);
@@ -173,9 +194,14 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		}
 		setBusy(true);
 		setError(null);
-		const body = { name, description, signature: signature.value.trim() ? signature : null, ...(icon ? { icon } : {}), rules };
-		const { error: failed } = await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", body));
-		const deadlinesFailed = failed ?? (await saveDeadlines(record));
+		const fields: ClassFields = { name, description, signature: signature.value.trim() ? signature : null, icon, rules };
+		const body = changedFields(seed.fields, fields);
+		let failed: string | null = null;
+		if (Object.keys(body).length > 0) {
+			failed = (await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", body))).error;
+			if (!failed) seed.fields = fields;
+		}
+		const deadlinesFailed = failed ?? (await saveDeadlines(record.id, seed));
 		setBusy(false);
 		if (deadlinesFailed) {
 			setError(deadlinesFailed);
@@ -299,7 +325,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								onClick={() =>
 									void call(`/api/classes/${record.id}`, { method: "DELETE" }).then((ok) => {
 										if (ok) {
-											setActive(null);
+											if (record.id === active) setActive(null);
 											onClose();
 										}
 									})
@@ -322,7 +348,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										onClick={() =>
 											void call(`/api/classes/${record.id}`, jsonInit("PUT", { archived: !record.archived })).then((ok) => {
 												if (ok && !record.archived) {
-													setActive(null);
+													if (record.id === active) setActive(null);
 													onClose();
 												}
 											})
@@ -454,7 +480,7 @@ function MoveLessonInner({
 				</div>
 				<p className="text-muted-foreground">
 					Its facts leave the current class&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new
-					class&apos;s graph. Rebuilding uses your background model.
+					class&apos;s graph. Rebuilding is done by your agent.
 				</p>
 				{error && <div className=" border border-destructive/50 px-3 py-2 text-destructive">{error}</div>}
 				<div className="flex justify-end gap-2">

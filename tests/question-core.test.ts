@@ -196,21 +196,6 @@ describe("normalizeOptions", () => {
 
 	it("throws on duplicate option values", () => {
 		assert.throws(() => normalizeOptions([{ label: "a", value: "x" }, { label: "b", value: "x" }]), /duplicate/);
-
-		// GLM wobble guard (2026-09-26 gradient-descent session): the model
-		// sometimes emits `options` as a JSON-encoded string — 6 of 7 quiz
-		// validation failures in that session. The dock (and grading) coerce
-		// via the same parseOptionsIfString the server's prepareArguments
-		// runs pre-validation.
-		const asString = JSON.stringify([{ label: "Slope", value: "slope" }, { label: "Value", value: "value" }]);
-		const coerced = normalizeOptions(asString);
-		assert.deepEqual(coerced, [
-			{ label: "Slope", value: "slope", description: undefined },
-			{ label: "Value", value: "value", description: undefined },
-		], "a JSON-encoded string coerces to the same normalized options");
-		// Non-JSON strings pass through and behave like no options (the
-		// server's schema validation reports the honest error instead).
-		assert.deepEqual(normalizeOptions("not json"), []);
 	});
 
 it("quiz options carry NO description field; ask keeps it (owner nuke, 2026-09-26)", () => {

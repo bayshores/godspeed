@@ -657,10 +657,13 @@ export class SessionModel {
 	 * answer/note UX — the server's write-ahead persists the canon), then
 	 * POST + consume. Ready-gated: one turn per client at a time (the
 	 * server's 409 + identity retry covers the wake-race window).
+	 * Resolves false only when the input was surely not taken (the gate
+	 * was closed or the server refused it), so the caller can give the
+	 * learner their text back.
 	 */
-	async send(input: ChatInput): Promise<void> {
+	async send(input: ChatInput): Promise<boolean> {
 		const recovering = this.statusValue === "error";
-		if (!this.canSend()) return;
+		if (!this.canSend()) return false;
 		this.consumeAbort?.abort();
 		const controller = new AbortController();
 		this.consumeAbort = controller;
@@ -669,29 +672,29 @@ export class SessionModel {
 		if (recovering && input.type === "answer") {
 			try {
 				const res = await this.fetch(`/api/chats/${encodeURIComponent(this.chatId)}`, { signal: controller.signal });
-				if (this.consumeAbort !== controller) return;
+				if (this.consumeAbort !== controller) return true;
 				if (!res.ok) throw new Error(errorBodyMessage(await res.text()) || "An error occurred.");
 				const record = await res.json() as { messages?: LhMessage[]; turnInFlight?: boolean; turnError?: string };
-				if (this.consumeAbort !== controller) return;
+				if (this.consumeAbort !== controller) return true;
 				// No verified record/liveness: retain the draft and never guess
 				// whether a lost acknowledgement meant the input was accepted.
 				if (!Array.isArray(record.messages) || typeof record.turnInFlight !== "boolean") throw new Error("An error occurred.");
 				this.setMessages(record.messages, record.turnError);
 				if (record.turnInFlight) {
 					await this.resumeStream(false);
-					return;
+					return true;
 				}
 				if (input.type === "answer" && (answeredCallIds(record.messages).has(input.toolCallId) || danglingQuestionOf(record.messages)?.toolCallId !== input.toolCallId)) {
 					// The call already resolved, or no longer owns the dock. Adopt
 					// truth, never POST that answer a second time.
 					this.setStatus("ready");
-					return;
+					return true;
 				}
 			} catch (err) {
-				if (this.consumeAbort !== controller || controller.signal.aborted) return;
+				if (this.consumeAbort !== controller || controller.signal.aborted) return true;
 				this.setError((err as Error).message);
 				this.setStatus("error");
-				return;
+				return false;
 			}
 		}
 		if (input.type !== "continue") this.automaticContinuationBlocked = false;
@@ -719,6 +722,7 @@ export class SessionModel {
 		if (optimistic.length > 0) this.mutate(() => {
 			this.tail = [...this.tail, ...optimistic];
 		});
+		let refused = false;
 		try {
 			// SUBMITS ARE NOT ABORTABLE BY VIEW TEARDOWN (owner, 2026-10-10 —
 			// the dead-session-start postmortem): the POST must NOT ride
@@ -733,6 +737,7 @@ export class SessionModel {
 			// STREAM consume stays on the controller — releasing that held
 			// connection is Diet A's whole job.
 			const res = await this.postInputEvent(input);
+			refused = !res.ok;
 			if (res.status === 409) {
 				throw new Error("A turn is already running. Try again in a moment.");
 			}
@@ -750,22 +755,27 @@ export class SessionModel {
 			// A stop() or a newer send/consume won while the ack was in
 			// flight: the turn is live server-side either way — do not attach
 			// a stream from a view that is gone or superseded.
-			if (this.consumeAbort !== controller) return;
+			if (this.consumeAbort !== controller) return true;
 			await this.resumeStream(true);
+			return true;
 		} catch (err) {
-			if (this.consumeAbort !== controller || controller.signal.aborted) return;
-			// Restore the question when acceptance failed or is unknown. Remove
-			// only THIS optimistic answer, never saved copies/newer live content.
-			// Other input kinds retain their existing optimistic presentation.
-			if (input.type === "answer") {
+			const superseded = this.consumeAbort !== controller || controller.signal.aborted;
+			// Restore the question when acceptance failed or is unknown, and
+			// drop a refused input's card (its text goes back to the box, even
+			// after a Stop). Remove only THIS send's optimistic entries, never
+			// saved copies or newer live content. An input whose acceptance is
+			// unknown keeps its card: the record sync shows whether it landed.
+			if (refused || (!superseded && input.type === "answer")) {
 				const ids = new Set(optimistic.map(m => m.id));
 				this.mutate(() => {
 					this.tail = this.tail.filter(m => !ids.has(m.id));
 					for (const id of ids) this.unconfirmedAnswers.delete(id);
 				});
 			}
+			if (superseded) return !refused;
 			this.setError((err as Error).message);
 			this.setStatus("error");
+			return !refused;
 		}
 	}
 
@@ -780,8 +790,8 @@ export class SessionModel {
 	 *  key) and the indicator's fold drops the line. A 409 means the turn
 	 *  settled mid-send (the race): fall back to the plain text send —
 	 *  the entry is dropped and send() pushes its own optimistic card.
-	 *  Resolves false when that fallback cannot send because the local
-	 *  stream has not reached ready yet, so the caller can keep the text.
+	 *  Resolves false when that fallback send was not taken, so the caller
+	 *  can keep the text.
 	 */
 	async steer(text: string): Promise<boolean> {
 		const t = text.trim();
@@ -802,9 +812,7 @@ export class SessionModel {
 			if (res.ok) return true; // parked or delivered — the stream lands the card
 			if (res.status === 409) {
 				dropSteer();
-				if (!this.canSend()) return false;
-				await this.send({ type: "text", text: t }); // the settle race: plain send
-				return true;
+				return this.send({ type: "text", text: t }); // the settle race: plain send
 			}
 			dropSteer();
 			this.setError(errorBodyMessage(await res.text()) || `The steer failed (${res.status}).`);
@@ -822,7 +830,7 @@ export class SessionModel {
 
 	/** The answer path (the dock): the answer IS the question call's tool
 	 *  result (fork 1), riding as its input event. */
-	submitAnswer(toolCallId: string, output: QuestionAnswerData): Promise<void> {
+	submitAnswer(toolCallId: string, output: QuestionAnswerData): Promise<boolean> {
 		return this.send({ type: "answer", toolCallId, answer: output });
 	}
 

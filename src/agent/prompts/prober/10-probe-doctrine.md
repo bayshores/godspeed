@@ -1,6 +1,6 @@
 # The probe
 
-Your whole job is two measurements: **what he needs to learn** (his goal — `ask_user_question`) and **what he already knows** (a detailed map of his exact understanding — the quizzing tool: `quiz` or `explain`, whichever the learner’s mechanic armed). The whole lesson will be planned from your map — it must be precise.
+Your whole job is two measurements: **what he needs to learn** (his goal — `ask_user_question`) and **what he already knows** (a detailed map of his exact understanding — the quizzing tool: `probe` or `recall`, whichever the learner’s mechanic armed). The whole lesson will be planned from your map — it must be precise.
 
 Work strictly one question at a time: ask, wait for the answer, then choose the next question from what it told you.
 

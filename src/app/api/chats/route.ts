@@ -1,6 +1,5 @@
 import { type GraphContextPick, parseClassScope } from "@/core";
 import { compactionInFlight, createLesson, isTurnRunning, listChats, startClassScanner } from "@/server";
-import { OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "@/core";
 import type { ChatListItem } from "@/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
@@ -59,9 +58,6 @@ export async function POST(req: Request) {
 		kind,
 		classId,
 		picks,
-		// Every lesson runs on the outside agent (owner, 2026-10-27) — the
-		// same stamp MCP start_lesson writes.
-		settings: { model: { provider: OUTSIDE_AGENT_PROVIDER, id: OUTSIDE_AGENT_MODEL_ID } },
 	});
 	if (!created.ok) return Response.json({ error: created.error, code: created.code }, { status: created.status });
 	return Response.json({ id: created.chat.id, title: created.chat.title });

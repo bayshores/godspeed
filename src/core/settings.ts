@@ -14,7 +14,7 @@
  * unrelated to the app release version. Migrations live in the adapter
  * (src/store/settings.ts), not here.
  *
- * Sanitizer contract (mirrors render-settings.ts discipline): whatever
+ * Sanitizer contract: whatever
  * arrives from disk or the network passes through sanitizeUserSettings
  * before use — never trusted raw. Strict on known fields, PRESERVES
  * unknown keys verbatim (a newer record must never be destroyed by an
@@ -35,10 +35,9 @@ export const CURRENT_SETTINGS_VERSION = 1;
 
 /** The outside agent's provider id (MCP bridge, src/agent/agent-bridge.ts) —
  *  the ONLY model provider. Every lesson and background job
- *  runs through the agent that connects over /api/mcp. Browser-safe home
- *  so the UI can recognise it. */
+ *  runs through the agent that connects over /api/mcp. */
 export const OUTSIDE_AGENT_PROVIDER = "agent";
-/** The outside agent's one model id (the provider:id stamp on lessons and usage). */
+/** The outside agent's one model id (the provider:id stamp on usage). */
 export const OUTSIDE_AGENT_MODEL_ID = "outside-agent";
 /** The context budget the app plans compaction around (and the lesson's
  *  context meter shows). Claude- and GPT-class agents both hold well over

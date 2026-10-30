@@ -493,9 +493,6 @@ describe("dispatch (async protocol §2)", () => {
 	it("the research call resolves immediately with an ack; the turn continues and the runner steers", async () => {
 		const chat = chatStore.createChat("Test: research dispatch");
 		trackChat(chat.id);
-		// BYOK turn gate (owner, 2026-09-22): the scripted chat needs a
-		// conversation model — the per-chat pin, exactly like the setup flow.
-		chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
 
 		const delivery = fakeDeliver();
 		const fetches = stubFetch();

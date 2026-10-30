@@ -31,7 +31,7 @@ const part = (input: unknown, over: Partial<ArtifactPartProps["part"]> = {}): Ar
 	type: "tool-problem", state: "input-available", toolCallId: "call_math", input, ...over,
 });
 const dock = (input: { statement: string }) => (
-	<PracticeDock problemCallId="call_math" input={input} onSubmit={() => {}} />
+	<PracticeDock problemCallId="call_math" input={input} onSubmit={async () => true} />
 );
 
 function math(html: string) {

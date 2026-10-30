@@ -30,24 +30,19 @@ export const PATHS = {
 	 *  classes/<id>/class.json (the record), files/ (copied class files),
 	 *  graph/ (that class's own graph family, same files as PATHS.graph). */
 	classes: path.join(DATA_ROOT, "classes"),
-	/** Debug artifacts (env-gated). */
-	debug: path.join(DATA_ROOT, "debug"),
 } as const;
 
 // ─── Models ────────────────────────────────────────────────────────────────
 // There are no model settings: every engine is the outside agent (MCP),
 // which picks its own model in its own harness (owner, 2026-10-27).
 
-/** Every agent role in the app (each one's work goes to the outside agent). */
+/** Every helper job role (each one's work goes to the outside agent). */
 export type ModelRole =
-	| "prober"
-	| "teacher"
 	| "researcher"
 	| "demoBuilder"
 	| "visualMaker"
 	| "pdfReader"
-	| "extractor"
-	| "topicGrouper";
+	| "extractor";
 
 /**
  * The LIVE graph store (src/store/graph.ts) — owned by the app's extraction

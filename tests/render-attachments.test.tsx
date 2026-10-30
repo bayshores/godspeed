@@ -35,6 +35,7 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 	add: () => {},
 	remove: () => {},
 	clear: () => {},
+	restore: () => {},
 	...over,
 });
 
@@ -76,7 +77,7 @@ describe("the composer's waiting files", () => {
 	});
 
 	it("the practice panel has the same picture button", () => {
-		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Solve it." }} onSubmit={() => {}} />);
+		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Solve it." }} onSubmit={async () => true} />);
 		assert.match(html, /data-testid="attach-button"/);
 	});
 });

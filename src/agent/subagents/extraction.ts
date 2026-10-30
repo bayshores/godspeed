@@ -408,7 +408,7 @@ export function graphContext(graph: DerivedGraph, sourceId: string, relatedIds: 
  *  one of them (validateSessionAnchors at the submit seam). */
 function runExtractor(
 	engine: PiEngine | undefined,
-	sourceId: string,
+	taskLabel: string,
 	prompt: string,
 	existingIds: ReadonlySet<string>,
 	batchIds: ReadonlySet<string>,
@@ -420,10 +420,7 @@ function runExtractor(
 	// over the MIXED namespace: local ids + existing graph ids, plus the
 	// session anchor law (messageId ∈ the current batch, 2026-10-13).
 	return runSubmitAgent<SessionFindingsSubmit>({
-		role: "extractor",
-		// Debug recorder key: the source id (the run's ledger key — the
-		// chat's chatId for chat runs, the src id for notes).
-		chatId: sourceId,
+		taskLabel,
 		toolName: "submit_findings",
 		toolDescription: "Submit the session findings.",
 		parameters: sessionFindingsSchema,
@@ -445,16 +442,14 @@ function runExtractor(
  *  is stripped at the fill seam). */
 function runNotesExtractor(
 	engine: PiEngine | undefined,
-	sourceId: string,
+	taskLabel: string,
 	prompt: string,
 	existingIds: ReadonlySet<string>,
 	signal: AbortSignal | undefined,
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void,
 ): Promise<NotesFindings> {
 	return runSubmitAgent<FindingsSubmit>({
-		role: "extractor",
-		// Debug recorder key: the notes' source id (the ledger key).
-		chatId: sourceId,
+		taskLabel,
 		toolName: "submit_findings",
 		toolDescription: "Submit the notes findings.",
 		parameters: findingsSchema,
@@ -479,7 +474,7 @@ export type ExtractionPhase = "waiting" | "extracting" | "merging" | "grouping";
 
 /** One in-flight pipeline run. Module-level: one process, one registry.
  *  Exported for the status payload's consumer typing (the dock). */
-interface RunningExtraction {
+export interface RunningExtraction {
 	/** The SOURCE id (chat id / notes src id) — the payload's identity and
 	 *  the abort key. The registry KEY adds "#i" for chunk jobs (a
 	 *  multi-chunk source owns several entries); this field stays the
@@ -493,13 +488,13 @@ interface RunningExtraction {
 	 *  depend on it (chats bill their chat record; notes bill the source
 	 *  record). */
 	kind: "chat" | "notes" | "topics";
-	/** Display label (the file path for notes imports); the status route
+	/** Display label (the file path for notes imports); the activity feed
 	 *  falls back to the chat store for chat runs. */
 	label?: string;
 	phase: ExtractionPhase;
 	startedAt: number;
-	/** Live per-stage usage, accumulated as steps bill (the dock's cost /
-	 *  context-window blobs read this through /api/graph/status). */
+	/** Live per-stage usage, accumulated as steps bill (the activity dock
+	 *  reads it through /api/activity). */
 	usage: {
 		extractor?: ExtractionStageUsage;
 	};
@@ -537,7 +532,7 @@ function runs(): NonNullable<LhExtractionGlobal["__lhExtractionRuns"]> {
 	return (g.__lhExtractionRuns ??= { running: new Map(), inFlight: new Set(), lastStartedAt: 0 });
 }
 
-/** In-flight pipeline runs (oldest first) — the /api/graph/status payload. */
+/** In-flight pipeline runs (oldest first), shown in /api/activity. */
 export function extractionStatuses(): RunningExtraction[] {
 	return [...runs().running.values()].sort((a, b) => a.startedAt - b.startedAt);
 }
@@ -758,8 +753,9 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	/** THE GRAPH LOCK: extract + merge run one job at a time, process-wide,
 	 *  so each extractor sees every earlier merge (no duplicate mints). FIFO,
 	 *  reacquired per batch, abort-aware on both sides of the queue (a
-	 *  waiter that aborts leaves without running; its link still resolves,
-	 *  so successors never hang). */
+	 *  waiter that aborts leaves without running; its link resolves once the
+	 *  job ahead of it is done, so successors keep waiting their turn and
+	 *  never hang). */
 	async function withGraphLock<T>(jobKey: string, kind: "chat" | "notes", label: string | undefined, part: { i: number; n: number } | undefined, critical: () => Promise<T>): Promise<T> {
 		setPhase(jobKey, "waiting", kind, label, part);
 		const g = globalThis as typeof globalThis & LhExtractionGlobal;
@@ -785,7 +781,9 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			return await critical();
 		} finally {
 			if (onAbort && signal && !signal.aborted) signal.removeEventListener("abort", onAbort);
-			release();
+			// After prev: an aborted waiter must not hand the lock on while
+			// the job ahead of it still holds it (prev never rejects).
+			void prev.then(release);
 		}
 	}
 
@@ -796,6 +794,15 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		const graph = getGraph(store);
 		const related = deps.relatedFacts ? await deps.relatedFacts(store, stretch, RELATED_FACTS) : [];
 		return { graph, context: graphContext(graph, sourceId, related) };
+	}
+
+	/** The job's name on the outside agent's work items: which lesson or
+	 *  file, and which part when the source was split. */
+	function extractionTaskLabel(jobKey: string): string {
+		const run = runningExtractions.get(jobKey);
+		const name = run?.label ?? chatStore.getChat(run?.chatId ?? jobKey)?.title ?? jobKey;
+		const part = run?.part ? ` (part ${run.part.i} of ${run.part.n})` : "";
+		return `Graph extraction · ${name}${part}`;
 	}
 
 	async function extract(
@@ -816,7 +823,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 
 		const findings = await runExtractor(
 			stageEngine("extractor", deps.extractor),
-			sourceId,
+			extractionTaskLabel(jobKey),
 			prompt,
 			new Set(graph.nodes.map((n) => n.id)),
 			batchIds,
@@ -1088,7 +1095,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		const t0 = performance.now();
 		const findings = await runNotesExtractor(
 			stageEngine("extractor", deps.extractor),
-			input.id,
+			extractionTaskLabel(jobKey),
 			prompt,
 			new Set(graph.nodes.map((n) => n.id)),
 			signal,

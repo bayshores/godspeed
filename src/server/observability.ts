@@ -19,15 +19,13 @@
  * from the pipeline's module for the abort route to call.
  */
 
-import { extractionStatuses, type ExtractionPhase } from "../agent/subagents/extraction.ts";
+import { extractionStatuses, type ExtractionPhase, type RunningExtraction } from "../agent/subagents/extraction.ts";
 import { chatStore } from "../store/chats.ts";
 import { agentModel } from "../agent/agent-bridge.ts";
 import { listAllJobs } from "./jobs.ts";
-import { jobCost } from "./pricing.ts";
 import type { JobRecord } from "../core/contracts.ts";
 
 export { abortExtraction, extractionStatuses } from "../agent/subagents/extraction.ts";
-export { chatStore } from "../store/chats.ts";
 
 /** A running sub-agent job, joined with its chat's title for the dock.
  *  contextLimit: the model's
@@ -36,7 +34,6 @@ export { chatStore } from "../store/chats.ts";
  *  model is missing from the catalog (the blob then renders no context
  *  line — never a fake window). */
 interface ActivityJob extends JobRecord {
-	costUsd: number | null;
 	title: string;
 	contextLimit: number | null;
 }
@@ -49,6 +46,7 @@ interface ActivityJob extends JobRecord {
 interface ActivityExtraction {
 	id: string;
 	chatId: string;
+	kind: RunningExtraction["kind"];
 	part?: { i: number; n: number };
 	title: string;
 	phase: ExtractionPhase;
@@ -72,8 +70,7 @@ const FAILED_JOB_WINDOW_MS = 10 * 60_000;
 
 /** The dock's whole world in one payload: every running process, every view.
  *  Jobs are RUNNING-ONLY — finished jobs belong to their chat's transcript;
- *  the blob disappears when the process ends. Costs are joined here through
- *  the server-side Pi pricing adapter; clients never reconstruct rates. */
+ *  the blob disappears when the process ends. */
 export function activityFeed(now = Date.now()): {
 	jobs: ActivityJob[];
 	extractions: ActivityExtraction[];
@@ -100,7 +97,6 @@ export function activityFeed(now = Date.now()): {
 			if (job.status === "running") {
 				jobs.push({
 					...job,
-					costUsd: jobCost(job),
 					title: chat.title ?? chat.id,
 					contextLimit: job.usage?.model === agentModelId ? agentWindow : null,
 				});
@@ -110,10 +106,10 @@ export function activityFeed(now = Date.now()): {
 	const extractions: ActivityExtraction[] = extractionStatuses().map((run) => ({
 		id: run.part ? `${run.chatId}#${run.part.i}` : run.chatId,
 		chatId: run.chatId,
+		kind: run.kind,
 		part: run.part,
-		// The run's own label never reaches this feed (unlike the graph
-		// status route) — the chat store's title, or the bare id for notes
-		// sources, plus the chunk suffix when the source fanned out.
+		// The run's own label (a notes import's file path), else the chat's
+		// title, else the bare id, plus the chunk suffix when the source fanned out.
 		title:
 			(run.label ?? chatStore.getChat(run.chatId)?.title ?? run.chatId) +
 			(run.part ? ` · ${run.part.i}/${run.part.n}` : ""),

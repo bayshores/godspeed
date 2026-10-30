@@ -537,6 +537,7 @@ describe("artifact chrome — scrollbar, invert toggles, downloads (release poli
 
 	it("chartSize: width/height attrs are the fallback when no viewBox (figure fullscreen fit math)", () => {
 		assert.deepEqual(chartSize('<svg width="320" height="240"></svg>'), { w: 320, h: 240 });
+		assert.deepEqual(chartSize('<svg width="612.5" height="792"></svg>'), { w: 612.5, h: 792 });
 		assert.deepEqual(chartSize('<svg xmlns="x" width="50px" height="25px" viewBox="0 0 100 50"></svg>'), {
 			w: 100,
 			h: 50,
@@ -706,6 +707,19 @@ describe("visual maker (fake model + fake headless)", () => {
 		assert.equal(result.svg, SVG_1.replace('<line x1="10"', '<line x1="20"'), "the edit was applied to the delivered svg");
 		assert.equal(result.notes, "Moved the start of the line.");
 		assert.equal(headless.svgRenders.length, 2, "re-rendered after the edit (the look gate saw the change)");
+	});
+
+	it("edit_svg inserts new_text as written, dollar signs included", async () => {
+		const headless = fakeHeadless();
+		const newText = '<line x1="$$x$$ $& $1"';
+		const model = scriptedModel([
+			{ toolCalls: [{ toolCallId: "w1", toolName: "write_svg", input: { svg: SVG_1 } }] },
+			{ toolCalls: [{ toolCallId: "e1", toolName: "edit_svg", input: { old_text: '<line x1="10"', new_text: newText } }] },
+			{ toolCalls: [{ toolCallId: "r1", toolName: "render_svg", input: {} }] },
+			{ text: "Labeled." },
+		]);
+		const result = await runVisualMaker({ brief: "b" }, { engine: model, headless });
+		assert.equal(result.svg, SVG_1.split('<line x1="10"').join(newText));
 	});
 
 	it("edit_svg before write_svg errors and never edits nothing into a deliverable", async () => {
@@ -897,9 +911,6 @@ describe("demo/visual job runners", () => {
 	it("dispatch through a teacher turn: the call acks mid-turn and the runner completes in the background", async () => {
 		const chat = chatStore.createChat("Test: demo spawn dispatch");
 		createdChats.push(chat.id);
-		// BYOK turn gate (owner, 2026-09-22): the scripted chat needs a
-		// conversation model — the per-chat pin, exactly like the setup flow.
-		chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
 
 		// A teacher that calls demo on turn 1, then continues in the SAME turn.
 		const teacher = scriptedModel([

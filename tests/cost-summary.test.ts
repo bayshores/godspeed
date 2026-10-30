@@ -1,26 +1,15 @@
 /**
- * Tests for src/core/cost-summary.ts — the graph cost pill's pure fold.
- * Same laws as the money channel everywhere: dollars INFERRED at read
- * time (core/prices.ts), unpriced models excluded-but-counted (render
- * "–", never a silent zero), tokens always sum.
+ * Tests for src/core/cost-summary.ts — the graph cost pill's pure fold:
+ * plan runs carry their plan's label, other models are counted as
+ * unpriced (render "–", never a silent zero), tokens always sum.
  */
 
 import assert from "node:assert/strict";
 import { describe, it as test } from "node:test";
-import {
-	graphCostSummary as foldGraphCostSummary,
-	type CostSummaryInput,
-	type GraphCostSummary,
-} from "../src/core/cost-summary.ts";
+import { graphCostSummary, type CostSummaryInput, type GraphCostSummary } from "../src/core/cost-summary.ts";
 import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
-/** A fixture price: one priced model at $1 / $2 per million tokens; any
- *  other model is unpriced. (The app itself prices nothing — the outside
- *  agent bills its own plan — so the fold is tested with its own pricer.) */
-const PRICED = "fixture:priced";
-function callCost(call: Partial<CallUsage>, model: string): number | null {
-	return model === PRICED ? ((call.inputTokens ?? 0) * 1 + (call.outputTokens ?? 0) * 2) / 1e6 : null;
-}
-const graphCostSummary = (input: CostSummaryInput) => foldGraphCostSummary(input, callCost);
+
+const PLAN = "agent:outside-agent";
 
 const step = (input: number, output: number): CallUsage => ({
 	inputTokens: input,
@@ -51,11 +40,11 @@ const extractionRun = (
 describe("graphCostSummary (the cost pill's fold)", () => {
 	test("folds both channels: stage totals, tokens, newest-first runs", () => {
 		const s = graphCostSummary({
-			chats: [{ title: "Testing session", extractions: [extractionRun(100, PRICED)] }],
-			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PRICED)] }],
+			chats: [{ title: "Testing session", extractions: [extractionRun(100, PLAN)] }],
+			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PLAN)] }],
 		});
-		const extStep = callCost(step(1000, 200), PRICED)!;
-		assert.equal(s.stages.extraction.dollars, extStep * 2);
+		assert.equal(s.stages.extraction.subscriptionRuns, 2);
+		assert.deepEqual(s.stages.extraction.subscriptionProviders, ["Outside agent"]);
 		assert.equal(s.stages.extraction.runs, 2);
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.runs, 0, "current records carry the extractor stage only");
@@ -67,14 +56,11 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		// (The cluster-naming channel died with the extraction-UX close-out,
 		// 2026-09-24 — two channels: chat + notes front doors.)
 		const input: CostSummaryInput = {
-			chats: [{ title: "Testing session", extractions: [extractionRun(100, PRICED, PRICED)] }],
-			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PRICED, PRICED)] }],
+			chats: [{ title: "Testing session", extractions: [extractionRun(100, PLAN, PLAN)] }],
+			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PLAN, PLAN)] }],
 		};
 		const s = graphCostSummary(input);
-		const extStep = callCost(step(1000, 200), PRICED)!;
-		const audStep = callCost(step(2000, 100), PRICED)!;
-		assert.equal(s.stages.extraction.dollars, extStep * 2);
-		assert.equal(s.stages.audit.dollars, audStep * 2);
+		assert.equal(s.stages.audit.runs, 2);
 		assert.equal(s.stages.extraction.runs, 2);
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.tokens.outputTokens, 200);
@@ -87,22 +73,32 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.deepEqual(s.runs.map((r) => r.kind), ["extraction", "extraction"]);
 	});
 
-	test("unpriced models (old records): excluded dollars, counted honestly, run null only when BOTH stages unpriced", () => {
+	test("unpriced models (old records) are counted per stage and per run", () => {
 		const s: GraphCostSummary = graphCostSummary({
-			chats: [{ title: "partial", extractions: [extractionRun(100, PRICED, "unknown-model")] }],
+			chats: [{ title: "partial", extractions: [extractionRun(100, PLAN, "unknown-model")] }],
 			sources: [{ filePath: "/vault/x.md", extractions: [extractionRun(200, "unknown-model", "unknown-model")] }],
 		});
 		assert.equal(s.stages.audit.unpricedRuns, 2);
-		assert.equal(s.stages.audit.dollars, 0); // never a silent zero: unpricedRuns says it
 		assert.equal(s.stages.extraction.unpricedRuns, 1);
-		// The partial run still prices its extractor side; the fully
-		// unpriced run renders "–". Newest first: 200 (both unpriced), 100.
-		assert.equal(s.runs[0]!.dollars, null);
-		assert.notEqual(s.runs[1]!.dollars, null);
+		// Newest first: 200 (both unpriced), 100 (a plan stage + one unpriced).
+		assert.deepEqual(s.runs.map((r) => [r.subscriptionRuns, r.unpricedRuns]), [[undefined, 2], [1, 1]]);
+	});
+
+	test("a plan-only run has no unpriced stage", () => {
+		const s = graphCostSummary({ chats: [{ title: "plan", extractions: [extractionRun(100, PLAN)] }], sources: [] });
+		assert.equal(s.runs[0]!.unpricedRuns, undefined);
+	});
+
+	test("a run that never reached the model is not counted", () => {
+		const aborted: ExtractionRunUsage = { startedAt: 300, at: "x", durationMs: 1, stages: { extractor: { model: "unknown", steps: [] } } };
+		const s = graphCostSummary({ chats: [{ title: "chat", extractions: [extractionRun(100, PLAN), aborted] }], sources: [] });
+		assert.equal(s.stages.extraction.unpricedRuns, 0);
+		assert.equal(s.stages.extraction.runs, 1);
+		assert.deepEqual(s.runs.map((r) => r.startedAt), [100]);
 	});
 
 	test("recent runs cap: newest survive", () => {
-		const extractions = [1, 2, 3, 4].map((n) => extractionRun(n * 100, PRICED));
+		const extractions = [1, 2, 3, 4].map((n) => extractionRun(n * 100, PLAN));
 		const s = graphCostSummary({
 			chats: [{ title: "chat", extractions }],
 			sources: [],
@@ -116,12 +112,12 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 
 	test("failed runs carry no merged stats; empty input folds to zero", () => {
 		const s = graphCostSummary({
-			chats: [{ title: "failed", extractions: [extractionRun(100, PRICED)] }],
+			chats: [{ title: "failed", extractions: [extractionRun(100, PLAN)] }],
 			sources: [],
 		});
 		assert.equal(s.runs[0]!.merged, undefined);
 		const empty = graphCostSummary({ chats: [], sources: [] });
-		assert.equal(empty.stages.extraction.dollars, 0);
+		assert.equal(empty.stages.extraction.runs, 0);
 		assert.equal(empty.runs.length, 0);
 		assert.equal(empty.stages.extraction.tokens.inputTokens, undefined);
 	});

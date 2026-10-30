@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FileTextIcon, ImagePlusIcon, XIcon } from "lucide-react";
 import { Hint } from "@/components/ui/hint";
-import { ATTACHMENT_ACCEPT, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/core";
+import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/core";
 
 /**
  * The files waiting in a message box (the lesson composer and the practice
@@ -21,6 +21,8 @@ export interface AttachmentDraft {
 	add: (files: readonly File[]) => void;
 	remove: (id: string) => void;
 	clear: () => void;
+	/** Puts back files a refused send took, ahead of any added since. */
+	restore: (files: readonly DraftFile[]) => void;
 }
 
 let draftSeq = 0;
@@ -82,7 +84,13 @@ export function useAttachmentDraft(): AttachmentDraft {
 		setError(null);
 	}, []);
 
-	return useMemo(() => ({ files, error, add, remove, clear }), [files, error, add, remove, clear]);
+	const restore = useCallback((back: readonly DraftFile[]) => {
+		const kept = back.slice(0, Math.max(0, MAX_ATTACHMENTS - countRef.current));
+		countRef.current += kept.length;
+		setFiles((prev) => [...kept, ...prev]);
+	}, []);
+
+	return useMemo(() => ({ files, error, add, remove, clear, restore }), [files, error, add, remove, clear, restore]);
 }
 
 /** Paste and drop handlers for the form that holds the box. */

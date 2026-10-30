@@ -1,15 +1,12 @@
-/** Client-safe accounting folds. Rates and calculation live on the server,
- * using Pi's catalog and calculateCost; no copied pricing table lives here. */
-import type { CallUsage, ChatRecord, JobRecord, TurnUsage } from "./contracts.ts";
+/** Client-safe accounting folds. Every call runs on a plan (the outside
+ * agent bills its own), so nothing has a dollar price: a turn is either a
+ * plan turn, named by its plan's label, or unpriced. */
+import type { CallUsage, ChatRecord } from "./contracts.ts";
 
-export type CallPricer = (usage: Partial<CallUsage>, model: string) => number | null;
 export interface SessionPricing {
-	cost: number;
 	unpriced: number;
 	subscription?: number;
 	subscriptionProviders?: string[];
-	/** Derived at read time, keyed by the persisted turn's id. Never stored. */
-	turnCosts: Record<string, number | null>;
 }
 
 /** Plan-billed model ids → the plan's label. The outside agent (MCP) runs
@@ -46,40 +43,11 @@ export function sumSteps(steps: readonly CallUsage[]): CallUsage {
 	};
 }
 
-export function turnCost(turn: Pick<TurnUsage, "model" | "steps">, price: CallPricer): number | null {
-	if (isSubscriptionModel(turn.model) || turn.steps.length === 0) return null;
-	let total = 0;
-	for (const step of turn.steps) {
-		const cost = price(step, turn.model);
-		if (cost === null) return null;
-		total += cost;
-	}
-	return total;
-}
-
-export function sessionCost(record: Pick<ChatRecord, "turns">, price: CallPricer): SessionPricing {
-	let cost = 0;
-	let unpriced = 0;
-	let subscription = 0;
-	const turnCosts: Record<string, number | null> = {};
-	for (const turn of record.turns ?? []) {
-		const dollars = turnCost(turn, price);
-		turnCosts[turn.id] = dollars;
-		if (isSubscriptionModel(turn.model)) subscription++;
-		else if (dollars === null) unpriced++;
-		else cost += dollars;
-	}
-	return { cost, unpriced, ...(subscription ? { subscription, subscriptionProviders: subscriptionLabels((record.turns ?? []).map((turn) => turn.model)) } : {}), turnCosts };
-}
-
-export function jobCost(job: Pick<JobRecord, "usage">, price: CallPricer): number | null {
-	const usage = job.usage;
-	if (!usage || isSubscriptionModel(usage.model)) return null;
-	if (usage.calls && usage.calls.length === usage.steps) {
-		return turnCost({ model: usage.model, steps: usage.calls }, price);
-	}
-	// An old one-call job is fully reconstructible from its total. For a
-	// multi-call job, the server resolver decides whether aggregate pricing
-	// is safe for this model (tiered models need the lost per-call sizes).
-	return price(usage, usage.model);
+export function sessionCost(record: Pick<ChatRecord, "turns">): SessionPricing {
+	const turns = record.turns ?? [];
+	const subscription = turns.filter((turn) => isSubscriptionModel(turn.model)).length;
+	return {
+		unpriced: turns.length - subscription,
+		...(subscription ? { subscription, subscriptionProviders: subscriptionLabels(turns.map((turn) => turn.model)) } : {}),
+	};
 }

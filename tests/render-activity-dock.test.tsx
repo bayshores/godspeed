@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
-import { formatTokens, formatUsd } from "../src/components/usage-format.ts";
+import { formatTokens } from "../src/components/usage-format.ts";
 import { WAITING_NOTICE, agentWaiting, parseAgentStatus, sameAgentStatus } from "../src/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
@@ -57,7 +57,6 @@ function job(over: Partial<ActivityFeed["jobs"][number]> = {}): ActivityFeed["jo
 		updatedAt: new Date(NOW - 1000).toISOString(),
 		title: "Limits lesson",
 		contextLimit: null,
-		costUsd: null,
 		...over,
 	};
 }
@@ -66,7 +65,7 @@ describe("activity dock pure layer", () => {
 	it("merges jobs + extractions oldest-first (the stable blob order)", () => {
 		const feed: ActivityFeed = {
 			jobs: [job({ id: "new", createdAt: new Date(NOW - 10_000).toISOString() })],
-			extractions: [{ id: "cx", chatId: "cx", title: "Old lesson", phase: "merging", startedAt: NOW - 100_000 }],
+			extractions: [{ id: "cx", chatId: "cx", kind: "chat", title: "Old lesson", phase: "merging", startedAt: NOW - 100_000 }],
 		};
 		const blobs = toBlobs(feed);
 		assert.equal(blobs.length, 2);
@@ -74,39 +73,20 @@ describe("activity dock pure layer", () => {
 		assert.equal(first.id, "cx"); // extraction started first
 		assert.equal(first.process, "extraction");
 		assert.equal(first.phase, "merging");
+		assert.equal(first.opensLesson, true, "a lesson's own run links to it");
 		assert.equal(blobs[1]!.id, "new");
 	});
 
 	it("per-chunk jobs (owner, 2026-09-28): one source, N rows — unique ids (React keys), one chatId, part-suffixed titles", () => {
 		const rows = [
-			{ id: "src_a#1", chatId: "src_a", part: { i: 1, n: 2 }, title: "notes.md · 1/2", phase: "extracting", startedAt: NOW - 1000 },
-			{ id: "src_a#2", chatId: "src_a", part: { i: 2, n: 2 }, title: "notes.md · 2/2", phase: "waiting", startedAt: NOW - 500 },
+			{ id: "src_a#1", chatId: "src_a", kind: "notes", part: { i: 1, n: 2 }, title: "notes.md · 1/2", phase: "extracting", startedAt: NOW - 1000 },
+			{ id: "src_a#2", chatId: "src_a", kind: "notes", part: { i: 2, n: 2 }, title: "notes.md · 2/2", phase: "waiting", startedAt: NOW - 500 },
 		] as FeedExtraction[];
 		const blobs = toBlobs({ jobs: [], extractions: rows });
 		assert.equal(blobs.length, 2, "one blob per chunk job");
 		assert.deepEqual(blobs.map((b) => b.id), ["src_a#1", "src_a#2"], "unique row ids — no duplicate React keys");
-		assert.ok(blobs.every((b) => b.chatId === "src_a"), "abort/link identity stays source-scoped");
-	});
-
-	it("uses the server's price projection; absent pricing is null, never zero", () => {
-		const priced = job({
-			usage: {
-				model: "openrouter:z-ai/glm-5.3-flash",
-				inputTokens: 10_000,
-				outputTokens: 1000,
-				cacheReadTokens: 5000,
-				cacheWriteTokens: 0,
-				reasoningTokens: 0,
-				steps: 2,
-			},
-			costUsd: 0.00215,
-		});
-		const blob = toBlobs({ jobs: [priced], extractions: [] })[0]!;
-		assert.equal(blob.cost, 0.00215, "the server's projection, verbatim");
-		const missingProjection = toBlobs({ jobs: [{ ...priced, costUsd: undefined }], extractions: [] })[0]!;
-		assert.equal(missingProjection.cost, null, "the browser must not invent a fallback price");
-		const absent = toBlobs({ jobs: [job()], extractions: [] })[0]!;
-		assert.equal(absent.cost, null);
+		assert.ok(blobs.every((b) => b.chatId === "src_a"), "abort identity stays source-scoped");
+		assert.ok(blobs.every((b) => !b.opensLesson), "a source id is no lesson: no link to a 404");
 	});
 
 	it("a failed job reads 'failed' with the runner's honest wording", () => {
@@ -170,12 +150,11 @@ describe("activity dock pure layer", () => {
 		assert.equal(cached.context?.limit, 200_000);
 	});
 
-	it("extraction blobs carry no money/context (–, the doctrine)", () => {
+	it("extraction blobs carry no context (–, the doctrine)", () => {
 		const blob = toBlobs({
 			jobs: [],
-			extractions: [{ id: "cx", chatId: "cx", title: "T", phase: "extracting", startedAt: NOW }],
+			extractions: [{ id: "cx", chatId: "cx", kind: "chat", title: "T", phase: "extracting", startedAt: NOW }],
 		})[0]!;
-		assert.equal(blob.cost, null);
 		assert.equal(blob.context, null);
 	});
 
@@ -183,11 +162,6 @@ describe("activity dock pure layer", () => {
 		assert.equal(formatElapsed(45_000), "45s");
 		assert.equal(formatElapsed(184_000), "3m 04s");
 		assert.equal(formatElapsed(4_320_000), "1h 12m");
-	});
-
-	it("formatUsd keeps four decimals under $1, two above", () => {
-		assert.equal(formatUsd(0.0014), "$0.0014");
-		assert.equal(formatUsd(1.5), "$1.50");
 	});
 
 	it("formatTokens trims (never 38.0k)", () => {
@@ -207,7 +181,7 @@ describe("activity section render", () => {
 			<ActivitySection
 				feed={{
 					jobs: [job({ id: "j1", kind: "demo", activity: "building sandbox…", title: "Chain-rule demo" })],
-					extractions: [{ id: "cx", chatId: "cx", title: "Old lesson", phase: "merging", startedAt: NOW - 60_000 }],
+					extractions: [{ id: "cx", chatId: "cx", kind: "chat", title: "Old lesson", phase: "merging", startedAt: NOW - 60_000 }],
 				}}
 			/>,
 		);
@@ -231,9 +205,9 @@ describe("activity section render", () => {
 	});
 
 
-	it("shows total running cost when jobs are priced", () => {
+	it("shows the plan that pays for the running jobs", () => {
 		const usage = {
-			model: "openrouter:z-ai/glm-5.3-flash",
+			model: "agent:outside-agent",
 			inputTokens: 10_000,
 			outputTokens: 1000,
 			cacheReadTokens: 0,
@@ -245,14 +219,13 @@ describe("activity section render", () => {
 			<ActivitySection
 				feed={{
 					jobs: [
-						job({ id: "a", usage, costUsd: 0.002 }),
-						job({ id: "b", usage, costUsd: 0.002, createdAt: new Date(NOW - 20_000).toISOString() }),
+						job({ id: "a", usage }),
+						job({ id: "b", usage, createdAt: new Date(NOW - 20_000).toISOString() }),
 					],
 					extractions: [],
 				}}
 			/>,
 		);
-		// two priced jobs → 2 × $0.002 = $0.0040 total
-		assert.match(html, /activity-total-cost[^>]*>\$0\.0040</);
+		assert.match(html, /activity-total-cost[^>]*>Outside agent</);
 	});
 });

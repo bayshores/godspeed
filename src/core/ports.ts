@@ -12,7 +12,6 @@
 import type { LhMessage } from "./native-messages.ts";
 import type {
 	ChatRecord,
-	ChatSettings,
 	ChatSummary,
 	GraphChain,
 	GraphNode,
@@ -58,12 +57,9 @@ export interface ChatStore {
 	appendTurnUsage(id: string, entry: TurnUsage): void;
 	/** Append one extraction-run usage entry — idempotent per startedAt. */
 	appendExtractionUsage(id: string, entry: ExtractionRunUsage): void;
-	/** Persist the per-chat model/thinking settings (the model control).
-	 *  Replace-whole: the picker sends the complete settings object. */
-	saveSettings(id: string, settings: ChatSettings): void;
 	/** Rename a session (the header's click-to-edit title).
-	 * Like saveSettings: a rename is NOT conversation activity — updatedAt
-	 * stays put, so sidebar order never churns on a rename. */
+	 * A rename is NOT conversation activity — updatedAt stays put, so
+	 * sidebar order never churns on a rename. */
 	renameChat(id: string, title: string): ChatRecord;
 	/** Delete the session record entirely. False when the id is unknown. The graph-ledger purge and
 	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +

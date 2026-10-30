@@ -85,7 +85,7 @@ export function ReadingPane({
 					{compacting && (
 						<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-[13px] font-bold text-ink-3">
 							<BrailleSpinner label="Compacting context" />
-							<Shimmer duration={1}>Compacting context…</Shimmer>
+							<Shimmer>Compacting context…</Shimmer>
 						</ArrivalRow>
 					)}
 					{/* From the instant of any action that produces tokens until the
@@ -99,7 +99,7 @@ export function ReadingPane({
 					{!showWork && (status === "submitted" || turnInFlight) && (
 						<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-[13px] font-bold text-ink-3">
 							<BrailleSpinner label="Thinking" />
-							<Shimmer duration={1}>Thinking…</Shimmer>
+							<Shimmer>Thinking…</Shimmer>
 						</ArrivalRow>
 					)}
 					{error && (

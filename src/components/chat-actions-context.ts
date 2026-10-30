@@ -9,5 +9,7 @@ import { createContext } from "react";
 export const ChatActionsContext = createContext<{
 	chatId: string;
 	syncFromServer: () => Promise<void>;
+	/** False while a question, problem or compaction holds the message box. */
+	canSendText: boolean;
 	sendText: (text: string) => void;
 } | null>(null);

@@ -39,7 +39,6 @@ export { piTurnResponse } from "./pi/ui-stream.ts";
 export * from "./observability.ts";
 export { recentAgentActions } from "./agent-actions.ts";
 export { readingDocument, readingPdfPage } from "./reading-pages.ts";
-export { sessionCost } from "./pricing.ts";
 
 export { handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";

@@ -12,7 +12,7 @@ import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import type { ChatStore } from "../core/ports.ts";
-import type { ChatRecord, ChatSettings, ChatSummary, ExtractionRunUsage, PlanTree, TurnUsage } from "../core/contracts.ts";
+import type { ChatRecord, ChatSummary, ExtractionRunUsage, PlanTree, TurnUsage } from "../core/contracts.ts";
 import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
 import { danglingQuestionOf } from "../core/native-messages.ts";
@@ -32,7 +32,7 @@ function chatDir(id: string): string {
 /** THE SILENCE LAW (push S6, 2026-10-02): chats-changed announces ONLY
  *  list-SHAPE mutations — createChat, renameChat, deleteChat (below,
  *  each emits post-write). The content writers (saveMessages,
- *  appendTurnUsage, appendExtractionUsage, saveSettings, saveTree) are
+ *  appendTurnUsage, appendExtractionUsage, saveTree) are
  *  DELIBERATELY SILENT: saveMessages fires per turn-persist and would
  *  spam the bus, and every list-visible change it causes (title, order,
  *  phase, busy, pendingQuestion) is already announced by turn-started /
@@ -192,19 +192,8 @@ function appendExtractionUsage(id: string, entry: ExtractionRunUsage): void {
 	writeChat(record);
 }
 
-/** Persist the per-chat model/thinking settings — replace-whole (the
- * picker sends the complete object; absent = config defaults). */
-function saveSettings(id: string, settings: ChatSettings): void {
-	const record = getChat(id);
-	if (!record) throw new Error(`Chat not found: ${id}`);
-	// Like saveTree: a settings tweak is not conversation activity, so it
-	// deliberately does NOT bump updatedAt (sidebar order must not churn).
-	record.settings = settings;
-	writeChat(record);
-}
-
-/** Rename a session (the header's click-to-edit title, 2026-09-17). Like
- * saveSettings, a rename is NOT conversation activity: updatedAt stays put
+/** Rename a session (the header's click-to-edit title). Like saveTree, a
+ * rename is NOT conversation activity: updatedAt stays put
  * so sidebar order never churns. Same fallback as createChat — the empty
  * string becomes "Untitled session" (the API gate rejects it first; this
  * is the honest floor for any other caller). */
@@ -269,7 +258,6 @@ export const chatStore: ChatStore = {
 	listChats,
 	saveMessages,
 	saveTree,
-	saveSettings,
 	renameChat,
 	deleteChat,
 	saveAttachment,

@@ -115,8 +115,8 @@ test("graph: the first ledger append creates the sidecar at version 1", () => {
 test("graph: a NEWER-stamped sidecar is refused honestly", () => {
 	fs.mkdirSync(path.dirname(GRAPH_FORMAT_FILE), { recursive: true });
 	fs.writeFileSync(GRAPH_FORMAT_FILE, JSON.stringify({ version: 99 }), "utf-8");
-	assert.throws(() => graphStore.readNodes(), /older than its data|format version 99/);
-	assert.throws(() => graphStore.readSources(), /older than its data|format version 99/);
+	assert.throws(() => graphStore.readNodes(), /older than your data/);
+	assert.throws(() => graphStore.readSources(), /older than your data/);
 });
 
 // ── the fixtures stay the legacy pin: golden data reads unstamped ───────────

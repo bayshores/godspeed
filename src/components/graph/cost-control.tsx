@@ -1,7 +1,6 @@
 /**
- * The graph-pipeline cost control (moved out of the retired fact canvas,
- * graph-view.tsx, in the redesign's Phase 5): a bare cumulative-dollars
- * number; click toggles the breakdown panel. Used by the minimal home.
+ * The graph-pipeline cost control: the plan that paid (or "–"); click
+ * toggles the breakdown panel. Used by the minimal home.
  */
 import { useRef, useState } from "react";
 import type { GraphCostSummary } from "@/core";
@@ -28,45 +27,26 @@ function timeAgo(startedAt: number): string {
 	return `${Math.round(hours / 24)}d`;
 }
 
-/** Run/stage cost at 3 decimals (pipeline pennies are real money at this
- *  scale); headline totals use 2. Null (unpriced model) renders "–". */
-function fmtRunCost(dollars: number | null, providers: readonly string[] = []): string {
-	return planCostLabel(dollars, providers, (value) => `$${value.toFixed(3)}`);
-}
 /** Plan labels for a stage; records written before provider names were
  *  stored were all ChatGPT runs (the only plan at the time). */
 function graphProviders(value: { subscriptionRuns?: number; subscriptionProviders?: string[] }): string[] {
 	return value.subscriptionProviders ?? ((value.subscriptionRuns ?? 0) > 0 ? ["ChatGPT"] : []);
 }
 function graphUsageLabel(costs: Pick<GraphCostSummary, "stages">): string {
-	const stages = [costs.stages.extraction, costs.stages.audit];
-	const providers = [...new Set(stages.flatMap(graphProviders))];
-	const priced = stages.some((stage) => stage.runs - stage.unpricedRuns - (stage.subscriptionRuns ?? 0) > 0);
-	const dollars = displayCostTotals(costs).totalDollars;
-	return planCostLabel(priced ? dollars : null, providers, (value) => `$${value.toFixed(2)}`);
+	return planCostLabel([costs.stages.extraction, costs.stages.audit].flatMap(graphProviders));
 }
 
-/** The cost figures the UI shows, summed over the stages. The pill and
- *  the panel both read this so they always agree. */
-export function displayCostTotals(costs: Pick<GraphCostSummary, "stages">): {
-	totalDollars: number;
-	unpricedRuns: number;
-} {
-	return {
-		totalDollars: costs.stages.extraction.dollars + costs.stages.audit.dollars,
-		unpricedRuns: costs.stages.extraction.unpricedRuns + costs.stages.audit.unpricedRuns,
-	};
+/** The unpriced runs over the stages the UI shows. */
+export function displayUnpricedRuns(costs: Pick<GraphCostSummary, "stages">): number {
+	return costs.stages.extraction.unpricedRuns + costs.stages.audit.unpricedRuns;
 }
 
 /**
- * The graph-pipeline cost control (2026-09-20 placement wave): a bare
- * cumulative-dollars number — no pill chrome (owner: "just a number"),
- * hover-highlighted, click toggles the breakdown panel. Same dismiss
- * pattern as the settings gear: outside click or Escape closes. The
- * panel is viewport-capped + scrollable like the coverage dropdown.
+ * The graph's cost label (no pill chrome), hover-highlighted; click
+ * toggles the breakdown panel. Same dismiss pattern as the settings gear:
+ * outside click or Escape closes. The panel is viewport-capped +
+ * scrollable like the coverage dropdown.
  */
-/** The graph's cumulative-dollars pill + breakdown panel (used by the
- *  home screen, src/components/home.tsx). */
 export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	const [open, setOpen] = useState(false);
 	// Click anywhere outside (or Escape) closes the panel — the root
@@ -103,22 +83,15 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 
 /**
  * The cost control's expanded panel: stage totals (extraction / audit —
- * dollars headline, tokens secondary) + the recent-runs list.
- * Presentational: the fold happens server-side (core/cost-summary.ts);
- * dollars are inferred read-time, never stored. Cluster naming is GONE
- * from the panel (owner refinement round, 2026-09-24): labels are session
- * titles / file names now, the namer is dead, and its historical spend is
- * not tracked anymore — the headline sums the displayed stages only and
- * naming-kind runs never reach the list.
+ * plan label, tokens secondary) + the recent-runs list.
+ * Presentational: the fold happens server-side (core/cost-summary.ts).
  */
 function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 	const stageRows: [string, GraphCostSummary["stages"]["extraction"]][] = [
 		["Extraction", costs.stages.extraction],
 		["Audit", costs.stages.audit],
 	];
-	// The displayed figures come from displayCostTotals (naming excluded —
-	// the pill and this panel must agree).
-	const { unpricedRuns } = displayCostTotals(costs);
+	const unpricedRuns = displayUnpricedRuns(costs);
 	return (
 		<div className="lh-glass w-80 max-w-[calc(100vw-1.5rem)] p-3 text-xs">
 			<div className="mb-2 flex items-baseline justify-between">
@@ -137,8 +110,8 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 					<div key={label} className="flex items-baseline justify-between gap-2 text-xs">
 						<span className="shrink-0 text-muted-foreground">{label}</span>
 						<span className="min-w-0 text-right font-mono tabular-nums">
-							{fmtRunCost(stage.runs - stage.unpricedRuns - (stage.subscriptionRuns ?? 0) <= 0 ? null : stage.dollars, graphProviders(stage))}
-							{stage.unpricedRuns > 0 && (stage.runs - stage.unpricedRuns - (stage.subscriptionRuns ?? 0) > 0 || (stage.subscriptionRuns ?? 0) > 0) && (
+							{planCostLabel(graphProviders(stage))}
+							{stage.unpricedRuns > 0 && (stage.subscriptionRuns ?? 0) > 0 && (
 								<span className="text-muted-foreground"> +{stage.unpricedRuns} unpriced</span>
 							)}
 							<span className="text-muted-foreground">
@@ -162,7 +135,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 									</span>
 								)}
 							</span>
-							<span className="shrink-0 font-mono tabular-nums">{fmtRunCost(run.dollars, graphProviders(run))}{run.dollars === null && run.subscriptionRuns === 1 ? " +1 unpriced" : ""}</span>
+							<span className="shrink-0 font-mono tabular-nums">{planCostLabel(graphProviders(run))}{run.subscriptionRuns && run.unpricedRuns ? ` +${run.unpricedRuns} unpriced` : ""}</span>
 						</div>
 					))}
 			</div>

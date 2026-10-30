@@ -24,7 +24,6 @@ import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "../subagents/pdf-ops.t
 
 const USER_AGENT =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-const FETCH_TIMEOUT_MS = 60_000;
 /** PDFs run bigger than pages — arxiv papers routinely 5-20 MB. */
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
@@ -102,7 +101,7 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 				"(short ≤10 pages, medium ≤40, long), and flagged (math/image-heavy) pages. " +
 				"Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.",
 			parameters: pdfFetchInput,
-			execute: serverExecute("web_fetch_pdf", pdfFetchInput, async ({ url }): Promise<PdfFetchSummary | string> => {
+			execute: serverExecute("web_fetch_pdf", pdfFetchInput, async ({ url }, { signal }): Promise<PdfFetchSummary | string> => {
 				try {
 					const parsed = new URL(url);
 					if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
@@ -116,7 +115,9 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 							"User-Agent": USER_AGENT,
 							Accept: "application/pdf,application/octet-stream,*/*",
 						},
-						signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+						// The guard's signal is the one deadline (its timeout or Stop),
+						// so an abandoned download is cancelled, not left running.
+						signal,
 					});
 					if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
 					const contentType = resp.headers.get("content-type") ?? "";
@@ -129,6 +130,7 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 					if (bytes.length === 0) throw new Error("Empty response");
 					if (bytes.length > MAX_PDF_BYTES) throw new Error("PDF too large (over 25 MB)");
 					const filePath = path.join(dir, pdfFileName(url));
+					signal?.throwIfAborted();
 					await fs.writeFile(filePath, bytes);
 					try {
 						await pdfProbe(filePath);
@@ -136,6 +138,7 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 						await fs.rm(filePath, { force: true });
 						throw new Error("The download is not a readable PDF");
 					}
+					signal?.throwIfAborted();
 					const info = await pdfInfo(filePath);
 					const summary: PdfFetchSummary = {
 						path: filePath,

@@ -11,7 +11,7 @@
  * 25 simultaneous runs would trip provider rate limits — a 3-wide worker
  * pool keeps the run registry (the dock's status chips) and the ledgers
  * healthy. The dock's chips + graph refetch track progress live through
- * /api/graph/status, as with session runs.
+ * /api/activity, as with session runs.
  */
 import { addCopiedFile, classIdle, extraction, getClass, NotesImportError, requestClassScope } from "@/server";
 import type { EmissionStats } from "@/core";

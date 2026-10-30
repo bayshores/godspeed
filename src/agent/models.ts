@@ -1,5 +1,4 @@
 import type { Api, Model, StreamFunction } from "@earendil-works/pi-ai";
-import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import packageMetadata from "../../package.json" with { type: "json" };
 import { agentModel, agentStream } from "./agent-bridge.ts";
 
@@ -18,18 +17,14 @@ export const APP_IDENTITY = Object.freeze({
  * Copilot / Grok sign-ins were removed): the outside agent. Its stream parks
  * every request as a work item that the agent connected over /api/mcp picks
  * up and answers (src/agent/agent-bridge.ts). The agent chooses its own
- * model and effort in its own harness, so there is no thinking level here.
+ * model and effort in its own harness.
  */
 export interface PiEngine {
 	model: Model<Api>;
 	streamFn: StreamFunction;
-	/** The thinking level the stream pins — always "off" for the agent. */
-	level?: ThinkingLevel;
 }
-
-export type { ThinkingLevel };
 
 /** The outside-agent engine every lesson, job and pipeline stage runs on. */
 export function agentEngine(): PiEngine {
-	return { model: agentModel(), level: "off", streamFn: agentStream };
+	return { model: agentModel(), streamFn: agentStream };
 }

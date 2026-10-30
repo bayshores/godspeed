@@ -7,11 +7,11 @@
  */
 import { memo, useCallback, useRef, useState } from "react";
 import { CalendarIcon, ChevronDownIcon, DumbbellIcon } from "lucide-react";
-import type { DeadlineProgress, ProgressPayload, StatusCounts, TopicProgress, WorkOnNextItem } from "@/core";
+import { dayLabel, type DeadlineProgress, type ProgressPayload, type StatusCounts, type TopicProgress, type WorkOnNextItem } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { Tip } from "@/components/ui/tooltip";
-import { countdownText, deadlineDateText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
+import { countdownText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
 import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 /** "Work on next" shows this many (the design's "Practice these 4"). */
@@ -133,7 +133,7 @@ function Countdown({ deadline }: { deadline: DeadlineProgress }) {
 	const files = deadlineFilesText(deadline.files);
 	const line = (
 		<span className="pb-1.5 text-[13.5px] text-ink-3">
-			{deadlineDateText(deadline.date)}
+			{dayLabel(deadline.date)}
 			{files ? ` · ${files}` : ""}
 		</span>
 	);

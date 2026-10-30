@@ -24,7 +24,6 @@ process.env = {
 	...(originalEnv.NODE_OPTIONS ? { NODE_OPTIONS: originalEnv.NODE_OPTIONS } : {}),
 	NODE_ENV: "test",
 	LH_DATA_DIR: path.join(scratch, "data"),
-	LH_CREDENTIALS_DIR: scratch,
 	HOME: path.join(scratch, "home"),
 };
 globalThis.fetch = async () => { throw new Error("CLOSED: unexpected network request"); };

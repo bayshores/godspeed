@@ -50,7 +50,7 @@ export function YourTurnPanel({
 	onReadingThinking: (v: string) => void;
 	practice: { toolCallId: string; input: unknown } | null;
 	practiceNumber: number | null;
-	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => void;
+	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** This view's turn is running: a practice send now would be dropped. */
 	sessionBusy: boolean;
 	compacting: boolean;

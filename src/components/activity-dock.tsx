@@ -20,7 +20,7 @@ import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent
  * Data: ONE feed of GET /api/activity (jobs across ALL chats, title-joined,
  * oldest-first + extraction runs), fetched when truth moves (events
  * channel) and folded client-side with core/prices.ts.
- * Cost is INFERRED server-side through Pi; the context line is the LAST
+ * Cost is the plan's label; the context line is the LAST
  * model call's input+output against the model's limit (JobUsage.lastStep)
  * — never a cumulative sum, which would be the wrong number.
  * Absent data renders "–", never zero.
@@ -45,8 +45,6 @@ interface FeedUsage extends NonNullable<JobRecord["usage"]> {
 }
 
 export interface FeedJob extends JobRecord {
-	/** Read-time server estimate; absent on older transport payloads. */
-	costUsd?: number | null;
 	title: string;
 	usage?: FeedUsage;
 	/** Server-joined live catalog limit —
@@ -58,6 +56,8 @@ export interface FeedExtraction {
 	/** Unique row id (source id, or "src#i" for chunk jobs). */
 	id: string;
 	chatId: string;
+	/** Only a "chat" run's chatId is a lesson; notes and topics runs use a source key. */
+	kind: "chat" | "notes" | "topics";
 	part?: { i: number; n: number };
 	title: string;
 	phase: string;
@@ -185,10 +185,10 @@ interface ActivityBlob {
 	phase?: string;
 	title: string;
 	chatId: string;
+	/** chatId names a lesson the detail can link to. */
+	opensLesson: boolean;
 	/** ms epoch — blobs order oldest-first and elapsed counts from it. */
 	startedAt: number;
-	/** Inferred USD cost (jobCost) — null renders "–". */
-	cost: number | null;
 	/** Last model call's footprint vs the model's limit — null renders "–". */
 	context: { used: number; limit: number } | null;
 	/** Latest human-readable activity line (""). */
@@ -229,8 +229,8 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 			jobKind: job.kind,
 			title: job.title,
 			chatId: job.chatId,
+			opensLesson: true,
 			startedAt: Date.parse(job.createdAt) || 0,
-			cost: job.costUsd ?? null,
 			context,
 			activity: job.activity ?? "",
 			model: usage?.model,
@@ -244,8 +244,8 @@ export function toBlobs(feed: ActivityFeed): ActivityBlob[] {
 			phase: run.phase,
 			title: run.title,
 			chatId: run.chatId,
+			opensLesson: run.kind === "chat",
 			startedAt: run.startedAt,
-			cost: null, // extraction runs don't ride the money channel
 			context: null,
 			activity: "",
 		});
@@ -302,11 +302,6 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	const abortRef = useRef({ blobs, refresh, setAbortStates });
 	abortRef.current = { blobs, refresh, setAbortStates };
 
-	const totalCost = useMemo(() => {
-		const priced = blobs.map((b) => b.cost).filter((c): c is number => c !== null);
-		return priced.length === 0 ? null : priced.reduce((a, c) => a + c, 0);
-	}, [blobs]);
-
 	const abort = useCallback(async (blob: ActivityBlob) => {
 		const { setAbortStates: set } = abortRef.current;
 		set((s) => ({ ...s, [blob.id]: "pending" }));
@@ -349,8 +344,8 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 			<div className="flex items-center gap-1.5 text-[12.5px] text-ink-3">
 				Background jobs
 				{blobs.length > 0 && (
-					<span className="ml-auto font-mono tabular-nums" data-testid="activity-total-cost" title="Total running cost (inferred)">
-						{planCostLabel(totalCost, subscriptionLabels(blobs.map((blob) => blob.model)))}
+					<span className="ml-auto font-mono tabular-nums" data-testid="activity-total-cost" title="Total running cost">
+						{planCostLabel(subscriptionLabels(blobs.map((blob) => blob.model)))}
 				</span>
 				)}
 			</div>
@@ -444,18 +439,18 @@ function ActivityBlobRow({
 					)}
 				</span>
 				<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-muted-foreground">
-					<span data-testid="activity-blob-cost">{planCostLabel(blob.cost, subscriptionLabel(blob.model))}</span>
+					<span data-testid="activity-blob-cost">{planCostLabel(subscriptionLabel(blob.model))}</span>
 					<span data-testid="activity-blob-elapsed">{formatElapsed(now - blob.startedAt)}</span>
 				</span>
 			</button>
 			{/* The explicit END always on the blob's face (SCOPE) — the popover
-			    is for DETAIL, not the control. A failed abort locks the button and
-			    says why; a succeeded one just makes the blob vanish on refresh. */}
+			    is for DETAIL, not the control. A failed abort says why and stays
+			    clickable to retry; a succeeded one just makes the blob vanish on refresh. */}
 			<button
 				type="button"
 				data-testid="activity-abort"
 				onClick={onAbort}
-				disabled={abortState !== undefined}
+				disabled={abortState === "pending"}
 				title={abortState === "failed" ? "Abort failed. Try again." : "End this background process"}
 				aria-label={`End ${label} in ${blob.title}`}
 				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
@@ -485,7 +480,7 @@ function ActivityBlobRow({
 						<div className="flex justify-between gap-2">
 							<span>Cost</span>
 							<span className="font-mono tabular-nums text-card-foreground">
-								{planCostLabel(blob.cost, subscriptionLabel(blob.model))}
+								{planCostLabel(subscriptionLabel(blob.model))}
 							</span>
 						</div>
 						<div className="flex justify-between gap-2">
@@ -508,9 +503,11 @@ function ActivityBlobRow({
 								<span className="font-mono tabular-nums text-card-foreground">{blob.steps}</span>
 							</div>
 						)}
-						<a href={`/chat/${blob.chatId}`} className="text-primary hover:underline">
-							Open session →
-						</a>
+						{blob.opensLesson && (
+							<a href={`/chat/${blob.chatId}`} className="text-primary hover:underline">
+								Open lesson →
+							</a>
+						)}
 					</div>
 					<div className="mt-2 text-muted-foreground/80">
 					{abortState === "failed" && "Abort failed. Try again."}

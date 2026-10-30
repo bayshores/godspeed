@@ -11,7 +11,6 @@ import type { Usage } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { TSchema } from "typebox";
 import { invalidInputResult, toToolResult } from "../tool-execute.ts";
-import type { ModelRole } from "../../config.ts";
 import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
 import { healEncodedArguments } from "../../core/argument-heal.ts";
@@ -45,7 +44,6 @@ export function healStringifiedArrays(raw: unknown): unknown {
 }
 
 export async function runSubmitAgent<T>(opts: {
-	role: ModelRole;
 	toolName: string;
 	toolDescription: string;
 	parameters: TSchema;
@@ -58,8 +56,6 @@ export async function runSubmitAgent<T>(opts: {
 	signal: AbortSignal | undefined;
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void;
 	neverSubmitted: string;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
-	chatId?: string;
 	/** The task's name on outside-agent work items (pi-run taskLabel). */
 	taskLabel?: string;
 	/** Weak-model argument heal at pi's prepareArguments seam (runs BEFORE
@@ -98,13 +94,11 @@ export async function runSubmitAgent<T>(opts: {
 			} satisfies AgentTool<any>,
 		],
 		{
-			role: opts.role,
 			engine: opts.engine,
 			systemPrompt: opts.systemPrompt,
 			prompt: opts.prompt,
 			maxTurns: 4, // retry-only: the submit call is the whole deliverable
 			abortSignal: opts.signal,
-			chatId: opts.chatId,
 			taskLabel: opts.taskLabel,
 			onAssistantMessage: (message, step) =>
 				opts.onStep(

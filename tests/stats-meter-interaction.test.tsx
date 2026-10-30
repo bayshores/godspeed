@@ -14,14 +14,13 @@ test("meter keeps its measured numerator over the agent's 200k budget, and rende
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host);
 	const turn: TurnUsage = { id: "summary", messageId: "marker", at: "fixture", model: "fixture:a", steps: [{ inputTokens: 4300, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }] };
-	const pricing = { cost: 0.003, unpriced: 0, turnCosts: { summary: 0.003 } };
+	const pricing = { unpriced: 1 };
 	try {
 		await act(async () => root.render(<StatsBar chatId="fixture" turns={[turn]} contextTokens={83_000} pricing={pricing} />));
 		const context = () => host.querySelector('[data-testid="stats-context"]')?.textContent;
 		assert.equal(context(), "83k / 200k", "summarizer's 4.3k money log is not the meter source");
 		await act(async () => root.render(<StatsBar chatId="fixture" turns={[turn]} contextTokens={null} pricing={pricing} />));
 		assert.equal(context(), "? / 200k");
-		assert.equal(host.querySelector('[data-testid="stats-cost"]')?.textContent, "$0.0030", "summary spending is still visible");
 		await act(async () => root.render(<StatsBar chatId="fixture" turns={[turn]} contextTokens={72_000} pricing={pricing} />));
 		assert.equal(context(), "72k / 200k");
 	} finally {

@@ -77,7 +77,9 @@ function modelsDir(): string {
 function embedWorker(): EmbedWorker {
 	if (G.__lhEmbedWorker) return G.__lhEmbedWorker;
 	const weights = path.join(modelsDir(), MODEL_ID, "onnx", "model_quantized.onnx");
-	if (!fs.existsSync(weights)) throw new Error(`The search model is missing (${weights}). Run \`node scripts/fetch-model.mjs\`.`);
+	if (!fs.existsSync(weights)) {
+		throw new Error(`The search model is missing (${weights}). Reinstall or update godspeed to get it back (from source: run \`node scripts/fetch-model.mjs\`).`);
+	}
 	const worker = new Worker(path.join(process.cwd(), "src", "server", "workers", "embed-worker.mjs"), {
 		workerData: { modelsDir: modelsDir(), model: MODEL_ID },
 	});
@@ -266,8 +268,8 @@ export function indexClassFile(classId: string, file: { id: string; name: string
 		const { chunks, extent } = chunkFile(file.name, text);
 		const rows: StoredPassage[] = chunks.map((c, n) => ({ id: `${file.id}:${n + 1}`, fileId: file.id, ...c, hash: hashOf(c.text) }));
 		const vectors = await withVectors(old, rows, rows.map((r) => r.text));
-		// Deleted while embedding: never recreate its folder.
-		if (!stores.classStore.getClass(classId)) return;
+		// Removed (or its class deleted) while embedding: never put it back.
+		if (!stores.classStore.getClass(classId)?.files.some((f) => f.id === file.id)) return;
 		const rest = keepRows(old, (r) => (r as StoredPassage).fileId !== file.id);
 		writeTable(at, { rows: [...rest.rows, ...rows], vectors: concat(rest.vectors, vectors), files: { ...old.files, [file.id]: { fp, extent } } });
 	});
@@ -330,7 +332,11 @@ export function readPassage(classId: string, ref: PassageRef): string {
 	} else {
 		const point = rangePoint(ref.range);
 		picked = point === null ? [] : rows.filter((r) => r.fileId === ref.fileId && r.from <= point && point <= r.to);
-		if (picked.length === 0) return `No passage of file "${ref.fileId}" at "${ref.range}".`;
+		if (picked.length === 0) {
+			const inFile = rows.filter((r) => r.fileId === ref.fileId);
+			if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. File ids come from read_class.`;
+			return `No passage of file "${ref.fileId}" at "${ref.range}". Its passages run from "${inFile[0]!.range}" to "${inFile.at(-1)!.range}".`;
+		}
 	}
 	const inFile = rows.filter((r) => r.fileId === picked[0]!.fileId);
 	const first = inFile.indexOf(picked[0]!);

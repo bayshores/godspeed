@@ -15,25 +15,24 @@
  *
  * Still ephemeral BY DESIGN: a process restart clears it, so there are no
  * stale flags to clean up — a crashed turn recovers via the write-ahead
- * record + mount continuation on the next visit. The TTL is a leak guard for
- * the pathological case where onFinish never fires (it runs even on aborts);
- * chat turns are minutes at most, so 30 minutes is far on the safe side.
+ * record + mount continuation on the next visit. There is no time limit: a
+ * turn can wait for the outside agent as long as it takes, and every path
+ * after beginTurn ends in endTurn (onFinish runs even on aborts).
  */
 
 import { emit } from "../core/events.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
 
 interface LhGlobal {
-	__lhTurnRegistry?: Map<string, number>;
+	__lhTurnsInFlight?: Set<string>;
 }
 
-function registry(): Map<string, number> {
+function registry(): Set<string> {
 	const g = globalThis as typeof globalThis & LhGlobal;
-	return (g.__lhTurnRegistry ??= new Map<string, number>());
+	return (g.__lhTurnsInFlight ??= new Set<string>());
 }
 
 const inFlight = registry();
-const MAX_TURN_MS = 30 * 60_000;
 
 /**
  * Mark a turn as starting. Returns false if one is already running for the
@@ -45,7 +44,7 @@ const MAX_TURN_MS = 30 * 60_000;
 export function beginTurn(chatId: string): boolean {
 	if (isTurnRunning(chatId)) return false;
 	clearTurnFailure(chatId);
-	inFlight.set(chatId, Date.now());
+	inFlight.add(chatId);
 	emit("turn-started", { chatId });
 	return true;
 }
@@ -61,17 +60,7 @@ export function endTurn(chatId: string): void {
 	if (inFlight.delete(chatId)) emit("turn-settled", { chatId });
 }
 
-/** True while the chat's turn is in flight; lazily evicts stale entries.
- * The eviction path is DELIBERATELY event-free: it is a leak guard for a
- * turn whose onFinish never fired (itself pathological), it runs lazily
- * from a read, and emitting from a read is a side-effect smell. Silence
- * here is a choice, not an oversight. */
+/** True while the chat's turn is in flight. */
 export function isTurnRunning(chatId: string): boolean {
-	const since = inFlight.get(chatId);
-	if (since === undefined) return false;
-	if (Date.now() - since > MAX_TURN_MS) {
-		inFlight.delete(chatId);
-		return false;
-	}
-	return true;
+	return inFlight.has(chatId);
 }

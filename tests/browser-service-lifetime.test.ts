@@ -21,6 +21,11 @@ function helperFixture(connected = true, channel = true) {
 	let allowReadiness!: () => void;
 	const readiness = new Promise<void>((resolve) => { allowReadiness = resolve; });
 	const state = { quits: 0, exits: [] as number[], windows: 0, readinessCalls: 0, stdinReads: 0, signal: undefined as AbortSignal | undefined, removed: [] as string[], swept: [] as string[] };
+	const permissions: { request?: (wc: unknown, permission: string, callback: (granted: boolean) => void) => void; check?: () => boolean } = {};
+	const session = { defaultSession: {
+		setPermissionRequestHandler: (fn: typeof permissions.request) => { permissions.request = fn; },
+		setPermissionCheckHandler: (fn: typeof permissions.check) => { permissions.check = fn; },
+	} };
 	const logs: string[] = [];
 	const errors: string[] = [];
 	// Match Electron 44's Windows override, not a native pipe.
@@ -57,7 +62,7 @@ function helperFixture(connected = true, channel = true) {
 		});
 	};
 	runInNewContext(mainSource, {
-		require: (id: string) => id === "electron" ? { app, BrowserWindow: FakeWindow }
+		require: (id: string) => id === "electron" ? { app, BrowserWindow: FakeWindow, session }
 			: id === "node:net" ? net
 			: id === "node:fs" ? { ...requireMain("node:fs"), rmSync: (dir: string) => { state.removed.push(dir); } }
 			: id === "./browser-service-readiness.cjs" ? { waitForBrowserService }
@@ -70,7 +75,7 @@ function helperFixture(connected = true, channel = true) {
 		console: { log: (line: string) => logs.push(line), error: (...parts: unknown[]) => errors.push(parts.join(" ")) },
 	}, { filename: mainFile });
 	return {
-		state, logs, errors, stdin, process, app, paths, allowAppReady, allowReadiness,
+		state, logs, errors, stdin, process, app, paths, allowAppReady, allowReadiness, permissions,
 		disconnect() { process.connected = false; process.emit("disconnect"); },
 	};
 }
@@ -91,6 +96,11 @@ describe("browser-service IPC-owned lifetime", () => {
 		await turn();
 		assert.deepEqual(helper.logs, ["BROWSER_SERVICE_CDP 54321"]);
 		assert.deepEqual(helper.state.exits, []);
+		// Model-written demo pages get no permissions.
+		const granted: boolean[] = [];
+		for (const permission of ["media", "geolocation", "clipboard-read"]) helper.permissions.request!({}, permission, (value) => granted.push(value));
+		assert.deepEqual(granted, [false, false, false]);
+		assert.equal(helper.permissions.check!(), false);
 		helper.disconnect();
 		assert.equal(helper.state.quits, 1);
 	});

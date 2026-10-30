@@ -140,6 +140,31 @@ describe("researcher pdf tools — download + triage", () => {
 		const ftp = asText(await tools.web_fetch_pdf!.execute!("t6", { url: "ftp://example.com/x.pdf" }));
 		assert.match(ftp, /invalid URL/);
 	});
+
+	it("web_fetch_pdf and web_fetch hand the tool's own signal to fetch, so Stop cancels the download", async () => {
+		const dir = await newDir();
+		const tools = createPdfReadTools(dir);
+		const realFetch = globalThis.fetch;
+		const seen: (AbortSignal | null | undefined)[] = [];
+		globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+			seen.push(init?.signal);
+			init?.signal?.throwIfAborted();
+			return pdfResponse();
+		}) as typeof fetch;
+		try {
+			const stop = new AbortController();
+			stop.abort();
+			const pdfOut = asText(await tools.web_fetch_pdf!.execute!("t7", { url: "https://example.com/x.pdf" }, stop.signal));
+			assert.match(pdfOut, /web_fetch_pdf failed.*aborted/);
+			const pageOut = asText(await webTools.web_fetch!.execute!("t8", { url: "https://example.com/page" }, stop.signal));
+			assert.match(pageOut, /web_fetch failed.*aborted/);
+			assert.equal(seen.length, 2);
+			assert.ok(seen.every((s) => s?.aborted), "each fetch got the aborted guard signal");
+			assert.deepEqual(await fs.readdir(dir), [], "nothing was written for a stopped call");
+		} finally {
+			globalThis.fetch = realFetch;
+		}
+	});
 });
 
 describe("researcher pdf tools — the temp-dir wall", () => {

@@ -129,17 +129,6 @@ export function countdownText(days: number): string {
 	return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** "Thu Nov 5" for a YYYY-MM-DD date (calendar day, no time zone shift). */
-export function deadlineDateText(date: string): string {
-	const [y, m, d] = date.split("-").map(Number) as [number, number, number];
-	if (!y || !m || !d) return date;
-	const day = new Date(Date.UTC(y, m - 1, d));
-	return `${WEEKDAYS[day.getUTCDay()]} ${MONTHS[m - 1]} ${d}`;
-}
-
 /** What the deadline covers, short: the file's name when there is one,
  *  else "7 files". */
 export function deadlineFilesText(files: readonly { name: string }[]): string {

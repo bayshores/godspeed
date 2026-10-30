@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { expandBraces, globToRegex, matchGlob, walkFiles } from "../src/agent/tools/fs-shared.ts";
+import { expandBraces, globToRegex, matchGlob, resolveSourcePath, walkFiles } from "../src/agent/tools/fs-shared.ts";
 import { findTool } from "../src/agent/tools/find.ts";
 import { grepTool } from "../src/agent/tools/grep.ts";
 import { lsTool } from "../src/agent/tools/ls.ts";
@@ -83,6 +83,15 @@ describe("glob helpers (fs-shared)", () => {
 		assert.equal(globToRegex("a?c").test("abc"), true);
 		assert.equal(globToRegex("a?c").test("ac"), false);
 		assert.equal(matchGlob("a.b.txt", "a.b*"), true, "the dot is literal, not any-char");
+	});
+});
+
+describe("resolveSourcePath", () => {
+	it("a leading ~ means the home folder; ~user and plain relative paths stay home-relative", () => {
+		assert.equal(resolveSourcePath("~"), os.homedir());
+		assert.equal(resolveSourcePath("~/Downloads/hw3.pdf"), path.join(os.homedir(), "Downloads", "hw3.pdf"));
+		assert.equal(resolveSourcePath("~foo"), path.join(os.homedir(), "~foo"));
+		assert.equal(resolveSourcePath("notes.md"), path.join(os.homedir(), "notes.md"));
 	});
 });
 

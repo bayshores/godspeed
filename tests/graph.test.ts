@@ -741,6 +741,43 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		assert.deepEqual(deleteChatTraces(graphStore, dA.id, "delete-nodes"), { ...stats, nodesRemoved: 0, chainsRemoved: 0, coverageRemoved: 0, checkpointsRemoved: 0 } satisfies ChatDeletionStats);
 	});
 
+	it("delete-nodes: a chain another source asserts keeps the uncredited node it cites alive", () => {
+		const merge = (sourceId: string, findings: SessionFindings) =>
+			mergeFindings(sourceId, findings, graphDeps, { foldedAt: "2026-09-23T00:00:00.000Z" });
+		const bornOf = (sourceId: string, statement: string): string =>
+			graphStore.readNodes().find((n) => n.statement === statement && n.provenance.some((pt) => pt.chatId === sourceId))!.id;
+		merge("src_cite_a", {
+			propositions: [{ id: "p1", name: "Cited fact", statement: "Cited fact statement", aliases: [] }],
+			chains: [],
+			reteaches: [],
+		});
+		const xId = bornOf("src_cite_a", "Cited fact statement");
+		// B cites X by id without reteaching it, so X carries no B provenance.
+		merge("src_cite_b", {
+			propositions: [{ id: "q1", name: "Built on it", statement: "Built on it statement", aliases: [] }],
+			chains: [{ premises: [xId], conclusion: "q1" }],
+			reteaches: [],
+		});
+		merge("src_cite_c", {
+			propositions: [{ id: "r1", name: "Unrelated", statement: "Unrelated statement", aliases: [] }],
+			chains: [],
+			reteaches: [],
+		});
+		const bChains = () => graphStore.readChains().filter((c) => c.provenance.some((pt) => pt.chatId === "src_cite_b"));
+
+		const stats = deleteChatTraces(graphStore, "src_cite_a", "delete-nodes");
+		assert.equal(stats.nodesRemoved, 0);
+		assert.equal(stats.chainsRemoved, 0);
+		assert.deepEqual(bChains()[0]!.premises, [xId], "B's argument survives A's deletion");
+		const x = graphStore.readNodes().find((n) => n.id === xId)!;
+		assert.deepEqual(x.provenance, [], "A's traces are gone; the identity stays for B's chain");
+
+		// A later, unrelated purge must not drop the provenance-less node.
+		deleteChatTraces(graphStore, "src_cite_c", "delete-nodes");
+		assert.ok(graphStore.readNodes().some((n) => n.id === xId));
+		assert.equal(bChains().length, 1);
+	});
+
 	it("preserve-graph: only the extraction bookkeeping dies — the graph ledgers are byte-identical", () => {
 		const { dA, dB, xId, yId, zId } = buildTwoSessionScenario();
 		const before = {
@@ -763,7 +800,7 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 
 	it("deleteChatSession: the orchestration's gates and the sync block", async () => {
 		// 404 — unknown chat.
-		assert.deepEqual(await deleteChatSession("chat_missing_delete", "delete-nodes"), { ok: false, status: 404, code: "not_found", error: "No such session" });
+		assert.deepEqual(await deleteChatSession("chat_missing_delete", "delete-nodes"), { ok: false, status: 404, code: "not_found", error: "No such lesson" });
 
 		const { dA } = buildTwoSessionScenario();
 		// 409 — a turn in flight.
@@ -795,7 +832,7 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		assert.doesNotMatch(await settledTurnResponse(dA.id).text(), /"type":"error"/, "deletion clears its transient notice");
 		assert.equal(jobStore.getJob(doneJob.id), null, "the chat's job records are gone");
 		// And a second call is an honest 404.
-		assert.deepEqual(await deleteChatSession(dA.id, "delete-nodes"), { ok: false, status: 404, code: "not_found", error: "No such session" });
+		assert.deepEqual(await deleteChatSession(dA.id, "delete-nodes"), { ok: false, status: 404, code: "not_found", error: "No such lesson" });
 	});
 });
 
