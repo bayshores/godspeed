@@ -314,17 +314,10 @@ export const TITLE_MAX_CHARS = 72;
 export function titleFromPrompt(prompt: string): string {
 	const oneLine = prompt.replace(/\s+/g, " ").trim();
 	if (oneLine.length <= TITLE_MAX_CHARS) return oneLine;
-	// Last space among the first TITLE_MAX_CHARS characters; the cut sits
-	// before it so no trailing space rides into the title.
-	let cut = -1;
-	for (let i = TITLE_MAX_CHARS; i > 0; i--) {
-		if (oneLine[i - 1] === " ") {
-			cut = i - 1;
-			break;
-		}
-	}
-	// One long word: no boundary exists under the cap — split it. This also lands correctly when the first word exactly
-	// fills the cap: cutting at the cap IS the boundary.
-	if (cut < 0) cut = TITLE_MAX_CHARS;
+	// Last space at or before the cap. A space at index TITLE_MAX_CHARS means the first TITLE_MAX_CHARS chars are whole words.
+	const space = oneLine.lastIndexOf(" ", TITLE_MAX_CHARS);
+	let cut = space > 0 ? space : TITLE_MAX_CHARS;
+	// One long word: don't split a surrogate pair.
+	if (space <= 0 && /[\uD800-\uDBFF]/.test(oneLine[cut - 1]!)) cut--;
 	return `${oneLine.slice(0, cut)}…`;
 }
