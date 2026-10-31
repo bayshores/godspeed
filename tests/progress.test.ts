@@ -156,6 +156,13 @@ describe("progress: ramp and statuses", () => {
 		assert.equal(P.daysBetween("2026-10-27", "2026-10-20"), -7);
 		assert.equal(P.daysBetween("2026-03-07", "2026-03-09"), 2, "a daylight-saving weekend is still 2 days");
 	});
+
+	it("names the local calendar day, zero-padded, from a Date or a timestamp", () => {
+		const morning = new Date(2026, 2, 5, 0, 30);
+		assert.equal(P.localDay(morning), "2026-03-05");
+		assert.equal(P.localDay(morning.getTime()), "2026-03-05");
+		assert.equal(P.localDay(new Date(2026, 11, 31, 23, 59)), "2026-12-31");
+	});
 });
 
 describe("progress: answers", () => {

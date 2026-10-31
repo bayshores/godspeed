@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 import { Countdown, useIsOverdue } from "@/components/countdown";
 import { DoneBox } from "@/components/done-box";
-import { dueSoon, localDayOf, sidebarWhenLabel, type OpenDeadline } from "@/components/deadlines-model";
+import { localDay } from "@/core";
+import { dueSoon, sidebarWhenLabel, type OpenDeadline } from "@/components/deadlines-model";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,7 +80,7 @@ function DueSoonRow({
 			<span className="flex min-w-0 flex-1 flex-col">
 				<span className="truncate text-[14px] leading-5 text-ink">{d.name}</span>
 				<span className="truncate text-[12px] leading-4 text-ink-2">
-					{d.className} · {sidebarWhenLabel(d, localDayOf(fixedNow ?? Date.now()))}
+					{d.className} · {sidebarWhenLabel(d, localDay(fixedNow ?? Date.now()))}
 				</span>
 			</span>
 			<span className="flex h-5 shrink-0 items-center">

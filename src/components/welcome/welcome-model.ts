@@ -3,8 +3,8 @@
  * deadline when there is one ("Claude Code connected · Midterm 2 in 3
  * days"). Pure and unit-tested.
  */
-import { daysBetween } from "@/core";
-import { isOverdue, localDayOf } from "@/components/deadlines-model";
+import { daysBetween, localDay } from "@/core";
+import { isOverdue } from "@/components/deadlines-model";
 
 export function statusLine(
 	agent: { connected: boolean; name?: string },
@@ -16,7 +16,7 @@ export function statusLine(
 	let when: string;
 	if (isOverdue(next, nowMs)) when = "overdue";
 	else {
-		const days = daysBetween(localDayOf(nowMs), next.date);
+		const days = daysBetween(localDay(nowMs), next.date);
 		when = days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
 	}
 	return `${who} · ${next.name} ${when}`;

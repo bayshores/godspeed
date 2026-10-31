@@ -522,6 +522,14 @@ export interface OverallProgress {
 	workOnNext: WorkOnNextItem[];
 }
 
+/** The calendar day of a moment in this computer's time zone, YYYY-MM-DD
+ *  (the app runs locally, so the server's day is the learner's). */
+export function localDay(now: Date | number = new Date()): string {
+	const d = new Date(now);
+	const pad = (n: number) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /** Whole days from `today` to `date` (both YYYY-MM-DD). */
 export function daysBetween(today: string, date: string): number {
 	const utc = (d: string) => {

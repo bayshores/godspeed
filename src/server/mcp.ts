@@ -44,6 +44,7 @@ import { getGraph } from "../core/graph.ts";
 import { pageBlocks, splitPages } from "../core/work-pages.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
 import { CLASS_ICONS, cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassDeadline, type ClassFileStatus, type ClassIcon, type ClassScope } from "../core/contracts.ts";
+import { localDay } from "../core/progress.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -64,7 +65,6 @@ import {
 } from "./classes.ts";
 import { classFilePath, classTopics } from "./class-card.ts";
 import { fileExtents, readPassage, searchClassFiles, searchFacts } from "./search-index.ts";
-import { localToday } from "./progress.ts";
 import { createLesson } from "./lessons.ts";
 import { recordAgentAction, type AgentActionInput } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
@@ -653,7 +653,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
  *  the same local wall clock). */
 function localNow(now = new Date()): string {
 	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${localToday(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+	return `${localDay(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
 /** A class as agents see it: summary, file counts by status (and the

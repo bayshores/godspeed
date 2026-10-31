@@ -11,17 +11,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ProgressPayload } from "@/core";
+import { localDay, type ProgressPayload } from "@/core";
 import { classQuery, useClasses } from "@/components/class-context";
 import { useServerEvent, useServerResync } from "@/components/server-events";
-
-/** The browser's calendar day as YYYY-MM-DD (sets the deadlines' days left). */
-export function localDay(now: Date = new Date()): string {
-	const y = now.getFullYear();
-	const m = String(now.getMonth() + 1).padStart(2, "0");
-	const d = String(now.getDate()).padStart(2, "0");
-	return `${y}-${m}-${d}`;
-}
 
 const REFRESH_DEBOUNCE_MS = 400;
 
