@@ -140,6 +140,30 @@ describe("POST /api/chats — graphContext becomes message[0]", () => {
 		assert.ok(m.content.includes("- Modus ponens → Soundness"));
 	});
 
+	it("a chain asserted by two chats is listed once", async () => {
+		const node = (id: string, name: string) => ({
+			id, name, statement: `${name}.`, aliases: [] as string[], createdAt: "2026-10-01T00:00:00.000Z", provenance: [],
+		});
+		graphStore.appendNode(node("n_p1", "Premise one"));
+		graphStore.appendNode(node("n_p2", "Premise two"));
+		graphStore.appendNode(node("n_c", "Conclusion"));
+		for (const chatId of ["chat_a", "chat_b"]) {
+			graphStore.appendChain({
+				id: "arg_twice", premises: ["n_p1", "n_p2"], conclusion: "n_c",
+				provenance: [{ chatId, messageId: "m1" }], createdAt: "2026-10-01T00:00:00.000Z",
+			});
+		}
+		const propositions = ["n_p1", "n_p2", "n_c"].map((id) => ({ id, name: id, statement: id }));
+		const res = await POST(new Request("http://test/api/chats", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ title: "t", kind: "practice", graphContext: { propositions } }),
+		}));
+		const { id } = (await res.json()) as { id: string };
+		const m = chatStore.getChat(id)!.messages[0] as { content: string };
+		assert.equal(m.content.split("Premise one, Premise two → Conclusion").length - 1, 1);
+	});
+
 	it("no picks (or malformed) → no marker, an empty record as before", async () => {
 		for (const body of [{ title: "t" }, { title: "t", graphContext: { propositions: "junk" } }]) {
 			const res = await POST(new Request("http://test/api/chats", {

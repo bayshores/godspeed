@@ -10,6 +10,7 @@
 import { chainsForSelection, formatChainLine } from "../core/chains.ts";
 import type { ChatRecord, ClassScope } from "../core/contracts.ts";
 import { titleFromPrompt } from "../core/contracts.ts";
+import { getGraph } from "../core/graph.ts";
 import { newClassContextMessage, newGraphContextMessage, type GraphContextPick, type LhMessage } from "../core/native-messages.ts";
 import { classCardFor } from "./class-card.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -36,10 +37,11 @@ export function createLesson(input: CreateLessonInput): CreateLessonOutcome {
 	if (picks.length > 0) {
 		// The picks carry their own name/statement (what the learner saw);
 		// the chains derive from the lesson's OWN class graph.
-		const graph = graphStoreFor(input.classId);
-		const byId = new Map(graph.readNodes().map((n) => [n.id, n]));
+		// Merged snapshot: a chain re-asserted by another chat is one chain, not two lines.
+		const { nodes, chains } = getGraph(graphStoreFor(input.classId));
+		const byId = new Map(nodes.map((n) => [n.id, n]));
 		const pickedNodes = picks.map((p) => byId.get(p.id)).filter((n) => n !== undefined);
-		const chainLines = chainsForSelection(pickedNodes, graph.readChains()).map((c) => formatChainLine(c, Object.fromEntries(byId)));
+		const chainLines = chainsForSelection(pickedNodes, chains).map((c) => formatChainLine(c, Object.fromEntries(byId)));
 		messages.push(newGraphContextMessage(picks, chainLines) as LhMessage);
 	}
 	if (messages.length > 0) stores.chatStore.saveMessages(chat.id, messages);
