@@ -3,7 +3,7 @@ import { EllipsisIcon } from "lucide-react";
 import { BrailleSpinner } from "@/components/braille-spinner";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ChatListItem } from "@/core";
+import { localDay, type ChatListItem } from "@/core";
 
 /**
  * ONE LESSON ROW: the title (14.5px), then a short
@@ -15,13 +15,6 @@ import type { ChatListItem } from "@/core";
  * opens the lesson menu, the same menu a right-click opens.
  */
 
-function isoDate(iso: string): string {
-	const date = new Date(iso);
-	const mm = String(date.getMonth() + 1).padStart(2, "0");
-	const dd = String(date.getDate()).padStart(2, "0");
-	return `${date.getFullYear()}-${mm}-${dd}`;
-}
-
 /** The row's short age: "now", "5m", "3h", "2d", then the ISO date. */
 export function shortAgo(iso: string, now = new Date()): string {
 	const ms = now.getTime() - new Date(iso).getTime();
@@ -32,7 +25,7 @@ export function shortAgo(iso: string, now = new Date()): string {
 	if (h < 24) return `${h}h`;
 	const d = Math.floor(h / 24);
 	if (d < 7) return `${d}d`;
-	return isoDate(iso);
+	return localDay(new Date(iso));
 }
 
 /** The tooltip's age, written out: "just now", "5 minutes ago",
@@ -47,7 +40,7 @@ export function longAgo(iso: string, now = new Date()): string {
 	if (h < 24) return plural(h, "hour");
 	const d = Math.floor(h / 24);
 	if (d < 7) return plural(d, "day");
-	return `on ${isoDate(iso)}`;
+	return `on ${localDay(new Date(iso))}`;
 }
 
 /** The lesson waits for the learner: an open question, or (practice) a

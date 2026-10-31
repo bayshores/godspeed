@@ -6,16 +6,10 @@
 import type { ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
 import { deriveProgress, type ProgressPayload } from "../core/progress.ts";
+import { localDay } from "../core/today-note.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { topicGroupingRunning } from "./topics.ts";
-
-/** This computer's calendar day, YYYY-MM-DD (the app runs locally, so the
- *  server's day is the learner's). */
-export function localToday(now = new Date()): string {
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
 
 /** Everything the Overview and the Graph page need for one scope. Returns
  *  null when the class does not exist. */
@@ -32,7 +26,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 		.map((r) => ({ id: r.id, title: r.title, kind: r.kind, updatedAt: r.updatedAt, messages: r.messages }));
 	return deriveProgress({
 		classId: scope,
-		today: opts.today ?? localToday(),
+		today: opts.today ?? localDay(),
 		facts: graph.nodes,
 		chains: graph.chains,
 		topics: store.readTopics(),

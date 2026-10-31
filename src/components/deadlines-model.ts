@@ -4,7 +4,7 @@
  * unit-tested. The list comes from GET /api/deadlines (open deadlines of
  * non-archived classes, soonest first).
  */
-import { daysBetween, type ClassDeadline } from "@/core";
+import { daysBetween, localDay, type ClassDeadline } from "@/core";
 import { clockLabel, deadlineDateLabel } from "./class-deadlines-model";
 import { dueAtMs } from "./countdown-model";
 
@@ -14,12 +14,6 @@ export type OpenDeadline = ClassDeadline & { classId: string; className: string 
 const DUE_SOON_ROWS = 4;
 /** Home's "Later" group: more than this many days away. */
 const LATER_DAYS = 14;
-
-/** The calendar day of a local moment, YYYY-MM-DD. */
-export function localDayOf(ms: number): string {
-	const d = new Date(ms);
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /** Soonest due first (so overdue ones come first), name breaking ties. */
 export function byDue<T extends { date: string; time?: string; name: string }>(list: readonly T[]): T[] {
@@ -79,7 +73,7 @@ export function comingUpGroups<T extends { date: string; time?: string; name: st
 	list: readonly T[],
 	nowMs: number,
 ): ComingUpGroup<T>[] {
-	const today = localDayOf(nowMs);
+	const today = localDay(nowMs);
 	const groups: ComingUpGroup<T>[] = [];
 	const find = (key: string, label: string, overdue = false) => {
 		let g = groups.find((x) => x.key === key);
@@ -117,7 +111,7 @@ export function itemsSummary(list: readonly { date: string; time?: string; done:
 /** A class block's "Next due": "Reading quiz, today 5:00 PM",
  *  "HW 5, tomorrow", "Midterm 2, Thu Nov 5, 7:00 PM". */
 export function nextDueText(d: { name: string; date: string; time?: string }, nowMs: number): string {
-	const days = daysBetween(localDayOf(nowMs), d.date);
+	const days = daysBetween(localDay(nowMs), d.date);
 	const clock = d.time ? clockLabel(d.time) : "";
 	let when: string;
 	if (days === 0) when = clock ? `today ${clock}` : "today";
@@ -130,7 +124,6 @@ export function nextDueText(d: { name: string; date: string; time?: string }, no
 export function longDateLine(ms: number): string {
 	const d = new Date(ms);
 	const day = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-	const h = d.getHours();
-	const clock = `${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+	const clock = clockLabel(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
 	return `${day} · ${clock}`;
 }

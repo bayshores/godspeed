@@ -65,13 +65,13 @@ import {
 } from "./classes.ts";
 import { classTopics } from "./class-card.ts";
 import { fileExtents, readPassage, searchClassFiles, searchFacts } from "./search-index.ts";
-import { localToday } from "./progress.ts";
 import { createLesson } from "./lessons.ts";
 import { recordAgentAction, type AgentActionInput } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 import { currentAgentBriefing } from "./agent-memory.ts";
 import { addAgentNote, removeAgentNote } from "../store/agent-notes.ts";
 import { NOTE_MAX_CHARS } from "../core/agent-notes.ts";
+import { localDay } from "../core/today-note.ts";
 import { RULE_MAX_CHARS, TEACHING_AREAS, type AreaId } from "../core/teaching-areas.ts";
 import { saveRuleByAgent } from "./agent-rules.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
@@ -654,7 +654,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
  *  the same local wall clock). */
 function localNow(now = new Date()): string {
 	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${localToday(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+	return `${localDay(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
 /** A class as agents see it: summary, file counts by status (and the
