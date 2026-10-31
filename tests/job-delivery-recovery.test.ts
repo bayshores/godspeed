@@ -83,8 +83,8 @@ for (const [kind, input] of Object.entries({
 		spawns++;
 		assert.deepEqual(stores.jobStore.getJob(job.id)!.input, input);
 	} });
-	await tools[kind]!.execute!("fixture-dispatch", input);
-	await tools[kind]!.execute!("fixture-dispatch", input);
+	await tools[kind as JobKind].execute!("fixture-dispatch", input);
+	await tools[kind as JobKind].execute!("fixture-dispatch", input);
 	assert.equal(spawns, 1);
 	assert.equal(stores.jobStore.listJobs(owner.id)[0]!.kind, kind as JobKind);
 });

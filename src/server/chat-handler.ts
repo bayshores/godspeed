@@ -392,10 +392,8 @@ export async function handleChatInput(
 							// Targets are the lesson's OWN class graph (writes never cross
 							// classes).
 							graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
-							// THE RARELY-NEEDED SET: research + pdf jobs
-							// (same runner/gating as the teacher's — research honestly
-							// absent when no engine is live) and the map readers behind
-							// the SAME settings gate as the prober's.
+							// THE RARELY-NEEDED SET: research + pdf jobs and the map
+							// readers behind the SAME settings gate as the prober's.
 							jobs: {
 								chatId,
 								jobStore: stores.jobStore,
@@ -418,8 +416,6 @@ export async function handleChatInput(
 							spawn: (job, input) => void jobRunner.runJob(job.id, input),
 							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 							saveRule,
-							// The registry drop's signal: no live engine
-							// = no research tool in the teacher's registry.
 						},
 						agentOpts,
 					)

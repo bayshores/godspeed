@@ -349,15 +349,14 @@ export function createProberTools(
 				// prober can verify facts or read learner PDFs while assessing.
 				// demo/visual stay teach-phase-only (they need the lesson's plan
 				// context). Same user-toggle filtering as the teacher.
-				...(jobs.research ? { research: jobs.research } : {}),
-				pdf: jobs.pdf!,
+				research: jobs.research,
+				pdf: jobs.pdf,
 				// The map reader: present only when the settings gate opened.
 				...(ctx.graphStore
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
 				...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
 				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
-				...done,
 			},
 				withoutMechanics(enabled),
 			),
