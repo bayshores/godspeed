@@ -30,6 +30,11 @@ function toHex(rgb: Rgb): string {
 	return `#${rgb.map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** Every channel moved by `delta` (in 0..255 steps), clamped. */
+export function shiftHex(hex: string, delta: number): string {
+	return toHex(channels(hex).map((c) => c + delta / 255) as Rgb);
+}
+
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 const toGamma = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.max(0, c) ** (1 / 2.4) - 0.055);
 
