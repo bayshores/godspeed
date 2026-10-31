@@ -190,7 +190,7 @@ describe("opening a terminal", () => {
 	it("opens Terminal on a Mac and a new console on Windows", () => {
 		assert.deepEqual(terminal.terminalCandidates("/a/b.command", "darwin"), [["open", ["-a", "Terminal", "/a/b.command"]]]);
 		assert.deepEqual(terminal.terminalCandidates("C:\\a b\\s.cmd", "win32"), [["cmd.exe", ["/c", "start", '""', "cmd.exe", "/k", '"C:\\a b\\s.cmd"']]]);
-		assert.equal(terminal.terminalCandidates("/a/b.sh", "linux")[0]![0], "x-terminal-emulator");
+		assert.deepEqual(terminal.terminalCandidates("/a/b.sh", "linux").map(([command]) => command), ["x-terminal-emulator", "gnome-terminal", "konsole", "ptyxis", "kgx", "xterm"]);
 	});
 });
 
