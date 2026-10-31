@@ -481,20 +481,6 @@ function cleanToolCallIds(messages: readonly LhMessage[]): Set<string> {
 	return ids;
 }
 
-/** The conclusion's reveal: the hero of a
- *  conclude card is the modelSolution committed at POSE time — the newest
- *  cleanly-posed problem BEFORE this conclude call. The reveal is never
- *  re-authored (the conclude schema has no solutionReveal); stored conclude
- *  inputs that still carry their own solutionReveal fall back to it at the
- *  card. Undefined when the pose carries no string solution. */
-export function modelSolutionForConclude(
-	messages: readonly LhMessage[],
-	concludeCallId: string,
-): string | undefined {
-	const input = problemInputForConclude(messages, concludeCallId);
-	return typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
-}
-
 /** The full pose-side fold:
  * EVERYTHING the agent filled into the problem call — mode, target ids,
  * statement, the committed solution — joined onto the conclude part so
@@ -590,14 +576,13 @@ export function pendingProblemDismissalOf(messages: readonly LhMessage[]): strin
 			const assistant = m as AssistantMessage;
 			for (let bi = assistant.content.length - 1; bi >= 0; bi--) {
 				const block = assistant.content[bi]!;
-				if (block.type !== "toolCall" && block.type !== "text") continue;
-				if (block.type === "toolCall" && block.name === PRACTICE_CONCLUDE_TOOL) {
+				if (block.type !== "toolCall") continue;
+				if (block.name === PRACTICE_CONCLUDE_TOOL) {
 					if (cleanCallIds.has(block.id)) return null; // a CLEAN conclude settles it
 					continue; // errored/dangling: it never happened
 				}
-				if (block.type === "toolCall" && block.name === PRACTICE_PROBLEM_TOOL) {
+				if (block.name === PRACTICE_PROBLEM_TOOL) {
 					if (cleanCallIds.has(block.id)) return null; // a CLEAN pose supersedes it
-					continue;
 				}
 			}
 			continue;
@@ -674,6 +659,13 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 	const out: Message[] = [];
 	if (leading) out.push(leading);
 	if (head) out.push(head);
+	// The last index of each call id's result, built once: a call is
+	// answered when its id has a result after it (legacy providers reuse
+	// ids like call_0, so "after" matters, not "anywhere").
+	const lastResultAt = new Map<string, number>();
+	messages.forEach((m, j) => {
+		if ((m as { role?: string }).role === "toolResult") lastResultAt.set((m as ToolResultMessage).toolCallId, j);
+	});
 	for (let i = leading ? Math.max(start, 1) : start; i < messages.length; i++) {
 		const m = messages[i]!;
 		const role = (m as { role?: string }).role;
@@ -704,9 +696,8 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 			const assistant = m as AssistantMessage;
 			const calls = assistant.content.filter((b) => b.type === "toolCall");
 			if (calls.length === 0) continue;
-			const answered = resultIdsFrom(messages.slice(i + 1));
 			for (const call of calls) {
-				if (answered.has(call.id)) continue;
+				if ((lastResultAt.get(call.id) ?? -1) > i) continue;
 				out.push({
 					role: "toolResult",
 					toolCallId: call.id,

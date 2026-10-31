@@ -1,14 +1,9 @@
 /** Shared Markdown/TeX boundaries for legacy delimiter compatibility and
  * display-only tool-content recovery. Source arguments are never rewritten. */
 import {
-	canParseTex, knownTexCommand, mapMathContent, numericPercentEscape, outsideTexComments,
+	canParseTex, escaped, knownTexCommand, mapMathContent, numericPercentEscape, outsideTexComments,
 	readContentSpans, recoverDocumentLayout, texRanges,
 } from "./content-reader.ts";
-
-const escaped = (text: string, i: number) => {
-	let n = 0; while (i > 0 && text[--i] === "\\") n++;
-	return n % 2 === 1;
-};
 
 /** Preserve the legacy list-continuation policy: indented display math
  * degrades to inline rather than disrupting list structure. Literal code

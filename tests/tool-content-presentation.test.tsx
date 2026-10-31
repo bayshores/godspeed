@@ -112,8 +112,8 @@ test("answers snapshot source text, not recovered labels or identities", () => {
 	const source = { ...input, question: doubled, explanation: doubled, options: [{ label: doubled }, { label: "no" }], correctAnswer: doubled };
 	const parsed = parseQuizInput(source)!;
 	const options = normalizeOptions(parsed.options);
-	const qd: QuestionData = { id: "source", kind: "quiz", question: parsed.question, mode: "single-select", options,
-		correctIndices: resolveCorrect(parsed.correctAnswer, options).indices, explanation: parsed.explanation, createdAt: "synthetic" };
+	const qd: QuestionData = { kind: "quiz", question: parsed.question, mode: "single-select", options,
+		correctIndices: resolveCorrect(parsed.correctAnswer, options).indices, explanation: parsed.explanation };
 	const answer = buildAnswer(qd, { values: [doubled], confidence: 70 }, "probe");
 	assert.equal(answer.questionText, doubled);
 	assert.equal(answer.options![0]!.label, doubled);

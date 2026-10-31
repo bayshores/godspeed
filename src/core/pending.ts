@@ -16,7 +16,7 @@ function isToolUIPart(part: UIMessage["parts"][number]): boolean {
 }
 
 /**
- * The pending-question gate: an unanswered QUESTION tool part (quiz/ask)
+ * The pending-question gate: an unanswered question tool part (QUESTION_TOOLS)
  * blocks the composer — one question at a time, mirroring the teacher's
  * prompt contract. Derived client state; the server enforces nothing.
  *
@@ -29,12 +29,12 @@ function isToolUIPart(part: UIMessage["parts"][number]): boolean {
  * Job tool parts (research/demo/visual) never pend client-side — the async
  * protocol resolves them server-side with an immediate ack (see
  * contracts/jobs.ts "THE ASYNC PROTOCOL"), so job tools are NOT returned
- * here. This file carries only the question gate and the shared scan helper.
+ * here. This file carries only the question gate.
  */
 interface PendingToolCall {
 	toolCallId: string;
 	tool: string;
-	/** Tool input (quiz/ask args) — lets the composer pick note vs answer mode. */
+	/** Tool input (the question tool's args) — lets the composer pick note vs answer mode. */
 	input: unknown;
 }
 
@@ -95,24 +95,20 @@ export function filterEnabledTools<T>(tools: Record<string, T>, enabled?: Enable
 	return out;
 }
 
-function findPending(messages: UIMessage[], names: readonly string[]): PendingToolCall | null {
+export function findPendingToolCall(messages: UIMessage[]): PendingToolCall | null {
 	for (let m = messages.length - 1; m >= 0; m--) {
 		const msg = messages[m]!;
 		for (let p = 0; p < msg.parts.length; p++) {
 			const part = msg.parts[p]!;
 			if (isToolUIPart(part) && part.state === "input-available") {
 				const tool = part.type.slice("tool-".length);
-				if (names.includes(tool)) {
+				if ((QUESTION_TOOLS as readonly string[]).includes(tool)) {
 					return { toolCallId: part.toolCallId as string, tool, input: part.input };
 				}
 			}
 		}
 	}
 	return null;
-}
-
-export function findPendingToolCall(messages: UIMessage[]): PendingToolCall | null {
-	return findPending(messages, QUESTION_TOOLS);
 }
 
 // ─── Turn activity label ─────────────────────────────────────────────────────

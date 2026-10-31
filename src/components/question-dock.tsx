@@ -28,12 +28,12 @@ import {
 	type AskToolInput,
 	type ConfidenceLevel,
 	type DockSelection,
-	type ExplainToolInput,
+	type ExplainDisplayInput,
 	type QuestionAnswerData,
 	type QuestionFormDraft,
 	type QuestionData,
 	type QuestionMode,
-	type QuizToolInput,
+	type QuizDisplayInput,
 	type SelectMode,
 	type WriteCodeInput,
 } from "@/core";
@@ -55,7 +55,7 @@ import { CodeQuestion } from "@/components/lesson/code-question";
 export interface QuestionDockProps {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall" | "write_code";
 	toolCallId: string;
-	input: QuizToolInput | AskToolInput | ExplainToolInput | WriteCodeInput;
+	input: unknown;
 	onSubmit: (output: QuestionAnswerData) => void;
 	/** The form as the learner left it (this call's saved draft). */
 	initialDraft?: QuestionFormDraft;
@@ -110,7 +110,7 @@ export function QuestionDock(props: QuestionDockProps) {
 		);
 	}
 	if (canonical === "write_code") return <CodeQuestion {...props} input={parsed as WriteCodeInput} />;
-	return <QuestionDockForm {...props} input={parsed as QuizToolInput | AskToolInput | ExplainToolInput} />;
+	return <QuestionDockForm {...props} input={parsed as QuizDisplayInput | AskToolInput | ExplainDisplayInput} />;
 }
 
 /** A picked row inverts: ink background, page-colored text. */
@@ -161,7 +161,7 @@ function QuestionDockForm({
 	onSkip,
 	compactionRunning = false,
 	footer,
-}: Omit<QuestionDockProps, "input"> & { input: QuizToolInput | AskToolInput | ExplainToolInput }) {
+}: Omit<QuestionDockProps, "input"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
 	const kind = toolQuestionKind(toolName);
 	const play = useSound();
 
@@ -170,9 +170,9 @@ function QuestionDockForm({
 	// leaks correctness and server/client agree; the display order is
 	// snapshotted into the answer at submit.
 	const qd = useMemo<QuestionData>(() => {
-		const quizInput = kind === "quiz" ? (input as QuizToolInput) : null;
+		const quizInput = kind === "quiz" ? (input as QuizDisplayInput) : null;
 		const askInput = kind === "ask" ? (input as AskToolInput) : null;
-		const explainInput = kind === "explain" ? (input as ExplainToolInput) : null;
+		const explainInput = kind === "explain" ? (input as ExplainDisplayInput) : null;
 		const multi = input instanceof Object && "multiSelect" in input ? input.multiSelect === true : false;
 		const mode: QuestionMode =
 			kind === "quiz"
@@ -187,14 +187,12 @@ function QuestionDockForm({
 		const options = normalizeOptions((quizInput?.options ?? askInput?.options ?? []) as { label: string; value?: string }[]);
 		const ordered = kind === "quiz" && options.length > 0 ? shuffleOptions(options, seededRandom(toolCallId)) : options;
 		const q: QuestionData = {
-			id: toolCallId,
 			kind,
 			questionType: kind === "quiz" ? normalizeQuizType((input as { type?: unknown }).type) : undefined,
 			question: input.question,
 			context: input.details,
 			mode,
 			options: ordered,
-			createdAt: new Date().toISOString(),
 		};
 		if (quizInput) {
 			const resolved = resolveCorrect(quizInput.correctAnswer, ordered);

@@ -59,6 +59,17 @@ describe("shift+tab and mod+k bind to nothing (the model controls were removed 2
 	});
 });
 
+describe("formatBinding shows + and Space keys", () => {
+	it("a + key keeps its glyph, with or without modifiers", () => {
+		assert.equal(formatBinding("mod+shift++"), IS_MAC ? "⌘⇧+" : "Ctrl+Shift++");
+		assert.equal(formatBinding("+"), "+");
+	});
+
+	it("a space key reads as Space", () => {
+		assert.equal(formatBinding("mod+ "), IS_MAC ? "⌘Space" : "Ctrl+Space");
+	});
+});
+
 describe("the Alt session cycle is RETIRED (owner, 2026-10-10)", () => {
 	// Barely used, felt laggy — session navigation lives IN the search
 	// now (↑/↓ walk the filtered list, Enter opens; sidebar.tsx).

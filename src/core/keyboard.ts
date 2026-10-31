@@ -188,14 +188,16 @@ const KEY_GLYPH: Record<string, string> = {
 
 /** Format a binding for display: "mod+shift+f" → "⌘⇧F". */
 export function formatBinding(binding: string): string {
-	const parts = binding.split("+");
-	const key = parts.pop()!; // last part is always the key
+	// The key itself can be "+" ("mod+shift++"), so it is read before splitting.
+	const plusKey = binding === "+" || binding.endsWith("++");
+	const parts = plusKey ? (binding === "+" ? [] : binding.slice(0, -2).split("+")) : binding.split("+");
+	const key = plusKey ? "+" : parts.pop()!; // last part is always the key
 	const glyphs: string[] = [];
 	for (const part of parts) {
 		if (part === "mod") glyphs.push(MOD_GLYPH);
 		else if (part === "alt") glyphs.push(ALT_GLYPH);
 		else if (part === "shift") glyphs.push(SHIFT_GLYPH);
 	}
-	const keyGlyph = KEY_GLYPH[key] ?? key.toUpperCase();
+	const keyGlyph = KEY_GLYPH[key === " " ? "space" : key] ?? key.toUpperCase();
 	return glyphs.join("") + keyGlyph;
 }

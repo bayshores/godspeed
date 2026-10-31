@@ -28,7 +28,7 @@
 
 import { Value } from "typebox/value";
 import type { TSchema } from "typebox";
-import { quizDisplayInputSchema, askInputSchema, askOptionProblems, quizInputProblems, explainInputProblems, explainDisplayInputSchema, type AskToolInput, type QuizToolInput, type ExplainToolInput } from "./question-core.ts";
+import { quizDisplayInputSchema, askInputSchema, askOptionProblems, quizInputProblems, explainInputProblems, explainDisplayInputSchema, type AskToolInput, type QuizDisplayInput, type ExplainDisplayInput } from "./question-core.ts";
 import { healEncodedArguments } from "./argument-heal.ts";
 import { probeDoneInputSchema, type ProbeDoneInput } from "./contracts/probe.ts";
 import { writeCodeInputProblems, writeCodeInputSchema, type WriteCodeInput } from "./code-question.ts";
@@ -67,7 +67,7 @@ function boundaryParse<T>(schema: TSchema, input: unknown): T | undefined {
  * data from this source copy; recovery belongs exclusively to presentation
  * (ToolContentResponse), never option identities, grading, or snapshots.
  */
-export function parseQuizInput(input: unknown): QuizToolInput | undefined {
+export function parseQuizInput(input: unknown): QuizDisplayInput | undefined {
 	// quizDisplayInputSchema: base + the OPTIONAL `type` — teach-phase
 	// records carry predict|check and the dock renders/gates by it; old and
 	// probe records carry none. nodeId stays an unknown key Value.Clean
@@ -77,7 +77,7 @@ export function parseQuizInput(input: unknown): QuizToolInput | undefined {
 	// posed quiz renders invisible. healEncodedArguments is the same pure
 	// pass the boundary's withArgumentHeal runs.
 	const healedInput = healEncodedArguments(input, quizDisplayInputSchema);
-	const cleaned = boundaryParse<QuizToolInput>(quizDisplayInputSchema, healedInput);
+	const cleaned = boundaryParse<QuizDisplayInput>(quizDisplayInputSchema, healedInput);
 	if (!cleaned) return undefined;
 	if (quizInputProblems(cleaned).length > 0) return undefined;
 	return cleaned;
@@ -103,8 +103,8 @@ export function parseAskInput(input: unknown): AskToolInput | undefined {
  *  (explainInputProblems) mirrors the boundary chain). Both explain
  *  variants share the same fields; the teacher's nodeId is an unknown
  *  key Value.Clean strips, same as the quiz seam. */
-export function parseExplainInput(input: unknown): ExplainToolInput | undefined {
-	const cleaned = boundaryParse<ExplainToolInput>(explainDisplayInputSchema, healEncodedArguments(input, explainDisplayInputSchema));
+export function parseExplainInput(input: unknown): ExplainDisplayInput | undefined {
+	const cleaned = boundaryParse<ExplainDisplayInput>(explainDisplayInputSchema, healEncodedArguments(input, explainDisplayInputSchema));
 	if (!cleaned) return undefined;
 	if (explainInputProblems(cleaned).length > 0) return undefined;
 	return cleaned;

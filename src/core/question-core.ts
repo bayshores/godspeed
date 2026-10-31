@@ -3,15 +3,17 @@
  * imports, no UI: everything here is deterministic and unit-testable.
  *
  * The TypeBox schemas below are the tool INPUT contracts (agent/tools
- * declares the tools against them); the browser validates, shuffles, and
- * grades with these functions, then sends the verdict back as the tool
- * output via addToolOutput:
- *   1. The teacher model calls the `quiz` tool (question + options +
- *      correctAnswer + explanation). No server execute → the call lands in
- *      the UI as a typed tool part in `input-available` state.
- *   2. The learner answers in the card; the client grades with this module.
- *   3. addToolOutput sends the verdict (selection + correctness + note —
- *      never the explanation, the model authored that) back to the model.
+ * declares the tools against them); the browser validates, shuffles and
+ * grades with these functions, then posts the verdict as the answer input
+ * event, which becomes the call's native toolResult (newAnswerResult in
+ * native-messages.ts):
+ *   1. The teacher calls `quiz` (question + options + correctAnswer +
+ *      explanation). No server execute → the call shows in the UI as a
+ *      tool part in `input-available` state.
+ *   2. The learner answers in the dock, which grades it with this module.
+ *   3. The answer is sent as the toolResult: the model gets the compact
+ *      learner-only record (never the explanation), and `details` keeps
+ *      the full QuestionAnswerData.
  *
  * Because the pending question IS a persisted message part, a session can be
  * exited and resumed mid-question for free.
@@ -222,21 +224,24 @@ const predictCheckType = Type.Union([Type.Literal("predict"), Type.Literal("chec
 		"understanding reveal). ONE question per turn either way.",
 });
 
+/** The plan-node tag, shared by both teach quizzing tools. */
+const planNodeId = Type.String({
+	description:
+		"REQUIRED plan-tree node id this question is about — must EXACTLY match one of this session's " +
+		"plan_init node slugs (validated at call time; a mismatched id is rejected back to you). " +
+		"The lesson's position on the map derives from these tags (the node the latest tagged question is about is " +
+		"where the map stands; earlier ones count as visited). A node takes as many questions as it deserves: stay on " +
+		"one node for as many turns as the understanding needs — one reasoning step at a time, never rush forward. " +
+		"For off-map checks use ask_user_question.",
+});
+
 
 /** The TEACH-side quiz object. The required pair leads the property
  *  order because models drop trailing fields on long calls; fields
  *  generated first get dropped least. */
 export const quizInputObject = Type.Object({
 	type: predictCheckType,
-	nodeId: Type.String({
-		description:
-			"REQUIRED plan-tree node id this question is about — must EXACTLY match one of this session's " +
-			"plan_init node slugs (validated at call time; a mismatched id is rejected back to you). " +
-			"The lesson's position on the map derives from these tags (the node the latest tagged question is about is " +
-			"where the map stands; earlier ones count as visited). A node takes as many questions as it deserves: stay on " +
-			"one node for as many turns as the understanding needs — one reasoning step at a time, never rush forward. " +
-			"For off-map checks use ask_user_question.",
-	}),
+	nodeId: planNodeId,
 	...quizInputBase.properties,
 });
 
@@ -284,15 +289,7 @@ export const explainInputBase = Type.Object({
  *  meaning and order as the teach quiz's. */
 export const explainInputObject = Type.Object({
 	type: predictCheckType,
-	nodeId: Type.String({
-		description:
-			"REQUIRED plan-tree node id this question is about — must EXACTLY match one of this session's " +
-			"plan_init node slugs (validated at call time; a mismatched id is rejected back to you). " +
-			"The lesson's position on the map derives from these tags (the node the latest tagged question is about is " +
-			"where the map stands; earlier ones count as visited). A node takes as many questions as it deserves: stay on " +
-			"one node for as many turns as the understanding needs — one reasoning step at a time, never rush forward. " +
-			"For off-map checks use ask_user_question.",
-	}),
+	nodeId: planNodeId,
 	...explainInputBase.properties,
 });
 
@@ -342,9 +339,9 @@ export const askInputSchema = Type.Object({
 // graded, but duplicate values break the dock's value keying) runs at the
 // call boundary in execute (askOptionProblems, above).
 
-export type QuizToolInput = Static<typeof quizInputObject>;
+export type QuizDisplayInput = Static<typeof quizDisplayInputSchema>;
 export type AskToolInput = Static<typeof askInputSchema>;
-export type ExplainToolInput = Static<typeof explainInputObject>;
+export type ExplainDisplayInput = Static<typeof explainDisplayInputSchema>;
 
 
 /** A real selected answer, in the order the options were displayed. */
@@ -358,9 +355,8 @@ export type QuestionKind = "quiz" | "ask" | "explain" | "code";
 export type SelectMode = "single-select" | "multi-select";
 export type QuestionMode = SelectMode | "text";
 
-/** Full question data — stored in the `lh_question` custom entry. */
+/** Full question data, built by the dock from the tool input and graded by buildAnswer. */
 export interface QuestionData {
-	id: string;
 	kind: QuestionKind;
 	/** quiz only (teach phase): the question's role in
 	 *  the cycle — predict (before the teaching, never collapsed) or check
@@ -377,10 +373,9 @@ export interface QuestionData {
 	committedAnswer?: string;
 	// quiz only (the MC "why"). NEVER send to the client before answering:
 	explanation?: string;
-	createdAt: string;
 }
 
-/** The learner's answer — full structured record, stored in `lh_question_answered`.
+/** The learner's answer — full structured record, stored as the toolResult's `details`.
  *  No questionId: the toolResult message already carries the toolCallId. */
 export interface QuestionAnswerData {
 	kind: QuestionKind;
@@ -538,10 +533,6 @@ export function normalizeOptions(
 			return true;
 		});
 }
-
-/** Fisher-Yates over a copy. correctAnswer is keyed by value, so display
- *  order can be shuffled safely before resolving indices. */
-// ─── options ────────────────────────────────────────────────────────────────
 
 /** mulberry32 seeded by a string — deterministic shuffle for hydration-safe rendering. */
 export function seededRandom(seed: string): () => number {

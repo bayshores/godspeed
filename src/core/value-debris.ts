@@ -5,7 +5,7 @@
  * Membership fields (correctAnswer against option values, quiz type
  * against the literal pair, practice targets against proposition ids)
  * are copied by the model from its own context, and the copy picks up
- * surrounding syntax: colons, quotes, backticks, whitespace.
+ * surrounding syntax: colons, periods, quotes, backticks, whitespace.
  *
  * THE SEAM: strip at every MEMBERSHIP comparison — never on free text
  * (statements, questions, explanations may legitimately carry any of
@@ -16,9 +16,11 @@
  */
 
 /** Strip the copy-syntax debris a model glues onto a membership value:
- * any run of surrounding whitespace, colons, double/single quotes, and
- * backticks, in any interleaving (`":value"`, `: value`, `` `value` ``).
- * The interior is untouched. */
+ * any run of surrounding whitespace, colons, periods, double/single
+ * quotes, and backticks, in any interleaving (`":value"`, `: value`,
+ * `` `value` ``). The interior is untouched. A period can be real content
+ * (a label's last word), which is why coerceCorrectAnswer checks exact
+ * option keys first. */
 export function stripModelValueDebris(value: string): string {
 	return value.replace(/^[\s:."'`]+/, "").replace(/[\s:."'`]+$/, "");
 }
