@@ -52,7 +52,6 @@ import {
 	addCopiedFile,
 	addFileFromPath,
 	AGENT_FILE_READING_REFUSAL,
-	classFilePath,
 	createClass,
 	linkFolder,
 	removeClassDeadline,
@@ -63,7 +62,7 @@ import {
 	updateClass,
 	updateClassDeadline,
 } from "./classes.ts";
-import { classTopics } from "./class-card.ts";
+import { classFilePath, classTopics } from "./class-card.ts";
 import { fileExtents, readPassage, searchClassFiles, searchFacts } from "./search-index.ts";
 import { localToday } from "./progress.ts";
 import { createLesson } from "./lessons.ts";

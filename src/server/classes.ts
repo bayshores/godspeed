@@ -41,7 +41,7 @@ import { discardChatDeliveries } from "./jobs.ts";
 import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./stores.ts";
 import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
-import { applyClassCard } from "./class-card.ts";
+import { applyClassCard, classFilePath, transcriptPathOf } from "./class-card.ts";
 import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 
@@ -77,19 +77,6 @@ export function listClasses(): ClassSummary[] {
 
 export function getClass(id: string): ClassRecord | null {
 	return stores.classStore.getClass(id);
-}
-
-/** Absolute path of a class file on this computer (null when its linked
- *  folder is gone). */
-export function classFilePath(record: ClassRecord, file: ClassFile): string | null {
-	if (file.origin === "copied") return path.join(stores.classStore.filesDir(record.id), file.path);
-	return record.linkedFolder ? path.join(record.linkedFolder, file.path) : null;
-}
-
-/** Where a recording's transcript is kept (inside the app's own class
- *  folder — a linked folder is never written to). */
-function transcriptPathOf(classId: string, fileId: string): string {
-	return path.join(stores.classStore.filesDir(classId), "transcripts", `${fileId}.txt`);
 }
 
 /** Saved PDF text: the extracted text of one version of a file, named by
