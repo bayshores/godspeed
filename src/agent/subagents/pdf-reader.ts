@@ -324,7 +324,7 @@ export async function runPdfReaderAgent(
 		}
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
-		return { path: pdfPath, question: input.question, brief: `PDF failed: the reader crashed — ${msg}`, pagesRead: [...read].sort((a, b) => a - b), pagesConsulted: [...consulted].sort((a, b) => a - b) };
+		return { path: pdfPath, question: input.question, brief: `PDF failed: the reader crashed: ${msg}`, pagesRead: [...read].sort((a, b) => a - b), pagesConsulted: [...consulted].sort((a, b) => a - b) };
 	} finally {
 		forgetConversation(sessionId);
 	}

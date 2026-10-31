@@ -182,7 +182,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 						png = await headless.renderSvg(currentSvg);
 					} catch (err) {
 						const msg = err instanceof Error ? err.message : String(err);
-						return { svg: "", notes: `FAILED: rendering the final SVG failed — ${msg}` };
+						return { svg: "", notes: `FAILED: rendering the final SVG failed: ${msg}` };
 					}
 					opts.onActivity?.("render_svg: inspecting final render");
 					renderedSvg = currentSvg;
@@ -285,7 +285,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 		}
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
-		return { svg: "", notes: `FAILED: the maker crashed — ${msg}` };
+		return { svg: "", notes: `FAILED: the maker crashed: ${msg}` };
 	} finally {
 		forgetConversation(sessionId);
 	}

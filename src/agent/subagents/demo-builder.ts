@@ -176,7 +176,7 @@ function formatRunResult(result: DemoRunResult): string {
 function failureSummary(result: DemoRunResult | null): string {
 	if (!result) return "never tested";
 	const details = [...result.consoleErrors, ...result.pageErrors, ...result.failedRequests].slice(0, 5);
-	return details.length > 0 ? `${summarizeCounts(result)} — ${details.join(" | ")}` : summarizeCounts(result);
+	return details.length > 0 ? `${summarizeCounts(result)}: ${details.join(" | ")}` : summarizeCounts(result);
 }
 
 export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderOptions = {}): Promise<DemoResult> {
@@ -215,7 +215,7 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 		finalText = result.text;
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
-		return { title, html: "", tested: true, notes: `FAILED: the builder crashed — ${msg}` };
+		return { title, html: "", tested: true, notes: `FAILED: the builder crashed: ${msg}` };
 	}
 
 	// The model produced nothing.
@@ -237,7 +237,7 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 			verify = await headless.runDemo(state.html);
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
-			return { title, html: "", tested: true, notes: `FAILED: final verification crashed — ${msg}` };
+			return { title, html: "", tested: true, notes: `FAILED: final verification crashed: ${msg}` };
 		}
 		state.lastResult = verify;
 		if (!verify.ok) {

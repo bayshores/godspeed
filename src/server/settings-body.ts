@@ -267,7 +267,7 @@ export function parseCompactionSettingsBody(body: unknown): SettingsBodyResult<C
 		if (floored < COMPACTION_THRESHOLD_FLOOR) {
 			return {
 				ok: false,
-				error: `thresholdTokens must be at least ${COMPACTION_THRESHOLD_FLOOR} (compaction keeps a ~20k-token recent tail — smaller budgets would churn it)`,
+				error: `thresholdTokens must be at least ${COMPACTION_THRESHOLD_FLOOR} (compaction keeps a ~20k-token recent tail, so smaller budgets would churn it)`,
 			};
 		}
 		settings.thresholdTokens = floored;
