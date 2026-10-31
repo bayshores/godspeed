@@ -172,11 +172,11 @@ export function SettingsDialogBody({
 			.catch(() => {});
 	});
 
-	// Escape closes the dialog.
+	// Escape closes the dialog, unless a field inside already used it.
 	useEffect(() => {
 		if (state === "closed") return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
+			if (e.key === "Escape" && !e.defaultPrevented) {
 				// Claimed at the document level so the window's Esc
 				// (abort) does not also act: one Esc, one action.
 				e.preventDefault();

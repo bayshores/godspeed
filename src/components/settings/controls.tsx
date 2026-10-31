@@ -257,7 +257,8 @@ export function CommitInput({
 			onKeyDown={(e) => {
 				if (e.key === "Enter") e.currentTarget.blur();
 				if (e.key === "Escape" && editing) {
-					// The dialog behind closes on Escape; an edit only cancels.
+					// An edit only cancels: the dialog skips a prevented Escape.
+					e.preventDefault();
 					e.stopPropagation();
 					cancelled.current = true;
 					setEditing(false);
