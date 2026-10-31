@@ -98,7 +98,6 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 				{ id: "expressions", title: "Expressions" },
 			],
 			edges: [{ from: "arith", to: "expressions" }],
-			version: 1,
 		});
 		const res = await boundaryParse(teachQuizToolFor({ chatId, chatStore }), {
 			...validQuiz,
@@ -112,7 +111,6 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		chatStore.saveTree(chatId, {
 			nodes: [{ id: "arith", title: "Arithmetic" }],
 			edges: [],
-			version: 1,
 		});
 		const res = await boundaryParse(teachQuizToolFor({ chatId, chatStore }), {
 			...validQuiz,
@@ -137,7 +135,6 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		chatStore.saveTree(chatId, {
 			nodes: [{ id: "arith", title: "Arithmetic" }],
 			edges: [],
-			version: 1,
 		});
 		const tool = teachQuizToolFor({ chatId, chatStore });
 		const { nodeId: _dropped, ...untagged } = validQuiz;
@@ -163,7 +160,6 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		chatStore.saveTree(chatId, {
 			nodes: [{ id: "fresh-node", title: "Just initialized" }],
 			edges: [],
-			version: 1,
 		});
 		const after = await boundaryParse(tool, { ...validQuiz, nodeId: "fresh-node" });
 		assert.equal(after.success, true, "the same id validates once the tree exists — same turn");
@@ -373,7 +369,6 @@ describe("teachExplainToolFor: the explain variant validates nodeId like the qui
 				{ id: "expressions", title: "Expressions" },
 			],
 			edges: [{ from: "arith", to: "expressions" }],
-			version: 1,
 		});
 		const res = await boundaryParse(teachExplainToolFor({ chatId, chatStore }), {
 			...validExplain,
@@ -384,7 +379,7 @@ describe("teachExplainToolFor: the explain variant validates nodeId like the qui
 
 	it("rejects an off-map nodeId with the slugs listed", async () => {
 		const chatId = newChat("Explain nodeId: typo");
-		chatStore.saveTree(chatId, { nodes: [{ id: "arith", title: "A" }], edges: [], version: 1 });
+		chatStore.saveTree(chatId, { nodes: [{ id: "arith", title: "A" }], edges: [] });
 		const res = await boundaryParse(teachExplainToolFor({ chatId, chatStore }), {
 			...validExplain,
 			nodeId: "arithmetic",
@@ -402,7 +397,7 @@ describe("teachExplainToolFor: the explain variant validates nodeId like the qui
 
 	it("an empty commitment is rejected at the boundary", async () => {
 		const chatId = newChat("Explain: empty commitment");
-		chatStore.saveTree(chatId, { nodes: [{ id: "arith", title: "A" }], edges: [], version: 1 });
+		chatStore.saveTree(chatId, { nodes: [{ id: "arith", title: "A" }], edges: [] });
 		const res = await boundaryParse(teachExplainToolFor({ chatId, chatStore }), {
 			...validExplain,
 			correctAnswer: "   ",

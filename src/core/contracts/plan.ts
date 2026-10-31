@@ -25,8 +25,6 @@ export interface PlanEdge {
 export interface PlanTree {
 	nodes: PlanNode[];
 	edges: PlanEdge[];
-	/** Increments on every mutation — lets the UI animate/react to changes. */
-	version: number;
 }
 
 // The tree carries structure ONLY: position and visited-ness derive from the

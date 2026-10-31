@@ -345,7 +345,7 @@ describe("progress: deriveProgress", () => {
 // ─── the plan step bar ──────────────────────────────────────────────────────
 
 describe("progress: planStepBar", () => {
-	const tree = { nodes: [{ id: "b", title: "Bayes" }, { id: "a", title: "Priors" }, { id: "c", title: "Posteriors" }], edges: [{ from: "a", to: "b" }, { from: "b", to: "c" }], version: 1 };
+	const tree = { nodes: [{ id: "b", title: "Bayes" }, { id: "a", title: "Priors" }, { id: "c", title: "Posteriors" }], edges: [{ from: "a", to: "b" }, { from: "b", to: "c" }] };
 	const part = (type: string, nodeId: string | undefined, output: unknown, toolCallId: string) => ({ type, state: output === undefined ? "input-available" : "output-available", toolCallId, input: nodeId ? { nodeId } : {}, output });
 	const quiz = (ad: Partial<QuestionAnswerData>) => ({ kind: "quiz", questionText: "?", dontKnow: false, answers: [], answeredAt: "", ...ad });
 

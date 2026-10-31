@@ -67,7 +67,7 @@ describe("chat store events (S6: the silence law)", () => {
 		// usage appends + tree: record CONTENT, not list shape.
 		chatStore.appendTurnUsage(chat.id, { id: "t1", messageId: "m1", at: "2026-10-02T00:00:00.000Z", model: "x:y", steps: [] });
 		chatStore.appendExtractionUsage(chat.id, { startedAt: 1, at: "2026-10-02T00:00:00.000Z", durationMs: 1, stages: { extractor: { model: "x:y", steps: [] } } });
-		chatStore.saveTree(chat.id, { nodes: [], edges: [], version: 1 });
+		chatStore.saveTree(chat.id, { nodes: [], edges: [] });
 
 		assert.equal(announces, 0, "the silence law: content writes never announce");
 		off();

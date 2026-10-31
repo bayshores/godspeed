@@ -250,7 +250,6 @@ function createConfiguredChat(title: string) {
 			{ id: "modal-realism", title: "Modal realism" },
 		],
 		edges: [],
-		version: 1,
 	});
 	return chat;
 }
