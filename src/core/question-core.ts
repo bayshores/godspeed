@@ -339,9 +339,9 @@ export const askInputSchema = Type.Object({
 // graded, but duplicate values break the dock's value keying) runs at the
 // call boundary in execute (askOptionProblems, above).
 
-export type QuizToolInput = Static<typeof quizInputObject>;
+export type QuizDisplayInput = Static<typeof quizDisplayInputSchema>;
 export type AskToolInput = Static<typeof askInputSchema>;
-export type ExplainToolInput = Static<typeof explainInputObject>;
+export type ExplainDisplayInput = Static<typeof explainDisplayInputSchema>;
 
 
 /** A real selected answer, in the order the options were displayed. */
