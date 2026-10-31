@@ -200,13 +200,15 @@ export interface PlanBlockData {
 
 /** The list view's shape (messageCount instead of full messages) + the
  *  per-session status the picker renders. `phase` and `pendingQuestion`
- *  derive from the stored record (tree + messages); the store computes
+ *  derive from the stored record's native messages; the store computes
  *  them in listChats. Liveness (`busy`) is NOT record-derived — the API
  *  route merges it in (see ChatListItem).
  *
  *  Phase semantics (three phases, event-driven —
- *  docs/archive/probe-teach-split.md §4): probe ends at the concluded probe_done, plan ends at the successful
- *  plan_init; derived from the transcript (core/phases.ts phaseAt3).
+ *  docs/archive/probe-teach-split.md §4): probe ends at a concluded
+ *  probe_done (clean result, not ok:false); plan ends at the first
+ *  quiz/explain call tagged with a nodeId; derived from the native
+ *  transcript (core/phases.ts phaseAt3Lh).
  */
 export interface ChatSummary {
 	id: string;
@@ -218,7 +220,7 @@ export interface ChatSummary {
 	/** The lesson's class — absent = "No class". */
 	classId?: string;
 	messageCount: number;
-	/** The session's current phase, derived from the stored plan tree. */
+	/** The session's current phase, derived from the native transcript (phaseAt3Lh). */
 	phase: Phase3;
 	/** An unanswered quiz/ask question is waiting for the learner. */
 	pendingQuestion: boolean;
