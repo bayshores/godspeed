@@ -80,7 +80,7 @@ Dependency arrows point **down only**. Each layer may import the core barrel; no
 ```mermaid
 flowchart TB
     subgraph SHELL["SHELL — render + transport, no domain logic"]
-        APP["src/app/: pages + 37 API route handlers"]
+        APP["src/app/: pages + API route handlers"]
         COMP["src/components/: session + home UI, topic map"]
     end
 
@@ -137,7 +137,7 @@ flowchart TB
     COMP -.->|"✗ FORBIDDEN (lint)"| SERVER
 ```
 
-**Two rules are documentation-only by design.** The ESLint plugin's `except` can't express "all but one", so (a) `src/server/stores.ts` is *intended* to be the only server module importing adapters — but the server barrel also re-exports the settings reader and `promptOverrides`, and `observability.ts`, `onboarding.ts`, `whats-new.ts`, `settings-read.ts`, `mcp.ts`, `agent-memory.ts` and `classes.ts` (for `writeFileAtomic`) import store modules directly; and (b) the browser-safety of the core barrel is a doc-comment convention (see §2.1). `tests/`, `scripts/`, and `electron/` are deliberately outside the law (lint-excluded); tests import freely across layers, scripts act as extra composition roots.
+**Two rules are documentation-only by design.** The ESLint plugin's `except` can't express "all but one", so (a) `src/server/stores.ts` is *intended* to be the only server module importing adapters — but the server barrel also re-exports the settings reader and `promptOverrides`, and `observability.ts`, `onboarding.ts`, `whats-new.ts`, `settings-read.ts`, `mcp.ts`, `agent-memory.ts` and `agent-rules.ts` import store modules directly, and `classes.ts`, `agent-folder.ts` and `old-setup.ts` import `writeFileAtomic`; and (b) the browser-safety of the core barrel is a doc-comment convention (see §2.1). `tests/`, `scripts/`, and `electron/` are deliberately outside the law (lint-excluded); tests import freely across layers, scripts act as extra composition roots.
 
 ### 2.1 The core barrel and browser-safety
 
@@ -172,7 +172,7 @@ The engine side is adapted too: `src/agent/models.ts` (`agentEngine()`) is the O
 flowchart LR
     subgraph DRIVING["DRIVING ADAPTERS — inbound"]
         BROWSER["Browser UI in src/components/: question dock · topic map · docks"]
-        HTTP["HTTP transport in src/app/api/*: 37 route handlers"]
+        HTTP["HTTP transport in src/app/api/*: route handlers"]
         MCPIN["Outside agent at /api/mcp (wait_for_work · respond · class and lesson tools)"]
         NOTES["Notes front door — POST /api/graph/import"]
         ELEC["Electron main — thin launcher, spawns server, LH_DATA_DIR"]

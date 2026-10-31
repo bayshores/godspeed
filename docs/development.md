@@ -109,7 +109,7 @@ flowchart TB
 ```
 src/
   app/                          Next.js App Router: pages (/ Home, /new, /chat/[id],
-                                /class Overview, /class/files, /graph) + 37 thin API
+                                /class Overview, /class/files, /graph) + thin API
                                 route handlers. Settings is a dialog, not a page
   components/                   Home (home-page/), the lesson screen (lesson/), question
                                 dock, plan panel, topic map (graph/), class Overview and
