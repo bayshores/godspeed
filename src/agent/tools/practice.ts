@@ -24,6 +24,7 @@ import { proberGraphTools, type GraphToolContext } from "./graph.ts";
 import { classTools, type ClassToolContext } from "./class.ts";
 import { ruleTools, type SaveRule } from "./rules.ts";
 import { activeProblemOf } from "../../core/native-messages.ts";
+import { filterEnabledTools, type EnabledTools } from "../../core/pending.ts";
 import type { LhMessage } from "../../core/native-messages.ts";
 import { concludeResult, invalidInputResult, problemResult } from "../tool-execute.ts";
 import { healEncodedArguments, healToolRecord } from "./heal.ts";
@@ -220,17 +221,18 @@ export function concludeTool(gate: PracticeGate): AgentTool<typeof concludeInput
 	};
 }
 
-/** The practice toolset (the practice agent's whole registry). */
-export function practiceTools(ctx: PracticeToolContext): Record<string, AgentTool<any>> {
+/** The practice toolset (the practice agent's whole registry). Any side
+ *  tool `enabled` sets explicitly false is dropped; problem/conclude are
+ *  the session, so they never are. */
+export function practiceTools(ctx: PracticeToolContext, enabled?: EnabledTools): Record<string, AgentTool<any>> {
 	// ONE gate per turn, shared by both tools — the intra-turn truth.
 	const gate = createPracticeGate(ctx);
 	// THE RARELY-NEEDED SET: read/ls/find/grep over the
 	// learner's files (always — the same read-only set the teacher and
 	// prober carry), the research + pdf jobs (demo/visual stay
 	// teach-only), and
-	// the prober's map readers when the settings gate opened. None are
-	// toggle-filtered: problem/conclude are the session; these are
-	// exceptions the doctrine says to reach for rarely.
+	// the prober's map readers when the settings gate opened. The same
+	// Settings switches as the teacher's apply to them.
 	const jobs = ctx.jobs ? jobTools(ctx.jobs) : null;
 	// healToolRecord: the standard argument heal over the WHOLE registry.
 	// problem/conclude keep their own (target-normalizing) prepareArguments as the composed
@@ -238,13 +240,18 @@ export function practiceTools(ctx: PracticeToolContext): Record<string, AgentToo
 	return healToolRecord({
 		problem: problemTool(gate, ctx.graphNodes),
 		conclude: concludeTool(gate),
-		read: readTool,
-		ls: lsTool,
-		find: findTool,
-		grep: grepTool,
-		...(jobs ? { research: jobs.research, pdf: jobs.pdf } : {}),
-		...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
-		...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
-		...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
+		...filterEnabledTools<AgentTool<any>>(
+			{
+				read: readTool,
+				ls: lsTool,
+				find: findTool,
+				grep: grepTool,
+				...(jobs ? { research: jobs.research, pdf: jobs.pdf } : {}),
+				...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
+				...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
+			},
+			enabled,
+		),
 	});
 }

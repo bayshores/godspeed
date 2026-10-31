@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 import { createFauxCore, fauxAssistantMessage, fauxToolCall, type ToolCall } from "@earendil-works/pi-ai";
 
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-topics-"));
@@ -145,75 +145,112 @@ describe("topics: the grouper (fake model)", () => {
 });
 
 describe("topics: the scheduler", () => {
+	before(() => {
+		topics.topicGroupingSeams.enabledInTests = true;
+	});
+	after(() => {
+		topics.topicGroupingSeams.enabledInTests = undefined;
+		topics.topicGroupingSeams.debounceMs = undefined;
+	});
+
 	const fact = (id: string) => ({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-27T00:00:00.000Z", provenance: [{ chatId: "src_file", messageId: "" }] });
 	const seed = (classId: string, n: number) => {
 		const store = graphStoreFor(classId);
 		for (let i = 1; i <= n; i++) store.appendNode(fact(`n_${classId.slice(-4)}_${i}`));
 		return store;
 	};
+	const tick = (ms: number) => new Promise((r) => setTimeout(r, ms));
+	/** A scheduled run with no debounce, awaited to its end. */
+	const scheduleAndSettle = async (classId: string) => {
+		topics.scheduleTopicGrouping(classId, 0);
+		await tick(10);
+		await topics.topicGroupingIdle(classId);
+	};
+	/** A faux engine putting every current fact in one topic, counting calls. */
+	const groupAllEngine = (store: ReturnType<typeof graphStoreFor>, name: string) => {
+		const faux = createFauxCore({});
+		const counter = { calls: 0 };
+		const answer = () => {
+			counter.calls++;
+			return fauxAssistantMessage([fauxToolCall("submit_topics", { topics: [{ name, members: store.readNodes().map((n) => n.id) }] } as unknown as ToolCall["arguments"])], { stopReason: "toolUse" });
+		};
+		faux.setResponses([answer, answer, answer]);
+		topics.topicGroupingSeams.engine = { model: faux.getModel(), streamFn: faux.streamSimple };
+		return counter;
+	};
 
 	it("skips under 4 facts and when nothing changed; writes a snapshot otherwise", async () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
-		seed(cls.id, 3);
-		assert.deepEqual(await topics.groupTopicsNow(cls.id), { status: "skipped", reason: "too_few_facts" });
-		const store = seed(cls.id, 0);
+		const store = seed(cls.id, 3);
+		const counter = groupAllEngine(store, "Counting");
+		await scheduleAndSettle(cls.id);
+		assert.equal(counter.calls, 0, "too few facts");
+		assert.equal(store.readTopics(), null);
 		store.appendNode(fact(`n_${cls.id.slice(-4)}_4`));
 		const ids = store.readNodes().map((n) => n.id);
-		topics.topicGroupingSeams.engine = submitEngine({ topics: [{ name: "Counting", members: ids }] }).engine;
-		assert.deepEqual(await topics.groupTopicsNow(cls.id), { status: "grouped", topics: 1, facts: 4 });
+		await scheduleAndSettle(cls.id);
+		assert.equal(counter.calls, 1);
 		const snap = store.readTopics()!;
 		assert.deepEqual(snap.topics[0]!.members, ids);
 		assert.match(snap.topics[0]!.id, /^tpc_[0-9a-f]{10}$/);
 		assert.ok(fs.existsSync(path.join(TMP_DATA, "classes", cls.id, "graph", "topics.jsonl")));
-		assert.deepEqual(await topics.groupTopicsNow(cls.id, { force: false }), { status: "skipped", reason: "unchanged" });
-		assert.equal(await topics.groupTopicsNow("cls_gone_1").then((o) => o.status), "skipped");
+		await scheduleAndSettle(cls.id);
+		assert.equal(counter.calls, 1, "the fact set is unchanged");
+		await scheduleAndSettle("cls_gone_1");
+		assert.equal(counter.calls, 1, "no such class");
 	});
 
-	it("a scheduled run waits while a class file is still pending; a forced run does not", async () => {
+	it("a scheduled run waits while a class file is still pending", async () => {
 		const cls = classStore.createClass({ name: "CSE 29" });
 		const store = seed(cls.id, 4);
-		classStore.saveFiles(cls.id, [
-			{ id: "f_000000000001", origin: "copied", name: "notes.md", path: "notes.md", kind: "study", contentFp: "", status: "pending", addedAt: "2026-10-27T00:00:00.000Z" },
-		]);
-		assert.deepEqual(await topics.groupTopicsNow(cls.id, { force: false }), { status: "skipped", reason: "files_waiting" });
-		topics.topicGroupingSeams.engine = submitEngine({ topics: [{ name: "Pointers", members: store.readNodes().map((n) => n.id) }] }).engine;
-		assert.deepEqual(await topics.groupTopicsNow(cls.id), { status: "grouped", topics: 1, facts: 4 });
+		const file = { id: "f_000000000001", origin: "copied" as const, name: "notes.md", path: "notes.md", kind: "study" as const, contentFp: "", addedAt: "2026-10-27T00:00:00.000Z" };
+		classStore.saveFiles(cls.id, [{ ...file, status: "pending" }]);
+		const counter = groupAllEngine(store, "Pointers");
+		await scheduleAndSettle(cls.id);
+		assert.equal(counter.calls, 0, "a file is waiting");
+		assert.equal(store.readTopics(), null);
+		classStore.saveFiles(cls.id, [{ ...file, status: "ready" }]);
+		await scheduleAndSettle(cls.id);
+		assert.equal(counter.calls, 1);
+		assert.equal(store.readTopics()!.topics[0]!.name, "Pointers");
 	});
 
 	it("debounces scheduled runs and runs once more after a busy one", async () => {
 		const cls = classStore.createClass({ name: "MATH 20C" });
 		const store = seed(cls.id, 4);
 		const ids = store.readNodes().map((n) => n.id);
-		let calls = 0;
-		const faux = createFauxCore({});
-		const answer = () => {
-			calls++;
-			return fauxAssistantMessage([fauxToolCall("submit_topics", { topics: [{ name: "Vectors", members: store.readNodes().map((n) => n.id) }] } as unknown as ToolCall["arguments"])], { stopReason: "toolUse" });
-		};
-		faux.setResponses([answer, answer, answer]);
-		topics.topicGroupingSeams.engine = { model: faux.getModel(), streamFn: faux.streamSimple };
-		topics.topicGroupingSeams.enabledInTests = true;
+		const counter = groupAllEngine(store, "Vectors");
 		topics.topicGroupingSeams.debounceMs = 30;
 		try {
 			for (let i = 0; i < 5; i++) topics.scheduleTopicGrouping(cls.id); // five files finishing together
-			await new Promise((r) => setTimeout(r, 80));
+			await tick(80);
 			await topics.topicGroupingIdle(cls.id);
-			assert.equal(calls, 1, "one run for the burst");
-			assert.deepEqual(store.readTopics()!.topics[0]!.members, ids);
-
-			// A request while a run is going queues exactly one more run.
-			store.appendNode(fact(`n_${cls.id.slice(-4)}_5`));
-			const first = topics.groupTopicsNow(cls.id);
-			assert.equal(topics.topicGroupingRunning(cls.id), true);
-			assert.deepEqual(await topics.groupTopicsNow(cls.id), { status: "queued" });
-			assert.deepEqual(await topics.groupTopicsNow(cls.id), { status: "queued" });
-			await first;
-			await topics.topicGroupingIdle(cls.id);
-			assert.equal(calls, 2, "the queued follow-up found the facts unchanged and skipped");
 		} finally {
-			topics.topicGroupingSeams.enabledInTests = undefined;
 			topics.topicGroupingSeams.debounceMs = undefined;
 		}
+		assert.equal(counter.calls, 1, "one run for the burst");
+		assert.deepEqual(store.readTopics()!.topics[0]!.members, ids);
+
+		// The outside agent holds the run open, so requests land while it is going.
+		topics.topicGroupingSeams.engine = { model: bridge.agentModel(), streamFn: bridge.agentStream };
+		store.appendNode(fact(`n_${cls.id.slice(-4)}_5`));
+		topics.scheduleTopicGrouping(cls.id, 0);
+		const first = await bridge.waitForWork(5000);
+		assert.ok(first, "the first run parked a work item");
+		assert.equal(topics.topicGroupingRunning(cls.id), true);
+		store.appendNode(fact(`n_${cls.id.slice(-4)}_6`));
+		for (let i = 0; i < 2; i++) {
+			topics.scheduleTopicGrouping(cls.id, 0);
+			await tick(10);
+		}
+		const answer = () => ({ toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Vectors", members: store.readNodes().map((n) => n.id) }] } }] });
+		assert.equal(bridge.respondToWork(first.workId, answer(), 0).ok, true);
+		const followUp = await bridge.waitForWork(5000);
+		assert.ok(followUp, "two requests while busy queue one follow-up run");
+		assert.equal(bridge.respondToWork(followUp.workId, answer(), 0).ok, true);
+		await topics.topicGroupingIdle(cls.id);
+		assert.equal(bridge.pendingWorkCount(), 0, "no third run");
+		assert.equal(store.readTopics()!.topics[0]!.members.length, 6);
 	});
 
 	it("shows in the activity registry and reaches an outside agent as a labeled work item", async () => {
@@ -221,7 +258,7 @@ describe("topics: the scheduler", () => {
 		const store = seed(cls.id, 4);
 		const ids = store.readNodes().map((n) => n.id);
 		topics.topicGroupingSeams.engine = { model: bridge.agentModel(), streamFn: bridge.agentStream };
-		const run = topics.groupTopicsNow(cls.id);
+		topics.scheduleTopicGrouping(cls.id, 0);
 		const work = await bridge.waitForWork(5000);
 		assert.ok(work, "the grouper parked a work item");
 		assert.equal(work.label, "Topic grouping · PHYS 2B");
@@ -234,7 +271,7 @@ describe("topics: the scheduler", () => {
 		assert.equal(row.label, "Topic grouping · PHYS 2B");
 		const answered = bridge.respondToWork(work.workId, { toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Electrostatics", members: ids }] } }] }, 0);
 		assert.equal(answered.ok, true);
-		assert.equal((await run).status, "grouped");
+		await topics.topicGroupingIdle(cls.id);
 		assert.ok(!extractionStatuses().some((r) => r.chatId === topics.topicRunKey(cls.id)), "the row leaves the dock");
 		assert.equal(store.readTopics()!.topics[0]!.name, "Electrostatics");
 	});

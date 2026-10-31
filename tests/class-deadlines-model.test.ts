@@ -19,6 +19,7 @@ import {
 	hasUnsavedChanges,
 	kindLabel,
 	toggleFile,
+	withoutBlankDrafts,
 	type DeadlineDraft,
 } from "../src/components/class-deadlines-model.ts";
 
@@ -122,6 +123,17 @@ describe("class-deadlines-model", () => {
 		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, [...draftsFrom(SAVED), { ...blank, name: "HW" }]), true);
 		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: ["Use LaTeX"] }, draftsFrom(SAVED)), true);
 		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, draftsFrom(SAVED).slice(1)), true, "a removed deadline");
+	});
+
+	it("withoutBlankDrafts drops only untouched blank new rows", () => {
+		const blank = draft({ name: "", date: "", kind: "homework" });
+		const saved = draftsFrom(SAVED);
+		assert.deepEqual(withoutBlankDrafts([...saved, blank]), saved);
+		const named = { ...blank, key: "new-2", name: "HW" };
+		const ticked = { ...blank, key: "new-3", done: true };
+		assert.deepEqual(withoutBlankDrafts([blank, named, ticked]), [named, ticked], "a touched new row stays, so Save can say what it needs");
+		const cleared = { ...saved[0]!, name: "", date: "", time: "", fileIds: [], done: false };
+		assert.deepEqual(withoutBlankDrafts([cleared]), [cleared], "a saved deadline emptied out is not a blank new row");
 	});
 
 	it("changedFields: only fields that differ by value", () => {

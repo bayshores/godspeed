@@ -53,13 +53,6 @@ export function HalleyFace({
 							<ellipse cx="168" cy="136" rx="14" ry="8" fill={BLUSH} opacity=".75" />
 							<path d="M106 142 Q120 156 134 142" fill="none" stroke={INK} strokeWidth="6" strokeLinecap="round" />
 						</g>
-						<g className="hy-m-sparkle">
-							<path className="hy-twinkle" d="M94 80 L101 101 L120 108 L101 115 L94 136 L87 115 L68 108 L87 101 Z" fill={INK} />
-							<path className="hy-twinkle" d="M146 80 L153 101 L172 108 L153 115 L146 136 L139 115 L120 108 L139 101 Z" fill={INK} />
-							<ellipse cx="70" cy="140" rx="12" ry="6" fill={BLUSH} opacity=".7" />
-							<ellipse cx="170" cy="140" rx="12" ry="6" fill={BLUSH} opacity=".7" />
-							<path d="M108 144 Q120 153 132 144" fill="none" stroke={INK} strokeWidth="5.5" strokeLinecap="round" />
-						</g>
 						<g className="hy-m-thinking">
 							<rect x="92" y="76" width="26" height="42" rx="13" fill={INK} />
 							<rect x="142" y="76" width="26" height="42" rx="13" fill={INK} />
@@ -87,13 +80,6 @@ export function HalleyFace({
 							<path className="hy-spin" d="M94 106 m-17 0 a17 17 0 1 0 34 0 a12 12 0 1 0 -24 0 a6.5 6.5 0 1 0 13 0" fill="none" stroke={INK} strokeWidth="5" strokeLinecap="round" />
 							<path className="hy-spin" d="M146 106 m-17 0 a17 17 0 1 0 34 0 a12 12 0 1 0 -24 0 a6.5 6.5 0 1 0 13 0" fill="none" stroke={INK} strokeWidth="5" strokeLinecap="round" />
 							<path d="M107 150 Q113.5 143 120 150 Q126.5 157 133 150" fill="none" stroke={INK} strokeWidth="5" strokeLinecap="round" />
-						</g>
-						<g className="hy-m-embarrassed">
-							<path d="M80 92 L106 106 L80 120" fill="none" stroke={INK} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-							<path d="M160 92 L134 106 L160 120" fill="none" stroke={INK} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-							<ellipse cx="72" cy="136" rx="15" ry="8" fill={BLUSH} opacity=".85" />
-							<ellipse cx="168" cy="136" rx="15" ry="8" fill={BLUSH} opacity=".85" />
-							<path d="M109 148 L131 148" stroke={INK} strokeWidth="5.5" strokeLinecap="round" />
 						</g>
 						<g className="hy-m-sleepy">
 							<path d="M78 112 L110 112" stroke={INK} strokeWidth="8" strokeLinecap="round" />
