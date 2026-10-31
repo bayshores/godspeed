@@ -174,10 +174,10 @@ export function ChainTableBody({
 		const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 		const list = [...map.values()];
 		// The active column orders BOTH cluster rows and chains within; name
-		// is the universal tiebreak (asc). Unlabeled clusters sort last under
-		// name-sort (￿ sentinel).
-		const nameKey = (g: ClusterGroup) => g.label ?? "\uffff";
-		const cmpName = (a: ClusterGroup, b: ClusterGroup) => collator.compare(nameKey(a), nameKey(b)) * (sort.col === "name" ? sort.dir : 1);
+		// is the tiebreak (A→Z). Clusters with no label always sort last.
+		const cmpName = (a: ClusterGroup, b: ClusterGroup) =>
+			Number(a.label === null) - Number(b.label === null) ||
+			collator.compare(a.label ?? "", b.label ?? "") * (sort.col === "name" ? sort.dir : 1);
 		const cmpProps = (a: ClusterGroup, b: ClusterGroup) =>
 			sort.dir === -1 ? b.nodeIds.length - a.nodeIds.length : a.nodeIds.length - b.nodeIds.length;
 		const cmpCreated = (a: ClusterGroup, b: ClusterGroup) =>
