@@ -89,9 +89,20 @@ describe("the settings store", () => {
 		assert.deepEqual(readSettings()?.compaction, { thresholdTokens: 150_000 });
 	});
 
-	it("corrupt settings.json → null (first-boot semantics), never throws", () => {
-		fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
-		fs.writeFileSync(SETTINGS_FILE, "{not json", "utf-8");
-		assert.equal(readSettings(), null);
-	});
+	for (const [label, text] of [["corrupt", "{not json"], ["a non-object", "[]"]] as const) {
+		it(`${label} settings.json → null, never throws, and the original is kept aside`, () => {
+			fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
+			fs.writeFileSync(SETTINGS_FILE, text, "utf-8");
+			assert.equal(readSettings(), null);
+			assert.equal(fs.existsSync(SETTINGS_FILE), false, "the next write starts a fresh file");
+			const dir = path.dirname(SETTINGS_FILE);
+			const kept = fs.readdirSync(dir).filter((f) => f.startsWith(`${path.basename(SETTINGS_FILE)}.corrupt-`));
+			try {
+				assert.equal(kept.length, 1);
+				assert.equal(fs.readFileSync(path.join(dir, kept[0]!), "utf-8"), text);
+			} finally {
+				for (const f of kept) fs.rmSync(path.join(dir, f), { force: true });
+			}
+		});
+	}
 });
