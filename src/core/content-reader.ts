@@ -9,7 +9,7 @@ type ContentSpan =
 	| { kind: "prose" | "code"; raw: string }
 	| { kind: "math"; raw: string; open: string; body: string; close: string; display: boolean };
 const blankLine = /^\r?\n[ \t]*\r?\n/;
-const escaped = (text: string, i: number) => {
+export const escaped = (text: string, i: number) => {
 	let n = 0; while (i > 0 && text[--i] === "\\") n++;
 	return n % 2 === 1;
 };
