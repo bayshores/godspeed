@@ -9,9 +9,9 @@ export function useGraphSnapshot(classId: string | null): GraphSnapshot | null {
 	useEffect(() => {
 		let live = true;
 		fetch(`/api/graph${classQuery(classId)}`)
-			.then((res) => res.json() as Promise<GraphSnapshot>)
+			.then((res) => (res.ok ? (res.json() as Promise<GraphSnapshot>) : null))
 			.then((snapshot) => {
-				if (live) setState({ classId, snapshot });
+				if (live && snapshot) setState({ classId, snapshot });
 			})
 			.catch(() => {});
 		return () => {

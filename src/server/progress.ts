@@ -5,7 +5,8 @@
  */
 import type { ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
-import { deriveProgress, localDay, type ProgressPayload } from "../core/progress.ts";
+import { deriveProgress, type ProgressPayload } from "../core/progress.ts";
+import { localDay } from "../core/today-note.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { topicGroupingRunning } from "./topics.ts";

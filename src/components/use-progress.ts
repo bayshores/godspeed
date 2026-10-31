@@ -15,6 +15,7 @@ import { localDay, type ProgressPayload } from "@/core";
 import { classQuery, useClasses } from "@/components/class-context";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 
+
 const REFRESH_DEBOUNCE_MS = 400;
 
 interface ProgressState {

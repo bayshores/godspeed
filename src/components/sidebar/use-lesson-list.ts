@@ -17,9 +17,14 @@ export function useLessonList(open: boolean, pathname: string) {
 	const knownIdsRef = useRef<Set<string> | null>(null);
 
 	const refreshInFlightRef = useRef(false);
+	const refreshQueuedRef = useRef(false);
 	const refresh = useCallback(async () => {
-		// One fetch serves an event burst; anything newer comes with the next event.
-		if (refreshInFlightRef.current) return;
+		// One fetch at a time; a call made during it runs once more after,
+		// so the last event is never lost.
+		if (refreshInFlightRef.current) {
+			refreshQueuedRef.current = true;
+			return;
+		}
 		refreshInFlightRef.current = true;
 		try {
 			const res = await fetch("/api/chats", { cache: "no-store" });
@@ -36,6 +41,10 @@ export function useLessonList(open: boolean, pathname: string) {
 			setChats((prev) => prev ?? []);
 		} finally {
 			refreshInFlightRef.current = false;
+			if (refreshQueuedRef.current) {
+				refreshQueuedRef.current = false;
+				void refresh();
+			}
 		}
 	}, []);
 

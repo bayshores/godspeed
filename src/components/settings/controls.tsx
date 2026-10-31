@@ -7,7 +7,7 @@
  * the control itself locks; the row owns the dim.
  */
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Tip } from "@/components/ui/tooltip";
 
@@ -19,8 +19,6 @@ export function SettingsSection({
 	testid,
 }: {
 	title: string;
-	/** Kept for callers; the dialog head shows section hints as a tooltip. */
-	hint?: string;
 	children: React.ReactNode;
 	testid?: string;
 }) {
@@ -213,7 +211,7 @@ export function Slider({
 	);
 }
 
-/** A thin hex/text input committing on blur + Enter (settings pace, not
+/** A thin text input committing on blur + Enter (settings pace, not
  *  typing pace — every commit is a section PUT). */
 export function CommitInput({
 	value,
@@ -221,7 +219,6 @@ export function CommitInput({
 	onCommit,
 	ariaLabel,
 	testid,
-	type = "text",
 }: {
 	/** "" = unset (the factory default). Mirrors the STORED record, so
 	 *  after a clamped commit the field shows what was really saved. */
@@ -230,15 +227,15 @@ export function CommitInput({
 	onCommit: (next: string) => void;
 	ariaLabel: string;
 	testid?: string;
-	type?: "text" | "number";
 }) {
 	// The draft exists only while editing; a blur shows the record's value
 	// again, so the field is honest about what landed.
 	const [draft, setDraft] = useState(value);
 	const [editing, setEditing] = useState(false);
+	const cancelled = useRef(false);
 	return (
 		<input
-			type={type}
+			type="text"
 			value={editing ? draft : value}
 			placeholder={placeholder}
 			aria-label={ariaLabel}
@@ -250,12 +247,20 @@ export function CommitInput({
 			onBlur={() => {
 				if (!editing) return;
 				setEditing(false);
+				if (cancelled.current) {
+					cancelled.current = false;
+					return;
+				}
 				const next = draft.trim();
 				if (next !== value) onCommit(next);
 			}}
 			onKeyDown={(e) => {
 				if (e.key === "Enter") e.currentTarget.blur();
-				if (e.key === "Escape") {
+				if (e.key === "Escape" && editing) {
+					// An edit only cancels: the dialog skips a prevented Escape.
+					e.preventDefault();
+					e.stopPropagation();
+					cancelled.current = true;
 					setEditing(false);
 					e.currentTarget.blur();
 				}

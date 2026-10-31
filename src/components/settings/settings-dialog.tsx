@@ -164,17 +164,19 @@ export function SettingsDialogBody({
 		fetch("/api/settings")
 			.then((r) => (r.ok ? r.json() : null))
 			.then((body: { settings: UserSettings | null } | null) => {
-				const agent = body?.settings?.agent;
-				setRecord((prev) => (prev ? { ...prev, agent } : prev));
+				// A failed read keeps the record: writes rebuild the section from it.
+				const settings = body?.settings;
+				if (!settings) return;
+				setRecord((prev) => (prev ? { ...prev, agent: settings.agent } : prev));
 			})
 			.catch(() => {});
 	});
 
-	// Escape closes the dialog.
+	// Escape closes the dialog, unless a field inside already used it.
 	useEffect(() => {
 		if (state === "closed") return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
+			if (e.key === "Escape" && !e.defaultPrevented) {
 				// Claimed at the document level so the window's Esc
 				// (abort) does not also act: one Esc, one action.
 				e.preventDefault();

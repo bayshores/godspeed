@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import type { ClassDeadline } from "../src/core/contracts/class.ts";
 import {
 	deadlinePartOf,
+	localDay,
 	timeZoneLabel,
 	todayNoteText,
 	todayNoteToAppend,
@@ -257,5 +258,12 @@ describe("read_class and the prompt", () => {
 				"When the learner hasn't picked a topic, use the deadlines in the [Today] note to choose what to teach first (the soonest one's files). Don't bring up deadlines unless the learner does.",
 			),
 		);
+	});
+});
+
+describe("localDay", () => {
+	it("formats the local calendar day, zero-padded, from a Date or ms", () => {
+		assert.equal(localDay(new Date(2026, 0, 5, 23, 59)), "2026-01-05");
+		assert.equal(localDay(new Date(2026, 10, 30, 0, 1).getTime()), "2026-11-30");
 	});
 });

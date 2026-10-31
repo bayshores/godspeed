@@ -240,7 +240,7 @@ function SessionsSidebar() {
 		<aside
 			className={cn("sidebar-motion relative shrink-0 overflow-hidden", SIDEBAR_MOTION)}
 			style={{ width: open ? width : 0 }}
-			aria-hidden={!open}
+			inert={!open}
 		>
 			<div className="flex h-full flex-col items-start gap-3.5 border-r border-tone-2 bg-background px-2.5 pb-3" style={{ width }}>
 				{/* The window row: in Electron it is the window's drag surface and

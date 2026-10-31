@@ -14,6 +14,9 @@ import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
+// linkedom's document has no "oninput"; without it React would watch text
+// fields an old-IE way.
+(dom.document as unknown as { oninput: null }).oninput = null;
 Object.assign(globalThis, {
 	window: dom.window,
 	document: dom.document,
@@ -93,6 +96,38 @@ describe("settings restyle", () => {
 			assert.ok(graph.querySelector(`[data-testid="${id}"]`), id);
 		}
 		assert.equal(graph.querySelector('[data-testid="graph-row-rendering"]'), null, "the dead rendering switch is gone");
+	});
+
+	it("Escape in the teacher name field drops the edit and keeps Settings open; a plain Escape closes it", async () => {
+		const puts: string[] = [];
+		globalThis.fetch = (async (url: string, init?: RequestInit) => {
+			if (init?.method === "PUT") puts.push(String(url));
+			return Response.json({ settings: { version: 1 } });
+		}) as typeof fetch;
+		let closes = 0;
+		await mount(<SettingsDialogBody initialSection="general" onClose={() => closes++} />);
+		const input = q("teacher-name") as HTMLInputElement;
+		const escape = () => {
+			const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
+			Object.defineProperty(e, "key", { value: "Escape" });
+			return e;
+		};
+		await act(async () => {
+			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Ada" });
+			input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+		});
+		const fieldEscape = escape();
+		await act(async () => input.dispatchEvent(fieldEscape));
+		// In the app React listens on document, beside the dialog's listener,
+		// so the field marks its Escape used instead of hiding it.
+		assert.equal(fieldEscape.defaultPrevented, true, "the field claims its Escape");
+		const used = escape();
+		used.preventDefault();
+		await act(async () => document.dispatchEvent(used));
+		assert.equal(closes, 0, "an Escape a field used does not close Settings");
+		assert.deepEqual(puts, [], "the dropped edit is not saved");
+		await act(async () => document.body.dispatchEvent(escape()));
+		assert.equal(closes, 1, "a plain Escape closes Settings");
 	});
 
 	it("Connection: Access, the token masked, connection status, and the button that opens your agent", async () => {

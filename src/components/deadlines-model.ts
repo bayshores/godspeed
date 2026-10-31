@@ -124,7 +124,6 @@ export function nextDueText(d: { name: string; date: string; time?: string }, no
 export function longDateLine(ms: number): string {
 	const d = new Date(ms);
 	const day = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-	const h = d.getHours();
-	const clock = `${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+	const clock = clockLabel(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
 	return `${day} · ${clock}`;
 }

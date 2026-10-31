@@ -138,9 +138,9 @@ function useGraphCosts(classId: string | null): GraphCostSummary | null {
 	useEffect(() => {
 		let live = true;
 		fetch(`/api/graph/costs${classQuery(classId)}`)
-			.then((res) => res.json() as Promise<GraphCostSummary>)
+			.then((res) => (res.ok ? (res.json() as Promise<GraphCostSummary>) : null))
 			.then((costs) => {
-				if (live) setState({ classId, costs });
+				if (live && costs) setState({ classId, costs });
 			})
 			.catch(() => {});
 		return () => {

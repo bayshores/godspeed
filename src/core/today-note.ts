@@ -67,6 +67,13 @@ export function dayLabel(day: string): string {
 	return `${WEEKDAYS[weekday]} ${MONTHS[m - 1]} ${d}`;
 }
 
+/** The local calendar day of a moment, YYYY-MM-DD (the app runs on the
+ *  learner's computer, so local is the learner's day). */
+export function localDay(at: Date | number = new Date()): string {
+	const d = new Date(at);
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** "11:59 PM" for 23:59. */
 export function clockLabel(time: string): string {
 	const [h, m] = time.split(":").map(Number) as [number, number];

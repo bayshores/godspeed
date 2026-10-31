@@ -2,13 +2,14 @@
 
 /**
  * THE SHARED CLOCK: one clock for every
- * countdown on screen (the sidebar's Due soon, Home) and Home's date line.
+ * countdown on screen (the sidebar's Due soon, Home), Home's date line
+ * and the sidebar's when lines.
  * It ticks only as fast as what is mounted needs:
  *  - every animation frame while a deadline in its last hour is shown
  *    (hundredths), once a second with reduced motion;
  *  - once a second while one is in its last 24h;
  *  - otherwise it sleeps until the next text change (a whole day passing,
- *    the last 24h starting, the next minute for the date line).
+ *    the last 24h starting, the next minute for the date and when lines).
  * Formatting is pure: src/components/countdown-model.ts.
  */
 
