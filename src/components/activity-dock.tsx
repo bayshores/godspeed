@@ -283,8 +283,12 @@ const KIND_ICON: Record<JobKind, typeof SearchIcon> = {
 	pdf: FileTextIcon,
 };
 
-/** Abort states per blob id: pending (fired) / failed (backend absent). */
+/** Abort states per run: pending (fired) / failed (backend absent). */
 type AbortState = "pending" | "failed";
+
+/** One run of a row: a later extraction of the same source reuses the row
+ *  id, so the state keys on its start too and never carries over. */
+const runKey = (blob: ActivityBlob) => `${blob.id}@${blob.startedAt}`;
 
 export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed?: ActivityFeed; waiting?: boolean }) {
 	const ctx = useContext(ActivityContext);
@@ -301,10 +305,19 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	// Refs for stable abort handlers (no re-created closures per tick).
 	const abortRef = useRef({ blobs, refresh, setAbortStates });
 	abortRef.current = { blobs, refresh, setAbortStates };
+	// Forget the states of runs that left the feed.
+	useEffect(() => {
+		const live = new Set(blobs.map(runKey));
+		setAbortStates((s) => {
+			const kept = Object.entries(s).filter(([k]) => live.has(k));
+			return kept.length === Object.keys(s).length ? s : Object.fromEntries(kept);
+		});
+	}, [blobs]);
 
 	const abort = useCallback(async (blob: ActivityBlob) => {
 		const { setAbortStates: set } = abortRef.current;
-		set((s) => ({ ...s, [blob.id]: "pending" }));
+		const key = runKey(blob);
+		set((s) => ({ ...s, [key]: "pending" }));
 		try {
 			const res = await fetch("/api/activity/abort", {
 				method: "POST",
@@ -322,7 +335,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 				if (res.status === 404 || res.status === 409) {
 					abortRef.current.refresh();
 					set((s) => {
-						const { [blob.id]: _drop, ...rest } = s;
+						const { [key]: _drop, ...rest } = s;
 						return rest;
 					});
 					return;
@@ -331,7 +344,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 			}
 			abortRef.current.refresh();
 		} catch {
-			set((s) => ({ ...s, [blob.id]: "failed" }));
+			set((s) => ({ ...s, [key]: "failed" }));
 		}
 	}, []);
 
@@ -374,7 +387,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 							now={now}
 							detailOpen={openBlob === blob.id}
 							onToggleDetail={() => setOpenBlob((id) => (id === blob.id ? null : blob.id))}
-							abortState={abortStates[blob.id]}
+							abortState={abortStates[runKey(blob)]}
 							onAbort={() => void abort(blob)}
 						/>
 					))}
