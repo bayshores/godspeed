@@ -5,11 +5,12 @@
  * have uploaded to the tag's single draft GitHub Release, and fails the
  * workflow unless that draft holds exactly what end users and
  * electron-updater need. The workflow never publishes; this script only
- * reads (release list via the workflow's read-only token, update feeds
+ * reads (release list via GET-only calls with the workflow token (contents:
+ * write, because GitHub hides drafts from read-only tokens), update feeds
  * downloaded by the workflow's own gh steps).
  *
  * Every expected file name below was verified against the INSTALLED
- * builder (app-builder-lib 26.15.3) — these are the artifacts it actually
+ * builder (the app-builder-lib pinned in package.json) — these are the artifacts it actually
  * emits for this repo's electron/electron-builder.yml, not pattern guesses:
  *
  * The download files carry no version, so the
@@ -30,7 +31,7 @@
  *            is user-forced at the linux level, so it overrides BOTH targets'
  *            default name formats; "x64" is literal because ${arch} would
  *            expand to x86_64 for AppImage and amd64 for deb):
- *     image  godspeed-linux-x64.AppImage (no blockmap in 26.15.3)
+ *     image  godspeed-linux-x64.AppImage (no blockmap)
  *     deb    godspeed-linux-x64.deb      (no blockmap)
  *     feed   latest-linux.yml — the AppImage and deb entries merged by
  *            writeUpdateInfoFiles (order not deterministic; checked as a set).
@@ -137,7 +138,7 @@ export function expectedAssets(version: string): ExpectedAssets {
 		feed: "latest-linux.yml",
 	};
 	// Sidecar differential-update blockmaps: emitted for dmg, mac zip and
-	// NSIS exe (createBlockmap); AppImage/deb have none in app-builder-lib 26.15.3.
+	// NSIS exe (createBlockmap); AppImage/deb have none.
 	const blockmaps = [mac.dmg, mac.zip, win.exe].map((name) => `${name}.blockmap`);
 	return {
 		version,

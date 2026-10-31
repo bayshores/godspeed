@@ -171,7 +171,7 @@ electron/                       desktop launcher + security guard (spawns the st
                                 preload.cjs; the browser-service for demo checks)
   build/                        packaging inputs: icons, entitlements, dmg background
   electron-builder.yml          packaging config (pass -c electron/electron-builder.yml)
-integrations/                   Claude Code plugin (claude-code/) + the godspeed skill (skills/)
+integrations/                   the godspeed skill (skills/)
 docs/                           docs; design mockups + exports live in docs/design/
 scripts/                        build-server.mjs (packaging guards), fetch-model.mjs,
                                 smoke-server.mjs, smoke-demo-runtime.mjs,

@@ -19,7 +19,7 @@
  *
  *   window.lh.onUpdateStatus(cb) / window.lh.installUpdate() — the
  *   auto-update channel: "lh:update-status" pushes
- *   {status, version, revision} on updater events; installUpdate asks main
+ *   {status, version, percent, revision} on updater events; installUpdate asks main
  *   to kill the server and quit-and-install. getUpdateState retrieves the
  *   snapshot for a late subscriber; checkForUpdates requests a manual
  *   check (including download/install-on-quit, even with automatic checks OFF).
@@ -31,6 +31,15 @@
  *   null, or a message saying why it couldn't.
  *
  *   window.lh.listFonts() — the installed font families (Appearance).
+ *
+ *   window.lh.pickFolder() — the native folder picker; resolves to the
+ *   chosen absolute path, or null when cancelled.
+ *
+ *   window.lh.showInFolder(path) / window.lh.openPath(path) — reveal an
+ *   absolute path in Finder or the OS file manager, or open a folder or PDF
+ *   in its default app (an app bundle is only revealed).
+ *
+ *   window.lh.pathForFile(file) — a dropped File's path on disk.
  *
  *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
  *   subscribes after a window is reopened. Browser builds have no bridge.
