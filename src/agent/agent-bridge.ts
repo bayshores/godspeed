@@ -208,7 +208,7 @@ export function agentConnected(now = Date.now()): boolean {
 }
 
 /** An agent runs the work loop. Without this, a connected agent (any
- *  Claude Code session with the plugin) only connected or called other
+ *  Claude Code session in the godspeed folder) only connected or called other
  *  tools, and lessons wait. */
 export function agentTeaching(now = Date.now()): boolean {
 	return recent(state().lastWork, now);

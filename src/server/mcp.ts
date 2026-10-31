@@ -280,17 +280,15 @@ function describe(view: WorkView): string[] {
 	return [JSON.stringify(envelope), ...instructions, ...texts];
 }
 
-/** Waiting is free in Claude Code with the plugin's waiter, and costs a
- *  model turn per call any other way. */
+/** Waiting is free in Claude Code with the godspeed folder's waiter, and
+ *  costs a model turn per call any other way. */
 function inClaudeCode(): boolean {
 	return agentName() === "Claude Code";
 }
 
 function waiterHint(lessonId?: string): string {
-	return `Wait with the plugin's waiter, not by calling wait_for_work yourself: run scripts/wait-for-work.mjs${lessonId ? ` --lesson ${lessonId}` : ""} in the background (the godspeed:teach skill has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
+	return `Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs${lessonId ? ` --lesson ${lessonId}` : ""} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
 }
-
-const CLAUDE_CODE_WAITING = `Waiting in Claude Code: the godspeed plugin has a background waiter, scripts/wait-for-work.mjs. Use it instead of calling wait_for_work in a loop: run it in the background (the godspeed:teach skill has the exact command), end your turn, and answer the work item it prints when it finishes. Waiting that way costs no tokens.`;
 
 function idle() {
 	return {
@@ -302,7 +300,7 @@ function idle() {
 }
 
 /** The calling agent's session id, when its client sends one: the
- *  Claude Code plugin (its connector and its waiter) sets "godspeed/agent",
+ *  godspeed folder's connector and waiter set "godspeed/agent" in Claude Code,
  *  and Codex sends its session id in "x-codex-turn-metadata". Each agent
  *  then gets only the messages it hasn't seen. */
 function agentIdOf(meta: Record<string, unknown> | undefined): string | undefined {
@@ -1025,7 +1023,7 @@ async function callerOf(req: Request): Promise<{ name: string | undefined; wants
 	return caller;
 }
 
-/** /api/mcp/forget: the Claude Code plugin's hook says an agent lost its
+/** /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its
  *  context (it compacted, or "cleared": /clear ended the session), so its
  *  next items come in full. */
 export async function handleAgentForget(req: Request): Promise<Response> {
@@ -1043,7 +1041,7 @@ const modernInstructions = new WeakMap<Request, string>();
 
 /** The 2026-07-28 era: every request carries the client's version, name
  *  and capabilities in _meta, and server/discover replaces initialize. JSON
- *  replies only, because the plugin's scripts read one JSON body. */
+ *  replies only, because the godspeed folder's scripts read one JSON body. */
 const modern = createMcpHandler(
 	({ requestInfo }) => {
 		const req = requestInfo as Request;
@@ -1056,13 +1054,12 @@ function logMcpError(error: Error): void {
 	console.error("[mcp] request failed:", error);
 }
 
-/** What an agent gets on connecting: the loop (and the waiter, in Claude
- *  Code), the briefing sized to end before Claude Code's cut, then memory
- *  and classes. */
-function connectInstructions(claudeCode: boolean): string {
-	const head = claudeCode ? `${INSTRUCTIONS}\n\n${CLAUDE_CODE_WAITING}` : INSTRUCTIONS;
-	const briefing = currentAgentBriefing(INSTRUCTIONS_CUT - CUT_MARGIN - head.length - "\n\n".length);
-	return [head, briefing, MEMORY_INSTRUCTIONS, CLASS_INSTRUCTIONS].join("\n\n");
+/** What an agent gets on connecting: the loop, the briefing sized to end
+ *  before Claude Code's cut, then memory and classes. (In Claude Code, the
+ *  godspeed folder's CLAUDE.md says how to wait with the waiter.) */
+function connectInstructions(): string {
+	const briefing = currentAgentBriefing(INSTRUCTIONS_CUT - CUT_MARGIN - INSTRUCTIONS.length - "\n\n".length);
+	return [INSTRUCTIONS, briefing, MEMORY_INSTRUCTIONS, CLASS_INSTRUCTIONS].join("\n\n");
 }
 
 /** The /api/mcp transport: one stateless server per request, in either era. */
@@ -1074,7 +1071,7 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
 	const caller = req.method === "POST" ? await callerOf(req) : null;
 	if (caller) recordCheckIn({ name: caller.name });
 	// Only initialize and server/discover hand instructions to the agent, so only they build the briefing.
-	const instructions = caller?.wantsInstructions ? connectInstructions(caller.name === "Claude Code") : INSTRUCTIONS;
+	const instructions = caller?.wantsInstructions ? connectInstructions() : INSTRUCTIONS;
 	if (!(await isLegacyRequest(req))) {
 		modernInstructions.set(req, instructions);
 		return modern.fetch(req);

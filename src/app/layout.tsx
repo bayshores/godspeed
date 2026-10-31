@@ -12,11 +12,12 @@ import { ClassProvider } from "@/components/class-context";
 import { SoundProvider } from "@/components/sounds";
 // The light server door — the @/server barrel would load the whole server
 // (agent engine, MCP, extraction) just for these two render-time reads.
-import { firstLoadScreen, onboardingNeeded, readSettingsRecord, whatsNewSince } from "@/server/settings-read";
+import { firstLoadScreen, folderNoticeAgent, onboardingNeeded, readSettingsRecord, refreshAgentFolder, whatsNewSince } from "@/server/settings-read";
 import { Onboarding } from "@/components/onboarding/onboarding";
 import { RestartNotice } from "@/components/restart-notice";
 import { NoticeStack } from "@/components/notice-stack";
 import { WhatsNew } from "@/components/whats-new";
+import { FolderNotice } from "@/components/agent-folder/folder-notice";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
 // Serif (the bundled lh-cmu @font-face in globals.css — no CDN).
@@ -41,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	let soundsOn = true;
 	// First launch: the onboarding replaces the app
 	// shell until it is finished. Deciding also makes the outside-agent
-	// access token (always on), so the Claude Code plugin can find it.
+	// access token (always on), so the godspeed folder's connector can find it.
 	let onboarding = false;
 	try {
 		onboarding = onboardingNeeded();
@@ -55,6 +56,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		whatsNew = whatsNewSince();
 	} catch {
 		/* unwritable data dir: skip the notes this launch */
+	}
+	// The godspeed folder: its files follow this version, and people set up
+	// the old way (the plugin, the Codex config) are asked to move once,
+	// after the welcome screen, on a launch without "What's new".
+	refreshAgentFolder();
+	let folderNotice: ReturnType<typeof folderNoticeAgent> = null;
+	try {
+		folderNotice = !onboarding && !whatsNew ? folderNoticeAgent() : null;
+	} catch {
+		/* unreadable data dir: ask next launch */
 	}
 	// Asked even during onboarding, so finishing it doesn't open the welcome
 	// screen right after "You're all set".
@@ -103,6 +114,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			{/* "What's new" after an update (after the welcome screen when it
 			    shows); Settings reopens it. */}
 			{!onboarding && <WhatsNew since={welcome ? null : whatsNew} />}
+			{folderNotice && <FolderNotice agent={folderNotice} afterWelcome={welcome} />}
 		</body>
 		</html>
 	);

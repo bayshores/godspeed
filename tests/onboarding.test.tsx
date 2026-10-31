@@ -43,7 +43,7 @@ const { readSettings, writeSettings } = await import("../src/store/settings.ts")
 const { readMcpToken, writeNewMcpToken } = await import("../src/store/mcp-token.ts");
 const { sanitizeUserSettings } = await import("../src/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../src/server/settings-body.ts");
-const { agentLine, pickedLabel, DoneStep } = await import("../src/components/onboarding/onboarding.tsx");
+const { pickedLabel, DoneStep } = await import("../src/components/onboarding/onboarding.tsx");
 const { Constellation, DOTS, LINKS, dotDelay } = await import("../src/components/onboarding/constellation.tsx");
 const { createRoot } = await import("react-dom/client");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
@@ -94,13 +94,6 @@ describe("the onboarded setting", () => {
 });
 
 describe("onboarding screen helpers", () => {
-	it("agentLine: waiting per tab, then the agent's name", () => {
-		assert.equal(agentLine("claude", false), "Waiting for Claude Code…");
-		assert.equal(agentLine("codex", false), "Waiting for Codex…");
-		assert.equal(agentLine("other", false), "Waiting for your app…");
-		assert.equal(agentLine("claude", true, "Claude Code"), "Claude Code connected");
-		assert.equal(agentLine("other", true), "Your agent connected");
-	});
 	it("pickedLabel: a folder path or up to three file names", () => {
 		assert.equal(pickedLabel(null), null);
 		assert.equal(pickedLabel({ kind: "folder", path: "/u/notes" }), "Folder: /u/notes");
@@ -114,7 +107,7 @@ describe("onboarding screen helpers", () => {
 		const none = done();
 		assert.ok(none.includes("Teaching starts once an agent is connected."));
 		assert.ok(none.includes('data-testid="onboarding-connect"'));
-		assert.ok(none.includes("Connect your agent"));
+		assert.ok(none.includes("Start your agent"));
 		assert.ok(!none.includes("You’re all set."));
 		const set = done({ agent: { name: "Codex" } });
 		assert.ok(set.includes("You’re all set."));

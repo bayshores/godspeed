@@ -40,5 +40,6 @@ export * from "./observability.ts";
 export { recentAgentActions } from "./agent-actions.ts";
 export { readingDocument, readingPdfPage } from "./reading-pages.ts";
 
+export { AgentFolderError, agentFolderView, dismissFolderNotice, setUpAgentFolder } from "./agent-folder.ts";
 export { handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";

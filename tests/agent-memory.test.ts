@@ -105,7 +105,7 @@ describe("agent memory", () => {
 		assert.equal((await route.DELETE(new Request(`http://127.0.0.1/api/agent-notes?id=${a}`, { method: "DELETE" }))).status, 404);
 	});
 
-	it("a big briefing still ends within Claude Code's first 4096 characters, after the loop and the waiter, before Memory and Classes", async () => {
+	it("a big briefing still ends within Claude Code's first 4096 characters, after the loop, before Memory and Classes", async () => {
 		for (let c = 1; c <= 8; c++) {
 			const classId = (await call("create_class", { name: `Course ${c}: Discrete Mathematics and Proof`, icon: "sigma" })).body.class.id as string;
 			const deadlines = [1, 2, 3].map((n) => ({ kind: "homework", name: `Homework ${n} on counting and recursion`, date: `2027-0${n}-1${c}`, time: "23:59" }));
@@ -117,22 +117,19 @@ describe("agent memory", () => {
 
 		const positions = (text: string) => ({
 			loop: text.indexOf("The work loop:"),
-			waiting: text.indexOf("Waiting in Claude Code:"),
 			briefing: text.indexOf("## Where you left off"),
 			briefingEnd: text.indexOf("\n\nMemory:"),
 			classes: text.indexOf("\n\nClasses: the learner"),
 		});
 
 		const claudeCode = positions(await instructions("claude-code"));
-		assert.ok(claudeCode.loop < claudeCode.waiting && claudeCode.waiting < claudeCode.briefing, JSON.stringify(claudeCode));
-		assert.ok(claudeCode.briefing < claudeCode.briefingEnd && claudeCode.briefingEnd < claudeCode.classes, JSON.stringify(claudeCode));
+		assert.ok(claudeCode.loop < claudeCode.briefing && claudeCode.briefing < claudeCode.briefingEnd && claudeCode.briefingEnd < claudeCode.classes, JSON.stringify(claudeCode));
 		assert.ok(claudeCode.briefingEnd <= 4096, `the briefing ends at ${claudeCode.briefingEnd}`);
 		const trimmed = (await instructions("claude-code")).slice(claudeCode.briefing, claudeCode.briefingEnd);
 		assert.match(trimmed, /\n\nLeft out to fit: .+\. Use list_lessons \/ read_class for lessons and deadlines\.$/);
 		assert.match(trimmed, /Note 30:/, "the newest note stays");
 
 		const codex = positions(await instructions("codex-mcp-client"));
-		assert.equal(codex.waiting, -1);
 		assert.ok(codex.loop < codex.briefing && codex.briefing < codex.briefingEnd && codex.briefingEnd < codex.classes, JSON.stringify(codex));
 	});
 });

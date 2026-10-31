@@ -17,6 +17,7 @@ import { byDue } from "@/components/deadlines-model";
 import { Constellation, HEAD_R, TAIL, TAIL_ANGLE } from "@/components/onboarding/constellation";
 import { usePresence } from "@/components/presence";
 import { useOpenDeadlines } from "@/components/use-open-deadlines";
+import { openFolderNotice } from "@/components/agent-folder/folder-notice";
 import { openWhatsNew } from "@/components/whats-new";
 import { cn } from "@/lib/utils";
 import { statusLine } from "./welcome-model";
@@ -31,7 +32,8 @@ export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; 
 	const presence = usePresence(open, LEAVE_MS);
 	const close = useCallback(() => {
 		setOpen(false);
-		if (whatsNewSince) setTimeout(() => openWhatsNew(whatsNewSince), LEAVE_MS);
+		// "What's new" and the godspeed folder notice never come on the same launch.
+		setTimeout(() => (whatsNewSince ? openWhatsNew(whatsNewSince) : openFolderNotice()), LEAVE_MS);
 	}, [whatsNewSince]);
 	if (!presence.mounted) return null;
 	return <WelcomeScreen leaving={!open} onClose={close} />;

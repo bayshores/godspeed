@@ -72,13 +72,11 @@ To build it yourself instead: `npm install`, then `npm run desktop:local` (an un
 
 While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does. An agent can be connected without teaching; the sidebar and **Settings → Connection** say so and tell you how to start it.
 
-1. Connect your agent:
-   - **Claude Code:** `/plugin marketplace add bayshores/godspeed`, then `/plugin install godspeed@godspeed`, then `/godspeed:teach` (add a topic to start a new lesson). `/godspeed:setup-classes` builds your classes from your course files.
-   - **Codex:** paste the config snippet from **Settings → Connection** into `~/.codex/config.toml`.
-   - **Other MCP apps:** use the address and token shown under **Settings → Connection** (Streamable HTTP, `Authorization: Bearer <token>`).
+1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. In Claude Code, `/setup-classes` builds your classes from your course files.
+   - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-While you think, the Claude Code plugin waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph and your class files, import notes, and manage classes and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
+While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph and your class files, import notes, and manage classes and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
 ## Your plans, your data
 

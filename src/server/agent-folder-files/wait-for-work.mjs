@@ -32,7 +32,6 @@
  * the agent reads the other pages with the read_work tool.
  */
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { NO_TOKEN, target } from "./target.mjs";
 
@@ -60,7 +59,7 @@ const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif"
 function saveImages(content, workId) {
 	const blocks = (content ?? []).filter((c) => c?.type === "image" && typeof c.data === "string");
 	if (!blocks.length) return [];
-	const dir = path.join(os.tmpdir(), "godspeed-images");
+	const dir = path.join(import.meta.dirname, "images");
 	fs.mkdirSync(dir, { recursive: true });
 	return blocks.map((block, i) => {
 		const file = path.join(dir, `${String(workId).replace(/[^\w-]/g, "")}-${i + 1}.${EXTENSIONS[block.mimeType] ?? "png"}`);
@@ -74,12 +73,12 @@ function saveImages(content, workId) {
  *  sends the older shape for the rest of its run. */
 const MCP_VERSION = "2026-07-28";
 let modern = true;
-const pluginVersion = JSON.parse(fs.readFileSync(new URL("../.claude-plugin/plugin.json", import.meta.url), "utf8")).version;
+const appVersion = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
 const ENVELOPE = {
 	"io.modelcontextprotocol/protocolVersion": MCP_VERSION,
 	"io.modelcontextprotocol/clientCapabilities": {},
 	// It waits for Claude Code, so godspeed names the agent Claude Code.
-	"io.modelcontextprotocol/clientInfo": { name: "claude-code", version: pluginVersion },
+	"io.modelcontextprotocol/clientInfo": { name: "claude-code", version: appVersion },
 };
 
 /** One wait_for_work call. Returns the parsed tool result, or throws. */

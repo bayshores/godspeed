@@ -21,12 +21,16 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
+	// The agent menu (MenuShell) places itself on the next frame.
+	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
+	cancelAnimationFrame: (id: number) => clearTimeout(id),
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
 
 const { createRoot } = await import("react-dom/client");
 const { SettingsDialogBody, sectionFor } = await import("../src/components/settings/settings-dialog.tsx");
-const { ConnectionSection, CLAUDE_CODE_SETUP, codexConfig, maskToken } = await import("../src/components/settings/connection-section.tsx");
+const { ConnectionSection } = await import("../src/components/settings/connection-section.tsx");
+const { maskToken } = await import("../src/components/mcp-access.ts");
 
 const originalFetch = globalThis.fetch;
 let root: Root | undefined;
@@ -43,9 +47,19 @@ async function mount(element: React.ReactElement) {
 }
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 
-/** The Connection section's two reads: the access view and the saved notes. */
+const FOLDER = {
+	folder: "/Users/me/godspeed",
+	short: "~/godspeed",
+	exists: false,
+	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json "Start teaching"', codex: "cd ~/godspeed && codex" },
+};
+
+/** The Connection section's reads: the access view, the saved notes and the godspeed folder. */
 function connectionFetch(access: object, notes: object[] = []) {
-	return (async (url: string) => Response.json(String(url).startsWith("/api/agent-notes") ? { notes } : access)) as unknown as typeof fetch;
+	return (async (url: string) => {
+		const path = String(url);
+		return Response.json(path.startsWith("/api/agent-notes") ? { notes } : path.startsWith("/api/agent-folder") ? FOLDER : access);
+	}) as unknown as typeof fetch;
 }
 
 afterEach(async () => {
@@ -78,18 +92,18 @@ describe("settings restyle", () => {
 		assert.equal(graph.querySelector('[data-testid="graph-row-rendering"]'), null, "the dead rendering switch is gone");
 	});
 
-	it("Connection: Access and Setup rows, the token masked, connection status", async () => {
+	it("Connection: Access, the token masked, connection status, and the button that opens your agent", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
 		const el = await mount(<ConnectionSection />);
 		const text = el.textContent!;
-		for (const label of ["Access", "Connection", "Access token", "Setup", "Claude Code", "Codex", "Other MCP apps"]) {
+		for (const label of ["Access", "Connection", "Access token", "Your agent", "Open Claude Code", "Copy the command"]) {
 			assert.ok(text.includes(label), label);
 		}
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
 		assert.equal(q("agent-status")!.textContent, "Your agent · 1 job");
-		assert.ok(text.includes("127.0.0.1:47613/api/mcp"));
-		assert.ok(el.querySelector('[aria-label="Copy Codex config"]'));
+		assert.equal(q("agent-folder-path")!.textContent, "Folder: ~/godspeed");
+		assert.ok(!text.includes("/plugin"), "no plugin to install");
 	});
 
 	it("access is always on: no on/off switch, setup always shown", async () => {
@@ -97,7 +111,7 @@ describe("settings restyle", () => {
 		const el = await mount(<ConnectionSection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.equal(el.querySelector('[role="switch"]'), null);
-		assert.ok(el.textContent!.includes("Setup"));
+		assert.ok(el.textContent!.includes("Your agent"));
 		assert.equal(q("agent-status")!.textContent, "No agent connected");
 	});
 
@@ -105,27 +119,40 @@ describe("settings restyle", () => {
 		globalThis.fetch = connectionFetch({ token: "tok_d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: false, agentName: "Codex", pendingWork: 0 });
 		await mount(<ConnectionSection />);
 		assert.equal(q("agent-status")!.textContent, "Codex connected, not teaching");
-		assert.equal(q("agent-teach-hint")!.textContent, "Ask Codex to teach you with the godspeed tools.");
+		assert.equal(q("agent-teach-hint")!.textContent, "Tell Codex to start teaching.");
 	});
 
-	it("the setup steps show as text, not only on hover", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_e", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+	it("the menu switches the button to Codex, and Other app shows the address and a masked token", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_secret_e77e", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
 		const el = await mount(<ConnectionSection />);
-		assert.ok(el.textContent!.includes("In Claude Code, run these one at a time"));
-		assert.ok(el.textContent!.includes("Add this to ~/.codex/config.toml"));
-		assert.ok(el.textContent!.includes("Use a Streamable HTTP server"));
+		const pick = async (id: string) => {
+			await act(async () => q("open-agent-menu")!.click());
+			await act(async () => {
+				q(id)!.click();
+				await new Promise((r) => setTimeout(r, 10));
+			});
+		};
+		await pick("open-agent-codex");
+		assert.equal(q("open-agent")!.textContent, "Open Codex");
+		await pick("open-agent-other");
+		assert.equal(q("open-agent")!.textContent, "Show the setup");
+		assert.ok(el.textContent!.includes("Add a Streamable HTTP MCP server"));
+		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));
+		assert.ok(el.textContent!.includes("Bearer ••••••••••••e77e"));
+		assert.ok(!el.textContent!.includes("Copy the command"), "no command for another app");
 	});
 
 	it("New token asks first, then says to copy the new config", async () => {
 		const calls: string[] = [];
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			if (String(url).startsWith("/api/agent-notes")) return Response.json({ notes: [] });
+			if (String(url).startsWith("/api/agent-folder")) return Response.json(FOLDER);
 			calls.push(init?.method ?? "GET");
 			return Response.json({ token: init?.method === "POST" ? "tok_new_2222" : "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
 		}) as unknown as typeof fetch;
 		await mount(<ConnectionSection />);
 		await act(async () => q("agent-new-token")!.click());
-		assert.ok(q("agent-new-token-confirm")!.textContent!.includes("Codex and other apps will need the new config. Continue?"));
+		assert.ok(q("agent-new-token-confirm")!.textContent!.includes("Other MCP apps will need the new token. Continue?"));
 		assert.ok(!calls.includes("POST"), "nothing changes until Continue");
 		await act(async () => {
 			q("agent-new-token-continue")!.click();
@@ -133,7 +160,7 @@ describe("settings restyle", () => {
 		});
 		assert.ok(calls.includes("POST"));
 		assert.equal(q("agent-new-token-confirm"), null);
-		assert.ok(q("agent-new-token-note")!.textContent!.includes("Copy the Codex config"));
+		assert.ok(q("agent-new-token-note")!.textContent!.includes("Claude Code and Codex pick it up by themselves"));
 		assert.equal(q("agent-token")!.textContent, "••••••••••••2222");
 	});
 
@@ -152,6 +179,7 @@ describe("settings restyle", () => {
 		let posts = 0;
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			if (String(url).startsWith("/api/agent-notes")) return Response.json({ notes: [] });
+			if (String(url).startsWith("/api/agent-folder")) return Response.json(FOLDER);
 			if (init?.method === "POST") {
 				posts += 1;
 				return new Promise<Response>(() => {});
@@ -183,11 +211,8 @@ describe("settings restyle", () => {
 		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
 	});
 
-	it("helpers: masked token, both Claude Code commands, the Codex block", () => {
+	it("masks the token", () => {
 		assert.equal(maskToken("abcdef123456"), "••••••••••••3456");
 		assert.equal(maskToken("abc"), "abc");
-		assert.equal(CLAUDE_CODE_SETUP.split("\n").length, 2);
-		assert.match(codexConfig("http://x/api/mcp", "T"), /url = "http:\/\/x\/api\/mcp"\nhttp_headers = \{ "Authorization" = "Bearer T" \}/);
-		assert.match(codexConfig("http://x/api/mcp", "T"), /\ntool_timeout_sec = 600$/, "long waits cost Codex fewer model turns");
 	});
 });

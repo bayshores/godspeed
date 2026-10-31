@@ -45,6 +45,7 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			"node_modules/pdfjs-dist/legacy/**/*",
 			// Speed plan (2026-10-27): the class-PDF text worker, loaded by path.
 			"src/server/workers/**/*",
+			"src/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			"node_modules/@napi-rs/canvas-*/**/*",
 			"node_modules/@resvg/resvg-js-*/**/*",

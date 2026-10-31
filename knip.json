@@ -3,7 +3,7 @@
 	"entry": [
 		"electron/*.cjs",
 		"scripts/*.{ts,mjs,cjs}",
-		"integrations/claude-code/godspeed/scripts/*.mjs",
+		"src/server/agent-folder-files/*.mjs",
 		"src/server/workers/*.mjs",
 		"tests/**/*.test.{ts,tsx}",
 		"tests/perf/*.{ts,tsx}"

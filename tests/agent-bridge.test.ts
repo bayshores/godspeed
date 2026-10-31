@@ -438,7 +438,8 @@ describe("the /api/mcp door", () => {
 			const result = (await res.json()).result;
 			assert.ok(result.supportedVersions.includes("2026-07-28"));
 			assert.deepEqual(result.capabilities.tools, { listChanged: false }, "so Claude Code opens no subscriptions/listen stream");
-			assert.match(result.instructions, /The work loop:[\s\S]*scripts\/wait-for-work\.mjs[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nClasses: the learner/);
+			assert.match(result.instructions, /The work loop:[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nClasses: the learner/);
+			assert.doesNotMatch(result.instructions, /wait-for-work\.mjs/, "the godspeed folder's CLAUDE.md says how to wait");
 			assert.equal(mcp.mcpAccessStatus().agentName, "Claude Code");
 		});
 
@@ -951,14 +952,12 @@ describe("the work loop's status, references and recovery", () => {
 		for (const id of ["job_ref_1", "job_ref_2", "job_ref_3"]) bridge.forgetConversation(id);
 	});
 
-	it("tells Claude Code to wait with the plugin's waiter, and other clients to call wait_for_work", async () => {
-		const codex = await initialize("codex-mcp-client");
-		assert.doesNotMatch(codex, /wait-for-work\.mjs/);
+	it("tells Claude Code to wait with the godspeed folder's waiter, and other clients to call wait_for_work", async () => {
+		await initialize("codex-mcp-client");
 		assert.match(JSON.parse((await call("wait_for_work", { timeout_seconds: 1 })).content[0]!.text).note, /Call wait_for_work again/);
 
-		const claude = await initialize("claude-code");
-		assert.match(claude, /scripts\/wait-for-work\.mjs/);
-		assert.match(JSON.parse((await call("wait_for_work", { timeout_seconds: 1 })).content[0]!.text).note, /scripts\/wait-for-work\.mjs/);
+		await initialize("claude-code");
+		assert.match(JSON.parse((await call("wait_for_work", { timeout_seconds: 1 })).content[0]!.text).note, /node \.godspeed\/wait-for-work\.mjs/);
 		const chat = chatStore.createChat("Waiter");
 		await handleChatInput(chat.id, { type: "text", text: "hi" });
 		const work = await bridge.waitForWork(5000, { conversation: chat.id });

@@ -24,10 +24,10 @@ export interface AgentStatus {
 	claimedLessons: { lessonId: string; claimedAt: string }[];
 }
 
-/** How to get the agent teaching: the plugin command for Claude Code (or
- *  an unknown agent), a plain ask for any other agent. */
+/** How to get the agent teaching: open one from the sidebar, or ask the
+ *  connected one to start. */
 export function teachStep(name?: string): string {
-	return !name || name === "Claude Code" ? "Run /godspeed:teach in Claude Code." : `Ask ${name} to teach you with the godspeed tools.`;
+	return name ? `Tell ${name} to start teaching.` : "Open your agent from the sidebar.";
 }
 
 /** The notice shown while work waits and no agent is teaching. */

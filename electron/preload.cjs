@@ -26,6 +26,10 @@
  *
  *   window.lh.reportBug() — opens a prefilled GitHub issue in the browser.
  *
+ *   window.lh.openAgent(folder, agent) — opens a terminal running the
+ *   godspeed folder's start script for "claude" or "codex"; resolves to
+ *   null, or a message saying why it couldn't.
+ *
  *   window.lh.listFonts() — the installed font families (Appearance).
  *
  *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
@@ -47,6 +51,7 @@ contextBridge.exposeInMainWorld("lh", {
 	pickFolder: () => ipcRenderer.invoke("lh:pick-folder"),
 	showInFolder: (target) => ipcRenderer.invoke("lh:show-in-folder", target),
 	openPath: (target) => ipcRenderer.invoke("lh:open-path", target),
+	openAgent: (folder, agent) => ipcRenderer.invoke("lh:open-agent", folder, agent),
 	// A dropped file's or folder's path (onboarding's drop zone links a
 	// dropped folder). Path only — no file access crosses the bridge.
 	pathForFile: (file) => webUtils.getPathForFile(file),

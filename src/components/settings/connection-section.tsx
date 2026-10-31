@@ -1,13 +1,16 @@
 /**
  * Settings → Connection: outside agents (Claude Code, Codex, any MCP client)
  * connect to godspeed and act as its AI, always on and the only model.
- * "Access": the connection status and the access token; "Setup":
- * copy-ready setup for each agent, with its steps written under its name.
+ * "Access": the connection status and the access token; "Your agent":
+ * the button that opens it in the godspeed folder (or the setup for
+ * another MCP app).
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { footerLabel, teachStep, useAgentStatus } from "@/components/agent-status";
+import { AgentLauncher } from "@/components/agent-folder/agent-launcher";
 import { CopyButton } from "@/components/copy-button";
+import { ACCESS_ERROR, maskToken } from "@/components/mcp-access";
 import { cn } from "@/lib/utils";
 import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
 import { RememberedNotes } from "./remembered-notes.tsx";
@@ -21,31 +24,10 @@ interface AccessView {
 	pendingWork: number;
 }
 
-/** Shown when the access settings can't be read. */
-export const ACCESS_ERROR = "Agent access settings are unavailable. Restart godspeed and try again.";
-
 async function request(init?: RequestInit): Promise<AccessView> {
 	const res = await fetch("/api/mcp-access", { cache: "no-store", ...init, headers: { "Content-Type": "application/json" } });
 	if (!res.ok) throw new Error(ACCESS_ERROR);
 	return res.json() as Promise<AccessView>;
-}
-
-/** The commands Claude Code runs, one at a time. */
-export const CLAUDE_CODE_SETUP = "/plugin marketplace add bayshores/godspeed\n/plugin install godspeed@godspeed";
-
-/** The token as dots and its last four characters. */
-export function maskToken(token: string): string {
-	return token.length <= 4 ? token : `${"•".repeat(12)}${token.slice(-4)}`;
-}
-
-/** The Codex config block for this app's address and token. */
-export function codexConfig(url: string, token: string): string {
-	return `[mcp_servers.godspeed]\nurl = "${url}"\nhttp_headers = { "Authorization" = "Bearer ${token}" }\ntool_timeout_sec = 600`;
-}
-
-/** "127.0.0.1:47613/api/mcp" — the address without its scheme. */
-function shortUrl(url: string): string {
-	return url.replace(/^https?:\/\//, "");
 }
 
 const MONO = "min-w-0 truncate font-mono text-[12.5px] text-ink-2";
@@ -115,7 +97,7 @@ export function ConnectionSection() {
 				</SettingsRow>
 				{(rotate === "asking" || rotate === "making") && (
 					<div data-testid="agent-new-token-confirm" className="flex items-center justify-between gap-4 bg-tone px-3.5 py-2.5">
-						<span className="text-[13px] text-ink-2">Codex and other apps will need the new config. Continue?</span>
+						<span className="text-[13px] text-ink-2">Other MCP apps will need the new token. Continue?</span>
 						<span className="flex shrink-0 items-center gap-2">
 							<button type="button" className="lh-press px-2.5 py-[5px] text-[13px] font-bold text-ink-2 hover:text-ink" onClick={() => setRotate("idle")}>
 								Cancel
@@ -134,49 +116,16 @@ export function ConnectionSection() {
 				)}
 				{rotate === "done" && (
 					<p data-testid="agent-new-token-note" className="text-xs text-ink-2">
-						New token made. Copy the Codex config or the MCP setup below again and paste it into your app. Claude Code picks up the new
-						token by itself.
+						New token made. Copy it into your other MCP apps again. Claude Code and Codex pick it up by themselves.
 					</p>
 				)}
 				{error && <p className="text-xs text-ans-wrong">{error}</p>}
 			</SettingsGroup>
 
-			<SettingsGroup label="Setup">
-				<SettingsRow
-					label="Claude Code"
-					hint={
-						<>
-							In Claude Code, run these one at a time (Copy copies both). The plugin finds this app and its token by itself. Then start
-							teaching with <span className="font-mono">/godspeed:teach</span> (add a topic to start a new lesson). Put Claude Code in auto mode
-							first, so it never stops to ask your permission.
-						</>
-					}
-				>
-					<span className="flex min-w-0 items-center gap-2">
-						<span className={MONO}>/plugin install godspeed@godspeed</span>
-						<CopyButton aria-label="Copy Claude Code setup" className={OUTLINE_BUTTON} text={CLAUDE_CODE_SETUP} />
-					</span>
-				</SettingsRow>
-				<SettingsRow label="Codex" hint="Add this to ~/.codex/config.toml, then ask Codex to use the godspeed tools to teach you. Set Codex's approvals to Full Access first, so it never stops to ask your permission.">
-					<CopyButton aria-label="Copy Codex config" className={OUTLINE_BUTTON} text={codexConfig(access.url, token)}>
-						Copy config
-					</CopyButton>
-				</SettingsRow>
-				<SettingsRow
-					label="Other MCP apps"
-					hint={
-						<>
-							Use a Streamable HTTP server with this address and the header{" "}
-							<span className="font-mono">Authorization: Bearer &lt;access token&gt;</span>. Let your agent use
-							the godspeed tools without asking your permission.
-						</>
-					}
-				>
-					<span className="flex min-w-0 items-center gap-2">
-						<span className={MONO}>{shortUrl(access.url)}</span>
-						<CopyButton aria-label="Copy MCP address" className={OUTLINE_BUTTON} text={access.url} />
-					</span>
-				</SettingsRow>
+			<SettingsGroup label="Your agent">
+				<div className="py-3">
+					<AgentLauncher />
+				</div>
 			</SettingsGroup>
 
 			<RememberedNotes />
@@ -186,4 +135,4 @@ export function ConnectionSection() {
 
 /** The section's head tooltip: what outside agents do, and how to use one. */
 export const CONNECTION_SECTION_HINT =
-	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons and does the helper and graph work too. In Claude Code, run /godspeed:teach to start.";
+	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons and does the helper and graph work too. Open it with the button under Your agent.";

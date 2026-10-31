@@ -4,12 +4,11 @@
  * FIRST-LAUNCH ONBOARDING. Rendered by src/app/layout.tsx INSTEAD of the
  * app shell while src/server/onboarding.ts says it is needed:
  *
- *   intro → 1 Connect your agent → 2 Add your first class → You're all set
+ *   intro → 1 Start your agent → 2 Add your first class → You're all set
  *
- * The agent step waits live for the agent's first check-in (the shared
- * agent status, src/components/agent-status.tsx); "I'll do this later" skips
- * it. The class step is optional. Without an agent, the done step's
- * "Connect your agent" goes back to step 1, whose Continue then returns to
+ * The agent step opens the agent in the godspeed folder and follows it
+ * live (src/components/agent-folder); "I'll do this later" skips it. The class step is optional. Without an agent, the done step's
+ * "Start your agent" goes back to step 1, whose Continue then returns to
  * the done step. Finishing writes general.onboarded and re-renders the
  * layout, which then shows Home; if that save fails, the done step stays
  * with Try again.
@@ -17,35 +16,21 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, CircleCheckIcon, FolderDownIcon } from "lucide-react";
+import { CheckIcon, FolderDownIcon } from "lucide-react";
 import { useAgentStatus } from "@/components/agent-status";
 import { useSound } from "@/components/sounds";
 import { notifySettingsSaved } from "@/components/settings-signal";
-import { ACCESS_ERROR, CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/connection-section";
+import { AgentLauncher } from "@/components/agent-folder/agent-launcher";
 import { linkClassFolder, uploadClassFiles } from "@/components/files/class-files-api";
 import { CLASS_FILE_ACCEPT } from "@/components/files/files-model";
-import { CopyButton } from "@/components/copy-button";
 import { showFocusRingAfterTab } from "@/components/focus-hygiene";
 import { cn } from "@/lib/utils";
 import { Constellation, type ConstellationMode } from "./constellation";
 
 type Step = "intro" | "agent" | "class" | "done";
-type AgentTab = "claude" | "codex" | "other";
 
 /** How long the intro runs before Return / the button continue. */
 const INTRO_MS = 2500;
-
-const TABS: { id: AgentTab; label: string }[] = [
-	{ id: "claude", label: "Claude Code" },
-	{ id: "codex", label: "Codex" },
-	{ id: "other", label: "Other app" },
-];
-
-/** The live status line's text. Pure — exported for tests. */
-export function agentLine(tab: AgentTab, connected: boolean, name?: string): string {
-	if (connected) return `${name?.trim() || "Your agent"} connected`;
-	return tab === "other" ? "Waiting for your app…" : `Waiting for ${tab === "claude" ? "Claude Code" : "Codex"}…`;
-}
 
 /** Return presses the step's main button, unless typing in a field
  *  wants the key (a text area) or a modifier is held. */
@@ -77,7 +62,7 @@ export function Onboarding() {
 	const [introSkipped, setIntroSkipped] = useState(false);
 	const [leaving, setLeaving] = useState(false);
 	const [classId, setClassId] = useState<string | null>(null);
-	// The class step is behind us: "Connect your agent" on the done step comes back here, not to it again.
+	// The class step is behind us: "Start your agent" on the done step comes back here, not to it again.
 	const [classStepDone, setClassStepDone] = useState(false);
 	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
 	const [saveFailed, setSaveFailed] = useState(false);
@@ -126,7 +111,7 @@ export function Onboarding() {
 			<Constellation mode={sky} />
 			<div className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave")}>
 				{step === "intro" && <Intro skipped={introSkipped} onSkip={() => setIntroSkipped(true)} onDone={() => setStep("agent")} />}
-				{step === "agent" && <AgentStep connected={!!status?.connected} name={status?.name} onNext={() => setStep(classStepDone ? "done" : "class")} />}
+				{step === "agent" && <AgentStep connected={!!status?.connected} onNext={() => setStep(classStepDone ? "done" : "class")} />}
 				{step === "class" && (
 					<ClassStep
 						onDone={(id) => {
@@ -191,9 +176,9 @@ function StepBar({ at }: { at: 1 | 2 }) {
 	);
 }
 
-function StepColumn({ at, title, sub, children }: { at: 1 | 2; title: string; sub: string; children: React.ReactNode }) {
+function StepColumn({ at, title, sub, center = false, children }: { at: 1 | 2; title: string; sub: string; center?: boolean; children: React.ReactNode }) {
 	return (
-		<div className="ob-step mx-auto flex w-[600px] max-w-[calc(100vw-2rem)] flex-col py-[15vh]">
+		<div className={cn("ob-step mx-auto flex w-[600px] max-w-[calc(100vw-2rem)] flex-col py-[15vh]", center && "items-center text-center")}>
 			<StepBar at={at} />
 			<h1 className="mt-8 font-title text-[44px] leading-tight text-ink">{title}</h1>
 			<p className="mt-2 text-[15px] leading-relaxed text-ink-2">{sub}</p>
@@ -202,163 +187,40 @@ function StepColumn({ at, title, sub, children }: { at: 1 | 2; title: string; su
 	);
 }
 
-/** A copyable code block: a header (label + Copy) and the lines. */
-function CodeBlock({ label, lines, copy }: { label: string; lines: string[]; copy: string }) {
-	return (
-		<div className="border border-tone-2 bg-panel">
-			<div className="flex items-center justify-between border-b border-tone-2 px-4 py-2.5">
-				<span className="text-[12.5px] text-ink-3">{label}</span>
-				<CopyButton
-					text={copy}
-					icon
-					aria-label={`Copy ${label}`}
-					className="lh-press flex items-center gap-1.5 text-[12.5px] font-bold text-ink-2 hover:text-ink"
-				/>
-			</div>
-			<pre className="overflow-x-auto px-4 py-3.5 font-mono text-[13.5px] leading-[1.9] text-ink">{lines.join("\n")}</pre>
-		</div>
-	);
-}
+// ─── 1 · Start your agent ───────────────────────────────────────────────────
 
-function Numbered({ n, children }: { n: number; children: React.ReactNode }) {
-	return (
-		<div className="flex items-center gap-3 text-[14.5px] text-ink">
-			<span className="flex size-[22px] shrink-0 items-center justify-center border border-tone-2 font-mono text-[11.5px] text-ink-2">{n}</span>
-			<span>{children}</span>
-		</div>
-	);
-}
-
-// ─── 1 · Connect your agent ─────────────────────────────────────────────────
-
-interface Access {
-	token: string;
-	url: string;
-}
-
-function AgentStep({ connected, name, onNext }: { connected: boolean; name?: string; onNext: () => void }) {
-	const [tab, setTab] = useState<AgentTab>("claude");
-	const [access, setAccess] = useState<Access | null>(null);
-	const [error, setError] = useState<string | null>(null);
+function AgentStep({ connected, onNext }: { connected: boolean; onNext: () => void }) {
 	const play = useSound();
 	useEffect(() => {
 		if (connected) play("connected");
 	}, [connected, play]);
-	useEffect(() => {
-		fetch("/api/mcp-access", { cache: "no-store" })
-			.then((r) => {
-				if (!r.ok) throw new Error(`mcp-access ${r.status}`);
-				return r.json() as Promise<Access>;
-			})
-			.then(
-				(body) => setAccess({ token: body.token, url: body.url }),
-				// One plain message for every failure, so raw network errors never show.
-				() => setError(ACCESS_ERROR),
-			);
-	}, []);
 	useReturn(connected ? onNext : null);
-
-	let block: React.ReactNode;
-	if (tab === "claude") {
-		block = (
-			<>
-				<Numbered n={1}>In Claude Code, run these two commands:</Numbered>
-				<CodeBlock label="Claude Code" lines={CLAUDE_CODE_SETUP.split("\n")} copy={CLAUDE_CODE_SETUP} />
-				<Numbered n={2}>
-					Then run <span className="font-mono text-[13.5px]">/godspeed:teach</span> and leave it running. Put Claude Code in auto mode
-					first, so it never stops to ask your permission.
-				</Numbered>
-			</>
-		);
-	} else if (tab === "codex") {
-		block = (
-			<>
-				<Numbered n={1}>
-					Add this to <span className="font-mono text-[13.5px]">~/.codex/config.toml</span>:
-				</Numbered>
-				{access ? (
-					<CodeBlock
-						label="config.toml"
-						lines={codexConfig(access.url, maskToken(access.token)).split("\n")}
-						copy={codexConfig(access.url, access.token)}
-					/>
-				) : (
-					<p className="text-xs text-ink-2">{error ?? "Loading…"}</p>
-				)}
-				<Numbered n={2}>
-					Then ask Codex to teach you with the godspeed tools. Set Codex&apos;s approvals to Full Access first, so it never stops to ask your
-					permission.
-				</Numbered>
-			</>
-		);
-	} else {
-		block = (
-			<>
-				<Numbered n={1}>Add a Streamable HTTP MCP server with this address and header:</Numbered>
-				{access ? (
-					<CodeBlock
-						label="MCP server"
-						lines={[access.url, `Authorization: Bearer ${maskToken(access.token)}`]}
-						copy={`${access.url}\nAuthorization: Bearer ${access.token}`}
-					/>
-				) : (
-					<p className="text-xs text-ink-2">{error ?? "Loading…"}</p>
-				)}
-				<Numbered n={2}>
-					Then ask it to teach you with the godspeed tools. Let your agent use the godspeed tools without asking your permission.
-				</Numbered>
-			</>
-		);
-	}
-
 	return (
-		<StepColumn at={1} title="Connect your agent" sub="godspeed doesn't have its own AI. Your coding agent teaches you through it, on the plan you already have.">
-			<div role="tablist" aria-label="Your agent" className="mt-8 grid grid-cols-3 gap-px border border-tone-2 bg-tone-2">
-				{TABS.map((t) => (
-					<button
-						key={t.id}
-						type="button"
-						role="tab"
-						aria-selected={tab === t.id}
-						data-testid={`onboarding-tab-${t.id}`}
-						onClick={() => setTab(t.id)}
-						className={cn("lh-press py-3 text-[14.5px]", tab === t.id ? "bg-tone font-bold text-ink" : "bg-panel text-ink-2 hover:text-ink")}
-					>
-						{t.label}
+		<StepColumn
+			at={1}
+			center
+			title="Start your agent"
+			sub="godspeed doesn't have its own AI. Your agent teaches you from its own godspeed folder, on the plan you already have."
+		>
+			<div className="mt-9">
+				<AgentLauncher
+					center
+					extra={
+						!connected && (
+							<button type="button" data-testid="onboarding-later" className="lh-press text-[13px] font-bold text-ink-3 hover:text-ink" onClick={onNext}>
+								I&apos;ll do this later
+							</button>
+						)
+					}
+				/>
+			</div>
+			{connected && (
+				<div className="mt-9 flex justify-center">
+					<button type="button" data-testid="onboarding-agent-continue" className={PRIMARY} onClick={onNext}>
+						Continue
 					</button>
-				))}
-			</div>
-			<div className={cn("mt-8 flex flex-col gap-4 transition-opacity duration-500", connected && "opacity-55")}>{block}</div>
-			<div
-				data-testid="onboarding-agent-status"
-				data-connected={connected || undefined}
-				aria-live="polite"
-				className={cn(
-					"mt-8 flex items-center gap-3 border px-4 py-3 text-[14.5px] transition-colors duration-500",
-					connected ? "border-ans-right/80 bg-ans-right/[0.08] font-bold text-ink" : "border-tone-2 bg-panel text-ink-2",
-				)}
-			>
-				{connected ? (
-					<CircleCheckIcon className="size-4 text-ans-right" aria-hidden />
-				) : (
-					<span aria-hidden className="ob-pulse flex size-4 items-center justify-center rounded-full bg-tone-2">
-						<span className="size-1.5 rounded-full bg-ink-2" />
-					</span>
-				)}
-				{agentLine(tab, connected, name)}
-			</div>
-			<div className="mt-8 flex items-center justify-between">
-				{connected ? (
-					<span />
-				) : (
-					<button type="button" data-testid="onboarding-later" className={QUIET} onClick={onNext}>
-						I&apos;ll do this later
-					</button>
-				)}
-				<button type="button" data-testid="onboarding-agent-continue" disabled={!connected} className={PRIMARY} onClick={onNext}>
-					Continue
-				</button>
-			</div>
+				</div>
+			)}
 		</StepColumn>
 	);
 }
@@ -529,7 +391,7 @@ export function DoneStep({
 	/** The connected agent, or null when none is connected yet. */
 	agent: { name?: string } | null;
 	onStart: () => void;
-	/** Back to step 1, "Connect your agent". */
+	/** Back to step 1, "Start your agent". */
 	onConnect: () => void;
 	disabled: boolean;
 	/** Saving the finished onboarding failed. */
@@ -557,7 +419,7 @@ export function DoneStep({
 			<div className="mt-7 flex items-center gap-6">
 				{!agent && (
 					<button type="button" data-testid="onboarding-connect" className={QUIET} onClick={onConnect}>
-						Connect your agent
+						Start your agent
 					</button>
 				)}
 				<button type="button" data-testid="onboarding-finish" disabled={disabled} className={PRIMARY} onClick={onStart}>

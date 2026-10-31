@@ -24,6 +24,7 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require("e
 const { desktopAPIHeaders, trustedSender } = require("./desktop-api.cjs");
 const { isWebLink, isAppBundle } = require("./open-guards.cjs");
 const { bugReportURL } = require("./bug-report.cjs");
+const { openAgentTerminal } = require("./open-terminal.cjs");
 const { recordRestart } = require("./server-restarts.cjs");
 const { randomBytes } = require("node:crypto");
 const { spawn } = require("node:child_process");
@@ -194,7 +195,7 @@ function preferredPort() {
 	});
 }
 
-/** Tell the MCP connector (integrations/claude-code) where this launch's server is. */
+/** Tell the godspeed folder's connector (src/server/agent-folder-files) where this launch's server is. */
 function writeMcpEndpoint(baseUrl) {
 	try {
 		fs.mkdirSync(DATA_DIR(), { recursive: true });
@@ -889,6 +890,12 @@ async function main() {
 		const stat = fs.statSync(real);
 		if (stat.isDirectory() && isAppBundle(real)) shell.showItemInFolder(real);
 		else if (stat.isDirectory() || (stat.isFile() && /\.pdf$/i.test(real))) await shell.openPath(real);
+	});
+	// "Open Claude Code": a terminal window running the godspeed folder's
+	// start script. Resolves to null, or a message saying why it couldn't.
+	ipcMain.handle("lh:open-agent", (event, folder, agent) => {
+		if (!fromAppWindow(event)) throw untrusted();
+		return openAgentTerminal(folder, agent);
 	});
 	// The renderer's first paint can race did-finish-load, so it asks for
 	// the current factor itself (mirrors "lh:zoom" pushes).

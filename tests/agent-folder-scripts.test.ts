@@ -1,5 +1,6 @@
-/** The Claude Code plugin's scripts, run the way Claude Code runs them,
- *  against a stand-in godspeed (a local HTTP server) or a closed app. */
+/** The godspeed folder's scripts, written by the app and run the way
+ *  Claude Code runs them, against a stand-in godspeed (a local HTTP server)
+ *  or a closed app. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
@@ -9,9 +10,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 
-const scripts = path.join(import.meta.dirname, "..", "integrations", "claude-code", "godspeed", "scripts");
-const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-plugin-"));
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-folder-scripts-"));
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
+process.env.LH_DATA_DIR = path.join(scratch, "data");
+process.env.CLAUDE_CONFIG_DIR = path.join(scratch, "claude");
+process.env.CODEX_HOME = path.join(scratch, "codex");
+const { setUpAgentFolder } = await import("../src/server/agent-folder.ts");
+const scripts = path.join(setUpAgentFolder(path.join(scratch, "godspeed")).folder, ".godspeed");
 
 interface Seen {
 	body: Record<string, unknown>;

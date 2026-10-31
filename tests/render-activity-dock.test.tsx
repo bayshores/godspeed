@@ -14,11 +14,10 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(agentWaiting(status()), false);
 		assert.equal(agentWaiting(null), false);
 	});
-	it("names /godspeed:teach only for Claude Code or an unknown agent", () => {
-		assert.equal(waitingNotice(), "Waiting for your agent. Run /godspeed:teach in Claude Code.");
-		assert.equal(waitingNotice("Claude Code"), "Waiting for your agent. Run /godspeed:teach in Claude Code.");
-		assert.equal(waitingNotice("Codex"), "Waiting for your agent. Ask Codex to teach you with the godspeed tools.");
-		assert.equal(teachStep("Codex"), "Ask Codex to teach you with the godspeed tools.");
+	it("says to open an agent from the sidebar, or to tell the connected one to start", () => {
+		assert.equal(waitingNotice(), "Waiting for your agent. Open your agent from the sidebar.");
+		assert.equal(waitingNotice("Claude Code"), "Waiting for your agent. Tell Claude Code to start teaching.");
+		assert.equal(teachStep("Codex"), "Tell Codex to start teaching.");
 	});
 	it("reads the /api/mcp-access body", () => {
 		assert.deepEqual(

@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.5",
+		"date": "2026-10-30",
+		"changes": [
+			"Your agent now has its own folder, ~/godspeed. One click on Open Claude Code makes it and starts Claude Code there in a terminal.",
+			"godspeed only loads in that folder, so your other Claude Code and Codex chats stay clean.",
+			"A live log under the button shows each step, from making the folder to your agent teaching.",
+			"The arrow next to the button switches to Codex, or shows the address and token for any other MCP app.",
+			"When no agent is open, the sidebar has an Open in godspeed folder button.",
+			"The Claude Code plugin is gone. If you had it, godspeed offers to set up the folder once and removes the plugin for you."
+		]
+	},
+	{
 		"version": "0.5.4",
 		"date": "2026-10-30",
 		"changes": [
