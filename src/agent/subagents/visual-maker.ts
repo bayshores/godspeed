@@ -149,6 +149,8 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 	let currentSvg: string | null = null;
 	/** The svg shown in the most recent render (null = never rendered). */
 	let renderedSvg: string | null = null;
+	/** The svg in a render the model has actually received. */
+	let lookedSvg: string | null = null;
 	let finalText = "";
 
 	try {
@@ -163,6 +165,8 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 				sessionId,
 				opts.abortSignal,
 			);
+			// Every render already in `messages` was part of that call's input.
+			lookedSvg = renderedSvg;
 			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 
@@ -291,7 +295,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 	}
 
 	// Iteration limit: deliver the last written SVG only if it was looked at.
-	if (currentSvg && renderedSvg === currentSvg) {
+	if (currentSvg && lookedSvg === currentSvg) {
 		return { svg: currentSvg, notes: finalText || "Iteration limit reached — delivering the last verified SVG." };
 	}
 	return { svg: "", notes: `FAILED: iteration limit (${maxIterations}) reached without a verified SVG.` };
