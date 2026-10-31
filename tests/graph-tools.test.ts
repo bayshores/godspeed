@@ -112,7 +112,7 @@ describe("list_sessions", () => {
 			[
 				node("n1", "Water cycle", [pt("c1")]),
 				node("n2", "Evaporation", [pt("c1")]),
-				node("n3", "Nietzsche", [pt("c-file")]),
+				node("n3", "Nietzsche", [pt("src_file")]),
 			],
 			{
 				chats: [
@@ -131,7 +131,7 @@ describe("list_sessions", () => {
 		// The chat: name, kind, born count, dates, id — the full resume.
 		assert.match(out, /First lesson \(chat, 2 propositions, born 2026-09-20T10:00:00.000Z, last active 2026-09-21T10:00:00.000Z\) — id: c1/);
 		// The unrecorded birth session falls back honestly: the id, no fake date.
-		assert.match(out, /c-file \(file, 1 proposition, born unknown date\) — id: c-file/);
+		assert.match(out, /src_file \(file, 1 proposition, born unknown date\) — id: src_file/);
 		// The map's prose never reaches the prober.
 		assert.ok(!out.includes("statement of"));
 	});
