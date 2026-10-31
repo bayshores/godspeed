@@ -8,7 +8,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ClassRecord } from "../core/contracts.ts";
+import type { ClassFile, ClassRecord } from "../core/contracts.ts";
 import { isRecordingFile } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
 import { newClassContextMessage, type ClassCardDetails, type LhMessage } from "../core/native-messages.ts";
@@ -16,9 +16,17 @@ import { resolveTopics } from "../core/topics.ts";
 import { fileExtents } from "./search-index.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 
-function absolutePath(record: ClassRecord, file: ClassRecord["files"][number]): string | null {
+/** Absolute path of a class file on this computer (null when its linked
+ *  folder is gone). */
+export function classFilePath(record: ClassRecord, file: ClassFile): string | null {
 	if (file.origin === "copied") return path.join(stores.classStore.filesDir(record.id), file.path);
 	return record.linkedFolder ? path.join(record.linkedFolder, file.path) : null;
+}
+
+/** Where a recording's transcript is kept (inside the app's own class
+ *  folder, a linked folder is never written to). */
+export function transcriptPathOf(classId: string, fileId: string): string {
+	return path.join(stores.classStore.filesDir(classId), "transcripts", `${fileId}.txt`);
 }
 
 /** The card's data for a class as it stands now. A recording is listed by
@@ -31,9 +39,9 @@ export function classCardFor(record: ClassRecord): ClassCardDetails {
 		name: record.name,
 		description: record.description,
 		files: record.files.map((file) => {
-			let p = absolutePath(record, file);
+			let p = classFilePath(record, file);
 			if (p && isRecordingFile(file.name)) {
-				const transcript = path.join(stores.classStore.filesDir(record.id), "transcripts", `${file.id}.txt`);
+				const transcript = transcriptPathOf(record.id, file.id);
 				p = fs.existsSync(transcript) ? transcript : null;
 			}
 			return { name: file.name, kind: file.kind, path: p, ...(sizes[file.id] ? { size: sizes[file.id] } : {}), status: file.status };

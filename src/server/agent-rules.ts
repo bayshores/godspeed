@@ -11,7 +11,7 @@ import { oneLine, RULE_MAX_CHARS, RULES_MAX } from "../core/teaching-areas.ts";
 import { readSavedRules, writeSavedRules } from "../store/agent-rules.ts";
 import { stores } from "./stores.ts";
 
-type RuleOutcome = { ok: true; rule: string; for: string; where: string } | { ok: false; error: string };
+type RuleOutcome = { ok: true; rule: string; for: string; where: string } | { ok: false; error: string; code?: "not_found" | "conflict" };
 
 function className(where: RuleWhere): string | undefined {
 	return "classId" in where ? stores.classStore.getClass(where.classId)?.name : undefined;
@@ -80,8 +80,8 @@ export function editRule(where: RuleWhere, text: string, newText: string): RuleO
 	if (!rule) return { ok: false, error: `A rule is one line of 1 to ${RULE_MAX_CHARS} characters.` };
 	const list = readList(where);
 	const at = list?.indexOf(text) ?? -1;
-	if (!list || at < 0) return { ok: false, error: "That rule was removed." };
-	if (rule !== text && list.includes(rule)) return { ok: false, error: "You already have that rule." };
+	if (!list || at < 0) return { ok: false, error: "That rule was removed.", code: "not_found" };
+	if (rule !== text && list.includes(rule)) return { ok: false, error: "You already have that rule.", code: "conflict" };
 	writeList(where, list.map((r, i) => (i === at ? rule : r)));
 	unmark(where, text);
 	emit("rules-changed", {});

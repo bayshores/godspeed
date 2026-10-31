@@ -10,10 +10,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ProgressPayload } from "@/core";
+import { localDay, type ProgressPayload } from "@/core";
 import { classQuery } from "@/components/class-context";
 import { useServerEvent, useServerResync } from "@/components/server-events";
-import { localDay } from "@/components/use-progress";
 import { foldClassesProgress, type ClassesProgress, type ProgressRead } from "./home-page-model";
 
 const REFRESH_DEBOUNCE_MS = 400;

@@ -70,9 +70,9 @@ function locateTranscriber(): TranscriberTools {
 	return { whisper: whisper!, ffmpeg: ffmpeg! };
 }
 
-function run(program: string, args: string[], signal?: AbortSignal): Promise<void> {
+function run(program: string, args: string[]): Promise<void> {
 	return new Promise((resolve, reject) => {
-		execFile(program, args, { signal, maxBuffer: 16 * 1024 * 1024 }, (err, _stdout, stderr) => {
+		execFile(program, args, { maxBuffer: 16 * 1024 * 1024 }, (err, _stdout, stderr) => {
 			if (err) {
 				const tail = String(stderr ?? "").trim().split("\n").slice(-3).join(" ");
 				reject(new Error(`${path.basename(program)} failed: ${tail || err.message}`, { cause: err }));
@@ -83,13 +83,13 @@ function run(program: string, args: string[], signal?: AbortSignal): Promise<voi
 
 /** The speech model's path, downloading it once (tmp + rename, so a broken
  *  download never leaves a half model behind). */
-async function ensureWhisperModel(signal?: AbortSignal): Promise<string> {
+async function ensureWhisperModel(): Promise<string> {
 	const dir = path.join(PATHS.data, "models");
 	const file = path.join(dir, WHISPER_MODEL_NAME);
 	if (fs.existsSync(file)) return file;
 	fs.mkdirSync(dir, { recursive: true });
 	console.info(`[transcribe] downloading ${WHISPER_MODEL_NAME} (~150 MB, one time)`);
-	const response = await fetch(WHISPER_MODEL_URL, { signal });
+	const response = await fetch(WHISPER_MODEL_URL);
 	if (!response.ok || !response.body) throw new Error(`Speech model download failed (HTTP ${response.status})`);
 	const tmp = `${file}.tmp-${crypto.randomUUID().slice(0, 8)}`;
 	try {
@@ -104,15 +104,15 @@ async function ensureWhisperModel(signal?: AbortSignal): Promise<string> {
 }
 
 /** Transcribe one recording to plain text at `outFile`. */
-export async function transcribeRecording(recording: string, outFile: string, signal?: AbortSignal): Promise<string> {
+export async function transcribeRecording(recording: string, outFile: string): Promise<string> {
 	const tools = locateTranscriber();
-	const model = await ensureWhisperModel(signal);
+	const model = await ensureWhisperModel();
 	const work = fs.mkdtempSync(path.join(os.tmpdir(), "godspeed-transcribe-"));
 	try {
 		const wav = path.join(work, "audio.wav");
-		await run(tools.ffmpeg, ["-y", "-loglevel", "error", "-i", recording, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", wav], signal);
+		await run(tools.ffmpeg, ["-y", "-loglevel", "error", "-i", recording, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", wav]);
 		const base = path.join(work, "transcript");
-		await run(tools.whisper, ["-m", model, "-f", wav, "-otxt", "-of", base, "-np"], signal);
+		await run(tools.whisper, ["-m", model, "-f", wav, "-otxt", "-of", base, "-np"]);
 		const text = fs.readFileSync(`${base}.txt`, "utf-8").replace(/\r\n?/g, "\n").trim();
 		fs.mkdirSync(path.dirname(outFile), { recursive: true });
 		fs.writeFileSync(outFile, text + "\n", "utf-8");

@@ -14,11 +14,13 @@
 
 import {
 	SETTINGS_SECTIONS,
+	effectiveSettings,
+	queueWaitingFiles,
 	readSettingsRecord,
 	writeSettingsRecord,
 	type SettingsBodyResult,
 } from "@/server";
-import { CURRENT_SETTINGS_VERSION } from "@/core";
+import { CURRENT_SETTINGS_VERSION, extractionEnabled } from "@/core";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +41,11 @@ export async function PUT(request: Request, ctx: { params: Promise<{ section: st
 	if (!parsed.ok) {
 		return Response.json({ error: parsed.error }, { status: 400 });
 	}
+	const wasOn = extractionEnabled(effectiveSettings().graph);
 	const record = readSettingsRecord() ?? { version: CURRENT_SETTINGS_VERSION };
 	const next = { ...record, [section]: parsed.settings };
 	writeSettingsRecord(next);
+	// Class files saved while the graph was off wait for it to come back on.
+	if (section === "graph" && !wasOn && extractionEnabled(effectiveSettings().graph)) queueWaitingFiles();
 	return Response.json({ settings: next });
 }

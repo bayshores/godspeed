@@ -294,6 +294,12 @@ export function extensionOf(name: string): string {
 	return dot > slash ? name.slice(dot).toLowerCase() : "";
 }
 
+/** A filename safe to store (no folders, no control chars). */
+export function safeName(name: string): string {
+	const base = (name.replace(/\\/g, "/").replace(/\/+$/, "").split("/").pop() ?? "").replace(/[\u0000-\u001f]/g, "").trim();
+	return base.length > 0 && base !== "." && base !== ".." ? base.slice(0, 200) : "file";
+}
+
 export function isSupportedClassFile(name: string): boolean {
 	return SUPPORTED_CLASS_FILE_EXTENSIONS.includes(extensionOf(name));
 }

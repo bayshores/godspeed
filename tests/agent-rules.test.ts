@@ -134,7 +134,11 @@ describe("saving, undoing and editing", () => {
 		assert.equal(edited.ok && edited.rule, "Use a diagram first.");
 		assert.deepEqual(areaRules("teaching"), ["Use a diagram first."]);
 		assert.deepEqual(rules.agentSavedRules(), []);
-		assert.equal(rules.editRule({ area: "teaching" }, "Gone.", "x").ok, false);
+		const gone = rules.editRule({ area: "teaching" }, "Gone.", "x");
+		assert.equal(!gone.ok && gone.code, "not_found");
+		rules.saveRuleByAgent("Use code.", { area: "teaching" });
+		const duplicate = rules.editRule({ area: "teaching" }, "Use code.", "Use a diagram first.");
+		assert.equal(!duplicate.ok && duplicate.code, "conflict");
 	});
 
 	it("drops the mark of a rule the learner removed in Settings", () => {
@@ -166,6 +170,7 @@ describe("save_rule over MCP and /api/rules", () => {
 		assert.equal(edit.status, 200);
 		assert.equal((await post({ action: "remove", where: { area: "teaching" }, text: "Use Rust 2024." })).status, 200);
 		assert.equal((await post({ action: "remove", where: { area: "teaching" }, text: "Use Rust 2024." })).status, 404);
+		assert.equal((await post({ action: "edit", where: { area: "teaching" }, text: "Use Rust 2024.", newText: "x" })).status, 404);
 		assert.equal((await post({ action: "remove", where: { area: "bad" }, text: "x" })).status, 400);
 	});
 });

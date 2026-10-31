@@ -24,7 +24,8 @@ export async function POST(req: Request) {
 	}
 	if (body.action === "edit" && typeof body.newText === "string") {
 		const edited = editRule(where, body.text, body.newText);
-		return edited.ok ? Response.json(edited, { headers: NO_STORE }) : Response.json({ error: edited.error }, { status: 400 });
+		if (edited.ok) return Response.json(edited, { headers: NO_STORE });
+		return Response.json({ error: edited.error }, { status: edited.code === "not_found" ? 404 : edited.code === "conflict" ? 409 : 400 });
 	}
 	return Response.json({ error: 'action must be "remove", or "edit" with newText' }, { status: 400 });
 }

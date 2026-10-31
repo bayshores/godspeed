@@ -8,6 +8,7 @@ export * from "./chat-handler.ts";
 export * from "./events-stream.ts";
 export * from "./chats.ts";
 export * from "./classes.ts";
+export { classFilePath } from "./class-card.ts";
 export { createLesson } from "./lessons.ts";
 export * from "./graph.ts";
 export * from "./topics.ts";

@@ -28,7 +28,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
 import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem } from "../core/contracts.ts";
-import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, safeName, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
@@ -41,7 +41,7 @@ import { discardChatDeliveries } from "./jobs.ts";
 import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./stores.ts";
 import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
-import { applyClassCard } from "./class-card.ts";
+import { applyClassCard, classFilePath, transcriptPathOf } from "./class-card.ts";
 import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 
@@ -79,22 +79,9 @@ export function getClass(id: string): ClassRecord | null {
 	return stores.classStore.getClass(id);
 }
 
-/** Absolute path of a class file on this computer (null when its linked
- *  folder is gone). */
-export function classFilePath(record: ClassRecord, file: ClassFile): string | null {
-	if (file.origin === "copied") return path.join(stores.classStore.filesDir(record.id), file.path);
-	return record.linkedFolder ? path.join(record.linkedFolder, file.path) : null;
-}
-
-/** Where a recording's transcript is kept (inside the app's own class
- *  folder — a linked folder is never written to). */
-function transcriptPathOf(classId: string, fileId: string): string {
-	return path.join(stores.classStore.filesDir(classId), "transcripts", `${fileId}.txt`);
-}
-
-/** Saved PDF text: the extracted text of one version of a file, named by
- *  its content fingerprint, so a relaunch that re-processes an unfinished
- *  file skips re-reading an unchanged PDF. */
+/** Saved PDF text and recording transcripts: the text of one version of a
+ *  file, named by its content fingerprint, so processing an unchanged file
+ *  again skips re-reading the PDF or re-transcribing the recording. */
 function isDocumentFile(name: string): boolean {
 	return (DOCUMENT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
@@ -177,16 +164,21 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonIds:
 		if (Date.now() > deadline) return fail(503, "extraction_winding_down", "The class's file imports are still stopping. Try again in a moment.");
 		await new Promise((r) => setTimeout(r, 50));
 	}
-	// A turn may have started during the waits above; recheck with no await before the sync block.
-	for (const lesson of lessons) {
+	// Lessons may have started a turn, or been created in or moved out of the class, during the
+	// waits above: read them again, with no await before the sync block.
+	const current = stores.chatStore.listChats().filter((c) => c.classId === id);
+	for (const lesson of current) {
 		const busy = runningWorkBlocker(lesson.id);
 		if (busy) return fail(busy.status, busy.code, `${lesson.title}: ${busy.error}`);
+		if (extractionStatuses().some((run) => run.chatId === lesson.id)) {
+			return fail(503, "extraction_winding_down", `${lesson.title}: This lesson is still finishing its graph work. Try again in a moment.`);
+		}
 	}
 	cancelledClasses.add(id);
 	cancelTopicGrouping(id);
 	// THE SYNC BLOCK: lessons → class folder.
 	const lessonIds: string[] = [];
-	for (const lesson of lessons) {
+	for (const lesson of current) {
 		stores.jobStore.deleteJobsForChat(lesson.id);
 		if (stores.chatStore.deleteChat(lesson.id)) {
 			discardChatDeliveries(lesson.id);
@@ -278,12 +270,6 @@ function patchFile(classId: string, fileId: string, patch: Partial<ClassFile>): 
 }
 
 const newFileId = () => `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-
-/** A filename safe to store (no folders, no control chars). */
-export function safeName(name: string): string {
-	const base = path.basename(name.replace(/\\/g, "/")).replace(/[\u0000-\u001f]/g, "").trim();
-	return base.length > 0 && base !== "." && base !== ".." ? base.slice(0, 200) : "file";
-}
 
 /** Copy a file into the class (the "Add files…" button / MCP add_class_file). */
 export function addCopiedFile(classId: string, name: string, bytes: Uint8Array, kind: ClassFileKind): ClassOutcome<ClassFile> {
@@ -522,6 +508,7 @@ interface ClassQueuesGlobal {
 	__lhClassQueued?: Set<string>;
 	__lhClassScanTimer?: ReturnType<typeof setInterval>;
 	__lhFolderProblems?: Map<string, FolderProblem>;
+	__lhCancelledClasses?: Set<string>;
 }
 const G = globalThis as typeof globalThis & ClassQueuesGlobal;
 
@@ -533,7 +520,7 @@ const queued = (G.__lhClassQueued ??= new Set());
  *  every launch rescans). */
 const folderProblems = (G.__lhFolderProblems ??= new Map());
 /** Classes deleted while work was queued — their queued work is skipped. */
-const cancelledClasses = new Set<string>();
+const cancelledClasses = (G.__lhCancelledClasses ??= new Set<string>());
 
 /** Queue one file for processing (deduped while waiting). */
 export function enqueueFile(classId: string, fileId: string): void {
@@ -572,7 +559,8 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	if (!record || !file) return;
 	const abs = classFilePath(record, file);
 	if (!abs || !fs.existsSync(abs)) {
-		patchFile(classId, fileId, { status: "failed", error: "The file could not be found" });
+		// Forget the signature so the folder scan picks the file up again once it is back (drive re-plugged).
+		patchFile(classId, fileId, { status: "failed", error: "The file could not be found", statSig: undefined });
 		return;
 	}
 	const stillThere = () => stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId) === true;
@@ -647,15 +635,16 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	}
 }
 
-/** A file's text for the notes pipeline: a recording's transcript, a PDF's
- *  saved (or freshly read) text, the file itself otherwise. */
+/** A file's text for the notes pipeline: a recording's or PDF's saved (or
+ *  freshly made) text, the file itself otherwise. */
 async function fileText(classId: string, file: ClassFile, abs: string, fp: string): Promise<string> {
-	if (isRecordingFile(file.name)) return transcribeRecording(abs, transcriptPathOf(classId, file.id));
-	if (!isDocumentFile(file.name)) return fileToText(abs);
+	const recording = isRecordingFile(file.name);
+	if (!recording && !isDocumentFile(file.name)) return fileToText(abs);
 	const cached = readCachedText(classId, file.id, fp);
 	if (cached !== null) return cached;
-	const text = await fileToText(abs);
-	writeCachedText(classId, file.id, fp, text);
+	const text = recording ? await transcribeRecording(abs, transcriptPathOf(classId, file.id)) : await fileToText(abs);
+	// Removed, or its class deleted, during the read: saving would bring its folder back.
+	if (stores.classStore.getClass(classId)?.files.some((f) => f.id === file.id)) writeCachedText(classId, file.id, fp, text);
 	return text;
 }
 
@@ -697,15 +686,23 @@ async function indexUnindexedFiles(): Promise<void> {
 	}
 }
 
-/** Re-check every class: linked folders rescanned, never-processed files
- *  queued (app start). */
-function scanAllClasses(): void {
+/** Queue every file left waiting or unfinished (app start, the graph
+ *  turned back on). */
+export function queueWaitingFiles(): void {
 	for (const record of stores.classStore.listClassRecords()) {
 		if (record.archived) continue;
 		for (const file of record.files) {
 			if (file.status === "pending" || file.status === "extracting") enqueueFile(record.id, file.id);
 		}
-		scanLinkedFolder(record.id);
+	}
+}
+
+/** Re-check every class: waiting files queued, linked folders rescanned
+ *  (app start). */
+function scanAllClasses(): void {
+	queueWaitingFiles();
+	for (const record of stores.classStore.listClassRecords()) {
+		if (!record.archived) scanLinkedFolder(record.id);
 	}
 }
 

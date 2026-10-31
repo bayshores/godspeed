@@ -35,6 +35,7 @@ const openDeadlinesRoute = await import("../src/app/api/deadlines/route.ts");
 const chatsRoute = await import("../src/app/api/chats/route.ts");
 const moveRoute = await import("../src/app/api/chats/[id]/class/route.ts");
 const graphRoute = await import("../src/app/api/graph/route.ts");
+const settingsRoute = await import("../src/app/api/settings/[section]/route.ts");
 const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 
@@ -229,6 +230,24 @@ describe("the class file pipeline", () => {
 		assert.equal(graph.propositions?.length ?? graph.nodes.filter((n: { kind?: string }) => n.kind !== "implication").length, 1);
 	});
 
+	it("a study file saved while the graph is off is built once the graph is turned back on", async () => {
+		const id = await makeClass("PHYS 2C");
+		const put = (enabled: boolean) => settingsRoute.PUT(json("/api/settings/graph", "PUT", { enabled }), ctx({ section: "graph" }));
+		try {
+			assert.equal((await put(false)).status, 200);
+			const up = await (await upload(id, "study", [["optics.md", "Snell's law"]])).json();
+			await classIdle(id);
+			const fileId = up.results[0].file.id as string;
+			assert.equal(stores.classStore.getClass(id)!.files.find((f) => f.id === fileId)!.status, "pending");
+			assert.equal((await put(true)).status, 200);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files.find((f) => f.id === fileId)!.status, "ready");
+			assert.deepEqual(getNames(id), ["Snell's law"]);
+		} finally {
+			await put(true);
+		}
+	});
+
 	it("a body that is not a form is a 400", async () => {
 		const id = await makeClass("PHYS 2A");
 		const res = await filesRoute.POST(json(`/api/classes/${id}/files`, "POST", { kind: "study" }), ctx({ id }));
@@ -413,6 +432,61 @@ describe("the class file pipeline", () => {
 		}
 	});
 
+	it("a linked file not found while its folder was away is built again once the folder is back", async () => {
+		const id = await makeClass("CSE 140");
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-unplugged-"));
+		const dir = path.join(root, "drive");
+		const away = path.join(root, "away");
+		try {
+			fs.mkdirSync(dir);
+			fs.writeFileSync(path.join(dir, "a.md"), "Logic gates");
+			await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+			await classIdle(id);
+			const fileId = stores.classStore.getClass(id)!.files[0]!.id;
+			fs.renameSync(dir, away);
+			server.enqueueFile(id, fileId);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "failed");
+			fs.renameSync(away, dir);
+			server.scanLinkedFolder(id);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+		} finally {
+			fs.rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("a recording processed again with the same bytes is not transcribed again", { skip: process.platform === "win32" }, async () => {
+		const id = await makeClass("ECE 35");
+		const bin = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-fake-whisper-"));
+		const runs = path.join(bin, "runs.txt");
+		const oldPath = process.env.PATH;
+		fs.writeFileSync(path.join(bin, "ffmpeg"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+		fs.writeFileSync(
+			path.join(bin, "whisper-cli"),
+			`#!/bin/sh\nwhile [ $# -gt 0 ]; do if [ "$1" = "-of" ]; then out="$2"; fi; shift; done\necho run >> "${runs}"\nprintf "Ohm's law" > "$out.txt"\n`,
+			{ mode: 0o755 },
+		);
+		fs.mkdirSync(path.join(TMP_DATA, "models"), { recursive: true });
+		fs.writeFileSync(path.join(TMP_DATA, "models", "ggml-base.en.bin"), "model");
+		process.env.PATH = `${bin}${path.delimiter}${oldPath ?? ""}`;
+		try {
+			const up = await (await upload(id, "study", [["lecture.m4a", "audio bytes"]])).json();
+			await classIdle(id);
+			const fileId = up.results[0].file.id as string;
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+			const retried = await fileRoute.PUT(json("/x", "PUT", { retry: true }), ctx({ id, fileId }));
+			assert.equal(retried.status, 200);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+			assert.equal(fs.readFileSync(runs, "utf-8").trim().split("\n").length, 1, "whisper ran once");
+			assert.deepEqual(getNames(id), ["Ohm's law"]);
+		} finally {
+			process.env.PATH = oldPath;
+			fs.rmSync(bin, { recursive: true, force: true });
+		}
+	});
+
 	// Root reads any file, and Windows ignores the mode bits.
 	const cannotLock = process.platform === "win32" || process.getuid?.() === 0;
 
@@ -523,6 +597,19 @@ describe("lessons in classes", () => {
 		const loose = stores.chatStore.getChat(created.id)!;
 		assert.equal(loose.classId, undefined);
 		assert.equal(loose.messages.some((m) => (m as { customType?: string }).customType === "class-context"), false);
+	});
+
+	it("deleting a class also removes a lesson created in it while the delete waited", async () => {
+		const id = await makeClass("Doomed too");
+		const first = await (await chatsRoute.POST(json("/api/chats", "POST", { title: "First", classId: id }))).json();
+		const deleting = server.deleteClass(id);
+		const late = server.createLesson({ title: "Late", classId: id });
+		assert.equal(late.ok, true);
+		const res = await deleting;
+		assert.equal(res.ok, true);
+		const lateId = late.ok ? late.chat.id : "";
+		assert.deepEqual(res.ok ? res.value.lessonIds.sort() : [], [first.id, lateId].sort());
+		assert.equal(stores.chatStore.getChat(lateId), null);
 	});
 
 	it("deleting a class removes its lessons and folder", async () => {
