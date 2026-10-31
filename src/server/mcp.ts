@@ -345,7 +345,7 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 					.min(1)
 					.max(MAX_WAIT_S)
 					.optional()
-					.describe(`How long to wait in seconds (default ${DEFAULT_WAIT_S}, at most ${MAX_WAIT_S}). Stay under your client's tool timeout: for Codex that is tool_timeout_sec in ~/.codex/config.toml (60 unless raised; godspeed's setup sets 600).`),
+					.describe(`How long to wait in seconds (default ${DEFAULT_WAIT_S}, at most ${MAX_WAIT_S}). Stay under your client's tool timeout: for Codex that is its tool_timeout_sec (60 unless raised; the godspeed folder's start command sets 620).`),
 				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
 			}),
