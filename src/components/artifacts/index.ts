@@ -11,9 +11,9 @@ import { ProblemCard, ConcludeCard } from "@/components/practice-cards";
 /**
  * Artifact renderer registry — the extension point for tool-part UI.
  *
- * chat.tsx renders any tool part it doesn't specially handle (i.e. not
- * quiz/ask) by looking the tool name up here. Add new renderers here, not
- * in chat.tsx.
+ * lesson/message-row.tsx renders any tool part it doesn't specially handle
+ * (i.e. not quiz/ask) by looking the tool name up here. Add new renderers
+ * here, not in lesson/message-row.tsx.
  *
  * Typical shape: while the part is input-available render an activity card
  * (the chat view's jobs feed reads GET /api/jobs?chatId=…; the lesson's jobs

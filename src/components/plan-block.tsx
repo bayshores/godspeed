@@ -624,10 +624,6 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 
 // ─── The live plan popup ──────────────────────────────────────────────────────
 
-// latestTree lives in plan-latest.ts (no dagre) so the lesson can read
-// the plan without loading this module; re-exported for existing callers.
-export { type PopupMessage } from "@/components/plan-latest";
-
 /** The popup shows the glow, so its frame pads by the glow's reach —
  *  the in-chat block (monochrome, no glow) stays tight at GRAPH_PAD. */
 const POPUP_PAD = GLOW_REACH;

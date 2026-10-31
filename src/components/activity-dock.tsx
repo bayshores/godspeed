@@ -26,9 +26,9 @@ import { agentWaiting, useAgentStatus, waitingNotice } from "@/components/agent-
  * Absent data renders "–", never zero.
  *
  * Quiet/ambient by design: stable keys, updates land in place — refreshes
- * never flicker. ALWAYS present: empty means EMPTY — the header sits
- * alone, nothing hides; it populates and GROWS when processes run (max-h +
- * internal scroll so a pile never crowds the rest). Per blob: kind icon,
+ * never flicker. Hidden when there is nothing to show; it grows as
+ * processes run (max-h + internal scroll so a pile never crowds the
+ * rest). Per blob: kind icon,
  * elapsed, cost, activity line, an explicit END button (POST
  * /api/activity/abort): 404/409 mean the process is already gone
  * (refresh, no error); real failures degrade to an inline "Abort failed",
@@ -397,7 +397,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	);
 }
 
-/** One blob: icon + elapsed + cost on the face; click → detail popover. */
+/** One blob: icon + elapsed + cost on the face; click → detail expands inline. */
 function ActivityBlobRow({
 	blob,
 	now,
@@ -456,8 +456,8 @@ function ActivityBlobRow({
 					<span data-testid="activity-blob-elapsed">{formatElapsed(now - blob.startedAt)}</span>
 				</span>
 			</button>
-			{/* The explicit END always on the blob's face (SCOPE) — the popover
-			    is for DETAIL, not the control. A failed abort says why and stays
+			{/* The explicit END always on the blob's face (SCOPE) — the inline
+			    detail is for DETAIL, not the control. A failed abort says why and stays
 			    clickable to retry; a succeeded one just makes the blob vanish on refresh. */}
 			<button
 				type="button"

@@ -121,7 +121,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 			    quiz cards' chip register. */}
 			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				Concluded
-				{(OUTCOME_LABEL[outcome] ?? "") !== "" && outcome !== "dismissed" && (
+				{(OUTCOME_LABEL[outcome] ?? "") !== "" && (
 					<span className={cn(" px-1.5 py-0.5", OUTCOME_CHIP[outcome] ?? OUTCOME_CHIP.movedOn)}>
 						{OUTCOME_LABEL[outcome]}
 					</span>

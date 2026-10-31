@@ -5,7 +5,7 @@ import type { ArtifactPartProps } from "@/core";
  * The generic tool-call card: a quiet, collapsed one-liner per
  * synchronous tool call (the tool name plus the headline argument, e.g.
  * read's file name), expandable to the full input and output. Unregistered tools
- * still render nothing (chat.tsx's registry default); this card is only
+ * still render nothing (lesson/message-row.tsx's registry default); this card is only
  * for the learner-filesystem set (read/ls/find/grep) where the call IS
  * worth a trace in the transcript.
  */

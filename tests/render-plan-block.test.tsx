@@ -12,8 +12,8 @@ import {
 	NODE_W_MIN,
 	nodeWidth,
 	estimateLineWidth,
-	type PopupMessage,
 } from "../src/components/plan-block.tsx";
+import type { PopupMessage } from "../src/components/plan-latest.ts";
 import type { PlanBlockData, PlanTree } from "../src/core/contracts.ts";
 
 // Plan blocks: the pure layered layout, the frozen-snapshot rendering
