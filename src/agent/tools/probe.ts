@@ -1,9 +1,9 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
 import { probeDoneInputSchema, PROBE_DONE_ACK_TEXT } from "../../core/contracts.ts";
-import { danglingQuestionOf, hasProbeDone } from "../../core/native-messages.ts";
+import { danglingQuestionOf, hasProbeDone, newHandoffMessage } from "../../core/native-messages.ts";
 import type { ChatStore } from "../../core/ports.ts";
-import { buildProbeHandoffSteer, type SteerMessage } from "../../core/contracts.ts";
+import type { SteerMessage } from "../../core/contracts.ts";
 
 /** What the probe_done tool closes over. */
 export interface ProbeDoneContext {
@@ -70,7 +70,7 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 					return { ok: false, error: "The probe is already concluded — probe_done fires exactly once." };
 				}
 				try {
-					ctx.deliver(buildProbeHandoffSteer(ctx.chatId));
+					ctx.deliver(newHandoffMessage(ctx.chatId));
 				} catch (err) {
 					console.error(`[chat ${ctx.chatId}] probe handoff queueing failed:`, err);
 					// The handoff is recoverable-by-design (the next client message

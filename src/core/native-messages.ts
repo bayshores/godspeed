@@ -200,7 +200,9 @@ export function newAnswerResult(
 }
 
 /** The probe→teach handoff wake: scaffolding, not speech — the model reads
- *  HANDOFF_TEXT, the UI renders the quiet system line. */
+ *  HANDOFF_TEXT, the UI renders the quiet system line. probe_done queues it
+ *  through the wake pipeline; the id is fixed per chat so redelivery does
+ *  nothing, and it carries no artifact. */
 export function newHandoffMessage(chatId: string): LhMarkerMessage {
 	return {
 		id: `steer_probe_${chatId}`,
