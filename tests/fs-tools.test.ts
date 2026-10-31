@@ -5,7 +5,15 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { expandBraces, globToRegex, matchGlob, resolveSourcePath, walkFiles } from "../src/agent/tools/fs-shared.ts";
+import {
+	capOutput,
+	expandBraces,
+	globToRegex,
+	matchGlob,
+	MAX_OUTPUT_BYTES,
+	resolveSourcePath,
+	walkFiles,
+} from "../src/agent/tools/fs-shared.ts";
 import { findTool } from "../src/agent/tools/find.ts";
 import { grepTool } from "../src/agent/tools/grep.ts";
 import { lsTool } from "../src/agent/tools/ls.ts";
@@ -83,6 +91,29 @@ describe("glob helpers (fs-shared)", () => {
 		assert.equal(globToRegex("a?c").test("abc"), true);
 		assert.equal(globToRegex("a?c").test("ac"), false);
 		assert.equal(matchGlob("a.b.txt", "a.b*"), true, "the dot is literal, not any-char");
+	});
+});
+
+describe("capOutput", () => {
+	it("keeps lines that fit", () => {
+		assert.deepEqual(capOutput(["a", "b"]), { content: "a\nb", truncated: false });
+	});
+
+	it("keeps output that lands exactly on the limit", () => {
+		const half = "x".repeat(MAX_OUTPUT_BYTES / 2);
+		const lines = [half, half.slice(1)]; // + one "\n" = the limit
+		assert.deepEqual(capOutput(lines), { content: lines.join("\n"), truncated: false });
+	});
+
+	it("drops the first line that would go over, and everything after", () => {
+		const half = "x".repeat(MAX_OUTPUT_BYTES / 2);
+		assert.deepEqual(capOutput([half, half, "tail"]), { content: half, truncated: true });
+	});
+
+	it("counts multibyte characters by their UTF-8 bytes", () => {
+		const wide = "é".repeat(MAX_OUTPUT_BYTES / 4); // half the limit in bytes
+		assert.equal(capOutput([wide, wide]).truncated, true, "two halves plus a newline are over");
+		assert.equal(capOutput([wide, wide.slice(1)]).truncated, false);
 	});
 });
 
@@ -196,6 +227,18 @@ describe("grep (pi port)", () => {
 	it("no-match message matches pi", async () => {
 		const out = await runText(grepTool, { pattern: "zzzz", path: FIXTURE });
 		assert.equal(out, "No matches found");
+	});
+
+	it("wide context stops at the 50KB cap with its notice", async () => {
+		const file = path.join(FIXTURE, "wide.log");
+		await fs.writeFile(file, Array.from({ length: 20_000 }, (_, i) => `line ${i}`).join("\n"));
+		try {
+			const out = await runText(grepTool, { pattern: ".", path: file, context: 100_000 });
+			assert.match(out, /\[.*50\.0KB limit reached/);
+			assert.ok(Buffer.byteLength(out, "utf-8") < MAX_OUTPUT_BYTES + 500, "the body stays under the cap");
+		} finally {
+			await fs.unlink(file);
+		}
 	});
 
 	it("a binary file named by path says so instead of 'No matches found'", async () => {

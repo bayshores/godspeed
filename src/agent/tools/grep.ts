@@ -4,7 +4,6 @@ import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
 import {
-	capOutput,
 	formatSize,
 	GREP_MAX_LINE_LENGTH,
 	isBinaryFile,
@@ -102,6 +101,9 @@ export const grepTool: AgentTool<typeof grepInput> = {
 		}
 
 		const outLines: string[] = [];
+		// Capped while collecting, so wide context never piles up past 50KB.
+		let outBytes = 0;
+		let outputCapped = false;
 		let matchCount = 0;
 		let limitReached = false;
 		let linesTruncated = false;
@@ -145,7 +147,7 @@ export const grepTool: AgentTool<typeof grepInput> = {
 				? path.relative(searchPath, filePath).split(path.sep).join("/")
 				: path.basename(filePath);
 
-			for (let i = 0; i < lines.length; i++) {
+			for (let i = 0; i < lines.length && !outputCapped; i++) {
 				if (regex.test(lines[i]!)) {
 					if (matchCount >= effectiveLimit) {
 						limitReached = true;
@@ -158,16 +160,23 @@ export const grepTool: AgentTool<typeof grepInput> = {
 						const { text, wasTruncated } = truncateGrepLine(lines[current - 1] ?? "");
 						if (wasTruncated) linesTruncated = true;
 						// pi's format: ':' for match lines, '-' for context lines.
-						outLines.push(current === i + 1 ? `${rel}:${current}: ${text}` : `${rel}-${current}- ${text}`);
+						const line = current === i + 1 ? `${rel}:${current}: ${text}` : `${rel}-${current}- ${text}`;
+						const add = Buffer.byteLength(line, "utf-8") + (outLines.length > 0 ? 1 : 0);
+						if (outBytes + add > MAX_OUTPUT_BYTES) {
+							outputCapped = true;
+							break;
+						}
+						outBytes += add;
+						outLines.push(line);
 					}
 				}
 			}
-			if (limitReached) break;
+			if (limitReached || outputCapped) break;
 		}
 
 		if (aborted) {
 			return outLines.length > 0
-				? `${capOutput(outLines).content}\n\n[search aborted — partial results]`
+				? `${outLines.join("\n")}\n\n[search aborted — partial results]`
 				: "Search aborted before any results.";
 		}
 		if (outLines.length === 0) {
@@ -175,11 +184,11 @@ export const grepTool: AgentTool<typeof grepInput> = {
 				? `Search timed out after 10s with no matches yet. Narrow the search to a subdirectory.`
 				: "No matches found";
 		}
-		const { content, truncated } = capOutput(outLines);
+		const content = outLines.join("\n");
 		const notices: string[] = [];
 		if (limitReached || matchCount >= effectiveLimit) notices.push(`${effectiveLimit} matches limit reached`);
 		if (linesTruncated) notices.push(`Some lines truncated to ${GREP_MAX_LINE_LENGTH} chars. Use read tool to see full lines`);
-		if (truncated) notices.push(`${formatSize(MAX_OUTPUT_BYTES)} limit reached`);
+		if (outputCapped) notices.push(`${formatSize(MAX_OUTPUT_BYTES)} limit reached`);
 		if (timedOut || scanTimedOut) notices.push("search timed out after 10s — partial results, narrow the directory");
 		return notices.length > 0 ? `${content}\n\n[${notices.join(". ")}]` : content;
 	}),
