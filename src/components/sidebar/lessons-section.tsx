@@ -63,12 +63,13 @@ export function LessonsSection({
 		setQuery("");
 		setKbdIndex(null);
 	}, []);
+	// Also on the sidebar opening: a closed sidebar is inert, so focus waits.
 	useEffect(() => {
-		if (searchOpen && focusSearchRef.current) {
+		if (open && searchOpen && focusSearchRef.current) {
 			focusSearchRef.current = false;
 			searchRef.current?.focus();
 		}
-	}, [searchOpen]);
+	}, [searchOpen, open]);
 
 	// ⌘⇧F: open the sidebar if needed, then the search field.
 	useEffect(() => {
