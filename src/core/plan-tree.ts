@@ -75,8 +75,7 @@ function createsCycle(edges: PlanEdge[], from: string, to: string): boolean {
 }
 
 /** Full edge validation against existing nodes/edges: endpoints exist, no self-loop, no duplicate, acyclic. */
-function assertValidEdge(from: string, to: string, nodes: PlanNode[], existingEdges: PlanEdge[]): void {
-	const map = nodeMap(nodes); // also re-validates nodes on createTree
+function assertValidEdge(from: string, to: string, map: Map<string, PlanNode>, existingEdges: PlanEdge[]): void {
 	requireNode(map, from, "Edge `from`");
 	requireNode(map, to, "Edge `to`");
 	if (from === to) {
@@ -98,15 +97,11 @@ function assertValidEdge(from: string, to: string, nodes: PlanNode[], existingEd
 /** Build a fresh tree from node and edge lists, validating all invariants. */
 export function createTree(nodes: PlanNode[], edges: PlanEdge[]): PlanTree {
 	const map = nodeMap(nodes);
-	for (const e of edges) {
-		requireNode(map, e.from, "Edge `from`");
-		requireNode(map, e.to, "Edge `to`");
-	}
 	const accepted: PlanEdge[] = [];
 	for (const e of edges) {
 		// Each edge is checked against the ones already accepted, so any
 		// violation names the culprit edge.
-		assertValidEdge(e.from, e.to, nodes, accepted);
+		assertValidEdge(e.from, e.to, map, accepted);
 		accepted.push({ from: e.from, to: e.to });
 	}
 	return { nodes: nodes.map((n) => ({ ...n })), edges: accepted };
