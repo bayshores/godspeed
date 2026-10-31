@@ -398,8 +398,12 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 
 function svgViewport(svg: string, opts: RenderSvgOptions): { width: number; height: number } {
 	if (opts.width && opts.height) return { width: opts.width, height: opts.height };
-	const width = Number(svg.match(/\bwidth\s*=\s*"?(\d+(?:\.\d+)?)/)?.[1]);
-	const height = Number(svg.match(/\bheight\s*=\s*"?(\d+(?:\.\d+)?)/)?.[1]);
+	// The root tag's own size only: not stroke-width, a child's width, or a percentage.
+	const root = svg.match(/<svg\b[^>]*>/i)?.[0] ?? "";
+	const attr = (name: string) =>
+		Number(root.match(new RegExp(`(?<![\\w-])${name}\\s*=\\s*["']?(\\d+(?:\\.\\d+)?)(?![\\d.]|%)`))?.[1]);
+	const width = attr("width");
+	const height = attr("height");
 	return {
 		width: Math.ceil(Number.isFinite(width) && width > 0 ? width : 900),
 		height: Math.ceil(Number.isFinite(height) && height > 0 ? height : 700),
