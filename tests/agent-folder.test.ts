@@ -179,6 +179,23 @@ describe("writing the folder", () => {
 		assert.equal(server.agentFolderView().folder, other);
 		assert.throws(() => server.setUpAgentFolder("relative/path"), server.AgentFolderError);
 	});
+
+	it("still remembers the folder when the old setup can't be removed", { skip: process.getuid?.() === 0 }, () => {
+		const config = path.join(scratch, "codex", "config.toml");
+		fs.mkdirSync(path.dirname(config), { recursive: true });
+		fs.writeFileSync(config, OLD_CODEX);
+		fs.chmodSync(path.dirname(config), 0o555);
+		const other = path.join(scratch, "home", "Locked", "godspeed");
+		const quiet = console.error;
+		console.error = () => {};
+		try {
+			assert.equal(server.setUpAgentFolder(other).oldSetup.codex, true, "Settings still offers Remove");
+		} finally {
+			console.error = quiet;
+			fs.chmodSync(path.dirname(config), 0o755);
+		}
+		assert.equal(server.agentFolderView().folder, other);
+	});
 });
 
 describe("opening a terminal", () => {

@@ -131,8 +131,9 @@ function writeFolder(folder: string): void {
 	dropOldImages(folder);
 }
 
-/** Make (or update) the folder, remember it, and clear out the old
- *  setup. Throws AgentFolderError when the folder can't be used. */
+/** Make (or update) the folder, remember it, and try to clear out the old
+ *  setup. Throws AgentFolderError when the folder can't be used. A failed
+ *  cleanup only logs: the folder works, and Settings still offers Remove. */
 export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	if (!usableFolder(folder)) throw new AgentFolderError("Pick a folder whose name has no quotes or $ signs in it.");
 	try {
@@ -140,8 +141,12 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	} catch (err) {
 		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
 	}
-	removeOldSetup();
 	writeState({ ...readState(), folder, noticeSeen: true });
+	try {
+		removeOldSetup();
+	} catch (err) {
+		console.error("[agent-folder] removing the old setup failed:", err);
+	}
 	return agentFolderView(folder);
 }
 
