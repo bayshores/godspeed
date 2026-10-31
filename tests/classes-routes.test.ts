@@ -35,6 +35,7 @@ const openDeadlinesRoute = await import("../src/app/api/deadlines/route.ts");
 const chatsRoute = await import("../src/app/api/chats/route.ts");
 const moveRoute = await import("../src/app/api/chats/[id]/class/route.ts");
 const graphRoute = await import("../src/app/api/graph/route.ts");
+const settingsRoute = await import("../src/app/api/settings/[section]/route.ts");
 const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 
@@ -227,6 +228,24 @@ describe("the class file pipeline", () => {
 		assert.equal(graphStoreFor(null).readNodes().length, 0, "the No-class graph is untouched");
 		const graph = await (await graphRoute.GET(json(`/api/graph?class=${id}`, "GET"))).json();
 		assert.equal(graph.propositions?.length ?? graph.nodes.filter((n: { kind?: string }) => n.kind !== "implication").length, 1);
+	});
+
+	it("a study file saved while the graph is off is built once the graph is turned back on", async () => {
+		const id = await makeClass("PHYS 2C");
+		const put = (enabled: boolean) => settingsRoute.PUT(json("/api/settings/graph", "PUT", { enabled }), ctx({ section: "graph" }));
+		try {
+			assert.equal((await put(false)).status, 200);
+			const up = await (await upload(id, "study", [["optics.md", "Snell's law"]])).json();
+			await classIdle(id);
+			const fileId = up.results[0].file.id as string;
+			assert.equal(stores.classStore.getClass(id)!.files.find((f) => f.id === fileId)!.status, "pending");
+			assert.equal((await put(true)).status, 200);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files.find((f) => f.id === fileId)!.status, "ready");
+			assert.deepEqual(getNames(id), ["Snell's law"]);
+		} finally {
+			await put(true);
+		}
 	});
 
 	it("a body that is not a form is a 400", async () => {

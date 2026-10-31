@@ -697,15 +697,23 @@ async function indexUnindexedFiles(): Promise<void> {
 	}
 }
 
-/** Re-check every class: linked folders rescanned, never-processed files
- *  queued (app start). */
-function scanAllClasses(): void {
+/** Queue every file left waiting or unfinished (app start, the graph
+ *  turned back on). */
+export function queueWaitingFiles(): void {
 	for (const record of stores.classStore.listClassRecords()) {
 		if (record.archived) continue;
 		for (const file of record.files) {
 			if (file.status === "pending" || file.status === "extracting") enqueueFile(record.id, file.id);
 		}
-		scanLinkedFolder(record.id);
+	}
+}
+
+/** Re-check every class: waiting files queued, linked folders rescanned
+ *  (app start). */
+function scanAllClasses(): void {
+	queueWaitingFiles();
+	for (const record of stores.classStore.listClassRecords()) {
+		if (!record.archived) scanLinkedFolder(record.id);
 	}
 }
 
