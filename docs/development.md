@@ -185,7 +185,9 @@ data/                           runtime state, git-ignored:
                                 prompts/ (edited system prompts) · models/ (the
                                 downloaded speech model) · settings.json ·
                                 mcp-token · mcp-endpoint.json (desktop only) ·
-                                agent-notes.json · agent-seen.json
+                                agent-notes.json · agent-seen.json · agent-rules.json
+                                (marks agent-saved rules) · agent-folder.json (the
+                                godspeed folder + notice seen)
 ```
 
 ## Key mechanisms
