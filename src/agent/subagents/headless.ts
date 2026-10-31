@@ -215,7 +215,8 @@ async function startBrowserService(): Promise<number | null> {
 		// Cast: the sanitizer is pure over a loose record; NODE_ENV is
 		// always present in a real process.env.
 		env: browserServiceSpawnEnv(process.env) as NodeJS.ProcessEnv,
-		stdio: ["ignore", "pipe", "pipe", "ipc"] as const,
+		// stderr ignored: an unread pipe fills up and freezes the helper.
+		stdio: ["ignore", "pipe", "ignore", "ipc"] as const,
 	});
 	browserServiceProc = proc;
 	const port = await new Promise<number | null>((resolve) => {
@@ -226,9 +227,14 @@ async function startBrowserService(): Promise<number | null> {
 		}, BROWSER_SERVICE_TIMEOUT_MS);
 		const onData = (chunk: Buffer) => {
 			buf += chunk.toString("utf8");
-			const line = buf.split("\n").find((l) => parseBrowserServiceLine(l) !== null);
+			// Complete lines only; keep the unfinished tail for the next chunk.
+			const lines = buf.split("\n");
+			buf = lines.pop() ?? "";
+			const line = lines.find((l) => parseBrowserServiceLine(l) !== null);
 			if (line !== undefined) {
 				clearTimeout(timer);
+				// The stream keeps flowing, so later output is discarded.
+				proc.stdout!.off("data", onData);
 				resolve(parseBrowserServiceLine(line));
 			}
 		};
