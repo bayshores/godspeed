@@ -23,6 +23,7 @@ export const OverviewBody = memo(function OverviewBody({
 	data,
 	nowMs,
 	busy,
+	startError,
 	onPractice,
 	onLearn,
 	onAddSignature,
@@ -38,6 +39,8 @@ export const OverviewBody = memo(function OverviewBody({
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
 	busy: boolean;
+	/** Why the last practice or lesson didn't start (shown in the runway). */
+	startError: string | null;
 	/** A runway ring: practice that deadline's topics. */
 	onPractice: (deadline: DeadlineProgress) => void;
 	/** "Most needed" → Learn this. */
@@ -68,6 +71,7 @@ export const OverviewBody = memo(function OverviewBody({
 						nowMs={nowMs}
 						facts={facts}
 						busy={busy}
+						startError={startError}
 						onPractice={onPractice}
 						onLearn={onLearn}
 					/>

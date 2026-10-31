@@ -33,6 +33,7 @@ import { createFauxCore, fauxAssistantMessage, fauxToolCall, type FauxResponseSt
 import { renderToStaticMarkup } from "react-dom/server";
 import { PATHS } from "../src/config.ts";
 import {
+	DemoErrorChip,
 	buildDemoSrcDoc,
 	DEMO_BRIDGE_SCRIPT,
 	DemoCard,
@@ -1108,5 +1109,14 @@ describe("tool + renderer registry wiring", () => {
 		);
 		assert.match(lsHtml, /ls/);
 		assert.match(lsHtml, /~/);
+	});
+});
+
+describe("the demo's error chip", () => {
+	it("Send to teacher says why it can't send right now", () => {
+		const blocked = renderToStaticMarkup(<DemoErrorChip message="x is undefined" onSend={() => {}} blocked="Answer or skip the waiting question first." />);
+		assert.match(blocked, /disabled="" title="Answer or skip the waiting question first\."[^>]*data-testid="demo-error-send"/);
+		const open = renderToStaticMarkup(<DemoErrorChip message="x is undefined" onSend={() => {}} blocked={null} />);
+		assert.ok(!/data-testid="demo-error-send"[^>]*disabled/.test(open) && !open.includes("title=\"Answer"), "no tip while it can send");
 	});
 });

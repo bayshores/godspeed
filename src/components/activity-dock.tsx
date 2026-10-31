@@ -7,7 +7,7 @@ import type { CallUsage, JobKind, JobRecord } from "@/core";
 import { subscriptionLabel, subscriptionLabels } from "@/core";
 import { formatTokens, planCostLabel } from "@/components/usage-format";
 import { useServerEvent, useServerResync } from "@/components/server-events";
-import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
+import { agentWaiting, useAgentStatus, waitingNotice } from "@/components/agent-status";
 
 /**
  * THE BACKGROUND-JOBS SECTION (in Halley's panel, recently failed jobs and
@@ -351,7 +351,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 			</div>
 			{waiting && (
 				<p data-testid="activity-waiting" className="text-xs text-ink-2">
-					{WAITING_NOTICE}
+					{waitingNotice(agent?.name)}
 				</p>
 			)}
 			{failed.map((f) => (

@@ -1,4 +1,3 @@
-import { CornerDownLeftIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,6 +23,40 @@ export function PanelHeader({ eyebrow, right }: { eyebrow: React.ReactNode; righ
 			{right}
 		</div>
 	);
+}
+
+/** A small tone button in the header (Stop, Skip question, Discard problem). */
+export function PanelHeaderButton({ children, onClick, testId }: { children: React.ReactNode; onClick: () => void; testId: string }) {
+	return (
+		<button
+			type="button"
+			data-testid={testId}
+			onClick={onClick}
+			className="lh-press lh-fade flex shrink-0 items-center gap-1.5 bg-tone px-2 py-[3px] text-[12.5px] font-bold text-ink-2 hover:text-ink"
+		>
+			{children}
+		</button>
+	);
+}
+
+/** The header's right side: an optional way out (Skip question, Discard
+ *  problem), then the chip. */
+export function HeaderChip({ exit, children }: { exit?: { label: string; testId: string; onClick: () => void }; children: React.ReactNode }) {
+	return (
+		<div className="flex shrink-0 items-center gap-2">
+			{exit && (
+				<PanelHeaderButton testId={exit.testId} onClick={exit.onClick}>
+					{exit.label}
+				</PanelHeaderButton>
+			)}
+			{children}
+		</div>
+	);
+}
+
+/** Skip question, for a waiting question's header. */
+export function skipExit(onSkip: (() => void) | undefined) {
+	return onSkip && { label: "Skip question", testId: "skip-question", onClick: onSkip };
 }
 
 /** The small tone chip in the header (question kind, problem number). */
@@ -66,7 +99,6 @@ export function ActionBar({
 	disabled,
 	waiting = false,
 	testId,
-	keyLabel = "Enter",
 	type = "button",
 }: {
 	label: React.ReactNode;
@@ -74,7 +106,6 @@ export function ActionBar({
 	disabled?: boolean;
 	waiting?: boolean;
 	testId?: string;
-	keyLabel?: string;
 	type?: "button" | "submit";
 }) {
 	return (
@@ -84,17 +115,13 @@ export function ActionBar({
 			onClick={onClick}
 			disabled={disabled}
 			className={cn(
-				"lh-press flex h-14 w-full shrink-0 items-center justify-between px-6 text-left text-base font-extrabold transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
+				"lh-press flex h-14 w-full shrink-0 items-center px-6 text-left text-base font-extrabold transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 				waiting ? "bg-tone-2 text-ink" : "bg-ink text-background hover:bg-ink-max",
 				"disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink",
 				waiting && "disabled:hover:bg-tone-2",
 			)}
 		>
 			<span>{label}</span>
-			<span aria-hidden className={cn("flex items-center gap-1.5 font-mono text-[12.5px] font-normal", waiting ? "text-ink-2" : "text-background")}>
-				{keyLabel}
-				<CornerDownLeftIcon className="size-3.5" />
-			</span>
 		</button>
 	);
 }

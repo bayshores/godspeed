@@ -76,7 +76,7 @@ describe("SessionRow (redesign 2026-10-27)", () => {
 
 	it("compacting has priority over waiting", () => {
 		const html = render(item({ compacting: true, pendingQuestion: true }));
-		assert.match(html, /Compacting context…/);
+		assert.match(html, /Summarizing the lesson…/);
 		assert.ok(!html.includes("session-waiting-dot"));
 	});
 
@@ -98,6 +98,21 @@ describe("SessionRow (redesign 2026-10-27)", () => {
 		const idle = render(item({}));
 		assert.ok(!idle.includes("font-bold"), "inactive titles are regular");
 		assert.ok(!idle.includes("data-active"));
+	});
+
+	it("a ⋯ button opens the lesson menu: shown on hover, and kept while its menu is open", () => {
+		const chat = item({ title: "Limits" });
+		assert.ok(!render(chat).includes("session-row-menu"), "no menu, no button");
+		const closed = renderToStaticMarkup(<SessionRow chat={chat} active={false} onOpen={() => {}} onMenu={() => {}} />);
+		const button = closed.match(/<button[^>]*data-testid="session-row-menu"[^>]*>/)?.[0] ?? "";
+		assert.match(button, /aria-label="More for Limits"/);
+		assert.match(button, /aria-haspopup="menu"/);
+		assert.match(button, /opacity-0/);
+		assert.match(button, /group-hover:opacity-100/);
+		const open = renderToStaticMarkup(<SessionRow chat={chat} active={false} onOpen={() => {}} onMenu={() => {}} menuOpen />);
+		const shown = open.match(/<button[^>]*data-testid="session-row-menu"[^>]*>/)?.[0] ?? "";
+		assert.match(shown, /aria-expanded="true"/);
+		assert.doesNotMatch(shown, /opacity-0/);
 	});
 
 	it("no practice badge and no rounded corners on the row", () => {

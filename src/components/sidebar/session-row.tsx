@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
+import { EllipsisIcon } from "lucide-react";
 import { BrailleSpinner } from "@/components/braille-spinner";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,8 @@ import type { ChatListItem } from "@/core";
  * A 6×6 white square in front of the meta means the lesson is waiting
  * for the learner's answer; hovering (or focusing) the row then explains
  * it: "Waiting for your answer · Teacher replied 1 day ago". The active
- * lesson sits on the tone block in bold.
+ * lesson sits on the tone block in bold. Hovering shows a ⋯ button that
+ * opens the lesson menu, the same menu a right-click opens.
  */
 
 function isoDate(iso: string): string {
@@ -56,7 +58,7 @@ export function lessonWaiting(chat: ChatListItem): boolean {
 
 /** The meta line's text. */
 function sessionMeta(chat: ChatListItem, now = new Date()): string {
-	if (chat.compacting) return "Compacting context…";
+	if (chat.compacting) return "Summarizing the lesson…";
 	if (chat.busy) return "Working…";
 	return shortAgo(chat.updatedAt, now);
 }
@@ -84,8 +86,10 @@ interface SessionRowProps {
 	onOpen: (id: string) => void;
 	/** The search walk's highlight (↑/↓ in the search field). */
 	kbdSelected?: boolean;
-	/** Right-click opens the lesson menu. */
-	onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>, chat: ChatListItem) => void;
+	/** Opens the lesson menu at the anchor (the row on right-click, or its ⋯ button). */
+	onMenu?: (anchor: HTMLElement, chat: ChatListItem) => void;
+	/** This row's menu is open: its ⋯ button stays shown. */
+	menuOpen?: boolean;
 	/** A lesson that just appeared rises in once. */
 	fresh?: boolean;
 }
@@ -97,38 +101,65 @@ export const SessionRow = memo(function SessionRow({
 	active,
 	onOpen,
 	kbdSelected = false,
-	onContextMenu,
+	onMenu,
+	menuOpen = false,
 	fresh = false,
 }: SessionRowProps) {
 	const waiting = !(chat.busy || chat.compacting) && lessonWaiting(chat);
 	return (
-		<Tip
-			disabled={!waiting}
-			title="Waiting for your answer"
-			body={`Teacher replied ${longAgo(chat.updatedAt)}`}
-			side="right"
-		>
-			<button
-				type="button"
-				onClick={() => onOpen(chat.id)}
-				onContextMenu={onContextMenu ? (e) => onContextMenu(e, chat) : undefined}
-				data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
-				data-halley-target={`lesson:${chat.id}`}
-				data-active={active || undefined}
-				aria-current={active ? "page" : undefined}
-				className={cn(
-					"lh-press flex w-full flex-col items-start gap-[3px] px-2.5 py-2 text-left hover:bg-tone",
-					active && "bg-tone",
-					fresh && "lh-rise",
-					kbdSelected && !active && "bg-tone/60 ring-1 ring-tone-2 ring-inset",
-				)}
+		<div className="group relative">
+			<Tip
+				disabled={!waiting}
+				title="Waiting for your answer"
+				body={`Teacher replied ${longAgo(chat.updatedAt)}`}
+				side="right"
 			>
-				<span className={cn("block w-full truncate text-[14.5px] text-ink", active && "font-bold")}>
-					{chat.title}
-				</span>
-				<MetaLine chat={chat} />
-			</button>
-		</Tip>
+				<button
+					type="button"
+					onClick={() => onOpen(chat.id)}
+					onContextMenu={
+						onMenu
+							? (e) => {
+									e.preventDefault(); // the lesson menu instead of the native one
+									onMenu(e.currentTarget, chat);
+								}
+							: undefined
+					}
+					data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
+					data-halley-target={`lesson:${chat.id}`}
+					data-active={active || undefined}
+					aria-current={active ? "page" : undefined}
+					className={cn(
+						"lh-press flex w-full flex-col items-start gap-[3px] px-2.5 py-2 text-left group-hover:bg-tone",
+						active && "bg-tone",
+						fresh && "lh-rise",
+						kbdSelected && !active && "bg-tone/60 ring-1 ring-tone-2 ring-inset",
+					)}
+				>
+					<span className={cn("block w-full truncate text-[14.5px] text-ink", active && "font-bold")}>
+						{chat.title}
+					</span>
+					<MetaLine chat={chat} />
+				</button>
+			</Tip>
+			{onMenu && (
+				<button
+					type="button"
+					aria-label={`More for ${chat.title}`}
+					aria-haspopup="menu"
+					aria-expanded={menuOpen}
+					data-testid="session-row-menu"
+					onClick={(e) => onMenu(e.currentTarget, chat)}
+					// On the row's hover tone, so it covers the end of a long title.
+					className={cn(
+						"lh-press absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center bg-tone hover:text-ink focus-visible:opacity-100 group-hover:opacity-100",
+						menuOpen ? "text-ink opacity-100" : "text-ink-2 opacity-0",
+					)}
+				>
+					<EllipsisIcon className="size-[15px]" aria-hidden />
+				</button>
+			)}
+		</div>
 	);
 });
 

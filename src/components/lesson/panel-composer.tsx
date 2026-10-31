@@ -2,7 +2,7 @@ import { SquareIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
-import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader } from "./panel-parts";
+import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, PanelHeaderButton } from "./panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
@@ -29,6 +29,7 @@ export function PanelComposer({
 	onNext,
 	queuedSteers,
 	attachments,
+	waitingForAgent = false,
 	notice,
 	footer,
 }: {
@@ -42,7 +43,9 @@ export function PanelComposer({
 	onNext?: () => void;
 	queuedSteers: QueuedSteerLine[];
 	attachments: AttachmentDraft;
-	/** A line under the box (the "Waiting for your agent" notice). */
+	/** The turn waits for an agent to take it: the header says so instead of "Teacher is writing…". */
+	waitingForAgent?: boolean;
+	/** A line under the header (the stuck-turn notice). */
 	notice?: React.ReactNode;
 	footer?: React.ReactNode;
 }) {
@@ -65,19 +68,13 @@ export function PanelComposer({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={busy ? "Teacher is writing…" : "Your turn"}
+					eyebrow={!busy ? "Your turn" : waitingForAgent ? "Waiting for your agent" : "Teacher is writing…"}
 					right={
 						busy && (
-							<button
-								type="button"
-								data-testid="stop-turn"
-								aria-label="Stop"
-								onClick={onStop}
-								className="lh-press lh-fade flex shrink-0 items-center gap-1.5 bg-tone px-2 py-[3px] text-[12.5px] font-bold text-ink-2 hover:text-ink"
-							>
+							<PanelHeaderButton testId="stop-turn" onClick={onStop}>
 								<SquareIcon aria-hidden className="size-3" />
 								Stop
-							</button>
+							</PanelHeaderButton>
 						)
 					}
 				/>

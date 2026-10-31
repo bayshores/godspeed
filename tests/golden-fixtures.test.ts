@@ -202,7 +202,8 @@ test("jobs: the kind × status matrix parses through the job store", () => {
 test("settings: the stamped record parses", () => {
 	const s = settingsStore.readSettings();
 	assert.ok(s, "settings record reads");
-	assert.equal(s!.version, 1, "settings carry their version stamp");
+	assert.equal(s!.version, 2, "the v1 stamp reads upgraded to v2 (its 50k threshold is the learner's own)");
+	assert.deepEqual(s!.compaction, { thresholdTokens: 50000 });
 	assert.equal("models" in s!, false, "the fixture's old model slots are dropped on read (removed 2026-10-27)");
 });
 

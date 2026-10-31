@@ -47,3 +47,23 @@ export function isSubagentSteer(m: LhViewMessage): boolean {
 export function restoreUnsent(unsent: string, draft: string): string {
 	return draft.trim() ? `${unsent}\n${draft}` : unsent;
 }
+
+/** Why the message box can't take text right now (the demo's Send to
+ *  teacher shows it as a tip), or null when it can. */
+export function sendBlockedReason(s: { pending: boolean; problem: boolean; compacting: boolean }): string | null {
+	if (s.pending) return "Answer or skip the waiting question first.";
+	if (s.problem) return "Finish or discard the practice problem first.";
+	if (s.compacting) return "Wait until the lesson finishes summarizing.";
+	return null;
+}
+
+/** An agent's claim on the lesson's request counts as stuck after this long. */
+const STUCK_CLAIM_MINUTES = 3;
+
+/** Whole minutes since an agent took the lesson's request without
+ *  answering, once that is at least STUCK_CLAIM_MINUTES; otherwise null. */
+export function stuckClaimMinutes(claimedAt: string | undefined, now: number): number | null {
+	if (!claimedAt) return null;
+	const minutes = Math.floor((now - Date.parse(claimedAt)) / 60_000);
+	return Number.isFinite(minutes) && minutes >= STUCK_CLAIM_MINUTES ? minutes : null;
+}

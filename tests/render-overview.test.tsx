@@ -97,6 +97,7 @@ function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) 
 			data={PAYLOAD}
 			nowMs={NOW}
 			busy={false}
+			startError={null}
 			onPractice={() => {}}
 			onLearn={() => {}}
 			{...props}
@@ -442,6 +443,7 @@ describe("runway clicks", () => {
 					data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
 					nowMs={NOW}
 					busy={false}
+					startError={null}
 					onPractice={onPractice}
 					onLearn={onLearn}
 				/>,
@@ -462,6 +464,13 @@ describe("runway clicks", () => {
 		const el = await mount(() => {}, (id) => learned.push(id));
 		await act(async () => (el.querySelector('[data-testid="runway-learn-this"]') as HTMLButtonElement).click());
 		assert.deepEqual(learned, ["t1"]);
+	});
+
+	it("a practice or lesson that didn't start says so under Learn this", () => {
+		const html = renderRunway(DEADLINES, { startError: "Couldn't start the lesson. Try again." });
+		const after = html.slice(html.indexOf('data-testid="runway-learn-this"'));
+		assert.match(after, /data-testid="runway-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
+		assert.ok(!renderRunway(DEADLINES).includes("runway-start-error"));
 	});
 
 	it("rings and Learn this are disabled while a lesson is starting", () => {

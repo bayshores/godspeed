@@ -90,7 +90,7 @@ describe("macOS backend process.title guard", () => {
 	}
 });
 
-async function serverLaunch(platform: string) {
+async function serverLaunch(platform: string, call = "startServer(54321)") {
 	let launch!: { binary: string; args: string[]; options: { cwd: string; env: Record<string, string>; stdio: string[] } };
 	const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
 	const context = {
@@ -106,7 +106,7 @@ async function serverLaunch(platform: string) {
 		__dirname: path.dirname(mainFile),
 	};
 	runInNewContext(mainSource, context, { filename: mainFile });
-	await runInNewContext("startServer(54321)", context);
+	await runInNewContext(call, context);
 	return launch;
 }
 
@@ -130,8 +130,14 @@ describe("backend-only preload wiring and packaging", () => {
 			assert.equal(launch.options.env.HOSTNAME, "127.0.0.1");
 			assert.equal(launch.options.env.FIXTURE, "kept");
 			assert.deepEqual(launch.options.stdio, ["ignore", "pipe", "pipe", "ipc"], "the IPC channel ties the server's lifetime to the app");
+			assert.equal(launch.options.env.LH_SERVER_RESTARTED, undefined, "a normal launch opens with the welcome screen");
 		});
 	}
+
+	it("a server started again after a crash is told so, to skip the welcome screen", async () => {
+		const launch = await serverLaunch("darwin", "startServer(54321, true)");
+		assert.equal(launch.options.env.LH_SERVER_RESTARTED, "1");
+	});
 
 	it("electron-builder copies the title guard outside ASAR only on macOS and the parent guard everywhere", async () => {
 		const yaml = require("js-yaml");

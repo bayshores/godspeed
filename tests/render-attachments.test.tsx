@@ -53,7 +53,7 @@ describe("the composer's waiting files", () => {
 		assert.match(html, /aria-label="Remove graph\.png"/);
 		assert.match(html, /aria-label="Remove Week 3 notes\.pdf"/);
 		assert.ok(html.indexOf("attachment-tray") < html.indexOf("<textarea"), "the tray sits above the box");
-		assert.match(html, /data-testid="attach-button"[^>]*aria-label="Add images or PDFs"|aria-label="Add images or PDFs"[^>]*data-testid="attach-button"/);
+		assert.match(html, /data-testid="attach-button"[^>]*aria-label="Add pictures or PDFs"|aria-label="Add pictures or PDFs"[^>]*data-testid="attach-button"/);
 		assert.match(html, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.ok(!html.includes("attachment-note"), "no hold while idle");
 	});

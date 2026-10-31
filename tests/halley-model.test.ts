@@ -158,10 +158,13 @@ describe("follow", () => {
 		assert.equal(followReady(typed, false, t + RESUME_MS), true);
 	});
 	it("switches class first on a class page, never for Home", () => {
-		assert.deepEqual(followMoves({ page: "/class/files", classId: "cls_b" }, { path: "/", activeClass: "cls_a" }), { switchClass: { to: "cls_b" }, go: "/class/files" });
-		assert.deepEqual(followMoves({ page: "/", classId: "cls_b" }, { path: "/", activeClass: "cls_a" }), { switchClass: null, go: null });
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/graph", activeClass: "cls_a" }), { switchClass: null, go: "/class" });
-		assert.deepEqual(followMoves({ page: "/graph", classId: null }, { path: "/graph", activeClass: "cls_a" }), { switchClass: { to: null }, go: null });
+		assert.deepEqual(followMoves({ page: "/class/files", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: "cls_b" }, go: "/class/files" });
+		assert.deepEqual(followMoves({ page: "/", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: null });
+		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
+		assert.deepEqual(followMoves({ page: "/graph", classId: null }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: null }, go: null });
+		// Unsent text in the lesson on screen keeps the window there.
+		assert.deepEqual(followMoves({ page: "/class", classId: "cls_b" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: true }), { switchClass: null, go: null });
+		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
 	});
 	it("only goes to the app's own pages", () => {
 		for (const p of ["/", "/class", "/class/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);

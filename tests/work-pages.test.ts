@@ -1,6 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { splitPages, WORK_PAGE_BYTES } from "../src/core/work-pages.ts";
+import { pageBlocks, splitPages, WORK_PAGE_BYTES } from "../src/core/work-pages.ts";
+
+const bytes = (page: string[]) => page.reduce((n, block) => n + Buffer.byteLength(block, "utf8"), 0);
+
+test("blocks that fit share one page", () => {
+	assert.deepEqual(pageBlocks(["{}", "instructions", "[text 1]\nhello"]), [["{}", "instructions", "[text 1]\nhello"]]);
+});
+
+test("a long block fills the rest of a page and goes on on the next ones", () => {
+	const long = Array.from({ length: 60 }, (_, i) => `line ${i}`).join("\n");
+	const pages = pageBlocks(["head", long, "tail"], 100);
+	assert.ok(pages.length > 2);
+	assert.equal(pages[0]![0], "head");
+	assert.equal(pages.flat().join(""), `head${long}tail`);
+	for (const page of pages) assert.ok(bytes(page) <= 100);
+});
+
+test("with less than half a page left, a block that doesn't fit starts a new page", () => {
+	const pages = pageBlocks(["a".repeat(60), "b".repeat(70)], 100);
+	assert.deepEqual(pages, [["a".repeat(60)], ["b".repeat(70)]]);
+});
 
 test("short text is one page", () => {
 	assert.deepEqual(splitPages("hello"), ["hello"]);

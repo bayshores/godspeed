@@ -11,12 +11,14 @@ export function GraphBody({
 	data,
 	query,
 	practicing,
+	practiceError,
 	onPractice,
 	initialSelected = null,
 }: {
 	data: ProgressPayload;
 	query: string;
 	practicing: boolean;
+	practiceError: string | null;
 	onPractice: (topicIds: string[]) => void;
 	initialSelected?: string | null;
 }) {
@@ -44,11 +46,11 @@ export function GraphBody({
 	const focus = matches ?? (selected ? null : deadlineTopics);
 
 	if (data.topics.length === 0) {
-		return <TopicMap topics={data.topics} links={data.topicLinks} focus={null} selectedId={null} onSelect={setSelectedId} />;
+		return <TopicMap topics={data.topics} links={data.topicLinks} inClass={data.classId !== null} focus={null} selectedId={null} onSelect={setSelectedId} />;
 	}
 	return (
 		<>
-			<TopicMap topics={data.topics} links={data.topicLinks} focus={focus} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+			<TopicMap topics={data.topics} links={data.topicLinks} inClass={data.classId !== null} focus={focus} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
 			{selected ? (
 				<TopicPanel
 					topic={selected}
@@ -59,6 +61,7 @@ export function GraphBody({
 					onSelectTopic={setSelectedId}
 					onPractice={onPractice}
 					practicing={practicing}
+					practiceError={practiceError}
 				/>
 			) : (
 				<WherePanel
@@ -68,6 +71,7 @@ export function GraphBody({
 					onSelectTopic={setSelectedId}
 					onPractice={onPractice}
 					practicing={practicing}
+					practiceError={practiceError}
 				/>
 			)}
 		</>

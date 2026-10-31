@@ -6,15 +6,29 @@
  * read in OpenDeadlinesProvider: it re-reads when classes change (every
  * deadline edit announces classes-changed) and after the events channel
  * reconnects. `markDone` ticks one done (PUT done: true); the row fades
- * out while the list re-reads. The fade is per caller.
+ * out while the list re-reads. The fade is per caller; the notice after it
+ * ("Marked done · Undo", or why it failed) is shared.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 import { byDue, type OpenDeadline } from "@/components/deadlines-model";
+import { DoneNotice, type DoneNoticeState } from "@/components/done-notice";
 
 /** How long a ticked row fades before it leaves (just over --lh-dur). */
 const LEAVE_MS = 200;
+/** How long the notice after a tick stays. */
+const NOTICE_MS = 6000;
+
+/** Save a deadline's done; throws when the save fails. */
+async function saveDone(d: { classId: string; id: string }, done: boolean): Promise<void> {
+	const res = await fetch(`/api/classes/${encodeURIComponent(d.classId)}/deadlines/${encodeURIComponent(d.id)}`, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ done }),
+	});
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
 
 interface SharedDeadlines {
 	/** null until the first response. */
@@ -22,9 +36,11 @@ interface SharedDeadlines {
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
 	load: () => Promise<void>;
+	/** Show the notice after a tick (null hides it). */
+	notify: (notice: DoneNoticeState | null) => void;
 }
 
-const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {} });
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, notify: () => {} });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
 	const [fetched, setFetched] = useState<OpenDeadline[] | null>(null);
@@ -52,8 +68,32 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	useServerEvent("classes-changed", () => void load());
 	useServerResync(() => void load());
 
-	const value = useMemo(() => ({ fetched, error, load }), [fetched, error, load]);
-	return <OpenDeadlinesContext.Provider value={value}>{children}</OpenDeadlinesContext.Provider>;
+	const [notice, setNotice] = useState<DoneNoticeState | null>(null);
+	useEffect(() => {
+		if (!notice) return;
+		const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+		return () => clearTimeout(timer);
+	}, [notice]);
+	const undo = useCallback(
+		async (d: { classId: string; id: string }) => {
+			setNotice(null);
+			try {
+				await saveDone(d, false);
+				await load();
+			} catch {
+				setNotice({ text: "Couldn't undo that. Untick it in Edit class." });
+			}
+		},
+		[load],
+	);
+
+	const value = useMemo(() => ({ fetched, error, load, notify: setNotice }), [fetched, error, load]);
+	return (
+		<OpenDeadlinesContext.Provider value={value}>
+			{children}
+			{notice && <DoneNotice notice={notice} onUndo={() => notice.undo && void undo(notice.undo)} />}
+		</OpenDeadlinesContext.Provider>
+	);
 }
 
 interface OpenDeadlinesState {
@@ -64,10 +104,12 @@ interface OpenDeadlinesState {
 	/** Ids fading out after a done tick. */
 	leaving: ReadonlySet<string>;
 	markDone: (d: OpenDeadline) => void;
+	/** Read the list again now (Try again). */
+	reload: () => Promise<void>;
 }
 
 export function useOpenDeadlines(): OpenDeadlinesState {
-	const { fetched, error, load } = useContext(OpenDeadlinesContext);
+	const { fetched, error, load, notify } = useContext(OpenDeadlinesContext);
 	// A ticked row stays (fading) until its fade ends, even once the
 	// re-read list no longer has it.
 	const [leavingRows, setLeavingRows] = useState<ReadonlyMap<string, OpenDeadline>>(new Map());
@@ -84,20 +126,17 @@ export function useOpenDeadlines(): OpenDeadlinesState {
 			const faded = new Promise((resolve) => setTimeout(resolve, LEAVE_MS));
 			void (async () => {
 				try {
-					const res = await fetch(`/api/classes/${encodeURIComponent(d.classId)}/deadlines/${encodeURIComponent(d.id)}`, {
-						method: "PUT",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ done: true }),
-					});
-					if (!res.ok) throw new Error(`HTTP ${res.status}`);
+					await saveDone(d, true);
 					await Promise.all([faded, load()]);
+					notify({ text: "Marked done", undo: { classId: d.classId, id: d.id } });
 				} catch {
-					/* not saved: the row comes back */
+					// Not saved: the row comes back.
+					notify({ text: "Couldn't mark it done. Try again." });
 				}
 				drop();
 			})();
 		},
-		[load],
+		[load, notify],
 	);
 
 	const deadlines = useMemo(() => {
@@ -107,5 +146,5 @@ export function useOpenDeadlines(): OpenDeadlinesState {
 	}, [fetched, leavingRows]);
 	const leaving = useMemo(() => new Set(leavingRows.keys()), [leavingRows]);
 
-	return { deadlines, error, leaving, markDone };
+	return { deadlines, error, leaving, markDone, reload: load };
 }

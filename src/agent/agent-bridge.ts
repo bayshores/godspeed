@@ -15,10 +15,11 @@
  * Process-global state on globalThis (the turn-runs.ts idiom): Next can
  * load this module more than once, and every copy must share one queue.
  *
- * CHECK-INS: every authorized MCP request counts as
- * the agent checking in; the MCP initialize handshake also names it
- * ("Claude Code"). Status changes go out as the "agent-changed" event so
- * open windows (onboarding, the sidebar, the activity panel) update live.
+ * CHECK-INS: every authorized MCP request counts as the agent being
+ * connected; only the work loop (wait_for_work, respond, read_work) counts
+ * as teaching. The MCP initialize handshake also names it ("Claude Code").
+ * Status changes go out as the "agent-changed" event so open windows
+ * (onboarding, the sidebar, the activity panel) update live.
  * Requests wait for an agent with no time limit, so work queued while no
  * agent is connected starts by itself once one connects.
  */
@@ -35,6 +36,7 @@ import type {
 // The faux provider's own entry, not the package root: the root loads
 // every provider (~0.15–0.3 s at startup); this subpath is a few small files.
 import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
+import { createHash } from "node:crypto";
 import { CHAT_ID_PREFIX } from "../core/contracts.ts";
 import { continuesFrom, seenMark, type SeenMark, type SeenStore } from "../core/agent-seen.ts";
 import { emit } from "../core/events.ts";
@@ -83,9 +85,10 @@ interface WorkItem {
 	/** The agent lost its context while holding this item, so its reply
 	 *  doesn't count as having seen the conversation. */
 	agentForgot?: boolean;
-	/** The item as the agent reads it, in pages (core/work-pages). Page 1
-	 *  goes out with the item, the rest through read_work. */
-	pages?: string[];
+	/** The item as the agent reads it, in pages of text blocks
+	 *  (core/work-pages). Page 1 goes out with the item, the rest through
+	 *  read_work. */
+	pages?: string[][];
 	/** Pages the agent has not read yet; respond waits until none are left. */
 	unread?: Set<number>;
 	resolve: (message: AssistantMessage) => void;
@@ -104,10 +107,17 @@ export interface WorkView {
 	/** true = `messages` holds only what arrived since the agent's last
 	 *  reply in this conversation; false = the full transcript. */
 	continued: boolean;
-	/** The system prompt — only on a full (non-continued) delivery. */
+	/** The system prompt — only on a full (non-continued) delivery, and
+	 *  only when its agent hasn't had the same text before. */
 	instructions?: string;
-	/** The tools available for this reply — only on a full delivery. */
+	/** Instead of `instructions`: the earlier workId whose instructions
+	 *  are the same, which the agent already has. */
+	instructionsAsIn?: string;
+	/** The tools available for this reply — only on a full delivery, and
+	 *  only those its agent hasn't had before with the same schema. */
 	tools?: WorkTool[];
+	/** The names of this reply's other tools, which the agent already has. */
+	toolsAsBefore?: string[];
 	messages: WorkMessage[];
 	/** The background task's name ("Topic grouping · CSE 21"), when the
 	 *  caller gave one (pi-run taskLabel). */
@@ -124,8 +134,13 @@ interface BridgeState {
 	seenStore?: SeenStore;
 	/** Wake-ups for wait_for_work callers. */
 	waiters: Set<() => void>;
-	/** Last time an MCP client checked in (the "agent connected" signal). */
-	lastPoll: number;
+	/** Last time an MCP client sent any request (the "agent connected" signal). */
+	lastContact: number;
+	/** Last time an agent called the work loop (the "teaching" signal). */
+	lastWork: number;
+	/** agent id → the instructions (hash → the workId that carried them)
+	 *  and tools (hashes) it has, so a new conversation can skip them. */
+	known: Map<string, { instructions: Map<string, string>; tools: Set<string> }>;
 	/** The agent's name from its MCP initialize handshake ("Claude Code"). */
 	agentName?: string;
 	/** Fires "agent-changed" when the connection lapses. */
@@ -143,11 +158,14 @@ const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastPoll: 0, labels: new Map(), held: new Map(), backgroundRuns: new Set() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	g[STATE_KEY].held ??= new Map();
 	g[STATE_KEY].seenBy ??= new Map();
 	g[STATE_KEY].backgroundRuns ??= new Set();
+	g[STATE_KEY].lastContact ??= 0;
+	g[STATE_KEY].lastWork ??= 0;
+	g[STATE_KEY].known ??= new Map();
 	return g[STATE_KEY];
 }
 
@@ -177,11 +195,31 @@ function wake(): void {
  *  (the agent crashed or lost track of it). */
 const CLAIM_TIMEOUT_MS = 10 * 60_000;
 
-/** An agent counts as connected if it polled within this window. */
+/** An agent counts as connected (or teaching) if it checked in within this window. */
 const CONNECTED_WINDOW_MS = 3 * 60_000;
 
+function recent(at: number, now: number): boolean {
+	return now - at < CONNECTED_WINDOW_MS;
+}
+
 export function agentConnected(now = Date.now()): boolean {
-	return now - state().lastPoll < CONNECTED_WINDOW_MS;
+	const s = state();
+	return recent(s.lastContact, now) || recent(s.lastWork, now);
+}
+
+/** An agent runs the work loop. Without this, a connected agent (any
+ *  Claude Code session with the plugin) only initialized or called other
+ *  tools, and lessons wait. */
+export function agentTeaching(now = Date.now()): boolean {
+	return recent(state().lastWork, now);
+}
+
+/** Lessons whose current request an agent took and hasn't answered yet,
+ *  with when it took it (so the window can tell a stuck turn). */
+export function claimedLessons(): { lessonId: string; claimedAt: string }[] {
+	return [...state().items.values()]
+		.filter((item) => !isBackground(item) && item.claimedAt !== undefined)
+		.map((item) => ({ lessonId: item.conversation, claimedAt: new Date(item.claimedAt!).toISOString() }));
 }
 
 /** How many requests are waiting for (or being handled by) the agent. */
@@ -204,18 +242,30 @@ export function displayAgentName(clientInfo: { name?: unknown; title?: unknown }
 	return (title || name).slice(0, 60) || undefined;
 }
 
-/** The agent checked in (any authorized MCP request). `name` comes from
- *  the initialize handshake; later requests keep the last name. */
-export function recordCheckIn(name?: string, now = Date.now()): void {
+/** The agent checked in: any authorized MCP request, or (`working`) a
+ *  work-loop call. `name` comes from the initialize handshake; later
+ *  requests keep the last name. */
+export function recordCheckIn(how: { name?: string; working?: boolean } = {}, now = Date.now()): void {
 	const s = state();
-	const wasConnected = agentConnected(now);
-	const before = s.agentName;
-	s.lastPoll = now;
-	if (name) s.agentName = name;
+	const before = { connected: agentConnected(now), teaching: agentTeaching(now), name: s.agentName };
+	if (how.working) s.lastWork = now;
+	else s.lastContact = now;
+	if (how.name) s.agentName = how.name;
+	scheduleLapse(now);
+	if (!before.connected || before.teaching !== agentTeaching(now) || s.agentName !== before.name) emit("agent-changed", {});
+}
+
+/** Fire "agent-changed" when the next of teaching or connected lapses. */
+function scheduleLapse(now: number): void {
+	const s = state();
 	if (s.lapseTimer) clearTimeout(s.lapseTimer);
-	s.lapseTimer = setTimeout(() => emit("agent-changed", {}), CONNECTED_WINDOW_MS + 1000);
+	const next = [s.lastContact, s.lastWork].map((at) => at + CONNECTED_WINDOW_MS).filter((at) => at > now);
+	if (next.length === 0) return;
+	s.lapseTimer = setTimeout(() => {
+		emit("agent-changed", {});
+		scheduleLapse(Date.now());
+	}, Math.min(...next) - now + 1000);
 	s.lapseTimer.unref?.();
-	if (!wasConnected || s.agentName !== before) emit("agent-changed", {});
 }
 
 // ─── Rendering the transcript for an outside reader ─────────────────────────
@@ -309,17 +359,28 @@ export function setSeenStore(store: SeenStore): void {
 export function forgetAgent(agent: string, cleared: boolean): void {
 	const s = state();
 	for (const byAgent of s.seenBy.values()) byAgent.delete(agent);
+	s.known.delete(agent);
+	let released = false;
 	for (const item of s.items.values()) {
 		if (item.agent !== agent) continue;
 		item.agentForgot = true;
-		if (cleared) item.claimedAt = undefined;
+		if (cleared && item.claimedAt !== undefined) {
+			item.claimedAt = undefined;
+			released = true;
+		}
 	}
 	s.seenStore?.forgetAgent(agent);
+	if (released) emit("agent-changed", {});
 	if (cleared) wake();
 }
 
+function hashOf(value: string): string {
+	return createHash("sha256").update(value).digest("hex").slice(0, 32);
+}
+
 /** Present one item, sending only the unseen tail when its agent already
- *  holds this conversation's earlier messages. */
+ *  holds this conversation's earlier messages, and only the instructions
+ *  and tools it doesn't already have from another conversation. */
 function view(item: WorkItem, forceFull: boolean): WorkView {
 	const all = item.context.messages;
 	const prints = all.map(fingerprint);
@@ -336,7 +397,42 @@ function view(item: WorkItem, forceFull: boolean): WorkView {
 	const workId = `${item.id}_${item.claims}`;
 	if (continued) return { workId, conversation: item.conversation, continued, messages, ...extra };
 	const { instructions, tools } = instructionsAndTools(all);
-	return { workId, conversation: item.conversation, continued, instructions, tools, messages, ...extra };
+	// Without an id, agents can't be told apart: everything goes in full.
+	if (item.agent === undefined) return { workId, conversation: item.conversation, continued, instructions, tools, messages, ...extra };
+	const s = state();
+	let known = s.known.get(item.agent);
+	if (!known) s.known.set(item.agent, (known = { instructions: new Map(), tools: new Set() }));
+	const instructionsHash = hashOf(instructions);
+	const instructionsAsIn = forceFull || !instructions ? undefined : known.instructions.get(instructionsHash);
+	if (!instructionsAsIn) known.instructions.set(instructionsHash, workId);
+	const newTools: WorkTool[] = [];
+	const toolsAsBefore: string[] = [];
+	for (const tool of tools) {
+		const toolHash = hashOf(JSON.stringify(tool));
+		if (!forceFull && known.tools.has(toolHash)) toolsAsBefore.push(tool.name);
+		else newTools.push(tool);
+		known.tools.add(toolHash);
+	}
+	return {
+		workId,
+		conversation: item.conversation,
+		continued,
+		...(instructionsAsIn ? { instructionsAsIn } : { instructions }),
+		tools: newTools,
+		...(toolsAsBefore.length ? { toolsAsBefore } : {}),
+		messages,
+		...extra,
+	};
+}
+
+/** The open item a workId names, presented again in full: instructions,
+ *  every tool and the whole transcript (the agent lost track of it). */
+export function fullWorkView(workId: string): { ok: true; view: WorkView } | { ok: false; error: string } {
+	recordCheckIn({ working: true });
+	const item = openItem(workId);
+	if (!item) return { ok: false, error: noItem(workId) };
+	item.agentForgot = false;
+	return { ok: true, view: view(item, true) };
 }
 
 /** The open item a workId names, only while that claim is its latest. */
@@ -395,14 +491,14 @@ export async function waitForWork(
 	for (;;) {
 		if (opts.signal?.aborted) return null;
 		const now = Date.now();
-		recordCheckIn(undefined, now);
+		recordCheckIn({ working: true }, now);
 		const item = pick(now, opts);
 		if (item) {
 			item.claimedAt = now;
 			item.claims++;
 			item.agent = opts.agent;
 			item.agentForgot = false;
-			if (isBackground(item)) emit("activity-changed", {});
+			emit(isBackground(item) ? "activity-changed" : "agent-changed", {});
 			return view(item, !!opts.full);
 		}
 		// A background run that ended sends nothing more.
@@ -433,6 +529,7 @@ export function respondToWork(
 	holdMs: number,
 ): { ok: true; conversation: string; agent?: string } | { ok: false; error: string } {
 	const s = state();
+	recordCheckIn({ working: true });
 	const item = openItem(workId);
 	if (!item) return { ok: false, error: noItem(workId) };
 	const unread = [...(item.unread ?? [])].sort((a, b) => a - b);
@@ -459,21 +556,22 @@ export function respondToWork(
 }
 
 /** Keep a presented item's pages; page 1 went out with it. */
-export function setWorkPages(workId: string, pages: string[]): void {
+export function setWorkPages(workId: string, pages: string[][]): void {
 	const item = openItem(workId);
 	if (!item) return;
 	item.pages = pages;
 	item.unread = new Set(pages.map((_, i) => i + 1).slice(1));
 }
 
-/** One page of an open work item, which then counts as read. */
-export function readWorkPage(workId: string, page: number): { ok: true; text: string; pages: number } | { ok: false; error: string } {
+/** One page of an open work item (its text blocks), which then counts as read. */
+export function readWorkPage(workId: string, page: number): { ok: true; blocks: string[]; pages: number } | { ok: false; error: string } {
+	recordCheckIn({ working: true });
 	const item = openItem(workId);
 	if (!item) return { ok: false, error: noItem(workId) };
 	const pages = item.pages ?? [];
 	if (page < 1 || page > pages.length) return { ok: false, error: `Work item "${workId}" has page(s) 1 to ${pages.length}.` };
 	item.unread?.delete(page);
-	return { ok: true, text: pages[page - 1]!, pages: pages.length };
+	return { ok: true, blocks: pages[page - 1]!, pages: pages.length };
 }
 
 function noItem(workId: string): string {

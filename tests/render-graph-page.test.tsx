@@ -15,6 +15,7 @@ import { GraphBody } from "../src/components/graph/graph-body.tsx";
 import { WherePanel } from "../src/components/graph/where-panel.tsx";
 import { TopicPanel } from "../src/components/graph/topic-panel.tsx";
 import { TopicMap } from "../src/components/graph/topic-map.tsx";
+import { GraphTopBar } from "../src/components/graph/graph-top-bar.tsx";
 import { fixture } from "./graph-fixture.ts";
 
 const noop = () => {};
@@ -23,7 +24,7 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 describe("Where you're at (nothing selected)", () => {
 	const data = fixture();
 	const html = renderToStaticMarkup(
-		<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
+		<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />,
 	);
 
 	it("shows the deadline picker, the countdown, its date and files", () => {
@@ -51,7 +52,7 @@ describe("Where you're at (nothing selected)", () => {
 
 	it("with no deadlines: the class-wide view (no picker)", () => {
 		const none = renderToStaticMarkup(
-			<WherePanel data={{ ...data, deadlines: [] }} deadlineId={null} onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
+			<WherePanel data={{ ...data, deadlines: [] }} deadlineId={null} onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />,
 		);
 		assert.ok(!none.includes('data-testid="deadline-picker"'));
 		assert.ok(none.includes("Where you&#x27;re at"));
@@ -73,6 +74,7 @@ describe("Topic selected", () => {
 			onSelectTopic={noop}
 			onPractice={noop}
 			practicing={false}
+			practiceError={null}
 		/>,
 	);
 
@@ -99,10 +101,10 @@ describe("Topic selected", () => {
 describe("GraphBody picks the panel", () => {
 	const data = fixture();
 	it("nothing selected → Where you're at; a topic → its panel", () => {
-		const where = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} onPractice={noop} />);
+		const where = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} practiceError={null} onPractice={noop} />);
 		assert.ok(where.includes('data-testid="where-panel"'));
 		assert.equal(count(where, 'data-testid="topic-node"'), 5);
-		const picked = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} onPractice={noop} initialSelected="t-var" />);
+		const picked = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} practiceError={null} onPractice={noop} initialSelected="t-var" />);
 		assert.ok(picked.includes('data-testid="topic-panel"'));
 	});
 
@@ -110,7 +112,7 @@ describe("GraphBody picks the panel", () => {
 		const [d] = data.deadlines;
 		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
 			const html = renderToStaticMarkup(
-				<WherePanel data={{ ...data, deadlines }} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} />,
+				<WherePanel data={{ ...data, deadlines }} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />,
 			);
 			assert.ok(!html.includes('data-testid="deadline-picker"'));
 			assert.equal(count(html, 'data-testid="work-on-next-row"'), 1);
@@ -118,10 +120,43 @@ describe("GraphBody picks the panel", () => {
 	});
 
 	it("topics off the picked deadline fade on the map", () => {
-		const html = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} onPractice={noop} />);
+		const html = renderToStaticMarkup(<GraphBody data={data} query="" practicing={false} practiceError={null} onPractice={noop} />);
 		const node = (id: string) => html.slice(html.indexOf(`data-topic="${id}"`), html.indexOf(`data-topic="${id}"`) + 400);
 		assert.ok(node("t-attn").includes('opacity="0.22"'), "Attention is not on Midterm 1");
 		assert.ok(node("t-var").includes('opacity="1"'));
+	});
+});
+
+describe("adding notes and start errors", () => {
+	const data = fixture();
+	const empty = { ...data, topics: [], topicLinks: [] };
+
+	it("an empty class graph points to the Files page; No class keeps import", () => {
+		const inClass = renderToStaticMarkup(<GraphBody data={{ ...empty, classId: "cls_a" }} query="" practicing={false} practiceError={null} onPractice={noop} />);
+		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add notes on the Files page<\/a> to build your graph\./);
+		const noClass = renderToStaticMarkup(<GraphBody data={{ ...empty, classId: null }} query="" practicing={false} practiceError={null} onPractice={noop} />);
+		assert.ok(noClass.includes("Start a lesson or import notes to build your graph."));
+		assert.ok(!noClass.includes("/class/files"));
+	});
+
+	it("the top bar's Add notes opens the Files page in a class; No class keeps Import notes", () => {
+		const inClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={null} />);
+		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add notes<\/a>/);
+		assert.ok(!inClass.includes("import-notes"));
+		const noClass = renderToStaticMarkup(
+			<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />,
+		);
+		assert.ok(noClass.includes('data-testid="import-notes"'));
+		assert.ok(!noClass.includes("add-notes"));
+	});
+
+	it("a practice that didn't start says so under the panel button", () => {
+		const html = renderToStaticMarkup(
+			<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError="Couldn't start practice. Try again." />,
+		);
+		const after = html.slice(html.indexOf('data-testid="practice-these"'));
+		assert.match(after, /data-testid="practice-start-error"[^>]*>Couldn&#x27;t start practice\. Try again\.</);
+		assert.ok(!renderToStaticMarkup(<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />).includes("practice-start-error"));
 	});
 });
 
@@ -161,7 +196,7 @@ describe("keyboard access to topics", () => {
 		document.body.append(host);
 		root = createRoot(host);
 		await act(async () =>
-			root!.render(<TopicMap topics={data.topics} links={data.topicLinks} focus={null} selectedId={null} onSelect={(id) => picked.push(id)} />),
+			root!.render(<TopicMap topics={data.topics} links={data.topicLinks} inClass focus={null} selectedId={null} onSelect={(id) => picked.push(id)} />),
 		);
 		const nodes = [...host.querySelectorAll('[data-testid="topic-node"]')];
 		assert.equal(nodes.length, 5);

@@ -24,8 +24,11 @@ import { z } from "zod";
 import {
 	agentConnected,
 	agentName,
+	agentTeaching,
+	claimedLessons,
 	displayAgentName,
 	forgetAgent,
+	fullWorkView,
 	pendingWorkCount,
 	readWorkPage,
 	recordCheckIn,
@@ -36,9 +39,9 @@ import {
 	type WorkView,
 } from "../agent/agent-bridge.ts";
 import { getGraph } from "../core/graph.ts";
-import { splitPages } from "../core/work-pages.ts";
+import { pageBlocks, splitPages } from "../core/work-pages.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
-import { CLASS_ICONS, cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassIcon, type ClassScope } from "../core/contracts.ts";
+import { CLASS_ICONS, cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassDeadline, type ClassFileStatus, type ClassIcon, type ClassScope } from "../core/contracts.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -46,6 +49,7 @@ import {
 	addClassDeadline,
 	addCopiedFile,
 	addFileFromPath,
+	AGENT_FILE_READING_REFUSAL,
 	classFilePath,
 	createClass,
 	linkFolder,
@@ -68,20 +72,38 @@ import { addAgentNote, removeAgentNote } from "../store/agent-notes.ts";
 import { NOTE_MAX_CHARS } from "../core/agent-notes.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 
-/** Codex's default MCP tool timeout is 60 s — every wait stays under it. */
+/** Codex's default MCP tool timeout is 60 s, so the default wait stays
+ *  under it. A client with a longer timeout (Codex with tool_timeout_sec
+ *  raised) may ask for longer waits, which saves it a model turn each. */
 const DEFAULT_WAIT_S = 45;
-const MAX_WAIT_S = 55;
-const READ_LIMIT_CHARS = 120_000;
+const MAX_WAIT_S = 600;
+/** respond's wait for a follow-up stays under Codex's default timeout. */
+const RESPOND_MAX_WAIT_S = 55;
+/** A message text this long goes in its own plain-text block, where its
+ *  line breaks and quotes cost nothing; shorter ones stay in the JSON. */
+const LONG_TEXT_CHARS = 1_000;
+
+// Tool annotations. No tool reaches the open web, and only the REMOVES
+// tools delete anything. ADDS tools do something new on every call.
+const READ_ONLY = { readOnlyHint: true, openWorldHint: false };
+const ADDS = { destructiveHint: false, idempotentHint: false, openWorldHint: false };
+const SETS = { destructiveHint: false, idempotentHint: true, openWorldHint: false };
+const REMOVES = { destructiveHint: true, idempotentHint: true, openWorldHint: false };
+
+/** Study files are read by the agent itself, as background work items. */
+const READING_NOTE = "The reading work comes to you through wait_for_work; it does not progress until you run the loop.";
 
 const INSTRUCTIONS = `godspeed is a learning app, and you are its AI: the teacher in lessons, and the worker behind its helpers (research, demos, diagrams, PDF reading) and its knowledge-graph builder. All of the app's model work comes to you.
 
 The work loop:
 1. Call wait_for_work. It returns a work item (or "idle" after a while — then call it again).
-2. A work item holds "instructions" (your system prompt for this conversation — follow it exactly, it is the app's teaching method), "tools" (the tools you may call, with JSON schemas), and "messages" (the conversation so far). Later items in the same conversation have "continued": true and carry only the new messages. A long work item comes in pages: read every page with read_work before you respond. Images in the messages appear as "[image N]"; the images themselves come with the work item, in that order.
+2. A work item is a JSON block with "tools" (the tools you may call, with JSON schemas) and "messages" (the conversation so far). Its instructions (your system prompt for this conversation — follow them exactly, they are the app's teaching method) follow it as a plain-text block, and so does every long message text: that message's "text" reads "[text N]", and its block starts with "[text N]". Later items in the same conversation have "continued": true and carry only the new messages. In a new conversation, what you already have comes by reference: "instructionsAsIn" names the earlier work item with the same instructions, and "toolsAsBefore" lists tools whose schemas you already got. A long work item comes in pages: read every page with read_work before you respond. Images in the messages appear as "[image N]"; the images themselves come with the work item, in that order.
 3. Answer with respond: your text and/or tool calls, exactly as a model would. The app runs the tools and, when it needs you again in the same conversation (e.g. tool results), respond returns the next work item directly.
 4. When respond says the turn is complete, the app is waiting on the learner (they read and answer in the godspeed window). Call wait_for_work again.
 
-Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. The learner never sees text you write outside respond.
+If you lose track of a work item (your context was compacted, or you no longer have the instructions or tools it refers to), call read_work with its work_id and full: true: it sends the item again with its instructions, every tool and the whole conversation. Without its workId, call wait_for_work with full_context: true.
+
+Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. Inside a work item, use only that item's tools, called through respond, even when this server has a tool with the same name (like read_class or search_class_files): only then does the lesson keep what you looked up. The learner never sees text you write outside respond.
 
 Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, a one-line signature for the class's cover, and a subject icon for the class switcher) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Every class needs a subject icon: create_class takes one, and when list_classes shows a class with icon null, set one with update_class without asking. Archived classes take no new lessons; ask the learner to unarchive one first. Classes can only be deleted in the godspeed window.
 
@@ -123,9 +145,23 @@ const CLASS_ID_ARG = z
 
 // ─── Access control ─────────────────────────────────────────────────────────
 
-/** Token status for the settings screen. */
-export function mcpAccessStatus(): { token: string; agentConnected: boolean; agentName: string | null; pendingWork: number } {
-	return { token: ensureMcpToken(), agentConnected: agentConnected(), agentName: agentName() ?? null, pendingWork: pendingWorkCount() };
+/** Token and agent status for the window (GET /api/mcp-access). */
+export function mcpAccessStatus(): {
+	token: string;
+	agentConnected: boolean;
+	agentTeaching: boolean;
+	agentName: string | null;
+	pendingWork: number;
+	claimedLessons: { lessonId: string; claimedAt: string }[];
+} {
+	return {
+		token: ensureMcpToken(),
+		agentConnected: agentConnected(),
+		agentTeaching: agentTeaching(),
+		agentName: agentName() ?? null,
+		pendingWork: pendingWorkCount(),
+		claimedLessons: claimedLessons(),
+	};
 }
 
 export const rotateMcpToken = writeNewMcpToken;
@@ -176,42 +212,85 @@ function result(value: unknown) {
 	return { content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value) }] };
 }
 
-/** A work item as a tool result: the item as JSON, then its images as
- *  real MCP images (the "[image N]" markers point at them in order). A
- *  long item sends page 1 of its JSON after a short header. */
+function textBlock(text: string) {
+	return { type: "text" as const, text };
+}
+
+/** A work item as a tool result: its text blocks (describe), then its
+ *  images as real MCP images (the "[image N]" markers point at them in
+ *  order). A long item sends page 1 after a short header. */
 function workResult(view: WorkView) {
 	const images = (view.images ?? []).map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mimeType }));
-	const pages = splitPages(JSON.stringify(describe(view)));
+	const pages = pageBlocks(describe(view));
 	setWorkPages(view.workId, pages);
-	if (pages.length === 1) return { content: [{ type: "text" as const, text: pages[0]! }, ...images] };
+	const first = pages[0]!.map(textBlock);
+	if (pages.length === 1) return { content: [...first, ...images] };
 	const header = {
 		status: "work",
 		workId: view.workId,
 		page: 1,
 		pages: pages.length,
-		note: `This work item is long, so it comes in ${pages.length} pages. Below is page 1 of its JSON. Read pages 2 to ${pages.length} with read_work before you respond.`,
+		note: `This work item is long, so it comes in ${pages.length} pages. Below is page 1. Read pages 2 to ${pages.length} with read_work before you respond.`,
 	};
-	return { content: [...result(header).content, { type: "text" as const, text: pages[0]! }, ...images] };
+	return { content: [...result(header).content, ...first, ...images] };
 }
 function failure(message: string) {
 	return { content: [{ type: "text" as const, text: message }], isError: true };
 }
 
-/** Name the conversation a work item belongs to. */
-function describe(view: WorkView) {
+/** A work item as text blocks: compact JSON naming its conversation, then
+ *  its instructions and long message texts as plain text, where line
+ *  breaks, quotes and LaTeX backslashes need no escaping. */
+function describe(view: WorkView): string[] {
 	const chat = stores.chatStore.getChat(view.conversation);
 	const about = chat
 		? { lessonId: chat.id, lessonTitle: chat.title, kind: chat.kind ?? "teach" }
 		: view.label
 			? { kind: "background task", task: view.label }
 			: { kind: "background task (a helper job or knowledge-graph run)" };
-	return { status: "work", workId: view.workId, ...about, continued: view.continued, ...(view.instructions !== undefined ? { instructions: view.instructions } : {}), ...(view.tools ? { tools: view.tools } : {}), messages: view.messages, ...(view.images?.length ? { imageCount: view.images.length } : {}) };
+	const texts: string[] = [];
+	const messages = view.messages.map((m) => {
+		if (!m.text || m.text.length < LONG_TEXT_CHARS) return m;
+		texts.push(`[text ${texts.length + 1}]\n${m.text}`);
+		return { ...m, text: `[text ${texts.length}]` };
+	});
+	const byReference = view.instructionsAsIn !== undefined || view.toolsAsBefore !== undefined;
+	const envelope = {
+		status: "work",
+		workId: view.workId,
+		...about,
+		continued: view.continued,
+		...(view.instructionsAsIn ? { instructionsAsIn: view.instructionsAsIn } : {}),
+		...(view.tools ? { tools: view.tools } : {}),
+		...(view.toolsAsBefore ? { toolsAsBefore: view.toolsAsBefore } : {}),
+		messages,
+		...(view.images?.length ? { imageCount: view.images.length } : {}),
+		...(byReference ? { note: "You already have what instructionsAsIn and toolsAsBefore point at. If you lost it, call read_work with this workId and full: true." } : {}),
+	};
+	const instructions = view.instructions ? [`Instructions (your system prompt for this conversation; follow them exactly):\n\n${view.instructions}`] : [];
+	return [JSON.stringify(envelope), ...instructions, ...texts];
 }
 
-const IDLE = {
-	status: "idle",
-	note: "Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).",
-};
+/** Waiting is free in Claude Code with the plugin's waiter, and costs a
+ *  model turn per call any other way. */
+function inClaudeCode(): boolean {
+	return agentName() === "Claude Code";
+}
+
+function waiterHint(lessonId?: string): string {
+	return `Wait with the plugin's waiter, not by calling wait_for_work yourself: run scripts/wait-for-work.mjs${lessonId ? ` --lesson ${lessonId}` : ""} in the background (the godspeed:teach skill has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
+}
+
+const CLAUDE_CODE_WAITING = `Waiting in Claude Code: the godspeed plugin has a background waiter, scripts/wait-for-work.mjs. Use it instead of calling wait_for_work in a loop: run it in the background (the godspeed:teach skill has the exact command), end your turn, and answer the work item it prints when it finishes. Waiting that way costs no tokens.`;
+
+function idle() {
+	return {
+		status: "idle",
+		note: inClaudeCode()
+			? `Nothing to do right now. ${waiterHint()}`
+			: "Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).",
+	};
+}
 
 /** The calling agent's session id, when its client sends one: the
  *  Claude Code plugin (its connector and its waiter) sets "godspeed/agent",
@@ -250,15 +329,22 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			title: "Wait for work",
 			description: "Wait for the next request from godspeed (a lesson turn, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
 			inputSchema: {
-				timeout_seconds: z.number().int().min(1).max(MAX_WAIT_S).optional().describe(`How long to wait (default ${DEFAULT_WAIT_S}).`),
+				timeout_seconds: z
+					.number()
+					.int()
+					.min(1)
+					.max(MAX_WAIT_S)
+					.optional()
+					.describe(`How long to wait in seconds (default ${DEFAULT_WAIT_S}, at most ${MAX_WAIT_S}). Stay under your client's tool timeout: for Codex that is tool_timeout_sec in ~/.codex/config.toml (60 unless raised; godspeed's setup sets 600).`),
 				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
 			},
+			annotations: ADDS,
 		},
 		async ({ timeout_seconds, lesson_id, full_context }, extra) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
 			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(extra._meta), signal });
-			return view ? workResult(view) : result(IDLE);
+			return view ? workResult(view) : result(idle());
 		},
 	);
 
@@ -274,11 +360,12 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 					.array(z.object({ name: z.string(), arguments: z.record(z.string(), z.unknown()) }))
 					.optional()
 					.describe("Tool calls, run in order. Use only tools listed in the work item."),
-				wait_seconds: z.number().int().min(0).max(MAX_WAIT_S).optional().describe("How long to wait for the follow-up (default 30)."),
+				wait_seconds: z.number().int().min(0).max(RESPOND_MAX_WAIT_S).optional().describe("How long to wait for the follow-up (default 30)."),
 			},
+			annotations: ADDS,
 		},
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
-			const waitMs = Math.min(wait_seconds ?? 30, MAX_WAIT_S) * 1000;
+			const waitMs = Math.min(wait_seconds ?? 30, RESPOND_MAX_WAIT_S) * 1000;
 			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, waitMs);
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
@@ -286,11 +373,12 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			const next = await waitForWork(waitMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
+			const claudeCode = inClaudeCode();
 			return result({
 				status: "turn_complete",
 				note: chat
-					? `Your turn is done. The learner is reading and will answer in the godspeed window. Call wait_for_work to continue (lesson_id "${chat.id}" to stay on this lesson).`
-					: "The task step is done. Call wait_for_work for more.",
+					? `Your turn is done. The learner is reading and will answer in the godspeed window. ${claudeCode ? waiterHint(chat.id) : `Call wait_for_work to continue (lesson_id "${chat.id}" to stay on this lesson).`}`
+					: `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`,
 			});
 		},
 	);
@@ -299,17 +387,24 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		"read_work",
 		{
 			title: "Read more of a work item",
-			description: "Read one page of a long work item. When a work item says it has several pages, read all of them before you respond.",
+			description: "Read one page of a long work item, or (full: true) get the item again in full: its instructions, every tool and the whole conversation, for when you lost track of it. When a work item says it has several pages, read all of them before you respond.",
 			inputSchema: {
 				work_id: z.string().describe("The workId of the work item."),
-				page: z.number().int().min(1).describe("The page to read, from 2."),
+				page: z.number().int().min(1).optional().describe("The page to read, from 2."),
+				full: z.boolean().optional().describe("Send the whole item again instead of one page (after your context was compacted, or when you no longer have the instructions or tools it refers to)."),
 			},
+			annotations: READ_ONLY,
 		},
-		async ({ work_id, page }) => {
+		async ({ work_id, page, full }) => {
+			if (full) {
+				const again = fullWorkView(work_id);
+				return again.ok ? workResult(again.view) : failure(again.error);
+			}
+			if (page === undefined) return failure("Give the page to read, or full: true.");
 			const read = readWorkPage(work_id, page);
 			if (!read.ok) return failure(read.error);
 			const note = page < read.pages ? `Next: read_work page ${page + 1}.` : "That was the last page. Answer with respond.";
-			return { content: [...result({ workId: work_id, page, pages: read.pages, note }).content, { type: "text" as const, text: read.text }] };
+			return { content: [...result({ workId: work_id, page, pages: read.pages, note }).content, ...read.blocks.map(textBlock)] };
 		},
 	);
 
@@ -317,13 +412,21 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		"list_lessons",
 		{
 			title: "List lessons",
-			description: "List the learner's lessons and practice sessions, newest first, each with its class.",
-			inputSchema: {},
-			annotations: { readOnlyHint: true },
+			description: "List the learner's lessons and practice sessions, newest first, each with its class. total says how many match.",
+			inputSchema: {
+				class_id: z.string().optional().describe('Only the lessons of this class (from list_classes), or "none" for lessons without a class. Leave it out for all lessons.'),
+				limit: z.number().int().min(1).max(200).optional().describe("Most lessons to return (default 20)."),
+			},
+			annotations: READ_ONLY,
 		},
-		async () => {
-			const lessons = stores.chatStore
-				.listChats()
+		async ({ class_id, limit }) => {
+			let chats = stores.chatStore.listChats();
+			if (class_id !== undefined) {
+				const arg = classArg(class_id);
+				if ("error" in arg) return failure(arg.error);
+				chats = chats.filter((c) => (c.classId ?? null) === arg.scope);
+			}
+			const lessons = chats
 				.map((c) => ({
 					id: c.id,
 					title: c.title,
@@ -336,7 +439,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 					updatedAt: c.updatedAt,
 				}))
 				.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-			return result({ lessons });
+			return result({ lessons: lessons.slice(0, limit ?? 20), total: lessons.length });
 		},
 	);
 
@@ -344,15 +447,21 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		"read_lesson",
 		{
 			title: "Read a lesson",
-			description: "Read one lesson as markdown: everything the teacher and learner said, quizzes and answers included.",
-			inputSchema: { lesson_id: z.string() },
-			annotations: { readOnlyHint: true },
+			description: "Read one lesson as markdown: everything the teacher and learner said, quizzes and answers included. A long lesson comes in pages; each page says which page it is and how many there are.",
+			inputSchema: {
+				lesson_id: z.string(),
+				page: z.number().int().min(1).optional().describe("The page to read (default 1)."),
+			},
+			annotations: READ_ONLY,
 		},
-		async ({ lesson_id }) => {
+		async ({ lesson_id, page = 1 }) => {
 			const record = stores.chatStore.getChat(lesson_id);
 			if (!record) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
-			const markdown = sessionMarkdown(record.messages, { title: record.title, anchors: false });
-			return result(markdown.length > READ_LIMIT_CHARS ? `${markdown.slice(-READ_LIMIT_CHARS)}\n\n[Showing the last ${READ_LIMIT_CHARS} characters.]` : markdown);
+			const pages = splitPages(sessionMarkdown(record.messages, { title: record.title, anchors: false }));
+			if (page > pages.length) return failure(`This lesson has ${pages.length} page(s).`);
+			if (pages.length === 1) return result(pages[0]!);
+			const note = page < pages.length ? `Page ${page} of ${pages.length}. Next: read_lesson page ${page + 1}.` : `Page ${page} of ${pages.length}, the last.`;
+			return { content: [...result({ lessonId: lesson_id, page, pages: pages.length, note }).content, { type: "text" as const, text: pages[page - 1]! }] };
 		},
 	);
 
@@ -366,7 +475,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				limit: z.number().int().min(1).max(200).optional().describe("Most facts to return (default 30)."),
 				class_id: CLASS_ID_ARG,
 			},
-			annotations: { readOnlyHint: true },
+			annotations: READ_ONLY,
 		},
 		async ({ query, limit, class_id }) => {
 			const arg = classArg(class_id);
@@ -409,6 +518,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				text: z.string().min(1).describe("The notes."),
 				class_id: CLASS_ID_ARG,
 			},
+			annotations: ADDS,
 		},
 		async ({ name, text, class_id }) => {
 			const arg = classArg(class_id);
@@ -423,13 +533,13 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				const saved = existing ? replaceCopiedFile(scope, existing.id, bytes, "study") : addCopiedFile(scope, fileName, bytes, "study");
 				if (!saved.ok) return failure(saved.error);
 				act({ label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
-				return result({ status: "started", fileId: saved.value.id, note: "Import started. Check progress with read_class." });
+				return result({ status: "started", fileId: saved.value.id, note: `Import started. ${READING_NOTE}` });
 			}
 			act({ label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
 				console.error(`[mcp] import of ${name} failed:`, err);
 			});
-			return result({ status: "started", note: "Import started. Progress shows in the godspeed graph view." });
+			return result({ status: "started", note: `Import started. ${READING_NOTE}` });
 		},
 	);
 
@@ -443,6 +553,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				class_id: CLASS_ID_ARG,
 				kind: z.enum(["teach", "practice"]).optional().describe('"teach" (default) or "practice".'),
 			},
+			annotations: ADDS,
 		},
 		async ({ topic, class_id, kind }) => {
 			const arg = classArg(class_id);
@@ -464,7 +575,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				const body = await started.text();
 				return failure(`The lesson was created but could not start: ${body}`);
 			}
-			return result({ status: "started", lessonId: chat.id, title: chat.title, note: `Open the lesson in the godspeed window. Call wait_for_work with lesson_id "${chat.id}" to begin teaching.` });
+			return result({ status: "started", lessonId: chat.id, title: chat.title, note: `Open the lesson in the godspeed window. ${inClaudeCode() ? waiterHint(chat.id) : `Call wait_for_work with lesson_id "${chat.id}" to begin teaching.`}` });
 		},
 	);
 
@@ -477,6 +588,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				text: z.string().min(1).max(NOTE_MAX_CHARS).describe("The note, one line."),
 				class_id: z.string().optional().describe("The class the note is about, if one (from list_classes)."),
 			},
+			annotations: ADDS,
 		},
 		async ({ text, class_id }) => {
 			const arg = classArg(class_id);
@@ -492,6 +604,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			title: "Forget a note",
 			description: 'Delete a saved note by its note_id (from "Where you left off" or from remember). Use it when a note is out of date or the learner asks.',
 			inputSchema: { note_id: z.string() },
+			annotations: REMOVES,
 		},
 		async ({ note_id }) => (removeAgentNote(note_id) ? result({ removed: note_id }) : failure(`No note "${note_id}".`)),
 	);
@@ -507,12 +620,16 @@ function localNow(now = new Date()): string {
 	return `${localToday(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
-/** A class as agents see it: summary, files with paths, states and sizes,
- *  the graph's topics, deadlines, lessons. */
-function classView(classId: string) {
+/** A class as agents see it: summary, file counts by status (and the
+ *  files that could not be read, or every file with `withFiles`), the
+ *  graph's topics, deadlines, lessons. A linked folder can hold 500 files,
+ *  so the full list comes only on request. */
+function classView(classId: string, withFiles = false) {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return null;
-	const sizes = fileExtents(record.id);
+	const sizes = withFiles ? fileExtents(record.id) : {};
+	const fileCounts: Partial<Record<ClassFileStatus, number>> = {};
+	for (const f of record.files) fileCounts[f.status] = (fileCounts[f.status] ?? 0) + 1;
 	return {
 		id: record.id,
 		name: record.name,
@@ -521,16 +638,25 @@ function classView(classId: string) {
 		icon: record.icon ?? null,
 		archived: record.archived,
 		linkedFolder: record.linkedFolder ?? null,
-		files: record.files.map((f) => ({
-			id: f.id,
-			name: f.name,
-			kind: f.kind,
-			origin: f.origin,
-			status: f.status,
-			...(f.error ? { error: f.error } : {}),
-			...(sizes[f.id] ? { size: sizes[f.id] } : {}),
-			path: classFilePath(record, f),
-		})),
+		fileCounts,
+		...(withFiles
+			? {
+					files: record.files.map((f) => ({
+						id: f.id,
+						name: f.name,
+						kind: f.kind,
+						origin: f.origin,
+						status: f.status,
+						...(f.error ? { error: f.error } : {}),
+						...(sizes[f.id] ? { size: sizes[f.id] } : {}),
+						path: classFilePath(record, f),
+					})),
+				}
+			: {
+					failedFiles: record.files
+						.filter((f) => f.status === "failed" || f.status === "needs-whisper")
+						.map((f) => ({ id: f.id, name: f.name, status: f.status, ...(f.error ? { error: f.error } : {}) })),
+				}),
 		topics: classTopics(record.id),
 		today: localNow(),
 		deadlines: (record.deadlines ?? []).map((d) => ({
@@ -562,7 +688,7 @@ function registerClassTools(server: McpServer): void {
 			title: "List classes",
 			description: "List the learner's classes (university courses), archived ones included, with file and lesson counts.",
 			inputSchema: {},
-			annotations: { readOnlyHint: true },
+			annotations: READ_ONLY,
 		},
 		async () => {
 			const lessons = stores.chatStore.listChats();
@@ -584,12 +710,15 @@ function registerClassTools(server: McpServer): void {
 		"read_class",
 		{
 			title: "Read a class",
-			description: "Read one class: its description, its files (kind, status, size, path on disk), the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. To find something inside the files, use search_class_files.",
-			inputSchema: { class_id: z.string() },
-			annotations: { readOnlyHint: true },
+			description: "Read one class: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_class_files.",
+			inputSchema: {
+				class_id: z.string(),
+				files: z.boolean().optional().describe("List every file with its id (needed for file_ids). Default false."),
+			},
+			annotations: READ_ONLY,
 		},
-		async ({ class_id }) => {
-			const view = classView(class_id);
+		async ({ class_id, files }) => {
+			const view = classView(class_id, files);
 			return view ? result(view) : failure(`No class "${class_id}". Use list_classes.`);
 		},
 	);
@@ -604,7 +733,7 @@ function registerClassTools(server: McpServer): void {
 				query: z.string().min(1).describe("What to look for, in plain words."),
 				limit: z.number().int().min(1).max(20).optional().describe("Most passages to return (default 8)."),
 			},
-			annotations: { readOnlyHint: true },
+			annotations: READ_ONLY,
 		},
 		async ({ class_id, query, limit }) => {
 			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
@@ -627,7 +756,7 @@ function registerClassTools(server: McpServer): void {
 				file_id: z.string().optional().describe("Instead of passage_id: a file id from read_class, with range."),
 				range: z.string().optional().describe('With file_id: the place, e.g. "p. 12", "12:30" or "lines 40".'),
 			},
-			annotations: { readOnlyHint: true },
+			annotations: READ_ONLY,
 		},
 		async ({ class_id, passage_id, file_id, range }) => {
 			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
@@ -648,6 +777,7 @@ function registerClassTools(server: McpServer): void {
 				signature: SIGNATURE_ARG,
 				icon: ICON_ARG,
 			},
+			annotations: ADDS,
 		},
 		async ({ name, description, signature, icon }) => {
 			const sig = signature ? cleanSignature(signature) : undefined;
@@ -671,16 +801,19 @@ function registerClassTools(server: McpServer): void {
 				icon: ICON_ARG.optional(),
 				archived: z.boolean().optional(),
 			},
+			annotations: SETS,
 		},
 		async ({ class_id, name, description, signature, icon, archived }) => {
 			const sig = signature ? cleanSignature(signature) : undefined;
 			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
 			const outcome = updateClass(class_id, { name, description, archived, ...(icon ? { icon } : {}), ...(sig ? { signature: sig } : {}) });
 			if (!outcome.ok) return failure(outcome.error);
-			const cls = stores.classStore.getClass(class_id);
+			const cls = outcome.value;
 			const verb = archived === true ? "Archiving" : archived === false ? "Unarchiving" : "Updating";
-			act({ label: `${verb} ${cls?.name ?? "a class"}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class" });
-			return result({ class: classView(class_id) });
+			act({ label: `${verb} ${cls.name}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class" });
+			const given = { name, description, signature: sig, icon, archived };
+			const changed = (Object.keys(given) as (keyof typeof given)[]).filter((key) => given[key] !== undefined);
+			return result({ classId: class_id, changed: Object.fromEntries(changed.map((key) => [key, cls[key]])) });
 		},
 	);
 
@@ -688,56 +821,90 @@ function registerClassTools(server: McpServer): void {
 		"add_class_file",
 		{
 			title: "Add a file to a class",
-			description: "Copy a file from this computer into a class. Supported: .md .txt .pdf .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Study files are turned into facts in the background; check progress with read_class.",
+			description: "Copy a file from this computer into a class. Supported: .md .txt .pdf .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Study files are turned into facts by you, through wait_for_work.",
 			inputSchema: {
 				class_id: z.string(),
 				path: z.string().describe("The file's absolute path."),
 				kind: FILE_KIND,
 			},
+			annotations: ADDS,
 		},
 		async ({ class_id, path, kind }) => {
 			const outcome = addFileFromPath(class_id, path, kind);
 			if (!outcome.ok) return failure(outcome.error);
 			act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "file", id: outcome.value.id }, page: "/class/files" });
-			return result({ file: outcome.value, note: "Added. Check progress with read_class." });
+			return result({ file: outcome.value, note: kind === "study" ? `Added. ${READING_NOTE}` : "Added." });
 		},
 	);
 
 	server.registerTool(
 		"set_class_file_kind",
 		{
-			title: "Set a class file's kind",
-			description: "Switch a class file between study material and course info. Study → info removes its facts; info → study builds them.",
-			inputSchema: { class_id: z.string(), file_id: z.string(), kind: FILE_KIND },
+			title: "Set class files' kind",
+			description: "Switch one or more class files between study material and course info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
+			inputSchema: {
+				class_id: z.string(),
+				file_ids: z.array(z.string()).min(1).describe("The files to switch (ids from read_class with files: true)."),
+				kind: FILE_KIND,
+			},
+			annotations: REMOVES,
 		},
-		async ({ class_id, file_id, kind }) => {
-			const outcome = setFileKind(class_id, file_id, kind);
-			if (!outcome.ok) return failure(outcome.error);
-			act({ label: `Marking ${outcome.value.name} as ${kind === "study" ? "study material" : "course info"}`, classId: class_id, target: { kind: "file", id: file_id }, page: "/class/files" });
-			return result({ file: outcome.value });
+		async ({ class_id, file_ids, kind }) => {
+			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
+			const files: { id: string; name: string; kind: string; status: string }[] = [];
+			const refused: { fileId: string; error: string }[] = [];
+			for (const fileId of file_ids) {
+				const outcome = setFileKind(class_id, fileId, kind);
+				if (!outcome.ok) {
+					refused.push({ fileId, error: outcome.error });
+					continue;
+				}
+				const { id, name, status } = outcome.value;
+				files.push({ id, name, kind, status });
+				act({ label: `Marking ${name} as ${kind === "study" ? "study material" : "course info"}`, classId: class_id, target: { kind: "file", id }, page: "/class/files" });
+			}
+			if (files.length === 0) return failure(refused.map((r) => `${r.fileId}: ${r.error}`).join("\n"));
+			return result({ files, ...(refused.length ? { refused } : {}) });
 		},
 	);
 
 	server.registerTool(
 		"add_class_deadline",
 		{
-			title: "Add a deadline to a class",
+			title: "Add deadlines to a class",
 			description:
-				"Add a deadline to a class: an exam, homework, quiz or project, with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times, and the covered lectures from the syllabus or course info; file ids come from read_class. If a date, a time or the covered files aren't clear, ask the learner instead of guessing.",
+				"Add one or more deadlines to a class (send all of a syllabus's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times, and the covered lectures from the syllabus or course info; file ids come from read_class with files: true. If a date, a time or the covered files aren't clear, ask the learner instead of guessing. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
 			inputSchema: {
 				class_id: z.string(),
-				kind: DEADLINE_KIND,
-				name: z.string().min(1).describe('e.g. "Midterm 1", "Homework 5".'),
-				date: z.string().describe("The due day as YYYY-MM-DD."),
-				time: z.string().optional().describe('The due time as 24-hour "HH:MM" on this computer\'s clock. Leave it out when there is none (it then counts as due at the end of the day).'),
-				file_ids: z.array(z.string()).optional().describe("Ids of the class files it covers (from read_class)."),
+				deadlines: z
+					.array(
+						z.object({
+							kind: DEADLINE_KIND,
+							name: z.string().min(1).describe('e.g. "Midterm 1", "Homework 5".'),
+							date: z.string().describe("The due day as YYYY-MM-DD."),
+							time: z.string().optional().describe('The due time as 24-hour "HH:MM" on this computer\'s clock. Leave it out when there is none (it then counts as due at the end of the day).'),
+							file_ids: z.array(z.string()).optional().describe("Ids of the class files it covers."),
+						}),
+					)
+					.min(1),
 			},
+			annotations: ADDS,
 		},
-		async ({ class_id, kind, name, date, time, file_ids }) => {
-			const outcome = addClassDeadline(class_id, { kind, name, date, ...(time !== undefined ? { time } : {}), ...(file_ids ? { fileIds: file_ids } : {}) });
-			if (!outcome.ok) return failure(outcome.error);
-			act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "deadline", id: outcome.value.id }, page: "/" });
-			return result({ deadline: outcome.value });
+		async ({ class_id, deadlines }) => {
+			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
+			const added: ClassDeadline[] = [];
+			const refused: { name: string; error: string }[] = [];
+			for (const { kind, name, date, time, file_ids } of deadlines) {
+				const outcome = addClassDeadline(class_id, { kind, name, date, ...(time !== undefined ? { time } : {}), ...(file_ids ? { fileIds: file_ids } : {}) });
+				if (!outcome.ok) {
+					refused.push({ name, error: outcome.error });
+					continue;
+				}
+				added.push(outcome.value);
+				act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "deadline", id: outcome.value.id }, page: "/" });
+			}
+			if (added.length === 0) return failure(refused.map((r) => `${r.name}: ${r.error}`).join("\n"));
+			return result({ deadlines: added, ...(refused.length ? { refused } : {}) });
 		},
 	);
 
@@ -757,6 +924,7 @@ function registerClassTools(server: McpServer): void {
 				file_ids: z.array(z.string()).optional(),
 				done: z.boolean().optional(),
 			},
+			annotations: SETS,
 		},
 		async ({ class_id, deadline_id, kind, name, date, time, file_ids, done }) => {
 			const outcome = updateClassDeadline(class_id, deadline_id, {
@@ -781,6 +949,7 @@ function registerClassTools(server: McpServer): void {
 			title: "Remove a class deadline",
 			description: "Remove one deadline from a class (its files and facts are not touched).",
 			inputSchema: { class_id: z.string(), deadline_id: z.string() },
+			annotations: REMOVES,
 		},
 		async ({ class_id, deadline_id }) => {
 			const removedName = deadlineName(class_id, deadline_id);
@@ -795,14 +964,15 @@ function registerClassTools(server: McpServer): void {
 		"link_class_folder",
 		{
 			title: "Link a folder to a class",
-			description: "Link a folder on this computer to a class. Its supported files are added as study material, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed never changes the folder. Use set_class_file_kind afterwards for course-info files.",
+			description: "Link a folder on this computer to a class. Its supported files are added as study material, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed never changes the folder. Use set_class_file_kind afterwards for course-info files (their ids come from read_class with files: true).",
 			inputSchema: { class_id: z.string(), path: z.string().describe("The folder's absolute path.") },
+			annotations: SETS,
 		},
 		async ({ class_id, path }) => {
 			const outcome = linkFolder(class_id, path);
 			if (!outcome.ok) return failure(outcome.error);
 			act({ label: `Linking ${folderName(path)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
-			return result({ class: classView(class_id) });
+			return result({ class: classView(class_id), note: `Linked. ${READING_NOTE}` });
 		},
 	);
 
@@ -812,13 +982,14 @@ function registerClassTools(server: McpServer): void {
 			title: "Unlink a class's folder",
 			description: "Unlink the class's folder: its files leave the class together with their facts. The folder itself is not touched.",
 			inputSchema: { class_id: z.string() },
+			annotations: REMOVES,
 		},
 		async ({ class_id }) => {
-			const before = stores.classStore.getClass(class_id)?.linkedFolder;
+			const before = stores.classStore.getClass(class_id);
 			const outcome = unlinkFolder(class_id);
-			if (!outcome.ok) return failure(outcome.error);
-			act({ label: `Unlinking ${folderName(before)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
-			return result({ class: classView(class_id) });
+			if (!outcome.ok) return failure(outcome.code === "extraction_running" ? AGENT_FILE_READING_REFUSAL : outcome.error);
+			act({ label: `Unlinking ${folderName(before?.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			return result({ classId: class_id, unlinked: before?.linkedFolder, filesRemoved: before?.files.filter((f) => f.origin === "linked").length ?? 0 });
 		},
 	);
 }
@@ -854,11 +1025,13 @@ export async function handleAgentForget(req: Request): Promise<Response> {
 export async function handleMcpRequest(req: Request): Promise<Response> {
 	const refused = refuse(req);
 	if (refused) return refused;
-	// Every authorized request is a check-in; initialize also names the agent.
+	// Every authorized request means an agent is connected (only the work
+	// loop means it is teaching); initialize also names the agent.
 	const init = req.method === "POST" ? await initializeRequest(req) : null;
-	if (req.method === "POST") recordCheckIn(init?.name);
+	if (req.method === "POST") recordCheckIn({ name: init?.name });
 	// Only initialize hands instructions to the agent, so only it builds the briefing.
-	const server = buildServer(init ? `${INSTRUCTIONS}\n\n${currentAgentBriefing()}` : INSTRUCTIONS, req.signal);
+	const waiting = init?.name === "Claude Code" ? `\n\n${CLAUDE_CODE_WAITING}` : "";
+	const server = buildServer(init ? `${INSTRUCTIONS}${waiting}\n\n${currentAgentBriefing()}` : INSTRUCTIONS, req.signal);
 	const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
 	await server.connect(transport);
 	try {

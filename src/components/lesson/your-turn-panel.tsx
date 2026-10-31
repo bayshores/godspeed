@@ -5,7 +5,7 @@ import { QuestionDock, questionKindLabel, type QuestionDockProps } from "@/compo
 import { ReadingThinkingField } from "@/components/reading-thinking";
 import type { ChatAttachment, findPendingToolCall, QuestionAnswerData, QuestionFormDraft } from "@/core";
 import { PanelComposer } from "./panel-composer";
-import { ActionBar, KindChip, PanelBody, PanelHeader } from "./panel-parts";
+import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
 import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
@@ -30,11 +30,15 @@ export function YourTurnPanel({
 	initialQuestionDraft,
 	onSaveQuestionDraft,
 	onSubmitAnswer,
+	onSkipQuestion,
 	readingThinking,
 	onReadingThinking,
 	practice,
 	practiceNumber,
+	initialPracticeDraft,
+	onSavePracticeDraft,
 	onSubmitThinking,
+	onDiscardProblem,
 	sessionBusy,
 	compacting,
 	composer,
@@ -46,11 +50,17 @@ export function YourTurnPanel({
 	initialQuestionDraft?: QuestionFormDraft;
 	onSaveQuestionDraft: (draft: QuestionFormDraft) => void;
 	onSubmitAnswer: (output: QuestionAnswerData) => void;
+	/** Opens the skip confirm for the waiting question. */
+	onSkipQuestion: () => void;
 	readingThinking: string;
 	onReadingThinking: (v: string) => void;
 	practice: { toolCallId: string; input: unknown } | null;
 	practiceNumber: number | null;
+	initialPracticeDraft?: string;
+	onSavePracticeDraft: (thinking: string) => void;
 	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
+	/** Opens the discard confirm for the active problem. */
+	onDiscardProblem: () => void;
 	/** This view's turn is running: a practice send now would be dropped. */
 	sessionBusy: boolean;
 	compacting: boolean;
@@ -103,10 +113,12 @@ export function YourTurnPanel({
 					<PanelHeader
 						eyebrow="Your turn"
 						right={
-							<KindChip>
-								{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
-								{label}
-							</KindChip>
+							<HeaderChip exit={skipExit(onSkipQuestion)}>
+								<KindChip>
+									{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
+									{label}
+								</KindChip>
+							</HeaderChip>
 						}
 					/>
 					<div className="mt-3 flex min-h-0 flex-1 flex-col">
@@ -126,6 +138,7 @@ export function YourTurnPanel({
 				onSubmit={onSubmitAnswer}
 				initialDraft={initialQuestionDraft}
 				onSaveDraft={onSaveQuestionDraft}
+				onSkip={onSkipQuestion}
 				compactionRunning={compacting}
 				footer={footer}
 			/>
@@ -137,6 +150,9 @@ export function YourTurnPanel({
 				input={practice.input as { statement: string }}
 				number={practiceNumber}
 				onSubmit={onSubmitThinking}
+				initialDraft={initialPracticeDraft}
+				onSaveDraft={onSavePracticeDraft}
+				onDiscard={onDiscardProblem}
 				busy={sessionBusy}
 				compactionRunning={compacting}
 				footer={footer}

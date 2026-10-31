@@ -1,6 +1,6 @@
 import { SettingsIcon } from "lucide-react";
 import { useActivity } from "@/components/activity-dock";
-import { WAITING_NOTICE, agentWaiting, footerLabel, useAgentStatus } from "@/components/agent-status";
+import { footerLabel, teachStep, useAgentStatus } from "@/components/agent-status";
 import { useHalley } from "@/components/halley/halley-provider";
 import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
 import { Hint } from "@/components/ui/hint";
@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils";
  * THE SIDEBAR FOOTER: a dot and one line — the
  * outside agent and how many background jobs run ("Claude Code · 1 job")
  * — plus the settings icon. The dot is green while an outside agent is
- * connected over MCP (src/components/agent-status.tsx). Clicking the line
- * opens Halley's panel (Now, Recent, Background jobs).
+ * connected over MCP (src/components/agent-status.tsx). While an agent
+ * teaches, clicking the line opens Halley's panel (Now, Recent, Background
+ * jobs); otherwise it opens Settings → Connection to set one up.
  */
 
 export function SidebarFooter() {
@@ -21,16 +22,17 @@ export function SidebarFooter() {
 	const halley = useHalley();
 	const { open: openSettings } = useSettingsDialog();
 	const open = halley?.panelOpen ?? false;
+	const teaching = agent?.teaching ?? false;
 
 	return (
 		<div className="flex w-full items-center justify-between gap-2 px-2.5 pt-2">
 			<button
 				type="button"
 				data-testid="sidebar-agent"
-				data-halley-panel-toggle=""
-				aria-expanded={open}
-				onClick={() => halley?.setPanelOpen(!open)}
-				title={agentWaiting(agent) ? WAITING_NOTICE : undefined}
+				data-halley-panel-toggle={teaching ? "" : undefined}
+				aria-expanded={teaching ? open : undefined}
+				onClick={() => (teaching ? halley?.setPanelOpen(!open) : openSettings("connection"))}
+				title={agent && !teaching && (agent.connected || agent.pendingWork > 0) ? teachStep(agent.name) : undefined}
 				className="lh-press flex min-w-0 items-center gap-[7px] text-[12.5px] text-ink-2 hover:text-ink"
 			>
 				<span

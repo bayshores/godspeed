@@ -1,9 +1,11 @@
 /**
  * The Graph page's top bar: "Graph", then search (topics and facts),
- * Chains (the chain table) and Import notes. Search and Chains only show
- * once the class has facts — Import notes is the empty graph's way in.
+ * Chains (the chain table) and Add notes, which opens the class's Files
+ * page (No class has no Files page, so there it is Import notes). Search
+ * and Chains only show once the class has facts.
  */
 import { useEffect, useRef, type RefObject } from "react";
+import Link from "next/link";
 import { ListIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { Hint } from "@/components/ui/hint";
@@ -15,18 +17,16 @@ export function GraphTopBar({
 	query,
 	onQuery,
 	onOpenChains,
-	importing,
-	onImportFiles,
+	importNotes,
 }: {
 	hasFacts: boolean;
 	query: string;
 	onQuery: (q: string) => void;
 	onOpenChains: () => void;
-	importing: boolean;
-	onImportFiles: (files: FileList | null) => void;
+	/** No class's Import notes; null in a class (Add notes opens Files). */
+	importNotes: { importing: boolean; onImportFiles: (files: FileList | null) => void } | null;
 }) {
 	const searchRef = useRef<HTMLInputElement>(null);
-	const fileRef = useRef<HTMLInputElement>(null);
 	// The app's find shortcut focuses the search here.
 	useEffect(() => {
 		const onFind = () => searchRef.current?.focus();
@@ -46,6 +46,24 @@ export function GraphTopBar({
 					</button>
 				</Hint>
 			)}
+			{importNotes ? (
+				<ImportNotes {...importNotes} />
+			) : (
+				<Hint label="Add notes on the Files page" side="bottom">
+					<Link href="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
+						<UploadIcon className="size-3.5" aria-hidden />
+						Add notes
+					</Link>
+				</Hint>
+			)}
+		</TopBar>
+	);
+}
+
+function ImportNotes({ importing, onImportFiles }: { importing: boolean; onImportFiles: (files: FileList | null) => void }) {
+	const fileRef = useRef<HTMLInputElement>(null);
+	return (
+		<>
 			<input
 				ref={fileRef}
 				type="file"
@@ -58,18 +76,12 @@ export function GraphTopBar({
 				}}
 			/>
 			<Hint label="Import notes into the graph" side="bottom">
-				<button
-					type="button"
-					data-testid="import-notes"
-					disabled={importing}
-					onClick={() => fileRef.current?.click()}
-					className={CHROME_BUTTON}
-				>
+				<button type="button" data-testid="import-notes" disabled={importing} onClick={() => fileRef.current?.click()} className={CHROME_BUTTON}>
 					<UploadIcon className="size-3.5" aria-hidden />
 					{importing ? "Importing…" : "Import notes"}
 				</button>
 			</Hint>
-		</TopBar>
+		</>
 	);
 }
 

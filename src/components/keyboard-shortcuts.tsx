@@ -1,8 +1,9 @@
 /**
  * Keyboard shortcuts — the single document-level keydown listener. Owns the pieces that belong to no surface in particular:
  *
- * - Browser tab-focus navigation is off: plain Tab never moves focus
- *   (preventDefault); it only cycles the active surface's text fields.
+ * - Tab moves focus as usual. Only the lesson's text fields take it over
+ *   (field-cycle.ts), and an open modal dialog keeps it inside
+ *   (trapTabInDialog in focus-hygiene.ts).
  * - Esc is a layered dismiss: topmost popover first (popovers stopPropagation
  *   on their own Esc — usePopoverDismiss), then abort of an
  *   in-flight turn.
@@ -30,6 +31,7 @@ import {
 	KEYBOARD_ACTIONS,
 } from "@/core";
 import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
+import { trapTabInDialog } from "@/components/focus-hygiene";
 
 // Re-exported for the contract pin (tests/keyboard-toggle-sidebar.test.ts):
 // the dispatcher composes event names through the ONE helper — a second
@@ -52,21 +54,6 @@ export function KeyboardShortcuts() {
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
-			// ── Tab: preventDefault even when nothing is bound to it —
-			// browser tab-focus is off, and the default action runs after
-			// dispatch, so suppressing it here works from any focus.
-			if (e.key === "Tab") {
-				e.preventDefault();
-				// Plain Tab cycles the active surface's text fields —
-				// forward-only, wrapping; each composer-bearing page answers
-				// with its own chain. The quiz dock's rows↔thinking claim stops
-				// propagation at document level, so a claimed Tab never reaches
-				// this dispatch.
-				if (!e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey)
-					window.dispatchEvent(new CustomEvent("lh:kbd-cycle-fields"));
-				return;
-			}
-
 			if (e.key === "Escape") {
 				// Our own overlay is the topmost layer.
 				if (cheatOpen) {
@@ -93,7 +80,7 @@ export function KeyboardShortcuts() {
 
 			// The input guard: inside a typing surface only mod/alt combos
 			// fire (they never type a character). Bare keys — "?" included —
-			// pass through so the field keeps them. Tab already returned above.
+			// pass through so the field keeps them.
 			if (isTypingSurface(e) && !(e.metaKey || e.ctrlKey || e.altKey)) return;
 
 			// Dispatch: global commands we own run here; surface commands
@@ -124,6 +111,11 @@ export function KeyboardShortcuts() {
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [cheatOpen]);
+
+	useEffect(() => {
+		document.addEventListener("keydown", trapTabInDialog, true);
+		return () => document.removeEventListener("keydown", trapTabInDialog, true);
+	}, []);
 
 	return <CheatSheet open={cheatOpen} onClose={() => setCheatOpen(false)} />;
 }

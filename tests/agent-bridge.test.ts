@@ -30,6 +30,7 @@ const { handleChatInput } = await import("../src/server/chat-handler.ts");
 const { isTurnRunning } = await import("../src/server/turn-liveness.ts");
 const { abortTurn } = await import("../src/server/turn-runs.ts");
 const { chatStore } = await import("../src/store/chats.ts");
+const { classStore } = await import("../src/store/classes.ts");
 const bridge = await import("../src/agent/agent-bridge.ts");
 const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
@@ -320,8 +321,9 @@ describe("the /api/mcp door", () => {
 		const header = JSON.parse(first.content[0].text);
 		assert.equal(header.page, 1);
 		assert.ok(header.pages >= 3, `pages: ${header.pages}`);
-		const pages = [first.content[1].text];
-		for (const page of pages) assert.ok(Buffer.byteLength(page) <= WORK_PAGE_BYTES);
+		const blocks = (res: { content: { text: string }[] }) => res.content.slice(1).map((c) => c.text);
+		const pages = [blocks(first)];
+		for (const page of pages) assert.ok(Buffer.byteLength(page.join("")) <= WORK_PAGE_BYTES);
 
 		const early = await call(2, "respond", { work_id: header.workId, text: "Done.", wait_seconds: 0 });
 		assert.equal(early.isError, true);
@@ -330,13 +332,15 @@ describe("the /api/mcp door", () => {
 		for (let page = 2; page <= header.pages; page++) {
 			const read = await call(10 + page, "read_work", { work_id: header.workId, page });
 			assert.equal(JSON.parse(read.content[0].text).page, page);
-			pages.push(read.content[1].text);
+			pages.push(blocks(read));
 		}
 		const past = await call(3, "read_work", { work_id: header.workId, page: header.pages + 1 });
 		assert.equal(past.isError, true);
-		const item = JSON.parse(pages.join(""));
+		const [envelope, ...texts] = pages.flat();
+		const item = JSON.parse(envelope!);
 		assert.equal(item.workId, header.workId);
-		assert.equal(item.messages[0].text, long, "the pages join back into the whole item");
+		assert.equal(item.messages[0].text, "[text 1]", "a long text leaves the JSON");
+		assert.equal(texts.join(""), `[text 1]\n${long}`, "the pages join back into the plain text, unescaped");
 
 		const answered = await call(4, "respond", { work_id: header.workId, text: "Done.", wait_seconds: 0 });
 		assert.equal(JSON.parse(answered.content[0].text).status, "turn_complete");
@@ -354,13 +358,14 @@ describe("the /api/mcp door", () => {
 				headers: { host: "127.0.0.1:3000", "content-type": "application/json", authorization: `Bearer ${auth}` },
 				body: JSON.stringify(body),
 			}));
-		/** A work item's JSON, reading every page. */
-		const whole = async (res: { content: { text: string }[] }) => {
+		/** A work item's JSON with its plain text after it, reading every page. */
+		const whole = async (res: { content: { type: string; text: string }[] }) => {
+			const texts = (r: { content: { type: string; text: string }[] }) => r.content.filter((c) => c.type === "text").map((c) => c.text);
 			const header = JSON.parse(res.content[0]!.text);
-			if (!header.pages) return header;
-			const pages = [res.content[1]!.text];
-			for (let page = 2; page <= header.pages; page++) pages.push((await call(20 + page, "read_work", { work_id: header.workId, page })).content[1].text);
-			return JSON.parse(pages.join(""));
+			if (!header.pages) return { ...header, plain: texts(res).slice(1).join("") };
+			const blocks = texts(res).slice(1);
+			for (let page = 2; page <= header.pages; page++) blocks.push(...texts(await call(20 + page, "read_work", { work_id: header.workId, page })).slice(1));
+			return { ...JSON.parse(blocks[0]!), plain: blocks.slice(1).join("") };
 		};
 
 		const chat = chatStore.createChat("Forgets");
@@ -376,7 +381,8 @@ describe("the /api/mcp door", () => {
 		assert.ok(bridge.respondToWork(second.workId, { toolCalls: [{ name: "ls", arguments: {} }] }, 0).ok, "the item it held when it forgot");
 		const third = await whole(await call(3, "wait_for_work", { timeout_seconds: 5, lesson_id: chat.id }));
 		assert.equal(third.continued, false, "after forgetting, the whole lesson comes again");
-		assert.ok(third.instructions);
+		assert.match(third.plain, /^Instructions \(your system prompt/, "with its instructions, not a reference");
+		assert.equal(third.instructionsAsIn, undefined);
 
 		assert.ok(bridge.respondToWork(third.workId, { text: "Done." }, 0).ok);
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
@@ -414,8 +420,7 @@ describe("the /api/mcp door", () => {
 		const listed = await call("list_classes", {});
 		assert.ok(listed.body.classes.some((c: { id: string; icon: string }) => c.id === id && c.icon === "atom"));
 		const updated = await call("update_class", { class_id: id, description: "Griffiths 1-5", icon: "sigma" });
-		assert.equal(updated.body.class.description, "Griffiths 1-5");
-		assert.equal(updated.body.class.icon, "sigma");
+		assert.deepEqual(updated.body, { classId: id, changed: { description: "Griffiths 1-5", icon: "sigma" } }, "only what changed comes back");
 		// An archived class takes no new lessons.
 		await call("update_class", { class_id: id, archived: true });
 		const refused = await call("start_lesson", { topic: "Gauss's law", class_id: id });
@@ -423,7 +428,8 @@ describe("the /api/mcp door", () => {
 		assert.match(String(refused.body), /archived/);
 		await call("update_class", { class_id: id, archived: false });
 		const read = await call("read_class", { class_id: id });
-		assert.deepEqual(read.body.files, []);
+		assert.deepEqual([read.body.fileCounts, read.body.failedFiles, read.body.files], [{}, [], undefined]);
+		assert.deepEqual((await call("read_class", { class_id: id, files: true })).body.files, []);
 		const bad = await call("search_graph", { class_id: "cls_missing" });
 		assert.equal(bad.error, true);
 		const missingFile = await call("add_class_file", { class_id: id, path: "/definitely/not/here.md", kind: "info" });
@@ -434,15 +440,29 @@ describe("the /api/mcp door", () => {
 		assert.equal(searched.error, false, JSON.stringify(searched.body));
 
 		// Deadlines (2026-10-28; exams before): add from the syllabus, fix, tick done, remove.
-		const added = await call("add_class_deadline", { class_id: id, kind: "homework", name: "HW 1", date: "2026-11-05", time: "17:00" });
+		const added = await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "homework", name: "HW 1", date: "2026-11-05", time: "17:00" }] });
 		assert.equal(added.error, false, JSON.stringify(added.body));
-		const deadlineId = added.body.deadline.id as string;
+		const deadlineId = added.body.deadlines[0].id as string;
 		assert.match(deadlineId, /^ddl_/);
-		assert.equal((await call("add_class_deadline", { class_id: id, kind: "exam", name: "Final", date: "next week" })).error, true);
-		assert.equal((await call("add_class_deadline", { class_id: id, kind: "exam", name: "Final", date: "2026-12-10", time: "8am" })).error, true);
-		assert.equal((await call("add_class_deadline", { class_id: id, kind: "essay", name: "Final", date: "2026-12-10" })).error, true);
-		assert.equal((await call("add_class_deadline", { class_id: id, kind: "exam", name: "Final", date: "2026-12-10", file_ids: ["f_nope"] })).error, true);
-		assert.equal((await call("add_class_deadline", { class_id: "cls_missing", kind: "exam", name: "Final", date: "2026-12-10" })).error, true);
+		assert.equal(added.body.refused, undefined);
+		const allRefused = await call("add_class_deadline", {
+			class_id: id,
+			deadlines: [
+				{ kind: "exam", name: "Final", date: "next week" },
+				{ kind: "exam", name: "Final", date: "2026-12-10", time: "8am" },
+				{ kind: "exam", name: "Final", date: "2026-12-10", file_ids: ["f_nope"] },
+			],
+		});
+		assert.equal(allRefused.error, true, "nothing added is an error");
+		assert.equal(String(allRefused.body).split("\n").length, 3, "with one line per refused deadline");
+		assert.equal((await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "essay", name: "Final", date: "2026-12-10" }] })).error, true);
+		assert.equal((await call("add_class_deadline", { class_id: "cls_missing", deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] })).error, true);
+		const some = await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "exam", name: "Midterm", date: "2026-11-20" }, { kind: "exam", name: "Final", date: "soon" }] });
+		assert.equal(some.error, false, "the good ones are added");
+		assert.deepEqual(some.body.deadlines.map((d: { name: string }) => d.name), ["Midterm"]);
+		assert.equal(some.body.refused.length, 1);
+		assert.equal(some.body.refused[0].name, "Final");
+		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: some.body.deadlines[0].id })).error, false);
 		const moved = await call("update_class_deadline", { class_id: id, deadline_id: deadlineId, date: "2026-11-06", kind: "quiz", done: true });
 		assert.equal(moved.body.deadline.date, "2026-11-06");
 		assert.equal(moved.body.deadline.done, true);
@@ -458,6 +478,72 @@ describe("the /api/mcp door", () => {
 		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: deadlineId })).error, false);
 		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: deadlineId })).error, true);
 		assert.deepEqual((await call("read_class", { class_id: id })).body.deadlines, []);
+	});
+
+	it("keeps class and lesson results small: file counts, batches, filtered lessons, lesson pages", async () => {
+		const auth = { authorization: `Bearer ${ensureMcpToken()}` };
+		const raw = async (name: string, args: Record<string, unknown>) =>
+			(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json()).result;
+		const call = async (name: string, args: Record<string, unknown>) => {
+			const res = await raw(name, args);
+			return { error: res.isError === true, body: (() => { try { return JSON.parse(res.content[0].text); } catch { return res.content[0].text; } })() };
+		};
+		const id = (await call("create_class", { name: "CSE 30", icon: "cpu" })).body.class.id as string;
+
+		// Files: counts by default, the whole list on request, kinds switched in one call.
+		const syllabus = path.join(scratch, "syllabus.md");
+		fs.writeFileSync(syllabus, "# Syllabus\n");
+		const added = await call("add_class_file", { class_id: id, path: syllabus, kind: "info" });
+		assert.equal(added.body.note, "Added.", "an info file is not read as facts");
+		const fileId = added.body.file.id as string;
+		await waitFor(() => classStore.getClass(id)?.files[0]?.status === "ready", 5000, "info file ready");
+		assert.deepEqual((await call("read_class", { class_id: id })).body.fileCounts, { ready: 1 });
+		assert.deepEqual((await call("read_class", { class_id: id, files: true })).body.files.map((f: { id: string }) => f.id), [fileId]);
+		const kinds = await call("set_class_file_kind", { class_id: id, file_ids: [fileId, "f_nope"], kind: "info" });
+		assert.deepEqual(kinds.body.files, [{ id: fileId, name: "syllabus.md", kind: "info", status: "ready" }]);
+		assert.deepEqual(kinds.body.refused.map((r: { fileId: string }) => r.fileId), ["f_nope"]);
+		assert.equal((await call("set_class_file_kind", { class_id: id, file_ids: ["f_nope"], kind: "info" })).error, true);
+
+		// A linked folder: linking says who reads the files; unlinking says only what went.
+		const folder = fs.mkdtempSync(path.join(scratch, "linked-"));
+		const linked = await call("link_class_folder", { class_id: id, path: folder });
+		assert.match(linked.body.note, /wait_for_work/);
+		assert.equal(linked.body.class.files, undefined, "no file list unless asked");
+		assert.deepEqual((await call("unlink_class_folder", { class_id: id })).body, { classId: id, unlinked: folder, filesRemoved: 0 });
+
+		// Lessons: by class, newest first, limited, with the total.
+		for (const title of ["Pointers", "Structs", "Malloc"]) chatStore.createChat(title, undefined, id);
+		const listed = await call("list_lessons", { class_id: id, limit: 2 });
+		assert.equal(listed.body.lessons.length, 2);
+		assert.ok(listed.body.lessons.every((l: { classId: string; model?: string }) => l.classId === id && !("model" in l)));
+		assert.equal(listed.body.total, 3);
+		assert.ok((await call("list_lessons", { class_id: "none" })).body.lessons.every((l: { classId: string }) => l.classId === "none"));
+		assert.equal((await call("list_lessons", { class_id: "cls_missing" })).error, true);
+
+		// A long lesson comes in pages that fit the same budget as work items.
+		const long = chatStore.createChat("Long lesson");
+		chatStore.saveMessages(long.id, [{ role: "user", content: Array.from({ length: 3000 }, (_, i) => `line ${i} of a long question`).join("\n"), timestamp: 1 }] as never);
+		const first = await raw("read_lesson", { lesson_id: long.id });
+		const header = JSON.parse(first.content[0].text);
+		assert.equal(header.page, 1);
+		assert.ok(header.pages >= 2, `pages: ${header.pages}`);
+		assert.match(header.note, new RegExp(`Page 1 of ${header.pages}`));
+		assert.ok(Buffer.byteLength(first.content[1].text) <= WORK_PAGE_BYTES);
+		const last = await raw("read_lesson", { lesson_id: long.id, page: header.pages });
+		assert.match(last.content[1].text, /line 2999 of a long question/, "the end is reachable");
+		assert.equal((await raw("read_lesson", { lesson_id: long.id, page: header.pages + 1 })).isError, true);
+		const short = chatStore.createChat("Short lesson");
+		assert.equal((await raw("read_lesson", { lesson_id: short.id })).content.length, 1, "a short lesson is one plain page");
+	});
+
+	it("annotates every tool: none reaches the open web, and only the removing tools are destructive", async () => {
+		const tools = (await (await mcp.handleMcpRequest(rpc(listTools, { authorization: `Bearer ${ensureMcpToken()}` }))).json()).result.tools as { name: string; annotations?: Record<string, boolean> }[];
+		const hints = new Map(tools.map((t) => [t.name, t.annotations ?? {}]));
+		for (const [name, a] of hints) assert.equal(a.openWorldHint, false, name);
+		assert.equal(hints.get("read_work")!.readOnlyHint, true);
+		const destructive = [...hints].filter(([, a]) => a.destructiveHint === true).map(([name]) => name).sort();
+		assert.deepEqual(destructive, ["forget", "remove_class_deadline", "set_class_file_kind", "unlink_class_folder"]);
+		for (const [name, a] of hints) assert.ok(a.readOnlyHint === true || a.destructiveHint !== undefined, `${name} says whether it destroys`);
 	});
 });
 
@@ -675,5 +761,121 @@ describe("claims, lost context and finished runs", () => {
 		const third = await turn([system("explain"), user("hi"), first.reply, user("next"), second.reply, user("more")]);
 		assert.equal(third.work.continued, true, "the same tools again: only what is new");
 		bridge.forgetConversation("job_tool_change");
+	});
+});
+
+describe("the work loop's status, references and recovery", () => {
+	const user = (text: string) => ({ role: "user", content: text, timestamp: 1 });
+	const system = (...tools: string[]) => ({
+		role: "system",
+		content: "Teach well. Write \\frac{a}{b} for fractions.",
+		toolsAdded: tools.map((name) => ({ name, description: name, parameters: { type: "object", properties: {} } })),
+		timestamp: 1,
+	});
+	const park = (sessionId: string, messages: unknown[]) => bridge.agentStream(bridge.agentModel(), { messages } as never, { sessionId });
+	function rpc(body: unknown) {
+		return new Request("http://127.0.0.1:3000/api/mcp", {
+			method: "POST",
+			headers: { host: "127.0.0.1:3000", "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${ensureMcpToken()}` },
+			body: JSON.stringify(body),
+		});
+	}
+	const call = async (name: string, args: Record<string, unknown>, agent?: string) =>
+		(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args, ...(agent ? { _meta: { "godspeed/agent": agent } } : {}) } }))).json()).result as { content: { type: string; text: string }[]; isError?: boolean };
+	const initialize = async (client: string): Promise<string> =>
+		(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: client, version: "1" } } }))).json()).result.instructions;
+
+	it("connected is any request; teaching is only the work loop", () => {
+		const later = Date.now() + 4 * 60_000; // past every earlier check-in in this file
+		bridge.recordCheckIn({}, later);
+		assert.equal(bridge.agentConnected(later), true);
+		assert.equal(bridge.agentTeaching(later), false, "an agent that only initialized or listed tools isn't teaching");
+		bridge.recordCheckIn({ working: true }, later);
+		assert.equal(bridge.agentTeaching(later), true);
+	});
+
+	it("the status names lessons whose request an agent took and hasn't answered", async () => {
+		const chat = chatStore.createChat("Stuck");
+		await handleChatInput(chat.id, { type: "text", text: "hi" });
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "request parked");
+		assert.deepEqual(mcp.mcpAccessStatus().claimedLessons, [], "waiting, not yet taken");
+		let events = 0;
+		const off = subscribe((e) => { if (e.type === "agent-changed") events++; });
+		const before = Date.now();
+		const work = await bridge.waitForWork(1000, { conversation: chat.id });
+		off();
+		assert.ok(work);
+		assert.ok(events >= 1, "taking a lesson's request tells the window");
+		const [claim] = mcp.mcpAccessStatus().claimedLessons;
+		assert.equal(claim?.lessonId, chat.id);
+		assert.ok(Date.parse(claim!.claimedAt) >= before - 1000);
+		assert.equal(mcp.mcpAccessStatus().agentTeaching, true);
+		assert.ok(bridge.respondToWork(work.workId, { text: "Hello." }, 0).ok);
+		assert.deepEqual(mcp.mcpAccessStatus().claimedLessons, []);
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("a new conversation sends instructions and tools the agent already has by reference; read_work full: true sends them again", async () => {
+		const agent = "agent-references";
+		const first = park("job_ref_1", [system("quiz"), user("hi")]);
+		const one = await call("wait_for_work", { timeout_seconds: 5 }, agent);
+		const oneItem = JSON.parse(one.content[0]!.text);
+		assert.match(one.content[1]!.text, /^Instructions \(your system prompt[^]*\\frac\{a\}\{b\}/, "plain text: one backslash, no escapes");
+		assert.equal(oneItem.instructions, undefined, "not inside the JSON");
+		assert.ok(bridge.respondToWork(oneItem.workId, { text: "Done." }, 0).ok);
+		await first.result();
+
+		const second = park("job_ref_2", [system("quiz", "explain"), user("next")]);
+		const two = await call("wait_for_work", { timeout_seconds: 5 }, agent);
+		const twoItem = JSON.parse(two.content[0]!.text);
+		assert.equal(two.content.length, 1, "no instructions block");
+		assert.equal(twoItem.instructionsAsIn, oneItem.workId);
+		assert.deepEqual(twoItem.tools.map((t: { name: string }) => t.name), ["explain"]);
+		assert.deepEqual(twoItem.toolsAsBefore, ["quiz"]);
+		assert.match(twoItem.note, /read_work with this workId and full: true/);
+
+		const again = await call("read_work", { work_id: twoItem.workId, full: true }, agent);
+		const againItem = JSON.parse(again.content[0]!.text);
+		assert.equal(againItem.workId, twoItem.workId);
+		assert.equal(againItem.instructionsAsIn, undefined);
+		assert.deepEqual(againItem.tools.map((t: { name: string }) => t.name), ["quiz", "explain"]);
+		assert.match(again.content[1]!.text, /^Instructions/);
+		assert.equal((await call("read_work", { work_id: twoItem.workId }, agent)).isError, true, "page or full is needed");
+		assert.ok(bridge.respondToWork(twoItem.workId, { text: "Done." }, 0).ok);
+		await second.result();
+
+		bridge.forgetAgent(agent, false);
+		const third = park("job_ref_3", [system("quiz"), user("more")]);
+		const three = await call("wait_for_work", { timeout_seconds: 5 }, agent);
+		const threeItem = JSON.parse(three.content[0]!.text);
+		assert.equal(threeItem.instructionsAsIn, undefined, "after the agent lost its context, everything in full");
+		assert.equal(threeItem.toolsAsBefore, undefined);
+		assert.ok(bridge.respondToWork(threeItem.workId, { text: "Done." }, 0).ok);
+		await third.result();
+		for (const id of ["job_ref_1", "job_ref_2", "job_ref_3"]) bridge.forgetConversation(id);
+	});
+
+	it("tells Claude Code to wait with the plugin's waiter, and other clients to call wait_for_work", async () => {
+		const codex = await initialize("codex-mcp-client");
+		assert.doesNotMatch(codex, /wait-for-work\.mjs/);
+		assert.match(JSON.parse((await call("wait_for_work", { timeout_seconds: 1 })).content[0]!.text).note, /Call wait_for_work again/);
+
+		const claude = await initialize("claude-code");
+		assert.match(claude, /scripts\/wait-for-work\.mjs/);
+		assert.match(JSON.parse((await call("wait_for_work", { timeout_seconds: 1 })).content[0]!.text).note, /scripts\/wait-for-work\.mjs/);
+		const chat = chatStore.createChat("Waiter");
+		await handleChatInput(chat.id, { type: "text", text: "hi" });
+		const work = await bridge.waitForWork(5000, { conversation: chat.id });
+		assert.ok(work);
+		for (let page = 2; bridge.readWorkPage(work.workId, page).ok; page++); // read every page
+		const done = await call("respond", { work_id: work.workId, text: "Hello.", wait_seconds: 0 });
+		assert.match(JSON.parse(done.content[0]!.text).note, new RegExp(`wait-for-work\\.mjs --lesson ${chat.id}`));
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("a client with a longer tool timeout may wait up to 10 minutes", async () => {
+		const tools = (await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }))).json()).result.tools as { name: string; inputSchema: { properties: Record<string, { maximum?: number }> } }[];
+		assert.equal(tools.find((t) => t.name === "wait_for_work")!.inputSchema.properties.timeout_seconds!.maximum, 600);
+		assert.equal(tools.find((t) => t.name === "respond")!.inputSchema.properties.wait_seconds!.maximum, 55);
 	});
 });

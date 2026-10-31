@@ -14,6 +14,7 @@ import { classQuery, useClasses } from "@/components/class-context";
 import { useProgress } from "@/components/use-progress";
 import { useActivity } from "@/components/activity-dock";
 import { LazyChainTableOverlay as ChainTableOverlay } from "@/components/chain-table-lazy.tsx";
+import { LoadFailed } from "@/components/load-failed";
 import { NotesImportErrors, useNotesImport } from "@/components/notes-import";
 import { GraphTopBar } from "./graph-top-bar.tsx";
 import { usePracticeStart } from "./practice.ts";
@@ -69,8 +70,7 @@ function GraphScreenBody() {
 				query={query}
 				onQuery={setQuery}
 				onOpenChains={() => setChainsOpen(true)}
-				importing={notesImport.importing}
-				onImportFiles={notesImport.onImportFiles}
+				importNotes={active ? null : notesImport}
 			/>
 			<div className="relative flex min-h-0 flex-1">
 				{data ? (
@@ -78,13 +78,16 @@ function GraphScreenBody() {
 						data={data}
 						query={query}
 						practicing={practice.busy}
+						practiceError={practice.error}
 						onPractice={(ids) => {
 							const topics = ids.map((id) => data.topics.find((t) => t.id === id)).filter((t) => t !== undefined);
 							void practice.start(topics, data.facts);
 						}}
 					/>
+				) : progress.error ? (
+					<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="m-auto" />
 				) : (
-					progress.error && <p className="m-auto text-sm text-ink-3">{progress.error}</p>
+					<p className="m-auto text-sm text-ink-2">Loading…</p>
 				)}
 				{notesImport.errors.length > 0 && (
 					<div className="absolute inset-x-6 top-12 z-10 flex flex-col gap-1">

@@ -44,7 +44,7 @@ export const ClassIconField = memo(function ClassIconField({
 					);
 				})}
 			</div>
-			<span className="text-xs text-ink-3">Your agent picks one when it sets up the class. Pick another here any time.</span>
+			<span className="text-xs text-ink-2">Your agent picks one when it sets up the class. Pick another here any time.</span>
 		</div>
 	);
 });

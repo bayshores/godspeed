@@ -9,7 +9,7 @@
  * fails gets an error instead, so it never holds up the others.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProgressPayload } from "@/core";
 import { classQuery } from "@/components/class-context";
 import { useServerEvent, useServerResync } from "@/components/server-events";
@@ -18,7 +18,8 @@ import { foldClassesProgress, type ClassesProgress, type ProgressRead } from "./
 
 const REFRESH_DEBOUNCE_MS = 400;
 
-export function useClassesProgress(classIds: readonly string[]): ClassesProgress {
+/** `reload`: read every class again now (Try again). */
+export function useClassesProgress(classIds: readonly string[]): ClassesProgress & { reload: () => void } {
 	const [state, setState] = useState<ClassesProgress>({ progress: new Map(), errors: new Map() });
 	const key = classIds.join(",");
 	const request = useRef(0);
@@ -61,5 +62,5 @@ export function useClassesProgress(classIds: readonly string[]): ClassesProgress
 	useServerEvent("classes-changed", refresh);
 	useServerResync(refresh);
 
-	return state;
+	return useMemo(() => ({ ...state, reload: load }), [state, load]);
 }

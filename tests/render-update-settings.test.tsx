@@ -134,6 +134,7 @@ describe("General update rows", () => {
 		assert.equal((q(host, "update-check") as HTMLButtonElement).disabled, true);
 		await b.push(state({ status: "downloaded", version: "0.3.8", revision: 3 }));
 		assert.equal(q(host, "update-check"), null); assert.ok(q(host, "update-status")!.textContent!.includes("quit the app"));
+		assert.equal(q(host, "update-restart")!.textContent, "Restart now", "the same words as the update pop-up");
 		await click(q(host, "update-restart")); assert.equal(b.calls.install, 1);
 	});
 

@@ -14,8 +14,10 @@ import {
 	deadlineWrites,
 	draftProblem,
 	draftsFrom,
+	dropRemoved,
 	dueLabel,
 	filesLabel,
+	hasUnsavedChanges,
 	kindLabel,
 	toggleFile,
 	type DeadlineDraft,
@@ -94,6 +96,33 @@ describe("class-deadlines-model", () => {
 		const drafts = draftsFrom(SAVED);
 		drafts[1] = { ...drafts[1]!, done: false };
 		assert.deepEqual(deadlineWrites(SAVED, drafts), [{ op: "update", key: "ddl_2", id: "ddl_2", body: { done: false } }]);
+	});
+
+	it("a draft whose deadline is gone from the saved copy is never added back as new", () => {
+		const drafts = draftsFrom(SAVED);
+		drafts[0] = { ...drafts[0]!, name: "Midterm A" };
+		assert.deepEqual(deadlineWrites([SAVED[1]!], drafts), []);
+	});
+
+	it("dropRemoved: a removed deadline the learner didn't edit leaves the drafts and the copy; an edited one stays", () => {
+		const drafts = draftsFrom(SAVED);
+		assert.equal(dropRemoved(SAVED, drafts, new Set()), null, "nothing removed");
+		assert.deepEqual(dropRemoved(SAVED, drafts, new Set(["ddl_2"])), { seeded: [SAVED[0]!], drafts: [drafts[0]!] });
+		const edited = [drafts[0]!, { ...drafts[1]!, done: false }];
+		assert.equal(dropRemoved(SAVED, edited, new Set(["ddl_2"])), null, "the learner's edit waits for Save");
+		const reordered = [{ ...drafts[0]!, fileIds: ["f2", "f1"] }, drafts[1]!];
+		assert.deepEqual(dropRemoved(SAVED, reordered, new Set(["exm_1"]))?.drafts, [drafts[1]!], "a reordered file list is not an edit");
+		assert.deepEqual(dropRemoved(SAVED, [drafts[0]!], new Set(["ddl_2"])), { seeded: [SAVED[0]!], drafts: [drafts[0]!] }, "already removed in the dialog");
+	});
+
+	it("hasUnsavedChanges: a field or a deadline differs; an untouched blank new row doesn't count", () => {
+		const seeded = { fields: { name: "CSE 21", rules: [] as string[] }, deadlines: SAVED };
+		const blank = draft({ name: "", date: "", kind: "homework" });
+		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, draftsFrom(SAVED)), false);
+		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, [...draftsFrom(SAVED), blank]), false);
+		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, [...draftsFrom(SAVED), { ...blank, name: "HW" }]), true);
+		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: ["Use LaTeX"] }, draftsFrom(SAVED)), true);
+		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, draftsFrom(SAVED).slice(1)), true, "a removed deadline");
 	});
 
 	it("changedFields: only fields that differ by value", () => {

@@ -33,6 +33,9 @@ export type ClassFileOrigin = "copied" | "linked";
  *  - needs-whisper: a recording, but whisper.cpp/ffmpeg are not installed */
 export type ClassFileStatus = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
 
+/** Installs the speech tool recordings need (whisper.cpp and ffmpeg). */
+export const SPEECH_TOOL_INSTALL = "brew install whisper-cpp ffmpeg";
+
 /** Most files a linked folder may contribute (a guard against linking a
  *  whole home directory by mistake). */
 export const MAX_LINKED_FILES = 500;

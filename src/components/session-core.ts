@@ -33,7 +33,6 @@ import {
 	type LhViewMessage,
 	type LiveExecution,
 	type QuestionAnswerData,
-	type QuestionDraft,
 } from "../core";
 
 export type SessionStatus = "ready" | "submitted" | "streaming" | "error";
@@ -82,7 +81,7 @@ async function turnInFlight(model: SessionModel): Promise<boolean | null> {
 	}
 }
 
-const STREAM_DROPPED = "The connection dropped before the turn completed.";
+export const STREAM_DROPPED = "The connection dropped before the turn completed.";
 
 /** The routes fail with `{"error": "..."}` envelopes; the banner shows the
  *  message, never the JSON. Plain-text bodies pass through. */
@@ -144,6 +143,11 @@ export function pendingCallTool(messages: readonly LhMessage[], toolCallId: stri
 	return null;
 }
 
+/** This client's optimistic or live entry, not yet the server's copy. */
+export function isLocalMessage(m: { id?: unknown }): boolean {
+	return typeof m.id === "string" && m.id.startsWith("c_");
+}
+
 /**
  * Has the record ABSORBED this optimistic tail entry? The write-ahead
  * persists content-identical copies with server-stamped ids — match on the
@@ -151,7 +155,7 @@ export function pendingCallTool(messages: readonly LhMessage[], toolCallId: stri
  * absorbed (live turn content is never dropped).
  */
 export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
-	if (typeof m.id !== "string" || !m.id.startsWith("c_")) return false;
+	if (!isLocalMessage(m)) return false;
 	const role = (m as { role?: string }).role;
 	if (role === "user") {
 		const key = userContentKey((m as UserMessage).content);
@@ -256,7 +260,6 @@ export class SessionModel {
 	// at every full sync; the write-ahead absorbs the optimistic entries.
 	private base: LhMessage[];
 	private tail: LhMessage[] = [];
-	private questionDrafts = new Map<string, QuestionDraft>();
 	/** Only learner answers submitted through send(), never silent dismissals. */
 	private unconfirmedAnswers = new Map<string, string>();
 	// The live turn's execution layer (view model mid-turn states):
@@ -610,7 +613,7 @@ export class SessionModel {
 								this.errorValue = { message: record.turnError };
 								this.automaticContinuationBlocked = true;
 							}
-							this.forgetResolvedDrafts(record.messages!);
+							this.forgetResolvedAnswers(record.messages!);
 							this.incompleteUsageIds.clear();
 							this.tail = [];
 						});
@@ -873,18 +876,8 @@ export class SessionModel {
 		this.setStatus("ready");
 	}
 
-	/** Submission snapshots outlive the dock, not the session mount. */
-	questionDraft(toolCallId: string): QuestionDraft | undefined {
-		return this.questionDrafts.get(toolCallId);
-	}
-
-	saveQuestionDraft(toolCallId: string, draft: Partial<QuestionDraft>): void {
-		this.questionDrafts.set(toolCallId, { ...this.questionDrafts.get(toolCallId), ...draft });
-	}
-
-	private forgetResolvedDrafts(record: readonly LhMessage[]): void {
+	private forgetResolvedAnswers(record: readonly LhMessage[]): void {
 		const answered = answeredCallIds(record);
-		for (const id of answered) this.questionDrafts.delete(id);
 		for (const [id, callId] of this.unconfirmedAnswers) {
 			if (answered.has(callId)) this.unconfirmedAnswers.delete(id);
 		}
@@ -898,7 +891,7 @@ export class SessionModel {
 				this.errorValue = { message: turnError };
 				this.automaticContinuationBlocked = true;
 			}
-			this.forgetResolvedDrafts(record);
+			this.forgetResolvedAnswers(record);
 			this.incompleteUsageIds.clear();
 			this.tail = [];
 			this.streamingMessageId = null; // the tail (and its slot) is gone
@@ -918,7 +911,7 @@ export class SessionModel {
 		if (baseAbsorbed) return; // not a pure append — the idle full sync is the net
 		this.mutate(() => {
 			this.base = record;
-			this.forgetResolvedDrafts(record);
+			this.forgetResolvedAnswers(record);
 			this.tail = this.tail.filter((m) => !absorbed(m, record));
 		});
 	}

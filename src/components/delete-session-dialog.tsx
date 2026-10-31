@@ -182,7 +182,7 @@ export function DeleteSessionBody({
 				</code>
 			</div>
 			<p className="mt-2 text-sm text-muted-foreground">
-				This permanently removes the lesson: its messages, background jobs, and extraction records. Everything
+				This permanently removes the lesson: its messages, background jobs and graph-building history. Everything
 				it added to the graph stays unless you check below. This cannot be undone.
 			</p>
 			<label

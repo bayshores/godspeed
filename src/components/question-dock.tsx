@@ -3,7 +3,7 @@ import { LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter } from "@/components/confidence-rail";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, fieldKeys } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit } from "@/components/lesson/panel-parts";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/components/sounds";
 import {
@@ -44,7 +44,7 @@ import { CodeQuestion } from "@/components/lesson/code-question";
  * explain fills the Your-turn panel — "Your turn" with the question's
  * kind, the question, numbered options (keys 1–n, 0 = I don't know), the
  * 5-bar confidence meter (quiz only; ←/→ or click), "Your thinking", and
- * the full-width "Submit answer · Enter" bar.
+ * the full-width "Submit answer" bar.
  *
  * "Your thinking" is the transfer channel of the whole product: never
  * called optional; Enter submits, Shift+Enter is a newline. The ask
@@ -57,9 +57,12 @@ export interface QuestionDockProps {
 	toolCallId: string;
 	input: QuizToolInput | AskToolInput | ExplainToolInput | WriteCodeInput;
 	onSubmit: (output: QuestionAnswerData) => void;
-	/** Restore only this call's unconfirmed submission after recovery. */
+	/** The form as the learner left it (this call's saved draft). */
 	initialDraft?: QuestionFormDraft;
+	/** Called on every change, so the form survives leaving the lesson. */
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
+	/** Opens the skip confirm. */
+	onSkip?: () => void;
 	/** Compaction is running for this chat: the answer would block on the
 	 *  server's compaction gate, so submit waits (the server is the real gate). */
 	compactionRunning?: boolean;
@@ -67,10 +70,10 @@ export interface QuestionDockProps {
 	footer?: React.ReactNode;
 }
 
-/** The kind chip's label. The probe-phase names keep their own labels;
- *  a predict-type quiz reads "Prediction". */
+/** The kind chip's label. The opening questions read "Warm-up"; a
+ *  predict-type quiz reads "Prediction". */
 export function questionKindLabel(toolName: QuestionDockProps["toolName"], input: unknown): string {
-	if (toolName === "probe") return "Probe";
+	if (toolName === "probe") return "Warm-up";
 	if (toolName === "recall") return "Recall";
 	if (toolName === "quiz") return normalizeQuizType((input as { type?: unknown } | null)?.type) === "predict" ? "Prediction" : "Check";
 	if (toolName === "explain") return "Explain";
@@ -95,12 +98,15 @@ export function QuestionDock(props: QuestionDockProps) {
 					: parseAskInput(input);
 	if (!parsed) {
 		return (
-			<PanelBody>
-				<PanelHeader eyebrow="Your turn" />
-				<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
-					This question arrived malformed. The transcript keeps the retry.
-				</div>
-			</PanelBody>
+			<div className="flex min-h-0 flex-1 flex-col">
+				<PanelBody>
+					<PanelHeader eyebrow="Your turn" />
+					<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
+						This question came through broken. Skip it and the teacher will ask again.
+					</div>
+				</PanelBody>
+				{props.onSkip && <ActionBar testId="skip-question" label="Skip question" onClick={props.onSkip} />}
+			</div>
 		);
 	}
 	if (canonical === "write_code") return <CodeQuestion {...props} input={parsed as WriteCodeInput} />;
@@ -152,6 +158,7 @@ function QuestionDockForm({
 	onSubmit,
 	initialDraft,
 	onSaveDraft,
+	onSkip,
 	compactionRunning = false,
 	footer,
 }: Omit<QuestionDockProps, "input"> & { input: QuizToolInput | AskToolInput | ExplainToolInput }) {
@@ -215,6 +222,13 @@ function QuestionDockForm({
 	const [confIdx, setConfIdx] = useState<number | undefined>(initialDraft?.confidenceIndex);
 	const selectMode: SelectMode = qd.mode === "multi-select" ? "multi-select" : "single-select";
 
+	// Every change is saved, so leaving the lesson keeps the form.
+	const saveDraftRef = useRef(onSaveDraft);
+	saveDraftRef.current = onSaveDraft;
+	useEffect(() => {
+		saveDraftRef.current?.({ selection: sel, thinking, other, text, confidenceIndex: confIdx });
+	}, [sel, thinking, other, text, confIdx]);
+
 	const toggle = (idx: number) => setSel(toggleOption(selectMode, sel, idx));
 	const toggleDontKnow = () =>
 		setSel((prev) => ({ ...prev, selected: new Set(), otherSelected: false, dontKnow: !prev.dontKnow }));
@@ -235,14 +249,6 @@ function QuestionDockForm({
 			// Sent only once picked; buildAnswer drops it on "I don't know".
 			confidence: kind === "quiz" && confIdx !== undefined ? CONFIDENCE_STOPS[confIdx] : undefined,
 		};
-		// Snapshot before the optimistic submission unmounts the form.
-		onSaveDraft?.({
-			selection: { ...sel, selected: new Set(sel.selected) },
-			thinking: thinkingTextRef.current,
-			other,
-			text: answerTextRef.current,
-			confidenceIndex: confIdx,
-		});
 		const answer = buildAnswer(qd, req, toolName);
 		const sound = answerSound(answer);
 		if (sound) play(sound);
@@ -258,8 +264,7 @@ function QuestionDockForm({
 	   1–9 pick an option, 0 = "I don't know" (quiz). ↑/↓ walk every row,
 	   clamped at the ends; Space acts on the walked row like a click; Enter
 	   submits once an answer exists. ←/→ move the confidence level. Tab
-	   toggles focus between the rows and the thinking field (Shift+Tab is
-	   the global thinking-level cycle's). Keys typed into a field keep their
+	   toggles focus between the rows and the thinking field. Keys typed into a field keep their
 	   meaning, and modifier combos are never ours. */
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
 	const rootRef = useRef<HTMLFormElement>(null);
@@ -296,7 +301,9 @@ function QuestionDockForm({
 					t.tagName === "TEXTAREA" ||
 					t.isContentEditable);
 			const modded = e.altKey || e.metaKey || e.ctrlKey;
-			if (rowCount > 0 && e.key === "Tab" && !e.shiftKey && !modded) {
+			// Tab is ours only from the rows, the thinking field or nowhere; elsewhere it moves focus as usual.
+			const ownsTab = !t || t === document.body || !!t.closest?.("[data-kbdrow]") || t === thinkingRef.current;
+			if (rowCount > 0 && e.key === "Tab" && !e.shiftKey && !modded && ownsTab) {
 				e.preventDefault();
 				e.stopPropagation();
 				if (t?.closest?.("[data-kbdrow]")) thinkingRef.current?.focus();
@@ -374,10 +381,12 @@ function QuestionDockForm({
 				<PanelHeader
 					eyebrow="Your turn"
 					right={
-						<KindChip testId="question-kind">
-							{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
-							{label}
-						</KindChip>
+						<HeaderChip exit={skipExit(onSkip)}>
+							<KindChip testId="question-kind">
+								{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
+								{label}
+							</KindChip>
+						</HeaderChip>
 					}
 				/>
 				<div data-session-find-root="" className="mt-3 shrink-0 font-bold text-ink" style={proseVars(18, 25, "var(--foreground)")}>
@@ -388,7 +397,7 @@ function QuestionDockForm({
 						<ToolContentResponse>{qd.context}</ToolContentResponse>
 					</div>
 				)}
-				{qd.mode === "multi-select" && <div className="mt-2 shrink-0 text-[13px] text-ink-3">Select all that apply</div>}
+				{qd.mode === "multi-select" && <div className="mt-2 shrink-0 text-[13px] text-ink-2">Select all that apply</div>}
 
 				{qd.mode !== "text" && (
 					<div className="mt-4 flex shrink-0 flex-col gap-0.5" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
@@ -533,7 +542,7 @@ function QuestionDockForm({
 			<ActionBar
 				type="submit"
 				testId="question-submit"
-				label={compactionRunning ? "Compacting the lesson…" : "Submit answer"}
+				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
 				disabled={!canSubmit || compactionRunning}
 			/>
 		</form>

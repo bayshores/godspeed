@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
 import { buildCodeAnswer, codeLanguage, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
 import { CodeEditor } from "./code-editor";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, fieldKeys } from "./panel-parts";
+import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit } from "./panel-parts";
 
 /** The task in lesson prose, 18px in the full text color (the question
  *  panel's size). */
@@ -28,28 +28,38 @@ export function CodeQuestion({
 	onSubmit,
 	initialDraft,
 	onSaveDraft,
+	onSkip,
 	compactionRunning = false,
 	footer,
 }: {
 	toolName: string;
 	input: WriteCodeInput;
 	onSubmit: (output: QuestionAnswerData) => void;
-	/** Restores an unconfirmed submission: the code rides `text`. */
+	/** The form as the learner left it: the code rides `text` (empty while it is still the starter code). */
 	initialDraft?: QuestionFormDraft;
+	/** Called on every change, so the code survives leaving the lesson. */
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
+	onSkip?: () => void;
 	compactionRunning?: boolean;
 	footer?: React.ReactNode;
 }) {
 	const language = codeLanguage(input.language);
-	const [initialCode] = useState(() => initialDraft?.text ?? input.starter ?? "");
+	const starter = input.starter ?? "";
+	const [initialCode] = useState(() => initialDraft?.text || starter);
 	const [code, setCode] = useState(initialCode);
 	const [dontKnow, setDontKnow] = useState(initialDraft?.selection.dontKnow ?? false);
 	const [thinking, setThinking] = useState(initialDraft?.thinking ?? "");
 	const canSubmit = dontKnow || code.trim().length > 0;
 
+	// Every change is saved; untouched starter code is not a draft.
+	const saveDraftRef = useRef(onSaveDraft);
+	saveDraftRef.current = onSaveDraft;
+	useEffect(() => {
+		saveDraftRef.current?.({ selection: { selected: new Set(), otherSelected: false, dontKnow }, thinking, other: "", text: code === starter ? "" : code });
+	}, [code, dontKnow, thinking, starter]);
+
 	const submit = () => {
 		if (!canSubmit || compactionRunning) return;
-		onSaveDraft?.({ selection: { selected: new Set(), otherSelected: false, dontKnow }, thinking, other: "", text: code });
 		onSubmit(buildCodeAnswer(input, { code, dontKnow, thinking }, toolName));
 	};
 	// Enter outside the editor and the fields submits, like every question.
@@ -66,7 +76,14 @@ export function CodeQuestion({
 			}}
 		>
 			<PanelBody>
-				<PanelHeader eyebrow="Your turn" right={<KindChip testId="question-kind">Code</KindChip>} />
+				<PanelHeader
+					eyebrow="Your turn"
+					right={
+						<HeaderChip exit={skipExit(onSkip)}>
+							<KindChip testId="question-kind">Code</KindChip>
+						</HeaderChip>
+					}
+				/>
 				<div data-session-find-root="" className="mt-3 shrink-0 font-bold text-ink" style={TASK_PROSE}>
 					<ToolContentResponse>{input.question}</ToolContentResponse>
 				</div>
@@ -111,7 +128,7 @@ export function CodeQuestion({
 			<ActionBar
 				type="submit"
 				testId="question-submit"
-				label={compactionRunning ? "Compacting the lesson…" : "Submit answer"}
+				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
 				disabled={!canSubmit || compactionRunning}
 			/>
 		</form>

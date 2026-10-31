@@ -25,6 +25,7 @@ export function TopicPanel({
 	onSelectTopic,
 	onPractice,
 	practicing,
+	practiceError,
 }: {
 	topic: TopicProgress;
 	topics: readonly TopicProgress[];
@@ -34,6 +35,8 @@ export function TopicPanel({
 	onSelectTopic: (id: string) => void;
 	onPractice: (topicIds: string[]) => void;
 	practicing: boolean;
+	/** Why the last practice didn't start (shown under the button). */
+	practiceError: string | null;
 }) {
 	const byId = useMemo(() => new Map(topics.map((t) => [t.id, t])), [topics]);
 	const { needs, leadsTo } = useMemo(() => neighbors(topic.id, [...links], byId), [topic.id, links, byId]);
@@ -76,7 +79,7 @@ export function TopicPanel({
 				<div className="h-1.5" />
 				<FactList key={topic.id} facts={list} />
 			</div>
-			<PracticeBar testid="practice-topic" label="Practice this topic" busy={practicing} onClick={() => onPractice([topic.id])} />
+			<PracticeBar testid="practice-topic" label="Practice this topic" busy={practicing} error={practiceError} onClick={() => onPractice([topic.id])} />
 		</aside>
 	);
 }

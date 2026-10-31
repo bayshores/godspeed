@@ -19,6 +19,7 @@ import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { createPdfReadTools } from "../src/agent/tools/pdf-read.ts";
 import { webTools } from "../src/agent/tools/web.ts";
+import { WORK_PAGE_BYTES } from "../src/core/work-pages.ts";
 
 /** Build a valid N-page PDF in memory — ASCII-only so string offsets ARE
  *  byte offsets; xref entries computed as we assemble. */
@@ -222,6 +223,22 @@ describe("web_fetch — PDF pointer + source header", () => {
 		try {
 			const out = asText(await web.web_fetch!.execute!("t12", { url: "https://example.com/page" }));
 			assert.match(out, /^Source: https:\/\/example\.com\/page \(HTTP 200\)/);
+		} finally {
+			globalThis.fetch = realFetch;
+		}
+	});
+
+	it("a long page comes back as at most one work page", async () => {
+		const realFetch = globalThis.fetch;
+		globalThis.fetch = (async () =>
+			new Response("A line of a very long page.\n".repeat(3000), {
+				headers: { "content-type": "text/plain" },
+			})) as typeof fetch;
+		try {
+			const out = asText(await webTools.web_fetch!.execute!("t13", { url: "https://example.com/long" }));
+			const [page] = out.split("\n\n[Truncated: the page goes on]");
+			assert.ok(out.endsWith("[Truncated: the page goes on]"));
+			assert.ok(Buffer.byteLength(page!) <= WORK_PAGE_BYTES);
 		} finally {
 			globalThis.fetch = realFetch;
 		}

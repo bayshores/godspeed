@@ -915,20 +915,6 @@ describe("answer submission recovery", () => {
 		assert.deepEqual(calls.slice(0, 3), ["/api/chat", "/api/chats/chat_x", "/api/chat"]);
 	});
 
-	it("retains all submitted draft channels until the canonical answer resolves the call", async () => {
-		const form = { selection: { selected: new Set([1]), otherSelected: true, dontKnow: false }, thinking: "reasoning", other: "custom answer", text: "free text", confidenceIndex: 4 };
-		const m = model({ initialMessages: [question], fetch: async () => { throw new TypeError("offline"); } });
-		m.saveQuestionDraft("q1", { form });
-		m.saveQuestionDraft("q1", { readingThinking: "reading reasoning" });
-		await m.submitAnswer("q1", answer);
-		assert.deepEqual(m.questionDraft("q1"), { form, readingThinking: "reading reasoning" });
-		m.setMessages([question]);
-		assert.deepEqual(m.questionDraft("q1"), { form, readingThinking: "reading reasoning" });
-		assert.equal(m.questionDraft("q2"), undefined, "a different question never inherits the draft");
-		m.adoptRecord([question, newAnswerResult("q1", "quiz", answer)]);
-		assert.equal(m.questionDraft("q1"), undefined, "only confirmed native resolution clears it");
-	});
-
 	it("a final 409 restores the question instead of leaving an optimistic answer", async () => {
 		const m = model({ initialMessages: [question], waitMaxMs: 0, fetch: async () => new Response("busy", { status: 409 }) });
 		await m.submitAnswer("q1", answer);

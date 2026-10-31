@@ -300,11 +300,11 @@ export function SettingsDialogBody({
 						</p>
 					)}
 					{record === undefined ? (
-						<p className="text-xs text-ink-3">
+						<p className="text-xs text-ink-2">
 							Loading settings…
 						</p>
 					) : record === null ? (
-						<p className="text-xs text-ink-3">
+						<p className="text-xs text-ink-2">
 							Settings could not be loaded. Refresh to retry.
 						</p>
 					) : (

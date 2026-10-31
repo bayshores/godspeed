@@ -3,13 +3,15 @@
  * the same path as Home's practice mode — POST /api/chats with
  * kind "practice" and the facts as graphContext picks (the server writes
  * them into the lesson's opening context), then open the lesson with the
- * title as its first message.
+ * title as its first message. A start that fails sets `error`.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FactProgress, GraphContextPick, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { topicFacts } from "./derive.ts";
+
+export const PRACTICE_START_FAILED = "Couldn't start practice. Try again.";
 
 /** The server keeps at most 64 picks. */
 export const MAX_PICKS = 64;
@@ -39,11 +41,13 @@ export function usePracticeStart() {
 	const router = useRouter();
 	const { active } = useClasses();
 	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const start = async (topics: readonly TopicProgress[], facts: readonly FactProgress[]) => {
 		if (busy || topics.length === 0) return;
 		const title = practiceTitle(topics);
 		setBusy(true);
+		setError(null);
 		try {
 			const res = await fetch("/api/chats", {
 				method: "POST",
@@ -60,8 +64,9 @@ export function usePracticeStart() {
 			router.push(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 		} catch {
 			setBusy(false);
+			setError(PRACTICE_START_FAILED);
 		}
 	};
 
-	return { start, busy };
+	return { start, busy, error };
 }

@@ -15,7 +15,7 @@ import { useMenuDismiss } from "@/components/use-menu-dismiss";
 /**
  * THE LESSONS SECTION: the "Lessons" heading with its search toggle, the
  * active class's lessons, and the lesson menu (rename, export, move,
- * delete). The search icon (or ⌘⇧F) opens a fuzzy filter field: ↑/↓ walk
+ * delete; a row's ⋯ button or a right-click opens it). The search icon (or ⌘⇧F) opens a fuzzy filter field: ↑/↓ walk
  * the matches, Enter opens the walked row (or the first match), Esc
  * closes the field.
  */
@@ -80,15 +80,16 @@ export function LessonsSection({
 		return () => window.removeEventListener("lh:kbd-sessions-search", onFocusSearch);
 	}, [open, toggle, openSearch]);
 
-	// Keep the walked row in view (rows are the list's only buttons).
+	// Keep the walked row in view.
 	useEffect(() => {
 		if (kbdIndex === null) return;
-		listRef.current?.querySelectorAll("button")[kbdIndex]?.scrollIntoView({ block: "nearest" });
+		listRef.current?.querySelectorAll("[data-halley-target^='lesson:']")[kbdIndex]?.scrollIntoView({ block: "nearest" });
 	}, [kbdIndex]);
 
-	/* The lesson menu. The anchor is the right-clicked row, set before the
-	   state flip so the shell measures it on its first pass. The last
-	   menu's id stays set after close so the menu can play its exit. */
+	/* The lesson menu. The anchor is the right-clicked row or its ⋯
+	   button, set before the state flip so the shell measures it on its
+	   first pass. The last menu's id stays set after close so the menu
+	   can play its exit. */
 	const [ctxChatId, setCtxChatId] = useState<string | null>(null);
 	const [ctxMenuId, setCtxMenuId] = useState<string | null>(null);
 	const ctxAnchorRef = useRef<HTMLElement | null>(null);
@@ -96,10 +97,11 @@ export function LessonsSection({
 	const [deleting, setDeleting] = useState<ChatListItem | null>(null);
 	const [moving, setMoving] = useState<ChatListItem | null>(null);
 
-	const onContextMenu = useCallback((e: React.MouseEvent<HTMLButtonElement>, chat: ChatListItem) => {
-		e.preventDefault(); // suppress the native menu
-		ctxAnchorRef.current = e.currentTarget;
-		setCtxChatId(chat.id);
+	const onMenu = useCallback((anchor: HTMLElement, chat: ChatListItem) => {
+		// A second click on the same ⋯ closes the menu.
+		const again = ctxAnchorRef.current === anchor;
+		ctxAnchorRef.current = anchor;
+		setCtxChatId((open) => (again && open === chat.id ? null : chat.id));
 		setCtxMenuId(chat.id);
 	}, []);
 
@@ -210,9 +212,9 @@ export function LessonsSection({
 
 			<div ref={listRef} className="mt-3.5 flex w-full min-h-0 flex-1 flex-col gap-px overflow-y-auto">
 				{shown === null ? (
-					<div className="px-2.5 py-3 text-[12.5px] text-ink-3">Loading…</div>
+					<div className="px-2.5 py-3 text-[12.5px] text-ink-2">Loading…</div>
 				) : shown.length === 0 ? (
-					<div className="px-2.5 py-3 text-[12.5px] text-ink-3">
+					<div className="px-2.5 py-3 text-[12.5px] text-ink-2">
 						{query.trim() ? "No lessons match." : "No lessons yet."}
 					</div>
 				) : (
@@ -232,7 +234,8 @@ export function LessonsSection({
 								kbdSelected={i === kbdIndex}
 								fresh={freshIds.has(c.id)}
 								onOpen={onOpen}
-								onContextMenu={onContextMenu}
+								onMenu={onMenu}
+								menuOpen={ctxChatId === c.id}
 							/>
 						),
 					)

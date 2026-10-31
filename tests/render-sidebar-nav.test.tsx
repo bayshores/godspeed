@@ -89,24 +89,30 @@ describe("ClassNav — Overview / Graph / Files", () => {
 });
 
 describe("footerLabel — '<agent> · N jobs'", () => {
-	it("a connected agent shows its name and the running jobs", () => {
-		assert.equal(footerLabel({ connected: true, name: "Claude Code" }, 1), "Claude Code · 1 job");
-		assert.equal(footerLabel({ connected: true, name: "Claude Code" }, 3), "Claude Code · 3 jobs");
+	const teaching = { connected: true, teaching: true, pendingWork: 0 };
+	const off = { connected: false, teaching: false, pendingWork: 0 };
+	it("a teaching agent shows its name and the running jobs", () => {
+		assert.equal(footerLabel({ ...teaching, name: "Claude Code" }, 1), "Claude Code · 1 job");
+		assert.equal(footerLabel({ ...teaching, name: "Claude Code" }, 3), "Claude Code · 3 jobs");
 	});
 	it("no jobs: just the agent", () => {
-		assert.equal(footerLabel({ connected: true, name: "Codex" }, 0), "Codex");
+		assert.equal(footerLabel({ ...teaching, name: "Codex" }, 0), "Codex");
 	});
-	it("connected without a known name reads 'Your agent'", () => {
-		assert.equal(footerLabel({ connected: true }, 0), "Your agent");
+	it("teaching without a known name reads 'Your agent'", () => {
+		assert.equal(footerLabel(teaching, 0), "Your agent");
+	});
+	it("connected but not running the work loop says so", () => {
+		assert.equal(footerLabel({ ...off, connected: true, name: "Claude Code" }, 0), "Claude Code connected, not teaching");
+		assert.equal(footerLabel({ ...off, connected: true, pendingWork: 2 }, 1), "Your agent connected, not teaching · 1 job");
 	});
 	it("nobody connected (or access off, or not loaded yet)", () => {
-		assert.equal(footerLabel({ connected: false }, 2), "No agent connected · 2 jobs");
-		assert.equal(footerLabel({ connected: false }, 0), "No agent connected");
+		assert.equal(footerLabel(off, 2), "No agent connected · 2 jobs");
+		assert.equal(footerLabel(off, 0), "No agent connected");
 		assert.equal(footerLabel(null, 0), "No agent connected");
 	});
 	it("work waiting with no agent reads 'Waiting for your agent'", () => {
-		assert.equal(footerLabel({ connected: false, pendingWork: 1 }, 1), "Waiting for your agent · 1 job");
-		assert.equal(footerLabel({ connected: false, pendingWork: 2 }, 0), "Waiting for your agent");
-		assert.equal(footerLabel({ connected: true, name: "Codex", pendingWork: 2 }, 0), "Codex", "a connected agent is taking it");
+		assert.equal(footerLabel({ ...off, pendingWork: 1 }, 1), "Waiting for your agent · 1 job");
+		assert.equal(footerLabel({ ...off, pendingWork: 2 }, 0), "Waiting for your agent");
+		assert.equal(footerLabel({ ...teaching, name: "Codex", pendingWork: 2 }, 0), "Codex", "a teaching agent is taking it");
 	});
 });

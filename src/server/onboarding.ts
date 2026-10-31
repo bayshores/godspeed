@@ -10,6 +10,7 @@
  * The token is made AFTER that check (outside-agent access is always on),
  * so the check sees the state from before this version.
  */
+import { CURRENT_SETTINGS_VERSION } from "../core/settings.ts";
 import { readMcpToken, ensureMcpToken } from "../store/mcp-token.ts";
 import { readSettings, writeSettings } from "../store/settings.ts";
 
@@ -18,7 +19,7 @@ export function onboardingNeeded(): boolean {
 	let onboarded = record?.general?.onboarded;
 	if (onboarded === undefined) {
 		onboarded = readMcpToken() !== null;
-		writeSettings({ ...(record ?? { version: 1 }), general: { ...(record?.general ?? {}), onboarded } });
+		writeSettings({ ...(record ?? { version: CURRENT_SETTINGS_VERSION }), general: { ...(record?.general ?? {}), onboarded } });
 	}
 	ensureMcpToken();
 	return !onboarded;

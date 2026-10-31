@@ -150,6 +150,36 @@ describe("launch splash", () => {
 	});
 });
 
+describe("server stopped dialog", () => {
+	it("Report a bug opens the bug report and asks again; Relaunch then relaunches", async () => {
+		const answers = [1, 0];
+		const buttons: string[][] = [];
+		const opened: string[] = [];
+		const calls: string[] = [];
+		const electron = {
+			app: {
+				setName() {}, getPath: () => "/fixture/godspeed", setPath() {}, requestSingleInstanceLock: () => false, quit: () => calls.push("quit"),
+				getVersion: () => "9.9.9", relaunch: () => calls.push("relaunch"), exit: () => calls.push("exit"),
+			},
+			dialog: { showMessageBox: async (options: { buttons: string[] }) => { buttons.push([...options.buttons]); return { response: answers.shift() }; } },
+			shell: { openExternal: async (url: string) => { opened.push(url); } },
+		};
+		const context = {
+			require: (id: string) => id === "electron" ? electron : mainRequire(id),
+			process: { platform: "darwin", argv: [], env: {}, on() {}, arch: "arm64", getSystemVersion: () => "26.0" },
+			__dirname: dirname(mainFile),
+		};
+		runInNewContext(mainSource, context, { filename: mainFile });
+		calls.length = 0; // the declined single-instance lock quits on load
+		await runInNewContext("showServerStopped()", context);
+		assert.equal(buttons.length, 2);
+		assert.deepEqual(buttons[0], ["Relaunch", "Report a bug", "Quit"]);
+		assert.equal(opened.length, 1);
+		assert.match(opened[0]!, /^https:\/\/github\.com\/bayshores\/godspeed\/issues\/new\?body=.*9\.9\.9/);
+		assert.deepEqual(calls, ["relaunch", "exit"]);
+	});
+});
+
 describe("update preload bridge", () => {
 	it("buffers the menu request, unsubscribes safely, and uses the matching snapshot/check channels", async () => {
 		let bridge!: {
@@ -191,6 +221,12 @@ describe("desktop packaging policy", () => {
 	it("configuration is accepted by the INSTALLED electron-builder schema", async () => {
 		const { validateConfiguration } = require("app-builder-lib/out/util/config/config.js");
 		await validateConfiguration(config, { isEnabled: false });
+	});
+
+	it("flips the fuses that close debugger attach and plaintext cookies, keeping run-as-Node for the server", () => {
+		assert.equal(config.electronFuses.enableCookieEncryption, true);
+		assert.equal(config.electronFuses.enableNodeCliInspectArguments, false);
+		assert.equal(config.electronFuses.runAsNode, undefined, "main.cjs starts the server with ELECTRON_RUN_AS_NODE");
 	});
 
 	it("ships Mac arm64, Windows NSIS x64, and both Linux x64 channels", () => {

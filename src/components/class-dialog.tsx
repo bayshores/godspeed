@@ -5,7 +5,8 @@
  *
  * Deadline edits are drafts until Save (src/components/class-deadlines-model.ts
  * turns them into the deadline routes' writes). Every write goes to /api/classes/*;
- * the server announces classes-changed and the class list refetches.
+ * the server announces classes-changed and the class list refetches. Closing
+ * with unsaved changes (backdrop, Esc or X) asks "Discard your changes?" first.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,7 +17,7 @@ import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
 import { DeadlinesEditor } from "@/components/class-deadlines";
 import { RuleChips } from "@/components/rule-chips";
-import { changedFields, deadlineWrites, draftProblem, draftsFrom, type DeadlineDraft } from "@/components/class-deadlines-model";
+import { changedFields, deadlineWrites, draftProblem, draftsFrom, dropRemoved, hasUnsavedChanges, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
 import type { ClassDeadline, ClassIcon, ClassRecord, ClassSignature, SignatureKind } from "@/core";
 import { ClassSignatureField } from "@/components/class-signature-field";
@@ -64,6 +65,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [confirmDiscard, setConfirmDiscard] = useState(false);
 	const newCount = useRef(0);
 
 	// First load fills the fields; later refreshes keep your edits. Save
@@ -90,8 +92,37 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		}
 	}, [record, mode]);
 
+	// A deadline an agent removes while the dialog is open leaves it too,
+	// unless the learner edited it (then Save says it is gone).
+	const seenLive = useRef(new Set<string>());
+	useEffect(() => {
+		const seed = seeded.current;
+		if (!record || !seed) return;
+		const live = new Set((record.deadlines ?? []).map((d) => d.id));
+		for (const id of live) seenLive.current.add(id);
+		const next = dropRemoved(seed.deadlines, drafts, new Set([...seenLive.current].filter((id) => !live.has(id))));
+		if (!next) return;
+		seed.deadlines = next.seeded;
+		setDrafts(next.drafts);
+	}, [record, drafts]);
+
+	const fields: ClassFields = { name, description, signature: signature.value.trim() ? signature : null, icon, rules };
+	const unsaved =
+		mode.kind === "create"
+			? name.trim() !== "" || description.trim() !== ""
+			: !!seeded.current && hasUnsavedChanges(seeded.current, fields, drafts);
+	/** Backdrop, Esc and X: ask first when something would be lost. A save
+	 *  in flight stays open so its error can show. */
+	const requestClose = useCallback(() => {
+		if (busy) return;
+		if (unsaved) {
+			setConfirmDelete(false);
+			setConfirmDiscard(true);
+		} else onClose();
+	}, [busy, unsaved, onClose]);
+
 	const backdropDismiss = useBackdropDismiss(() => {
-		if (!busy) onClose();
+		if (!confirmDiscard) requestClose();
 	});
 	useEffect(() => {
 		if (state === "closed") return;
@@ -100,13 +131,14 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				// Claimed even while saving, so Esc never reaches the abort-turn fallback.
 				e.preventDefault();
 				e.stopPropagation();
-				// A save in flight stays open so its error can show.
-				if (!busy) onClose();
+				// Esc on the discard question keeps editing.
+				if (confirmDiscard) setConfirmDiscard(false);
+				else requestClose();
 			}
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [busy, onClose, state]);
+	}, [confirmDiscard, requestClose, state]);
 
 	const call = async (url: string, init: RequestInit): Promise<unknown | null> => {
 		setBusy(true);
@@ -133,13 +165,16 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	}, []);
 
 	/** Save the deadline drafts: each write in turn, and each one that lands
-	 *  updates the seeded copy, so a retried Save sends only what is left. */
+	 *  updates the seeded copy, so a retried Save sends only what is left.
+	 *  An edited deadline that was removed while the dialog was open is
+	 *  dropped and named in the returned message; it is never added back. */
 	const saveDeadlines = async (classId: string, seed: { deadlines: ClassDeadline[] }): Promise<string | null> => {
 		const base = `/api/classes/${encodeURIComponent(classId)}/deadlines`;
 		const settle = (id: string, deadline?: ClassDeadline) => {
 			seed.deadlines = seed.deadlines.flatMap((d) => (d.id !== id ? [d] : deadline ? [deadline] : []));
 		};
 		const gone = (body: unknown) => (body as { code?: string } | null)?.code === "deadline_not_found";
+		const removed: string[] = [];
 		for (const w of deadlineWrites(seed.deadlines, drafts)) {
 			if (w.op === "remove") {
 				const { error: failed, body } = await send(`${base}/${encodeURIComponent(w.id)}`, { method: "DELETE" });
@@ -148,10 +183,12 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				settle(w.id);
 			} else if (w.op === "update") {
 				const { error: failed, body } = await send(`${base}/${encodeURIComponent(w.id)}`, jsonInit("PUT", w.body));
+				if (failed && !gone(body)) return failed;
 				if (failed) {
-					// Removed while the dialog was open: a retried Save adds the draft back.
-					if (gone(body)) settle(w.id);
-					return failed;
+					settle(w.id);
+					removed.push(drafts.find((d) => d.key === w.key)?.name.trim() || "A deadline");
+					setDrafts((ds) => ds.filter((d) => d.key !== w.key));
+					continue;
 				}
 				settle(w.id, (body as { deadline?: ClassDeadline } | null)?.deadline);
 			} else {
@@ -169,7 +206,10 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				}
 			}
 		}
-		return null;
+		if (removed.length === 0) return null;
+		return removed.length === 1
+			? `${removed[0]} was removed while you were editing it, so your changes to it weren't saved.`
+			: `${removed.join(", ")} were removed while you were editing them, so your changes to them weren't saved.`;
 	};
 
 	const save = async () => {
@@ -194,7 +234,6 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		}
 		setBusy(true);
 		setError(null);
-		const fields: ClassFields = { name, description, signature: signature.value.trim() ? signature : null, icon, rules };
 		const body = changedFields(seed.fields, fields);
 		let failed: string | null = null;
 		if (Object.keys(body).length > 0) {
@@ -230,7 +269,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						aria-label="Close"
 						data-testid="class-dialog-close"
 						disabled={busy}
-						onClick={onClose}
+						onClick={requestClose}
 						className="lh-press text-ink-2 hover:text-ink disabled:opacity-60"
 					>
 						<XIcon className="size-4" aria-hidden />
@@ -279,7 +318,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						<div className="mt-2.5 flex flex-col gap-2">
 							<span className="flex items-baseline justify-between gap-3">
 								<span className={LABEL}>Rules for this class</span>
-								<span className="text-xs text-ink-3">Added to your rules in every {record.name} lesson</span>
+								<span className="text-xs text-ink-2">Added to your rules in every {record.name} lesson</span>
 							</span>
 							<RuleChips rules={rules} onChange={setRules} testid="class-rules" />
 						</div>
@@ -307,7 +346,30 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 					)}
 				</div>
 
-				{confirmDelete && record ? (
+				{confirmDiscard ? (
+					<div data-testid="class-discard-confirm" className="flex shrink-0 flex-col gap-2 border-t border-tone-2 px-5 py-3.5 text-[13px]">
+						<span className="text-sm font-bold text-ans-wrong">Discard your changes?</span>
+						<span className="text-ink-2">What you changed here hasn&apos;t been saved.</span>
+						<div className="flex justify-end gap-2">
+							<button
+								type="button"
+								data-testid="class-discard-cancel"
+								onClick={() => setConfirmDiscard(false)}
+								className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink"
+							>
+								Keep editing
+							</button>
+							<button
+								type="button"
+								data-testid="class-discard-confirm-button"
+								onClick={onClose}
+								className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-white hover:bg-red-600"
+							>
+								Discard
+							</button>
+						</div>
+					</div>
+				) : confirmDelete && record ? (
 					<div data-testid="class-delete-confirm" className="flex shrink-0 flex-col gap-2 border-t border-tone-2 px-5 py-3.5 text-[13px]">
 						<span className="text-sm font-bold text-ans-wrong">Delete {record.name}?</span>
 						<span className="text-ink-2">

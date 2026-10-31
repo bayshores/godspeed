@@ -18,6 +18,7 @@ import {
 	writeSettingsRecord,
 	type SettingsBodyResult,
 } from "@/server";
+import { CURRENT_SETTINGS_VERSION } from "@/core";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ section: st
 	if (!parsed.ok) {
 		return Response.json({ error: parsed.error }, { status: 400 });
 	}
-	const record = readSettingsRecord() ?? { version: 1 };
+	const record = readSettingsRecord() ?? { version: CURRENT_SETTINGS_VERSION };
 	const next = { ...record, [section]: parsed.settings };
 	writeSettingsRecord(next);
 	return Response.json({ settings: next });

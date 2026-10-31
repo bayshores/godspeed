@@ -86,7 +86,7 @@ describe("agent actions from the MCP tools", () => {
 
 		let deadlineId = "";
 		const [added] = await heard(async () => {
-			deadlineId = (await call("add_class_deadline", { class_id: classId, kind: "homework", name: "HW 5", date: "2026-11-05" })).body.deadline.id;
+			deadlineId = (await call("add_class_deadline", { class_id: classId, deadlines: [{ kind: "homework", name: "HW 5", date: "2026-11-05" }] })).body.deadlines[0].id;
 		});
 		assert.equal(added!.label, "Adding HW 5");
 		assert.deepEqual(added!.target, { kind: "deadline", id: deadlineId });
@@ -103,7 +103,7 @@ describe("agent actions from the MCP tools", () => {
 	});
 
 	it("a refused change reports nothing", async () => {
-		const got = await heard(() => call("add_class_deadline", { class_id: "cls_missing", kind: "exam", name: "Final", date: "2026-12-10" }));
+		const got = await heard(() => call("add_class_deadline", { class_id: "cls_missing", deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] }));
 		assert.deepEqual(got, []);
 		const got2 = await heard(() => call("list_classes", {}));
 		assert.deepEqual(got2, [], "reading changes nothing");
@@ -117,8 +117,10 @@ describe("agent actions from the MCP tools", () => {
 		assert.equal(addedFile!.label, "Adding syllabus.md");
 		assert.equal(addedFile!.target?.kind, "file");
 		assert.equal(addedFile!.page, "/class/files");
-		const [kind] = await heard(() => call("set_class_file_kind", { class_id: classId, file_id: addedFile!.target!.id, kind: "info" }));
+		const [kind] = await heard(() => call("set_class_file_kind", { class_id: classId, file_ids: [addedFile!.target!.id], kind: "info" }));
 		assert.equal(kind!.label, "Marking syllabus.md as course info");
+		const batch = await heard(() => call("add_class_deadline", { class_id: classId, deadlines: [{ kind: "quiz", name: "Quiz 1", date: "2026-11-02" }, { kind: "quiz", name: "Quiz 2", date: "2026-11-09" }] }));
+		assert.deepEqual(batch.map((a) => a.label), ["Adding Quiz 1", "Adding Quiz 2"], "one action per deadline in a batch");
 	});
 });
 

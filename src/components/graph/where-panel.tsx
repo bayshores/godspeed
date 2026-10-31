@@ -26,6 +26,7 @@ export function WherePanel({
 	onSelectTopic,
 	onPractice,
 	practicing,
+	practiceError,
 }: {
 	data: Pick<ProgressPayload, "deadlines" | "overall" | "topics">;
 	deadlineId: string | null;
@@ -33,6 +34,8 @@ export function WherePanel({
 	onSelectTopic: (id: string) => void;
 	onPractice: (topicIds: string[]) => void;
 	practicing: boolean;
+	/** Why the last practice didn't start (shown under the button). */
+	practiceError: string | null;
 }) {
 	const pickable = pickableDeadlines(data.deadlines);
 	const deadline = pickable.find((d) => d.id === deadlineId) ?? null;
@@ -73,6 +76,7 @@ export function WherePanel({
 					testid="practice-these"
 					label={`Practice these ${next.length}`}
 					busy={practicing}
+					error={practiceError}
 					onClick={() => onPractice(next.map((n) => n.topicId))}
 				/>
 			)}
@@ -240,18 +244,38 @@ const NextRow = memo(function NextRow({
 	);
 });
 
-/** The panel's full-width white bottom button. */
-export function PracticeBar({ label, onClick, busy, testid }: { label: string; onClick: () => void; busy: boolean; testid: string }) {
+/** The panel's full-width white bottom button, with why the last start
+ *  failed under it. */
+export function PracticeBar({
+	label,
+	onClick,
+	busy,
+	error,
+	testid,
+}: {
+	label: string;
+	onClick: () => void;
+	busy: boolean;
+	error: string | null;
+	testid: string;
+}) {
 	return (
-		<button
-			type="button"
-			data-testid={testid}
-			disabled={busy}
-			onClick={onClick}
-			className="lh-press flex h-14 w-full shrink-0 items-center gap-2 bg-primary px-5 text-[15px] font-extrabold text-primary-foreground hover:opacity-90 disabled:opacity-60"
-		>
-			<DumbbellIcon className="size-4" aria-hidden />
-			{label}
-		</button>
+		<>
+			<button
+				type="button"
+				data-testid={testid}
+				disabled={busy}
+				onClick={onClick}
+				className="lh-press flex h-14 w-full shrink-0 items-center gap-2 bg-primary px-5 text-[15px] font-extrabold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+			>
+				<DumbbellIcon className="size-4" aria-hidden />
+				{label}
+			</button>
+			{error && (
+				<p role="alert" data-testid="practice-start-error" className="shrink-0 px-5 py-2 text-[13px] text-ans-wrong">
+					{error}
+				</p>
+			)}
+		</>
 	);
 }

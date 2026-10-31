@@ -29,7 +29,7 @@ const { HalleyFace } = await import("../src/components/halley/halley-face.tsx");
 const { HALLEY_MOODS } = await import("../src/components/halley/mood.ts");
 const { HalleyPanel, agentLine, panelPlacement } = await import("../src/components/halley/halley-panel.tsx");
 const { FollowChipView } = await import("../src/components/halley/follow-chip.tsx");
-const { WAITING_NOTICE } = await import("../src/components/agent-status.tsx");
+const { waitingNotice } = await import("../src/components/agent-status.tsx");
 const { ActivitySection } = await import("../src/components/activity-dock.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../src/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../src/server/settings-body.ts");
@@ -75,7 +75,7 @@ describe("the panel", () => {
 	const panel = (over: Partial<React.ComponentProps<typeof HalleyPanel>> = {}) => (
 		<HalleyPanel
 			name="Halley"
-			agent={{ connected: true, name: "Claude Code", pendingWork: 0 }}
+			agent={{ connected: true, teaching: true, name: "Claude Code", pendingWork: 0, claimedLessons: [] }}
 			follow={false}
 			onFollow={() => {}}
 			nowText="Reading syllabus.pdf for CSE 29"
@@ -90,13 +90,16 @@ describe("the panel", () => {
 	it("head: the name, the agent, and the Follow switch", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);
-		assert.match(html, /Claude Code · connected/);
+		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Claude Code</);
 		assert.match(html, /role="switch" aria-checked="false" aria-label="Follow"/);
 	});
-	it("no agent: the waiting notice", () => {
-		assert.equal(agentLine({ connected: false, pendingWork: 0 }), WAITING_NOTICE);
-		assert.equal(agentLine(null), WAITING_NOTICE);
-		assert.match(renderToStaticMarkup(panel({ agent: { connected: false, pendingWork: 2 } })), new RegExp(WAITING_NOTICE));
+	it("the agent line matches the footer, and shows the waiting notice while work waits", () => {
+		const idle = { connected: false, teaching: false, pendingWork: 0, claimedLessons: [] };
+		assert.equal(agentLine(idle), "No agent connected");
+		assert.equal(agentLine(null), "No agent connected");
+		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
+		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
+		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
 	it("Now shows what it is doing, and hides when nothing is happening", () => {
 		assert.match(renderToStaticMarkup(panel()), /Reading syllabus\.pdf for CSE 29/);

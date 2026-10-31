@@ -35,6 +35,7 @@ export const FileSection = memo(function FileSection({
 	coverage,
 	disabled,
 	flashId,
+	agentTeaching,
 	actions,
 	headerExtra,
 	beforeRows,
@@ -51,6 +52,7 @@ export const FileSection = memo(function FileSection({
 	coverage: ReadonlyMap<string, FileCoverage>;
 	disabled?: boolean;
 	flashId: string | null;
+	agentTeaching: boolean;
 	actions: FileRowActions;
 	/** Header items before Add (the linked folder or Link folder). */
 	headerExtra?: ReactNode;
@@ -160,6 +162,7 @@ export const FileSection = memo(function FileSection({
 								disabled={disabled}
 								flash={flashId === file.id}
 								dragging={draggingId === file.id}
+								agentTeaching={agentTeaching}
 								actions={actions}
 							/>
 						))}
@@ -182,7 +185,7 @@ export const FileSection = memo(function FileSection({
 				>
 					<ArrowDownToLineIcon className="size-5 text-ink-3" aria-hidden />
 					<span className="text-[14.5px] text-ink-2">{EMPTY[kind].line}</span>
-					<span className="text-[12.5px] text-ink-3">{EMPTY[kind].sub}</span>
+					<span className="text-[12.5px] text-ink-2">{EMPTY[kind].sub}</span>
 				</div>
 			)}
 		</section>

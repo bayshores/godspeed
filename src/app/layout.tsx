@@ -12,8 +12,9 @@ import { ClassProvider } from "@/components/class-context";
 import { SoundProvider } from "@/components/sounds";
 // The light server door — the @/server barrel would load the whole server
 // (agent engine, MCP, extraction) just for these two render-time reads.
-import { onboardingNeeded, readSettingsRecord, welcomeNeeded, whatsNewSince } from "@/server/settings-read";
+import { firstLoadScreen, onboardingNeeded, readSettingsRecord, whatsNewSince } from "@/server/settings-read";
 import { Onboarding } from "@/components/onboarding/onboarding";
+import { RestartNotice } from "@/components/restart-notice";
 import { WhatsNew } from "@/components/whats-new";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
@@ -56,7 +57,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	}
 	// Asked even during onboarding, so finishing it doesn't open the welcome
 	// screen right after "You're all set".
-	const welcome = welcomeNeeded() && !onboarding;
+	const firstLoad = firstLoadScreen();
+	const welcome = firstLoad === "welcome" && !onboarding;
 	try {
 		const general = readSettingsRecord()?.general;
 		const raw = general?.activeClass;
@@ -94,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			</ServerEventsProvider>
 			{/* Auto-update banner: fixed card, Electron-only pushes. */}
 			<UpdateBanner />
+			{firstLoad === "restarted" && <RestartNotice />}
 			{/* "What's new" after an update (after the welcome screen when it
 			    shows); Settings reopens it. */}
 			{!onboarding && <WhatsNew since={welcome ? null : whatsNew} />}

@@ -2060,7 +2060,7 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 		provenance: [{ chatId: "src_1", messageId: "" }],
 	});
 
-	it("the owner example: [A,B]⇒X + [X,C]⇒Y make [A,B,C]⇒Y redundant (ancestry-cover)", () => {
+	it("the owner example: [A,B]⇒X + [X,C]⇒Y make [A,B,C]⇒Y redundant", () => {
 		const kept = simplifyChains([
 			chain("arg_3", ["n_a", "n_b", "n_c"], "n_y", "2026-09-30T03:00:00.000Z"),
 			chain("arg_1", ["n_a", "n_b"], "n_x", "2026-09-30T01:00:00.000Z"),
@@ -2084,13 +2084,13 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 			chain("arg_3", ["n_c", "n_d"], "n_y", "2026-09-30T03:00:00.000Z"),
 			chain("arg_4", ["n_a", "n_c"], "n_y", "2026-09-30T04:00:00.000Z"),
 		]);
-		// arg_3's premises are covered by NO kept chain — an independent
-		// route, it stands. arg_4 is a strict premise-superset of arg_1's
+		// arg_3's premises derive nothing through the kept chains: an
+		// independent route, it stands. arg_4 is a strict premise-superset of arg_1's
 		// route (n_a already suffices) — the lean derivation wins.
 		assert.deepEqual(kept.map((c) => c.id).sort(), ["arg_1", "arg_2", "arg_3"]);
 	});
 
-	it("ancestry reaches transitively: [W]⇒A chains through [A,B]⇒X", () => {
+	it("derivation reaches transitively: [W]⇒A chains through [A,B]⇒X", () => {
 		const kept = simplifyChains([
 			chain("arg_1", ["n_w"], "n_a", "2026-09-30T01:00:00.000Z"),
 			chain("arg_2", ["n_a", "n_b"], "n_x", "2026-09-30T02:00:00.000Z"),
@@ -2098,6 +2098,34 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 			chain("arg_4", ["n_w", "n_b", "n_c"], "n_y", "2026-09-30T04:00:00.000Z"),
 		]);
 		assert.deepEqual(kept.map((c) => c.id).sort(), ["arg_1", "arg_2", "arg_3"]);
+	});
+
+	it("a stronger chain stands: [A]⇒Y is not derivable from [A,B]⇒X + [X]⇒Y", () => {
+		const kept = simplifyChains([
+			chain("arg_1", ["n_a", "n_b"], "n_x", "2026-09-30T01:00:00.000Z"),
+			chain("arg_2", ["n_x"], "n_y", "2026-09-30T02:00:00.000Z"),
+			chain("arg_3", ["n_a"], "n_y", "2026-09-30T03:00:00.000Z"),
+		]);
+		assert.deepEqual(kept.map((c) => c.id), ["arg_1", "arg_2", "arg_3"]);
+	});
+
+	it("part of a co-premise set derives nothing: [A,C]⇒Y stands next to [A,B]⇒X + [X,C]⇒Y", () => {
+		const kept = simplifyChains([
+			chain("arg_1", ["n_a", "n_b"], "n_x", "2026-09-30T01:00:00.000Z"),
+			chain("arg_2", ["n_x", "n_c"], "n_y", "2026-09-30T02:00:00.000Z"),
+			chain("arg_3", ["n_a", "n_c"], "n_y", "2026-09-30T03:00:00.000Z"),
+		]);
+		assert.deepEqual(kept.map((c) => c.id), ["arg_1", "arg_2", "arg_3"]);
+	});
+
+	it("chains that derive each other never both drop: P still derives X and Y", () => {
+		const kept = simplifyChains([
+			chain("arg_d", ["n_p"], "n_x", "2026-09-30T01:00:00.000Z"),
+			chain("arg_c", ["n_p"], "n_y", "2026-09-30T02:00:00.000Z"),
+			chain("arg_f", ["n_y"], "n_x", "2026-09-30T03:00:00.000Z"),
+			chain("arg_g", ["n_x"], "n_y", "2026-09-30T04:00:00.000Z"),
+		]);
+		assert.deepEqual(kept.map((c) => c.id), ["arg_d", "arg_f", "arg_g"]);
 	});
 
 	it("same-key provenance lines drop TOGETHER (a key is kept or dropped as a whole)", () => {

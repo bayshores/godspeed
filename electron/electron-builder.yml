@@ -158,6 +158,10 @@ electronFuses:
   # The browser-service helper opens model-written demos from file://; without
   # this they could fetch any other file on disk.
   grantFileProtocolExtraPrivileges: false
+  # Cookies on disk are encrypted with the OS keychain key.
+  enableCookieEncryption: true
+  # No --inspect flags or SIGUSR1: nothing can attach a debugger to the app.
+  enableNodeCliInspectArguments: false
   # Flipping a fuse edits the binary; the ad-hoc re-sign keeps unsigned arm64
   # builds (desktop:local) launchable. Signed builds are re-signed after.
   resetAdHocDarwinSignature: true

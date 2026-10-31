@@ -14,35 +14,53 @@ import { useServerEvent, useServerResync } from "@/components/server-events";
 export interface AgentStatus {
 	/** An agent checked in recently. */
 	connected: boolean;
+	/** The agent ran the work loop recently (wait_for_work, respond, read_work). */
+	teaching: boolean;
 	/** The agent's name from its MCP handshake ("Claude Code"). */
 	name?: string;
 	/** Requests waiting for (or being handled by) the agent. */
 	pendingWork: number;
+	/** Lessons whose current request an agent took and hasn't answered, with the ISO claim time. */
+	claimedLessons: { lessonId: string; claimedAt: string }[];
 }
 
-/** The notice shown while work waits and no agent is connected. */
-export const WAITING_NOTICE = "Waiting for your agent. Run /godspeed:teach";
+/** How to get the agent teaching: the plugin command for Claude Code (or
+ *  an unknown agent), a plain ask for any other agent. */
+export function teachStep(name?: string): string {
+	return !name || name === "Claude Code" ? "Run /godspeed:teach in Claude Code." : `Ask ${name} to teach you with the godspeed tools.`;
+}
 
-/** True when work is waiting and no agent is there to take it. */
+/** The notice shown while work waits and no agent is teaching. */
+export function waitingNotice(name?: string): string {
+	return `Waiting for your agent. ${teachStep(name)}`;
+}
+
+/** True when work is waiting and no agent is running the work loop to take it. */
 export function agentWaiting(status: AgentStatus | null): boolean {
-	return !!status && !status.connected && status.pendingWork > 0;
+	return !!status && !status.teaching && status.pendingWork > 0;
 }
 
 /** Parse the /api/mcp-access body (pure — exported for tests). */
 export function parseAgentStatus(body: unknown): AgentStatus | null {
 	if (!body || typeof body !== "object") return null;
-	const b = body as { agentConnected?: unknown; agentName?: unknown; pendingWork?: unknown };
+	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; pendingWork?: unknown; claimedLessons?: unknown };
 	return {
 		connected: b.agentConnected === true,
+		teaching: b.agentTeaching === true,
 		...(typeof b.agentName === "string" && b.agentName.trim() ? { name: b.agentName.trim() } : {}),
 		pendingWork: typeof b.pendingWork === "number" && b.pendingWork > 0 ? b.pendingWork : 0,
+		claimedLessons: Array.isArray(b.claimedLessons)
+			? b.claimedLessons.filter((c): c is { lessonId: string; claimedAt: string } =>
+				!!c && typeof c.lessonId === "string" && typeof c.claimedAt === "string")
+			: [],
 	};
 }
 
 /** True when two statuses read the same, so a poll can keep the old object
  *  and consumers skip a render (pure — exported for tests). */
 export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
-	return !!a && a.connected === b.connected && a.name === b.name && a.pendingWork === b.pendingWork;
+	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork
+		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons);
 }
 
 const AgentStatusContext = createContext<AgentStatus | null>(null);
@@ -76,10 +94,18 @@ export function useAgentStatus(): AgentStatus | null {
 	return useContext(AgentStatusContext);
 }
 
-/** The sidebar footer's agent line (also Settings → Connection). Pure — exported for tests. While work waits and no
- *  agent is connected it reads "Waiting for your agent". */
-export function footerLabel(agent: { connected: boolean; name?: string; pendingWork?: number } | null, jobs: number): string {
-	const waiting = !!agent && !agent.connected && (agent.pendingWork ?? 0) > 0;
-	const who = agent?.connected ? agent.name?.trim() || "Your agent" : waiting ? "Waiting for your agent" : "No agent connected";
+/** The sidebar footer's agent line (also Settings → Connection and Halley's
+ *  panel). Pure — exported for tests. */
+export function footerLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null, jobs: number): string {
+	const name = agent?.name?.trim() || "Your agent";
+	const who = !agent
+		? "No agent connected"
+		: agent.teaching
+			? name
+			: agent.connected
+				? `${name} connected, not teaching`
+				: agent.pendingWork > 0
+					? "Waiting for your agent"
+					: "No agent connected";
 	return jobs > 0 ? `${who} · ${jobs} job${jobs === 1 ? "" : "s"}` : who;
 }

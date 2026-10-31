@@ -203,7 +203,7 @@ function DemoFrame({
 				<DemoErrorChip
 					message={state.error}
 					onSend={actions ? () => actions.sendText(`The demo "${title}" threw an error: ${state.error}`) : undefined}
-					canSend={actions?.canSendText ?? false}
+					blocked={actions ? actions.sendBlocked : null}
 				/>
 			)}
 			<iframe
@@ -234,14 +234,15 @@ function DemoFrame({
 	);
 }
 
-function DemoErrorChip({
+export function DemoErrorChip({
 	message,
 	onSend,
-	canSend,
+	blocked,
 }: {
 	message: string;
 	onSend?: () => void;
-	canSend: boolean;
+	/** Why the lesson can't take the report right now (shown as a tip), or null. */
+	blocked: string | null;
 }) {
 	return (
 		<div
@@ -256,7 +257,8 @@ function DemoErrorChip({
 				<button
 					type="button"
 					onClick={onSend}
-					disabled={!canSend}
+					disabled={blocked !== null}
+					title={blocked ?? undefined}
 					className=" border border-red-500/40 px-2 py-1 text-xs font-medium hover:bg-red-500/15 disabled:opacity-50"
 					data-testid="demo-error-send"
 				>

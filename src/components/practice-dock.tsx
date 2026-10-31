@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, HeaderChip, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import type { ChatAttachment } from "@/core";
@@ -14,8 +14,8 @@ import type { ChatAttachment } from "@/core";
  * agent; one problem may take many submissions, each starting a turn.
  *
  * The commitment (modelSolution, …) rides the call's arguments and never
- * renders here — only the statement is the learner's. Esc dismisses the
- * problem through the page's layered-Esc chain, not here.
+ * renders here — only the statement is the learner's. Discard problem
+ * (and Esc, through the page's layered-Esc chain) opens the discard confirm.
  */
 interface PracticeDockProps {
 	/** The active problem's tool-call id (submissions target it). */
@@ -33,12 +33,29 @@ interface PracticeDockProps {
 	compactionRunning?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
 	footer?: React.ReactNode;
+	/** The thinking as the learner left it (this problem's saved draft). */
+	initialDraft?: string;
+	/** Called with the unsent thinking on every change, so it survives leaving the lesson. */
+	onSaveDraft?: (thinking: string) => void;
+	/** Opens the discard confirm. */
+	onDiscard?: () => void;
 }
 
-export function PracticeDock({ problemCallId, input, number, onSubmit, busy = false, compactionRunning = false, footer }: PracticeDockProps) {
-	const [thinking, setThinking] = useState("");
+export function PracticeDock({
+	problemCallId,
+	input,
+	number,
+	onSubmit,
+	busy = false,
+	compactionRunning = false,
+	footer,
+	initialDraft = "",
+	onSaveDraft,
+	onDiscard,
+}: PracticeDockProps) {
+	const [thinking, setThinking] = useState(initialDraft);
 	// The ref mirrors the field: the window-level Enter reads the current trace.
-	const thinkingRef = useRef("");
+	const thinkingRef = useRef(initialDraft);
 	const attachments = useAttachmentDraft();
 	const empty = thinking.trim().length === 0 && attachments.files.length === 0;
 
@@ -50,11 +67,13 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 		if (text.length === 0 && files.length === 0) return;
 		thinkingRef.current = "";
 		setThinking("");
+		onSaveDraft?.("");
 		attachments.clear();
 		void onSubmit(text, files).then((sent) => {
 			if (sent) return;
 			thinkingRef.current = restoreUnsent(text, thinkingRef.current);
 			setThinking(thinkingRef.current);
+			onSaveDraft?.(thinkingRef.current);
 			attachments.restore(drafts);
 		});
 	};
@@ -77,9 +96,11 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 				<PanelHeader
 					eyebrow="Your turn"
 					right={
-						<KindChip testId="problem-number">
-							<span className="text-[12.5px] font-bold text-ink-2">{number ? `Problem ${number}` : "Problem"}</span>
-						</KindChip>
+						<HeaderChip exit={onDiscard && { label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
+							<KindChip testId="problem-number">
+								<span className="text-[12.5px] font-bold text-ink-2">{number ? `Problem ${number}` : "Problem"}</span>
+							</KindChip>
+						</HeaderChip>
 					}
 				/>
 				<div
@@ -98,6 +119,7 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 						onChange={(e) => {
 							thinkingRef.current = e.target.value;
 							setThinking(e.target.value);
+							onSaveDraft?.(e.target.value);
 						}}
 						onKeyDown={(e) => {
 							// Esc stays in the field so the window chain doesn't fire.
@@ -124,7 +146,7 @@ export function PracticeDock({ problemCallId, input, number, onSubmit, busy = fa
 					<ActionBar
 						type="submit"
 						testId="practice-send"
-						label={compactionRunning ? "Compacting the lesson…" : "Send"}
+						label={compactionRunning ? "Summarizing the lesson…" : "Send"}
 						disabled={empty || compactionRunning || busy}
 					/>
 				</div>

@@ -83,7 +83,7 @@ export function SettingsRow({
 				) : (
 					text
 				)}
-				{hint && <span className="block text-xs text-ink-3">{hint}</span>}
+				{hint && <span className="block text-xs text-ink-2">{hint}</span>}
 			</span>
 			{children}
 		</div>

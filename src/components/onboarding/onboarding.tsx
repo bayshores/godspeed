@@ -8,8 +8,11 @@
  *
  * The agent step waits live for the agent's first check-in (the shared
  * agent status, src/components/agent-status.tsx); "I'll do this later" skips
- * it. The class step is optional. Finishing writes general.onboarded and
- * re-renders the layout, which then shows Home.
+ * it. The class step is optional. Without an agent, the done step's
+ * "Connect your agent" goes back to step 1, whose Continue then returns to
+ * the done step. Finishing writes general.onboarded and re-renders the
+ * layout, which then shows Home; if that save fails, the done step stays
+ * with Try again.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,7 +21,7 @@ import { CheckIcon, CircleCheckIcon, CopyIcon, FolderDownIcon } from "lucide-rea
 import { useAgentStatus } from "@/components/agent-status";
 import { useSound } from "@/components/sounds";
 import { notifySettingsSaved } from "@/components/settings-signal";
-import { CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/connection-section";
+import { ACCESS_ERROR, CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/connection-section";
 import { linkClassFolder, uploadClassFiles } from "@/components/files/class-files-api";
 import { CLASS_FILE_ACCEPT } from "@/components/files/files-model";
 import { cn } from "@/lib/utils";
@@ -72,24 +75,36 @@ export function Onboarding() {
 	const [introSkipped, setIntroSkipped] = useState(false);
 	const [leaving, setLeaving] = useState(false);
 	const [classId, setClassId] = useState<string | null>(null);
+	// The class step is behind us: "Connect your agent" on the done step comes back here, not to it again.
+	const [classStepDone, setClassStepDone] = useState(false);
+	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
+	const [saveFailed, setSaveFailed] = useState(false);
 	const status = useAgentStatus();
 
 	const finish = useCallback(async () => {
+		setSaveFailed(false);
 		setLeaving(true);
+		let saved = false;
 		try {
-			const current = (await fetch("/api/settings", { cache: "no-store" }).then((r) => r.json())) as {
-				settings?: { general?: Record<string, unknown> } | null;
-			};
+			const read = await fetch("/api/settings", { cache: "no-store" });
+			if (!read.ok) throw new Error(String(read.status));
+			const current = (await read.json()) as { settings?: { general?: Record<string, unknown> } | null };
 			const general = { ...(current.settings?.general ?? {}), onboarded: true, ...(classId ? { activeClass: classId } : {}) };
 			const res = await fetch("/api/settings/general", {
 				method: "PUT",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify(general),
 			});
-			if (res.ok) notifySettingsSaved("general");
+			saved = res.ok;
 		} catch {
-			/* the next launch shows the end of onboarding again */
+			/* saved stays false */
 		}
+		if (!saved) {
+			setLeaving(false);
+			setSaveFailed(true);
+			return;
+		}
+		notifySettingsSaved("general");
 		await new Promise((r) => setTimeout(r, 600));
 		router.replace("/");
 		router.refresh();
@@ -107,16 +122,25 @@ export function Onboarding() {
 			<Constellation mode={sky} />
 			<div className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave")}>
 				{step === "intro" && <Intro skipped={introSkipped} onSkip={() => setIntroSkipped(true)} onDone={() => setStep("agent")} />}
-				{step === "agent" && <AgentStep connected={!!status?.connected} name={status?.name} onNext={() => setStep("class")} />}
+				{step === "agent" && <AgentStep connected={!!status?.connected} name={status?.name} onNext={() => setStep(classStepDone ? "done" : "class")} />}
 				{step === "class" && (
 					<ClassStep
 						onDone={(id) => {
 							setClassId(id);
+							setClassStepDone(true);
 							setStep("done");
 						}}
 					/>
 				)}
-				{step === "done" && <DoneStep agentName={status?.connected ? status.name : undefined} onStart={() => void finish()} disabled={leaving} />}
+				{step === "done" && (
+					<DoneStep
+						agent={status?.connected ? { name: status.name } : null}
+						onStart={() => void finish()}
+						onConnect={() => setStep("agent")}
+						disabled={leaving}
+						failed={saveFailed}
+					/>
+				)}
 			</div>
 		</div>
 	);
@@ -240,7 +264,7 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 			.then(
 				(body) => setAccess({ token: body.token, url: body.url }),
 				// One plain message for every failure, so raw network errors never show.
-				() => setError("Agent access settings are unavailable."),
+				() => setError(ACCESS_ERROR),
 			);
 	}, []);
 	useReturn(connected ? onNext : null);
@@ -270,7 +294,7 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 						copy={codexConfig(access.url, access.token)}
 					/>
 				) : (
-					<p className="text-xs text-ink-3">{error ?? "Loading…"}</p>
+					<p className="text-xs text-ink-2">{error ?? "Loading…"}</p>
 				)}
 				<Numbered n={2}>
 					Then ask Codex to teach you with the godspeed tools. Set Codex&apos;s approvals to Full Access first, so it never stops to ask your
@@ -289,7 +313,7 @@ function AgentStep({ connected, name, onNext }: { connected: boolean; name?: str
 						copy={`${access.url}\nAuthorization: Bearer ${access.token}`}
 					/>
 				) : (
-					<p className="text-xs text-ink-3">{error ?? "Loading…"}</p>
+					<p className="text-xs text-ink-2">{error ?? "Loading…"}</p>
 				)}
 				<Numbered n={2}>
 					Then ask it to teach you with the godspeed tools. Let your agent use the godspeed tools without asking your permission.
@@ -479,7 +503,7 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 			>
 				<FolderDownIcon className="size-5 text-ink-2" aria-hidden />
 				<span className="text-[14.5px] text-ink">{summary ? "Drop to replace, or click to choose again" : "Drop files or a folder here"}</span>
-				<span data-testid="onboarding-drop-hint" className="max-w-full truncate text-[12.5px] text-ink-3">
+				<span data-testid="onboarding-drop-hint" className="max-w-full truncate text-[12.5px] text-ink-2">
 					{summary ?? "A linked folder keeps adding new notes by itself."}
 				</span>
 			</button>
@@ -506,7 +530,22 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 
 // ─── You're all set ─────────────────────────────────────────────────────────
 
-function DoneStep({ agentName, onStart, disabled }: { agentName?: string; onStart: () => void; disabled: boolean }) {
+export function DoneStep({
+	agent,
+	onStart,
+	onConnect,
+	disabled,
+	failed,
+}: {
+	/** The connected agent, or null when none is connected yet. */
+	agent: { name?: string } | null;
+	onStart: () => void;
+	/** Back to step 1, "Connect your agent". */
+	onConnect: () => void;
+	disabled: boolean;
+	/** Saving the finished onboarding failed. */
+	failed: boolean;
+}) {
 	const play = useSound();
 	useEffect(() => play("all-set"), [play]);
 	useReturn(disabled ? null : onStart);
@@ -515,11 +554,27 @@ function DoneStep({ agentName, onStart, disabled }: { agentName?: string; onStar
 			<span className="flex size-14 items-center justify-center border border-ans-right/50 bg-ans-right/10">
 				<CheckIcon className="size-6 text-ans-right" aria-hidden />
 			</span>
-			<h1 className="mt-6 font-title text-[44px] leading-tight text-ink">You’re all set.</h1>
-			<p className="mt-2 text-[15px] text-ink-2">Ask {agentName ?? "your agent"} to teach you anything, or type a topic in godspeed.</p>
-			<button type="button" data-testid="onboarding-finish" disabled={disabled} className={cn(PRIMARY, "mt-7")} onClick={onStart}>
-				Start learning
-			</button>
+			<h1 className="mt-6 font-title text-[44px] leading-tight text-ink">{agent ? "You’re all set." : "You’re almost set."}</h1>
+			<p className="mt-2 text-[15px] text-ink-2">
+				{agent
+					? `Ask ${agent.name?.trim() || "your agent"} to teach you anything, or type a topic in godspeed.`
+					: "Teaching starts once an agent is connected."}
+			</p>
+			{failed && (
+				<p role="alert" data-testid="onboarding-save-error" className="mt-4 text-[13px] text-ans-wrong">
+					Couldn&apos;t save your setup.
+				</p>
+			)}
+			<div className="mt-7 flex items-center gap-6">
+				{!agent && (
+					<button type="button" data-testid="onboarding-connect" className={QUIET} onClick={onConnect}>
+						Connect your agent
+					</button>
+				)}
+				<button type="button" data-testid="onboarding-finish" disabled={disabled} className={PRIMARY} onClick={onStart}>
+					{failed ? "Try again" : "Start learning"}
+				</button>
+			</div>
 		</div>
 	);
 }

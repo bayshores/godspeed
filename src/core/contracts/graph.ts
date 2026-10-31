@@ -56,7 +56,7 @@ export interface EmissionStats {
 	/** New reasoning chains appended. */
 	chains?: number;
 	/** Chains the simplification pass removed in this merge
-	 *  (ancestry-cover / prefer-fewest-premises). Maintenance, not extraction: appends are counted in `chains`
+	 *  (already derivable through the kept chains). Maintenance, not extraction: appends are counted in `chains`
 	 *  regardless. Undefined when nothing dropped (pre-simplification
 	 *  records read as zero). */
 	droppedChains?: number;

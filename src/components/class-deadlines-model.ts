@@ -99,7 +99,9 @@ export function changedFields<T extends object>(seeded: T, now: T): Partial<T> {
 
 /** The writes that make `saved` (the deadlines the drafts came from) match
  *  `drafts` (removals first, so a replaced deadline never collides).
- *  Unchanged deadlines write nothing. */
+ *  Unchanged deadlines write nothing. Only drafts with no id are added: a
+ *  draft whose deadline is gone from `saved` was removed elsewhere and is
+ *  never added back as new. */
 export function deadlineWrites(saved: readonly ClassDeadline[] | undefined, drafts: readonly DeadlineDraft[]): DeadlineWrite[] {
 	const before = new Map((saved ?? []).map((d) => [d.id, d]));
 	const kept = new Set(drafts.flatMap((d) => (d.id ? [d.id] : [])));
@@ -107,12 +109,13 @@ export function deadlineWrites(saved: readonly ClassDeadline[] | undefined, draf
 	for (const d of saved ?? []) if (!kept.has(d.id)) writes.push({ op: "remove", id: d.id });
 	for (const d of drafts) {
 		const name = d.name.trim();
-		const prev = d.id ? before.get(d.id) : undefined;
-		if (!d.id || !prev) {
+		if (!d.id) {
 			const body: DeadlineAddBody = { kind: d.kind, name, date: d.date, ...(d.time !== "" ? { time: d.time } : {}), fileIds: [...d.fileIds] };
 			writes.push({ op: "add", key: d.key, body, done: d.done });
 			continue;
 		}
+		const prev = before.get(d.id);
+		if (!prev) continue;
 		const body: DeadlineUpdateBody = {};
 		if (d.kind !== prev.kind) body.kind = d.kind;
 		if (name !== prev.name) body.name = name;
@@ -123,6 +126,48 @@ export function deadlineWrites(saved: readonly ClassDeadline[] | undefined, draf
 		if (Object.keys(body).length > 0) writes.push({ op: "update", key: d.key, id: d.id, body });
 	}
 	return writes;
+}
+
+/** A draft's fields as one comparable string. */
+function draftValue(d: DeadlineDraft): string {
+	return JSON.stringify([d.kind, d.name, d.date, d.time, [...d.fileIds].sort(), d.done]);
+}
+
+/**
+ * Deadlines removed elsewhere (by an agent) while the dialog is open
+ * (`removed`: ids the server listed before and no longer does): the drafts
+ * the learner didn't edit leave the drafts and the seeded copy. Edited ones
+ * stay; their Save says the deadline is gone. Null when nothing changes.
+ */
+export function dropRemoved(
+	seeded: readonly ClassDeadline[],
+	drafts: readonly DeadlineDraft[],
+	removed: ReadonlySet<string>,
+): { seeded: ClassDeadline[]; drafts: DeadlineDraft[] } | null {
+	const gone = new Set<string>();
+	for (const seed of seeded) {
+		if (!removed.has(seed.id)) continue;
+		const draft = drafts.find((d) => d.id === seed.id);
+		if (!draft || draftValue(draft) === draftValue(draftsFrom([seed])[0]!)) gone.add(seed.id);
+	}
+	if (gone.size === 0) return null;
+	return { seeded: seeded.filter((d) => !gone.has(d.id)), drafts: drafts.filter((d) => !d.id || !gone.has(d.id)) };
+}
+
+/** A new deadline row nobody has filled in yet (Home's Add deadline opens one). */
+function blankDraft(d: DeadlineDraft): boolean {
+	return !d.id && d.name.trim() === "" && d.date === "" && d.time === "" && d.fileIds.length === 0 && !d.done;
+}
+
+/** The learner changed something since the dialog opened: a field or a
+ *  deadline (an untouched blank new row doesn't count). */
+export function hasUnsavedChanges<T extends object>(
+	seeded: { fields: T; deadlines: readonly ClassDeadline[] },
+	fields: T,
+	drafts: readonly DeadlineDraft[],
+): boolean {
+	if (Object.keys(changedFields(seeded.fields, fields)).length > 0) return true;
+	return deadlineWrites(seeded.deadlines, drafts.filter((d) => !blankDraft(d))).length > 0;
 }
 
 /** "2026-10-29" → "Thu Oct 29" (a calendar date: no time zone shifts);

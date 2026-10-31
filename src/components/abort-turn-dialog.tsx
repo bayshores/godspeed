@@ -4,9 +4,9 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 
 /**
- * The ESC-abort guard: the global Esc → abort chain
- * opens this confirm popup EVERYWHERE — mid-stream aborts and pending-
- * question dismissals alike. Esc on the popup itself cancels (claimed —
+ * The stop guard: the global Esc → abort chain, the Skip question and
+ * Discard problem buttons, and the stuck-turn line open this confirm
+ * popup. Esc on the popup itself cancels (claimed —
  * it must never chain into another abort), which is also why Chat's
  * abort handler ignores events while this dialog is open: two window
  * listeners fire per Esc and stopPropagation alone cannot order them.
@@ -23,19 +23,19 @@ import { usePresence } from "@/components/presence";
  * model in its context.
  */
 
-/** What Esc is aborting — drives copy and the confirm action. */
+/** What is being stopped, skipped or discarded: drives copy and the confirm action. */
 export type AbortMode = "turn" | "question" | "problem";
 
 const COPY: Record<AbortMode, { title: string; line: string; action: string }> = {
 	turn: {
-		title: "Abort this turn?",
-		line: "The partial answer stays in the transcript.",
-		action: "Abort",
+		title: "Stop this reply?",
+		line: "What the teacher wrote so far stays in the lesson.",
+		action: "Stop",
 	},
 	question: {
-		title: "Dismiss this question?",
-		line: "Skipped. The teacher moves on without it.",
-		action: "Dismiss",
+		title: "Skip this question?",
+		line: "The teacher moves on without it.",
+		action: "Skip",
 	},
 	problem: {
 		title: "Discard this problem?",
@@ -86,7 +86,7 @@ export function AbortTurnBody({
 				</h2>
 				<p className="mt-1.5 text-xs text-muted-foreground" data-testid="abort-turn-line">
 					{copy.line}
-					{busy && mode !== "turn" ? " The working turn stops too." : ""}
+					{busy && mode !== "turn" ? " The teacher's reply stops too." : ""}
 				</p>
 				<div className="mt-4 flex justify-end gap-2">
 					<button
@@ -118,7 +118,7 @@ export function AbortTurnDialog({
 	onConfirm,
 	busy = false,
 }: {
-	/** What Esc is aborting; null = closed (nothing rendered). */
+	/** What is being stopped, skipped or discarded; null = closed (nothing rendered). */
 	mode: AbortMode | null;
 	onClose: () => void;
 	onConfirm: (mode: AbortMode) => void;

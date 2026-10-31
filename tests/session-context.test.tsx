@@ -80,6 +80,8 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 		assert.match(name, /font-mono text-sm/);
 		assert.ok(!name.includes("bg-muted"), "no code-block chrome");
 		assert.match(html, /data-testid="session-name-code"[^>]*>Orbital mechanics</);
+		assert.ok(html.includes("its messages, background jobs and graph-building history"), "the words the learner already sees");
+		assert.ok(!html.includes("extraction"));
 	});
 
 	it("one unchecked-by-default checkbox for the graph traces — the graph-touching consequence says so", () => {

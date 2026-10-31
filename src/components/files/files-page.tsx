@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ClassFile, FileCoverage } from "@/core";
+import { useAgentStatus } from "@/components/agent-status";
 import { useClasses } from "@/components/class-context";
+import { LoadFailed } from "@/components/load-failed";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
 import {
@@ -16,9 +18,10 @@ import {
 	useClassRecord,
 	type WriteResult,
 } from "./class-files-api";
+import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileSection, type SectionDrag } from "./files-sections";
-import { fileAnchorId, fileBrowserName, fileIdFromHash, splitByKind } from "./files-model";
+import { confirmCopy, fileAnchorId, fileBrowserName, fileIdFromHash, splitByKind, type FileConfirm } from "./files-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
 
 /** How long a row a "#file-<id>" link landed on stays outlined. */
@@ -30,7 +33,8 @@ const FLASH_MS = 1600;
  * "Course info" (files-sections.tsx). Each panel has its own Add and is a
  * drop zone for files from Finder; dragging a row into the other panel
  * (or its ⋯ menu's "Move to …") switches its kind. The linked folder (or
- * Link folder) sits in the Study material header.
+ * Link folder) sits in the Study material header. Unlink, Remove and the
+ * menu's "Move to Course info" ask first, saying how many facts go.
  *
  * Coverage per file comes from the shared progress payload; the record
  * re-reads on classes-changed, so statuses update as files are built.
@@ -45,8 +49,10 @@ export function FilesPage() {
 
 function FilesPageBody() {
 	const { active } = useClasses();
-	const { record, folderProblem, failed } = useClassRecord(active);
+	const { record, folderProblem, failed, reload } = useClassRecord(active);
 	const { data } = useProgress();
+	const agentTeaching = useAgentStatus()?.teaching ?? true;
+	const [confirm, setConfirm] = useState<FileConfirm | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
 	const [linking, setLinking] = useState(false);
@@ -76,9 +82,12 @@ function FilesPageBody() {
 		if (!classId) return null;
 		const showInFolder = typeof window !== "undefined" ? window.lh?.showInFolder : undefined;
 		return {
-			onKind: (fileId, kind) => void run(() => setClassFileKind(classId, fileId, kind)),
+			onKind: (file, kind) => {
+				if (kind === "info") setConfirm({ kind: "move", file });
+				else void run(() => setClassFileKind(classId, file.id, kind));
+			},
 			onRetry: (fileId) => void run(() => retryClassFile(classId, fileId)),
-			onRemove: (fileId) => void run(() => removeClassFile(classId, fileId)),
+			onRemove: (file) => setConfirm({ kind: "remove", file }),
 			show: showInFolder && {
 				label: `Show in ${fileBrowserName(window.lh?.platform)}`,
 				run: (fileId) =>
@@ -135,14 +144,24 @@ function FilesPageBody() {
 		[rowDrag],
 	);
 	const onDragLeaveSection = useCallback((kind: "study" | "info") => setOver((prev) => (prev?.kind === kind ? null : prev)), []);
+	// The drag already showed what the move does, so it moves at once.
 	const onMoveHere = useCallback(
 		(kind: "study" | "info") => {
-			if (rowDrag && rowDrag.kind !== kind) actions?.onKind(rowDrag.id, kind);
+			if (classId && rowDrag && rowDrag.kind !== kind) void run(() => setClassFileKind(classId, rowDrag.id, kind));
 			setRowDrag(null);
 			setOver(null);
 		},
-		[rowDrag, actions],
+		[classId, rowDrag, run],
 	);
+	const confirmText = useMemo(() => (confirm && record ? confirmCopy(confirm, record.name, record.files, coverage) : null), [confirm, record, coverage]);
+	const closeConfirm = useCallback(() => setConfirm(null), []);
+	const onConfirm = () => {
+		setConfirm(null);
+		if (!classId || !confirm) return;
+		if (confirm.kind === "unlink") void run(() => unlinkClassFolder(classId));
+		else if (confirm.kind === "remove") void run(() => removeClassFile(classId, confirm.file.id));
+		else void run(() => setClassFileKind(classId, confirm.file.id, "info"));
+	};
 	const addStudy = useCallback(
 		(files: File[]) => {
 			if (classId) void run(() => uploadClassFiles(classId, files, "study"));
@@ -177,8 +196,9 @@ function FilesPageBody() {
 				<h1 className="pl-4 text-[15px] font-bold text-ink">Files</h1>
 			</TopBar>
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-				{!active && <p className="m-auto text-sm text-ink-3">Pick a class to see its files.</p>}
-				{active && !record && failed && <p className="m-auto text-sm text-ink-3">Couldn&apos;t load this class&apos;s files.</p>}
+				{!active && <p className="m-auto text-sm text-ink-2">Pick a class to see its files.</p>}
+				{active && !record && !failed && <p className="m-auto text-sm text-ink-2">Loading…</p>}
+				{active && !record && failed && <LoadFailed message="Couldn't load this class's files." onRetry={() => void reload()} className="m-auto" />}
 				{record && rowActions && (
 					<div className="flex w-full flex-col gap-6 px-7 pt-2 pb-7">
 						{error && (
@@ -192,6 +212,7 @@ function FilesPageBody() {
 							coverage={coverage}
 							disabled={disabled}
 							flashId={flashId}
+							agentTeaching={agentTeaching}
 							actions={rowActions}
 							headerExtra={
 								record.linkedFolder ? (
@@ -201,7 +222,7 @@ function FilesPageBody() {
 										disabled={disabled}
 										open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
 										onPickAgain={onLinkFolder}
-										onUnlink={() => void run(() => unlinkClassFolder(record.id))}
+										onUnlink={() => setConfirm({ kind: "unlink" })}
 									/>
 								) : (
 									!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
@@ -222,6 +243,7 @@ function FilesPageBody() {
 							coverage={coverage}
 							disabled={disabled}
 							flashId={flashId}
+							agentTeaching={agentTeaching}
 							actions={rowActions}
 							draggingId={rowDrag?.id ?? null}
 							over={overFor("info")}
@@ -234,6 +256,7 @@ function FilesPageBody() {
 					</div>
 				)}
 			</div>
+			<ConfirmDialog copy={confirmText} onConfirm={onConfirm} onClose={closeConfirm} />
 		</div>
 	);
 }

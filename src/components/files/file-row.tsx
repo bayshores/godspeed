@@ -12,16 +12,20 @@ import { canRemove, canRetry, FILE_DRAG_TYPE, fileAnchorId, fileState, kindTitle
  * drag grip (on hover), icon, name (a folder mark when it comes from the
  * linked folder), the row's state ("12/31 facts studied"
  * with its bar, "Building facts…", "Waiting", "Failed · Retry") and the ⋯
- * menu (Move to the other section, Retry, Show in Finder, Remove). The row has no box of
+ * menu (Move to the other section, Retry, Show in Finder, Remove). A
+ * recording that needs the speech tool gets a second line with the install
+ * command and Copy. The row has no box of
  * its own; the one under the mouse lights up. Drag it into the other
  * section to switch its kind. Memoized: a row redraws only when its own
  * file, coverage, flash or drag state changes.
  */
 
 export interface FileRowActions {
-	onKind: (fileId: string, kind: "study" | "info") => void;
+	/** The menu's Move to the other section (to Course info asks first). */
+	onKind: (file: ClassFile, kind: "study" | "info") => void;
 	onRetry: (fileId: string) => void;
-	onRemove: (fileId: string) => void;
+	/** Asks first. */
+	onRemove: (file: ClassFile) => void;
 	/** "Show in Finder" (desktop app only): its label and action. */
 	show?: { label: string; run: (fileId: string) => void };
 	/** A row drag started (null: it ended). */
@@ -36,18 +40,22 @@ export const FileRow = memo(function FileRow({
 	disabled,
 	flash,
 	dragging,
+	agentTeaching,
 	actions,
 }: {
 	file: ClassFile;
 	coverage: FileCoverage | undefined;
 	disabled?: boolean;
+	/** An agent is running the work loop (a waiting file says who it waits for). */
+	agentTeaching: boolean;
 	/** Briefly outlined: the row a "#file-<id>" link landed on. */
 	flash?: boolean;
 	/** This row is being dragged: it fades in place. */
 	dragging?: boolean;
 	actions: FileRowActions;
 }) {
-	const state = fileState(file, coverage);
+	const state = fileState(file, coverage, agentTeaching);
+	const install = state.kind === "failed" ? state.install : undefined;
 	const Icon = RECORDING.test(file.name) ? CaptionsIcon : FileTextIcon;
 	const { onDrag } = actions;
 	const onDragStart = useCallback(
@@ -68,7 +76,7 @@ export const FileRow = memo(function FileRow({
 			onDragStart={onDragStart}
 			onDragEnd={() => onDrag?.(null)}
 			className={cn(
-				"group flex scroll-m-6 items-center gap-2.5 py-2.5 pr-3 pl-2 outline-offset-[-1px] transition-[outline-color,opacity] duration-(--lh-dur-slow) hover:bg-tone",
+				"group flex scroll-m-6 flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2.5 pr-3 pl-2 outline-offset-[-1px] transition-[outline-color,opacity] duration-(--lh-dur-slow) hover:bg-tone",
 				flash ? "outline outline-1 outline-ink" : "outline outline-1 outline-transparent",
 				dragging && "opacity-30",
 			)}
@@ -87,6 +95,7 @@ export const FileRow = memo(function FileRow({
 			</span>
 			<RowState fileId={file.id} state={state} disabled={disabled} onRetry={actions.onRetry} />
 			<RowMenu file={file} disabled={disabled} actions={actions} />
+			{install && <InstallLine fileId={file.id} command={install} />}
 		</li>
 	);
 });
@@ -115,7 +124,7 @@ function RowState({
 		case "waiting":
 			return (
 				<span data-testid={`class-file-status-${fileId}`} className="w-[216px] shrink-0 text-[13px] text-ink-2">
-					Waiting
+					{state.label}
 				</span>
 			);
 		case "failed": {
@@ -149,6 +158,32 @@ function RowState({
 		case "none":
 			return null;
 	}
+}
+
+/** The speech tool's install step, under a recording that needs it. */
+function InstallLine({ fileId, command }: { fileId: string; command: string }) {
+	const [copied, setCopied] = useState(false);
+	return (
+		<span data-testid={`class-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1 pl-[49px] text-[12.5px] text-ink-2">
+			To turn recordings into text, run this in Terminal, then click Retry.
+			<span className="flex items-center gap-2">
+				<code className="bg-tone px-1.5 py-0.5 font-mono text-[12.5px] text-ink">{command}</code>
+				<button
+					type="button"
+					data-testid={`class-file-install-copy-${fileId}`}
+					onClick={() => {
+						void navigator.clipboard.writeText(command).then(() => {
+							setCopied(true);
+							setTimeout(() => setCopied(false), 1500);
+						});
+					}}
+					className="lh-press text-[12.5px] font-bold text-ink hover:text-ink-max"
+				>
+					{copied ? "Copied" : "Copy"}
+				</button>
+			</span>
+		</span>
+	);
 }
 
 /** "12/31 facts studied" with its bar: the fill is the share of the file's
@@ -211,7 +246,7 @@ function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: bool
 				preferredSide="down"
 				menuClass="lh-glass flex w-[196px] flex-col gap-0.5 p-1.5 text-[13.5px]"
 			>
-				<button type="button" data-testid={`class-file-move-${file.id}`} onClick={pick(() => actions.onKind(file.id, other))} className={`${MENU_ITEM} text-ink`}>
+				<button type="button" data-testid={`class-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={`${MENU_ITEM} text-ink`}>
 					<ArrowRightLeftIcon className="size-3.5 shrink-0" aria-hidden />
 					Move to {kindTitle(other)}
 				</button>
@@ -234,7 +269,7 @@ function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: bool
 							type="button"
 							data-testid={`class-file-remove-${file.id}`}
 							aria-label={`Remove ${file.name}`}
-							onClick={pick(() => actions.onRemove(file.id))}
+							onClick={pick(() => actions.onRemove(file))}
 							className={`${MENU_ITEM} text-ans-wrong`}
 						>
 							<Trash2Icon className="size-3.5 shrink-0" aria-hidden />

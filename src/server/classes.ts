@@ -54,6 +54,11 @@ const fail = (status: number, code: string, error: string): { ok: false; status:
 	error,
 });
 
+/** The extraction_running refusal for the outside agent: the file's reading is a work item
+ *  waiting for that same agent, so it only finishes once the agent answers it. */
+export const AGENT_FILE_READING_REFUSAL =
+	"This file is still being turned into facts, and that work waits for you. Answer its work item with wait_for_work (or the waiter), then try again.";
+
 /** The class scope a request names with ?class=<id|none> (absent = No
  *  class). undefined = malformed, or a class that doesn't exist. */
 export function requestClassScope(req: Request): ClassScope | undefined {
@@ -313,9 +318,7 @@ export function replaceCopiedFile(classId: string, fileId: string, bytes: Uint8A
 	const record = stores.classStore.getClass(classId);
 	const file = record?.files.find((f) => f.id === fileId);
 	if (!record || file?.origin !== "copied") return fail(404, "not_found", "No such copied class file");
-	if (importRunning(classId, file)) {
-		return fail(409, "extraction_running", "This file is being turned into facts. Try again when it finishes.");
-	}
+	if (importRunning(classId, file)) return fail(409, "extraction_running", AGENT_FILE_READING_REFUSAL);
 	writeFileAtomic(classFilePath(record, file)!, bytes);
 	const patched = patchFile(classId, fileId, { kind, status: "pending", contentFp: "", error: undefined });
 	enqueueFile(classId, fileId);

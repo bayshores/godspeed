@@ -114,10 +114,12 @@ describe("GeneralSection (SSR)", () => {
 	it("teacher name, the two sliders at their factory values, and the graph switch", () => {
 		const html = render({ version: 1 });
 		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Halley"'));
-		assert.ok(tagOf(html, "slider-compaction").includes('value="150000"'));
-		assert.ok(html.includes("150k tokens"));
+		assert.ok(tagOf(html, "slider-compaction").includes('value="40000"'));
+		assert.ok(html.includes("about 80 pages"), "lesson length in pages, not tokens");
+		assert.ok(!html.includes("k tokens"));
 		assert.ok(tagOf(html, "slider-chunk-tokens").includes('value="4096"'));
 		assert.ok(tagOf(html, "toggle-build-the-graph").includes('aria-checked="true"'));
+		assert.match(html, /<span class="block text-xs text-ink-2">Shown in the window only</, "hints use the readable quiet color");
 	});
 
 	it("graph off: the switch shows off and the chunk slider is disabled", () => {
@@ -125,7 +127,7 @@ describe("GeneralSection (SSR)", () => {
 		assert.ok(tagOf(html, "toggle-build-the-graph").includes('aria-checked="false"'));
 		const slider = tagOf(html, "slider-chunk-tokens");
 		assert.ok(slider.includes('value="6000"') && slider.includes("disabled"));
-		assert.ok(html.includes("6k tokens"));
+		assert.ok(html.includes("about 12 pages"));
 	});
 });
 

@@ -116,4 +116,20 @@ describe("the background waiter", () => {
 			app.close();
 		}
 	});
+
+	it("prints the item's JSON, then its plain-text blocks", async () => {
+		const item = { status: "work", workId: "work_2_1", messages: [{ role: "user", text: "[text 1]" }] };
+		const instructions = 'Instructions (your system prompt for this conversation; follow them exactly):\n\nUse "\\frac".';
+		const long = "[text 1]\nline one\nline two";
+		const app = await fakeApp(() => ({ content: [{ type: "text", text: JSON.stringify(item) }, { type: "text", text: instructions }, { type: "text", text: long }] }));
+		try {
+			const { code, stdout } = await run("wait-for-work.mjs", [], app.url).exited;
+			assert.equal(code, 0);
+			const [first, ...rest] = stdout.split("\n\n");
+			assert.deepEqual(JSON.parse(first!), item);
+			assert.equal(rest.join("\n\n"), `${instructions}\n\n${long}\n`);
+		} finally {
+			app.close();
+		}
+	});
 });

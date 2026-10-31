@@ -10,7 +10,7 @@
  * software update that ADDS a knob (new
  * tool, new role, new appearance field) therefore needs no migration: old
  * records simply lack the new keys. `version` is a PRIVATE schema counter
- * for BREAKING shape changes only (field renamed / meaning changed) —
+ * for changes stored records must be upgraded for (CURRENT_SETTINGS_VERSION),
  * unrelated to the app release version. Migrations live in the adapter
  * (src/store/settings.ts), not here.
  *
@@ -29,9 +29,10 @@
 import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
 
 
-/** The schema version this code understands. Bump ONLY for breaking shape
- *  changes (a field renamed/meaning changed); pure additions never bump. */
-export const CURRENT_SETTINGS_VERSION = 1;
+/** The schema version this code understands. Bump ONLY when stored records need
+ *  upgrading (a field renamed, its meaning or its old default changed); pure
+ *  additions never bump. */
+export const CURRENT_SETTINGS_VERSION = 2;
 
 /** The outside agent's provider id (MCP bridge, src/agent/agent-bridge.ts) —
  *  the ONLY model provider. Every lesson and background job
@@ -154,7 +155,8 @@ export interface GraphSettings {
  * on big models the setting rules; on small ones the
  * window rules before the provider overflows.
  *
- * FACTORY DEFAULT 150_000.
+ * FACTORY DEFAULT 40_000: the outside agent compacts its own context, and after
+ * that the app sends a lesson again in full, so a lesson must stay small.
  *
  * FLOOR 32_000: below
  * the kept tail (20k) + a summary the chat would re-compact every turn —
@@ -208,7 +210,7 @@ export const FACTORY_SETTINGS: FactorySettings = {
 		mdRendering: { headingWeight: 900, boldColor: null, italicColor: null },
 	},
 	graph: { enabled: true, extractionChunkTokens: 4096 },
-	compaction: { thresholdTokens: 150_000 },
+	compaction: { thresholdTokens: 40_000 },
 };
 
 /** The chunk budget's validated floor (GraphSettings.extractionChunkTokens

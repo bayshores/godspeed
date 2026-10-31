@@ -18,7 +18,8 @@ import {
 
 describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 	it("pins the owner-decided defaults", () => {
-		assert.equal(CURRENT_SETTINGS_VERSION, 1);
+		assert.equal(CURRENT_SETTINGS_VERSION, 2);
+		assert.deepEqual(FACTORY_SETTINGS.compaction, { thresholdTokens: 40_000 });
 		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeClass: "none", teacherName: "Halley", sounds: true });
 		// wave 7 collapse: the master switch ONLY + the extraction-UX
 		// redesign's chunk budget (2026-09-24); doubled to 8192 with the

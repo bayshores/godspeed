@@ -1,33 +1,35 @@
 import { useEffect } from "react";
 
 /**
- * TAB CYCLES THE ACTIVE SURFACE'S TEXT FIELDS: forward-only, wrapping;
- * Tab from outside the chain focuses the FIRST field. Shift+Tab is NOT
- * ours (the global thinking-level cycle owns it), so there is no reverse
- * gear; the chain wraps.
+ * TAB INSIDE THE LESSON'S TEXT FIELDS jumps to the next one, in the
+ * surface's order; from the last field (and anywhere outside the fields)
+ * Tab moves focus as usual, so buttons stay reachable. Shift+Tab is never
+ * taken over.
  *
- * The event (not a prop bridge): the global Tab handler dispatches
- * `lh:kbd-cycle-fields` and each composer-bearing surface answers with
- * its own chain, gathered at event time from live DOM — the fields
- * mount/unmount with the docks, so a query beats stale refs. The quiz
- * dock's own Tab claim (rows ↔ thinking, while an option question is
- * expanded) stops propagation at the document level, so this hook only
- * ever hears Tab on surfaces WITHOUT an active claim — no double act.
+ * The fields are gathered at keypress time from live DOM: they mount and
+ * unmount with the docks, so a query beats stale refs. The quiz dock's own
+ * Tab claim (rows ↔ thinking) stops propagation at the document level, and
+ * a key another handler already took (the code editor indents) is left
+ * alone.
  */
+/** The field Tab moves to from `target`, or undefined to let Tab move
+ *  focus as usual (outside the fields, or from the last one). Pure —
+ *  exported for tests. */
+export function nextField(fields: readonly HTMLElement[], target: EventTarget | null): HTMLElement | undefined {
+	const idx = fields.findIndex((el) => el === target || el.contains(target as Node | null));
+	return idx >= 0 ? fields[idx + 1] : undefined;
+}
+
 export function useFieldCycle(fields: () => readonly HTMLElement[]) {
 	useEffect(() => {
-		const onCycle = () => {
-			const list = fields().filter((el) => el.isConnected);
-			if (list.length === 0) return;
-			const active = document.activeElement;
-			const idx = active ? list.findIndex((el) => el === active || el.contains(active)) : -1;
-			if (idx < 0) {
-				list[0]!.focus();
-				return;
-			}
-			list[(idx + 1) % list.length]!.focus();
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== "Tab" || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+			const next = nextField(fields().filter((el) => el.isConnected), e.target);
+			if (!next) return;
+			e.preventDefault();
+			next.focus();
 		};
-		window.addEventListener("lh:kbd-cycle-fields", onCycle);
-		return () => window.removeEventListener("lh:kbd-cycle-fields", onCycle);
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [fields]);
 }

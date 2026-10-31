@@ -14,7 +14,8 @@ import assert from "node:assert/strict";
 import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import { buttonKeepsNativeEnter } from "../src/components/enter-submits.ts";
-import { blurAfterPointerClick } from "../src/components/focus-hygiene.ts";
+import { blurAfterPointerClick, dialogTabTarget } from "../src/components/focus-hygiene.ts";
+import { nextField } from "../src/components/field-cycle.ts";
 
 const { document } = parseHTML("<html><body></body></html>");
 
@@ -78,5 +79,44 @@ describe("blurAfterPointerClick (focus hygiene)", () => {
 		};
 		blurAfterPointerClick({ detail: 0, currentTarget: b });
 		assert.equal(blurred, false);
+	});
+});
+
+describe("dialogTabTarget (Tab stays inside a modal dialog)", () => {
+	const [a, b, c] = ["a", "b", "c"];
+	const controls = [a, b, c];
+	it("Tab past the last control wraps to the first; Shift+Tab before the first wraps to the last", () => {
+		assert.equal(dialogTabTarget(controls, c, true, false), a);
+		assert.equal(dialogTabTarget(controls, a, true, true), c);
+	});
+	it("in the middle the browser moves focus as usual", () => {
+		assert.equal(dialogTabTarget(controls, a, true, false), null);
+		assert.equal(dialogTabTarget(controls, b, true, true), null);
+	});
+	it("from outside the dialog, Tab lands on its first control (Shift+Tab on its last)", () => {
+		assert.equal(dialogTabTarget(controls, "outside", false, false), a);
+		assert.equal(dialogTabTarget(controls, null, false, true), c);
+	});
+	it("a dialog with no controls gives nothing to focus", () => {
+		assert.equal(dialogTabTarget([], null, false, false), null);
+	});
+});
+
+describe("nextField (Tab inside the lesson's text fields)", () => {
+	const field = () => {
+		const box = document.createElement("div");
+		box.appendChild(document.createElement("textarea"));
+		document.body.appendChild(box);
+		return box as unknown as HTMLElement;
+	};
+	const [thinking, composer] = [field(), field()];
+	const button = buttonIn({});
+	it("Tab in a field moves to the next field", () => {
+		assert.equal(nextField([thinking, composer], thinking.firstChild), composer);
+	});
+	it("from the last field, or outside the fields, Tab moves focus as usual", () => {
+		assert.equal(nextField([thinking, composer], composer), undefined);
+		assert.equal(nextField([thinking, composer], button), undefined);
+		assert.equal(nextField([], null), undefined);
 	});
 });

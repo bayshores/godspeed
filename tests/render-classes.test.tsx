@@ -27,13 +27,13 @@ describe("class surfaces", () => {
 	it("a file row is draggable, shows Failed + Retry and its studied facts, and always has the ⋯ menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
-		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} actions={actions} />);
+		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} agentTeaching actions={actions} />);
 		assert.ok(copied.includes("Failed"));
 		assert.ok(copied.includes('data-testid="class-file-retry-f_1"'));
 		assert.ok(copied.includes('draggable="true"'));
 		assert.ok(!copied.includes("class-file-kind-"), "no Study/Info toggle on the row");
 		const linked = renderToStaticMarkup(
-			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} actions={actions} />,
+			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} agentTeaching actions={actions} />,
 		);
 		assert.ok(!linked.includes("Failed"));
 		assert.match(linked, /12\/31.*facts studied/);

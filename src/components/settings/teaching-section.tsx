@@ -111,7 +111,7 @@ export function TeachingSection({
 									</span>
 									<span>
 										<h4 className="text-[15.5px] font-bold text-ink">{area.label}</h4>
-										<span className="block text-[12.5px] leading-snug text-ink-3">{area.about.replace("{teacher}", teacherName)}</span>
+										<span className="block text-[12.5px] leading-snug text-ink-2">{area.about.replace("{teacher}", teacherName)}</span>
 									</span>
 								</div>
 								<button
@@ -178,7 +178,7 @@ function SwitchRow({
 			<RowIcon className={cn("size-[15px] shrink-0", on ? "text-ink" : "text-ink-3")} aria-hidden />
 			<span className="min-w-0 flex-1">
 				<span className={cn("block text-[13.5px]", on ? "text-ink" : "text-ink-2")}>{label}</span>
-				<span className="block text-xs text-ink-3">{about}</span>
+				<span className="block text-xs text-ink-2">{about}</span>
 			</span>
 			<Toggle checked={on} disabled={disabled} label={label} onChange={onChange} />
 		</div>

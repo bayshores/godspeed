@@ -5,6 +5,7 @@ import { PencilIcon } from "lucide-react";
 import type { DeadlineProgress, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
+import { LoadFailed } from "@/components/load-failed";
 import { useMinute } from "@/components/countdown";
 import { practicePicks, usePracticeStart } from "@/components/graph/practice";
 import { useLessonStart } from "@/components/home/use-lesson-start";
@@ -25,7 +26,7 @@ import { OverviewBody } from "./overview-body";
  */
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
-	const { data, error } = useProgress();
+	const { data, error, refresh } = useProgress();
 	const [editing, setEditing] = useState(false);
 	const lesson = useLessonStart();
 	const practice = usePracticeStart();
@@ -84,11 +85,12 @@ export function ClassOverview() {
 					data={current}
 					nowMs={nowMs}
 					busy={lesson.busy || practice.busy}
+					startError={lesson.error ?? practice.error}
 					onPractice={practiceDeadline}
 					onLearn={learn}
 					onAddSignature={() => setEditing(true)}
 				/>
-				{!current && error && <p className="px-[52px] text-sm text-ink-3">{error}</p>}
+				{!current && error && <LoadFailed message="Couldn't load this class's progress." onRetry={refresh} className="px-[52px]" />}
 			</div>
 			<ClassDialog mode={editMode} onClose={() => setEditing(false)} />
 		</div>

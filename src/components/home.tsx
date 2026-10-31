@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { FileCoverage, GraphContextPick, GraphCostSummary, TopicProgress } from "@/core";
 import { classQuery, useClasses } from "@/components/class-context";
-import { useFieldCycle } from "@/components/field-cycle";
 import { useRiseOnChange } from "@/components/sidebar";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
@@ -52,13 +51,7 @@ export function NewLesson() {
 	const snapshot = useGraphSnapshot(activeClassId);
 	const costs = useGraphCosts(activeClassId);
 
-	// Tab moves into the topic box (the app's field cycle).
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
-	const cycleTopicField = useCallback(
-		(): readonly HTMLElement[] => (topicInputRef.current ? [topicInputRef.current] : []),
-		[],
-	);
-	useFieldCycle(cycleTopicField);
 	// Switching class swaps the view: it rises in once.
 	const viewRef = useRef<HTMLDivElement>(null);
 	useRiseOnChange(viewRef, activeClassId);
@@ -106,6 +99,11 @@ export function NewLesson() {
 							onOpenPicker={() => setPickerOpen(true)}
 							onClearPicks={() => setPicks([])}
 						/>
+						{lesson.error && (
+							<p role="alert" data-testid="lesson-start-error" className="mt-2 text-[13px] text-ans-wrong">
+								{lesson.error}
+							</p>
+						)}
 					</div>
 					<div className="mt-10">
 						<SuggestionList

@@ -30,10 +30,12 @@ the keys.
 
 ## Rules
 
-- **Tab never moves browser focus.** Plain Tab cycles the text fields
-  of the page you are on, forward only, wrapping
-  (`src/components/field-cycle.ts`). An open question claims Tab first
-  (see below).
+- **Tab moves focus as usual**, through buttons and links too. In a
+  lesson's text fields Tab jumps to the next text field; from the last
+  one it moves on as usual (`src/components/field-cycle.ts`). An open
+  question claims Tab from its rows and thinking field (see below). An
+  open modal dialog keeps Tab inside itself (`trapTabInDialog` in
+  `src/components/focus-hygiene.ts`).
 - **Inside a text field only shortcuts with a modifier fire** (like ⌘B).
   Bare keys, `?` included, type normally.
 - **One Esc does one thing.** The top open layer handles it first: the

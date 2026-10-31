@@ -16,7 +16,7 @@
  * turn start awaits the gate. No mid-run surgery exists.
  *
  * Trigger threshold: effective = min(settings threshold, model
- * contextWindow − 16k reserve). Defaults: threshold 150k, kept tail ~20k
+ * contextWindow − 16k reserve). Defaults: threshold 40k, kept tail ~20k
  * recent tokens (pi's defaults). Token estimation follows pi: anchor on the
  * provider-reported usage of the last assistant message, chars/4 only
  * for messages appended after that anchor; the heuristic alone runs

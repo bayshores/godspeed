@@ -15,10 +15,10 @@ function proseVars(size: number, leading: number, ink: string): React.CSSPropert
 	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink } as React.CSSProperties;
 }
 
-/** The card's label: the tool's own name first (probe-phase cards say
- *  Probe/Recall), then the kind. */
+/** The card's label: the opening questions first (Warm-up/Recall), then
+ *  the kind. */
 function kindLabel(answer: QuestionAnswerData): string {
-	if (answer.tool === "probe") return "Probe";
+	if (answer.tool === "probe") return "Warm-up";
 	if (answer.tool === "recall") return "Recall";
 	if (answer.kind === "quiz") return answer.questionType === "predict" ? "Prediction" : "Check";
 	if (answer.kind === "explain") return "Explain";

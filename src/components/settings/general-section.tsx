@@ -14,13 +14,9 @@ import {
 	type GraphSettings,
 	type UserSettings,
 } from "@/core";
+import { pagesLabel } from "@/components/usage-format";
 import { CommitInput, SettingsGroup, SettingsRow, Slider, Toggle } from "./controls.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
-
-/** 150000 → "150k tokens", 4096 → "4.1k tokens". */
-function tokensLabel(tokens: number): string {
-	return `${Math.round(tokens / 100) / 10}k tokens`;
-}
 
 export function GeneralSection({
 	record,
@@ -65,7 +61,7 @@ export function GeneralSection({
 							step={2_000}
 							ariaLabel="Summarize long lessons after"
 							testid="slider-compaction"
-							label={tokensLabel}
+							label={pagesLabel}
 							onCommit={(v) => onCompactionChange({ ...record.compaction, thresholdTokens: v })}
 						/>
 					</span>
@@ -90,7 +86,7 @@ export function GeneralSection({
 							disabled={!effective.graph.enabled}
 							ariaLabel="Add to the graph every"
 							testid="slider-chunk-tokens"
-							label={tokensLabel}
+							label={pagesLabel}
 							onCommit={(v) => onGraphChange({ ...graph, extractionChunkTokens: v })}
 						/>
 					</span>

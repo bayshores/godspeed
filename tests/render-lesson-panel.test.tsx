@@ -14,7 +14,9 @@ import { YourTurnPanel } from "../src/components/lesson/your-turn-panel.tsx";
 import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../src/components/lesson/step-bar.tsx";
 import { practiceProgress } from "../src/components/lesson/practice-progress.ts";
 import { QuestionDock } from "../src/components/question-dock.tsx";
-import { CONFIDENCE_STOPS, projectView, reuseUnchangedMessages, type LhMessage, type PlanStepBar, type QuestionAnswerData } from "../src/core/index.ts";
+import { PracticeDock } from "../src/components/practice-dock.tsx";
+import { ReadingPane } from "../src/components/lesson/reading-pane.tsx";
+import { CONFIDENCE_STOPS, projectView, reuseUnchangedMessages, type LhMessage, type PlanStepBar, type QuestionAnswerData, type QuestionFormDraft } from "../src/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, {
@@ -54,11 +56,14 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			requiresReveal={false}
 			onSaveQuestionDraft={() => {}}
 			onSubmitAnswer={() => {}}
+			onSkipQuestion={() => {}}
 			readingThinking=""
 			onReadingThinking={() => {}}
 			practice={null}
 			practiceNumber={null}
+			onSavePracticeDraft={() => {}}
 			onSubmitThinking={async () => true}
+			onDiscardProblem={() => {}}
 			sessionBusy={false}
 			compacting={false}
 			composer={composer()}
@@ -121,6 +126,171 @@ describe("the Your-turn panel's states", () => {
 		assert.match(html, /data-mode="practice"/);
 		assert.match(html, /Problem 3/);
 		assert.match(html, /Find E\[N\]\./);
+	});
+
+	it("mouse-first: no action bar shows a key label", () => {
+		for (const html of [
+			panel({ composer: composer({ canSend: true, value: "hi" }) }),
+			panel({ pending: { tool: "quiz", toolCallId: "q1", input: quizInput } }),
+			panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 }),
+		]) {
+			assert.ok(!html.includes("Enter"), "no Enter label");
+		}
+	});
+
+	it("a waiting question, a check behind its reveal and a code question each show Skip question", () => {
+		const skip = /data-testid="skip-question"[^>]*>Skip question</;
+		assert.match(panel({ pending: { tool: "quiz", toolCallId: "q1", input: quizInput } }), skip);
+		assert.match(panel({ pending: { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "check" } }, requiresReveal: true }), skip);
+		assert.match(panel({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), skip);
+	});
+
+	it("an active problem shows Discard problem", () => {
+		const html = panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 2 });
+		assert.match(html, /data-testid="discard-problem"[^>]*>Discard problem</);
+	});
+
+	it("Skip question and Discard problem open their confirms", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const asked: string[] = [];
+		const render = (over: Partial<React.ComponentProps<typeof YourTurnPanel>>) => (
+			<YourTurnPanel
+				pending={null}
+				requiresReveal={false}
+				onSaveQuestionDraft={() => {}}
+				onSubmitAnswer={() => {}}
+				onSkipQuestion={() => asked.push("question")}
+				readingThinking=""
+				onReadingThinking={() => {}}
+				practice={null}
+				practiceNumber={null}
+				onSavePracticeDraft={() => {}}
+				onSubmitThinking={async () => true}
+				onDiscardProblem={() => asked.push("problem")}
+				sessionBusy={false}
+				compacting={false}
+				composer={composer()}
+				stats={null}
+				{...over}
+			/>
+		);
+		try {
+			await act(async () => root.render(render({ pending: { tool: "quiz", toolCallId: "q1", input: quizInput } })));
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="skip-question"]')!.click());
+			await act(async () => root.render(render({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } })));
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="discard-problem"]')!.click());
+			assert.deepEqual(asked, ["question", "problem"]);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("while the turn waits for an agent the header says so instead of Teacher is writing", () => {
+		const html = panel({ composer: composer({ busy: true, waitingForAgent: true }) });
+		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Waiting for your agent</);
+		assert.ok(!html.includes("Teacher is writing"));
+		assert.match(html, /data-testid="stop-turn"/, "Stop stays");
+	});
+});
+
+describe("saved drafts in the panel", () => {
+	it("a practice problem starts from its saved thinking", () => {
+		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Find E[N]." }} onSubmit={async () => true} initialDraft="half done" />);
+		assert.match(html, /<textarea[^>]*>half done<\/textarea>/);
+	});
+
+	it("a practice send clears the saved draft, and a refused one puts it back", async () => {
+		for (const taken of [true, false]) {
+			const host = document.createElement("div");
+			document.body.append(host);
+			const root = createRoot(host);
+			const saved: string[] = [];
+			try {
+				await act(async () =>
+					root.render(
+						<PracticeDock problemCallId="p1" input={{ statement: "Find E[N]." }} onSubmit={async () => taken} initialDraft="half done" onSaveDraft={(t) => saved.push(t)} />,
+					),
+				);
+				await act(async () => press("Enter"));
+				assert.deepEqual(saved, taken ? [""] : ["", "half done"]);
+			} finally {
+				await act(async () => root.unmount());
+				host.remove();
+			}
+		}
+	});
+
+	it("a question form starts from the saved draft and saves every change", async () => {
+		const draft: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "because", other: "", text: "" };
+		assert.match(
+			renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={() => {}} initialDraft={draft} />),
+			/<textarea[^>]*>because<\/textarea>/,
+		);
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const saved: QuestionFormDraft[] = [];
+		try {
+			await act(async () =>
+				root.render(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={() => {}} initialDraft={draft} onSaveDraft={(d) => saved.push(d)} />),
+			);
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="dont-know-option"]')!.click());
+			assert.equal(saved.at(-1)!.selection.dontKnow, true);
+			assert.equal(saved.at(-1)!.thinking, "because");
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+});
+
+describe("the reading pane's waiting and error states", () => {
+	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) =>
+		renderToStaticMarkup(
+			<ReadingPane
+				messages={[]}
+				phases={[]}
+				status="submitted"
+				busy
+				turnInFlight={false}
+				compacting={false}
+				waitingForAgent={false}
+				error={null}
+				onRetry={() => {}}
+				arrivalsLive={false}
+				arrive={() => undefined}
+				onOpenPlan={() => {}}
+				scrollContextRef={{ current: null }}
+				{...over}
+			/>,
+		);
+
+	it("Thinking… while the agent works", () => {
+		const html = pane();
+		assert.match(html, /Thinking…/);
+		assert.ok(!html.includes("lesson-waiting"));
+	});
+
+	it("one waiting state, with how to connect and the Connection settings button, while no agent takes the turn", () => {
+		const html = pane({ waitingForAgent: true });
+		assert.ok(!html.includes("Thinking…"), "no shimmer while nothing works");
+		assert.match(html, /data-testid="lesson-waiting"[^>]*>Waiting for your agent</);
+		assert.match(html, /Run \/godspeed:teach in Claude Code\./);
+		assert.match(html, /data-testid="lesson-waiting-settings"[^>]*>Open Connection settings</);
+	});
+
+	it("an error reads as a plain sentence with Try again; the raw text is the hover tip", () => {
+		const html = pane({ busy: false, status: "error", error: { message: "The send failed (500)." } });
+		assert.match(html, /data-testid="lesson-error" title="The send failed \(500\)\.">Your message didn&#x27;t go through\.</);
+		assert.match(html, /data-testid="lesson-error-retry"[^>]*>Try again</);
+		assert.ok(!html.includes("Something went wrong"));
+	});
+
+	it("an empty lesson says the teacher starts by seeing what you already know", () => {
+		assert.match(pane({ busy: false, status: "ready" }), /see what you already know/);
 	});
 });
 

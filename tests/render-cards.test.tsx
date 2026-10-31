@@ -119,7 +119,7 @@ describe("DispatchCard — failed jobs", () => {
 	const inJobs = (jobs: JobRecord[]) => (
 		<JobsContext.Provider value={jobs}>
 			<ChatActionsContext.Provider
-				value={{ chatId: "c1", syncFromServer: async () => {}, canSendText: true, sendText: () => {} }}
+				value={{ chatId: "c1", syncFromServer: async () => {}, sendBlocked: null, sendText: () => {} }}
 			>
 				<DispatchCard toolCallId="t1" kind="research" />
 			</ChatActionsContext.Provider>
@@ -153,7 +153,7 @@ describe("render smoke tests", () => {
 		assert.match(html, /Why this answer\? Whatever comes to mind/, "placeholder invites, not apologizes (owner, placeholder round 2026-10-07)");
 		assert.ok(!html.includes("optional"), "the field is never called optional");
 		assert.match(html, /Submit answer/, "send becomes Submit answer");
-		assert.match(html, /Enter/, "the key is shown on the submit bar");
+		assert.ok(!html.includes("Enter"), "mouse-first: no key label on the submit bar");
 		// Numbered rows (keys 1–n) and 0 = I don't know.
 		assert.match(html, /data-testid="dont-know-option"[\s\S]*?>0</, "I don't know is key 0");
 		assert.ok(html.includes('data-testid="confidence-meter"'), "the 5-bar confidence meter");
@@ -215,7 +215,12 @@ describe("render smoke tests", () => {
 			input: { question: "q?", options: JSON.stringify([{ label: "a" }, { label: "b" }]) } as never,
 		});
 		assert.ok(html.includes('data-testid="malformed-question"'));
-		assert.match(html, /malformed/);
+		assert.match(html, /This question came through broken\. Skip it and the teacher will ask again\./);
+		assert.ok(!html.includes('data-testid="skip-question"'), "no skip button without a handler");
+		const withSkip = renderToStaticMarkup(
+			<QuestionDock toolName="quiz" toolCallId="bad" input={{ question: "q?", options: "[]" } as never} onSubmit={() => {}} onSkip={() => {}} />,
+		);
+		assert.match(withSkip, /data-testid="skip-question"[^>]*>[\s\S]*?Skip question/, "the broken question's one way on is Skip question");
 	});
 
 	it("the thinking field fills the panel column", () => {
@@ -454,7 +459,7 @@ describe("probe-done card", () => {
 			/>,
 		);
 		assert.match(html, /malformed/);
-		assert.match(html, /retried/);
+		assert.match(html, /tried again/);
 		assert.ok(!html.includes("strands:"), "the rejected input never renders");
 	});
 
@@ -500,10 +505,11 @@ describe("AnsweredCard: the explain variant", () => {
 // ─── probe-phase naming (owner, 2026-10-09): the probe/recall rename —
 //     both surfaces carry the tool's OWN name ────────────────────────────
 
-describe("probe-phase naming: Probe/Recall labels", () => {
-	it("the dock labels a probe quiz as Probe (composer surface)", () => {
+describe("probe-phase naming: Warm-up/Recall labels", () => {
+	it("the dock labels a probe quiz as Warm-up (composer surface)", () => {
 		const html = renderDock({ toolName: "probe", toolCallId: "p1", input: quizInput as never });
-		assert.match(html, /Probe/, "the chip carries the tool's own name");
+		assert.match(html, /data-testid="question-kind"[^>]*>Warm-up</, "the opening questions read Warm-up");
+		assert.ok(!html.includes("Probe"), "never the engineering word");
 		assert.ok(!html.includes(">Quiz<"), "not the teach label");
 		assert.match(html, /Which planet is closest to the sun\?/, "still a quiz-shaped card");
 	});
@@ -514,7 +520,7 @@ describe("probe-phase naming: Probe/Recall labels", () => {
 		assert.ok(!html.includes(">Explain<"), "not the teach label");
 	});
 
-	it("an answered probe labels Probe — the phase boundary visible in the transcript", () => {
+	it("an answered probe labels Warm-up — the phase boundary visible in the transcript", () => {
 		const qd: QuestionData = {
 			id: "p2",
 			kind: "quiz",
@@ -527,7 +533,7 @@ describe("probe-phase naming: Probe/Recall labels", () => {
 			createdAt: new Date().toISOString(),
 		};
 		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: ["mercury"] }, "probe")} />);
-		assert.match(html, /Probe/);
+		assert.match(html, /Warm-up/);
 		assert.ok(!html.includes(">Quiz<"), "not the teach label");
 	});
 

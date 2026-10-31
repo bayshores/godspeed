@@ -3,7 +3,8 @@
  *
  * With Follow on, Halley takes you to the page of each change. Going to a
  * page yourself turns it off ("Stopped following"). While you type or a
- * dialog is open it waits, and catches up RESUME_MS after you stop. With
+ * dialog is open it waits, and catches up RESUME_MS after you stop. It
+ * never leaves a lesson where you have unsent text. With
  * Follow off, a fresh change on another page offers a "Go to" button.
  */
 
@@ -66,11 +67,12 @@ function classScopedPage(page: string): boolean {
 }
 
 /** What Follow must do to show an action's page: switch class, go to the
- *  page, both, or nothing. */
+ *  page, both, or nothing. A lesson with unsent text keeps the window. */
 export function followMoves(
 	action: { page: string; classId: string | null },
-	here: { path: string; activeClass: string | null },
+	here: { path: string; activeClass: string | null; lessonDraft: boolean },
 ): { switchClass: { to: string | null } | null; go: string | null } {
+	if (here.lessonDraft && here.path.startsWith("/chat/")) return { switchClass: null, go: null };
 	const switchClass = classScopedPage(action.page) && action.classId !== here.activeClass ? { to: action.classId } : null;
 	return { switchClass, go: action.page !== here.path ? action.page : null };
 }

@@ -3,7 +3,7 @@
  * The background waiter: waits for the next godspeed work item WITHOUT
  * the model polling. Claude Code runs it as a background task; the script
  * calls wait_for_work over and over itself (no tokens), and exits the
- * moment work arrives, printing the work item as one line of JSON. The
+ * moment work arrives, printing the work item (see the output below). The
  * exit wakes the agent, which answers the item with `respond` as usual.
  *
  *   node wait-for-work.mjs [--lesson <lesson id>] [--max-minutes <n>]
@@ -25,9 +25,11 @@
  * It sends Claude Code's session id (CLAUDE_CODE_SESSION_ID), so godspeed
  * sends this session only the messages it hasn't seen yet.
  *
- * A long item comes in pages: the first line is a short header ("pages"),
- * and page 1 of the item follows on the next lines. The agent reads the
- * other pages with the read_work tool.
+ * The output is the result's text blocks, a blank line between them: the
+ * item's JSON on the first line, then its instructions and long message
+ * texts ("[text N]") as plain text. A long item comes in pages: the first
+ * line is then a short header ("pages"), page 1 of the item follows, and
+ * the agent reads the other pages with the read_work tool.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -110,15 +112,15 @@ async function waitOnce() {
 		const imageFiles = saveImages(rpc.result?.content, item.workId);
 		if (imageFiles.length) item.imageFiles = imageFiles;
 	}
-	const page = item.pages > 1 ? rpc.result?.content?.[1]?.text : undefined;
-	return { item, page };
+	const rest = (rpc.result?.content ?? []).slice(1).filter((c) => c?.type === "text").map((c) => c.text);
+	return { item, rest };
 }
 
 let unreachableSince = null;
 while (Date.now() < deadline) {
-	let item, page;
+	let item, rest;
 	try {
-		({ item, page } = await waitOnce());
+		({ item, rest } = await waitOnce());
 		unreachableSince = null;
 	} catch {
 		// The app may be restarting: keep trying for a while.
@@ -128,7 +130,7 @@ while (Date.now() < deadline) {
 		continue;
 	}
 	if (item.status === "work") {
-		process.stdout.write(`${JSON.stringify(item)}\n${page === undefined ? "" : `${page}\n`}`);
+		process.stdout.write(`${[JSON.stringify(item), ...rest].join("\n\n")}\n`);
 		process.exit(0);
 	}
 }

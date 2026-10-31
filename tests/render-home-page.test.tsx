@@ -33,6 +33,8 @@ Object.assign(globalThis, {
 const { DueSoon } = await import("../src/components/sidebar/due-soon.tsx");
 const { ComingUp } = await import("../src/components/home-page/coming-up.tsx");
 const { ClassBlock } = await import("../src/components/home-page/class-block.tsx");
+const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../src/components/use-open-deadlines.tsx");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
 
 // Wed Oct 28 2026, 4:12 PM local.
 const NOW = new Date(2026, 9, 28, 16, 12).getTime();
@@ -138,6 +140,75 @@ describe("Due soon", () => {
 	});
 });
 
+// ─── ticking done ───────────────────────────────────────────────────────────
+
+describe("Ticking a deadline done", () => {
+	const writes: { url: string; body: unknown }[] = [];
+	let saveFails = false;
+	const original = globalThis.fetch;
+	afterEach(() => {
+		globalThis.fetch = original;
+		writes.length = 0;
+		saveFails = false;
+		document.body.innerHTML = "";
+	});
+
+	async function mountProvider() {
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (init?.method === "PUT") {
+				writes.push({ url: String(input), body: JSON.parse(String(init.body)) });
+				return saveFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ ok: true });
+			}
+			return Response.json({ deadlines: [OPEN[1]] });
+		}) as typeof fetch;
+		let tick!: () => void;
+		function Harness() {
+			const { deadlines, markDone } = useOpenDeadlines();
+			tick = () => markDone(deadlines![0]!);
+			return null;
+		}
+		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
+		await mount(
+			<ServerEventsProvider connect={connect as never}>
+				<OpenDeadlinesProvider>
+					<Harness />
+				</OpenDeadlinesProvider>
+			</ServerEventsProvider>,
+		);
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		await act(async () => {
+			tick();
+			await new Promise((r) => setTimeout(r, 260));
+		});
+	}
+	const notice = () => document.querySelector<HTMLElement>('[data-testid="done-notice"]');
+
+	it("says 'Marked done · Undo', and Undo ticks it back", async () => {
+		await mountProvider();
+		assert.equal(notice()!.textContent, "Marked done·Undo");
+		assert.equal(notice()!.getAttribute("role"), "status");
+		await act(async () => {
+			document.querySelector<HTMLButtonElement>('[data-testid="done-notice-undo"]')!.click();
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(writes, [
+			{ url: "/api/classes/c21/deadlines/quiz", body: { done: true } },
+			{ url: "/api/classes/c21/deadlines/quiz", body: { done: false } },
+		]);
+		assert.equal(notice(), null);
+	});
+
+	it("a save that fails says so", async () => {
+		saveFails = true;
+		await mountProvider();
+		assert.equal(notice()!.textContent, "Couldn't mark it done. Try again.");
+		assert.equal(notice()!.getAttribute("role"), "alert");
+		assert.equal(document.querySelector('[data-testid="done-notice-undo"]'), null);
+	});
+});
+
 // ─── Coming up ──────────────────────────────────────────────────────────────
 
 function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProgress {
@@ -165,7 +236,7 @@ const PROGRESS = new Map([
 
 function comingUp(deadlines: OpenDeadline[] = OPEN, hasClasses = true) {
 	return renderToStaticMarkup(
-		<ComingUp deadlines={deadlines} progress={PROGRESS} leaving={new Set()} nowMs={NOW} fixedNow={NOW} hasClasses={hasClasses} onDone={() => {}} />,
+		<ComingUp deadlines={deadlines} progress={PROGRESS} leaving={new Set()} nowMs={NOW} fixedNow={NOW} hasClasses={hasClasses} onDone={() => {}} onNewClass={() => {}} />,
 	);
 }
 
@@ -217,10 +288,19 @@ describe("Coming up", () => {
 		assert.match(tag(comingUp(), "coming-up-row-mid"), /data-halley-target="deadline:mid"/);
 	});
 
-	it("empty: how to add deadlines, or a class first", () => {
+	it("empty: how to add deadlines, or a class first with a New class button", async () => {
 		assert.match(comingUp([]), /No deadlines coming up\. Your agent can add them from the syllabus, or you can use Add deadline\./);
-		assert.match(comingUp([], false), /No classes yet\. Add one with New class in the class switcher, then add its deadlines in Edit class\./);
+		assert.ok(!comingUp([]).includes("coming-up-new-class"), "with classes: no New class button");
+		assert.match(comingUp([], false), /No classes yet\. Add one, then add its deadlines in Edit class\./);
 		assert.ok(!comingUp([]).includes("coming-up-summary"));
+		let opened = 0;
+		const el = await mount(
+			<ComingUp deadlines={[]} progress={PROGRESS} leaving={new Set()} nowMs={NOW} hasClasses={false} onDone={() => {}} onNewClass={() => opened++} />,
+		);
+		const button = el.querySelector<HTMLButtonElement>('[data-testid="coming-up-new-class"]')!;
+		assert.equal(button.textContent, "New class");
+		await act(async () => button.click());
+		assert.equal(opened, 1);
 	});
 });
 
@@ -230,18 +310,20 @@ function lesson(chatId: string, title: string): LessonProgress {
 	return { chatId, title, kind: "teach", updatedAt: "2026-10-28T12:00:00Z", answers: [], right: 0, answered: 0, score: null };
 }
 
+const STUDY_FILES = [{ fileId: "f1", name: "Lecture 1.pdf", facts: 5, inLessons: 2, share: 0.4 }];
 const FACTS = Array.from({ length: 5 }, (_, i) => ({ id: `p${i}`, name: "", statement: "", topicId: "t", born: null, inLessons: i < 2, answers: [] }));
 
 function block(props: Partial<React.ComponentProps<typeof ClassBlock>> = {}) {
 	return renderToStaticMarkup(
 		<ClassBlock
 			cls={{ id: "c21", name: "CSE 21", description: "Discrete math\nSecond line" }}
-			progress={{ facts: FACTS, lessons: [lesson("ch1", "Induction"), lesson("ch0", "Older")] }}
+			progress={{ facts: FACTS, lessons: [lesson("ch1", "Induction"), lesson("ch0", "Older")], files: STUDY_FILES }}
 			nextDue={OPEN[1]!}
 			nowMs={NOW}
 			onContinue={() => {}}
 			onNewLesson={() => {}}
 			onOpenClass={() => {}}
+			onOpenFiles={() => {}}
 			{...props}
 		/>,
 	);
@@ -284,9 +366,31 @@ describe("Class block", () => {
 	});
 
 	it("no lessons yet: New lesson instead of Continue", () => {
-		const html = block({ progress: { facts: FACTS, lessons: [] } });
+		const html = block({ progress: { facts: FACTS, lessons: [], files: STUDY_FILES } });
 		assert.ok(html.includes('data-testid="class-block-new-lesson"'));
 		assert.ok(!html.includes("class-block-continue"));
+	});
+
+	it("no study files yet: 'Add notes or slides' to the Files page instead of '0 of 0 facts studied'", async () => {
+		const html = block({ progress: { facts: [], lessons: [], files: [] } });
+		assert.match(html, /data-testid="class-block-add-files"[^>]*>.*Add notes or slides</);
+		assert.ok(!html.includes("class-block-facts"));
+		assert.ok(!block().includes("class-block-add-files"), "with study files: the facts line");
+		const calls: string[] = [];
+		const el = await mount(
+			<ClassBlock
+				cls={{ id: "c21", name: "CSE 21", description: "" }}
+				progress={{ facts: [], lessons: [], files: [] }}
+				nextDue={null}
+				nowMs={NOW}
+				onContinue={() => {}}
+				onNewLesson={() => {}}
+				onOpenClass={() => {}}
+				onOpenFiles={(c) => calls.push(`files ${c}`)}
+			/>,
+		);
+		await act(async () => (el.querySelector('[data-testid="class-block-add-files"]') as HTMLButtonElement).click());
+		assert.deepEqual(calls, ["files c21"]);
 	});
 
 	it("the buttons call back with the class (and the lesson)", async () => {
@@ -294,12 +398,13 @@ describe("Class block", () => {
 		const el = await mount(
 			<ClassBlock
 				cls={{ id: "c21", name: "CSE 21", description: "" }}
-				progress={{ facts: FACTS, lessons: [lesson("ch1", "Induction")] }}
+				progress={{ facts: FACTS, lessons: [lesson("ch1", "Induction")], files: STUDY_FILES }}
 				nextDue={null}
 				nowMs={NOW}
 				onContinue={(c, chat) => calls.push(`continue ${c} ${chat}`)}
 				onNewLesson={(c) => calls.push(`new ${c}`)}
 				onOpenClass={(c) => calls.push(`open ${c}`)}
+				onOpenFiles={(c) => calls.push(`files ${c}`)}
 			/>,
 		);
 		await act(async () => (el.querySelector('[data-testid="class-block-continue"]') as HTMLButtonElement).click());

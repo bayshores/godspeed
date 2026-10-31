@@ -126,7 +126,7 @@ export function AttachmentTray({ draft, note }: { draft: AttachmentDraft; note?:
 					))}
 				</div>
 			)}
-			{note && <p data-testid="attachment-note" className="text-xs text-ink-3">{note}</p>}
+			{note && <p data-testid="attachment-note" className="text-xs text-ink-2">{note}</p>}
 			{draft.error && <p data-testid="attachment-error" className="text-xs text-ink-2">{draft.error}</p>}
 		</div>
 	);
@@ -178,10 +178,10 @@ export function AttachButton({ draft }: { draft: AttachmentDraft }) {
 					e.target.value = "";
 				}}
 			/>
-			<Hint label="Add images or PDFs">
+			<Hint label="Add pictures or PDFs">
 				<button
 					type="button"
-					aria-label="Add images or PDFs"
+					aria-label="Add pictures or PDFs"
 					data-testid="attach-button"
 					onClick={() => inputRef.current?.click()}
 					className="lh-press flex size-14 shrink-0 items-center justify-center border-r border-tone-2 bg-tone text-ink-2 hover:text-ink"

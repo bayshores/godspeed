@@ -12,7 +12,7 @@ import { useEnterSubmits } from "@/components/enter-submits";
 import { JobsContext } from "@/components/jobs-context";
 import { ChatActionsContext } from "@/components/chat-actions-context";
 import { StatsBar } from "@/components/stats-bar";
-import { WAITING_NOTICE, agentWaiting, useAgentStatus } from "@/components/agent-status";
+import { agentWaiting, useAgentStatus } from "@/components/agent-status";
 import { latestTree } from "@/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/components/session-overlay";
 import { AbortTurnDialog, type AbortMode } from "@/components/abort-turn-dialog";
@@ -32,7 +32,10 @@ import {
 	type LhMessage,
 	type QuestionAnswerData,
 } from "@/core";
-import { escAbortTarget, initialPromptOwed, restoreUnsent } from "@/components/lesson/chat-helpers";
+import { escAbortTarget, initialPromptOwed, restoreUnsent, sendBlockedReason, stuckClaimMinutes } from "@/components/lesson/chat-helpers";
+import { holdsDraft } from "@/components/lesson/lesson-drafts-model";
+import { lastLearnerText, lessonError, retryAction } from "@/components/lesson/lesson-error-model";
+import { useLessonDrafts } from "@/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/components/lesson/arrivals";
 import { LessonStepsContext, answerAnchorSelector } from "@/components/lesson/step-context";
 import { practiceProgress } from "@/components/lesson/practice-progress";
@@ -79,7 +82,7 @@ export function Chat({
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
-	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, questionDraft, saveQuestionDraft, status, error, stop } = session;
+	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, status, error, stop, clearError, resumeStream } = session;
 	const { turnInFlight, localStreamRef, syncFromServer, jobs, turns, pricing, compacting } = useLessonServer({
 		chatId,
 		session,
@@ -122,6 +125,10 @@ export function Chat({
 	const activeProblem = useMemo(() => activeProblemOf(nativeMessages), [nativeMessages]);
 	const activeProblemRef = useRef(activeProblem);
 	activeProblemRef.current = activeProblem;
+	const activeProblemId = activeProblem?.toolCallId ?? null;
+	// Unsent text, saved per lesson so leaving or a reload never loses it.
+	const drafts = useLessonDrafts(chatId, nativeMessages, activeProblemId);
+	const { saveComposer, saveQuestion, saveProblem } = drafts;
 
 	// This view's own turn: send() drops input while it runs. A wake turn
 	// (turnInFlight alone) still takes sends; they wait it out.
@@ -133,9 +140,17 @@ export function Chat({
 	const waitingForAgent = busy && agentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
-	// Halley rests in the reading pane: Talking while the teacher writes,
-	// Thinking while the turn runs.
-	useHalleyLesson(status === "streaming", busy);
+	// An agent took this turn and hasn't answered for a while: offer to stop
+	// it (the minutes refresh while the line shows).
+	const claimedAt = agentStatus?.claimedLessons.find((c) => c.lessonId === chatId)?.claimedAt;
+	const [now, setNow] = useState(() => Date.now());
+	useEffect(() => {
+		if (!claimedAt) return;
+		setNow(Date.now());
+		const t = setInterval(() => setNow(Date.now()), 30_000);
+		return () => clearInterval(t);
+	}, [claimedAt]);
+	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
 	const halley = useHalley();
 
 	// The abort is always the remote kill (turns are server processes); a
@@ -168,10 +183,20 @@ export function Chat({
 	}, []);
 	const clearReadingThinking = useCallback(() => applyReadingThinking(""), [applyReadingThinking]);
 	const pendingQuestionId = pending?.toolCallId ?? null;
+	// Each question restores its own reading thoughts (once the drafts are read).
+	const draftsLoaded = drafts.draft !== null;
+	const draftRef = useRef(drafts.draft);
+	draftRef.current = drafts.draft;
 	useEffect(() => {
-		// A failed submission of THIS call restores its reading draft.
-		applyReadingThinking(pendingQuestionId ? questionDraft(pendingQuestionId)?.readingThinking ?? "" : "");
-	}, [pendingQuestionId, questionDraft, applyReadingThinking]);
+		applyReadingThinking(pendingQuestionId ? draftRef.current?.questions[pendingQuestionId]?.readingThinking ?? "" : "");
+	}, [pendingQuestionId, draftsLoaded, applyReadingThinking]);
+	const editReadingThinking = useCallback(
+		(v: string) => {
+			applyReadingThinking(v);
+			if (pendingQuestionId) saveQuestion(pendingQuestionId, { readingThinking: v });
+		},
+		[applyReadingThinking, pendingQuestionId, saveQuestion],
+	);
 
 	// ⌘T: set every "your thinking" row in the lesson to one state.
 	useEffect(() => {
@@ -254,6 +279,23 @@ export function Chat({
 		textRef.current = v;
 		setText(v);
 	}, []);
+	// Every change saves the draft: a send clears it, a refused send puts it back.
+	const editText = useCallback(
+		(v: string) => {
+			applyText(v);
+			saveComposer(v);
+		},
+		[applyText, saveComposer],
+	);
+	useEffect(() => {
+		if (draftsLoaded && draftRef.current?.composer) applyText(draftRef.current.composer);
+	}, [draftsLoaded, applyText]);
+
+	// Follow never takes the window away from unsent text.
+	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, { questionId: pendingQuestionId, problemId: activeProblemId });
+	// Halley rests in the reading pane: Talking while the teacher writes,
+	// Thinking while the turn runs.
+	useHalleyLesson(status === "streaming", busy, draftHeld);
 	// Tab cycles the lesson's fields in visual order.
 	const cycleChatFields = useCallback((): readonly HTMLElement[] => {
 		const pick = (sel: string) => Array.from(document.querySelectorAll<HTMLElement>(sel));
@@ -272,7 +314,8 @@ export function Chat({
 	// A running turn never gates the box: Enter while busy STEERS it (text
 	// only, so waiting files hold the send). A waiting question or problem
 	// owns the panel; compaction gates sends.
-	const canSend = (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && !pending && !activeProblem && !compacting;
+	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: activeProblem !== null, compacting });
+	const canSend = (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
 
 	/* THE PRACTICE PAUSE: between problems, once a problem
 	 * has ever been posed — Enter on an empty box (or anywhere) asks for the
@@ -314,18 +357,18 @@ export function Chat({
 		if (!t && files.length === 0) return;
 		if (busy) {
 			if (files.length > 0) return;
-			applyText("");
+			editText("");
 			void steer(t).then((sent) => {
-				if (!sent) applyText(restoreUnsent(t, textRef.current));
+				if (!sent) editText(restoreUnsent(t, textRef.current));
 			});
 			return;
 		}
 		const drafts = attachments.files;
-		applyText("");
+		editText("");
 		attachments.clear();
 		void send({ type: "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
 			if (sent) return;
-			applyText(restoreUnsent(t, textRef.current));
+			editText(restoreUnsent(t, textRef.current));
 			attachments.restore(drafts);
 		});
 	};
@@ -334,7 +377,6 @@ export function Chat({
 	// turn. The reading-thinking draft rides along.
 	const onSubmitAnswer = (output: QuestionAnswerData) => {
 		if (!pending) return;
-		saveQuestionDraft(pending.toolCallId, { readingThinking: readingThinkingRef.current });
 		const reading = readingThinkingRef.current.trim() || undefined;
 		submitAnswer(pending.toolCallId, reading ? { ...output, readingThinking: reading } : output);
 		// Graded right or wrong: Halley reacts for a moment.
@@ -365,20 +407,32 @@ export function Chat({
 
 	// The demo's error report follows the message box's rules: never past a
 	// waiting question, problem or compaction, and a running turn is steered.
-	const canSendText = !pending && !activeProblem && !compacting;
 	const chatActions = useMemo(
 		() => ({
 			chatId,
 			syncFromServer,
-			canSendText,
+			sendBlocked,
 			sendText: (t: string) => {
-				if (!canSendText) return;
+				if (sendBlocked !== null) return;
 				if (busyRef.current) void steer(t);
 				else void send({ type: "text", text: t });
 			},
 		}),
-		[chatId, syncFromServer, send, steer, canSendText],
+		[chatId, syncFromServer, send, steer, sendBlocked],
 	);
+
+	// The error banner's Try again: send again what didn't go through, or
+	// read the lesson again (and attach to a running reply).
+	const retry = () => {
+		if (!error) return;
+		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(nativeMessages) });
+		if (action.type === "send-box") onSend();
+		else if (action.type === "resend") void send({ type: "text", text: action.text });
+		else {
+			clearError();
+			resumeStream();
+		}
+	};
 	const mermaidActions = useMemo(
 		() => ({ openMermaid: setMermaidFocus, openFigure: (svg: string, inverted: boolean) => setFigureFocus({ svg, inverted }) }),
 		[],
@@ -400,31 +454,41 @@ export function Chat({
 									busy={busy}
 									turnInFlight={turnInFlight}
 									compacting={compacting}
+									waitingForAgent={waitingForAgent}
 									error={error}
+									onRetry={retry}
 									arrivalsLive={arrivalsLive}
 									arrive={arrive}
 									onOpenPlan={openPlan}
 									scrollContextRef={scrollContextRef}
 								/>
 								<YourTurnPanel
+									// Remounts once the saved drafts are read, so the forms start from them.
+									key={draftsLoaded ? "drafts" : "loading"}
 									pending={pending}
 									requiresReveal={requiresReveal}
-									initialQuestionDraft={pending ? questionDraft(pending.toolCallId)?.form : undefined}
+									initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
 									onSaveQuestionDraft={(form) => {
-										if (pending) saveQuestionDraft(pending.toolCallId, { form });
+										if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
 									}}
 									onSubmitAnswer={onSubmitAnswer}
+									onSkipQuestion={() => setAbortAsk("question")}
 									readingThinking={readingThinking}
-									onReadingThinking={applyReadingThinking}
+									onReadingThinking={editReadingThinking}
 									practice={activeProblem}
 									practiceNumber={stablePractice?.currentNumber ?? null}
+									initialPracticeDraft={activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined}
+									onSavePracticeDraft={(t) => {
+										if (activeProblemId) saveProblem(activeProblemId, t);
+									}}
 									onSubmitThinking={submitThinking}
+									onDiscardProblem={() => setAbortAsk("problem")}
 									sessionBusy={sessionBusy}
 									compacting={compacting}
 									composer={{
 										busy,
 										value: text,
-										onChange: applyText,
+										onChange: editText,
 										onSend,
 										onStop: abortInFlightTurn,
 										canSend,
@@ -432,11 +496,16 @@ export function Chat({
 										onNext: sendNext,
 										queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
 										attachments,
-										notice: waitingForAgent ? (
-											<p data-testid="composer-waiting" className="text-xs text-ink-2">
-												{WAITING_NOTICE}
-											</p>
-										) : undefined,
+										waitingForAgent,
+										notice:
+											stuckMinutes !== null ? (
+												<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
+													Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
+													<button type="button" data-testid="turn-stuck-stop" onClick={() => setAbortAsk("turn")} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
+														Stop and send again?
+													</button>
+												</p>
+											) : undefined,
 									}}
 									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} chatId={chatId} />}
 								/>

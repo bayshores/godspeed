@@ -42,6 +42,7 @@ const { createRoot } = await import("react-dom/client");
 const { FilesPage } = await import("../src/components/files/files-page.tsx");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
 const { ClassProvider } = await import("../src/components/class-context.tsx");
+const { AgentStatusProvider } = await import("../src/components/agent-status.tsx");
 
 function file(id: string, name: string, over: Partial<ClassFile> = {}): ClassFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -61,6 +62,8 @@ const RECORD: ClassRecord = {
 		file("f3", "Rosen 7.1 — Discrete probability.pdf", { status: "extracting" }),
 		file("f4", "Week 4 Discussion.srt", { status: "failed", error: "no audio" }),
 		file("f5", "Syllabus.pdf", { kind: "info" }),
+		file("f6", "Lecture 5.mp3", { status: "needs-whisper", error: "Recordings need whisper.cpp" }),
+		file("f7", "Lecture 6.pdf", { status: "pending" }),
 	],
 };
 const COVERAGE: FileCoverage[] = [
@@ -71,6 +74,8 @@ const COVERAGE: FileCoverage[] = [
 const calls: { method: string; url: string; body?: unknown }[] = [];
 let folderProblem: string | null = null;
 let recordFails = false;
+let agentTeaching = true;
+let recordReads = 0;
 const originalFetch = globalThis.fetch;
 function fakeFetch() {
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -78,7 +83,9 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
+		if (url === "/api/mcp-access") return Response.json({ agentConnected: true, agentTeaching, pendingWork: 0 });
 		if (url.startsWith("/api/classes/cls_a") && method === "GET") {
+			recordReads++;
 			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ class: RECORD, folderProblem });
 		}
 		if (url.startsWith("/api/progress")) return Response.json({ classId: "cls_a", files: COVERAGE });
@@ -96,9 +103,11 @@ async function mount(initialActive: string | null = "cls_a") {
 	await act(async () => {
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
-				<ClassProvider initialActive={initialActive}>
-					<FilesPage />
-				</ClassProvider>
+				<AgentStatusProvider>
+					<ClassProvider initialActive={initialActive}>
+						<FilesPage />
+					</ClassProvider>
+				</AgentStatusProvider>
 			</ServerEventsProvider>,
 		);
 	});
@@ -126,6 +135,8 @@ afterEach(async () => {
 	scrolled.length = 0;
 	folderProblem = null;
 	recordFails = false;
+	agentTeaching = true;
+	recordReads = 0;
 	globalThis.fetch = originalFetch;
 	window.location.hash = "";
 });
@@ -138,7 +149,7 @@ describe("FilesPage", () => {
 		assert.ok(q("class-add-study"), "Study material's Add");
 		assert.ok(q("class-add-info"), "Course info's Add");
 		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
-		assert.equal(q("files-count-study")!.textContent, "4");
+		assert.equal(q("files-count-study")!.textContent, "6");
 		assert.equal(q("files-count-info")!.textContent, "1");
 		// "studied/facts" with the bar: a fill only when some came up.
 		assert.match(q("class-file-status-f1")!.textContent!, /31\/31\s*facts studied/);
@@ -162,12 +173,57 @@ describe("FilesPage", () => {
 		assert.equal(q("files-section-study"), null);
 	});
 
-	it("a class record that fails to load says so", async () => {
+	it("a class record that fails to load says so, and Try again reads it again", async () => {
 		recordFails = true;
 		fakeFetch();
 		const page = await mount();
 		assert.match(page.textContent!, /Couldn't load this class's files\./);
 		assert.equal(q("files-section-study"), null);
+		const reads = recordReads;
+		recordFails = false;
+		await act(async () => q("load-failed-retry")!.click());
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.equal(recordReads, reads + 1);
+		assert.ok(q("files-section-study"), "the files show once the read works");
+		assert.equal(q("load-failed"), null);
+	});
+
+	it("says Loading… until the class record arrives", async () => {
+		globalThis.fetch = (async (input: RequestInfo | URL) => {
+			if (String(input) === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
+			return new Promise<Response>(() => {});
+		}) as typeof fetch;
+		const page = await mount();
+		assert.match(page.textContent!, /Loading…/);
+	});
+
+	it("a waiting file says it waits for your agent when none is teaching", async () => {
+		agentTeaching = false;
+		fakeFetch();
+		await mount();
+		assert.equal(q("class-file-status-f7")!.textContent, "Waiting for your agent");
+	});
+
+	it("a waiting file just says Waiting while an agent is teaching", async () => {
+		fakeFetch();
+		await mount();
+		assert.equal(q("class-file-status-f7")!.textContent, "Waiting");
+	});
+
+	it("a recording that needs the speech tool shows the install command inline with Copy", async () => {
+		fakeFetch();
+		await mount();
+		assert.equal(q("class-file-status-f6")!.textContent, "Needs a speech tool");
+		assert.ok(q("class-file-retry-f6"));
+		assert.match(q("class-file-install-f6")!.textContent!, /run this in Terminal, then click Retry\..*brew install whisper-cpp ffmpeg/);
+		const copied: string[] = [];
+		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
+		await act(async () => q("class-file-install-copy-f6")!.click());
+		assert.deepEqual(copied, ["brew install whisper-cpp ffmpeg"]);
+		assert.equal(q("class-file-install-copy-f6")!.textContent, "Copied");
+		assert.equal(q("class-file-install-f1"), null, "other rows have no install line");
 	});
 
 	it("a missing linked folder says so and offers Pick folder again", async () => {
@@ -188,27 +244,57 @@ describe("FilesPage", () => {
 		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
 		await act(async () => q("class-folder")!.click());
 		assert.match(q("class-folder-problem")!.textContent!, /Only the first 500 files were added/);
-		assert.equal(q("class-folder-pick-again"), null);
+		assert.ok(q("class-folder-pick-again"), "Pick folder again is always there: the safe way to switch folders");
 	});
 
-	it("Move to …, Retry and Unlink write through the class routes", async () => {
+	it("Move to Study material and Retry write at once; Move to Course info asks first", async () => {
 		fakeFetch();
 		await mount();
-		await act(async () => q("class-file-menu-f1")!.click());
-		assert.equal(q("class-file-move-f1")!.textContent, "Move to Course info");
-		await act(async () => q("class-file-move-f1")!.click());
 		await act(async () => q("class-file-menu-f5")!.click());
 		assert.equal(q("class-file-move-f5")!.textContent, "Move to Study material");
 		await act(async () => q("class-file-move-f5")!.click());
+		assert.equal(q("files-confirm"), null, "moving into study material loses nothing");
 		await act(async () => q("class-file-retry-f4")!.click());
-		await act(async () => q("class-folder")!.click());
-		await act(async () => q("class-unlink-folder")!.click());
+		await act(async () => q("class-file-menu-f1")!.click());
+		assert.equal(q("class-file-move-f1")!.textContent, "Move to Course info");
+		await act(async () => q("class-file-move-f1")!.click());
+		assert.equal(q("files-confirm")!.getAttribute("aria-label"), "Move to Course info?");
+		assert.match(q("files-confirm")!.textContent!, /Its 31 facts leave the graph\. The teacher can still read it\./);
+		assert.equal(calls.length, 2, "nothing moves before the OK");
+		await act(async () => q("files-confirm-button")!.click());
 		assert.deepEqual(calls, [
-			{ method: "PUT", url: "/api/classes/cls_a/files/f1", body: { kind: "info" } },
 			{ method: "PUT", url: "/api/classes/cls_a/files/f5", body: { kind: "study" } },
 			{ method: "PUT", url: "/api/classes/cls_a/files/f4", body: { retry: true } },
-			{ method: "DELETE", url: "/api/classes/cls_a/folder", body: undefined },
+			{ method: "PUT", url: "/api/classes/cls_a/files/f1", body: { kind: "info" } },
 		]);
+	});
+
+	it("Unlink asks first, says how many files and facts go, and points to Pick folder again", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("class-folder")!.click());
+		await act(async () => q("class-unlink-folder")!.click());
+		const box = q("files-confirm")!;
+		assert.match(box.textContent!, /Unlink this folder\?/);
+		assert.match(box.textContent!, /Its 1 file leaves CSE 21, along with the 22 facts built from them\. The folder on your computer is not touched\. This cannot be undone\./);
+		assert.match(box.textContent!, /use Pick folder again instead/);
+		await act(async () => q("files-confirm-cancel")!.click());
+		assert.deepEqual(calls, [], "Cancel keeps the folder");
+		await act(async () => q("class-folder")!.click());
+		await act(async () => q("class-unlink-folder")!.click());
+		await act(async () => q("files-confirm-button")!.click());
+		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/classes/cls_a/folder", body: undefined }]);
+	});
+
+	it("Remove asks first and says how many facts go", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("class-file-menu-f1")!.click());
+		await act(async () => q("class-file-remove-f1")!.click());
+		assert.match(q("files-confirm")!.textContent!, /Remove Lecture 1 — Counting\.pdf\?.*It leaves CSE 21, along with the 31 facts built from it\./);
+		assert.deepEqual(calls, []);
+		await act(async () => q("files-confirm-button")!.click());
+		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/classes/cls_a/files/f1", body: undefined }]);
 	});
 
 	it("dragging a row into the other panel warns, then moves it; files dropped from Finder are added to that panel", async () => {

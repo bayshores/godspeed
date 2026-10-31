@@ -2,7 +2,9 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FactProgress, GraphContextPick, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
-import { practicePicks, practiceTitle } from "@/components/graph/practice";
+import { PRACTICE_START_FAILED, practicePicks, practiceTitle } from "@/components/graph/practice";
+
+const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
 interface LessonRequest {
 	/** The lesson's title and first message. */
@@ -17,18 +19,21 @@ interface LessonRequest {
  * Every lesson Home starts (the topic box, Learn this, Practice) goes
  * through here, in the active class. The lesson runs on the outside agent;
  * with no agent connected it waits in the agent queue (the lesson shows
- * "Waiting for your agent").
+ * "Waiting for your agent"). A start that fails sets `error` for the
+ * screen to show.
  */
 export function useLessonStart() {
 	const router = useRouter();
 	const { active } = useClasses();
 	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const start = useCallback(
 		async (req: LessonRequest) => {
 			const title = req.title.trim();
 			if (!title || busy) return;
 			setBusy(true);
+			setError(null);
 			try {
 				const res = await fetch("/api/chats", {
 					method: "POST",
@@ -45,6 +50,7 @@ export function useLessonStart() {
 				router.push(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 			} catch {
 				setBusy(false);
+				setError(req.kind === "practice" ? PRACTICE_START_FAILED : LESSON_START_FAILED);
 			}
 		},
 		[busy, active, router],
@@ -62,5 +68,6 @@ export function useLessonStart() {
 		start,
 		practiceTopic,
 		busy,
+		error,
 	};
 }

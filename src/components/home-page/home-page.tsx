@@ -6,6 +6,7 @@ import { PlusIcon } from "lucide-react";
 import type { ClassSummary, DeadlineProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog, type ClassDialogMode } from "@/components/class-dialog";
+import { LoadFailed } from "@/components/load-failed";
 import { useMinute } from "@/components/countdown";
 import { byDue, longDateLine } from "@/components/deadlines-model";
 import { MenuShell } from "@/components/menu-shell";
@@ -28,7 +29,7 @@ export function HomePage() {
 	const router = useRouter();
 	const { classes, loaded, setActive } = useClasses();
 	const shown = useMemo(() => classes.filter((c) => !c.archived), [classes]);
-	const { deadlines, error: deadlinesError, leaving, markDone } = useOpenDeadlines();
+	const { deadlines, error: deadlinesError, leaving, markDone, reload: reloadDeadlines } = useOpenDeadlines();
 	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
 	const classesProgress = useClassesProgress(shownIds);
 	// The blocks fill in together the first time; a class added later
@@ -60,6 +61,8 @@ export function HomePage() {
 	const onContinue = useCallback((classId: string, chatId: string) => go(classId, lessonHref(chatId)), [go]);
 	const onNewLesson = useCallback((classId: string) => go(classId, "/new"), [go]);
 	const onOpenClass = useCallback((classId: string) => go(classId, "/class"), [go]);
+	const onOpenFiles = useCallback((classId: string) => go(classId, "/class/files"), [go]);
+	const onNewClass = useCallback(() => setDialog({ kind: "create" }), []);
 
 	return (
 		<div data-testid="home-page" className="flex h-full min-h-0 flex-col">
@@ -90,9 +93,10 @@ export function HomePage() {
 										nowMs={nowMs}
 										hasClasses={shown.length > 0}
 										onDone={markDone}
+										onNewClass={onNewClass}
 									/>
 								) : (
-									<LoadFailed />
+									<LoadFailed message="Couldn't load your deadlines." onRetry={() => void reloadDeadlines()} />
 								)}
 							</div>
 							{shown.length > 0 && (
@@ -111,10 +115,15 @@ export function HomePage() {
 													onContinue={onContinue}
 													onNewLesson={onNewLesson}
 													onOpenClass={onOpenClass}
+													onOpenFiles={onOpenFiles}
 												/>
 											);
 										}
-										return slot === "failed" ? <LoadFailed key={c.id} /> : <LoadingBox key={c.id} height="h-[222px]" />;
+										return slot === "failed" ? (
+											<LoadFailed key={c.id} message={`Couldn't load ${c.name}.`} onRetry={classesProgress.reload} />
+										) : (
+											<LoadingBox key={c.id} height="h-[222px]" />
+										);
 									})}
 								</div>
 							)}
@@ -131,12 +140,6 @@ export function HomePage() {
  *  appears in a half-loaded state and then jumps. */
 function LoadingBox({ height }: { height: string }) {
 	return <div data-testid="home-loading" aria-hidden className={`w-full bg-panel ${height}`} />;
-}
-
-/** Shown in place of a loading box when its read failed; the hooks re-read
- *  on the next change. */
-function LoadFailed() {
-	return <p data-testid="home-load-failed" className="text-sm text-ink-3">{"Couldn't load this. It will try again when something changes."}</p>;
 }
 
 /** "Add deadline": one class opens its Edit class at once; several open a

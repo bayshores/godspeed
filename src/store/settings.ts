@@ -5,8 +5,8 @@
  * preferences only.
  *
  * This adapter OWNS the lazy migrations:
- *  1. schema-version bumps (CURRENT_SETTINGS_VERSION) slot in here — the
- *     chain is empty today (v1 is the first shape); pure additions never
+ *  1. schema-version bumps (CURRENT_SETTINGS_VERSION): v1 → v2 moves the
+ *     old summarize threshold default to the new one. Pure additions never
  *     bump, so an up-to-date file is always a no-op pass-through.
  *  2. the retired prompt switches (dropPromptSwitches).
  *
@@ -43,11 +43,21 @@ export function readSettings(): UserSettings | null {
 	}
 	const record = sanitizeUserSettings(parsed);
 	if (!record) return null;
-	// Version chain (empty today): a future v2 migration slots in here —
-	// `if (record.version > CURRENT_SETTINGS_VERSION) …`. Unknown NEWER
-	// versions pass through untouched (the sanitizer preserved unknowns).
-	if (dropPromptSwitches(parsed)) writeSettings(record);
+	// Unknown NEWER versions pass through untouched (the sanitizer preserved unknowns).
+	const upgraded = upgradeToV2(record);
+	if (dropPromptSwitches(parsed) || upgraded) writeSettings(record);
 	return record;
+}
+
+/** v1 → v2: the summarize threshold's default dropped from 150k to 40k tokens, so a
+ *  record still holding the old default takes the new one. True when the file needs
+ *  saving; a bare version bump waits for the next write, so plain reads stay reads. */
+function upgradeToV2(record: UserSettings): boolean {
+	if (record.version >= 2) return false;
+	record.version = 2;
+	if (record.compaction?.thresholdTokens !== 150_000) return false;
+	delete record.compaction.thresholdTokens;
+	return true;
 }
 
 /** Prompt parts used to have an on/off switch; now a saved version is

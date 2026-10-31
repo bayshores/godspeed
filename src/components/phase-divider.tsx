@@ -8,8 +8,7 @@ import type { Phase3 } from "@/core";
  */
 
 /** The phases as the learner thinks of them. */
-const PHASE_LABEL: Record<Phase3, string> = {
-	probe: "Probing",
+const PHASE_LABEL: Record<Exclude<Phase3, "probe">, string> = {
 	plan: "Planning",
 	teach: "Teaching",
 };

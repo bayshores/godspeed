@@ -85,6 +85,19 @@ describe("the code question panel", () => {
 		assert.ok(html.includes("kept thinking"));
 	});
 
+	it("saves untouched starter code as no draft, and Skip question opens the skip", async () => {
+		const saved: string[] = [];
+		let skipped = 0;
+		await mounted(
+			<QuestionDock toolName="write_code" toolCallId="c6" input={task} onSubmit={() => {}} onSaveDraft={(d) => saved.push(d.text)} onSkip={() => skipped++} />,
+			async (host) => {
+				assert.deepEqual(saved, [""], "the starter code is not the learner's draft");
+				await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="skip-question"]')!.click());
+				assert.equal(skipped, 1);
+			},
+		);
+	});
+
 	it("submits the starter code, or I don't know without code, with the thinking", async () => {
 		const answers: QuestionAnswerData[] = [];
 		await mounted(<QuestionDock toolName="write_code" toolCallId="c5" input={task} onSubmit={(a) => answers.push(a)} />, async (host) => {

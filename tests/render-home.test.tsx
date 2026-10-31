@@ -30,6 +30,9 @@ Object.assign(globalThis, {
 
 const { ModeSwitch, TopicBox, isStartKey } = await import("../src/components/home/topic-box.tsx");
 const { SuggestionList } = await import("../src/components/home/suggestions.tsx");
+const { useLessonStart } = await import("../src/components/home/use-lesson-start.ts");
+const { usePracticeStart } = await import("../src/components/graph/practice.ts");
+const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 
@@ -236,6 +239,41 @@ describe("Home: actions", () => {
 		assert.equal(isStartKey({ key: "Enter", shiftKey: true }), false);
 		assert.equal(isStartKey({ key: "Enter", shiftKey: false, isComposing: true }), false);
 		assert.equal(isStartKey({ key: "a", shiftKey: false }), false);
+	});
+
+	it("a lesson or practice that can't start says so, and a retry clears it", async () => {
+		const pushed: string[] = [];
+		const router = { push: (href: string) => pushed.push(href) } as unknown as React.ContextType<typeof AppRouterContext>;
+		let lesson!: ReturnType<typeof useLessonStart>;
+		let practice!: ReturnType<typeof usePracticeStart>;
+		function Harness() {
+			lesson = useLessonStart();
+			practice = usePracticeStart();
+			return null;
+		}
+		const original = globalThis.fetch;
+		let ok = false;
+		globalThis.fetch = (async () => (ok ? Response.json({ id: "chat_1" }) : Response.json({ error: "boom" }, { status: 500 }))) as typeof fetch;
+		try {
+			await mount(
+				<AppRouterContext.Provider value={router}>
+					<Harness />
+				</AppRouterContext.Provider>,
+			);
+			await act(async () => lesson.start({ title: "Induction" }));
+			assert.equal(lesson.error, "Couldn't start the lesson. Try again.");
+			assert.equal(lesson.busy, false);
+			await act(async () => lesson.practiceTopic(WEAK, []));
+			assert.equal(lesson.error, "Couldn't start practice. Try again.", "practice: the same pattern");
+			await act(async () => practice.start([WEAK], []));
+			assert.equal(practice.error, "Couldn't start practice. Try again.");
+			ok = true;
+			await act(async () => lesson.start({ title: "Induction" }));
+			assert.equal(lesson.error, null);
+			assert.deepEqual(pushed, ["/chat/chat_1?prompt=Induction"]);
+		} finally {
+			globalThis.fetch = original;
+		}
 	});
 
 	it("the mode switch reports the picked mode", async () => {

@@ -2,34 +2,46 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../src/components/activity-dock.tsx";
-import { formatTokens } from "../src/components/usage-format.ts";
-import { WAITING_NOTICE, agentWaiting, parseAgentStatus, sameAgentStatus } from "../src/components/agent-status.tsx";
+import { formatTokens, pagesLabel } from "../src/components/usage-format.ts";
+import { agentWaiting, parseAgentStatus, sameAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../src/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
-	it("shows only while work waits and no agent is connected", () => {
-		assert.equal(agentWaiting({ connected: false, pendingWork: 1 }), true);
-		assert.equal(agentWaiting({ connected: true, pendingWork: 1 }), false);
-		assert.equal(agentWaiting({ connected: false, pendingWork: 0 }), false);
+	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, pendingWork: 0, claimedLessons: [], ...over });
+	it("shows only while work waits and no agent is teaching", () => {
+		assert.equal(agentWaiting(status({ pendingWork: 1 })), true);
+		assert.equal(agentWaiting(status({ connected: true, teaching: true, pendingWork: 1 })), false);
+		assert.equal(agentWaiting(status({ connected: true, pendingWork: 1 })), true, "connected but not teaching still waits");
+		assert.equal(agentWaiting(status()), false);
 		assert.equal(agentWaiting(null), false);
 	});
+	it("names /godspeed:teach only for Claude Code or an unknown agent", () => {
+		assert.equal(waitingNotice(), "Waiting for your agent. Run /godspeed:teach in Claude Code.");
+		assert.equal(waitingNotice("Claude Code"), "Waiting for your agent. Run /godspeed:teach in Claude Code.");
+		assert.equal(waitingNotice("Codex"), "Waiting for your agent. Ask Codex to teach you with the godspeed tools.");
+		assert.equal(teachStep("Codex"), "Ask Codex to teach you with the godspeed tools.");
+	});
 	it("reads the /api/mcp-access body", () => {
-		assert.deepEqual(parseAgentStatus({ agentConnected: true, agentName: "Claude Code", pendingWork: 2 }), { connected: true, name: "Claude Code", pendingWork: 2 });
-		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), { connected: false, pendingWork: 0 });
+		assert.deepEqual(
+			parseAgentStatus({ agentConnected: true, agentTeaching: true, agentName: "Claude Code", pendingWork: 2, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }, { lessonId: 3 }] }),
+			{ connected: true, teaching: true, name: "Claude Code", pendingWork: 2, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] },
+		);
+		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), status());
 		assert.equal(parseAgentStatus(null), null);
 	});
 	it("a poll with the same status keeps the old one", () => {
-		const status = { connected: true, name: "Claude Code", pendingWork: 2 };
-		assert.equal(sameAgentStatus(status, { ...status }), true);
-		assert.equal(sameAgentStatus(null, status), false);
-		assert.equal(sameAgentStatus(status, { ...status, connected: false }), false);
-		assert.equal(sameAgentStatus(status, { ...status, name: "Codex" }), false);
-		assert.equal(sameAgentStatus(status, { ...status, pendingWork: 3 }), false);
+		const s = status({ connected: true, teaching: true, name: "Claude Code", pendingWork: 2 });
+		assert.equal(sameAgentStatus(s, { ...s }), true);
+		assert.equal(sameAgentStatus(null, s), false);
+		assert.equal(sameAgentStatus(s, { ...s, connected: false }), false);
+		assert.equal(sameAgentStatus(s, { ...s, teaching: false }), false);
+		assert.equal(sameAgentStatus(s, { ...s, name: "Codex" }), false);
+		assert.equal(sameAgentStatus(s, { ...s, pendingWork: 3 }), false);
+		assert.equal(sameAgentStatus(s, { ...s, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] }), false);
 	});
 	it("the activity panel shows the notice text", () => {
 		const html = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} waiting />);
 		assert.ok(html.includes('data-testid="activity-waiting"'));
-		assert.ok(html.includes(WAITING_NOTICE));
-		assert.equal(WAITING_NOTICE, "Waiting for your agent. Run /godspeed:teach");
+		assert.ok(html.includes(waitingNotice()));
 		assert.ok(!renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} />).includes("activity-waiting"));
 	});
 });
@@ -162,6 +174,11 @@ describe("activity dock pure layer", () => {
 		assert.equal(formatElapsed(45_000), "45s");
 		assert.equal(formatElapsed(184_000), "3m 04s");
 		assert.equal(formatElapsed(4_320_000), "1h 12m");
+	});
+
+	it("pagesLabel reads a token count as pages", () => {
+		assert.equal(pagesLabel(40_000), "about 80 pages");
+		assert.equal(pagesLabel(400), "about 1 page");
 	});
 
 	it("formatTokens trims (never 38.0k)", () => {

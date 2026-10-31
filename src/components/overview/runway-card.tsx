@@ -33,6 +33,7 @@ export const RunwayCard = memo(function RunwayCard({
 	nowMs,
 	facts,
 	busy,
+	startError,
 	onPractice,
 	onLearn,
 }: {
@@ -43,6 +44,8 @@ export const RunwayCard = memo(function RunwayCard({
 	/** Facts studied / all facts in the class. */
 	facts: { studied: number; total: number };
 	busy: boolean;
+	/** Why the last practice or lesson didn't start. */
+	startError: string | null;
 	onPractice: (deadline: DeadlineProgress) => void;
 	onLearn: (topicId: string) => void;
 }) {
@@ -106,6 +109,11 @@ export const RunwayCard = memo(function RunwayCard({
 			</div>
 
 			{needed && <MostNeededRow needed={needed} busy={busy} onLearn={onLearn} />}
+			{startError && (
+				<p role="alert" data-testid="runway-start-error" className="text-[13px] text-ans-wrong">
+					{startError}
+				</p>
+			)}
 		</section>
 	);
 });

@@ -68,6 +68,27 @@ describe("the settings store", () => {
 		assert.deepEqual(out.graph, { enabled: true }); // siblings survive
 	});
 
+	it("a v1 record holding the old 150k summarize threshold moves to the new default", () => {
+		fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
+		fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ version: 1, compaction: { thresholdTokens: 150_000 } }), "utf-8");
+		const out = readSettings();
+		assert.ok(out);
+		assert.equal(out.version, 2);
+		assert.deepEqual(out.compaction, {});
+		assert.equal(JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8")).version, 2, "the upgrade is saved");
+	});
+
+	it("a v1 record with a threshold the learner picked keeps it", () => {
+		fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
+		fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ version: 1, compaction: { thresholdTokens: 120_000 } }), "utf-8");
+		assert.deepEqual(readSettings()?.compaction, { thresholdTokens: 120_000 });
+	});
+
+	it("a v2 record keeps a 150k threshold (picked after the upgrade)", () => {
+		writeSettings({ version: 2, compaction: { thresholdTokens: 150_000 } });
+		assert.deepEqual(readSettings()?.compaction, { thresholdTokens: 150_000 });
+	});
+
 	it("corrupt settings.json → null (first-boot semantics), never throws", () => {
 		fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
 		fs.writeFileSync(SETTINGS_FILE, "{not json", "utf-8");

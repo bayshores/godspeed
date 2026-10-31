@@ -40,20 +40,20 @@ describe("CompactionMomentDivider", () => {
 	it("renders the minimal centered note — no rule lines, retrying-message register", () => {
 		const html = renderToStaticMarkup(<CompactionMomentDivider data={data} />);
 		assert.ok(html.includes('data-testid="compaction-divider"'));
-		assert.ok(html.includes("Context compacted"));
+		assert.ok(html.includes("Lesson summarized"));
 		// NO horizontal rule (the owner ruling: minimal, unlike the cut)
 		assert.ok(!html.includes("border-t-2"));
 	});
 });
 
 describe("CompactionCutDivider", () => {
-	it("renders the longer seam — dotted rules + chip with the token count", () => {
+	it("renders the longer seam — dotted rules + chip with the summarized length in pages", () => {
 		const html = renderToStaticMarkup(<CompactionCutDivider data={data} />);
 		assert.ok(html.includes('data-testid="compaction-cut-divider"'));
 		assert.ok(html.includes("border-t-2 border-dotted"));
-		assert.ok(html.includes("History compacted"));
-		// 152000 → 152k tok
-		assert.ok(html.includes("152k tok"));
+		assert.ok(html.includes("Earlier messages summarized"));
+		// 152000 tokens → 304 pages
+		assert.ok(html.includes("about 304 pages"));
 	});
 });
 

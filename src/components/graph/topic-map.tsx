@@ -8,6 +8,7 @@
  * selects it; clicking the empty map clears it.
  */
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { select } from "d3-selection";
 import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from "d3-zoom";
 import { RAMP_COLORS, type TopicLink, type TopicProgress } from "@/core";
@@ -17,6 +18,8 @@ import { FADED_OPACITY, TopicNode, inkAlpha } from "./topic-node.tsx";
 interface TopicMapProps {
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
+	/** A class's map: the empty hint points to its Files page. */
+	inClass: boolean;
 	/** The topics that stay bright (on the picked deadline, matching the
 	 *  search); every other topic fades. null = all bright. */
 	focus: ReadonlySet<string> | null;
@@ -24,7 +27,7 @@ interface TopicMapProps {
 	onSelect: (id: string | null) => void;
 }
 
-export function TopicMap({ topics, links, focus, selectedId, onSelect }: TopicMapProps) {
+export function TopicMap({ topics, links, inClass, focus, selectedId, onSelect }: TopicMapProps) {
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const svgRef = useRef<SVGSVGElement>(null);
 	const viewRef = useRef<SVGGElement>(null);
@@ -132,8 +135,18 @@ export function TopicMap({ topics, links, focus, selectedId, onSelect }: TopicMa
 				</g>
 			</svg>
 			{topics.length === 0 ? (
-				<p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-ink-3">
-					Start a lesson or import notes to build your graph.
+				<p data-testid="topic-map-empty" className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-ink-2">
+					{inClass ? (
+						<span>
+							Start a lesson or{" "}
+							<Link href="/class/files" data-testid="topic-map-add-notes" className="font-bold text-ink hover:text-ink-max">
+								add notes on the Files page
+							</Link>{" "}
+							to build your graph.
+						</span>
+					) : (
+						"Start a lesson or import notes to build your graph."
+					)}
 				</p>
 			) : (
 				<>

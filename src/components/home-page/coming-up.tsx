@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { PlusIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/core";
 import { kindLabel } from "@/components/class-deadlines-model";
 import { Countdown, useIsOverdue } from "@/components/countdown";
@@ -15,7 +16,7 @@ import { cn } from "@/lib/utils";
  * from every class, grouped Overdue / Today / Tomorrow / each date / Later.
  * A row: the done box, the name and its kind, what it covers with a ready
  * bar (deadlines with files), the class, and the live countdown with the
- * due time under it.
+ * due time under it. With no classes yet it offers New class.
  */
 export const ComingUp = memo(function ComingUp({
 	deadlines,
@@ -25,6 +26,7 @@ export const ComingUp = memo(function ComingUp({
 	fixedNow,
 	hasClasses,
 	onDone,
+	onNewClass,
 }: {
 	deadlines: readonly OpenDeadline[];
 	/** Each class's deadline progress by deadline id (covers, ready %). */
@@ -36,6 +38,7 @@ export const ComingUp = memo(function ComingUp({
 	fixedNow?: number;
 	hasClasses: boolean;
 	onDone: (d: OpenDeadline) => void;
+	onNewClass: () => void;
 }) {
 	const groups = comingUpGroups(deadlines, nowMs);
 	return (
@@ -49,11 +52,24 @@ export const ComingUp = memo(function ComingUp({
 				)}
 			</div>
 			{groups.length === 0 ? (
-				<p data-testid="coming-up-empty" className="text-[13.5px] leading-5 text-ink-2">
-					{hasClasses
-						? "No deadlines coming up. Your agent can add them from the syllabus, or you can use Add deadline."
-						: "No classes yet. Add one with New class in the class switcher, then add its deadlines in Edit class."}
-				</p>
+				<>
+					<p data-testid="coming-up-empty" className="text-[13.5px] leading-5 text-ink-2">
+						{hasClasses
+							? "No deadlines coming up. Your agent can add them from the syllabus, or you can use Add deadline."
+							: "No classes yet. Add one, then add its deadlines in Edit class."}
+					</p>
+					{!hasClasses && (
+						<button
+							type="button"
+							data-testid="coming-up-new-class"
+							onClick={onNewClass}
+							className="lh-press flex items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2"
+						>
+							<PlusIcon className="size-3.5 shrink-0" aria-hidden />
+							New class
+						</button>
+					)}
+				</>
 			) : (
 				<div className="flex w-full flex-col gap-5">
 					{groups.map((g) => (

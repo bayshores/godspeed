@@ -43,7 +43,7 @@ export interface EffectiveSettings {
 	appearance: EffectiveAppearance;
 	graph: Required<GraphSettings>;
 	/** Compaction: resolved concrete — absent record
-	 *  section resolves to the factory 150k. */
+	 *  section resolves to the factory 40k. */
 	compaction: Required<CompactionSettings>;
 }
 

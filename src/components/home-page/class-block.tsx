@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
  * A CLASS BLOCK (Home's right column):
  * the class name and the first line of its description (its signature
  * small and dim behind them, inked like the cover), the facts studied
- * with a bar, the next deadline, then Continue (the latest lesson; "New
+ * with a bar ("Add notes or slides", to its Files page, while it has no
+ * study files), the next deadline, then Continue (the latest lesson; "New
  * lesson" when there is none) and Open class.
  */
 export const ClassBlock = memo(function ClassBlock({
@@ -23,15 +24,17 @@ export const ClassBlock = memo(function ClassBlock({
 	onContinue,
 	onNewLesson,
 	onOpenClass,
+	onOpenFiles,
 }: {
 	cls: Pick<ClassSummary, "id" | "name" | "description" | "signature">;
-	progress: Pick<ProgressPayload, "facts" | "lessons">;
+	progress: Pick<ProgressPayload, "facts" | "lessons" | "files">;
 	/** The class's soonest open deadline. */
 	nextDue: OpenDeadline | null;
 	nowMs: number;
 	onContinue: (classId: string, chatId: string) => void;
 	onNewLesson: (classId: string) => void;
 	onOpenClass: (classId: string) => void;
+	onOpenFiles: (classId: string) => void;
 }) {
 	const firstLine = cls.description.split("\n").find((l) => l.trim() !== "")?.trim() ?? "";
 	const facts = studiedFacts(progress.facts);
@@ -49,17 +52,29 @@ export const ClassBlock = memo(function ClassBlock({
 				<h2 className="truncate font-title text-[22px] leading-7 font-bold text-ink">{cls.name}</h2>
 				{firstLine && <p className="truncate text-[13.5px] leading-5 text-ink-2">{firstLine}</p>}
 			</div>
-			<div className="flex w-full flex-col gap-2">
-				<div data-testid="class-block-facts" className="flex items-baseline gap-1.5 text-[13.5px] text-ink-2">
-					<span className="font-mono text-[18px] leading-none font-bold tabular-nums text-ink">{facts.studied}</span>
-					<span>
-						of <span className="font-mono tabular-nums">{facts.total}</span> facts studied
+			{progress.files.length === 0 ? (
+				<button
+					type="button"
+					data-testid="class-block-add-files"
+					onClick={() => onOpenFiles(cls.id)}
+					className="lh-press flex items-center gap-1.5 text-[13.5px] font-bold text-ink hover:text-ink-max"
+				>
+					<PlusIcon className="size-3.5 shrink-0" aria-hidden />
+					Add notes or slides
+				</button>
+			) : (
+				<div className="flex w-full flex-col gap-2">
+					<div data-testid="class-block-facts" className="flex items-baseline gap-1.5 text-[13.5px] text-ink-2">
+						<span className="font-mono text-[18px] leading-none font-bold tabular-nums text-ink">{facts.studied}</span>
+						<span>
+							of <span className="font-mono tabular-nums">{facts.total}</span> facts studied
+						</span>
+					</div>
+					<span className="flex h-1.5 w-full bg-tone-2" aria-hidden>
+						{facts.total > 0 && <span className="h-full bg-ink-2" style={{ width: `${(facts.studied / facts.total) * 100}%` }} />}
 					</span>
 				</div>
-				<span className="flex h-1.5 w-full bg-tone-2" aria-hidden>
-					{facts.total > 0 && <span className="h-full bg-ink-2" style={{ width: `${(facts.studied / facts.total) * 100}%` }} />}
-				</span>
-			</div>
+			)}
 			{nextDue && (
 				<p data-testid="class-block-next-due" className="w-full truncate text-[13.5px] text-ink-2">
 					Next due: <span className="text-ink">{nextDueText(nextDue, nowMs)}</span>

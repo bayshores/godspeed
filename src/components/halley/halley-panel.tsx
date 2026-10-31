@@ -9,7 +9,7 @@
 import { ArrowRightIcon } from "lucide-react";
 import type { AgentAction } from "@/core";
 import { ActivitySection } from "@/components/activity-dock";
-import { WAITING_NOTICE, type AgentStatus } from "@/components/agent-status";
+import { agentWaiting, footerLabel, waitingNotice, type AgentStatus } from "@/components/agent-status";
 import { SmallSwitch } from "@/components/ui/small-switch";
 import { HalleyFace } from "./halley-face";
 import type { Home } from "./engine";
@@ -22,10 +22,9 @@ const RECENT_ROWS = 8;
 const PANEL_WIDTH = 360;
 const PANEL_GAP = 16;
 
-/** The agent line under the name. */
+/** The agent line under the name: the footer's line, or the waiting notice while work waits. */
 export function agentLine(agent: AgentStatus | null): string {
-	if (agent?.connected) return `${agent.name?.trim() || "Your agent"} · connected`;
-	return WAITING_NOTICE;
+	return agentWaiting(agent) ? waitingNotice(agent?.name) : footerLabel(agent, 0);
 }
 
 /** "4:11 PM". */

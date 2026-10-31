@@ -52,6 +52,7 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			"node_modules/onnxruntime-node/package.json",
 			"node_modules/onnxruntime-node/dist/**/*.js",
 			"node_modules/onnxruntime-common/dist/cjs/**/*.js",
+			"node_modules/onnxruntime-common/dist/cjs/package.json",
 			`node_modules/onnxruntime-node/bin/napi-v6/${process.platform}/${process.arch}/**/*`,
 			// sharp's per-platform packages, with the DLLs Windows needs beside its .node.
 			"node_modules/@img/**/*",

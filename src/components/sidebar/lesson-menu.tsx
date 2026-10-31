@@ -3,7 +3,7 @@ import { MenuShell } from "@/components/menu-shell";
 import { CoverageMenuBlock } from "@/components/extraction-coverage";
 
 /**
- * THE LESSON MENU (right-click a lesson row): Rename, Export as
+ * THE LESSON MENU (a lesson row's ⋯ button or a right-click): Rename, Export as
  * Markdown, Move to class, Delete (the destructive action last), then
  * below a hairline the extraction coverage block. MenuShell owns
  * placement, focus and arrow keys; the list owns dismissal.

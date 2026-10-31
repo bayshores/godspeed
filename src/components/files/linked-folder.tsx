@@ -20,7 +20,8 @@ const BOX_BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-2.5 py-1.5 tex
  * with the folder's short path, or "Can't find this folder" when it is
  * gone. Clicking it opens a small box with the full path, what the folder
  * does (or what is wrong with it), and its buttons: Pick folder again
- * (folder missing), Open in Finder (desktop app) and Unlink.
+ * (the safe way to switch folders), Open in Finder (desktop app) and Unlink,
+ * which asks first.
  * (Tooltips here can't hold buttons, so the box opens on click.)
  */
 export function LinkedFolderChip({
@@ -88,12 +89,10 @@ export function LinkedFolderChip({
 					<div className="text-[12.5px] text-ink-2">New files in it are added as study material.</div>
 				)}
 				<div className="flex flex-wrap gap-2 pt-1">
-					{missing && (
-						<button type="button" data-testid="class-folder-pick-again" disabled={disabled} onClick={pick(onPickAgain)} className={BOX_BUTTON}>
-							<FolderSyncIcon className="size-[13px]" aria-hidden />
-							Pick folder again
-						</button>
-					)}
+					<button type="button" data-testid="class-folder-pick-again" disabled={disabled} onClick={pick(onPickAgain)} className={BOX_BUTTON}>
+						<FolderSyncIcon className="size-[13px]" aria-hidden />
+						Pick folder again
+					</button>
 					{openFolder && !missing && (
 						<button type="button" data-testid="class-folder-open" onClick={pick(openFolder.run)} className={BOX_BUTTON}>
 							<FolderOpenIcon className="size-[13px]" aria-hidden />

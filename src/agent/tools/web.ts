@@ -1,5 +1,6 @@
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { splitPages } from "../../core/work-pages.ts";
 import { serverExecute } from "../tool-execute.ts";
 import type TurndownService from "turndown";
 
@@ -22,8 +23,6 @@ import type TurndownService from "turndown";
 const USER_AGENT =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
-/** Keep the researcher's context sane — long pages truncate with a marker. */
-const MAX_CONTENT_CHARS = 40_000;
 const MIN_USEFUL_CONTENT = 200;
 
 /** The page reader (Readability + linkedom + Turndown, ~1 MB of code),
@@ -42,9 +41,12 @@ function loadReader() {
 	return reader;
 }
 
+/** At most one work page: the result comes back to the outside agent inside a work
+ *  item, and every page past the first costs it a read_work call. */
 function truncate(text: string): string {
-	if (text.length <= MAX_CONTENT_CHARS) return text;
-	return `${text.slice(0, MAX_CONTENT_CHARS)}\n\n[Truncated at ${MAX_CONTENT_CHARS} characters]`;
+	const pages = splitPages(text);
+	if (pages.length === 1) return text;
+	return `${pages[0]!}\n\n[Truncated: the page goes on]`;
 }
 
 /** Jina Reader fallback for JS-rendered pages (no deps — plain fetch). */
@@ -106,12 +108,12 @@ async function fetchAndExtract(url: string, signal?: AbortSignal): Promise<strin
 	if (length > MAX_RESPONSE_BYTES) throw new Error("Response too large");
 
 	const text = await resp.text();
-	if (!contentType.includes("html")) return `${sourceLine}\n\n${truncate(text)}`; // plain text / markdown / code
+	if (!contentType.includes("html")) return truncate(`${sourceLine}\n\n${text}`); // plain text / markdown / code
 
 	const extracted = await htmlToMarkdown(text);
 	if (extracted) {
 		const header = extracted.title ? `# ${extracted.title}\n\n${sourceLine}\n\n---\n\n` : `${sourceLine}\n\n---\n\n`;
-		return header + truncate(extracted.content);
+		return truncate(header + extracted.content);
 	}
 	// Readability failed — likely JS-rendered. Try Jina Reader.
 	const jina = await fetchViaJina(url, signal);

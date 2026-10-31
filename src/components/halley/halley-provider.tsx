@@ -83,6 +83,8 @@ interface LessonPresence {
 	streaming: boolean;
 	/** A turn is in flight. */
 	working: boolean;
+	/** The learner has unsent text here: Follow stays on this lesson. */
+	draft: boolean;
 }
 
 interface HalleyApi {
@@ -117,12 +119,12 @@ export function useHalley(): HalleyApi | null {
 
 /** A lesson screen: Halley rests in the reading pane and talks while the
  *  teacher writes. */
-export function useHalleyLesson(streaming: boolean, working: boolean): void {
+export function useHalleyLesson(streaming: boolean, working: boolean, draft: boolean): void {
 	const api = useHalley();
 	const set = api?.setLesson;
 	useEffect(() => {
-		set?.({ streaming, working });
-	}, [set, streaming, working]);
+		set?.({ streaming, working, draft });
+	}, [set, streaming, working, draft]);
 	useEffect(() => () => set?.(null), [set]);
 }
 
@@ -259,8 +261,10 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	// ── the lesson screen ──
 	const [lesson, setLessonState] = useState<LessonPresence | null>(null);
 	const setLesson = useCallback((p: LessonPresence | null) => {
-		setLessonState((prev) => (prev === p || (prev && p && prev.streaming === p.streaming && prev.working === p.working) ? prev : p));
+		setLessonState((prev) => (prev === p || (prev && p && prev.streaming === p.streaming && prev.working === p.working && prev.draft === p.draft) ? prev : p));
 	}, []);
+	const lessonRef = useRef(lesson);
+	lessonRef.current = lesson;
 
 	// ── recent changes ──
 	const [recent, setRecent] = useState<AgentAction[]>([]);
@@ -318,11 +322,12 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const ghosts = useRef(new Map<string, Ghost>());
 	const running = useRef(false);
 
-	const showPage = useCallback(async (action: AgentAction) => {
+	// asked: the learner clicked to go there, so unsent text doesn't hold it.
+	const showPage = useCallback(async (action: AgentAction, asked: boolean) => {
 		const page = safePage(action.page);
 		if (!page) return;
 		const { pathname: path, classes: cls, router: r } = live.current;
-		const moves = followMoves({ page, classId: action.classId }, { path, activeClass: cls.active });
+		const moves = followMoves({ page, classId: action.classId }, { path, activeClass: cls.active, lessonDraft: !asked && !!lessonRef.current?.draft });
 		if (moves.switchClass) cls.setActive(moves.switchClass.to);
 		if (moves.go) {
 			dispatchFollow({ type: "navigating", path: moves.go });
@@ -348,7 +353,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 			const following = go || followRef.current.on;
 			// The lesson you are reading: the reply is right here.
 			if (!go && action.page.startsWith("/chat/") && action.page === live.current.pathname) return;
-			if (following) await showPage(action);
+			if (following) await showPage(action, go);
 			const ghost = ghosts.current.get(action.id);
 			ghosts.current.delete(action.id);
 			let els = await waitForTarget(action.target, following ? 4000 : action.removed || ghost ? 0 : 1200, () => alive.current);
@@ -402,7 +407,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 			if (!engine) return;
 			const reduce = prefersReducedMotion();
 			const last = actions.at(-1);
-			if (followRef.current.on && last) await showPage(last);
+			if (followRef.current.on && last) await showPage(last, false);
 			for (const a of actions) ghosts.current.delete(a.id);
 			await sleep(300);
 			setTourBubble(summary);

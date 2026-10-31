@@ -16,6 +16,16 @@ export function formatTokens(n: number): string {
 	return String(n);
 }
 
+/** About how many tokens one printed page of lesson text holds (roughly 375 words),
+ *  so learner-facing lengths read in pages instead of tokens. */
+const TOKENS_PER_PAGE = 500;
+
+/** 40000 → "about 80 pages", 400 → "about 1 page". */
+export function pagesLabel(tokens: number): string {
+	const pages = Math.max(1, Math.round(tokens / TOKENS_PER_PAGE));
+	return `about ${pages} page${pages === 1 ? "" : "s"}`;
+}
+
 /** Split a provider-qualified stamp "provider:id" into its two
  *  coordinates. No colon = a bare id. */
 function splitQualified(id: string): { provider: string | null; id: string } {

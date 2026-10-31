@@ -42,9 +42,9 @@ export function RememberedNotes() {
 	return (
 		<SettingsGroup label="Remembered" testid="remembered-notes">
 			{notes === null ? (
-				<p className="text-xs text-ink-3">{error ?? "Loading…"}</p>
+				<p className="text-xs text-ink-2">{error ?? "Loading…"}</p>
 			) : notes.length === 0 ? (
-				<p className="text-xs text-ink-3">Nothing yet. Your agent saves notes here when you tell it something worth keeping.</p>
+				<p className="text-xs text-ink-2">Nothing yet. Your agent saves notes here when you tell it something worth keeping.</p>
 			) : (
 				notes.map((note) => (
 					<SettingsRow key={note.id} label={note.text} hint={savedLabel(note)}>

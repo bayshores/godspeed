@@ -89,7 +89,7 @@ function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { hea
 			result.toolName === "quiz"
 				? "Quiz"
 				: result.toolName === "probe"
-					? "Probe"
+					? "Warm-up"
 					: result.toolName === "recall"
 						? "Recall"
 						: "Recall check"; // explain — the teach free-recall name

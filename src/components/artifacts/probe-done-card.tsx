@@ -38,13 +38,13 @@ export function ProbeDoneCard({ part }: { part: { input?: unknown; output?: unkn
 		<div data-testid="probe-done-card" className="my-3 border bg-card/60 p-3">
 			<div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				<ClipboardCheckIcon className="size-3.5 text-primary" />
-				Probe concluded: your assessment
+				Warm-up done: what you already know
 			</div>
 			{output && !output.ok ? (
-				<p className="text-sm text-muted-foreground">The prober retried: {output.error}</p>
+				<p className="text-sm text-muted-foreground">The teacher tried again: {output.error}</p>
 			) : state === "output-error" ? (
 				<p className="text-sm text-muted-foreground">
-					The assessment was malformed. The prober retried with a corrected one.
+					The assessment was malformed. The teacher tried again with a corrected one.
 				</p>
 			) : strands ? (
 				<div className="space-y-2">

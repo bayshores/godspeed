@@ -19,9 +19,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { PATHS } from "../config.ts";
+import { SPEECH_TOOL_INSTALL } from "../core/contracts.ts";
 
 /** Shown on a file's badge when the programs are missing. */
-const WHISPER_INSTALL_HINT = "Recordings need whisper.cpp and ffmpeg. Run `brew install whisper-cpp ffmpeg`, then retry the file.";
+const WHISPER_INSTALL_HINT = `Recordings need whisper.cpp and ffmpeg. Run \`${SPEECH_TOOL_INSTALL}\`, then retry the file.`;
 
 export class WhisperMissingError extends Error {
 	constructor(public readonly missing: string[]) {

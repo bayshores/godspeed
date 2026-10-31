@@ -43,7 +43,7 @@ const { readSettings, writeSettings } = await import("../src/store/settings.ts")
 const { readMcpToken, writeNewMcpToken } = await import("../src/store/mcp-token.ts");
 const { sanitizeUserSettings } = await import("../src/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../src/server/settings-body.ts");
-const { agentLine, pickedLabel } = await import("../src/components/onboarding/onboarding.tsx");
+const { agentLine, pickedLabel, DoneStep } = await import("../src/components/onboarding/onboarding.tsx");
 const { Constellation, DOTS, LINKS, dotDelay } = await import("../src/components/onboarding/constellation.tsx");
 const { createRoot } = await import("react-dom/client");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
@@ -107,6 +107,24 @@ describe("onboarding screen helpers", () => {
 		const files = ["a.pdf", "b.md", "c.txt", "d.pdf"].map((name) => ({ name }) as File);
 		assert.equal(pickedLabel({ kind: "files", files: files.slice(0, 1) }), "1 file: a.pdf");
 		assert.equal(pickedLabel({ kind: "files", files }), "4 files: a.pdf, b.md, c.txt, …");
+	});
+	it("the done step without an agent: teaching waits for one, and a button goes back to step 1", () => {
+		const done = (over: Partial<React.ComponentProps<typeof DoneStep>> = {}) =>
+			renderToStaticMarkup(<DoneStep agent={null} onStart={() => {}} onConnect={() => {}} disabled={false} failed={false} {...over} />);
+		const none = done();
+		assert.ok(none.includes("Teaching starts once an agent is connected."));
+		assert.ok(none.includes('data-testid="onboarding-connect"'));
+		assert.ok(none.includes("Connect your agent"));
+		assert.ok(!none.includes("You’re all set."));
+		const set = done({ agent: { name: "Codex" } });
+		assert.ok(set.includes("You’re all set."));
+		assert.ok(set.includes("Ask Codex to teach you anything"));
+		assert.ok(!set.includes("onboarding-connect"));
+	});
+	it("the done step after a failed save: an error and Try again", () => {
+		const html = renderToStaticMarkup(<DoneStep agent={{}} onStart={() => {}} onConnect={() => {}} disabled={false} failed />);
+		assert.ok(html.includes('data-testid="onboarding-save-error"'));
+		assert.match(html, /data-testid="onboarding-finish"[^>]*>Try again</);
 	});
 	it("dotDelay: dots appear as the comet passes, left to right", () => {
 		const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);

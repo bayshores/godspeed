@@ -76,7 +76,7 @@ function fakeFetch() {
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
-async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string }) {
+async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean }) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -291,6 +291,59 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal(closed, 1);
 	});
 
+	it("a deadline an agent removes while the dialog is open leaves it, and Save never adds it back", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		const [midterm, hw] = RECORD.deadlines!;
+		served = { ...RECORD, deadlines: [midterm!, hw!] };
+		await act(async () => {
+			events.get("classes-changed")!("{}");
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.equal(q("class-deadline-exm_2"), null, "the Final the learner didn't touch is gone from the list");
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(calls, [], "nothing to write: no POST of the Final, no DELETE");
+		assert.equal(closed, 1);
+	});
+
+	it("an edited deadline an agent removed: Save says so and drops it; a second Save adds nothing", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/classes/cls_a/deadlines/exm_1" && init?.method === "PUT") {
+				calls.push({ method: "PUT", url: String(input), body: JSON.parse(String(init.body)) });
+				return Response.json({ code: "deadline_not_found", error: "No such deadline" }, { status: 404 });
+			}
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", classId: "cls_a" });
+		await click(q("class-deadline-exm_1"));
+		await typeInto(q("class-deadline-name"), "Midterm A");
+		const [, hw, final] = RECORD.deadlines!;
+		served = { ...RECORD, deadlines: [hw!, final!] };
+		await act(async () => {
+			events.get("classes-changed")!("{}");
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.ok(q("class-deadline-exm_1"), "an edited draft stays until Save");
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.equal(q("class-dialog-error")!.textContent, "Midterm A was removed while you were editing it, so your changes to it weren't saved.");
+		assert.equal(q("class-deadline-exm_1"), null);
+		assert.equal(closed, 0);
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(calls, [{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { name: "Midterm A" } }], "no POST brings it back");
+		assert.equal(closed, 1);
+	});
+
 	it("the icon: pick a subject icon and save it", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
@@ -321,6 +374,53 @@ describe("Esc on the class dialogs", () => {
 		await mount({ kind: "edit", classId: "cls_a" });
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 1);
+	});
+
+	it("with unsaved changes, Esc and X ask \"Discard your changes?\" first", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		await typeInto(q("class-name"), "CSE 21A");
+		assert.equal(await pressEscape(), true);
+		assert.equal(closed, 0);
+		assert.match(q("class-discard-confirm")!.textContent!, /Discard your changes\?/);
+		assert.equal(q("class-save"), null, "the question takes the footer's place");
+		assert.equal(await pressEscape(), true, "Esc on the question keeps editing");
+		assert.equal(q("class-discard-confirm"), null);
+		assert.equal(closed, 0);
+		await click(q("class-dialog-close"));
+		await click(q("class-discard-cancel"));
+		assert.equal(q("class-discard-confirm"), null);
+		assert.equal((q("class-name") as HTMLInputElement).value, "CSE 21A", "Keep editing keeps the edit");
+		await click(q("class-dialog-close"));
+		await click(q("class-discard-confirm-button"));
+		assert.equal(closed, 1);
+		assert.deepEqual(calls, [], "nothing saved");
+	});
+
+	it("a deadline edit counts as a change; an untouched new deadline row doesn't", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a", newDeadline: true });
+		assert.ok(q("class-deadline-name"), "Home's Add deadline opens a blank row");
+		await pressEscape();
+		assert.equal(closed, 1, "nothing typed: closes at once");
+		await act(async () => root?.unmount());
+		host?.remove();
+		closed = 0;
+		await mount({ kind: "edit", classId: "cls_a" });
+		await click(q("class-deadline-exm_1"));
+		await check(q("class-deadline-done"));
+		await pressEscape();
+		assert.equal(closed, 0);
+		assert.ok(q("class-discard-confirm"));
+	});
+
+	it("New class asks before throwing away a typed name", async () => {
+		fakeFetch();
+		await mount({ kind: "create" });
+		await typeInto(q("class-name"), "MATH 20C");
+		await click(q("class-dialog-close"));
+		assert.equal(closed, 0);
+		assert.ok(q("class-discard-confirm"));
 	});
 
 	it("while Save runs, Esc is claimed but the dialog stays open and the close button is off", async () => {

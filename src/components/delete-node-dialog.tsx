@@ -4,11 +4,6 @@ import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 
-/** The 409 extraction_running line: the server's error names the
- *  extraction; the ACTIVITY DOCK is the
- *  surface the user actually watches drain. Exported pure for pins. */
-export const EXTRACTION_RETRY_LINE = "An extraction is running. Try again when the activity dock drains.";
-
 /**
  * Node deletion: the confirm surface, portaled z-50 like the
  * session-delete dialog. FULL DEATH: the node, every edge touching it,
@@ -16,9 +11,8 @@ export const EXTRACTION_RETRY_LINE = "An extraction is running. Try again when t
  *
  * Minimal on purpose: no pre-flight impact read (a fetch would flicker
  * the dialog open-closed). The screen is: title, names, one permanence
- * line, Cancel / Delete. The 409 extraction_running gets the dock
- * phrasing with a Try-again (the run clears on its own); other failures
- * state themselves plainly.
+ * line, Cancel / Delete. A failure shows the server's own sentence with a
+ * Try-again (a graph run in progress clears on its own).
  */
 /** The dialog's pure body — exported for SSR pins (the settings-dialog
  *  body pattern). The wrapper owns state + effects + the portal. */
@@ -35,7 +29,8 @@ export function DeleteNodeBody({
 	 *  list the names. */
 	nodes: { id: string; name: string }[];
 	busy: boolean;
-	failure: { code: string; error: string } | null;
+	/** The server's sentence (or a network line) when a delete failed. */
+	failure: string | null;
 	onClose: () => void;
 	onRun: () => void;
 	/** "closed" while the exit plays. */
@@ -82,7 +77,7 @@ export function DeleteNodeBody({
 					className="mt-3 border border-border/60 px-3 py-2 text-xs"
 				>
 					<span className="text-foreground">
-						{failure.code === "extraction_running" ? EXTRACTION_RETRY_LINE : failure.error}
+						{failure}
 					</span>
 					<button
 						type="button"
@@ -149,7 +144,7 @@ export function DeleteNodeDialog({
 	const backdropDismiss = useBackdropDismiss(() => {
 		if (!busy) onClose();
 	});
-	const [failure, setFailure] = useState<{ code: string; error: string } | null>(null);
+	const [failure, setFailure] = useState<string | null>(null);
 
 	// Fresh state per dialog: closing resets (once the exit has played).
 	useEffect(() => {
@@ -191,11 +186,10 @@ export function DeleteNodeDialog({
 				const res = await fetch(`/api/graph/nodes/${encodeURIComponent(n.id)}${classQuery(activeClassId)}`, { method: "DELETE" });
 				const body = (await res.json()) as {
 					error?: string;
-					code?: string;
 					graphRevision?: number;
 				};
 				if (!res.ok) {
-					setFailure({ code: body.code ?? "error", error: body.error ?? `Delete failed (${res.status})` });
+					setFailure(body.error ?? `Delete failed (${res.status})`);
 					setBusy(false);
 					if (dead.length > 0) onDeleted(dead, revision);
 					return;
@@ -205,7 +199,7 @@ export function DeleteNodeDialog({
 			}
 			onDeleted(dead, revision);
 		} catch {
-			setFailure({ code: "network", error: "Delete failed: network error. Try again." });
+			setFailure("Delete failed: network error. Try again.");
 			setBusy(false);
 			if (dead.length > 0) onDeleted(dead, revision);
 		}

@@ -8,6 +8,7 @@
  *    last version without these notes, so their first update shows them.
  */
 import { compareVersions, isVersion } from "../core/changelog.ts";
+import { CURRENT_SETTINGS_VERSION } from "../core/settings.ts";
 import { readSettings, writeSettings } from "../store/settings.ts";
 
 const BEFORE_WHATS_NEW = "0.4.0";
@@ -21,7 +22,7 @@ export function whatsNewSince(current: string = process.env.LH_VERSION ?? ""): s
 	const recorded = isVersion(general.lastSeenVersion) ? general.lastSeenVersion : undefined;
 	const since = recorded ?? (general.onboarded === true ? BEFORE_WHATS_NEW : current);
 	if (recorded !== current) {
-		writeSettings({ ...(record ?? { version: 1 }), general: { ...general, lastSeenVersion: current } });
+		writeSettings({ ...(record ?? { version: CURRENT_SETTINGS_VERSION }), general: { ...general, lastSeenVersion: current } });
 	}
 	return compareVersions(since, current) < 0 ? since : null;
 }

@@ -5,8 +5,8 @@
  * events, and drive the user-editable key map without touching any component.
  *
  * Design:
- * - Tab is DEAD: browser tab-focus navigation is abandoned entirely. Tab
- *   does nothing.
+ * - Tab is not bound: it moves focus as usual (the lesson's text fields and
+ *   modal dialogs handle it themselves, see keyboard-shortcuts.tsx).
  * - Esc is a layered dismiss: topmost popover (each popover stopPropagation's
  *   its own Esc) → abort in-flight turn.
  * - The key map persists overrides in localStorage (`lh:keymap`, overrides

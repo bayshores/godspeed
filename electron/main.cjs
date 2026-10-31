@@ -236,7 +236,9 @@ function log(line) {
 	}
 }
 
-function startServer(port) {
+/** `restarted`: the app is starting it again after a crash, so its first
+ *  page shows a notice instead of the welcome screen (src/server/welcome.ts). */
+function startServer(port, restarted = false) {
 	return new Promise((resolve) => {
 		const child = spawn(
 			process.execPath,
@@ -261,6 +263,7 @@ function startServer(port) {
 					// Node's on-disk compile cache: later launches skip re-compiling
 					// the server's code (measured: first page 1366 → 1157 ms).
 					NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
+					...(restarted ? { LH_SERVER_RESTARTED: "1" } : {}),
 				},
 				// The IPC slot ties the server's lifetime to this process (see
 				// server-parent-guard.cjs), like the browser-service helper.
@@ -364,7 +367,7 @@ async function restartServer(port) {
 	restartTimes = times;
 	log(`restarting server (${times.length} in the last minute)`);
 	const url = `http://127.0.0.1:${port}`;
-	const child = await startServer(port);
+	const child = await startServer(port, true);
 	try {
 		await waitUntilUp(url, child);
 	} catch (err) {
@@ -377,18 +380,23 @@ async function restartServer(port) {
 	for (const win of trustedAppWindows) if (!win.isDestroyed()) win.webContents.reload();
 }
 
-/** The server is gone for good: offer a relaunch, since the window can't work without it. */
+/** The server is gone for good: offer a relaunch, since the window can't work
+ *  without it. Reporting a bug opens the browser and asks again. */
 async function showServerStopped() {
 	if (stoppingServer) return; // quitting already
 	killServer();
-	const { response } = await dialog.showMessageBox({
-		type: "error",
-		message: "godspeed stopped working",
-		detail: "The app's server stopped running.",
-		buttons: ["Relaunch", "Quit"],
-		defaultId: 0,
-		cancelId: 1,
-	});
+	let response;
+	do {
+		({ response } = await dialog.showMessageBox({
+			type: "error",
+			message: "godspeed stopped working",
+			detail: "The app's server stopped running.",
+			buttons: ["Relaunch", "Report a bug", "Quit"],
+			defaultId: 0,
+			cancelId: 2,
+		}));
+		if (response === 1) openBugReport();
+	} while (response === 1);
 	if (response === 0) {
 		app.relaunch();
 		app.exit(0);

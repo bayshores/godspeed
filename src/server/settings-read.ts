@@ -9,5 +9,5 @@
  */
 export { readSettings as readSettingsRecord } from "../store/settings.ts";
 export { onboardingNeeded } from "./onboarding.ts";
-export { welcomeNeeded } from "./welcome.ts";
+export { firstLoadScreen } from "./welcome.ts";
 export { whatsNewSince } from "./whats-new.ts";

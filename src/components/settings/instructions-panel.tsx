@@ -88,7 +88,7 @@ export function InstructionsPanel({
 				<header className="flex items-start justify-between gap-3 px-6 pb-3.5 pt-5">
 					<span>
 						<h3 className="text-lg font-bold text-ink">{area.label}</h3>
-						<span className="text-[12.5px] text-ink-3">What the teacher reads before every lesson</span>
+						<span className="text-[12.5px] text-ink-2">What the teacher reads before every lesson</span>
 					</span>
 					<button type="button" aria-label="Close instructions" onClick={onClose} className="lh-press mt-1 text-ink-2 hover:text-ink">
 						<XIcon className="size-4" aria-hidden />
