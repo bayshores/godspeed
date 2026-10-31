@@ -72,6 +72,8 @@ import { isTurnRunning } from "./turn-liveness.ts";
 import { currentAgentBriefing } from "./agent-memory.ts";
 import { addAgentNote, removeAgentNote } from "../store/agent-notes.ts";
 import { NOTE_MAX_CHARS } from "../core/agent-notes.ts";
+import { RULE_MAX_CHARS, TEACHING_AREAS, type AreaId } from "../core/teaching-areas.ts";
+import { saveRuleByAgent } from "./agent-rules.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 
 /** Codex's default MCP tool timeout is 60 s, so the default wait stays
@@ -615,6 +617,33 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			annotations: REMOVES,
 		},
 		async ({ note_id }) => (removeAgentNote(note_id) ? result({ removed: note_id }) : failure(`No note "${note_id}".`)),
+	);
+
+	server.registerTool(
+		"save_rule",
+		{
+			title: "Save a teaching rule",
+			description:
+				"Save a rule about how godspeed's teacher teaches this learner, when they tell you a lasting preference (\"use Python for code examples\", \"shorter answers\"). " +
+				"It joins the learner's rules in Settings, for every lesson or for one class's lessons, and applies from the next turn. Not for one-off requests or facts about the learner (use remember for those). " +
+				"Don't ask first: the godspeed window shows it with Undo and Edit.",
+			inputSchema: z.object({
+				rule: z.string().min(1).max(RULE_MAX_CHARS).describe('One line, an instruction to the teacher, e.g. "Use Python for code examples."'),
+				class_id: z.string().optional().describe("Only for this class's lessons (from list_classes). Leave it out for every lesson."),
+				area: z
+					.enum(TEACHING_AREAS.map((a) => a.id) as [AreaId, ...AreaId[]])
+					.optional()
+					.describe('For every lesson, the part of teaching it is about: "voice", "teaching" (the default), "questions", "facts", "demos" or "files" (files, formatting and code).'),
+			}),
+			annotations: ADDS,
+		},
+		async ({ rule, class_id, area }) => {
+			const arg = classArg(class_id);
+			if ("error" in arg) return failure(arg.error);
+			const where = arg.scope ? { classId: arg.scope } : { area: area ?? ("teaching" as const) };
+			const saved = saveRuleByAgent(rule, where, agentName() ?? "Your agent");
+			return saved.ok ? result({ saved: saved.rule, for: saved.for, note: "The learner sees it in the godspeed window and can undo or edit it." }) : failure(saved.error);
+		},
 	);
 
 	registerClassTools(server);

@@ -14,6 +14,7 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 	const previous = new Map<string, PropertyDescriptor | undefined>();
 	const bodies: Record<string, unknown> = {
 		"/api/settings/prompts": { segments: [] },
+		"/api/rules": { rules: [{ where: { area: "voice" }, text: "No jokes", at: "2026-10-30T12:00:00.000Z" }] },
 	};
 	for (const [key, value] of Object.entries({
 		window: dom.window,
@@ -33,21 +34,26 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 	// pulls it in) load only after the fake DOM is in place.
 	const { createRoot } = await import("react-dom/client");
 	const { TeachingSection } = await import("../src/components/settings/teaching-section.tsx");
+	const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	const root = createRoot(document.getElementById("root")!);
 	let written: AgentSettings | undefined;
 	try {
 		await act(async () => {
 			root.render(
-				<TeachingSection
-					agent={{ tools: { research: true }, rules: { voice: ["No jokes"] } }}
-					graph={undefined}
-					teacherName="Halley"
-					onSectionChange={(next) => {
-						written = next;
-					}}
-				/>,
+				<ServerEventsProvider connect={quietEvents as never}>
+					<TeachingSection
+						agent={{ tools: { research: true }, rules: { voice: ["No jokes"] } }}
+						graph={undefined}
+						teacherName="Halley"
+						onSectionChange={(next) => {
+							written = next;
+						}}
+					/>
+				</ServerEventsProvider>,
 			);
 		});
+		assert.match(document.querySelector('[data-testid="rules-voice"]')!.textContent!, /No jokesSaved by Halley/, "the agent's rule is labeled");
 		const toggle = document.querySelector<HTMLButtonElement>('[data-testid="toggle-web-research"]')!;
 		assert.equal(toggle.hasAttribute("disabled"), false);
 		assert.equal(toggle.getAttribute("aria-checked"), "true");

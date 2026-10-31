@@ -20,9 +20,10 @@ import {
 	ShapesIcon,
 	WaypointsIcon,
 } from "lucide-react";
-import { TEACHING_AREAS, type AgentSettings, type AreaId, type GraphSettings, type PromptSegmentInfo, type TeachingArea } from "@/core";
+import { savedTimes, TEACHING_AREAS, type AgentSettings, type AreaId, type GraphSettings, type PromptSegmentInfo, type TeachingArea } from "@/core";
 import { HalleyFace } from "@/components/halley/halley-face";
 import { RuleChips } from "@/components/rule-chips";
+import { useSavedRules } from "@/components/use-saved-rules";
 import { cn } from "@/lib/utils";
 import { Toggle } from "./controls.tsx";
 import { InstructionsPanel } from "./instructions-panel.tsx";
@@ -54,6 +55,7 @@ export function TeachingSection({
 }) {
 	const [segments, setSegments] = useState<PromptSegmentInfo[] | null>(null);
 	const [openArea, setOpenArea] = useState<TeachingArea | null>(null);
+	const savedRules = useSavedRules(agent?.rules);
 	const readSegments = useCallback(() => {
 		fetch("/api/settings/prompts")
 			.then((r) => r.json())
@@ -140,6 +142,8 @@ export function TeachingSection({
 										addLabel={rules.length || controls[area.id] ? "Add a rule" : "Add a rule for this area"}
 										onChange={(next) => onSectionChange(composeRules(agent, area.id, next))}
 										testid={`rules-${area.id}`}
+										saved={savedTimes(savedRules, { area: area.id })}
+										teacherName={teacherName}
 									/>
 								</div>
 							</div>

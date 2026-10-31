@@ -74,6 +74,9 @@ export interface ServerEvents {
 	"compaction-changed": { chatId: string; running: boolean };
 	/** An outside agent changed something (the payload is the action). */
 	"agent-action": AgentAction;
+	/** A teaching rule was saved, undone or edited. `saved` when an outside
+	 *  agent saved one from the terminal (the window shows a notice). */
+	"rules-changed": { saved?: { text: string; where: { area: string } | { classId: string }; label: string; agent: string } };
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -92,6 +95,7 @@ export const SERVER_EVENT_TYPES = [
 	"record-changed",
 	"compaction-changed",
 	"agent-action",
+	"rules-changed",
 ] as const satisfies readonly ServerEventType[];
 
 /** One notification: the type discriminates the payload (a real union,

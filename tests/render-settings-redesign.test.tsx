@@ -31,6 +31,8 @@ const { createRoot } = await import("react-dom/client");
 const { SettingsDialogBody, sectionFor } = await import("../src/components/settings/settings-dialog.tsx");
 const { ConnectionSection } = await import("../src/components/settings/connection-section.tsx");
 const { maskToken } = await import("../src/components/mcp-access.ts");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
 const originalFetch = globalThis.fetch;
 let root: Root | undefined;
@@ -39,7 +41,7 @@ async function mount(element: React.ReactElement) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
-	await act(async () => root!.render(element));
+	await act(async () => root!.render(<ServerEventsProvider connect={quietEvents as never}>{element}</ServerEventsProvider>));
 	await act(async () => {
 		await new Promise((r) => setTimeout(r, 10));
 	});

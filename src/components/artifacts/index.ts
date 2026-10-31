@@ -4,6 +4,7 @@ import { DemoCard } from "@/components/artifacts/demo-card";
 import { JobCard, PdfJobCard } from "@/components/artifacts/job-card";
 import { VisualCard } from "@/components/artifacts/visual-card";
 import { ProbeDoneCard } from "@/components/artifacts/probe-done-card";
+import { RuleSavedLine } from "@/components/artifacts/rule-saved-line";
 import { ToolCallCard } from "@/components/artifacts/tool-call-card";
 import { ProblemCard, ConcludeCard } from "@/components/practice-cards";
 
@@ -45,4 +46,6 @@ export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>>
 	// pre-formatted output verbatim on expand.
 	list_sessions: ToolCallCard,
 	list_propositions: ToolCallCard,
+	// A rule the teacher saved: one line with Undo and Edit.
+	save_rule: RuleSavedLine,
 };

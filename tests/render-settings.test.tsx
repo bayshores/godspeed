@@ -18,6 +18,9 @@ import { GeneralSection } from "../src/components/settings/general-section.tsx";
 import { KeyboardSection } from "../src/components/settings/keyboard-section.tsx";
 import { SettingsDialogBody } from "../src/components/settings/settings-dialog.tsx";
 import { SettingsDialogProvider } from "../src/components/settings/settings-dialog-provider.tsx";
+import { ServerEventsProvider } from "../src/components/server-events.tsx";
+
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 import { KEYBOARD_ACTIONS, TEACHING_AREAS, type UserSettings } from "../src/core/index.ts";
 
 /** The full opening tag of the element carrying a testid — attribute
@@ -42,7 +45,11 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 	});
 
 	it("the dialog frame: role=dialog + the ✕ + the five-section nav, Connection first and General last", () => {
-		const html = renderToStaticMarkup(<SettingsDialogBody onClose={() => {}} />);
+		const html = renderToStaticMarkup(
+			<ServerEventsProvider connect={quietEvents as never}>
+				<SettingsDialogBody onClose={() => {}} />
+			</ServerEventsProvider>,
+		);
 		assert.ok(html.includes('role="dialog"'));
 		assert.ok(html.includes('aria-modal="true"'));
 		assert.ok(html.includes('aria-label="Close settings"'));
@@ -61,7 +68,9 @@ describe("SettingsDialog (the designed surface, SSR)", () => {
 describe("TeachingSection (SSR)", () => {
 	const render = (props: Partial<React.ComponentProps<typeof TeachingSection>> = {}) =>
 		renderToStaticMarkup(
-			<TeachingSection agent={undefined} graph={undefined} teacherName="Halley" onSectionChange={() => {}} {...props} />,
+			<ServerEventsProvider connect={quietEvents as never}>
+				<TeachingSection agent={undefined} graph={undefined} teacherName="Halley" onSectionChange={() => {}} {...props} />
+			</ServerEventsProvider>,
 		);
 
 	it("one card per teaching area, in order, each with rules and a Full instructions button", () => {

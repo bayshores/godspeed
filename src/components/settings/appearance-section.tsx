@@ -7,11 +7,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon, PipetteIcon, PlusIcon } from "lucide-react";
-import type { AppearanceSettings } from "@/core";
+import { wantsDarkText, type AppearanceSettings } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "./appearance.tsx";
-import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette, isLight } from "./appearance-model.ts";
+import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette } from "./appearance-model.ts";
 import { FontMenuList } from "./font-menu";
 import { SettingsGroup, Slider, Toggle } from "./controls.tsx";
 
@@ -51,7 +51,7 @@ export function AppearanceSection({
 	const md = appearance?.mdRendering;
 	const background = appearance?.background ?? null;
 	const shownBackground = background ?? "#000000";
-	const light = isLight(shownBackground);
+	const light = wantsDarkText(shownBackground);
 	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
 	const weightIndex = Math.max(0, HEADING_WEIGHTS.findIndex((w) => w.weight >= resolved.mdRendering.headingWeight));
 	const ink = md?.boldColor ?? null;

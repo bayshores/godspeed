@@ -19,7 +19,9 @@ import { DeadlinesEditor } from "@/components/class-deadlines";
 import { RuleChips } from "@/components/rule-chips";
 import { changedFields, deadlineWrites, draftProblem, draftsFrom, dropRemoved, hasUnsavedChanges, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
-import type { ClassDeadline, ClassIcon, ClassRecord, ClassSignature, SignatureKind } from "@/core";
+import { DEFAULT_TEACHER_NAME, savedTimes, type ClassDeadline, type ClassIcon, type ClassRecord, type ClassSignature, type SignatureKind } from "@/core";
+import { useHalley } from "@/components/halley/halley-provider";
+import { useSavedRules } from "@/components/use-saved-rules";
 import { ClassSignatureField } from "@/components/class-signature-field";
 import { ClassIconField } from "@/components/class-icon-field";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
@@ -61,6 +63,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const [signature, setSignature] = useState<{ kind: SignatureKind; value: string }>({ kind: "math", value: "" });
 	const [icon, setIcon] = useState<ClassIcon | undefined>(undefined);
 	const [rules, setRules] = useState<string[]>([]);
+	const savedRules = useSavedRules(record?.rules);
+	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const [drafts, setDrafts] = useState<DeadlineDraft[]>([]);
 	const [openDeadline, setOpenDeadline] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -321,7 +325,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								<span className={LABEL}>Rules for this class</span>
 								<span className="text-xs text-ink-2">Added to your rules in every {record.name} lesson</span>
 							</span>
-							<RuleChips rules={rules} onChange={setRules} testid="class-rules" />
+							<RuleChips rules={rules} onChange={setRules} testid="class-rules" saved={record ? savedTimes(savedRules, { classId: record.id }) : {}} teacherName={teacherName} />
 						</div>
 					)}
 

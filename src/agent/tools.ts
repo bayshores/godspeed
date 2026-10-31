@@ -1,4 +1,5 @@
 import { classTools, type ClassToolContext } from "./tools/class.ts";
+import { ruleTools, type SaveRule } from "./tools/rules.ts";
 import type { GraphToolContext } from "./tools/graph.ts";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
@@ -291,6 +292,8 @@ export interface ProberToolContext extends ProbeDoneContext {
 	todayNote?: ClassToolContext["todayNote"];
 	classSearch?: ClassToolContext["search"];
 	classNote?: ClassToolContext["setNote"];
+	/** save_rule: present = the teacher can save a teaching rule. */
+	saveRule?: SaveRule;
 }
 
 /** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
@@ -352,6 +355,7 @@ export function createProberTools(
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
 				...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
 				...done,
 			},
 				withoutMechanics(enabled),
@@ -415,6 +419,8 @@ export interface TeacherToolContext extends PlanToolContext {
 	todayNote?: ClassToolContext["todayNote"];
 	classSearch?: ClassToolContext["search"];
 	classNote?: ClassToolContext["setNote"];
+	/** save_rule: present = the teacher can save a teaching rule. */
+	saveRule?: SaveRule;
 }
 
 /** The quizzing mechanics: `tools.explain === true` in the resolved
@@ -467,6 +473,7 @@ export function createTeacherTools(
 			work_plan: workPlanTool,
 			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn }),
 			...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
 		},
 		withoutMechanics(enabled),
 		),

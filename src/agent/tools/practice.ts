@@ -22,6 +22,7 @@ import { grepTool } from "./grep.ts";
 import { jobTools, type JobToolContext } from "./jobs.ts";
 import { proberGraphTools, type GraphToolContext } from "./graph.ts";
 import { classTools, type ClassToolContext } from "./class.ts";
+import { ruleTools, type SaveRule } from "./rules.ts";
 import { activeProblemOf } from "../../core/native-messages.ts";
 import type { LhMessage } from "../../core/native-messages.ts";
 import { concludeResult, invalidInputResult, problemResult } from "../tool-execute.ts";
@@ -48,6 +49,8 @@ export interface PracticeToolContext {
 	todayNote?: ClassToolContext["todayNote"];
 	classSearch?: ClassToolContext["search"];
 	classNote?: ClassToolContext["setNote"];
+	/** save_rule: present = the teacher can save a teaching rule. */
+	saveRule?: SaveRule;
 }
 
 /** TURN-SCOPED GATE STATE: the gates can't read the STORED record — it
@@ -242,5 +245,6 @@ export function practiceTools(ctx: PracticeToolContext): Record<string, AgentToo
 		...(jobs ? { pdf: jobs.pdf! } : {}),
 		...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
 		...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+		...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
 	});
 }

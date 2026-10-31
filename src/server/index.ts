@@ -43,3 +43,4 @@ export { readingDocument, readingPdfPage } from "./reading-pages.ts";
 export { AgentFolderError, agentFolderView, dismissFolderNotice, setUpAgentFolder } from "./agent-folder.ts";
 export { handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";
+export { agentSavedRules, editRule, removeRule } from "./agent-rules.ts";

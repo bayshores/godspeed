@@ -286,6 +286,7 @@ describe("the /api/mcp door", () => {
 			"remember",
 			"remove_class_deadline",
 			"respond",
+			"save_rule",
 			"search_class_files",
 			"search_graph",
 			"set_class_file_kind",

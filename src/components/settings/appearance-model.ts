@@ -1,11 +1,12 @@
 /**
  * Appearance → CSS variables. The background is the one chosen color;
- * panels, edges and text derive from it here. A light background flips the
- * text to dark and the derived surfaces step darker instead of lighter, so
+ * panels, edges and text derive from it here. Where dark text reads better
+ * the derived surfaces step darker instead of lighter, and the text takes a
+ * hint of the background's color while staying readable (core/ink.ts), so
  * any color works.
  */
 
-import { resolveSettings, type AppearanceSettings, type EffectiveAppearance } from "@/core";
+import { inkFor, readableAccent, resolveSettings, wantsDarkText, type AppearanceSettings, type EffectiveAppearance } from "@/core";
 
 /** The resolved appearance (delta over factory), through the core resolver. */
 export function resolveAppearance(delta: AppearanceSettings | undefined): EffectiveAppearance {
@@ -21,6 +22,9 @@ export const BACKGROUND_PRESETS: ReadonlyArray<{ name: string; color: string | n
 	{ name: "Paper", color: "#f4f1ea" },
 	{ name: "White", color: "#ffffff" },
 ];
+
+/** The stylesheet's background when none is chosen (Black). */
+const DEFAULT_BACKGROUND = "#000000";
 
 /** Bold/italic color presets that read well on each kind of background. */
 export const INK_PRESETS = {
@@ -38,28 +42,22 @@ function shift(hex: string, delta: number): string {
 	return `#${channels(hex).map((c) => Math.min(255, Math.max(0, c + delta)).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** True when dark text reads better than light text on this color. */
-export function isLight(hex: string): boolean {
-	const linear = (c: number) => {
-		const s = c / 255;
-		return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-	};
-	const [r, g, b] = channels(hex);
-	return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b) > 0.4;
-}
-
-/** The palette a background implies. Dark: surfaces step up (+8 panel,
- *  +22 tone, +47 edge), matching the hand-picked default; light: they step
- *  down, and the text set flips to dark. */
+/** The palette a background implies. Light text: surfaces step up (+8
+ *  panel, +22 tone, +47 edge), matching the hand-picked default; dark text:
+ *  they step down. Text must read on the background and on its panels. */
 export function derivedPalette(background: string): Record<string, string> {
-	const light = isLight(background);
+	const light = wantsDarkText(background);
 	const step = light ? -1 : 1;
 	const card = shift(background, 8 * step);
 	const accent = shift(background, 22 * step);
 	const border = shift(background, 47 * step);
-	const text = light
-		? { fg: "#1a1a1a", muted: "#5f5f5f", quiet: "#7b7b7b", body: "#2b2b2b" }
-		: { fg: "#e6e6e6", muted: "#8d8d8d", quiet: "#6e6e6e", body: "#cfcfcf" };
+	const panels = [card, accent];
+	const text = {
+		fg: inkFor(background, "text", panels),
+		body: inkFor(background, "body", panels),
+		muted: inkFor(background, "muted", panels),
+		quiet: inkFor(background, "faint", panels),
+	};
 	return {
 		"color-scheme": light ? "light" : "dark",
 		"--background": background,
@@ -99,8 +97,10 @@ export function appearanceVars(a: EffectiveAppearance): Record<string, string> {
 	// Every title uses .font-title, so swapping the variable covers them all.
 	if (!a.sessionNameSerif) vars["--font-title"] = "var(--font-prose)";
 	vars["--lh-heading-weight"] = String(a.mdRendering.headingWeight);
-	if (a.mdRendering.boldColor !== null) vars["--lh-ink-strong"] = a.mdRendering.boldColor;
-	if (a.mdRendering.italicColor !== null) vars["--lh-ink-italic"] = a.mdRendering.italicColor;
+	// A bold or italic color is kept readable on the background (the saved choice stays as picked).
+	const background = a.background ?? DEFAULT_BACKGROUND;
+	if (a.mdRendering.boldColor !== null) vars["--lh-ink-strong"] = readableAccent(a.mdRendering.boldColor, background);
+	if (a.mdRendering.italicColor !== null) vars["--lh-ink-italic"] = readableAccent(a.mdRendering.italicColor, background);
 	return vars;
 }
 

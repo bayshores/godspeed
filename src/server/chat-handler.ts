@@ -49,6 +49,8 @@ import {
 import { steerDelivered } from "../core/contracts.ts";
 import type { AttachmentPart } from "../core/attachments.ts";
 import { storeAttachments } from "./attachments.ts";
+import { saveRuleByAgent } from "./agent-rules.ts";
+import type { SaveRule } from "../agent/tools/rules.ts";
 import type {CallUsage} from "../core/contracts.ts";
 
 /**
@@ -366,6 +368,14 @@ export async function handleChatInput(
 			stores.classStore.updateClass(lessonScope, { note: { text: text.trim(), at: new Date().toISOString() } });
 			return "Saved. It shows on the class's cover.";
 		};
+		// save_rule: the rule joins the learner's rules; the chat shows it with Undo and Edit.
+		const saveRule: SaveRule = (rule, scope, area) => {
+			if (scope === "this_class" && lessonScope === null) return "This lesson isn't in a class. Save the rule for every lesson instead.";
+			const where = scope === "this_class" && lessonScope !== null ? { classId: lessonScope } : { area: area ?? ("teaching" as const) };
+			const saved = saveRuleByAgent(rule, where);
+			if (!saved.ok) return saved.error;
+			return { saved: true, rule: saved.rule, for: saved.for, where, note: "Saved. The learner sees it in the chat and can undo or edit it." };
+		};
 		// The agent engine loads on the first turn, not at server start.
 		if (!buildAgent) await loadAgentCore();
 		const constructed: TeachingAgent = buildAgent
@@ -395,6 +405,7 @@ export async function handleChatInput(
 								? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
 								: {}),
 							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+							saveRule,
 						},
 						agentOpts,
 					)
@@ -406,6 +417,7 @@ export async function handleChatInput(
 							jobStore: stores.jobStore,
 							spawn: (job, input) => void jobRunner.runJob(job.id, input),
 							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+							saveRule,
 							// The registry drop's signal: no live engine
 							// = no research tool in the teacher's registry.
 						},
@@ -425,6 +437,7 @@ export async function handleChatInput(
 							// graph master switch AND the agent.graphTools toggle.
 							...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
 							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+							saveRule,
 						},
 						agentOpts,
 					);

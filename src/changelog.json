@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.6",
+		"date": "2026-10-30",
+		"changes": [
+			"Your teacher can now save a rule on its own when you tell it how you like to learn, like using Python for code examples. It shows in the chat with Undo and Edit.",
+			"Claude Code can save rules from the terminal too, and godspeed shows a notice in the corner with Undo and Edit.",
+			"Rules your teacher saved are labeled in Settings and in Edit class. Hover the label to see when.",
+			"Text now follows your background color. It stays easy to read on any color and takes a hint of that color so it fits in.",
+			"Bold and italic colors are made a little lighter or darker if they would be hard to read on your background."
+		]
+	},
+	{
 		"version": "0.5.5",
 		"date": "2026-10-30",
 		"changes": [

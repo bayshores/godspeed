@@ -14,6 +14,8 @@ import UpdateBanner from "../src/components/update-banner.tsx";
 import { SettingsDialogBody } from "../src/components/settings/settings-dialog.tsx";
 import { SettingsDialogProvider } from "../src/components/settings/settings-dialog-provider.tsx";
 import nextConfig from "../next.config.ts";
+import { ServerEventsProvider } from "../src/components/server-events.tsx";
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, CustomEvent: dom.window.CustomEvent });
@@ -54,7 +56,7 @@ function bridge(initial = state(), snapshot = Promise.resolve(initial)) {
 async function mount(element: React.ReactElement) {
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host); roots.push({ root, host });
-	await act(async () => { root.render(element); });
+	await act(async () => { root.render(<ServerEventsProvider connect={quietEvents as never}>{element}</ServerEventsProvider>); });
 	return host;
 }
 

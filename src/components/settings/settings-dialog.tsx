@@ -30,6 +30,7 @@ import { TeachingSection } from "./teaching-section.tsx";
 import { GeneralSection } from "./general-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
+import { useServerEvent } from "@/components/server-events";
 import { Hint } from "@/components/ui/hint";
 import { Tip } from "@/components/ui/tooltip";
 import { GraduationCapIcon, InfoIcon, KeyboardIcon, PaletteIcon, PlugIcon, SettingsIcon, XIcon } from "lucide-react";
@@ -157,6 +158,17 @@ export function SettingsDialogBody({
 			)
 			.catch(() => setRecord(null));
 	}, []);
+	// An agent saved, undid or edited a rule: take the new rules, so the
+	// next Teaching write (which replaces the whole section) keeps them.
+	useServerEvent("rules-changed", () => {
+		fetch("/api/settings")
+			.then((r) => (r.ok ? r.json() : null))
+			.then((body: { settings: UserSettings | null } | null) => {
+				const agent = body?.settings?.agent;
+				setRecord((prev) => (prev ? { ...prev, agent } : prev));
+			})
+			.catch(() => {});
+	});
 
 	// Escape closes the dialog.
 	useEffect(() => {

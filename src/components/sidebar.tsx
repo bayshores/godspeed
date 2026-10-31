@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { SettingsDialogProvider } from "@/components/settings/settings-dialog-provider.tsx";
+import { RuleNotice } from "@/components/rule-notice";
 import { Hint } from "@/components/ui/hint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -337,6 +338,7 @@ export function AppShell({
 			    after the content in the tree, but it's window-level so order only
 			    matters for the events it dispatches, never for DOM priority. */}
 			<KeyboardShortcuts />
+			<RuleNotice />
 		</SettingsDialogProvider>
 	);
 }

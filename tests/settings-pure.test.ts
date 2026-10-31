@@ -9,7 +9,6 @@ import { describe, it } from "node:test";
 import {
 	appearanceVars,
 	derivedPalette,
-	isLight,
 	resolveAppearance,
 	staleVarNames,
 } from "../src/components/settings/appearance-model.ts";
@@ -68,24 +67,25 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.equal(p["color-scheme"], "light");
 		assert.equal(p["--card"], "#ece9e2");
 		assert.equal(p["--border"], "#c5c2bb");
-		assert.equal(p["--foreground"], "#1a1a1a");
+		assert.equal(p["--foreground"], "#1c1a15", "dark text with a hint of the paper's warmth");
 		assert.equal(p["--lh-ink-max"], "#000000");
 		assert.equal(p["--primary-foreground"], "#f4f1ea");
 	});
 
 	it("channels clamp at 255", () => {
-		assert.equal(derivedPalette("#ff0000")["--card"], "#ff0808");
+		assert.equal(derivedPalette("#0000ff")["--card"], "#0808ff");
+	});
+
+	it("a mid color takes the text that reads better: dark on red and orange", () => {
+		for (const bg of ["#ff0000", "#e07020"]) {
+			const p = derivedPalette(bg);
+			assert.equal(p["color-scheme"], "light", bg);
+			assert.equal(p["--foreground"], "#000000", bg);
+		}
 	});
 
 	it("3-digit hex expands", () => {
 		assert.equal(derivedPalette("#123")["--card"], "#192a3b"); // 11 22 33 each +8
-	});
-});
-
-describe("isLight — which text color reads on a background", () => {
-	it("splits the presets into dark and light", () => {
-		for (const dark of ["#000000", "#161616", "#0d1320", "#0e1712", "#ff0000"]) assert.equal(isLight(dark), false, dark);
-		for (const light of ["#f4f1ea", "#ffffff", "#ffeb3b"]) assert.equal(isLight(light), true, light);
 	});
 });
 
@@ -107,7 +107,7 @@ describe("appearanceVars — the mapping the provider applies", () => {
 				fontFamily: "Georgia",
 				proseFontSize: 18,
 				sessionNameSerif: false,
-				mdRendering: { headingWeight: 700, boldColor: "#ff0000", italicColor: "#00ff00" },
+				mdRendering: { headingWeight: 700, boldColor: "#ff8080", italicColor: "#00ff00" },
 			}),
 		);
 		assert.equal(vars["--background"], "#101820");
@@ -116,8 +116,13 @@ describe("appearanceVars — the mapping the provider applies", () => {
 		assert.equal(vars["--lh-prose-size"], "18px");
 		assert.equal(vars["--font-title"], "var(--font-prose)", "serif off → titles follow the prose font");
 		assert.equal(vars["--lh-heading-weight"], "700");
-		assert.equal(vars["--lh-ink-strong"], "#ff0000");
+		assert.equal(vars["--lh-ink-strong"], "#ff8080");
 		assert.equal(vars["--lh-ink-italic"], "#00ff00");
+	});
+
+	it("a bold color that would be hard to read is made readable", () => {
+		const vars = appearanceVars(resolveAppearance({ mdRendering: { boldColor: "#2f5fb3" } }));
+		assert.notEqual(vars["--lh-ink-strong"], "#2f5fb3", "dark blue on black is lightened");
 	});
 
 	it("sessionNameSerif false alone: titles move, nothing else does", () => {
@@ -134,7 +139,7 @@ describe("staleVarNames — the removal half of application (owner repro: resets
 				background: "#101820",
 				fontFamily: "Georgia",
 				sessionNameSerif: false,
-				mdRendering: { headingWeight: 700, boldColor: "#ff0000", italicColor: "#00ff00" },
+				mdRendering: { headingWeight: 700, boldColor: "#ff8080", italicColor: "#00ff00" },
 			}),
 		);
 		const applied = Object.keys(fullDelta);

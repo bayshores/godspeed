@@ -1,7 +1,8 @@
 /**
  * The learner's rules as chips: each rule with a remove ✕, then "Add a
  * rule", which turns into a one-line input. Used by Settings → Teaching
- * (per area) and Edit class (per class).
+ * (per area) and Edit class (per class). A rule the agent saved says
+ * "Saved by Halley", with the date on hover.
  */
 
 import { useState } from "react";
@@ -13,11 +14,16 @@ export function RuleChips({
 	onChange,
 	addLabel = "Add a rule",
 	testid,
+	saved,
+	teacherName,
 }: {
 	rules: string[];
 	onChange: (next: string[]) => void;
 	addLabel?: string;
 	testid?: string;
+	/** When the agent saved each of these rules, by rule text. */
+	saved: Record<string, string>;
+	teacherName: string;
 }) {
 	const [adding, setAdding] = useState(false);
 	const [draft, setDraft] = useState("");
@@ -32,6 +38,11 @@ export function RuleChips({
 			{rules.map((rule) => (
 				<span key={rule} className="flex max-w-full items-center gap-2 bg-tone-2 py-[5px] pl-[11px] pr-[9px] text-[13px] text-ink">
 					<span className="min-w-0 break-words">{rule}</span>
+					{saved[rule] && (
+						<span title={`Saved by ${teacherName} on ${savedDay(saved[rule])}`} className="shrink-0 text-xs whitespace-nowrap text-ink-3">
+							Saved by {teacherName}
+						</span>
+					)}
 					<button
 						type="button"
 						aria-label={`Remove rule: ${rule}`}
@@ -79,4 +90,9 @@ export function RuleChips({
 			)}
 		</div>
 	);
+}
+
+/** "Oct 30". */
+function savedDay(iso: string): string {
+	return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
