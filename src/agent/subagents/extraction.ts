@@ -977,9 +977,9 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 									throw gone;
 								}
 								// The batch's messages, snapshotted when the run computed
-								// coverage — if a message mutates mid-run (a quiz answer
-								// merges in), the stored fingerprint won't match its new
-								// one and it re-opens: honest by construction.
+								// coverage — a message whose teacher prose changes mid-run
+								// gets a new fingerprint that won't match the stored one,
+								// so it re-opens: honest by construction.
 								const foldedAt = new Date().toISOString();
 								const batchStats = mergeFindings(chatId, findings, { chatStore, graphStore: chatGraph }, {
 									foldedAt,

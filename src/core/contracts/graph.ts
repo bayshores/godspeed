@@ -153,9 +153,8 @@ export interface SessionCheckpoint {
 /** coverage.jsonl line: ONE MESSAGE of one chat has been extracted — by content fingerprint over
  *  exactly what the extraction view sees. The MESSAGE is the unit of
  *  coverage; "uncovered" is derived (fingerprint the current transcript,
- *  diff) — never dual-tracked. A quiz answer merging into the asking
- *  message changes its fingerprint: the message re-opens itself, only
- *  itself. Chat extractions write these instead of whole-chat checkpoints;
+ *  diff) — never dual-tracked. Only a change to the message's teacher
+ *  prose changes its fingerprint and re-opens it, and only it. Chat extractions write these instead of whole-chat checkpoints;
  *  notes imports keep the checkpoint (a file is one shot). */
 export interface CoverageEntry {
 	chatId: string;
@@ -169,7 +168,7 @@ export interface CoverageEntry {
 
 /**
  * Store format (src/store/graph.ts): JSONL ledgers at config.LEDGER_FILES
- * (nodes/chains/sessions), all append-only. Edges are NEVER stored — the
+ * (nodes/chains/sessions/coverage/topics), all append-only. Edges are NEVER stored — the
  * derived view (implication nodes + untyped arrows) is rebuilt from chains
  * on every read.
  *
