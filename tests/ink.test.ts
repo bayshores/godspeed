@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { contrast, inkFor, readableAccent, wantsDarkText, type InkLevel } from "../src/core/ink.ts";
+import { contrast, inkFor, readableAccent, shiftHex, wantsDarkText, type InkLevel } from "../src/core/ink.ts";
 
 const MINIMUM: Record<InkLevel, number> = { text: 7, body: 6, muted: 4.5, faint: 3 };
 const LEVELS = Object.keys(MINIMUM) as InkLevel[];
@@ -23,6 +23,15 @@ describe("contrast and the light-or-dark choice", () => {
 	it("picks the text that reads better", () => {
 		for (const bg of ["#000000", "#161616", "#0d1320", "#2050c0", "#3a7d44"]) assert.equal(wantsDarkText(bg), false, bg);
 		for (const bg of ["#f4f1ea", "#ffffff", "#ffeb3b", "#ff0000", "#e07020", "#808080"]) assert.equal(wantsDarkText(bg), true, bg);
+	});
+});
+
+describe("shiftHex", () => {
+	it("moves every channel and clamps at the ends", () => {
+		assert.equal(shiftHex("#000000", 8), "#080808");
+		assert.equal(shiftHex("#ffffff", 8), "#ffffff");
+		assert.equal(shiftHex("#fff", -8), "#f7f7f7");
+		assert.equal(shiftHex("#102030", -20), "#000c1c");
 	});
 });
 

@@ -17,16 +17,13 @@ export function currentAgentBriefing(maxChars: number): string {
 		now: new Date(),
 		maxChars,
 		timeZone: localTimeZone(),
-		classes: stores.classStore.listClasses().map((c) => {
-			const record = stores.classStore.getClass(c.id);
-			return {
-				id: c.id,
-				name: c.name,
-				archived: c.archived,
-				deadlines: record?.deadlines ?? [],
-				missingSetup: record ? missingSetup(record) : [],
-			};
-		}),
+		classes: stores.classStore.listClassRecords().map((r) => ({
+			id: r.id,
+			name: r.name,
+			archived: r.archived,
+			deadlines: r.deadlines ?? [],
+			missingSetup: missingSetup(r),
+		})),
 		lessons: stores.chatStore.listChats().map((c) => ({
 			id: c.id,
 			title: c.title,

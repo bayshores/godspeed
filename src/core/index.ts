@@ -67,7 +67,7 @@ export * from "./session-find.ts";
 export * from "./session-navigation.ts";
 // keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).
 export * from "./keyboard.ts";
-export * from "./coverage.ts";
+// coverage.ts is server-only (node:crypto); its callers import it directly.
 // Topics (the grouper's read/repair rules) and the derived progress
 // numbers — pure, browser-safe.
 export * from "./topics.ts";

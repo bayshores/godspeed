@@ -17,6 +17,7 @@ import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
 import { danglingQuestionOf } from "../core/native-messages.ts";
 import { phaseAt3Lh } from "../core/phases.ts";
+import { isRecord, isString } from "./guards.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
 function chatFile(id: string): string {
@@ -73,15 +74,19 @@ function getChat(id: string): ChatRecord | null {
 	} catch {
 		return null;
 	}
+	if (!isRecord(parsed) || !isString(parsed.id) || !isString(parsed.updatedAt) || !Array.isArray(parsed.messages)) {
+		console.error(`[chat ${id}] record has the wrong shape; skipping it`);
+		return null;
+	}
 	// Honest refusal: a record stamped NEWER than
 	// this build (the downgrade scenario) reads as absent, never misparsed —
 	// the next read-modify-write must not rewrite what it doesn't understand.
-	const v = (parsed as { version?: unknown }).version;
+	const v = parsed.version;
 	if (typeof v === "number" && v > CURRENT_CHAT_VERSION) {
 		console.error(`[chat ${id}] record stamped with schema version ${v} > ${CURRENT_CHAT_VERSION} — this app build is older; refusing to read it`);
 		return null;
 	}
-	return parsed as ChatRecord;
+	return parsed as unknown as ChatRecord;
 }
 
 /** Lesson summaries kept in memory, so a sidebar refresh does not re-parse

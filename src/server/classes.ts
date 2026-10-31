@@ -31,7 +31,6 @@ import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, C
 import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, safeName, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
-import { extractionEnabled } from "../core/settings-resolution.ts";
 import { emit } from "../core/events.ts";
 import { extraction } from "./chat-handler.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
@@ -582,7 +581,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 			if (file.statSig !== statSig) patchFile(classId, fileId, { statSig });
 			return; // touched, not changed
 		}
-		if (!extractionEnabled(effectiveSettings().graph)) {
+		if (!effectiveSettings().graph.enabled) {
 			patchFile(classId, fileId, { status: "pending", statSig, error: "The knowledge graph is turned off in Settings → Graph" });
 			await indexForSearch(classId, file, abs, fp);
 			return;
@@ -757,7 +756,7 @@ export async function moveChatToClass(chatId: string, target: ClassScope): Promi
 	applyClassCard(chatId, target === null ? null : stores.classStore.getClass(target));
 	// Rebuild in the new graph (teaching lessons only — practice writes
 	// nothing). Fire-and-forget like the post-turn trigger.
-	if (record.kind !== "practice" && extractionEnabled(effectiveSettings().graph) && process.env.NODE_ENV !== "test") {
+	if (record.kind !== "practice" && effectiveSettings().graph.enabled && process.env.NODE_ENV !== "test") {
 		void extraction.runExtraction(chatId).catch((err: unknown) => console.info(`[classes] rebuild after move skipped for ${chatId}:`, err instanceof Error ? err.message : err));
 	}
 	return { ok: true, value: { classId: target } };

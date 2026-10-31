@@ -15,6 +15,7 @@ import { emit } from "../core/events.ts";
 import type { JobStore } from "../core/ports.ts";
 import type { CreateJobInit, JobPatch } from "../core/ports.ts";
 import type { JobRecord } from "../core/contracts.ts";
+import { isRecord, isString } from "./guards.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
 /** Background jobs (data/jobs). Not in src/config.ts PATHS (orchestrator-owned). */
@@ -48,11 +49,15 @@ function createJob(init: CreateJobInit): JobRecord {
 }
 
 function getJob(id: string): JobRecord | null {
+	let parsed: unknown;
 	try {
-		return JSON.parse(fs.readFileSync(jobFile(id), "utf-8")) as JobRecord;
+		parsed = JSON.parse(fs.readFileSync(jobFile(id), "utf-8"));
 	} catch {
 		return null;
 	}
+	return isRecord(parsed) && isString(parsed.id) && isString(parsed.chatId) && isString(parsed.updatedAt) && isString(parsed.status)
+		? (parsed as unknown as JobRecord)
+		: null;
 }
 
 /** Merge a partial patch into the record (identity fields are immutable).

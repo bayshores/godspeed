@@ -6,7 +6,7 @@
  * any color works.
  */
 
-import { inkFor, readableAccent, resolveSettings, wantsDarkText, type AppearanceSettings, type EffectiveAppearance } from "@/core";
+import { inkFor, readableAccent, resolveSettings, shiftHex, wantsDarkText, type AppearanceSettings, type EffectiveAppearance } from "@/core";
 
 /** The resolved appearance (delta over factory), through the core resolver. */
 export function resolveAppearance(delta: AppearanceSettings | undefined): EffectiveAppearance {
@@ -32,25 +32,15 @@ export const INK_PRESETS = {
 	light: ["#b4541e", "#2f5fb3", "#2e7d4f", "#b3261e"],
 } as const;
 
-function channels(hex: string): [number, number, number] {
-	const h = hex.length === 4 ? hex.slice(1).split("").map((c) => c + c).join("") : hex.slice(1, 7);
-	return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-
-/** Every channel moved by `delta`, clamped to 0..255. */
-function shift(hex: string, delta: number): string {
-	return `#${channels(hex).map((c) => Math.min(255, Math.max(0, c + delta)).toString(16).padStart(2, "0")).join("")}`;
-}
-
 /** The palette a background implies. Light text: surfaces step up (+8
  *  panel, +22 tone, +47 edge), matching the hand-picked default; dark text:
  *  they step down. Text must read on the background and on its panels. */
 export function derivedPalette(background: string): Record<string, string> {
 	const light = wantsDarkText(background);
 	const step = light ? -1 : 1;
-	const card = shift(background, 8 * step);
-	const accent = shift(background, 22 * step);
-	const border = shift(background, 47 * step);
+	const card = shiftHex(background, 8 * step);
+	const accent = shiftHex(background, 22 * step);
+	const border = shiftHex(background, 47 * step);
 	const panels = [card, accent];
 	const text = {
 		fg: inkFor(background, "text", panels),
@@ -66,7 +56,7 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--secondary": card,
 		"--muted": card,
 		"--accent": accent,
-		"--lh-tip": shift(background, 20 * step),
+		"--lh-tip": shiftHex(background, 20 * step),
 		"--border": border,
 		"--input": border,
 		"--foreground": text.fg,

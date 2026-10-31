@@ -213,9 +213,9 @@ export function SettingsDialogBody({
 				setError(`${section}: ${detail.error ?? res.status}`);
 				return;
 			}
-			// Server truth, never the request body: the route may heal what
-			// it stores (orphaned prompt switches), and the writing surface
-			// must show the stored value in this same interaction.
+			// Server truth, never the request body: the route may clean up what
+			// it stores, and the writing surface must show the stored value in
+			// this same interaction.
 			const stored = (
 				(await res.json().catch(() => null)) as { settings?: UserSettings } | null
 			)?.settings;

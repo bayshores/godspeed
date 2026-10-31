@@ -25,6 +25,12 @@ describe("writeFileAtomic", () => {
 		assert.deepEqual([...fs.readFileSync(file)], [0, 255, 10]);
 	});
 
+	it("gives the new file the mode asked for", { skip: process.platform === "win32" }, () => {
+		const file = path.join(dir, "nested", "secret");
+		writeFileAtomic(file, "token", 0o600);
+		assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+	});
+
 	it("keeps the old file and cleans up when the rename fails", () => {
 		const target = path.join(dir, "taken");
 		fs.mkdirSync(path.join(target, "inside"), { recursive: true });

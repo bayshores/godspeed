@@ -28,7 +28,7 @@ import { classCardFor } from "./class-card.ts";
 import type { ClassSearch } from "../agent/tools/class.ts";
 import { readPassage, relatedFacts, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
-import { extractionEnabled, graphToolsEnabled } from "../core/settings-resolution.ts";
+import { graphToolsEnabled } from "../core/settings-resolution.ts";
 import { learnerRulesSection } from "../core/teaching-areas.ts";
 import { beginTurn, endTurn, isTurnRunning } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
@@ -521,7 +521,7 @@ export async function handleChatInput(
 				// PRACTICE: practice sessions write nothing —
 				// no extraction, no graph, no coverage (the session itself
 				// is the deliverable).
-				if (record.kind !== "practice" && extractionEnabled(effective.graph)) {
+				if (record.kind !== "practice" && effective.graph.enabled) {
 					// Fresh per-turn read of the graph section's chunk budget: the
 					// trigger compares against it and the pipeline's batches share it.
 					triggerExtraction(

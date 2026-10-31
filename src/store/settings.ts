@@ -39,14 +39,28 @@ export function readSettings(): UserSettings | null {
 	try {
 		parsed = JSON.parse(raw);
 	} catch {
-		return null; // corrupt → first-boot semantics (all factory defaults)
+		setAsideCorrupt();
+		return null; // corrupt: kept aside, factory defaults from here on
 	}
 	const record = sanitizeUserSettings(parsed);
-	if (!record) return null;
+	if (!record) {
+		setAsideCorrupt();
+		return null; // not an object: kept aside, factory defaults from here on
+	}
 	// Unknown NEWER versions pass through untouched (the sanitizer preserved unknowns).
 	const upgraded = upgradeToV2(record);
 	if (dropPromptSwitches(parsed) || upgraded) writeSettings(record);
 	return record;
+}
+
+/** Callers treat null as first boot and write a fresh record, so a broken file
+ *  is renamed first: the learner's original stays next to it to fix by hand. */
+function setAsideCorrupt(): void {
+	try {
+		fs.renameSync(SETTINGS_FILE, `${SETTINGS_FILE}.corrupt-${Date.now()}`);
+	} catch {
+		// never throws: the read still answers null
+	}
 }
 
 /** v1 → v2: the summarize threshold's default dropped from 150k to 40k tokens, so a

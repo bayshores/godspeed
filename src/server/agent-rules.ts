@@ -38,9 +38,14 @@ function writeList(where: RuleWhere, rules: string[]): void {
 	stores.settingsStore.writeSettings({ ...record, agent: { ...record.agent, rules: areaRules } });
 }
 
+/** Every mark except the one for `text` at `where`. */
+function others(saved: SavedRule[], where: RuleWhere, text: string): SavedRule[] {
+	return saved.filter((s) => !(s.text === text && sameWhere(s.where, where)));
+}
+
 function unmark(where: RuleWhere, text: string): void {
 	const saved = readSavedRules();
-	const kept = saved.filter((s) => !(s.text === text && sameWhere(s.where, where)));
+	const kept = others(saved, where, text);
 	if (kept.length !== saved.length) writeSavedRules(kept);
 }
 
@@ -59,7 +64,8 @@ export function saveRuleByAgent(text: string, where: RuleWhere, agent?: string):
 		return { ok: false, error: `${saved.where} already has ${RULES_MAX} rules, the most it can hold. Tell the learner, and ask which one to remove in Settings.` };
 	}
 	writeList(where, [...list, rule]);
-	writeSavedRules([...readSavedRules(), { where, text: rule, at: new Date().toISOString() }]);
+	// A stale mark from a rule the learner removed in Settings is replaced, not doubled.
+	writeSavedRules([...others(readSavedRules(), where, rule), { where, text: rule, at: new Date().toISOString() }]);
 	emit("rules-changed", agent ? { saved: { text: rule, where, label: saved.where, agent } } : {});
 	return saved;
 }

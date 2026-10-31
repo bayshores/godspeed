@@ -6,11 +6,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-	extractionEnabled,
-	graphToolsEnabled,
-	resolveSettings,
-} from "../src/core/settings-resolution.ts";
+import { graphToolsEnabled, resolveSettings } from "../src/core/settings-resolution.ts";
 import type { UserSettings } from "../src/core/settings.ts";
 
 describe("resolveSettings", () => {
@@ -60,23 +56,10 @@ describe("resolveSettings", () => {
 	it("an old record's graph.rendering (removed 2026-10-27) is not read", () => {
 		const eff = resolveSettings({ version: 1, graph: { rendering: false } as never });
 		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
-		assert.equal(extractionEnabled(eff.graph), true);
 	});
 });
 
 describe("the graph channel gates (the wave's seam honoring)", () => {
-	it("WRITE channel (extraction): dies with the master switch — the ONLY graph setting since wave 7", () => {
-		assert.equal(extractionEnabled({ enabled: true }), true);
-		assert.equal(extractionEnabled({ enabled: false }), false);
-	});
-
-	it("the write gate rides resolveSettings' factory defaults (all on → open)", () => {
-		const eff = resolveSettings(null);
-		assert.equal(extractionEnabled(eff.graph), true);
-		const off = resolveSettings({ version: 1, graph: { enabled: false } });
-		assert.equal(extractionEnabled(off.graph), false);
-	});
-
 	it("PROBER GRAPH TOOLS gate (wave 7, owner ruling 2026-09-23): the agent toggle AND the graph master switch compose", () => {
 		const graph = { enabled: true };
 		assert.equal(graphToolsEnabled({ graph, agent: { graphTools: {} } }), true, "absent subsection = ON");

@@ -9,7 +9,7 @@
  * a different concern and are preserved by the sanitizer (core/settings.ts).
  */
 
-import { isHexColor } from "../core";
+import { isClassId, isHexColor, isVersion } from "../core";
 import type {
 	AgentSettings,
 	AppearanceSettings,
@@ -48,7 +48,7 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 		settings.autoUpdate = raw.autoUpdate;
 	}
 	if (raw.activeClass !== undefined) {
-		if (typeof raw.activeClass !== "string" || !(raw.activeClass === "none" || /^cls_[A-Za-z0-9_-]+$/.test(raw.activeClass))) {
+		if (!(raw.activeClass === "none" || isClassId(raw.activeClass))) {
 			return { ok: false, error: 'activeClass must be a class id or "none"' };
 		}
 		settings.activeClass = raw.activeClass;
@@ -60,7 +60,7 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 		settings.onboarded = raw.onboarded;
 	}
 	if (raw.lastSeenVersion !== undefined) {
-		if (typeof raw.lastSeenVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(raw.lastSeenVersion)) {
+		if (!isVersion(raw.lastSeenVersion)) {
 			return { ok: false, error: 'lastSeenVersion must be a version like "0.4.1"' };
 		}
 		settings.lastSeenVersion = raw.lastSeenVersion;

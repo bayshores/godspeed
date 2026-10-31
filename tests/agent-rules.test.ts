@@ -36,6 +36,7 @@ const rules = await import("../src/server/agent-rules.ts");
 const { stores } = await import("../src/server/stores.ts");
 const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
+const { readSavedRules } = await import("../src/store/agent-rules.ts");
 const route = await import("../src/app/api/rules/route.ts");
 
 const DATA = path.join(scratch, "data");
@@ -146,6 +147,13 @@ describe("saving, undoing and editing", () => {
 		stores.settingsStore.writeSettings({ version: 2, agent: { rules: {} } });
 		assert.deepEqual(rules.agentSavedRules(), []);
 		assert.deepEqual(JSON.parse(fs.readFileSync(path.join(DATA, "agent-rules.json"), "utf8")).rules, []);
+	});
+
+	it("re-saving a rule the learner removed in Settings keeps one mark", () => {
+		rules.saveRuleByAgent("Use Python.", { area: "teaching" });
+		stores.settingsStore.writeSettings({ version: 2, agent: { rules: {} } });
+		rules.saveRuleByAgent("Use Python.", { area: "teaching" });
+		assert.equal(readSavedRules().filter((r) => r.text === "Use Python.").length, 1);
 	});
 });
 
