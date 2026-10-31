@@ -1,12 +1,13 @@
 /**
  * "Where you left off" (core/agent-briefing.ts): the MCP instructions'
- * briefing and its length budget, and the note parsing behind it
- * (core/agent-notes.ts).
+ * briefing and its length budget, the class setup to-dos in it
+ * (core/class-setup.ts), and the note parsing behind it (core/agent-notes.ts).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { agentBriefing, type BriefingInput } from "../src/core/agent-briefing.ts";
 import { cleanNoteText, parseAgentNotes } from "../src/core/agent-notes.ts";
+import { missingSetup, SETUP_HOW } from "../src/core/class-setup.ts";
 import type { ClassDeadline } from "../src/core/contracts/class.ts";
 
 const TZ = "America/Los_Angeles";
@@ -26,8 +27,8 @@ function busy(maxChars: number): BriefingInput {
 	return input({
 		maxChars,
 		classes: [
-			{ id: "cls_21", name: "CSE 21", archived: false, deadlines: [1, 2, 3, 4].map((n) => deadline(`HW ${n}`, `2026-11-0${n}`)) },
-			{ id: "cls_29", name: "CSE 29", archived: false, deadlines: [] },
+			{ id: "cls_21", name: "CSE 21", archived: false, missingSetup: [], deadlines: [1, 2, 3, 4].map((n) => deadline(`HW ${n}`, `2026-11-0${n}`)) },
+			{ id: "cls_29", name: "CSE 29", archived: false, missingSetup: [], deadlines: [] },
 		],
 		lessons: [0, 1, 2, 3, 4].map((n) => ({ id: `ch_${n}`, title: `Lesson ${n}`, classId: "cls_21", updatedAt: `2026-10-2${9 - n}T12:00:00Z`, waiting: false })),
 		notes: [0, 1, 2, 3].map((n) => ({ id: `note_${n}`, text: `Note number ${n} about the learner.`, createdAt: `2026-10-2${n}T12:00:00Z` })),
@@ -46,9 +47,9 @@ describe("agentBriefing", () => {
 		const text = agentBriefing(
 			input({
 				classes: [
-					{ id: "cls_21", name: "CSE 21", archived: false, deadlines: [deadline("HW 5", "2026-11-05"), deadline("HW 3", "2026-10-20"), deadline("HW 4", "2026-11-02", { done: true })] },
-					{ id: "cls_29", name: "CSE 29", archived: false, deadlines: [deadline("Final", "2026-12-10", { kind: "exam", time: "08:00" })] },
-					{ id: "cls_old", name: "MATH 18", archived: true, deadlines: [deadline("Old HW", "2026-11-01")] },
+					{ id: "cls_21", name: "CSE 21", archived: false, missingSetup: [], deadlines: [deadline("HW 5", "2026-11-05"), deadline("HW 3", "2026-10-20"), deadline("HW 4", "2026-11-02", { done: true })] },
+					{ id: "cls_29", name: "CSE 29", archived: false, missingSetup: [], deadlines: [deadline("Final", "2026-12-10", { kind: "exam", time: "08:00" })] },
+					{ id: "cls_old", name: "MATH 18", archived: true, missingSetup: [], deadlines: [deadline("Old HW", "2026-11-01")] },
 				],
 				lessons: [
 					{ id: "ch_a", title: "Pointers", classId: "cls_29", updatedAt: "2026-10-30T01:31:00Z", waiting: true },
@@ -130,6 +131,32 @@ describe("agentBriefing", () => {
 		const notesOnly = agentBriefing(busy(1));
 		assert.doesNotMatch(notesOnly, /Last lessons|Next deadlines|Notes saved/, "a section left out entirely loses its heading too");
 		assert.match(notesOnly, /Left out to fit: 5 lessons, 4 deadlines, 4 notes, 2 classes\./);
+	});
+
+	it("puts each active class's unfinished setup first, and trims it last", () => {
+		const classes = [
+			{ id: "cls_21", name: "CSE 21", archived: false, missingSetup: ["icon", "signature"], deadlines: [] },
+			{ id: "cls_29", name: "CSE 29", archived: false, missingSetup: [], deadlines: [] },
+			{ id: "cls_old", name: "MATH 18", archived: true, missingSetup: ["icon"], deadlines: [] },
+		];
+		const todo = ["", "Class setup to finish (do this before calling wait_for_work):", '- CSE 21 (class_id "cls_21"): no icon, no signature', SETUP_HOW, "", "Classes:"].join("\n");
+		assert.ok(agentBriefing(input({ classes })).includes(todo));
+		const full = agentBriefing({ ...busy(Infinity), classes }).length;
+		for (let max = full; max >= 1; max -= 10) {
+			const text = agentBriefing({ ...busy(max), classes });
+			if (!text.includes("no icon, no signature")) assert.doesNotMatch(text, /^- CSE \d+ \(class_id "cls_\d+"\)$/m, `setup cut while classes remain at ${max}`);
+		}
+		assert.match(agentBriefing({ ...busy(1), classes }), /Left out to fit: .*2 classes, 1 class's setup\./);
+	});
+});
+
+describe("missingSetup", () => {
+	it("lists a missing icon, signature and description, in that order", () => {
+		assert.deepEqual(missingSetup({ description: " " }), ["icon", "signature", "description"]);
+	});
+
+	it("a fully set up class is missing nothing", () => {
+		assert.deepEqual(missingSetup({ description: "Discrete math.", icon: "sigma", signature: { kind: "math", value: "x" } }), []);
 	});
 });
 

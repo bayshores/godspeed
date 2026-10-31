@@ -5,6 +5,7 @@
  */
 
 import { agentBriefing } from "../core/agent-briefing.ts";
+import { missingSetup } from "../core/class-setup.ts";
 import { listAgentNotes } from "../store/agent-notes.ts";
 import { stores } from "./stores.ts";
 import { localTimeZone } from "./today-note.ts";
@@ -16,12 +17,16 @@ export function currentAgentBriefing(maxChars: number): string {
 		now: new Date(),
 		maxChars,
 		timeZone: localTimeZone(),
-		classes: stores.classStore.listClasses().map((c) => ({
-			id: c.id,
-			name: c.name,
-			archived: c.archived,
-			deadlines: stores.classStore.getClass(c.id)?.deadlines ?? [],
-		})),
+		classes: stores.classStore.listClasses().map((c) => {
+			const record = stores.classStore.getClass(c.id);
+			return {
+				id: c.id,
+				name: c.name,
+				archived: c.archived,
+				deadlines: record?.deadlines ?? [],
+				missingSetup: record ? missingSetup(record) : [],
+			};
+		}),
 		lessons: stores.chatStore.listChats().map((c) => ({
 			id: c.id,
 			title: c.title,

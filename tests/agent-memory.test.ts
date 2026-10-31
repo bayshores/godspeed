@@ -60,7 +60,7 @@ describe("agent memory", () => {
 	beforeEach(() => fs.rmSync(NOTES_FILE, { force: true }));
 
 	it("a saved note shows up in the next agent's instructions, and forget removes it", async () => {
-		const classId = (await call("create_class", { name: "CSE 29", icon: "cpu" })).body.class.id as string;
+		const classId = (await call("create_class", { name: "CSE 29", icon: "cpu", description: "Discrete math.", signature: { kind: "math", value: "x" } })).body.class.id as string;
 		const saved = await call("remember", { text: "CSE 29 exam is done.", class_id: classId });
 		assert.equal(saved.error, false);
 		const noteId = saved.body.note.id as string;
@@ -87,7 +87,7 @@ describe("agent memory", () => {
 	});
 
 	it("GET /api/agent-notes lists notes with class names; DELETE removes one", async () => {
-		const classId = (await call("create_class", { name: "CSE 21", icon: "sigma" })).body.class.id as string;
+		const classId = (await call("create_class", { name: "CSE 21", icon: "sigma", description: "Discrete math.", signature: { kind: "math", value: "x" } })).body.class.id as string;
 		const a = (await call("remember", { text: "Homework 4 next.", class_id: classId })).body.note.id as string;
 		const b = (await call("remember", { text: "Wants hints." })).body.note.id as string;
 
@@ -107,7 +107,7 @@ describe("agent memory", () => {
 
 	it("a big briefing still ends within Claude Code's first 4096 characters, after the loop, before Memory and Classes", async () => {
 		for (let c = 1; c <= 8; c++) {
-			const classId = (await call("create_class", { name: `Course ${c}: Discrete Mathematics and Proof`, icon: "sigma" })).body.class.id as string;
+			const classId = (await call("create_class", { name: `Course ${c}: Discrete Mathematics and Proof`, icon: "sigma", description: "Discrete math.", signature: { kind: "math", value: "x" } })).body.class.id as string;
 			const deadlines = [1, 2, 3].map((n) => ({ kind: "homework", name: `Homework ${n} on counting and recursion`, date: `2027-0${n}-1${c}`, time: "23:59" }));
 			assert.equal((await call("add_class_deadline", { class_id: classId, deadlines })).error, false);
 			for (let l = 1; l <= 3; l++) chatStore.createChat(`Lesson ${l} of course ${c}: strong induction and recurrences`, undefined, classId);
