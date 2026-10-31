@@ -778,6 +778,45 @@ describe("session deletion (deleteChatTraces + deleteChatSession, wave 6)", () =
 		assert.equal(bChains().length, 1);
 	});
 
+	it("delete-nodes: a legacy node with no provenance survives deleting an unrelated chat", () => {
+		graphStore.appendNode({ id: "n_legacy_bare", name: "Legacy", statement: "Legacy statement", aliases: [], createdAt: "2026-09-23T00:00:00.000Z", provenance: [] });
+		graphStore.appendNode({ id: "n_unrelated_own", name: "Own", statement: "Own statement", aliases: [], createdAt: "2026-09-23T00:00:00.000Z", provenance: [{ chatId: "chat_unrelated_del", messageId: "" }] });
+		const stats = deleteChatTraces(graphStore, "chat_unrelated_del", "delete-nodes");
+		assert.equal(stats.nodesRemoved, 1);
+		assert.ok(graphStore.readNodes().some((n) => n.id === "n_legacy_bare"));
+		assert.equal(graphStore.readNodes().some((n) => n.id === "n_unrelated_own"), false);
+	});
+
+	it("delete-nodes: a provenance-less node survives once the chain that kept it alive is gone", () => {
+		const merge = (sourceId: string, findings: SessionFindings) =>
+			mergeFindings(sourceId, findings, graphDeps, { foldedAt: "2026-09-23T00:00:00.000Z" });
+		const bornOf = (sourceId: string, statement: string): string =>
+			graphStore.readNodes().find((n) => n.statement === statement && n.provenance.some((pt) => pt.chatId === sourceId))!.id;
+		merge("src_cite2_a", {
+			propositions: [{ id: "p1", name: "Cited again", statement: "Cited again statement", aliases: [] }],
+			chains: [],
+			reteaches: [],
+		});
+		const xId = bornOf("src_cite2_a", "Cited again statement");
+		merge("src_cite2_b", {
+			propositions: [{ id: "q1", name: "Built again", statement: "Built again statement", aliases: [] }],
+			chains: [{ premises: [xId], conclusion: "q1" }],
+			reteaches: [],
+		});
+		merge("src_cite2_c", {
+			propositions: [{ id: "r1", name: "Unrelated again", statement: "Unrelated again statement", aliases: [] }],
+			chains: [],
+			reteaches: [],
+		});
+		deleteChatTraces(graphStore, "src_cite2_a", "delete-nodes");
+		const argId = graphStore.readChains().find((c) => c.provenance.some((pt) => pt.chatId === "src_cite2_b"))!.id;
+		assert.ok(deleteNodeTraces(graphStore, argId));
+
+		const stats = deleteChatTraces(graphStore, "src_cite2_c", "delete-nodes");
+		assert.equal(stats.nodesRemoved, 1, "only C's own node dies");
+		assert.ok(graphStore.readNodes().some((n) => n.id === xId));
+	});
+
 	it("preserve-graph: only the extraction bookkeeping dies — the graph ledgers are byte-identical", () => {
 		const { dA, dB, xId, yId, zId } = buildTwoSessionScenario();
 		const before = {

@@ -120,7 +120,9 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 		return stats;
 	}
 
-	// 1. Survival: a node lives iff a reference from ANY surviving source
+	// 1. Survival: a node this deletion never touches stays (like a chain
+	//    line with no points: foreign/legacy data, not this chat's trace).
+	//    A touched node lives iff a reference from ANY surviving source
 	//    remains — another chat/src's provenance point on any of its lines,
 	//    or membership in a chain another source still asserts. (A chain can
 	//    cite an existing node by id without crediting it, so its members
@@ -128,7 +130,13 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 	const survives = (points: ReadonlyArray<{ chatId: string }>): boolean =>
 		points.some((pt) => pt.chatId !== chatId);
 	const nodeIds = new Set(nodeLines.map((line) => line.id));
+	const touchedNodes = new Set<string>();
+	for (const line of nodeLines) if (line.provenance.some((pt) => pt.chatId === chatId)) touchedNodes.add(line.id);
+	for (const line of chainLines) {
+		if (line.provenance.some((pt) => pt.chatId === chatId)) for (const id of [line.conclusion, ...line.premises]) touchedNodes.add(id);
+	}
 	const live = new Set<string>();
+	for (const id of nodeIds) if (!touchedNodes.has(id)) live.add(id);
 	for (const line of nodeLines) {
 		if (survives(line.provenance)) live.add(line.id);
 	}
