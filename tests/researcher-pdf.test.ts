@@ -142,6 +142,18 @@ describe("researcher pdf tools — download + triage", () => {
 		assert.match(ftp, /invalid URL/);
 	});
 
+	it("web_fetch points a .pdf URL served as octet-stream to web_fetch_pdf", async () => {
+		const realFetch = globalThis.fetch;
+		globalThis.fetch = (async () =>
+			new Response("%PDF-1.4", { headers: { "content-type": "application/octet-stream" } })) as typeof fetch;
+		try {
+			const out = asText(await webTools.web_fetch!.execute!("t9", { url: "https://example.edu/notes/lecture5.pdf" }));
+			assert.match(out, /call web_fetch_pdf/);
+		} finally {
+			globalThis.fetch = realFetch;
+		}
+	});
+
 	it("web_fetch_pdf and web_fetch hand the tool's own signal to fetch, so Stop cancels the download", async () => {
 		const dir = await newDir();
 		const tools = createPdfReadTools(dir);

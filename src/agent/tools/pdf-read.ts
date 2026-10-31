@@ -4,6 +4,7 @@ import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
 import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "../subagents/pdf-ops.ts";
+import { isPdfUrl, USER_AGENT } from "./web.ts";
 
 /**
  * PDF reading tools for the RESEARCHER sub-agent: PDFs from the web, with
@@ -21,8 +22,6 @@ import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "../subagents/pdf-ops.t
  * failure path returns a clear error STRING the researcher can adapt to.
  */
 
-const USER_AGENT =
-	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 /** PDFs run bigger than pages — arxiv papers routinely 5-20 MB. */
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
@@ -120,7 +119,7 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 					});
 					if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
 					const contentType = resp.headers.get("content-type") ?? "";
-					if (!/application\/pdf/i.test(contentType) && !/\.pdf(\?|$)/i.test(parsedPathname(url))) {
+					if (!/application\/pdf/i.test(contentType) && !isPdfUrl(url)) {
 						throw new Error(`Not a PDF (content-type ${contentType.split(";")[0] || "unknown"})`);
 					}
 					const declared = Number(resp.headers.get("content-length") ?? 0);
@@ -212,12 +211,4 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 			}),
 		},
 	};
-}
-
-function parsedPathname(url: string): string {
-	try {
-		return new URL(url).pathname;
-	} catch {
-		return "";
-	}
 }
