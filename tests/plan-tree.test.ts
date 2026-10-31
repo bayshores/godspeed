@@ -209,6 +209,17 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 		}
 	});
 
+	it("accepts mermaid's trailing semicolons on the header, edges and bare nodes", () => {
+		const res = parse("graph TD;\n  a[A] --> b[B];\n  c;");
+		assert.equal(res.ok, true, res.problems.join("\n"));
+		assert.deepEqual(res.plan!.nodes, [
+			{ id: "a", title: "A" },
+			{ id: "b", title: "B" },
+			{ id: "c", title: "c" },
+		]);
+		assert.deepEqual(res.plan!.edges, [{ from: "a", to: "b" }]);
+	});
+
 	it("bare ids fall back to id-as-title; bracket and paren labels both work", () => {
 		const res = parse("graph TD\n  bare\n  bracket[Bracket title]\n  paren(\"Paren title\")\n");
 		assert.deepEqual(res.plan!.nodes, [

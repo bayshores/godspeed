@@ -15,13 +15,13 @@ import {
 	quizInputProblems,
 } from "../core/question-core.ts";
 import { writeCodeInputProblems, writeCodeInputSchema } from "../core/code-question.ts";
-import { filterEnabledTools, type EnabledTools } from "../core/pending.ts";
+import { filterEnabledTools, QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
 import type { JobRecord } from "../core/contracts.ts";
 import type { JobStore } from "../core/ports.ts";
 import { jobTools, type DemoInput, type PdfInput, type ResearchInput, type VisualInput } from "./tools/jobs.ts";
 import { planTools, type PlanToolContext } from "./tools/plan.ts";
 import { workPlanTool } from "./tools/work-plan.ts";
-import { probeDoneTool, type ProbeDoneContext } from "./tools/probe.ts";
+import { probeDoneTool, type ProbeDoneContext, type ProbeTurnGate } from "./tools/probe.ts";
 import { proberGraphTools } from "./tools/graph.ts";
 import { readTool } from "./tools/read.ts";
 import { lsTool } from "./tools/ls.ts";
@@ -308,7 +308,8 @@ export function createProberTools(
 ): Record<string, AgentTool<any>> {
 	// probe_done is re-added AFTER the filter, always-on by construction — it
 	// is how the phase ENDS; a prober that can never conclude is a lockout.
-	const done = probeDoneTool(ctx);
+	const gate: ProbeTurnGate = { questionPosed: false, concluded: false };
+	const done = probeDoneTool(ctx, gate);
 	// The job tools build over the SAME context/gates as the teacher's
 	// (one builder, one gating semantic); the prober carries a SUBSET:
 	const jobs = jobTools({
@@ -330,7 +331,7 @@ export function createProberTools(
 		mechanics === "free" ? { recall: probeExplainTool } : { probe: probeQuizTool };
 	// healToolRecord: the standard argument heal over the WHOLE registry —
 	// every tool, not just the one a past wobble landed on.
-	return healToolRecord({
+	return healToolRecord(withProbeGate(gate, {
 		...filterEnabledTools(
 			{
 				...quizzing,
@@ -348,20 +349,41 @@ export function createProberTools(
 				// prober can verify facts or read learner PDFs while assessing.
 				// demo/visual stay teach-phase-only (they need the lesson's plan
 				// context). Same user-toggle filtering as the teacher.
-				...(jobs.research ? { research: jobs.research } : {}),
-				pdf: jobs.pdf!,
+				research: jobs.research,
+				pdf: jobs.pdf,
 				// The map reader: present only when the settings gate opened.
 				...(ctx.graphStore
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
 				...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
 				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
-				...done,
 			},
 				withoutMechanics(enabled),
 			),
 			...done,
-		});
+		}));
+}
+
+/** The prober's question tools under this turn's gate: refused once
+ *  probe_done succeeded, and a clean pose marks a question open so a
+ *  probe_done later in the same batch is refused. A failed pose leaves
+ *  the gate alone, so the prober can retry (as makeQuestionStopper does). */
+function withProbeGate(gate: ProbeTurnGate, tools: Record<string, AgentTool<any>>): Record<string, AgentTool<any>> {
+	return Object.fromEntries(
+		Object.entries(tools).map(([name, tool]) => {
+			if (!(QUESTION_TOOLS as readonly string[]).includes(name)) return [name, tool];
+			const gated: AgentTool<any> = {
+				...tool,
+				execute: async (toolCallId, input, signal, onUpdate) => {
+					if (gate.concluded) return invalidInputResult(name, ["The probe is already concluded; no more questions."]);
+					const result = await tool.execute(toolCallId, input, signal, onUpdate);
+					if (!result.isError) gate.questionPosed = true;
+					return result;
+				},
+			};
+			return [name, gated];
+		}),
+	);
 }
 
 // ─── the teacher's question tools (quiz carries nodeId) ──────────────────────

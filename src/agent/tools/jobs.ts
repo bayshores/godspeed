@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
-import type { JobRecord } from "../../core/contracts.ts";
+import type { JobKind, JobRecord } from "../../core/contracts.ts";
 import type { JobStore } from "../../core/ports.ts";
 
 /**
@@ -123,7 +123,7 @@ const PDF_DESCRIPTION =
  *
  * The role's user-toggle filtering applies outside this registry.
  */
-export function jobTools(ctx: JobToolContext): Record<string, AgentTool<any>> {
+export function jobTools(ctx: JobToolContext): Record<JobKind, AgentTool<any>> {
 	return {
 		research: {
 			name: "research",

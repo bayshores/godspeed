@@ -30,7 +30,7 @@ const findInput = Type.Object({
 		description: "Glob pattern to match files, e.g. '*.ts', '**/*.json', or 'src/**/*.spec.ts'",
 	}),
 	path: Type.Optional(Type.String({ description: "Directory to search in (default: the learner's home directory)" })),
-	limit: Type.Optional(Type.Integer({ description: "Maximum number of results (default: 1000)" })),
+	limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum number of results (default: 1000)" })),
 });
 
 export const findTool: AgentTool<typeof findInput> = {

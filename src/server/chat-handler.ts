@@ -342,10 +342,11 @@ export async function handleChatInput(
 			learnerRules: learnerRulesSection(effective.agent.rules, lessonClassRules(record.classId)),
 		};
 		// PRACTICE BRANCH: a kind:"practice"
-		// session builds the practitioner from turn 1 — no prober→teacher
-		// split, no plan/question/job tools; the whole registry is
-		// problem + conclude. buildAgent stays honored (the test seam is
-		// uniform across kinds).
+		// session builds the practitioner from turn 1, with no prober→teacher
+		// split. The session runs on problem + conclude, plus the rarely-used
+		// read-only file tools, research/pdf, map readers, class tools and
+		// save_rule (tools/practice.ts); no plan or question tools.
+		// buildAgent stays honored (the test seam is uniform across kinds).
 		// CLASS SCOPE: the lesson's class.
 		// Writes (extraction, practice targets) stay in its OWN graph; the map
 		// readers see every class (reads may cross classes, writes never do);
@@ -395,10 +396,8 @@ export async function handleChatInput(
 							// Targets are the lesson's OWN class graph (writes never cross
 							// classes).
 							graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
-							// THE RARELY-NEEDED SET: research + pdf jobs
-							// (same runner/gating as the teacher's — research honestly
-							// absent when no engine is live) and the map readers behind
-							// the SAME settings gate as the prober's.
+							// THE RARELY-NEEDED SET: research + pdf jobs and the map
+							// readers behind the SAME settings gate as the prober's.
 							jobs: {
 								chatId,
 								jobStore: stores.jobStore,
@@ -421,8 +420,6 @@ export async function handleChatInput(
 							spawn: (job, input) => void jobRunner.runJob(job.id, input),
 							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 							saveRule,
-							// The registry drop's signal: no live engine
-							// = no research tool in the teacher's registry.
 						},
 						agentOpts,
 					)

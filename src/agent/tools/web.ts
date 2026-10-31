@@ -20,8 +20,20 @@ import type TurndownService from "turndown";
 
 // ── web_fetch ────────────────────────────────────────────────────────────────
 
-const USER_AGENT =
+export const USER_AGENT =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+/** A URL whose path ends in .pdf counts as a PDF whatever its content type:
+ *  S3 and university servers often send PDFs as octet-stream. Shared by
+ *  web_fetch and web_fetch_pdf so both judge the same URL the same way. */
+export function isPdfUrl(url: string): boolean {
+	try {
+		return /\.pdf$/i.test(new URL(url).pathname);
+	} catch {
+		return false;
+	}
+}
+
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const MIN_USEFUL_CONTENT = 200;
 
@@ -97,7 +109,7 @@ async function fetchAndExtract(url: string, signal?: AbortSignal): Promise<strin
 	const sourceLine = `Source: ${resp.url || url} (HTTP ${resp.status})`;
 
 	const contentType = resp.headers.get("content-type") ?? "";
-	if (contentType.includes("application/pdf")) {
+	if (contentType.includes("application/pdf") || isPdfUrl(url)) {
 		// Pointer, not dead-end: web_fetch_pdf downloads + triages PDFs.
 		return `web_fetch: this URL is a PDF document — call web_fetch_pdf on it to download and read it.`;
 	}

@@ -1,9 +1,9 @@
 /**
- * THE PRACTICE TOOLS: the practice agent's ENTIRE toolset — `problem`
+ * THE PRACTICE TOOLS: the session runs on `problem`
  * (pose: terminates the turn; the commitment rides the call's arguments,
  * hidden from the learner UI) and `conclude` (end the problem: normal
- * result, the turn continues so the same reply can reveal + pose the
- * next). The gating law: an agent cannot pose while a problem is active
+ * result, so closing words may follow; the next pose waits for the
+ * learner's go-ahead). The rarely-used extras join in practiceTools. The gating law: an agent cannot pose while a problem is active
  * and cannot conclude with nothing active — activeProblemOf is the single
  * fold both gates read.
  *
@@ -57,7 +57,8 @@ export interface PracticeToolContext {
  *  freezes at the turn's write-ahead (persistTurn lands only at turn END),
  *  so a mid-turn conclude → pose pair would never see each other and every
  *  pose after a conclude would fail with "a problem is already active".
- *  The gate seeds ONCE from the record at construction
+ *  (The prompt forbids conclude → pose in one turn; the gate only keeps a
+ *  slip from failing confusingly.) The gate seeds ONCE from the record at construction
  *  (one practiceTools per turn — chat-handler builds the agent per
  *  request, so there is no cross-turn leakage), and the executes flip
  *  this closure — the intra-turn truth the record cannot hold yet. */
@@ -241,8 +242,7 @@ export function practiceTools(ctx: PracticeToolContext): Record<string, AgentToo
 		ls: lsTool,
 		find: findTool,
 		grep: grepTool,
-		...(jobs?.research ? { research: jobs.research } : {}),
-		...(jobs ? { pdf: jobs.pdf! } : {}),
+		...(jobs ? { research: jobs.research, pdf: jobs.pdf } : {}),
 		...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
 		...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
 		...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),

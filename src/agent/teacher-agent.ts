@@ -18,22 +18,26 @@ import { QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
- * The two teaching-side agents: the PROBER and the TEACHER. Same
- * transcript, different prompts and tool sets; the chat-handler constructs
- * ONE per request off the transcript's seam (probe_done = teacher). The
- * engine is stateless per turn: the persisted record is the source of
- * truth, the agent is rebuilt from it every POST and discarded at turn end.
+ * The three agents: the PROBER, the TEACHER and PRACTICE. A lesson's
+ * prober and teacher share one transcript with different prompts and tool
+ * sets; the chat-handler constructs ONE per request off the transcript's
+ * seam (probe_done = teacher), and a practice session builds PRACTICE from
+ * turn 1. The engine is stateless per turn: the persisted record is the
+ * source of truth, the agent is rebuilt from it every POST and discarded at
+ * turn end.
  *
  * Engines are injectable so tests can pass a scripted faux engine and drive
  * deterministic lessons (see tests/chat-flow.test.ts).
  *
- * System prompts are COMPOSED per agent: system-prompt.md (the shared base:
- * agent, voice, philosophy, accuracy) + every numeric-prefix fragment in
- * that agent's directory (src/agent/prompts/prober/ or
+ * System prompts are COMPOSED per agent: the base src/agent/system-prompt.md
+ * (the agent and its philosophy) + every numeric-prefix fragment in that
+ * agent's directory (src/agent/prompts/prober/ or
  * src/agent/prompts/teacher/), in sorted filename order, then the shared/
- * fragments as a trailing appendix (question tools, learner files,
- * formatting): the agent's job and method lead, the mechanics trail.
- * Joined with `---` separators.
+ * fragments as a trailing appendix (voice, accuracy, question tools,
+ * learner files, formatting): the agent's job and method lead, the
+ * mechanics trail. Practice skips the base (prompts/practice/00-base.md
+ * takes its place) and gets only a curated shared set
+ * (PRACTICE_SHARED_FRAGMENTS). Joined with `---` separators.
  *
  * ONLY numeric-prefix files load — the loader enforces the convention, so
  * non-fragment documentation (README.md, …) can live in the directories
@@ -45,7 +49,7 @@ import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts
 type AgentKind = "prober" | "teacher" | "practice";
 
 /** Exported for tests: assert what composes into the model's prompt.
- *  Composition order: shared base → the agent's own fragments → shared/
+ *  Composition order: the shared base (not for practice) → the agent's own fragments → shared/
  *  fragments (effectivePromptSegments). A part the learner saved their
  *  own version of composes that version; files are read fresh per call so
  *  a save applies on the next turn. */
@@ -166,8 +170,8 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 }
 
 /**
- * The PROBER (agent A): the quizzing tool (quiz, or explain under free
- * recall — no nodeId either way) + ask + probe_done, lean on
+ * The PROBER (agent A): one quizzing tool (probe, or recall under free
+ * recall; no nodeId either way) + ask + probe_done, lean on
  * probing doctrine. Its whole job is bracketing the learner's edge and
  * concluding with the assessment (probe_done) — which also queues the
  * handoff wake (see tools/probe.ts) and is the transcript seam the
@@ -221,9 +225,10 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
 
 /**
  * The PRACTITIONER (practice sessions): built
- * from turn 1 of a kind:"practice" session — no prober→teacher split,
- * no plan tools, no question tools. Its ENTIRE registry is
- * problem + conclude (tools/practice.ts); the doctrine prompt
+ * from turn 1 of a kind:"practice" session, with no prober→teacher split.
+ * The session runs on problem + conclude, plus the rarely-used read-only
+ * file tools, research/pdf, map readers, class tools and save_rule
+ * (tools/practice.ts); no plan or question tools. The doctrine prompt
  * (prompts/practice/) carries the method. A successful problem pose ends
  * the run, natively for a problem-only batch and via the shared stop hook
  * for a mixed batch.

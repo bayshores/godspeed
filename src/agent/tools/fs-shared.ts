@@ -51,11 +51,11 @@ export function formatSize(bytes: number): string {
 /** Cap output to MAX_OUTPUT_BYTES on whole lines, pi's truncateHead idiom. */
 export function capOutput(lines: string[]): { content: string; truncated: boolean } {
 	const out: string[] = [];
+	let bytes = 0;
 	for (const line of lines) {
-		const candidate = [...out, line].join("\n");
-		if (Buffer.byteLength(candidate, "utf-8") > MAX_OUTPUT_BYTES) {
-			return { content: out.join("\n"), truncated: true };
-		}
+		const add = Buffer.byteLength(line, "utf-8") + (out.length > 0 ? 1 : 0);
+		if (bytes + add > MAX_OUTPUT_BYTES) return { content: out.join("\n"), truncated: true };
+		bytes += add;
 		out.push(line);
 	}
 	return { content: out.join("\n"), truncated: false };

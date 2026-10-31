@@ -45,10 +45,14 @@ const SLUG_RE = /^[a-z0-9]+([_-][a-z0-9]+)*$/;
 const ARROW_RE = /-->|==>|-\.->/;
 /** One edge endpoint: `id`, `id[title]`, or `id("title")`. */
 // The id CANDIDATE class is deliberately broad — anything but whitespace,
-// brackets, parens — so EVERY bad id (UPPER, dots, underscores…) reaches
+// brackets, parens — so EVERY bad id (UPPER, dots…) reaches
 // register()'s SPECIFIC slug message instead of dying at the regex layer
 // with a generic parse error the teacher can't act on.
 const ENDPOINT_RE = /^([^\s()\[\]]+)\s*(?:\[([^\[\]]*)\]|\(\s*"([^"]*)"\s*\)|\(([^()]*)\))?$/;
+
+/** Trim a line and drop one trailing `;` (mermaid's optional statement
+ *  separator). Lines are never split on `;`: titles may contain one. */
+const clean = (line: string) => line.trim().replace(/;$/, "").trimEnd();
 
 interface Endpoint {
 	id: string;
@@ -79,7 +83,7 @@ export function parseMermaidPlan(mermaid: string): PlanParseResult {
 	if (first === -1) {
 		return { ok: false, problems: ["The plan is empty — expected a `graph TD` block with nodes and `-->` requires-edges."] };
 	}
-	const header = lines[first]?.trim() ?? "";
+	const header = clean(lines[first] ?? "");
 	if (!HEADER_RE.test(header)) {
 		problems.push(`line ${first + 1}: expected the header \`graph TD\` (or flowchart TD/TB) first, got \`${header}\`.`);
 	}
@@ -100,7 +104,7 @@ export function parseMermaidPlan(mermaid: string): PlanParseResult {
 	};
 
 	for (let i = first + 1; i < lines.length; i++) {
-		const line = lines[i]?.trim() ?? "";
+		const line = clean(lines[i] ?? "");
 		const no = i + 1;
 		if (line.length === 0 || line.startsWith("%%")) continue;
 

@@ -11,7 +11,10 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
-import { probeDoneTool } from "../src/agent/tools/probe.ts";
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { createProberTools } from "../src/agent/tools.ts";
+import { probeDoneTool, type ProbeTurnGate } from "../src/agent/tools/probe.ts";
+import { jobStore } from "../src/store/jobs.ts";
 import type { SteerMessage } from "../src/core/contracts.ts";
 import { hasProbeDone, type LhMessage } from "../src/core/native-messages.ts";
 import { HANDOFF_TEXT } from "../src/core/contracts.ts";
@@ -74,10 +77,25 @@ function probeDoneResult(callId: string, isError: boolean, details?: unknown): L
 	} as never;
 }
 
-async function execute(tools: ReturnType<typeof probeDoneTool>, input: unknown) {
+async function execute(tools: Record<string, AgentTool<any>>, input: unknown) {
 	const t = tools.probe_done!;
 	assert.ok(typeof t.execute === "function");
 	return t.execute("test", input).then((r) => r.details as { ok: boolean; error?: string });
+}
+
+const freshGate = (): ProbeTurnGate => ({ questionPosed: false, concluded: false });
+
+const validProbe = {
+	question: "What is 2 + 2?",
+	options: [
+		{ label: "3", value: "3" },
+		{ label: "4", value: "4" },
+	],
+	correctAnswer: "4",
+};
+
+function proberTools(chatId: string, delivered: SteerMessage[]) {
+	return createProberTools({ chatId, chatStore, deliver: (s) => delivered.push(s), jobStore, spawn: () => {} });
 }
 
 describe("hasProbeDone: the probe→teach construction seam", () => {
@@ -99,7 +117,7 @@ describe("probe_done: the probe→planning seam", () => {
 	it("ok path: records the assessment and queues the handoff steer (deterministic id)", async () => {
 		const chatId = newChat("Probe: ok");
 		const delivered: SteerMessage[] = [];
-		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) });
+		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) }, freshGate());
 
 		const res = await execute(tools, { assessment: ASSESSMENT });
 		assert.equal(res.ok, true);
@@ -119,7 +137,7 @@ describe("probe_done: the probe→planning seam", () => {
 			assistantWithCall("m1", "quiz", { question: "q?", options: [{ label: "a" }], correctAnswer: "a" }),
 		]);
 		const delivered: SteerMessage[] = [];
-		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) });
+		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) }, freshGate());
 
 		const res = await execute(tools, { assessment: ASSESSMENT });
 		assert.equal(res.ok, false);
@@ -134,7 +152,7 @@ describe("probe_done: the probe→planning seam", () => {
 			probeDoneResult("call_m1", false),
 		]);
 		const delivered: SteerMessage[] = [];
-		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) });
+		const tools = probeDoneTool({ chatId, chatStore, deliver: (s) => delivered.push(s) }, freshGate());
 
 		const res = await execute(tools, { assessment: ASSESSMENT });
 		assert.equal(res.ok, false);
@@ -143,7 +161,7 @@ describe("probe_done: the probe→planning seam", () => {
 	});
 
 	it("REFUSES an unknown chat defensively", async () => {
-		const tools = probeDoneTool({ chatId: "chat_nonexistent", chatStore, deliver: () => {} });
+		const tools = probeDoneTool({ chatId: "chat_nonexistent", chatStore, deliver: () => {} }, freshGate());
 		const res = await execute(tools, { assessment: ASSESSMENT });
 		assert.equal(res.ok, false);
 		assert.match(res.error!, /not found/i);
@@ -157,8 +175,46 @@ describe("probe_done: the probe→planning seam", () => {
 			deliver: () => {
 				throw new Error("queue exploded");
 			},
-		});
+		}, freshGate());
 		const res = await execute(tools, { assessment: ASSESSMENT });
 		assert.equal(res.ok, true, "ok:true even when the queue is lost — the next client message constructs the teacher off the transcript seam");
+	});
+});
+
+describe("probe_done within one turn (the stored record only updates at turn end)", () => {
+	it("probe then probe_done in one batch: probe_done is refused", async () => {
+		const delivered: SteerMessage[] = [];
+		const tools = proberTools(newChat("Probe: same-turn question"), delivered);
+		const posed = await tools.probe!.execute("q1", validProbe);
+		assert.notEqual(posed.isError, true);
+		const res = await execute(tools, { assessment: ASSESSMENT });
+		assert.equal(res.ok, false);
+		assert.match(res.error!, /question is still open/i);
+		assert.equal(delivered.length, 0);
+	});
+
+	it("a failed pose leaves probe_done open, so the prober can retry", async () => {
+		const tools = proberTools(newChat("Probe: failed pose"), []);
+		const failed = await tools.probe!.execute("q1", { ...validProbe, correctAnswer: "7" });
+		assert.equal(failed.isError, true);
+		assert.equal((await execute(tools, { assessment: ASSESSMENT })).ok, true);
+	});
+
+	it("probe_done then probe: the question is refused", async () => {
+		const tools = proberTools(newChat("Probe: question after done"), []);
+		assert.equal((await execute(tools, { assessment: ASSESSMENT })).ok, true);
+		const late = await tools.probe!.execute("q1", validProbe);
+		assert.equal(late.isError, true);
+		assert.match((late.content[0] as { text: string }).text, /already concluded/);
+	});
+
+	it("probe_done twice: the second call is refused", async () => {
+		const delivered: SteerMessage[] = [];
+		const tools = proberTools(newChat("Probe: done twice"), delivered);
+		assert.equal((await execute(tools, { assessment: ASSESSMENT })).ok, true);
+		const second = await execute(tools, { assessment: ASSESSMENT });
+		assert.equal(second.ok, false);
+		assert.match(second.error!, /already concluded/i);
+		assert.equal(delivered.length, 1);
 	});
 });

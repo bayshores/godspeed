@@ -5,7 +5,16 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { expandBraces, globToRegex, matchGlob, resolveSourcePath, walkFiles } from "../src/agent/tools/fs-shared.ts";
+import { Value } from "typebox/value";
+import {
+	capOutput,
+	expandBraces,
+	globToRegex,
+	matchGlob,
+	MAX_OUTPUT_BYTES,
+	resolveSourcePath,
+	walkFiles,
+} from "../src/agent/tools/fs-shared.ts";
 import { findTool } from "../src/agent/tools/find.ts";
 import { grepTool } from "../src/agent/tools/grep.ts";
 import { lsTool } from "../src/agent/tools/ls.ts";
@@ -86,6 +95,29 @@ describe("glob helpers (fs-shared)", () => {
 	});
 });
 
+describe("capOutput", () => {
+	it("keeps lines that fit", () => {
+		assert.deepEqual(capOutput(["a", "b"]), { content: "a\nb", truncated: false });
+	});
+
+	it("keeps output that lands exactly on the limit", () => {
+		const half = "x".repeat(MAX_OUTPUT_BYTES / 2);
+		const lines = [half, half.slice(1)]; // + one "\n" = the limit
+		assert.deepEqual(capOutput(lines), { content: lines.join("\n"), truncated: false });
+	});
+
+	it("drops the first line that would go over, and everything after", () => {
+		const half = "x".repeat(MAX_OUTPUT_BYTES / 2);
+		assert.deepEqual(capOutput([half, half, "tail"]), { content: half, truncated: true });
+	});
+
+	it("counts multibyte characters by their UTF-8 bytes", () => {
+		const wide = "é".repeat(MAX_OUTPUT_BYTES / 4); // half the limit in bytes
+		assert.equal(capOutput([wide, wide]).truncated, true, "two halves plus a newline are over");
+		assert.equal(capOutput([wide, wide.slice(1)]).truncated, false);
+	});
+});
+
 describe("resolveSourcePath", () => {
 	it("a leading ~ means the home folder; ~user and plain relative paths stay home-relative", () => {
 		assert.equal(resolveSourcePath("~"), os.homedir());
@@ -111,6 +143,10 @@ describe("ls (pi port)", () => {
 	it("honors the entry limit with pi's truncation notice", async () => {
 		const out = await runText(lsTool, { path: FIXTURE, limit: 2 });
 		assert.match(out, /\[Truncated: 2 entries limit\]/);
+	});
+
+	it("rejects limit 0 at validation (it would report 'Directory is empty')", () => {
+		assert.equal(Value.Check(lsTool.parameters, { path: FIXTURE, limit: 0 }), false);
 	});
 
 	it("missing path and non-directory throw (the model sees the error)", async () => {
@@ -140,6 +176,10 @@ describe("find (pi port)", () => {
 	it("result limit carries pi's notice", async () => {
 		const out = await runText(findTool, { pattern: "*", path: FIXTURE, limit: 2 });
 		assert.match(out, /\[2 results limit reached\]/);
+	});
+
+	it("rejects limit 0 at validation", () => {
+		assert.equal(Value.Check(findTool.parameters, { pattern: "*", limit: 0 }), false);
 	});
 
 	it("no-match message matches pi", async () => {
@@ -196,6 +236,34 @@ describe("grep (pi port)", () => {
 	it("no-match message matches pi", async () => {
 		const out = await runText(grepTool, { pattern: "zzzz", path: FIXTURE });
 		assert.equal(out, "No matches found");
+	});
+
+	it("wide context stops at the 50KB cap with its notice", async () => {
+		const file = path.join(FIXTURE, "wide.log");
+		await fs.writeFile(file, Array.from({ length: 20_000 }, (_, i) => `line ${i}`).join("\n"));
+		try {
+			const out = await runText(grepTool, { pattern: ".", path: file, context: 100_000 });
+			assert.match(out, /\[.*50\.0KB limit reached/);
+			assert.ok(Buffer.byteLength(out, "utf-8") < MAX_OUTPUT_BYTES + 500, "the body stays under the cap");
+		} finally {
+			await fs.unlink(file);
+		}
+	});
+
+	it("a binary file named by path says so instead of 'No matches found'", async () => {
+		const out = await runText(grepTool, { pattern: "eig", path: path.join(FIXTURE, "binary.bin") });
+		assert.match(out, /^Binary file/);
+	});
+
+	it("a file over 2MB named by path says so instead of 'No matches found'", async () => {
+		const file = path.join(FIXTURE, "huge.log");
+		await fs.writeFile(file, "needle\n" + "x".repeat(2 * 1024 * 1024));
+		try {
+			const out = await runText(grepTool, { pattern: "needle", path: file });
+			assert.match(out, /over the 2048\.0KB grep limit/);
+		} finally {
+			await fs.unlink(file);
+		}
 	});
 });
 

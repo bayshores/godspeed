@@ -78,8 +78,12 @@ export function proberGraphTools(ctx: GraphToolContext): Record<string, AgentToo
 			parameters: listPropositionsInput,
 			execute: serverExecute("list_propositions", listPropositionsInput, async ({ session }): Promise<string> => {
 				// Cross-class: the session lives in exactly one class graph.
-				const scoped = ctx.graphs?.().find((g) => graphSessionPropositions({ chatStore: ctx.chatStore, graphStore: g.graphStore }, session).length > 0);
-				const propositions = graphSessionPropositions(scoped ? { chatStore: ctx.chatStore, graphStore: scoped.graphStore } : deps, session);
+				let propositions: ReturnType<typeof graphSessionPropositions> = [];
+				for (const g of ctx.graphs?.() ?? []) {
+					propositions = graphSessionPropositions({ chatStore: ctx.chatStore, graphStore: g.graphStore }, session);
+					if (propositions.length > 0) break;
+				}
+				if (propositions.length === 0) propositions = graphSessionPropositions(deps, session);
 				if (propositions.length === 0) {
 					return `No propositions born in session "${session}". Call list_sessions for the current ids.`;
 				}

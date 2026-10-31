@@ -11,13 +11,14 @@
  *
  * SEGMENTS: the shared base (src/agent/system-prompt.md), then every
  * numeric-prefix *.md fragment in the agent's own directory (sorted by
- * filename), then the shared/ fragments as a trailing appendix. An
+ * filename), then the shared/ fragments as a trailing appendix. Practice
+ * skips the base and takes only PRACTICE_SHARED_FRAGMENTS. An
  * override keyed to a segment the source no longer ships stops composing
  * automatically.
  *
  * OVERRIDES: override files mirror the source layout under
  * config.PROMPTS_OVERRIDE_DIR — "system-prompt.md" at the root,
- * "shared/<file>", "teacher/<file>" / "prober/<file>". A saved file is the
+ * "shared/<file>", "teacher/<file>" / "prober/<file>" / "practice/<file>". A saved file is the
  * learner's version and is used in place of the source.
  */
 
@@ -100,7 +101,7 @@ export function effectivePromptSegments(agent: PromptAgent): PromptSegmentInfo[]
 	});
 }
 
-/** Every known segment path across both agents (route validation). */
+/** Every known segment path across all three agents (route validation). */
 export function allSegmentPaths(): string[] {
 	const paths = new Set<string>();
 	for (const agent of ["prober", "teacher", "practice"] as const) {
