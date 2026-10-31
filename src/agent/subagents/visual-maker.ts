@@ -164,10 +164,10 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 				toolDeclarations,
 				sessionId,
 				opts.abortSignal,
+				opts.onUsage,
 			);
 			// Every render already in `messages` was part of that call's input.
 			lookedSvg = renderedSvg;
-			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 
 			const toolCalls = result.content.filter((c): c is Extract<typeof c, { type: "toolCall" }> => c.type === "toolCall");

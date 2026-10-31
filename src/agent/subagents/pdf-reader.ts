@@ -200,8 +200,8 @@ export async function runPdfReaderAgent(
 				toolDeclarations,
 				sessionId,
 				opts.abortSignal,
+				opts.onUsage,
 			);
-			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 
 			const toolCalls = result.content.filter(
