@@ -116,6 +116,12 @@ const NOT_INSTALLED: Record<FolderAgent, string> = {
 	codex: "Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.",
 };
 
+// The folder's connector and hooks run with plain `node`.
+const NEEDS_NODE: Record<FolderAgent, string> = {
+	claude: "godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.",
+	codex: "godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.",
+};
+
 /** The start script the button runs in a new terminal window. */
 export function startScript(agent: FolderAgent, folder: string, platform: Platform): string {
 	const args = agent === "claude" ? CLAUDE_ARGS : codexArgs(folder, platform);
@@ -124,6 +130,7 @@ export function startScript(agent: FolderAgent, folder: string, platform: Platfo
 			"@echo off",
 			`cd /d "${folder}"`,
 			`where ${agent} >nul 2>nul || (echo ${NOT_INSTALLED[agent]} & exit /b 1)`,
+			`where node >nul 2>nul || (echo ${NEEDS_NODE[agent]} & exit /b 1)`,
 			`${agent} ${args.map(cmdQuote).join(" ")}`,
 			"",
 		].join("\r\n");
@@ -132,6 +139,7 @@ export function startScript(agent: FolderAgent, folder: string, platform: Platfo
 		"#!/bin/sh",
 		`cd ${posixQuote(folder)} || exit 1`,
 		`command -v ${agent} >/dev/null 2>&1 || { echo ${posixQuote(NOT_INSTALLED[agent])}; exit 1; }`,
+		`command -v node >/dev/null 2>&1 || { echo ${posixQuote(NEEDS_NODE[agent])}; exit 1; }`,
 		`exec ${agent} ${args.map(posixQuote).join(" ")}`,
 		"",
 	].join("\n");

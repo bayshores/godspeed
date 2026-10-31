@@ -1,3 +1,5 @@
+<!-- godspeed rewrites this file each time it starts. Put your own notes for Codex in AGENTS.override.md. -->
+
 # godspeed
 
 This folder belongs to the godspeed learning app. Here you are the AI inside godspeed, connected through the `godspeed` MCP server. The learner reads and answers in the godspeed window, not here.

@@ -65,12 +65,14 @@ describe("the folder's files and commands", () => {
 		assert.equal(core.copyCommand("codex", "C:\\Users\\me\\godspeed", "C:\\Users\\me", "win32"), '"C:\\Users\\me\\godspeed\\.godspeed\\start-codex.cmd"');
 	});
 
-	it("writes start scripts that check the agent is installed", () => {
+	it("writes start scripts that check the agent and Node.js are installed", () => {
 		const plain = core.startScript("claude", "/Users/me/godspeed", "darwin");
 		assert.match(plain, /^#!\/bin\/sh\ncd \/Users\/me\/godspeed \|\| exit 1\ncommand -v claude /);
+		assert.match(plain, /\ncommand -v node >\/dev\/null 2>&1 \|\| \{ echo "godspeed needs Node\.js\. Install it from https:\/\/nodejs\.org, then click Open Claude Code in godspeed again\."; exit 1; \}\nexec /);
 		assert.match(plain, /\nexec claude --settings \.godspeed\/claude-settings\.json "Start teaching"\n$/);
 		const win = core.startScript("codex", "C:\\gs", "win32");
 		assert.match(win, /^@echo off\r\ncd \/d "C:\\gs"\r\nwhere codex /);
+		assert.match(win, /\r\nwhere node >nul 2>nul \|\| \(echo godspeed needs Node\.js\. Install it from https:\/\/nodejs\.org, then click Open Codex in godspeed again\. & exit \/b 1\)\r\ncodex /);
 		assert.match(win, /codex -c "mcp_servers\.godspeed\.command='node'"/);
 	});
 
@@ -125,6 +127,8 @@ describe("writing the folder", () => {
 			assert.equal(fs.statSync(script).mode & 0o111, 0o111, "the start script can run");
 		}
 		assert.match(fs.readFileSync(path.join(view.folder, ".claude/skills/setup-classes/SKILL.md"), "utf8"), /^---\nname: setup-classes\n/);
+		assert.match(fs.readFileSync(path.join(view.folder, "CLAUDE.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Claude in CLAUDE\.local\.md\. -->\n/);
+		assert.match(fs.readFileSync(path.join(view.folder, "AGENTS.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Codex in AGENTS\.override\.md\. -->\n/);
 	});
 
 	it("moves people off the old setup: notice first, then the plugin and the Codex block go", () => {

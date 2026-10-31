@@ -96,8 +96,8 @@ const REMOVES = { destructiveHint: true, idempotentHint: true, openWorldHint: fa
 const READING_NOTE = "The reading work comes to you through wait_for_work; it does not progress until you run the loop.";
 
 /** Claude Code cuts a server's instructions after this many characters,
- *  so the loop comes first and the briefing is sized to end before the
- *  cut. The margin allows for a count that differs a little from ours. */
+ *  so the loop comes first and the briefing is sized for memory to end
+ *  before the cut. The margin allows for a count that differs a little from ours. */
 const INSTRUCTIONS_CUT = 4096;
 const CUT_MARGIN = 96;
 
@@ -1092,11 +1092,14 @@ function logMcpError(error: Error): void {
 	console.error("[mcp] request failed:", error);
 }
 
-/** What an agent gets on connecting: the loop, the briefing sized to end
- *  before Claude Code's cut, then memory and classes. (In Claude Code, the
- *  godspeed folder's CLAUDE.md says how to wait with the waiter.) */
+/** What an agent gets on connecting: the loop, the briefing, then memory
+ *  and classes. The briefing is sized so memory still ends before Claude
+ *  Code's cut. (In Claude Code, the godspeed folder's CLAUDE.md says how to
+ *  wait with the waiter.) */
 function connectInstructions(): string {
-	const briefing = currentAgentBriefing(INSTRUCTIONS_CUT - CUT_MARGIN - INSTRUCTIONS.length - "\n\n".length);
+	const before = INSTRUCTIONS.length + "\n\n".length;
+	const after = "\n\n".length + MEMORY_INSTRUCTIONS.length;
+	const briefing = currentAgentBriefing(INSTRUCTIONS_CUT - CUT_MARGIN - before - after);
 	return [INSTRUCTIONS, briefing, MEMORY_INSTRUCTIONS, CLASS_INSTRUCTIONS].join("\n\n");
 }
 
