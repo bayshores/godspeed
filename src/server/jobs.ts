@@ -102,7 +102,7 @@ interface WakeState {
 	turnRunner?: TurnRunner;
 	respawn?: JobRespawn;
 	/** chatId → steers awaiting delivery, in arrival order. The single
-	 *  delivery registry (the agent's own follow-up queue is a per-run
+	 *  delivery registry (the agent's own steering queue is a per-run
 	 *  vehicle, not the registry; settlement reconciles here). */
 	queues: Map<string, QueuedSteer[]>;
 	/** chatId → user-steered messages awaiting drain. Same deliver-or-requeue lifecycle as job markers: the
@@ -112,7 +112,7 @@ interface WakeState {
 	userSteers: Map<string, UserSteerEntry[]>;
 	/** chatId → the agent of the CURRENTLY streaming turn (cleared at
 	 *  settlement, before settleSteers). The pump's live path hands
-	 *  markers to this agent's follow-up queue. */
+	 *  markers to this agent's steering queue (agent.steer). */
 	liveAgents: Map<string, Agent>;
 	/** Chats whose pump loop is currently active (serialization per chat). */
 	pumping: Set<string>;
@@ -433,8 +433,8 @@ function chatIdOf(steer: SteerMessage): string {
  *
  * Each iteration first clears dead weight (gone chat, already-delivered
  * markers), then picks the vehicle: a LIVE turn takes every eligible
- * marker via agent.followUp (the run continues at its own stop — nothing
- * more to do here until settlement re-pumps); otherwise the IDLE WAKE
+ * marker via agent.steer (pi injects it at the run's next turn boundary;
+ * nothing more to do here until settlement re-pumps); otherwise the IDLE WAKE
  * fires ONE turn carrying every pending marker as its input appends.
  */
 async function pump(chatId: string): Promise<void> {
@@ -662,7 +662,9 @@ async function waitForIdle(chatId: string): Promise<void> {
 const SWEEP_THROTTLE_MS = 30_000;
 
 /**
- * Lazy sweep (called off the /api/jobs poll, throttled), LIVENESS-GATED:
+ * Lazy sweep (called off listJobs, the /api/jobs poll, and listAllJobs, the
+ * activity feed; throttled, skipped under NODE_ENV=test; exported for
+ * tests), LIVENESS-GATED:
  * a "running" record without a live loop registration
  * (subagents/aborts.ts) is an orphan of a process death — re-deliver its
  * stored result (idempotently) or re-spawn the loop, at once. An age
@@ -673,8 +675,6 @@ const SWEEP_THROTTLE_MS = 30_000;
  * pending delivery are restored independently; old terminal records without
  * delivery metadata are never inferred to owe a delivery.
  */
-/** Re-run a job's sub-agent loop — exposed for the sweep's tests (the
- *  /api/jobs poll is its only production caller, disabled under NODE_ENV=test). */
 export function recoverStaleJobs(): void {
 	const s = state();
 	const now = Date.now();
