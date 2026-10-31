@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.10",
+		"date": "2026-10-31",
+		"changes": [
+			"If Node.js isn't installed, Open Claude Code and Open Codex now tell you to install it from nodejs.org instead of waiting forever.",
+			"Switching off Web research or PDF reading in Settings now turns them off in practice too, and your teacher stops planning around tools you switched off.",
+			"Edit class shows Try again when a class can't load, instead of empty fields.",
+			"A blank deadline row no longer blocks Save.",
+			"Moving a file with no facts no longer says its facts leave the graph."
+		]
+	},
+	{
 		"version": "0.5.9",
 		"date": "2026-10-31",
 		"changes": [
