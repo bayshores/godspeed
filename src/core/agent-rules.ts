@@ -6,6 +6,7 @@
  * changes its text, so it no longer matches and becomes the learner's.
  * Browser-safe.
  */
+import { isClassId } from "./contracts/class.ts";
 import { TEACHING_AREAS, type AreaId } from "./teaching-areas.ts";
 
 export type RuleWhere = { area: AreaId } | { classId: string };
@@ -24,7 +25,7 @@ export function parseWhere(raw: unknown): RuleWhere | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as { area?: unknown; classId?: unknown };
 	if (typeof r.area === "string" && AREA_IDS.has(r.area)) return { area: r.area as AreaId };
-	if (typeof r.classId === "string" && /^cls_[A-Za-z0-9_-]+$/.test(r.classId)) return { classId: r.classId };
+	if (isClassId(r.classId)) return { classId: r.classId };
 	return null;
 }
 

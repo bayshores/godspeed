@@ -26,6 +26,8 @@
  * (fully concrete) view lives in settings-resolution.ts.
  */
 
+import { isVersion } from "./changelog.ts";
+import { isClassId } from "./contracts/class.ts";
 import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
 
 
@@ -245,12 +247,12 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 	const out: GeneralSettings = {};
 	const autoUpdate = boolOrDrop(raw.autoUpdate);
 	if (autoUpdate !== undefined) out.autoUpdate = autoUpdate;
-	if (typeof raw.activeClass === "string" && (raw.activeClass === "none" || /^cls_[A-Za-z0-9_-]+$/.test(raw.activeClass))) {
+	if (raw.activeClass === "none" || isClassId(raw.activeClass)) {
 		out.activeClass = raw.activeClass;
 	}
 	const onboarded = boolOrDrop(raw.onboarded);
 	if (onboarded !== undefined) out.onboarded = onboarded;
-	if (typeof raw.lastSeenVersion === "string" && /^\d+\.\d+\.\d+$/.test(raw.lastSeenVersion)) {
+	if (isVersion(raw.lastSeenVersion)) {
 		out.lastSeenVersion = raw.lastSeenVersion;
 	}
 	if (typeof raw.teacherName === "string") {
