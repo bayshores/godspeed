@@ -128,7 +128,7 @@ describe("writing the folder", () => {
 		}
 		assert.match(fs.readFileSync(path.join(view.folder, ".claude/skills/setup-classes/SKILL.md"), "utf8"), /^---\nname: setup-classes\n/);
 		assert.match(fs.readFileSync(path.join(view.folder, "CLAUDE.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Claude in CLAUDE\.local\.md\. -->\n/);
-		assert.match(fs.readFileSync(path.join(view.folder, "AGENTS.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Codex in AGENTS\.override\.md\. -->\n/);
+		assert.match(fs.readFileSync(path.join(view.folder, "AGENTS.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Codex in ~\/\.codex\/AGENTS\.md\. -->\n/);
 	});
 
 	it("moves people off the old setup: notice first, then the plugin and the Codex block go", () => {

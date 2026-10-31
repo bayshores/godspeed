@@ -1,4 +1,4 @@
-<!-- godspeed rewrites this file each time it starts. Put your own notes for Codex in AGENTS.override.md. -->
+<!-- godspeed rewrites this file each time it starts. Put your own notes for Codex in ~/.codex/AGENTS.md. -->
 
 # godspeed
 
