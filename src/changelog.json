@@ -1,5 +1,28 @@
 [
 	{
+		"version": "0.6.0",
+		"date": "2026-10-30",
+		"changes": [
+			"What you type in a lesson is saved as you go, so switching pages or a restart no longer wipes your answer.",
+			"Questions have a Skip question button and practice problems have Discard problem, so you never need the Esc key to move on.",
+			"If your agent takes a reply and goes quiet for a few minutes, a line next to Stop lets you stop and send again.",
+			"When no agent is teaching, the lesson says Waiting for your agent and shows how to connect it, instead of Thinking forever.",
+			"The sidebar and Settings show when your agent is connected but not teaching yet.",
+			"Unlinking a folder or removing a file asks first and says how many facts go with it.",
+			"Edit class asks before throwing away your changes.",
+			"Errors say what happened in plain words and come with a Try again button.",
+			"Ticking a deadline done shows an Undo for a few seconds.",
+			"Lesson rows in the sidebar have a ⋯ button for rename, move, export and delete.",
+			"Tab moves between buttons with a visible ring, and dialogs keep Tab inside them.",
+			"Plainer words all over, like Warm-up instead of Probe and lesson length in pages instead of tokens.",
+			"Long lessons get summarized sooner, so your agent stays fast and cheap.",
+			"Agents get smaller work items and Claude Code waits for free, so teaching uses fewer tokens.",
+			"godspeed works with the newest MCP version, and Codex and older agents still connect.",
+			"If godspeed has to restart after a problem, it tells you instead of replaying the welcome screen, and the crash dialog has Report a bug.",
+			"Security updates for Next.js and Electron, and links only open web and email addresses."
+		]
+	},
+	{
 		"version": "0.5.3",
 		"date": "2026-10-29",
 		"changes": [
