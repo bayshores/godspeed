@@ -375,12 +375,12 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			annotations: ADDS,
 		},
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
-			const waitMs = Math.min(wait_seconds ?? 30, RESPOND_MAX_WAIT_S) * 1000;
-			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, waitMs);
+			const followUpMs = (wait_seconds ?? 30) * 1000;
+			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			if (lesson) act(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
-			const next = await waitForWork(waitMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
+			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			const claudeCode = inClaudeCode(caller);
