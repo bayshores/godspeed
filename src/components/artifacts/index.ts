@@ -16,8 +16,9 @@ import { ProblemCard, ConcludeCard } from "@/components/practice-cards";
  * in chat.tsx.
  *
  * Typical shape: while the part is input-available render an activity card
- * (the chat view's jobs feed reads GET /api/jobs?chatId=…; on completion call
- * ChatActionsContext.syncFromServer()); when output-available render the
+ * (the chat view's jobs feed reads GET /api/jobs?chatId=…; the lesson's jobs
+ * fetch in lesson/use-lesson-server.ts syncs the record when a job settles);
+ * when output-available render the
  * artifact itself from part.output.
  */
 export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>> = {

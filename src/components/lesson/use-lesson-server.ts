@@ -271,7 +271,6 @@ export function useLessonServer({
 	return {
 		turnInFlight,
 		localStreamRef,
-		syncFromServer,
 		jobs,
 		turns,
 		pricing,
