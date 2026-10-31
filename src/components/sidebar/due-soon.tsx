@@ -1,7 +1,7 @@
 import { memo } from "react";
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
-import { Countdown, useIsOverdue } from "@/components/countdown";
+import { Countdown, useIsOverdue, useMinute } from "@/components/countdown";
 import { DoneBox } from "@/components/done-box";
 import { dueSoon, localDayOf, sidebarWhenLabel, type OpenDeadline } from "@/components/deadlines-model";
 import { cn } from "@/lib/utils";
@@ -25,8 +25,11 @@ export const DueSoon = memo(function DueSoon({
 	fixedNow?: number;
 	onDone: (d: OpenDeadline) => void;
 }) {
+	// The minute clock keeps the when lines right past midnight.
+	const minute = useMinute();
 	const rows = dueSoon(deadlines ?? []);
 	if (rows.length === 0) return null;
+	const today = localDayOf(fixedNow ?? minute ?? Date.now());
 	return (
 		<section data-testid="due-soon" aria-label="Due soon" className="flex w-full flex-col">
 			<div className="flex w-full items-center justify-between px-2.5 pt-1">
@@ -42,6 +45,7 @@ export const DueSoon = memo(function DueSoon({
 						key={d.id}
 						deadline={d}
 						leaving={leaving.has(d.id)}
+						today={today}
 						fixedNow={fixedNow}
 						onDone={onDone}
 					/>
@@ -54,11 +58,14 @@ export const DueSoon = memo(function DueSoon({
 function DueSoonRow({
 	deadline: d,
 	leaving,
+	today,
 	fixedNow,
 	onDone,
 }: {
 	deadline: OpenDeadline;
 	leaving: boolean;
+	/** The local day, "YYYY-MM-DD". */
+	today: string;
 	fixedNow?: number;
 	onDone: (d: OpenDeadline) => void;
 }) {
@@ -79,7 +86,7 @@ function DueSoonRow({
 			<span className="flex min-w-0 flex-1 flex-col">
 				<span className="truncate text-[14px] leading-5 text-ink">{d.name}</span>
 				<span className="truncate text-[12px] leading-4 text-ink-2">
-					{d.className} · {sidebarWhenLabel(d, localDayOf(fixedNow ?? Date.now()))}
+					{d.className} · {sidebarWhenLabel(d, today)}
 				</span>
 			</span>
 			<span className="flex h-5 shrink-0 items-center">
