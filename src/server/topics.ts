@@ -27,12 +27,6 @@ import { effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 /** How long the scheduler waits for more graph writes before running. */
 const TOPIC_GROUPING_DEBOUNCE_MS = 20_000;
 
-type TopicGroupingOutcome =
-	| { status: "grouped"; topics: number; facts: number }
-	| { status: "skipped"; reason: "too_few_facts" | "unchanged" | "graph_off" | "no_class" | "files_waiting" }
-	| { status: "aborted" }
-	| { status: "failed"; error: string };
-
 /** Test seams: a scripted engine (in place of the outside agent),
  *  and permission to schedule under NODE_ENV=test (off by default so the
  *  real pipeline's hook never leaves timers in unrelated tests). */
@@ -40,7 +34,7 @@ export const topicGroupingSeams: { engine?: PiEngine; enabledInTests?: boolean; 
 
 interface TopicGroupingState {
 	timers: Map<string, ReturnType<typeof setTimeout>>;
-	running: Map<string, Promise<TopicGroupingOutcome>>;
+	running: Map<string, Promise<void>>;
 	/** Scopes asked for again while running: one more run follows. */
 	again: Set<string>;
 }
@@ -106,9 +100,8 @@ function runSingleFlight(key: string): void {
 		return;
 	}
 	const run = groupOnce(scopeOf(key))
-		.catch((err: unknown): TopicGroupingOutcome => {
+		.catch((err: unknown) => {
 			console.error(`[topics ${key}] grouping failed:`, err);
-			return { status: "failed", error: err instanceof Error ? err.message : String(err) };
 		})
 		.finally(() => {
 			s.running.delete(key);
@@ -121,21 +114,21 @@ function backgroundEngine(): PiEngine {
 	return topicGroupingSeams.engine ?? agentEngine();
 }
 
-async function groupOnce(scope: ClassScope): Promise<TopicGroupingOutcome> {
+async function groupOnce(scope: ClassScope): Promise<void> {
 	const record = scope === null ? null : stores.classStore.getClass(scope);
 	const className = scope === null ? "No class" : record?.name;
-	if (className === undefined) return { status: "skipped", reason: "no_class" };
-	if (!effectiveSettings().graph.enabled) return { status: "skipped", reason: "graph_off" };
+	if (className === undefined) return;
+	if (!effectiveSettings().graph.enabled) return;
 	if (record?.files.some((f) => f.status === "pending" || f.status === "extracting")) {
-		return { status: "skipped", reason: "files_waiting" };
+		return;
 	}
 	const store = graphStoreFor(scope);
 	const graph = getGraph(store);
 	const facts = graph.nodes;
-	if (facts.length < MIN_FACTS_FOR_TOPICS) return { status: "skipped", reason: "too_few_facts" };
+	if (facts.length < MIN_FACTS_FOR_TOPICS) return;
 	const factIds = facts.map((f) => f.id);
 	const last = store.readTopics();
-	if (sameFactSet(last, factIds)) return { status: "skipped", reason: "unchanged" };
+	if (sameFactSet(last, factIds)) return;
 	const engine = backgroundEngine();
 
 	const runKey = topicRunKey(scope);
@@ -154,12 +147,11 @@ async function groupOnce(scope: ClassScope): Promise<TopicGroupingOutcome> {
 			}),
 		);
 		// A class deleted mid-run: never recreate its folder.
-		if (scope !== null && !stores.classStore.getClass(scope)) return { status: "aborted" };
+		if (scope !== null && !stores.classStore.getClass(scope)) return;
 		store.appendTopics({ at: new Date().toISOString(), topics });
 		console.info(`[topics ${keyOf(scope)}] ${topics.length} topics over ${facts.length} facts (${Math.round(performance.now() - t0)}ms)`);
-		return { status: "grouped", topics: topics.length, facts: facts.length };
 	} catch (err) {
-		if (controller.signal.aborted || (err instanceof Error && err.name === "AbortError")) return { status: "aborted" };
+		if (controller.signal.aborted || (err instanceof Error && err.name === "AbortError")) return;
 		throw err;
 	} finally {
 		finishBackgroundGraphRun(runKey);

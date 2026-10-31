@@ -490,7 +490,7 @@ interface GraphSessionEntry {
 	/** chatId or notes source id ("src_…") — the birth-session key. */
 	id: string;
 	/** The chat's title ("deleted lesson" once its record is gone), or the
-	 *  file's path — the cluster label's source. */
+	 *  file's path. */
 	name: string;
 	/** A chat (live or deleted) or an imported notes file. */
 	kind: "chat" | "file";
