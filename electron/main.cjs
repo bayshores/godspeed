@@ -714,6 +714,7 @@ function checkForUpdatesFromMenu() {
 }
 
 function zoomStep(win, dir) {
+	if (!win) return;
 	const current = win.webContents.getZoomFactor();
 	const next =
 		dir > 0
@@ -723,7 +724,7 @@ function zoomStep(win, dir) {
 }
 
 function applyZoom(win, factor) {
-	factor = Math.min(2, Math.max(0.75, factor)); // ladder clamps; ⌘0 = 1
+	if (!win) return;
 	win.webContents.setZoomFactor(factor);
 	win.webContents.send("lh:zoom", factor);
 }
