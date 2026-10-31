@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { BotIcon, CircleAlertIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
 import { useFold } from "@/components/use-fold";
+import { useNow } from "@/components/use-now";
 import type { CallUsage, JobKind, JobRecord } from "@/core";
 import { subscriptionLabel, subscriptionLabels } from "@/core";
 import { formatTokens, planCostLabel } from "@/components/usage-format";
@@ -265,17 +266,6 @@ export function formatElapsed(ms: number): string {
 
 // ─── The section ─────────────────────────────────────────────────────────────
 
-/** A 1s heartbeat while the section is populated — elapsed lines tick. */
-function useNow(active: boolean): number {
-	const [now, setNow] = useState(() => Date.now());
-	useEffect(() => {
-		if (!active) return;
-		const t = setInterval(() => setNow(Date.now()), 1000);
-		return () => clearInterval(t);
-	}, [active]);
-	return now;
-}
-
 const KIND_ICON: Record<JobKind, typeof SearchIcon> = {
 	research: SearchIcon,
 	demo: PlayIcon,
@@ -301,7 +291,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	const blobs = useMemo(() => toBlobs(feed), [feed]);
 	const [openBlob, setOpenBlob] = useState<string | null>(null); // detail, inline-expanded
 	const [abortStates, setAbortStates] = useState<Record<string, AbortState>>({});
-	const now = useNow(blobs.length > 0);
+	const now = useNow(blobs.length > 0); // elapsed lines tick while populated
 	// Refs for stable abort handlers (no re-created closures per tick).
 	const abortRef = useRef({ blobs, refresh, setAbortStates });
 	abortRef.current = { blobs, refresh, setAbortStates };
