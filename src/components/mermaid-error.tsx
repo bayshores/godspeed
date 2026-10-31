@@ -1,24 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { MermaidErrorComponentProps } from "streamdown";
 
 /**
- * Fallback for mermaid diagrams that fail to parse — wired via Streamdown's
- * `mermaid.errorComponent`. Replaces the default light-themed red box with a
- * card matching the app: the error, the source in a details block (so a
- * broken diagram doesn't flood the transcript), and a retry.
+ * Fallback card for a mermaid chart that fails to render, shown by the chat
+ * block (md-blocks.tsx) and the focus overlay (session-overlay.tsx): the
+ * error, the source in a details block (so a broken diagram doesn't flood
+ * the transcript), and a retry.
  */
-export const MermaidError = ({
-	chart,
-	error,
-	retry,
-	className,
-}: MermaidErrorComponentProps & { className?: string }) => (
+export const MermaidError = ({ chart, error, retry }: { chart: string; error: string; retry: () => void }) => (
 	<div
-		className={cn(
-			"my-4 border border-destructive/40 bg-destructive/5 p-4",
-			className,
-		)}
+		className="my-4 border border-destructive/40 bg-destructive/5 p-4"
 		data-streamdown="mermaid-error"
 	>
 		<p className="text-sm font-medium text-destructive">
