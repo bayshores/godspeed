@@ -29,19 +29,14 @@ export interface StageCost {
 	tokens: CallUsage;
 }
 
-/** One run in the recent-runs list (extraction or naming). */
+/** One run in the recent-runs list. */
 export interface RecentRun {
 	subscriptionRuns?: number;
 	subscriptionProviders?: string[];
 	/** Stages on a model with no plan; absent when none. */
 	unpricedRuns?: number;
 	startedAt: number;
-	/** ISO wall-clock. */
-	at: string;
-	durationMs: number;
-	/** "extraction" covers both front doors (chat + notes). */
-	kind: "extraction";
-	/** Chat title / source file path / fixed label for naming runs. */
+	/** Chat title or source file path. */
 	title: string;
 	tokens: CallUsage;
 	/** What the run merged into the graph; absent on failed runs. */
@@ -55,7 +50,7 @@ export interface GraphCostSummary {
 		extraction: StageCost;
 		audit: StageCost;
 	};
-	/** Newest first, capped at `recentCap` (default 10). */
+	/** Newest first, at most 10. */
 	runs: RecentRun[];
 }
 
@@ -65,8 +60,9 @@ export interface CostSummaryInput {
 	chats: { title: string; extractions: ExtractionRunUsage[] }[];
 	/** Notes-front-door runs: imported file path + the source's usage log. */
 	sources: { filePath: string; extractions: ExtractionRunUsage[] }[];
-	recentCap?: number;
 }
+
+const RECENT_RUNS = 10;
 
 const ZERO_TOKENS: CallUsage = {
 	inputTokens: undefined,
@@ -125,9 +121,6 @@ export function graphCostSummary(input: CostSummaryInput): GraphCostSummary {
 			...(subscriptionRuns ? { subscriptionRuns, subscriptionProviders: subscriptionLabels(stages.map((stage) => stage.model)) } : {}),
 			...(unpricedRuns ? { unpricedRuns } : {}),
 			startedAt: run.startedAt,
-			at: run.at,
-			durationMs: run.durationMs,
-			kind: "extraction",
 			title,
 			tokens: sumSteps(allSteps),
 			...(run.stats ? { merged: run.stats } : {}),
@@ -144,6 +137,6 @@ export function graphCostSummary(input: CostSummaryInput): GraphCostSummary {
 	runs.sort((a, b) => b.startedAt - a.startedAt);
 	return {
 		stages: { extraction, audit },
-		runs: runs.slice(0, input.recentCap ?? 10),
+		runs: runs.slice(0, RECENT_RUNS),
 	};
 }

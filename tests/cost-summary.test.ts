@@ -49,12 +49,9 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.runs, 0, "current records carry the extractor stage only");
 		assert.deepEqual(s.runs.map((r) => r.title), ["/vault/modal.md", "Testing session"]);
-		assert.deepEqual(s.runs.map((r) => r.kind), ["extraction", "extraction"]);
 	});
 
 	test("old records with an auditor stage still fold it", () => {
-		// (The cluster-naming channel died with the extraction-UX close-out,
-		// 2026-09-24 — two channels: chat + notes front doors.)
 		const input: CostSummaryInput = {
 			chats: [{ title: "Testing session", extractions: [extractionRun(100, PLAN, PLAN)] }],
 			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PLAN, PLAN)] }],
@@ -64,13 +61,11 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.stages.extraction.runs, 2);
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.tokens.outputTokens, 200);
-		// Both runs, newest first, titles joined per front door — every
-		// run is kind "extraction" now.
+		// Both runs, newest first, titles joined per front door.
 		assert.deepEqual(
 			s.runs.map((r) => r.title),
 			["/vault/modal.md", "Testing session"],
 		);
-		assert.deepEqual(s.runs.map((r) => r.kind), ["extraction", "extraction"]);
 	});
 
 	test("unpriced models (old records) are counted per stage and per run", () => {
@@ -97,17 +92,13 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.deepEqual(s.runs.map((r) => r.startedAt), [100]);
 	});
 
-	test("recent runs cap: newest survive", () => {
-		const extractions = [1, 2, 3, 4].map((n) => extractionRun(n * 100, PLAN));
-		const s = graphCostSummary({
-			chats: [{ title: "chat", extractions }],
-			sources: [],
-			recentCap: 2,
-		});
-		assert.equal(s.runs.length, 2);
-		assert.deepEqual(s.runs.map((r) => r.startedAt), [400, 300]);
+	test("recent runs cap at 10: newest survive", () => {
+		const extractions = Array.from({ length: 12 }, (_, i) => extractionRun((i + 1) * 100, PLAN));
+		const s = graphCostSummary({ chats: [{ title: "chat", extractions }], sources: [] });
+		assert.equal(s.runs.length, 10);
+		assert.deepEqual(s.runs.map((r) => r.startedAt), [1200, 1100, 1000, 900, 800, 700, 600, 500, 400, 300]);
 		// stage totals still count EVERY run, cap is presentational.
-		assert.equal(s.stages.extraction.runs, 4);
+		assert.equal(s.stages.extraction.runs, 12);
 	});
 
 	test("failed runs carry no merged stats; empty input folds to zero", () => {
