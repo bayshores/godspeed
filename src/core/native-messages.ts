@@ -574,14 +574,13 @@ export function pendingProblemDismissalOf(messages: readonly LhMessage[]): strin
 			const assistant = m as AssistantMessage;
 			for (let bi = assistant.content.length - 1; bi >= 0; bi--) {
 				const block = assistant.content[bi]!;
-				if (block.type !== "toolCall" && block.type !== "text") continue;
-				if (block.type === "toolCall" && block.name === PRACTICE_CONCLUDE_TOOL) {
+				if (block.type !== "toolCall") continue;
+				if (block.name === PRACTICE_CONCLUDE_TOOL) {
 					if (cleanCallIds.has(block.id)) return null; // a CLEAN conclude settles it
 					continue; // errored/dangling: it never happened
 				}
-				if (block.type === "toolCall" && block.name === PRACTICE_PROBLEM_TOOL) {
+				if (block.name === PRACTICE_PROBLEM_TOOL) {
 					if (cleanCallIds.has(block.id)) return null; // a CLEAN pose supersedes it
-					continue;
 				}
 			}
 			continue;
