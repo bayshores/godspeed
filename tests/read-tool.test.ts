@@ -95,6 +95,32 @@ describe("read tool — text semantics", () => {
 		const out = (await run({ path: file, limit: 4 })).text;
 		assert.match(out, /\[6 more lines in file\. Use offset=5 to continue\.\]/);
 	});
+
+	it("a single line over 50KB shows its head and points past it", async () => {
+		const long = "a".repeat(60_000);
+		const file = write("one-long-line.txt", `${long}\nsecond`);
+		const out = (await run({ path: file })).text;
+		assert.ok(out.startsWith("a".repeat(51_200)), "the line's first 50KB rides along");
+		assert.ok(!out.startsWith("a".repeat(51_201)), "and no more");
+		assert.match(out, /Line 1 is/);
+		assert.match(out, /Use offset=2 to continue/);
+		assert.equal((await run({ path: file, offset: 2 })).text, "second");
+	});
+
+	it("an oversized multibyte line is cut on a character boundary", async () => {
+		const file = write("one-long-multibyte.txt", "é".repeat(40_000));
+		const out = (await run({ path: file })).text;
+		assert.ok(!out.includes("\uFFFD"), "no replacement character at the cut");
+		assert.match(out, /Line 1 is .*limit; showing its first 50\.0KB\.\]$/);
+	});
+
+	it("a binary file is refused without dumping its bytes", async () => {
+		const file = path.join(tmp, "x.bin");
+		fs.writeFileSync(file, Buffer.from([0x25, 0x50, 0x00, 0x01]));
+		const out = (await run({ path: file })).text;
+		assert.match(out, /binary file/);
+		assert.ok(!out.includes("\u0000") && !out.includes("\u0001"), "raw bytes stay out");
+	});
 });
 
 describe("read tool — image semantics (native content parts)", () => {

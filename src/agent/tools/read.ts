@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute, type ImageFileResult } from "../tool-execute.ts";
-import { formatSize, resolveSourcePath } from "./fs-shared.ts";
+import { formatSize, isBinaryFile, resolveSourcePath } from "./fs-shared.ts";
 
 /**
  * The read tool: a Node port of pi's read semantics for the learner's
@@ -65,6 +65,16 @@ function readTextSlice(text: string, offset: number | undefined, limit: number |
 		}
 		truncatedBy = "bytes";
 	}
+	if (selected.length === 0) {
+		// One line over the cap by itself: show its head (cut on a UTF-8
+		// boundary) and point past it, so the next read never repeats.
+		const buf = Buffer.from(allLines[startLine]!, "utf-8");
+		let cut = MAX_BYTES;
+		while (cut > 0 && (buf[cut]! & 0xc0) === 0x80) cut--;
+		const head = buf.subarray(0, cut).toString("utf-8");
+		const next = startLine + 1 < totalLines ? ` Use offset=${startLine + 2} to continue.]` : "]";
+		return `${head}\n\n[Line ${startLine + 1} is ${formatSize(buf.byteLength)}, over the ${formatSize(MAX_BYTES)} limit; showing its first ${formatSize(MAX_BYTES)}.${next}`;
+	}
 	if (truncatedBy === null) {
 		const remaining = totalLines - (startLine + selected.length);
 		if (remaining > 0) {
@@ -93,6 +103,12 @@ export const readTool: AgentTool<typeof readInput> = {
 		const absolute = resolveSourcePath(rawPath);
 		const ext = path.extname(absolute).toLowerCase();
 		const mime = IMAGE_MIME[ext];
+		// The 8KB sniff keeps a video from ever being loaded; a PDF's head may
+		// have no NUL byte, hence the extension check.
+		if (!mime && (ext === ".pdf" || (await isBinaryFile(absolute)))) {
+			const { size } = await fs.stat(absolute);
+			return `${path.basename(absolute)} is a binary file (${formatSize(size)}), not readable as text.${ext === ".pdf" ? " For a PDF, dispatch a pdf job if you have that tool." : ""}`;
+		}
 		const buffer = await fs.readFile(absolute); // ENOENT/EACCES → error result the model sees
 		if (mime) {
 			// No resize, raw bytes as base64: learner files are study material
