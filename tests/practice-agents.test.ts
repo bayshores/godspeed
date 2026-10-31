@@ -209,11 +209,19 @@ describe("the practice agent", () => {
 		const graph = { chatStore: null as never, graphStore: null as never };
 		const tools = practiceTools({ ...ctxOf([]), jobs, graph });
 		// Both jobs remain available keylessly; the prober's two map
-		// readers stay behind their existing settings gate. Practice does
-		// not apply the teacher/prober user tool-toggle filter.
+		// readers stay behind their existing settings gate.
 		assert.deepEqual(
 			Object.keys(tools).sort(),
 			["conclude", "find", "grep", "list_propositions", "list_sessions", "ls", "pdf", "problem", "read", "research"],
+		);
+	});
+
+	it("the Settings switches turn research and pdf off; problem and conclude always stay", () => {
+		const jobs = { chatId: "c1", jobStore: null as never, spawn: (() => {}) as never };
+		const tools = practiceTools({ ...ctxOf([]), jobs }, { research: false, pdf: false, problem: false, conclude: false });
+		assert.deepEqual(
+			Object.keys(tools).sort(),
+			["conclude", "find", "grep", "ls", "problem", "read"],
 		);
 	});
 

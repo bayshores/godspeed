@@ -6,16 +6,14 @@
  *    DEBOUNCED (20 s) and SINGLE-FLIGHT per class (a request while a run is
  *    going queues exactly one more run after it).
  *  - A run is skipped when the graph has fewer than 4 facts, when the
- *    knowledge graph is off, or (for scheduled runs) when the class still
- *    has files waiting or being read — grouping re-reads the whole graph,
- *    so an import of many files groups once, at the end — or when the fact
- *    set is exactly the one the last snapshot grouped.
+ *    knowledge graph is off, when the class still has files waiting or
+ *    being read (grouping re-reads the whole graph, so an import of many
+ *    files groups once, at the end), or when the fact set is exactly the
+ *    one the last snapshot grouped.
  *  - The run shows in the activity dock (the extraction registry, kind
  *    "topics", label "Topic grouping · <class>"); the dock's abort stops it.
  *  - It runs on the outside agent (MCP) as a labeled work item.
  *  - Result: one full snapshot appended to the graph's topics.jsonl.
- *
- * groupTopicsNow(scope) is the manual trigger (for the UI / later MCP).
  */
 import { abortExtraction, finishBackgroundGraphRun, startBackgroundGraphRun } from "../agent/subagents/extraction.ts";
 import { groupTopics } from "../agent/subagents/topic-grouper.ts";
@@ -31,7 +29,6 @@ const TOPIC_GROUPING_DEBOUNCE_MS = 20_000;
 
 type TopicGroupingOutcome =
 	| { status: "grouped"; topics: number; facts: number }
-	| { status: "queued" }
 	| { status: "skipped"; reason: "too_few_facts" | "unchanged" | "graph_off" | "no_class" | "files_waiting" }
 	| { status: "aborted" }
 	| { status: "failed"; error: string };
@@ -76,24 +73,10 @@ export function scheduleTopicGrouping(scope: ClassScope, delayMs = topicGrouping
 	if (prev) clearTimeout(prev);
 	const timer = setTimeout(() => {
 		s.timers.delete(key);
-		void runSingleFlight(key, false);
+		runSingleFlight(key);
 	}, delayMs);
 	timer.unref?.();
 	s.timers.set(key, timer);
-}
-
-/** The manual trigger: run now (a pending debounce is folded in). By
- *  default it regroups even when the fact set is unchanged. While a run is
- *  going, one more is queued after it ({status: "queued"}). */
-export function groupTopicsNow(scope: ClassScope, opts: { force?: boolean } = {}): Promise<TopicGroupingOutcome> {
-	const s = state();
-	const key = keyOf(scope);
-	const timer = s.timers.get(key);
-	if (timer) {
-		clearTimeout(timer);
-		s.timers.delete(key);
-	}
-	return runSingleFlight(key, opts.force ?? true);
 }
 
 /** Drop a pending run and stop a running one (a class is being deleted). */
@@ -116,35 +99,34 @@ export async function topicGroupingIdle(scope: ClassScope): Promise<void> {
 	}
 }
 
-function runSingleFlight(key: string, force: boolean): Promise<TopicGroupingOutcome> {
+function runSingleFlight(key: string): void {
 	const s = state();
 	if (s.running.has(key)) {
 		s.again.add(key);
-		return Promise.resolve({ status: "queued" });
+		return;
 	}
-	const run = groupOnce(scopeOf(key), force)
+	const run = groupOnce(scopeOf(key))
 		.catch((err: unknown): TopicGroupingOutcome => {
 			console.error(`[topics ${key}] grouping failed:`, err);
 			return { status: "failed", error: err instanceof Error ? err.message : String(err) };
 		})
 		.finally(() => {
 			s.running.delete(key);
-			if (s.again.delete(key)) void runSingleFlight(key, false);
+			if (s.again.delete(key)) runSingleFlight(key);
 		});
 	s.running.set(key, run);
-	return run;
 }
 
 function backgroundEngine(): PiEngine {
 	return topicGroupingSeams.engine ?? agentEngine();
 }
 
-async function groupOnce(scope: ClassScope, force: boolean): Promise<TopicGroupingOutcome> {
+async function groupOnce(scope: ClassScope): Promise<TopicGroupingOutcome> {
 	const record = scope === null ? null : stores.classStore.getClass(scope);
 	const className = scope === null ? "No class" : record?.name;
 	if (className === undefined) return { status: "skipped", reason: "no_class" };
 	if (!effectiveSettings().graph.enabled) return { status: "skipped", reason: "graph_off" };
-	if (!force && record?.files.some((f) => f.status === "pending" || f.status === "extracting")) {
+	if (record?.files.some((f) => f.status === "pending" || f.status === "extracting")) {
 		return { status: "skipped", reason: "files_waiting" };
 	}
 	const store = graphStoreFor(scope);
@@ -153,7 +135,7 @@ async function groupOnce(scope: ClassScope, force: boolean): Promise<TopicGroupi
 	if (facts.length < MIN_FACTS_FOR_TOPICS) return { status: "skipped", reason: "too_few_facts" };
 	const factIds = facts.map((f) => f.id);
 	const last = store.readTopics();
-	if (!force && sameFactSet(last, factIds)) return { status: "skipped", reason: "unchanged" };
+	if (sameFactSet(last, factIds)) return { status: "skipped", reason: "unchanged" };
 	const engine = backgroundEngine();
 
 	const runKey = topicRunKey(scope);

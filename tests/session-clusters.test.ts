@@ -190,13 +190,14 @@ describe("graphSnapshot birth-session clusters", () => {
 // ─── the prober data seam ───────────────────────────────────────────────────
 
 describe("graphSessionIndex (the prober's session list)", () => {
-	it("birth counts, chat/file kinds, recency order, deleted records fall back honestly", () => {
+	it("birth counts, chat/file kinds, recency order, deleted records keep their kind", () => {
 		const nodes = [
 			node("a", "A", [pt("chat1")]),
 			node("b", "B", [pt("chat1")]),
 			node("c", "C", [pt("chat1")]),
 			node("d", "D", [pt("src_notes")]),
 			node("e", "E", [pt("gone")]), // its chat record no longer exists
+			node("f", "F", [pt("src_gone")]), // its notes file record no longer exists
 		];
 		const deps = fakeStores(nodes, {
 			chats: [
@@ -224,13 +225,21 @@ describe("graphSessionIndex (the prober's session list)", () => {
 			},
 			{
 				id: "gone",
-				name: "gone",
+				name: "deleted lesson",
+				kind: "chat",
+				createdAt: null,
+				updatedAt: null,
+				propositions: 1,
+			},
+			{
+				id: "src_gone",
+				name: "src_gone",
 				kind: "file",
 				createdAt: null,
 				updatedAt: null,
 				propositions: 1,
 			},
-		], "most recent first; the undatable record sinks and names itself by id");
+		], "most recent first; undatable records sink, a deleted chat stays a chat, a lost file names itself by id");
 	});
 });
 

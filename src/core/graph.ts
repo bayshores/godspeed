@@ -489,9 +489,10 @@ export function graphSnapshot(deps: GraphDeps): GraphSnapshot {
 interface GraphSessionEntry {
 	/** chatId or notes source id ("src_…") — the birth-session key. */
 	id: string;
-	/** The chat's title, or the file's path — the cluster label's source. */
+	/** The chat's title ("deleted lesson" once its record is gone), or the
+	 *  file's path — the cluster label's source. */
 	name: string;
-	/** A real chat (its record still exists) or an imported notes file. */
+	/** A chat (live or deleted) or an imported notes file. */
 	kind: "chat" | "file";
 	/** When the session began: the chat's createdAt, or the file's
 	 *  importedAt. null when no record can date it. */
@@ -517,7 +518,8 @@ export function graphSessionIndex(deps: GraphDeps): GraphSessionEntry[] {
 	const sources = new Map(deps.graphStore.readSources().map((s) => [s.id, s]));
 	const entries: GraphSessionEntry[] = [];
 	for (const [id, propositions] of counts) {
-		const chat = chats.get(id);		if (chat) {
+		const chat = chats.get(id);
+		if (chat) {
 			entries.push({
 				id,
 				name: chat.title,
@@ -526,6 +528,12 @@ export function graphSessionIndex(deps: GraphDeps): GraphSessionEntry[] {
 				updatedAt: chat.updatedAt,
 				propositions,
 			});
+			continue;
+		}
+		// No chat record: a "src_" id is a notes file, anything else a chat
+		// deleted with its graph kept.
+		if (!id.startsWith("src_")) {
+			entries.push({ id, name: "deleted lesson", kind: "chat", createdAt: null, updatedAt: null, propositions });
 			continue;
 		}
 		const source = sources.get(id);

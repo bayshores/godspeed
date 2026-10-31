@@ -84,7 +84,7 @@ export const WRITABLE_TOOL_KEYS = [...TOGGLEABLE_TOOLS, "explain"] as const;
 export type EnabledTools = Partial<Record<string, boolean>>;
 
 /** Drop every tool the resolved settings mark as disabled. The single
- *  filtering site every factory shares (prober/teacher). */
+ *  filtering site every factory shares (prober/teacher/practice). */
 export function filterEnabledTools<T>(tools: Record<string, T>, enabled?: EnabledTools): Record<string, T> {
 	if (!enabled) return tools;
 	const out: Record<string, T> = {};
