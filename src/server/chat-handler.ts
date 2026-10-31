@@ -30,15 +30,14 @@ import { readPassage, relatedFacts, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { extractionEnabled, graphToolsEnabled } from "../core/settings-resolution.ts";
 import { learnerRulesSection } from "../core/teaching-areas.ts";
-import { beginTurn, endTurn } from "./turn-liveness.ts";
+import { beginTurn, endTurn, isTurnRunning } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
 import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.ts";
 import { persistTurn, triggerExtraction, TurnPersistenceError } from "./turn-service.ts";
 import { hasProbeDone, danglingQuestionOf, retryContext } from "../core/native-messages.ts";
 import { composeInstructions } from "../agent/teacher-agent.ts";
-import { ensureCompacted, kickCompaction, effectiveThresholdTokens } from "./compaction.ts";
+import { ensureCompacted, kickCompaction, effectiveThresholdTokens, type CompactionDeps } from "./compaction.ts";
 import { emit } from "../core/events.ts";
-import { settledTurnResponse } from "./turn-runs.ts";
 import { asAgentMessages } from "../core/native-messages.ts";
 import {
 	ChatInputError,
@@ -51,7 +50,7 @@ import type { AttachmentPart } from "../core/attachments.ts";
 import { storeAttachments } from "./attachments.ts";
 import { saveRuleByAgent } from "./agent-rules.ts";
 import type { SaveRule } from "../agent/tools/rules.ts";
-import type {CallUsage} from "../core/contracts.ts";
+import type { CallUsage, ChatRecord } from "../core/contracts.ts";
 
 /**
  * One chat turn over the server-owned native record. Framework-free (plain
@@ -107,19 +106,31 @@ export const extraction = createExtractionPipeline({
 // delivers its steers through THIS composition root (one event: the steer
 // marker, appended natively under the turn claim), and crash recovery
 // re-spawns orphaned sub-agent loops through THIS runner.
-setTurnRunner(async (chatId, input) => {
-	const res = await handleChatInput(chatId, input);
-	// Drive the stream to completion server-side — nobody else will read it,
-	// and onFinish (persist, extraction, endTurn) only runs when it drains.
-	await res.arrayBuffer().catch(() => undefined);
-	return res.status;
-});
+setTurnRunner(async (chatId, input) => (await handleChatInput(chatId, input)).status);
 setJobRespawn((jobId) => void jobRunner.runJob(jobId));
 
 /** The lesson's class name and rules, for the learner's-rules section. */
 function lessonClassRules(classId: string | undefined): { name: string; rules: string[] } | undefined {
 	const cls = classId ? stores.classStore.getClass(classId) : null;
 	return cls ? { name: cls.name, rules: cls.rules ?? [] } : undefined;
+}
+
+/** The compaction settings for a lesson, shared by the turn-start gate and
+ *  the settle kick. The prompt estimate uses the agent the next turn builds. */
+function compactionDeps(record: ChatRecord): CompactionDeps {
+	const engine = agentEngine();
+	const kind = record.kind === "practice" ? "practice" : hasProbeDone(record.messages) ? "teach" : "probe";
+	const agentKind = kind === "practice" ? "practice" : kind === "teach" ? "teacher" : "prober";
+	return {
+		chatStore: stores.chatStore,
+		engine,
+		// Never start a summary while another turn owns the chat.
+		canStart: () => !isTurnRunning(record.id),
+		modelId: `${engine.model.provider}:${engine.model.id}`,
+		kind,
+		thresholdTokens: effectiveThresholdTokens(effectiveSettings().compaction?.thresholdTokens, engine.model.contextWindow),
+		systemPromptTokens: Math.ceil(composeInstructions(agentKind).length / 4),
+	};
 }
 
 /** The route-facing entry: parse {chatId, input} and run one turn. */
@@ -186,23 +197,18 @@ export async function handleChatInput(
 	// waits. Skipped under tests (the extraction precedent). It runs BEFORE
 	// appends and beginTurn, so it has no liveness effects, and the record
 	// re-reads after because compaction appends the marker.
-	const conversationEngine = agentEngine();
-	const modelIdForCompaction = `${conversationEngine.model.provider}:${conversationEngine.model.id}`;
-	await ensureCompacted(
-		{
-			chatStore: stores.chatStore,
-			engine: agentEngine(),
-			canStart: () => true,
-			modelId: modelIdForCompaction,
-			kind: record.kind === "practice" ? "practice" : hasProbeDone(record.messages) ? "teach" : "probe",
-			thresholdTokens: effectiveThresholdTokens(
-				effective.compaction?.thresholdTokens,
-				conversationEngine.model.contextWindow,
-			),
-			systemPromptTokens: Math.ceil(composeInstructions(record.kind === "practice" ? "practice" : "teacher").length / 4),
-		},
-		chatId,
-	);
+	await ensureCompacted(compactionDeps(record), chatId);
+
+	// The agent engine loads on the first turn, not at server start; loaded
+	// before the turn is claimed so nothing awaits between beginTurn and registerTurn.
+	if (!buildAgent) {
+		try {
+			await loadAgentCore();
+		} catch (err) {
+			console.error(`[chat ${chatId}] turn failed to start:`, err);
+			return Response.json({ error: "Failed to start the turn" }, { status: 500 });
+		}
+	}
 	const compactedRecord = stores.chatStore.getChat(chatId);
 	if (!compactedRecord) return Response.json({ error: "Unknown chat" }, { status: 404 });
 	record = compactedRecord;
@@ -254,7 +260,7 @@ export async function handleChatInput(
 			return new Response("Your input could not be saved. Please try again.", { status: 500 });
 		}
 		emit("record-changed", { chatId });
-		return settledTurnResponse(); // the cheap terminal — no beginTurn, no turn
+		return Response.json({ ok: true }); // no beginTurn, no turn: the client attaches and gets the settled terminal
 	}
 
 	// One turn per chat, ever. A second request while a turn runs means a
@@ -315,8 +321,7 @@ export async function handleChatInput(
 		// Both share this whole composition (write-ahead persist, liveness,
 		// steers, usage, extraction) — only the agent differs.
 		const teaching = hasProbeDone(merged);
-		// (Built once above the compaction gate; reused verbatim.)
-		const engine = conversationEngine;
+		const engine = agentEngine();
 		const modelId = `${engine.model.provider}:${engine.model.id}`;
 		// Tests inject a factory: the agent is stateless per turn, so each
 		// request builds a fresh one off the record — the factory mirrors that
@@ -376,8 +381,6 @@ export async function handleChatInput(
 			if (!saved.ok) return saved.error;
 			return { saved: true, rule: saved.rule, for: saved.for, where, note: "Saved. The learner sees it in the chat and can undo or edit it." };
 		};
-		// The agent engine loads on the first turn, not at server start.
-		if (!buildAgent) await loadAgentCore();
 		const constructed: TeachingAgent = buildAgent
 			? buildAgent({ ...agentOpts, teaching })
 			: record.kind === "practice"
@@ -446,9 +449,10 @@ export async function handleChatInput(
 		// transcript, not usage); when it's ours, usage flows through
 		// the factory's subscription (wired above via onUsage).
 		// THE TURN AS A BACKGROUND OBJECT: runPiTurn executes decoupled from
-		// this response — the POST stream is just the FIRST subscriber (a view).
+		// this response — the POST only acknowledges, and views attach
+		// through GET /api/chats/[id]/stream.
 		// A client disconnect cannot abort the turn; the remote kill is the abort
-		// channel, and late views reattach via GET /api/chats/[id]/stream.
+		// channel.
 		// Steering: register the live agent BEFORE runPiTurn — the loop's start
 		// steering-poll drains the queue SYNCHRONOUSLY inside that call, so a later
 		// registration would miss it. Registration also steers any pending
@@ -480,6 +484,10 @@ export async function handleChatInput(
 			},
 			onSettleError: settlementErrorText,
 			onSettleFailure: (error, reportedErrorText) => {
+				// The parked dismissal lands (or drops) before the turn is released,
+				// like onFinish; a throw here must not keep the chat locked.
+				try { applyParkedDismissal(stores.chatStore, chatId); }
+				catch (err) { console.error(`[chat ${chatId}] parked dismissal failed:`, err); }
 				// POST only acknowledges acceptance; the submitter may attach
 				// after this turn has already failed and left the registry.
 				rememberTurnFailure(chatId, reportedErrorText ?? settlementErrorText(error));
@@ -493,10 +501,10 @@ export async function handleChatInput(
 				reconcileUserSteers(chatId, persisted);
 				settleSteers(chatId, persisted, true, constructed);
 			},
-			onFinish: (turnMessages, isAborted) => {
+			onFinish: (turnMessages) => {
 				// The record write is the agent's own final state —
 				// the new messages are the slice past the context it started from.
-				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, turnMessages, isAborted);
+				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, turnMessages);
 				noteSteersDurable(chatId, stores.chatStore.getChat(chatId)?.messages ?? stamped);
 				// usage log append (idempotent per turn id) — the stats bar
 				// refolds this on the client after the turn settles. The
@@ -562,23 +570,8 @@ export async function handleChatInput(
 				// fixtures; the service itself is pinned directly).
 				if (process.env.NODE_ENV !== "test")
 					kickCompaction(() => {
-						const fresh = effectiveSettings();
-						const kickEngine = agentEngine();
-						const kickModelId = `${kickEngine.model.provider}:${kickEngine.model.id}`;
-						const freshRecord = stores.chatStore.getChat(chatId);
-						if (!freshRecord) return null;
-						return {
-							chatStore: stores.chatStore,
-							engine: kickEngine,
-							canStart: () => true,
-							modelId: kickModelId,
-							kind: freshRecord.kind === "practice" ? "practice" : hasProbeDone(freshRecord.messages) ? "teach" : "probe",
-							thresholdTokens: effectiveThresholdTokens(
-								fresh.compaction?.thresholdTokens,
-								kickEngine.model.contextWindow,
-							),
-							systemPromptTokens: Math.ceil(composeInstructions(freshRecord.kind === "practice" ? "practice" : "teacher").length / 4),
-						};
+						const fresh = stores.chatStore.getChat(chatId);
+						return fresh ? compactionDeps(fresh) : null;
 					}, chatId);
 			},
 		});
@@ -597,8 +590,11 @@ export async function handleChatInput(
 		// needed this connection, only a view did.
 		return Response.json({ ok: true });
 	} catch (err) {
-		// The turn never started (agent load, build or runPiTurn threw), so no
+		// The turn never started (build or runPiTurn threw), so no
 		// onFinish will fire — clear the registry or the chat stays locked.
+		// A dismissal parked meanwhile lands as the route would have written it.
+		try { applyParkedDismissal(stores.chatStore, chatId); }
+		catch (parkErr) { console.error(`[chat ${chatId}] parked dismissal failed:`, parkErr); }
 		endTurn(chatId);
 		// The live-agent registration (if it happened) dies with the
 		// turn here too - nothing was handed (the loop never ticked).

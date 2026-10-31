@@ -9,10 +9,11 @@
  * GET .../stream entry. globalThis spans module instances within the
  * process.
  *
- * Registration lifecycle: chat-handler registers the handle the moment
- * the turn starts (after the 409 guard) and its onFinish unregisters LAST
- * — after persist, usage, extraction, and endTurn — so anything that sees
- * "no running turn" sees durable record truth. Failed settlement also
+ * Registration lifecycle: chat-handler registers the handle synchronously
+ * after the 409 guard, with no await in between, and its onFinish
+ * unregisters LAST — after persist, usage, extraction, and endTurn — so
+ * anything that sees "no running turn" sees durable record truth. Failed
+ * settlement also
  * retains its small notice before unregistering, so late attachments do
  * not mistake an unsaved reply for success. The per-chat
  * 409 guard means a chatId can hold at most one handle.
@@ -86,8 +87,8 @@ export function abortTurn(chatId: string): { ok: true } | { ok: false; reason: "
  *  failure is delivered first, including when no view attached in time.
  *  Chosen as an EVENT (not a status code), consuming ONE wire
  *  protocol end to end. */
-export function settledTurnResponse(chatId?: string): Response {
-	const errorText = chatId ? turnFailure(chatId) : undefined;
+export function settledTurnResponse(chatId: string): Response {
+	const errorText = turnFailure(chatId);
 	const notice = errorText === undefined ? "" : `data: ${JSON.stringify({ type: "error", errorText })}\n\n`;
 	return new Response(`${notice}data: {"type":"turn-settled"}\n\ndata: [DONE]\n\n`, {
 		headers: {

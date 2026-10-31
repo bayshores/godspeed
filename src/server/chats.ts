@@ -13,10 +13,8 @@ import { discardChatDeliveries } from "./jobs.ts";
  * Server-side chat entries for the transport layer (src/app/api/chats*,
  * src/app/chat/[id]). Most delegate straight to the ChatStore port.
  *
- * deleteChatSession is the one real orchestration here:
- * gates → extraction wind-down → one synchronous deletion block. See
- * core/graph-deletion.ts for the ledger semantics and the atomicity
- * argument.
+ * deleteChatSession is the one real orchestration here (see its doc);
+ * core/graph-deletion.ts holds the ledger semantics.
  */
 
 export const { createChat, getChat, listChats } = stores.chatStore;
@@ -42,28 +40,7 @@ type ChatDeleteOutcome =
 			graphRevision: number;
 	  };
 
-/**
- * Delete a session: gates first, then the purge.
- *
- *   1. GATES — a turn in flight or a running background job refuses with
- *      409 (they write the chat record and steer into it; deleting
- *      mid-flight would corrupt the write-ahead flow). The UI retries once
- *      work drains.
- *   2. EXTRACTION WIND-DOWN — the chat's own pipeline run is TRUE-
- *      CANCELLED (abortExtraction: spend stops, nothing merges), then
- *      awaited off the registry. A timeout is a retryable 503, never a
- *      forced race.
- *   3. THE SYNC BLOCK — everything below runs without a single await:
- *      no extraction append can interleave (the event loop never yields
- *      mid-block), so the read-filter-write of the ledger rewrites is
- *      atomic against the pipeline. Ledgers first, jobs next, the chat
- *      record LAST (a crash mid-block leaves a deletable chat with a
- *      purged graph — re-running DELETE fixes it — never a deleted chat
- *      with live traces). The pipeline's per-batch liveness guard
- *      (extraction.ts) closes the last window: a run that slipped past
- *      the wind-down finds the chat gone at its merge and aborts with
- *      nothing merged.
- */
+/** The 409 refusal when a turn or a live background job is running in this lesson, else null. */
 export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, { status: 409 }> | null {
 	if (isTurnRunning(chatId)) {
 		return {
@@ -119,6 +96,28 @@ export async function quiesceChatForRewrite(chatId: string): Promise<Extract<Cha
 	return runningWorkBlocker(chatId);
 }
 
+/**
+ * Delete a session: gates first, then the purge.
+ *
+ *   1. GATES — a turn in flight or a running background job refuses with
+ *      409 (they write the chat record and steer into it; deleting
+ *      mid-flight would corrupt the write-ahead flow). The UI retries once
+ *      work drains.
+ *   2. EXTRACTION WIND-DOWN — the chat's own pipeline run is TRUE-
+ *      CANCELLED (abortExtraction: spend stops, nothing merges), then
+ *      awaited off the registry. A timeout is a retryable 503, never a
+ *      forced race.
+ *   3. THE SYNC BLOCK — everything below runs without a single await:
+ *      no extraction append can interleave (the event loop never yields
+ *      mid-block), so the read-filter-write of the ledger rewrites is
+ *      atomic against the pipeline. Ledgers first, jobs next, the chat
+ *      record LAST (a crash mid-block leaves a deletable chat with a
+ *      purged graph — re-running DELETE fixes it — never a deleted chat
+ *      with live traces). The pipeline's per-batch liveness guard
+ *      (extraction.ts) closes the last window: a run that slipped past
+ *      the wind-down finds the chat gone at its merge and aborts with
+ *      nothing merged.
+ */
 export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): Promise<ChatDeleteOutcome> {
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) {

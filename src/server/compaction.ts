@@ -81,7 +81,7 @@ async function subagentSummarizer(prompt: string, engine: PiEngine): Promise<{ s
 /** Everything the service needs from its host (chat-handler wires the
  *  production versions; tests inject). */
 export interface CompactionDeps {
-	/** Eligibility only for NEW runs; structural waits still apply. */
+	/** False while another turn owns the chat: wait for a running compaction but start none. */
 	canStart?: () => boolean;
 	chatStore: ChatStore;
 	/** The chat's conversation engine — also the summarizer's. */
@@ -268,7 +268,8 @@ export async function ensureCompacted(deps: CompactionDeps, chatId: string): Pro
 	const record = deps.chatStore.getChat(chatId);
 	if (!record) return;
 	if (projectedContextTokens(record.messages, deps.systemPromptTokens) <= deps.thresholdTokens) return;
-	if (state().inFlight.has(chatId)) return; // a concurrent caller started it while we awaited
+	const running = state().inFlight.get(chatId);
+	if (running) return running; // a concurrent caller started it while we awaited: wait for it
 	const run = compact(deps, chatId);
 	state().inFlight.set(chatId, run);
 	try {
