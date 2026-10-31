@@ -75,7 +75,7 @@ const depsOf = (thresholdTokens: number): CompactionDeps => ({
 
 describe("the compaction service", () => {
 	it("background eligibility skips both entrypoints without writes, but still awaits an existing structural run", async () => {
-		const chatId = overThresholdChat("compact: consent off");
+		const chatId = overThresholdChat("compact: turn running");
 		const before = summarizeCalls;
 		const denied = { ...depsOf(40_000), canStart: () => false };
 		await ensureCompacted(denied, chatId); kickCompaction(() => denied, chatId);
@@ -130,6 +130,22 @@ describe("the compaction service", () => {
 		const deps = depsOf(40_000);
 		await Promise.all([ensureCompacted(deps, chatId), ensureCompacted(deps, chatId), ensureCompacted(deps, chatId)]);
 		assert.equal(summarizeCalls, before + 1, "exactly one summary however many gates race");
+	});
+
+	it("a concurrent gate waits for the compaction another caller started", async () => {
+		const chatId = overThresholdChat("compact: concurrent waits");
+		let release!: () => void;
+		const gate = new Promise<void>((done) => { release = done; });
+		const slow = { ...depsOf(40_000), summarize: async (prompt: string) => { await gate; return depsOf(40_000).summarize!(prompt, slow.engine); } };
+		const first = ensureCompacted(slow, chatId);
+		let secondDone = false;
+		const second = ensureCompacted(slow, chatId).then(() => { secondDone = true; });
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		assert.equal(secondDone, false, "the second caller is still waiting");
+		release();
+		await second;
+		assert.notEqual(activeCompactionOf(chatStore.getChat(chatId)!.messages), null, "the marker is saved before the second caller goes on");
+		await first;
 	});
 
 	it("awaitCompaction: a later call rides the in-flight one (the structural gate)", async () => {
