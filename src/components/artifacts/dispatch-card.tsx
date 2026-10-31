@@ -3,6 +3,7 @@ import { CheckIcon, XIcon } from "lucide-react";
 import { JobsContext } from "@/components/jobs-context";
 import type { JobKind, JobRecord } from "@/core";
 import { BrailleSpinner } from "@/components/braille-spinner";
+import { useNow } from "@/components/use-now";
 
 /**
  * The dispatch card (contracts.ts "THE ASYNC PROTOCOL" §4): the tool-call
@@ -45,10 +46,11 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 }
 
 function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: string }) {
-	// Elapsed from createdAt — jobs appear here only via the jobs feed (post-mount),
-	// so no SSR/hydration mismatch.
+	// Elapsed from createdAt, ticking while the job runs. Jobs appear here
+	// only via the jobs feed (post-mount), so no SSR/hydration mismatch.
+	const now = useNow(job?.status === "running");
 	const elapsed =
-		job && job.createdAt ? Math.max(0, Math.round((Date.now() - Date.parse(job.createdAt)) / 1000)) : null;
+		job && job.createdAt ? Math.max(0, Math.round((now - Date.parse(job.createdAt)) / 1000)) : null;
 	return (
 		<div
 			className=" border bg-card p-4 text-card-foreground"

@@ -115,7 +115,7 @@ describe("DispatchCard — failed jobs", () => {
 	const inJobs = (jobs: JobRecord[]) => (
 		<JobsContext.Provider value={jobs}>
 			<ChatActionsContext.Provider
-				value={{ chatId: "c1", syncFromServer: async () => {}, sendBlocked: null, sendText: () => {} }}
+				value={{ chatId: "c1", sendBlocked: null, sendText: () => {} }}
 			>
 				<DispatchCard toolCallId="t1" kind="research" />
 			</ChatActionsContext.Provider>

@@ -114,30 +114,28 @@ export function useLessonServer({
 	// Turn-start window: the server inserts claimed steers right after our
 	// outgoing message, before the stream produces anything — three bounded
 	// record fetches (400ms/1s/2s) catch the insert, then stop. The timers
-	// must survive the submitted→streaming flip, so they are cleared only
-	// at unmount.
+	// must survive the submitted→streaming flip, so the pending ones are
+	// cleared only at unmount.
 	const turnStartStatusRef = useRef(status);
-	const adoptionWindowOpenRef = useRef(false);
-	const turnStartTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+	const turnStartTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
 	useEffect(() => {
 		const was = turnStartStatusRef.current;
 		turnStartStatusRef.current = status;
 		if (was === "submitted" || status !== "submitted") return;
-		adoptionWindowOpenRef.current = true;
+		const timers = turnStartTimersRef.current;
 		for (const ms of [400, 1000, 2000]) {
-			turnStartTimerRefs.current.push(
-				setTimeout(() => {
-					if (adoptionWindowOpenRef.current) void adoptAppendOnly();
-				}, ms),
-			);
+			const id = setTimeout(() => {
+				timers.delete(id);
+				void adoptAppendOnly();
+			}, ms);
+			timers.add(id);
 		}
 	}, [status, adoptAppendOnly]);
 	useEffect(() => {
-		const timers = turnStartTimerRefs;
+		const timers = turnStartTimersRef.current;
 		return () => {
-			adoptionWindowOpenRef.current = false;
-			timers.current.forEach(clearTimeout);
-			timers.current = [];
+			timers.forEach(clearTimeout);
+			timers.clear();
 		};
 	}, []);
 
@@ -147,13 +145,13 @@ export function useLessonServer({
 		const transitioned = prevStatusRef.current !== "ready" && status === "ready";
 		prevStatusRef.current = status;
 		if (!transitioned) return;
-		void syncTurns();
 		// Canonize onto the record when our own turn's settle was announced,
-		// so the previous message never shows twice.
+		// so the previous message never shows twice; that sync refreshes the
+		// stats too, so only the other settles fetch them alone.
 		if (settleAnnouncedRef.current) {
 			settleAnnouncedRef.current = false;
 			void syncFromServer();
-		}
+		} else void syncTurns();
 	}, [status, syncTurns, syncFromServer]);
 
 	// A stream that died mid-flight: the server turn runs on — re-enter the
@@ -186,7 +184,6 @@ export function useLessonServer({
 	const jobStatusRef = useRef<Map<string, string>>(new Map());
 	const pendingSyncRef = useRef(false);
 	const fetchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-	const fetchJobsRef = useRef<() => void>(() => {});
 	const fetchJobs = useCallback(async () => {
 		try {
 			const res = await fetch(`/api/jobs?chatId=${encodeURIComponent(chatId)}`);
@@ -215,7 +212,6 @@ export function useLessonServer({
 			/* transient — the next jobs-changed announcement re-fetches */
 		}
 	}, [chatId, syncFromServer, adoptAppendOnly]);
-	fetchJobsRef.current = () => void fetchJobs();
 	useEffect(() => {
 		void fetchJobs();
 	}, [fetchJobs]);
@@ -224,10 +220,10 @@ export function useLessonServer({
 		if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
 		fetchDebounceRef.current = setTimeout(() => {
 			fetchDebounceRef.current = undefined;
-			fetchJobsRef.current();
+			void fetchJobs();
 		}, 250);
 	});
-	useServerResync(() => fetchJobsRef.current());
+	useServerResync(() => void fetchJobs());
 	useEffect(
 		() => () => {
 			if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
@@ -275,7 +271,6 @@ export function useLessonServer({
 	return {
 		turnInFlight,
 		localStreamRef,
-		syncFromServer,
 		jobs,
 		turns,
 		pricing,

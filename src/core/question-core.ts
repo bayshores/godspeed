@@ -204,6 +204,18 @@ export function normalizeQuizType(raw: unknown): QuizQuestionType | undefined {
 	return v === "predict" ? "predict" : v === "check" ? "check" : undefined;
 }
 
+/** A question's kind label, shared by the waiting question and its answered
+ *  card. The opening questions read "Warm-up" and "Recall"; a predict-type
+ *  quiz reads "Prediction". */
+export function questionKindLabel(tool: string, quizType: QuizQuestionType | undefined): string {
+	if (tool === "probe") return "Warm-up";
+	if (tool === "recall") return "Recall";
+	if (tool === "quiz") return quizType === "predict" ? "Prediction" : "Check";
+	if (tool === "explain") return "Explain";
+	if (tool === "write_code") return "Code";
+	return "Question";
+}
+
 /** The reveal law: a teach-phase CHECK (quiz or explain) collapses behind
  *  the "Check your understanding" reveal. A prediction never does (it
  *  precedes the teaching and gates it), and neither do probe/plan

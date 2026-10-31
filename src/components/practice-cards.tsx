@@ -29,14 +29,18 @@ import { classQuery, useClasses } from "@/components/class-context";
  * seam (the mastery trace groups on them), so the drawer resolves names
  * at render time. One lazy cached fetch of the graph view per class
  * graph (the class the window shows); failures degrade to raw ids, so
- * observability never breaks the card. */
-const nodeNameMapPromises = new Map<string, Promise<Record<string, string>>>();
-function nodeNameMap(classId: string | null): Promise<Record<string, string>> {
+ * observability never breaks the card, and are not cached, so the next
+ * open tries again. */
+const nodeNameMapPromises = new Map<string, Promise<Record<string, string> | null>>();
+function nodeNameMap(classId: string | null): Promise<Record<string, string> | null> {
 	const key = classId ?? "none";
 	const cached = nodeNameMapPromises.get(key);
 	if (cached) return cached;
 	const nodeNameMapPromise = fetch(`/api/graph${classQuery(classId)}`)
-		.then((r) => (r.ok ? r.json() : { nodes: [] }))
+		.then((r) => {
+			if (!r.ok) throw new Error(String(r.status));
+			return r.json();
+		})
 		.then((g: { nodes?: Array<{ id?: unknown; name?: unknown }> }) =>
 			Object.fromEntries(
 				(g.nodes ?? [])
@@ -44,7 +48,10 @@ function nodeNameMap(classId: string | null): Promise<Record<string, string>> {
 					.map((n) => [n.id as string, typeof n.name === "string" ? (n.name as string) : (n.id as string)]),
 			),
 		)
-		.catch(() => ({}));
+		.catch(() => {
+			nodeNameMapPromises.delete(key);
+			return null;
+		});
 	nodeNameMapPromises.set(key, nodeNameMapPromise);
 	return nodeNameMapPromise;
 }
@@ -121,7 +128,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 			    quiz cards' chip register. */}
 			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				Concluded
-				{(OUTCOME_LABEL[outcome] ?? "") !== "" && outcome !== "dismissed" && (
+				{(OUTCOME_LABEL[outcome] ?? "") !== "" && (
 					<span className={cn(" px-1.5 py-0.5", OUTCOME_CHIP[outcome] ?? OUTCOME_CHIP.movedOn)}>
 						{OUTCOME_LABEL[outcome]}
 					</span>
@@ -186,12 +193,12 @@ function MetadataPopover({
 		if (!open || targets.length === 0 || names) return;
 		let alive = true;
 		void nodeNameMap(activeClassId).then((m) => {
-			if (alive) setNames(m);
+			if (alive && m) setNames(m);
 		});
 		return () => {
 			alive = false;
 		};
-	}, [open, targets.length, names]);
+	}, [open, targets.length, names, activeClassId]);
 
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
 	// The box fades out before unmounting.

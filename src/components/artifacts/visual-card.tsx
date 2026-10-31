@@ -1,5 +1,4 @@
-import { useContext, useState } from "react";
-import { ChatActionsContext } from "@/components/chat-actions-context";
+import { useArtifactInvert } from "@/components/artifacts/use-artifact-invert";
 import { DownloadIcon, MaximizeIcon } from "lucide-react";
 import { InvertDiscIcon } from "@/components/artifacts/invert-disc";
 import { Toggle } from "@/components/settings/controls";
@@ -50,22 +49,9 @@ export function VisualOutputCard({
 }) {
 	const result = output as VisualResult | undefined;
 	const overlay = useSessionMermaid();
-	const actions = useContext(ChatActionsContext);
-	// Brightness inversion: the switch state PERSISTS on
-	// the steer record (details.ui.inverted) — seeded here, written through
-	// the silent artifact-ui route on toggle; without a chat page (tests,
-	// previews) it stays local-only. The toggled state also feeds the
-	// fullscreen overlay (openFigure).
-	const [inverted, setInverted] = useState(initialInverted);
-	const toggleInverted = (next: boolean) => {
-		setInverted(next);
-		if (!actions?.chatId || !messageId) return;
-		void fetch(`/api/chats/${actions.chatId}/artifact-ui`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ input: { messageId, inverted: next } }),
-		}).catch(() => {});
-	};
+	// Brightness inversion; the toggled state also feeds the fullscreen
+	// overlay (openFigure).
+	const [inverted, toggleInverted] = useArtifactInvert(messageId, initialInverted);
 	const natural = result && typeof result.svg === "string" ? svgNaturalWidth(result.svg) : null;
 	if (!result || typeof result.svg !== "string") {
 		return (

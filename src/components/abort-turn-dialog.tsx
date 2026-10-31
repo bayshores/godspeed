@@ -143,8 +143,22 @@ export function AbortTurnDialog({
 				onClose();
 			}
 		};
+		// Enter and digits behind the popup belong to it: without this, the
+		// dock's Enter submit and the option digits still fire underneath
+		// (Enter on "Discard this problem?" would send the problem instead).
+		// Capture on document runs before every dock listener.
+		const onCapture = (e: KeyboardEvent) => {
+			if (e.key !== "Enter" && !/^[0-9]$/.test(e.key)) return;
+			if ((e.target as Element | null)?.closest?.('[data-testid="abort-turn-dialog"]')) return;
+			e.preventDefault();
+			e.stopPropagation();
+		};
 		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
+		document.addEventListener("keydown", onCapture, true);
+		return () => {
+			document.removeEventListener("keydown", onKeyDown);
+			document.removeEventListener("keydown", onCapture, true);
+		};
 	}, [mode, onClose]);
 
 	if (!presence.mounted || shown === null || typeof document === "undefined") return null;

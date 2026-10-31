@@ -16,12 +16,12 @@ test("meter keeps its measured numerator over the agent's 200k budget, and rende
 	const turn: TurnUsage = { id: "summary", messageId: "marker", at: "fixture", model: "fixture:a", steps: [{ inputTokens: 4300, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 }] };
 	const pricing = { unpriced: 1 };
 	try {
-		await act(async () => root.render(<StatsBar chatId="fixture" turns={[turn]} contextTokens={83_000} pricing={pricing} />));
+		await act(async () => root.render(<StatsBar turns={[turn]} contextTokens={83_000} pricing={pricing} />));
 		const context = () => host.querySelector('[data-testid="stats-context"]')?.textContent;
 		assert.equal(context(), "83k / 200k", "summarizer's 4.3k money log is not the meter source");
-		await act(async () => root.render(<StatsBar chatId="fixture" turns={[turn]} contextTokens={null} pricing={pricing} />));
+		await act(async () => root.render(<StatsBar turns={[turn]} contextTokens={null} pricing={pricing} />));
 		assert.equal(context(), "? / 200k");
-		await act(async () => root.render(<StatsBar chatId="fixture" turns={[turn]} contextTokens={72_000} pricing={pricing} />));
+		await act(async () => root.render(<StatsBar turns={[turn]} contextTokens={72_000} pricing={pricing} />));
 		assert.equal(context(), "72k / 200k");
 	} finally {
 		await act(async () => root.unmount()); host.remove();

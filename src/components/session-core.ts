@@ -677,7 +677,7 @@ export class SessionModel {
 					await this.resumeStream(false);
 					return true;
 				}
-				if (input.type === "answer" && (answeredCallIds(record.messages).has(input.toolCallId) || danglingQuestionOf(record.messages)?.toolCallId !== input.toolCallId)) {
+				if (answeredCallIds(record.messages).has(input.toolCallId) || danglingQuestionOf(record.messages)?.toolCallId !== input.toolCallId) {
 					// The call already resolved, or no longer owns the dock. Adopt
 					// truth, never POST that answer a second time.
 					this.setStatus("ready");
@@ -777,8 +777,8 @@ export class SessionModel {
 	 *  key) and the indicator's fold drops the line. A 409 means the turn
 	 *  settled mid-send (the race): fall back to the plain text send —
 	 *  the entry is dropped and send() pushes its own optimistic card.
-	 *  Resolves false when that fallback send was not taken, so the caller
-	 *  can keep the text.
+	 *  Resolves false when the steer did not go through and no fallback
+	 *  send was taken, so the caller can keep the text.
 	 */
 	async steer(text: string): Promise<boolean> {
 		const t = text.trim();
@@ -803,11 +803,12 @@ export class SessionModel {
 			}
 			dropSteer();
 			this.setError(errorBodyMessage(await res.text()) || `The steer failed (${res.status}).`);
+			return false;
 		} catch (err) {
 			dropSteer();
 			this.setError((err as Error).message);
+			return false;
 		}
-		return true;
 	}
 
 	/** The ready gate: one turn per client, but an errored session may retry. */

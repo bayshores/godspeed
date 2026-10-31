@@ -88,7 +88,7 @@ export function ThinkingBlock({
 				// Total inset 3ch (chevron alignment): 14px gap, padding 4px,
 				// pr-4 keeps the text off the band's right edge. In-card rows
 				// take no band, rail only. Arrival motion rides the transcript
-				// (chat.tsx), so a reopened lesson doesn't replay it per row.
+				// (lesson/arrivals.tsx), so a reopened lesson doesn't replay it per row.
 				"my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 py-1 pl-[14px] pr-4 font-ui text-xs",
 				inCard ? "" : "bg-card",
 			)}

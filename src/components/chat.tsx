@@ -83,7 +83,7 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, status, error, stop, clearError, resumeStream } = session;
-	const { turnInFlight, localStreamRef, syncFromServer, jobs, turns, pricing, compacting } = useLessonServer({
+	const { turnInFlight, localStreamRef, jobs, turns, pricing, compacting } = useLessonServer({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
@@ -422,7 +422,6 @@ export function Chat({
 	const chatActions = useMemo(
 		() => ({
 			chatId,
-			syncFromServer,
 			sendBlocked,
 			sendText: (t: string) => {
 				if (sendBlocked !== null) return;
@@ -430,7 +429,7 @@ export function Chat({
 				else void send({ type: "text", text: t });
 			},
 		}),
-		[chatId, syncFromServer, send, steer, sendBlocked],
+		[chatId, send, steer, sendBlocked],
 	);
 
 	// The error banner's Try again: send again what didn't go through, run a
@@ -520,7 +519,7 @@ export function Chat({
 												</p>
 											) : undefined,
 									}}
-									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} chatId={chatId} />}
+									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} />}
 								/>
 
 								{/* The session-scoped focuses: absolute over the lesson area, below

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { BotIcon, CircleAlertIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
 import { useFold } from "@/components/use-fold";
+import { useNow } from "@/components/use-now";
 import type { CallUsage, JobKind, JobRecord } from "@/core";
 import { subscriptionLabel, subscriptionLabels } from "@/core";
 import { formatTokens, planCostLabel } from "@/components/usage-format";
@@ -26,9 +27,9 @@ import { agentWaiting, useAgentStatus, waitingNotice } from "@/components/agent-
  * Absent data renders "–", never zero.
  *
  * Quiet/ambient by design: stable keys, updates land in place — refreshes
- * never flicker. ALWAYS present: empty means EMPTY — the header sits
- * alone, nothing hides; it populates and GROWS when processes run (max-h +
- * internal scroll so a pile never crowds the rest). Per blob: kind icon,
+ * never flicker. Hidden when there is nothing to show; it grows as
+ * processes run (max-h + internal scroll so a pile never crowds the
+ * rest). Per blob: kind icon,
  * elapsed, cost, activity line, an explicit END button (POST
  * /api/activity/abort): 404/409 mean the process is already gone
  * (refresh, no error); real failures degrade to an inline "Abort failed",
@@ -265,17 +266,6 @@ export function formatElapsed(ms: number): string {
 
 // ─── The section ─────────────────────────────────────────────────────────────
 
-/** A 1s heartbeat while the section is populated — elapsed lines tick. */
-function useNow(active: boolean): number {
-	const [now, setNow] = useState(() => Date.now());
-	useEffect(() => {
-		if (!active) return;
-		const t = setInterval(() => setNow(Date.now()), 1000);
-		return () => clearInterval(t);
-	}, [active]);
-	return now;
-}
-
 const KIND_ICON: Record<JobKind, typeof SearchIcon> = {
 	research: SearchIcon,
 	demo: PlayIcon,
@@ -283,8 +273,12 @@ const KIND_ICON: Record<JobKind, typeof SearchIcon> = {
 	pdf: FileTextIcon,
 };
 
-/** Abort states per blob id: pending (fired) / failed (backend absent). */
+/** Abort states per run: pending (fired) / failed (backend absent). */
 type AbortState = "pending" | "failed";
+
+/** One run of a row: a later extraction of the same source reuses the row
+ *  id, so the state keys on its start too and never carries over. */
+const runKey = (blob: ActivityBlob) => `${blob.id}@${blob.startedAt}`;
 
 export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed?: ActivityFeed; waiting?: boolean }) {
 	const ctx = useContext(ActivityContext);
@@ -297,14 +291,23 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	const blobs = useMemo(() => toBlobs(feed), [feed]);
 	const [openBlob, setOpenBlob] = useState<string | null>(null); // detail, inline-expanded
 	const [abortStates, setAbortStates] = useState<Record<string, AbortState>>({});
-	const now = useNow(blobs.length > 0);
+	const now = useNow(blobs.length > 0); // elapsed lines tick while populated
 	// Refs for stable abort handlers (no re-created closures per tick).
 	const abortRef = useRef({ blobs, refresh, setAbortStates });
 	abortRef.current = { blobs, refresh, setAbortStates };
+	// Forget the states of runs that left the feed.
+	useEffect(() => {
+		const live = new Set(blobs.map(runKey));
+		setAbortStates((s) => {
+			const kept = Object.entries(s).filter(([k]) => live.has(k));
+			return kept.length === Object.keys(s).length ? s : Object.fromEntries(kept);
+		});
+	}, [blobs]);
 
 	const abort = useCallback(async (blob: ActivityBlob) => {
 		const { setAbortStates: set } = abortRef.current;
-		set((s) => ({ ...s, [blob.id]: "pending" }));
+		const key = runKey(blob);
+		set((s) => ({ ...s, [key]: "pending" }));
 		try {
 			const res = await fetch("/api/activity/abort", {
 				method: "POST",
@@ -322,7 +325,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 				if (res.status === 404 || res.status === 409) {
 					abortRef.current.refresh();
 					set((s) => {
-						const { [blob.id]: _drop, ...rest } = s;
+						const { [key]: _drop, ...rest } = s;
 						return rest;
 					});
 					return;
@@ -331,7 +334,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 			}
 			abortRef.current.refresh();
 		} catch {
-			set((s) => ({ ...s, [blob.id]: "failed" }));
+			set((s) => ({ ...s, [key]: "failed" }));
 		}
 	}, []);
 
@@ -374,7 +377,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 							now={now}
 							detailOpen={openBlob === blob.id}
 							onToggleDetail={() => setOpenBlob((id) => (id === blob.id ? null : blob.id))}
-							abortState={abortStates[blob.id]}
+							abortState={abortStates[runKey(blob)]}
 							onAbort={() => void abort(blob)}
 						/>
 					))}
@@ -384,7 +387,7 @@ export function ActivitySection({ feed: feedProp, waiting: waitingProp }: { feed
 	);
 }
 
-/** One blob: icon + elapsed + cost on the face; click → detail popover. */
+/** One blob: icon + elapsed + cost on the face; click → detail expands inline. */
 function ActivityBlobRow({
 	blob,
 	now,
@@ -443,8 +446,8 @@ function ActivityBlobRow({
 					<span data-testid="activity-blob-elapsed">{formatElapsed(now - blob.startedAt)}</span>
 				</span>
 			</button>
-			{/* The explicit END always on the blob's face (SCOPE) — the popover
-			    is for DETAIL, not the control. A failed abort says why and stays
+			{/* The explicit END always on the blob's face (SCOPE) — the inline
+			    detail is for DETAIL, not the control. A failed abort says why and stays
 			    clickable to retry; a succeeded one just makes the blob vanish on refresh. */}
 			<button
 				type="button"

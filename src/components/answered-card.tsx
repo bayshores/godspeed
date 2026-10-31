@@ -7,7 +7,7 @@ import { useStepNumber } from "@/components/lesson/step-context";
 import { cn } from "@/lib/utils";
 import { MessageResponse, ToolContentResponse } from "@/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/core";
-import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput } from "@/core";
+import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput, questionKindLabel } from "@/core";
 
 /** Lesson prose at a given size/leading/color (the markdown renderer reads
  *  these variables). */
@@ -15,16 +15,8 @@ function proseVars(size: number, leading: number, ink: string): React.CSSPropert
 	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink } as React.CSSProperties;
 }
 
-/** The card's label: the opening questions first (Warm-up/Recall), then
- *  the kind. */
-function kindLabel(answer: QuestionAnswerData): string {
-	if (answer.tool === "probe") return "Warm-up";
-	if (answer.tool === "recall") return "Recall";
-	if (answer.kind === "quiz") return answer.questionType === "predict" ? "Prediction" : "Check";
-	if (answer.kind === "explain") return "Explain";
-	if (answer.kind === "code") return "Code";
-	return "Question";
-}
+/** Old answers carry no tool name: their kind stands in for it. */
+const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "ask" } as const;
 
 /** The verdict chip: Right / Wrong / Didn't know (quiz answers only). */
 function ResultChip({ answer }: { answer: QuestionAnswerData }) {
@@ -109,7 +101,7 @@ export function AnsweredCard({
 				<div className="flex items-center gap-2.5 text-[13px]">
 					{isQuiz && <ResultChip answer={answer} />}
 					<span data-testid="answer-kind" className="font-bold text-ink-3">
-						{kindLabel(answer)}
+						{questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType)}
 						{step !== undefined && ` · step ${step}`}
 					</span>
 					{isQuiz && !answer.dontKnow && answer.confidence != null && (

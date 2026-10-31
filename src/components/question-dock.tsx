@@ -10,6 +10,7 @@ import {
 	answerSound,
 	buildAnswer,
 	normalizeQuizType,
+	questionKindLabel,
 	CONFIDENCE_STOPS,
 	emptyDockSelection,
 	normalizeOptions,
@@ -68,17 +69,6 @@ export interface QuestionDockProps {
 	compactionRunning?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
 	footer?: React.ReactNode;
-}
-
-/** The kind chip's label. The opening questions read "Warm-up"; a
- *  predict-type quiz reads "Prediction". */
-export function questionKindLabel(toolName: QuestionDockProps["toolName"], input: unknown): string {
-	if (toolName === "probe") return "Warm-up";
-	if (toolName === "recall") return "Recall";
-	if (toolName === "quiz") return normalizeQuizType((input as { type?: unknown } | null)?.type) === "predict" ? "Prediction" : "Check";
-	if (toolName === "explain") return "Explain";
-	if (toolName === "write_code") return "Code";
-	return "Question";
 }
 
 export function QuestionDock(props: QuestionDockProps) {
@@ -363,7 +353,7 @@ function QuestionDockForm({
 		rootRef.current?.querySelector(`[data-kbdrow="${kbdIdx}"]`)?.scrollIntoView({ block: "nearest" });
 	}, [kbdIdx]);
 
-	const label = questionKindLabel(toolName, input);
+	const label = questionKindLabel(toolName, normalizeQuizType((input as { type?: unknown } | null)?.type));
 	const walked = (i: number, selected: boolean) => i === kbdIdx && !selected && "ring-1 ring-inset ring-ink-3";
 
 	return (

@@ -1771,4 +1771,22 @@ describe("steer (the settle race)", () => {
 		closeStream();
 		await sending;
 	});
+	it("resolves false and drops the queued line when the steer route fails", async () => {
+		const m = model({ fetch: async (url) => {
+			if (String(url) === "/api/chats/chat_x/steer") return new Response("", { status: 500 });
+			return Response.json({ messages: [] });
+		} });
+		assert.equal(await m.steer("wait, why?"), false, "the caller keeps the text");
+		assert.deepEqual(m.getState().steerQueue, []);
+		assert.match(m.getState().error?.message ?? "", /The steer failed/);
+	});
+
+	it("resolves false when the steer fetch throws", async () => {
+		const m = model({ fetch: async (url) => {
+			if (String(url) === "/api/chats/chat_x/steer") throw new Error("network down");
+			return Response.json({ messages: [] });
+		} });
+		assert.equal(await m.steer("wait, why?"), false, "the caller keeps the text");
+		assert.deepEqual(m.getState().steerQueue, []);
+	});
 });

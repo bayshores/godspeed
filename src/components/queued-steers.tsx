@@ -1,9 +1,9 @@
 /**
  * THE QUEUED-STEER INDICATOR: steers sent but not
- * yet drained render as quiet one-liners ABOVE the composer shell —
- * right-aligned to where the shell's corner rounding starts, truncated
- * with an ellipsis, no background, no container, roughly half opacity.
- * Visible but very quiet; layout tunable later.
+ * yet drained render as quiet one-liners in the composer panel, under its
+ * header and above the text box, right-aligned, truncated with an
+ * ellipsis, no background, no container, roughly half opacity. Visible
+ * but very quiet.
  *
  * A line dies the moment its card lands in the transcript: the drain's
  * verbatim message events upsert the real user card by the client-minted
