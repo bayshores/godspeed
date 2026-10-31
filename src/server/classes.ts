@@ -572,7 +572,8 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	if (!record || !file) return;
 	const abs = classFilePath(record, file);
 	if (!abs || !fs.existsSync(abs)) {
-		patchFile(classId, fileId, { status: "failed", error: "The file could not be found" });
+		// Forget the signature so the folder scan picks the file up again once it is back (drive re-plugged).
+		patchFile(classId, fileId, { status: "failed", error: "The file could not be found", statSig: undefined });
 		return;
 	}
 	const stillThere = () => stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId) === true;

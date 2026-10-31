@@ -432,6 +432,30 @@ describe("the class file pipeline", () => {
 		}
 	});
 
+	it("a linked file not found while its folder was away is built again once the folder is back", async () => {
+		const id = await makeClass("CSE 140");
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-unplugged-"));
+		const dir = path.join(root, "drive");
+		const away = path.join(root, "away");
+		try {
+			fs.mkdirSync(dir);
+			fs.writeFileSync(path.join(dir, "a.md"), "Logic gates");
+			await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+			await classIdle(id);
+			const fileId = stores.classStore.getClass(id)!.files[0]!.id;
+			fs.renameSync(dir, away);
+			server.enqueueFile(id, fileId);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "failed");
+			fs.renameSync(away, dir);
+			server.scanLinkedFolder(id);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+		} finally {
+			fs.rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	// Root reads any file, and Windows ignores the mode bits.
 	const cannotLock = process.platform === "win32" || process.getuid?.() === 0;
 
