@@ -39,9 +39,13 @@ function GraphScreenBody() {
 	// The chain table's data, read while it is open.
 	const loadSnapshot = useCallback(() => {
 		fetch(`/api/graph${classQuery(active)}`)
-			.then((res) => res.json() as Promise<GraphSnapshot>)
+			.then((res) => {
+				if (!res.ok) throw new Error(String(res.status));
+				return res.json() as Promise<GraphSnapshot>;
+			})
 			.then(setSnapshot)
-			.catch(() => {});
+			// Closed on a failure, so the next click on Chains fetches again.
+			.catch(() => setChainsOpen(false));
 	}, [active]);
 	useEffect(() => {
 		if (chainsOpen) loadSnapshot();
@@ -63,6 +67,8 @@ function GraphScreenBody() {
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
+	// Deleting every fact hides the table; close it so new facts don't reopen it.
+	if (chainsOpen && data && !hasFacts) setChainsOpen(false);
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="graph-page">
 			<GraphTopBar
@@ -97,7 +103,7 @@ function GraphScreenBody() {
 				{/* Last child: the overlay covers the page and its top bar
 				    (app-region subtraction follows DOM order). */}
 				<ChainTableOverlay
-					open={chainsOpen && hasFacts}
+					open={chainsOpen && snapshot !== null}
 					nodes={snapshot?.propositions ?? []}
 					chains={snapshot?.chains ?? []}
 					sessions={snapshot?.sessions ?? {}}

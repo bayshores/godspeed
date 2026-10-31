@@ -8,9 +8,15 @@ import { type ConfidenceLevel } from "@/core";
  * show at their nearest level (confidenceLevel).
  */
 
-/** The confidence ramp, level 1 red → level 5 emerald (Tailwind; the
- *  conf-1…5 tokens in globals.css), indexed by level − 1. */
-const CONFIDENCE_COLORS: readonly string[] = ["#EF4444", "#F97316", "#EAB308", "#84CC16", "#10B981"];
+/** The confidence ramp from the conf-1…5 tokens in globals.css, indexed by
+ *  level − 1. Names written out in full so Tailwind emits every token. */
+const CONFIDENCE_COLORS = [
+	"var(--color-conf-1)",
+	"var(--color-conf-2)",
+	"var(--color-conf-3)",
+	"var(--color-conf-4)",
+	"var(--color-conf-5)",
+] as const;
 
 /** What each level means, in the learner's words. */
 const CONFIDENCE_WORDS: readonly string[] = ["Guessing", "Unsure", "Somewhat sure", "Fairly sure", "Certain"];

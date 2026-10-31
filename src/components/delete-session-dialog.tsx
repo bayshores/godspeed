@@ -83,12 +83,12 @@ export function DeleteSessionDialog({
 				// the earlier-registered global window listener.
 				e.preventDefault();
 				e.stopPropagation();
-				onClose();
+				if (!busy) onClose();
 			}
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [chat, onClose]);
+	}, [chat, busy, onClose]);
 
 	const run = async () => {
 		if (!chat || busy) return;

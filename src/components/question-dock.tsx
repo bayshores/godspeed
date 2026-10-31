@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
-import { ConfidenceMeter } from "@/components/confidence-rail";
+import { ConfidenceMeter } from "@/components/confidence-meter";
 import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit } from "@/components/lesson/panel-parts";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/components/sounds";

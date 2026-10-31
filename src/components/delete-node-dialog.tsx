@@ -163,12 +163,12 @@ export function DeleteNodeDialog({
 				// the earlier-registered global window listener.
 				e.preventDefault();
 				e.stopPropagation();
-				onClose();
+				if (!busy) onClose();
 			}
 		};
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [nodes, onClose]);
+	}, [nodes, busy, onClose]);
 
 	// Sequential full deaths — never parallel (the store's revision
 	// counter and the sweep must observe them in order). A failure STOPS

@@ -258,6 +258,17 @@ describe("ChainTableBody — the sortable table headers", () => {
 		const c1Row = html.indexOf('data-testid="chain-row-c1"');
 		assert.ok(soloRow > 0 && c1Row > 0 && soloRow < c1Row, "chain sizes ascending within the cluster");
 	});
+
+	it("the unlabeled cluster sorts last under Name, descending too", () => {
+		for (const dir of [1, -1] as const) {
+			const html = render({ sort: { col: "name", dir } });
+			const unlabeled = html.indexOf("cluster-group-\0unlabeled");
+			const notes = html.indexOf('data-testid="cluster-group-notes1"');
+			const chat = html.indexOf('data-testid="cluster-group-chat1"');
+			assert.ok(notes > 0 && chat > 0 && unlabeled > notes && unlabeled > chat, `unlabeled last (dir ${dir})`);
+			assert.ok(dir === 1 ? chat < notes : notes < chat, `labeled groups follow the direction (dir ${dir})`);
+		}
+	});
 });
 
 describe("ChainTableBody — the floating selection bar (never shifts layout)", () => {

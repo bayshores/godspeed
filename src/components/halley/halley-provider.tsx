@@ -347,6 +347,9 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 
 	const visit = useCallback(
 		async (action: AgentAction, go: boolean) => {
+			// Freed first, so an early return doesn't keep the copy.
+			const ghost = ghosts.current.get(action.id);
+			ghosts.current.delete(action.id);
 			const engine = engineRef.current;
 			if (!engine) return;
 			const reduce = prefersReducedMotion();
@@ -354,8 +357,6 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 			// The lesson you are reading: the reply is right here.
 			if (!go && action.page.startsWith("/chat/") && action.page === live.current.pathname) return;
 			if (following) await showPage(action, go);
-			const ghost = ghosts.current.get(action.id);
-			ghosts.current.delete(action.id);
 			let els = await waitForTarget(action.target, following ? 4000 : action.removed || ghost ? 0 : 1200, () => alive.current);
 			setTourBubble(action.label);
 			// Gone already (removed, or ticked done and dropped from the list):
@@ -489,7 +490,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const go = useCallback(
 		(action: AgentAction) => {
 			setPanelOpen(false);
-			queue.current.push(action);
+			// Not queued twice if it is still waiting.
+			queue.current = [...queue.current.filter((a) => a.id !== action.id), action];
 			forced.current.add(action.id);
 			void run();
 		},
