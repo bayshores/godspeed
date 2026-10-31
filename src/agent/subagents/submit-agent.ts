@@ -14,30 +14,6 @@ import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
 import { healEncodedArguments } from "../../core/argument-heal.ts";
 
-// ── the weak-model string-heal ──
-//
-// Weak models under a big submit payload often emit a whole array as ONE
-// JSON-STRING instead of a native array ("propositions.0: must be
-// object"). pi-agent-core runs `prepareArguments` BEFORE TypeBox
-// validation, so heal it there instead of costing a retry. Best-effort:
-// heal only a string that parses to an array; anything else passes
-// through untouched and fails validation.
-export function healStringifiedArrays(raw: unknown): unknown {
-	if (typeof raw !== "object" || raw === null) return raw;
-	const out: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
-	for (const key of ["propositions", "chains", "reteaches"]) {
-		const v = out[key];
-		if (typeof v !== "string" || v.trim().length === 0) continue;
-		try {
-			const parsed: unknown = JSON.parse(v);
-			if (Array.isArray(parsed)) out[key] = parsed;
-		} catch {
-			// not a clean stringify (e.g. truncated) — leave for validation
-		}
-	}
-	return out;
-}
-
 export async function runSubmitAgent<T>(opts: {
 	toolName: string;
 	toolDescription: string;
@@ -53,10 +29,6 @@ export async function runSubmitAgent<T>(opts: {
 	neverSubmitted: string;
 	/** The task's name on outside-agent work items (pi-run taskLabel). */
 	taskLabel?: string;
-	/** Weak-model argument heal at pi's prepareArguments seam (runs BEFORE
-	 *  TypeBox validation). Identity by default; extraction wires
-	 *  healStringifiedArrays here. */
-	prepareArguments?: (args: unknown) => unknown;
 	/** Semantic validation at the submit seam: the value is schema-valid
 	 *  but may violate a PIPELINE law (coverage, echo-equality). Returning
 	 *  a problem string yields an isError result (invalidInputResult) →
@@ -64,20 +36,14 @@ export async function runSubmitAgent<T>(opts: {
 	validate?: (value: T) => string | null;
 }): Promise<T> {
 	let submitted: T | undefined;
-	const result = await runSubagent(
+	await runSubagent(
 		[
 			{
 				name: opts.toolName,
 				label: opts.toolName,
 				description: opts.toolDescription,
 				parameters: opts.parameters,
-				prepareArguments: (args) =>
-					// The standard heal composes AFTER the caller's shim;
-					// extraction's healStringifiedArrays stays the inner pass.
-					healEncodedArguments(
-						opts.prepareArguments ? opts.prepareArguments(args) : args,
-						opts.parameters,
-					) as never,
+				prepareArguments: (args) => healEncodedArguments(args, opts.parameters) as never,
 				execute: async (_toolCallId, input) => {
 					const value = opts.fill(input);
 					const problem = opts.validate?.(value) ?? null;
@@ -106,7 +72,6 @@ export async function runSubmitAgent<T>(opts: {
 			shouldStop: (_message, toolResults) => toolResults.some((r) => r.toolName === opts.toolName && !r.isError),
 		},
 	);
-	void result;
 	if (!submitted) throw new Error(opts.neverSubmitted);
 	return submitted;
 }

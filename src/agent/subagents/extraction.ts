@@ -16,7 +16,7 @@ import type { GraphStore } from "../../core/ports.ts";
 import { emit } from "../../core/events.ts";
 import { batchRuns, coverageOf, messageViewLines } from "../../core/coverage.ts";
 import { failedOutputCallIds, type LhMessage } from "../../core/native-messages.ts";
-import { runSubmitAgent, healStringifiedArrays } from "./submit-agent.ts";
+import { runSubmitAgent } from "./submit-agent.ts";
 
 /**
  * The extraction pipeline — the sole graph writer. Two stages:
@@ -417,7 +417,6 @@ function runExtractor(
 		signal,
 		onStep,
 		neverSubmitted: "the extractor never submitted findings",
-		prepareArguments: healStringifiedArrays,
 	}).then(asSessionFindings);
 }
 
@@ -446,7 +445,6 @@ function runNotesExtractor(
 		signal,
 		onStep,
 		neverSubmitted: "the extractor never submitted findings",
-		prepareArguments: healStringifiedArrays,
 	}).then(asSessionFindings);
 }
 
