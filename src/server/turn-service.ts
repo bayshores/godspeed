@@ -12,7 +12,7 @@
  *                        crosses the token-budget threshold.
  *
  * Logs are the minimal-observability baseline: one line per failure, tagged
- * [chat <id>] — structured logging lands behind these seams later.
+ * [chat <id>].
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";

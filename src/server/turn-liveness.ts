@@ -8,8 +8,7 @@
  * Lives on globalThis, NOT a module-level Map: Next dev compiles each route
  * as its own entry, so a module-level singleton is a DIFFERENT instance in
  * the page render, GET /api/chats/[id], and POST /api/chat — the page would
- * read an empty registry while the chat route holds the live turn (the bug:
- * returning mid-turn showed the 409 banner instead of the busy state).
+ * read an empty registry while the chat route holds the live turn.
  * globalThis spans module instances within the process; it is the standard
  * Next.js singleton channel (same reason Prisma clients live there).
  *
