@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { LightbulbIcon } from "lucide-react";
 import { PracticeDock } from "@/components/practice-dock";
-import { QuestionDock, questionKindLabel, type QuestionDockProps } from "@/components/question-dock";
+import { QuestionDock, type QuestionDockProps } from "@/components/question-dock";
 import { ReadingThinkingField } from "@/components/reading-thinking";
-import type { ChatAttachment, findPendingToolCall, QuestionAnswerData, QuestionFormDraft } from "@/core";
+import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/core";
 import { PanelComposer } from "./panel-composer";
 import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
 import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
@@ -106,7 +106,7 @@ export function YourTurnPanel({
 
 	let body: React.ReactNode;
 	if (pending && revealPending) {
-		const label = questionKindLabel(pending.tool as QuestionDockProps["toolName"], pending.input);
+		const label = questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type));
 		body = (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>

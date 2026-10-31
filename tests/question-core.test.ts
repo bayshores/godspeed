@@ -20,6 +20,7 @@ import {
 	levelPercent,
 	isCorrect,
 	normalizeOptions,
+	questionKindLabel,
 	quizInputProblems,
 	explainInputBase,
 	explainInputObject,
@@ -818,5 +819,23 @@ describe("the quiz role field (predict | check)", () => {
 	it("the display parse KEEPS the role: quizDisplayInputSchema retains type where the base strips it", () => {
 		const cleaned = Value.Clean(quizDisplayInputSchema, { ...valid }) as Record<string, unknown>;
 		assert.equal(cleaned.type, "check", "role survives the display parse (the dock gates collapse + labels on it)");
+	});
+});
+
+describe("questionKindLabel", () => {
+	it("names each question tool", () => {
+		assert.equal(questionKindLabel("probe", undefined), "Warm-up");
+		assert.equal(questionKindLabel("recall", undefined), "Recall");
+		assert.equal(questionKindLabel("explain", undefined), "Explain");
+		assert.equal(questionKindLabel("write_code", undefined), "Code");
+	});
+	it("a predict quiz is a Prediction, any other quiz a Check", () => {
+		assert.equal(questionKindLabel("quiz", "predict"), "Prediction");
+		assert.equal(questionKindLabel("quiz", "check"), "Check");
+		assert.equal(questionKindLabel("quiz", undefined), "Check");
+	});
+	it("anything else is a Question", () => {
+		assert.equal(questionKindLabel("ask_user_question", undefined), "Question");
+		assert.equal(questionKindLabel("ask", undefined), "Question");
 	});
 });
