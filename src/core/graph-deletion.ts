@@ -87,12 +87,14 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 
 	// The bookkeeping rows die in BOTH modes — coverage and checkpoints
 	// are extraction state, not graph content.
-	const coverage = graphStore.readCoverage().filter((row) => row.chatId !== chatId);
-	const checkpoints = graphStore.readCheckpoints().filter((row) => row.chatId !== chatId);
+	const allCoverage = graphStore.readCoverage();
+	const allCheckpoints = graphStore.readCheckpoints();
+	const coverage = allCoverage.filter((row) => row.chatId !== chatId);
+	const checkpoints = allCheckpoints.filter((row) => row.chatId !== chatId);
 	const stats: ChatDeletionStats = {
 		...EMPTY_STATS,
-		coverageRemoved: graphStore.readCoverage().length - coverage.length,
-		checkpointsRemoved: graphStore.readCheckpoints().length - checkpoints.length,
+		coverageRemoved: allCoverage.length - coverage.length,
+		checkpointsRemoved: allCheckpoints.length - checkpoints.length,
 	};
 
 	if (mode === "preserve-graph") {
@@ -266,10 +268,6 @@ export interface NodeDeletionStats {
 	chainsRemoved: number;
 }
 
-function nodeLinesOf(graphStore: GraphStore, nodeId: string): GraphNode[] {
-	return graphStore.readNodes().filter((line) => line.id === nodeId);
-}
-
 /**
  * Full-death one node (or one argument, by its arg_ id). Returns null
  * when no such node/chain exists (the orchestration maps that to 404);
@@ -289,8 +287,9 @@ export function deleteNodeTraces(graphStore: GraphStore, nodeId: string): NodeDe
 		return { chainsRemoved: chainLines.length - outChains.length };
 	}
 
-	const nodeLines = nodeLinesOf(graphStore, nodeId);
-	if (nodeLines.length === 0) return null;
+	const nodeLines = graphStore.readNodes();
+	const outNodes = nodeLines.filter((line) => line.id !== nodeId);
+	if (outNodes.length === nodeLines.length) return null;
 
 	const outChains = chainLines.filter(
 		(line) => line.conclusion !== nodeId && !line.premises.includes(nodeId),
@@ -298,7 +297,6 @@ export function deleteNodeTraces(graphStore: GraphStore, nodeId: string): NodeDe
 
 	// Only the touched ledgers: the node's own lines always die (its file
 	// must move), everything else rewrites only when rows actually drop.
-	const outNodes = graphStore.readNodes().filter((line) => line.id !== nodeId);
 	graphStore.rewriteLedgers({
 		nodes: outNodes,
 		...(outChains.length !== chainLines.length ? { chains: outChains } : {}),
