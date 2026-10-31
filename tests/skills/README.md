@@ -15,4 +15,5 @@ from an unrelated working directory, checking that no cache or data files appear
 
 No real installed-user profile, provider keys, app server, LLM, or network is used.
 The test command is intentionally separate from the app's Node test suite; the skill
-has no app-runtime, release, or website integration.
+has no app-runtime, release, or website integration. CI runs this command in its
+quality job.

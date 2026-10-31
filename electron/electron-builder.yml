@@ -10,7 +10,8 @@
 #     scripts/build-server.mjs) ships via extraResources — OUTSIDE the asar,
 #     because native .node/dylib can't dlopen from a read-only archive and
 #     server.js process.chdir()s into its own dir;
-#   - the asar holds only the shell (electron/main.cjs + package.json);
+#   - the asar holds the shell (electron/), package.json, the
+#     electron-updater runtime tree and font-list;
 #   - signed + notarized (Developer ID Application cert in the login
 #     keychain; notary credentials in the LH_NOTARY keychain profile; the
 #     profile + team env vars are baked into desktop:dist).
@@ -191,7 +192,7 @@ linux:
   category: Education
   # Match Electron's app_id/WM_CLASS to the installed desktop launcher.
   syncDesktopName: true
-  # Both targets update via electron-updater 6.8.9. AppImage replaces its
+  # Both targets update via electron-updater. AppImage replaces its
   # own file; deb uses dpkg/apt and may request administrator permission.
 publish:
   # Update feed = GitHub Releases: latest-mac.yml + zip/blockmap live on

@@ -23,7 +23,8 @@ function startScript(folder, agent, platform) {
 }
 
 /** The terminals to try, in order: Terminal on a Mac, a new console on
- *  Windows (Windows Terminal when it is the default), the usual Linux ones. */
+ *  Windows (Windows Terminal when it is the default), the usual Linux ones,
+ *  including GNOME's newer Ptyxis and Console. */
 function terminalCandidates(script, platform) {
 	if (platform === "darwin") return [["open", ["-a", "Terminal", script]]];
 	if (platform === "win32") return [["cmd.exe", ["/c", "start", '""', "cmd.exe", "/k", `"${script}"`]]];
@@ -31,6 +32,8 @@ function terminalCandidates(script, platform) {
 		["x-terminal-emulator", ["-e", script]],
 		["gnome-terminal", ["--", script]],
 		["konsole", ["-e", script]],
+		["ptyxis", ["--", script]],
+		["kgx", ["--", script]],
 		["xterm", ["-e", script]],
 	];
 }

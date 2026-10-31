@@ -4,49 +4,26 @@ import type { NextConfig } from "next";
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string; homepage: string };
 
 const nextConfig: NextConfig = {
-	// Public build metadata only; no new runtime Electron version API.
+	// Public build metadata only.
 	env: { LH_VERSION: pkg.version, LH_HOMEPAGE: pkg.homepage },
-	// Desktop target (Electron wrapper, 2026-09-17): standalone output = a
-	// self-contained .next/standalone/server.js the Electron shell spawns
-	// on 127.0.0.1. Harmless for plain web deploys (extra build output).
-	// The manual copies the docs require — public/ and .next/static — are
-	// done by scripts/build-server.mjs.
+	// Standalone output: a self-contained .next/standalone/server.js that the
+	// Electron shell runs on 127.0.0.1. scripts/build-server.mjs copies public/
+	// and .next/static into it.
 	output: "standalone",
 	// Nothing uses next/image; this turns off its /_next/image resize endpoint.
 	images: { unoptimized: true },
-	// SAFETY (empirically verified 2026-09-17): without this, output file
-	// tracing sweeps the repo's real data/ — chat records, graph ledgers —
-	// INTO the standalone bundle. A shipped desktop app would carry the
-	// developer's session data inside it.
+	// Without these excludes, output file tracing copies the repo's data/ (chat
+	// records, graph ledgers) and root secret files (old credential files, a
+	// legacy auth.json, .env*) into the bundle. build-server.mjs also refuses to
+	// package a standalone that still contains them, because Next copies a
+	// loaded .env after tracing.
 	//
-	// SECRETS (2026-10-08, caught in the payload audit): the same sweep
-	// ships repo-root secrets byte-identical into the DMG: the web/dev
-	// subscription credential files, and a legacy auth.json (the retired
-	// API-key store — old checkouts may still hold one). Excluded here;
-	// build-server.mjs also REFUSES to package any standalone still
-	// containing them. .env* belt-and-braces
-	// the same class. Next also copies loaded bare .env after tracing;
-	// the build-server refusal remains required even with these excludes.
-	//
-	// ⚠ EXCLUDE PATTERNS ARE LOAD-BEARING IN WAYS THE DOCS DON'T DESCRIBE
-	// (empirically established 2026-10-08): adding dir excludes like
-	// "dist/**/*" / "./dist/**/*" for repo-root output dirs STRIPPED THE
-	// server-external packages (pi-ai / pi-agent-core lost everything
-	// under their dist/ — the traced copy collapsed to a bare package.json
-	// and the packaged server died on ERR_MODULE_NOT_FOUND; openai/
-	// @anthropic-ai — pi-ai's deps — vanished from the trace entirely).
-	// Anchored "./"-prefixed forms behave the same. **/data/**/* fixes
-	// suffix matching in Next's JavaScript collector, but NOT its native
-	// Turbopack tracer: that still prunes gcp-metadata and its private deps.
-	// Keep the narrow closure workaround below AND the native runtime gate.
-	// Real SDK data/ directories still need their explicit includes too.
-	// The recursive-DMG payload (repo dist/ swept into the bundle, shipping
-	// the previous build inside the next) is instead prevented by the
-	// desktop:dist clean step AND targeted post-trace curation in
-	// scripts/build-server.mjs (2026-10-11): remove standalone-root dist/
-	// and node_modules/electron/ (the demo helper's DEV runtime; packaged
-	// helpers use the app's own binary). Runtime dependencies' dist/ dirs
-	// stay intact, and the script guards against leaked data/keys.
+	// Don't add directory excludes like dist/**/*: they strip the dist/ folders
+	// of server-external packages (pi-ai, pi-agent-core) and the packaged
+	// server fails with ERR_MODULE_NOT_FOUND. **/data/**/* can also prune an
+	// SDK's real data/ directory, so those need explicit includes below.
+	// build-server.mjs removes the repo's dist/ and node_modules/electron from
+	// the standalone instead.
 	outputFileTracingExcludes: {
 		"*": [
 			"**/data/**/*",
@@ -57,36 +34,28 @@ const nextConfig: NextConfig = {
 			".env*",
 		],
 	},
-	// Empirically verified gaps (2026-09-17 standalone smoke): the tracer
-	// misses JSON loaded via `import ... with { type: "json" }` attributes —
-	// pi-ai's provider catalog (39 JSON files) vanished from the trace and
-	// the server 500s on module load. Include the whole data dirs of the
-	// runtime-loaded engine packages.
-	// pdfjs-dist (sources v0 live smoke, 2026-09-19): its legacy build loads
-	// the node fake worker (pdf.worker.mjs) and our standard_fonts dir via
-	// runtime-resolved paths — invisible to the tracer. Bundling (without
-	// serverExternalPackages below) additionally breaks the worker's
-	// import.meta.url resolution inside .next/dev chunks — the live smoke
-	// caught it; unit tests run unbundled and never see it.
+	// The tracer misses files loaded at runtime: JSON imported with
+	// `with { type: "json" }` (pi-ai's provider catalog), and pdfjs-dist's fake
+	// worker and standard fonts, which it loads by resolved path.
 	outputFileTracingIncludes: {
 		"*": [
-			// The standalone trace omitted this entire runtime-imported directory
-			// in 0.3.0, so importing puppeteer-core failed before browser startup.
+			// The trace omits this runtime-imported directory, so importing
+			// puppeteer-core would fail before browser startup.
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
-			// Speed plan (2026-10-27): the class-PDF text worker, loaded by path
-			// (src/server/class-files.ts pdfTextWorkerPath) — the tracer can't see it.
+			// The class-PDF text worker, loaded by path
+			// (src/server/class-files.ts pdfTextWorkerPath); the tracer can't see it.
 			"src/server/workers/**/*",
 			// The godspeed folder's files, copied there at runtime (src/server/agent-folder.ts).
 			"src/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
-			// Wave E (2026-10-10): pdf_render paints via @napi-rs/canvas — its
+			// pdf_render paints via @napi-rs/canvas. Its
 			// platform binary (@napi-rs/canvas-<platform>-<arch>) is a dynamic
 			// optional-dep require the tracer cannot see. Builds run per-OS and
 			// npm installs only the current platform's binary, so this glob
 			// resolves to exactly one Skia binary per build.
 			"node_modules/@napi-rs/canvas-*/**/*",
-			// Wave E stage 2: resvg rasterizes visual-maker SVGs natively; same
+			// resvg rasterizes visual-maker SVGs natively; same
 			// per-platform-binary story as the canvas above (one per build).
 			"node_modules/@resvg/resvg-js-*/**/*",
 			// Class search: transformers loads onnxruntime-node with createRequire,
@@ -116,7 +85,7 @@ const nextConfig: NextConfig = {
 	serverExternalPackages: [
 		"@earendil-works/pi-ai",
 		"@earendil-works/pi-agent-core",
-		"pdfjs-dist", // sources v0: bundling breaks its node fake-worker path
+		"pdfjs-dist", // bundling breaks its node fake-worker path
 		"@napi-rs/canvas", // native binding — bundling breaks the .node require
 		"@resvg/resvg-js", // native binding — same
 	],

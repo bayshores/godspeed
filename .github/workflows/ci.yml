@@ -4,9 +4,9 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore: ["**/*.md", "docs/**"]
+    paths-ignore: ["docs/**", "README.md"]
   pull_request:
-    paths-ignore: ["**/*.md", "docs/**"]
+    paths-ignore: ["docs/**", "README.md"]
   workflow_dispatch:
 
 permissions:
@@ -33,6 +33,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - name: Skill tests (Python)
+        run: python3 -B -m unittest discover -s tests/skills
       - run: npm run lint
       - run: npm run deadcode
 
