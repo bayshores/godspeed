@@ -20,7 +20,7 @@ const lsInput = Type.Object({
 		Type.String({ description: "Directory to list (default: the learner's home directory)" }),
 	),
 	limit: Type.Optional(
-		Type.Integer({ description: "Maximum number of entries to return (default: 500)" }),
+		Type.Integer({ minimum: 1, description: "Maximum number of entries to return (default: 500)" }),
 	),
 });
 

@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { Value } from "typebox/value";
 import {
 	capOutput,
 	expandBraces,
@@ -144,6 +145,10 @@ describe("ls (pi port)", () => {
 		assert.match(out, /\[Truncated: 2 entries limit\]/);
 	});
 
+	it("rejects limit 0 at validation (it would report 'Directory is empty')", () => {
+		assert.equal(Value.Check(lsTool.parameters, { path: FIXTURE, limit: 0 }), false);
+	});
+
 	it("missing path and non-directory throw (the model sees the error)", async () => {
 		await assert.rejects(async () => lsTool.execute!("c", { path: "/nonexistent/xyz" }), /Path not found/);
 		await assert.rejects(
@@ -171,6 +176,10 @@ describe("find (pi port)", () => {
 	it("result limit carries pi's notice", async () => {
 		const out = await runText(findTool, { pattern: "*", path: FIXTURE, limit: 2 });
 		assert.match(out, /\[2 results limit reached\]/);
+	});
+
+	it("rejects limit 0 at validation", () => {
+		assert.equal(Value.Check(findTool.parameters, { pattern: "*", limit: 0 }), false);
 	});
 
 	it("no-match message matches pi", async () => {
