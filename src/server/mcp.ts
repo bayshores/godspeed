@@ -201,10 +201,10 @@ function refuse(req: Request): Response | null {
 
 // ─── Tool helpers ───────────────────────────────────────────────────────────
 
-/** Tell the window what the agent just changed (Halley). Never fails a tool. */
-function act(input: AgentActionInput): void {
+/** Tell the window what the calling agent just changed (Halley). Never fails a tool. */
+function act(caller: string | undefined, input: AgentActionInput): void {
 	try {
-		recordAgentAction({ ...input, agent: agentName() ?? undefined });
+		recordAgentAction({ ...input, agent: caller });
 	} catch (err) {
 		console.error("[mcp] agent-action failed:", err);
 	}
@@ -284,18 +284,18 @@ function describe(view: WorkView): string[] {
 
 /** Waiting is free in Claude Code with the godspeed folder's waiter, and
  *  costs a model turn per call any other way. */
-function inClaudeCode(): boolean {
-	return agentName() === "Claude Code";
+function inClaudeCode(caller: string | undefined): boolean {
+	return caller === "Claude Code";
 }
 
 function waiterHint(lessonId?: string): string {
 	return `Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs${lessonId ? ` --lesson ${lessonId}` : ""} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
 }
 
-function idle() {
+function idle(caller: string | undefined) {
 	return {
 		status: "idle",
-		note: inClaudeCode()
+		note: inClaudeCode(caller)
 			? `Nothing to do right now. ${waiterHint()}`
 			: "Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).",
 	};
@@ -324,9 +324,9 @@ function waitMs(seconds: number | undefined): number {
 
 // ─── The server ─────────────────────────────────────────────────────────────
 
-/** `signal` aborts when the request's caller goes away, so its waits end
- *  without claiming work nobody will answer. */
-function buildServer(instructions: string, signal: AbortSignal): McpServer {
+/** `caller` is the calling agent's name. `signal` aborts when the request's
+ *  caller goes away, so its waits end without claiming work nobody will answer. */
+function buildServer(instructions: string, signal: AbortSignal, caller: string | undefined): McpServer {
 	const server = new McpServer(
 		{ name: "godspeed", version: packageMetadata.version },
 		// The tool list never changes, so clients don't hold a stream open to hear about it.
@@ -354,7 +354,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		async ({ timeout_seconds, lesson_id, full_context }, ctx) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
 			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(ctx.mcpReq._meta), signal });
-			return view ? workResult(view) : result(idle());
+			return view ? workResult(view) : result(idle(caller));
 		},
 	);
 
@@ -379,11 +379,11 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, waitMs);
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
-			if (lesson) act({ label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
+			if (lesson) act(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
 			const next = await waitForWork(waitMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
-			const claudeCode = inClaudeCode();
+			const claudeCode = inClaudeCode(caller);
 			return result({
 				status: "turn_complete",
 				note: chat
@@ -542,10 +542,10 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 				const existing = stores.classStore.getClass(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
 				const saved = existing ? replaceCopiedFile(scope, existing.id, bytes, "study") : addCopiedFile(scope, fileName, bytes, "study");
 				if (!saved.ok) return failure(saved.error);
-				act({ label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
+				act(caller, { label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
 				return result({ status: "started", fileId: saved.value.id, note: `Import started. ${READING_NOTE}` });
 			}
-			act({ label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
+			act(caller, { label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
 				console.error(`[mcp] import of ${name} failed:`, err);
 			});
@@ -579,13 +579,13 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			});
 			if (!created.ok) return failure(created.error);
 			const chat = created.chat;
-			act({ label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });
+			act(caller, { label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });
 			const started = await handleChatInput(chat.id, { type: "text", text: topic });
 			if (!started.ok) {
 				const body = await started.text();
 				return failure(`The lesson was created but could not start: ${body}`);
 			}
-			return result({ status: "started", lessonId: chat.id, title: chat.title, note: `Open the lesson in the godspeed window. ${inClaudeCode() ? waiterHint(chat.id) : `Call wait_for_work with lesson_id "${chat.id}" to begin teaching.`}` });
+			return result({ status: "started", lessonId: chat.id, title: chat.title, note: `Open the lesson in the godspeed window. ${inClaudeCode(caller) ? waiterHint(chat.id) : `Call wait_for_work with lesson_id "${chat.id}" to begin teaching.`}` });
 		},
 	);
 
@@ -641,12 +641,12 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 			const arg = classArg(class_id);
 			if ("error" in arg) return failure(arg.error);
 			const where = arg.scope ? { classId: arg.scope } : { area: area ?? ("teaching" as const) };
-			const saved = saveRuleByAgent(rule, where, agentName() ?? "Your agent");
+			const saved = saveRuleByAgent(rule, where, caller ?? "Your agent");
 			return saved.ok ? result({ saved: saved.rule, for: saved.for, note: "The learner sees it in the godspeed window and can undo or edit it." }) : failure(saved.error);
 		},
 	);
 
-	registerClassTools(server);
+	registerClassTools(server, caller);
 	return server;
 }
 
@@ -718,7 +718,7 @@ const FILE_KIND = z
 
 const DEADLINE_KIND = z.enum(["exam", "homework", "quiz", "project"]).describe("What the deadline is.");
 
-function registerClassTools(server: McpServer): void {
+function registerClassTools(server: McpServer, caller: string | undefined): void {
 	server.registerTool(
 		"list_classes",
 		{
@@ -820,7 +820,7 @@ function registerClassTools(server: McpServer): void {
 			const sig = signature ? cleanSignature(signature) : undefined;
 			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
 			const created = createClass({ name, description, icon, ...(sig ? { signature: sig } : {}) });
-			act({ label: `Creating ${created.name}`, classId: created.id, target: { kind: "class", id: created.id }, page: "/class" });
+			act(caller, { label: `Creating ${created.name}`, classId: created.id, target: { kind: "class", id: created.id }, page: "/class" });
 			return result({ class: classView(created.id) });
 		},
 	);
@@ -847,7 +847,7 @@ function registerClassTools(server: McpServer): void {
 			if (!outcome.ok) return failure(outcome.error);
 			const cls = outcome.value;
 			const verb = archived === true ? "Archiving" : archived === false ? "Unarchiving" : "Updating";
-			act({ label: `${verb} ${cls.name}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class" });
+			act(caller, { label: `${verb} ${cls.name}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class" });
 			const given = { name, description, signature: sig, icon, archived };
 			const changed = (Object.keys(given) as (keyof typeof given)[]).filter((key) => given[key] !== undefined);
 			return result({ classId: class_id, changed: Object.fromEntries(changed.map((key) => [key, cls[key]])) });
@@ -869,7 +869,7 @@ function registerClassTools(server: McpServer): void {
 		async ({ class_id, path, kind }) => {
 			const outcome = addFileFromPath(class_id, path, kind);
 			if (!outcome.ok) return failure(outcome.error);
-			act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "file", id: outcome.value.id }, page: "/class/files" });
+			act(caller, { label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "file", id: outcome.value.id }, page: "/class/files" });
 			return result({ file: outcome.value, note: kind === "study" ? `Added. ${READING_NOTE}` : "Added." });
 		},
 	);
@@ -898,7 +898,7 @@ function registerClassTools(server: McpServer): void {
 				}
 				const { id, name, status } = outcome.value;
 				files.push({ id, name, kind, status });
-				act({ label: `Marking ${name} as ${kind === "study" ? "study material" : "course info"}`, classId: class_id, target: { kind: "file", id }, page: "/class/files" });
+				act(caller, { label: `Marking ${name} as ${kind === "study" ? "study material" : "course info"}`, classId: class_id, target: { kind: "file", id }, page: "/class/files" });
 			}
 			if (files.length === 0) return failure(refused.map((r) => `${r.fileId}: ${r.error}`).join("\n"));
 			return result({ files, ...(refused.length ? { refused } : {}) });
@@ -938,7 +938,7 @@ function registerClassTools(server: McpServer): void {
 					continue;
 				}
 				added.push(outcome.value);
-				act({ label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "deadline", id: outcome.value.id }, page: "/" });
+				act(caller, { label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "deadline", id: outcome.value.id }, page: "/" });
 			}
 			if (added.length === 0) return failure(refused.map((r) => `${r.name}: ${r.error}`).join("\n"));
 			return result({ deadlines: added, ...(refused.length ? { refused } : {}) });
@@ -975,7 +975,7 @@ function registerClassTools(server: McpServer): void {
 			if (!outcome.ok) return failure(outcome.error);
 			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && done === undefined;
 			const label = done === true ? `Marking ${outcome.value.name} done` : done === false ? `Marking ${outcome.value.name} not done` : `${moved ? "Moving" : "Changing"} ${outcome.value.name}`;
-			act({ label, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/" });
+			act(caller, { label, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/" });
 			return result({ deadline: outcome.value });
 		},
 	);
@@ -992,7 +992,7 @@ function registerClassTools(server: McpServer): void {
 			const removedName = deadlineName(class_id, deadline_id);
 			const outcome = removeClassDeadline(class_id, deadline_id);
 			if (!outcome.ok) return failure(outcome.error);
-			act({ label: `Removing ${removedName}`, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/", removed: true });
+			act(caller, { label: `Removing ${removedName}`, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/", removed: true });
 			return result({ removed: deadline_id });
 		},
 	);
@@ -1008,7 +1008,7 @@ function registerClassTools(server: McpServer): void {
 		async ({ class_id, path }) => {
 			const outcome = linkFolder(class_id, path);
 			if (!outcome.ok) return failure(outcome.error);
-			act({ label: `Linking ${folderName(path)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			act(caller, { label: `Linking ${folderName(path)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
 			return result({ class: classView(class_id), note: `Linked. ${READING_NOTE}` });
 		},
 	);
@@ -1025,7 +1025,7 @@ function registerClassTools(server: McpServer): void {
 			const before = stores.classStore.getClass(class_id);
 			const outcome = unlinkFolder(class_id);
 			if (!outcome.ok) return failure(outcome.code === "extraction_running" ? AGENT_FILE_READING_REFUSAL : outcome.error);
-			act({ label: `Unlinking ${folderName(before?.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			act(caller, { label: `Unlinking ${folderName(before?.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
 			return result({ classId: class_id, unlinked: before?.linkedFolder, filesRemoved: before?.files.filter((f) => f.origin === "linked").length ?? 0 });
 		},
 	);
@@ -1034,22 +1034,32 @@ function registerClassTools(server: McpServer): void {
 type ClientInfo = { name?: unknown; title?: unknown };
 
 /** Who sent the request: the client's name (from initialize, or from a
- *  modern request's _meta), and whether the request is one that hands the
- *  instructions over (initialize or server/discover). */
-async function callerOf(req: Request): Promise<{ name: string | undefined; wantsInstructions: boolean }> {
-	const caller = { name: undefined as string | undefined, wantsInstructions: false };
+ *  modern request's _meta), the client its _meta points to when it sends
+ *  no name, and whether the request is one that hands the instructions
+ *  over (initialize or server/discover). */
+async function callerOf(req: Request): Promise<{ name: string | undefined; guessed: string | undefined; wantsInstructions: boolean }> {
+	const caller = { name: undefined as string | undefined, guessed: undefined as string | undefined, wantsInstructions: false };
 	try {
 		const body: unknown = await req.clone().json();
 		for (const message of Array.isArray(body) ? body : [body]) {
 			const m = message as { method?: unknown; params?: { clientInfo?: ClientInfo; _meta?: Record<string, unknown> } } | null;
 			const info = m?.method === "initialize" ? m.params?.clientInfo : (m?.params?._meta?.[CLIENT_INFO_META_KEY] as ClientInfo | undefined);
 			caller.name ??= displayAgentName(info);
+			caller.guessed ??= clientOfMeta(m?.params?._meta);
 			if (m?.method === "initialize" || m?.method === "server/discover") caller.wantsInstructions = true;
 		}
 	} catch {
 		/* not JSON: the transport reports it */
 	}
 	return caller;
+}
+
+/** Only Codex sends turn metadata, and only the godspeed folder's Claude
+ *  Code connector and waiter send "godspeed/agent". */
+function clientOfMeta(meta: Record<string, unknown> | undefined): string | undefined {
+	if (meta?.["x-codex-turn-metadata"] !== undefined) return "Codex";
+	if (meta?.["godspeed/agent"] !== undefined) return "Claude Code";
+	return undefined;
 }
 
 /** /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its
@@ -1065,8 +1075,8 @@ export async function handleAgentForget(req: Request): Promise<Response> {
 	return Response.json({ ok: true });
 }
 
-/** Each modern request's instructions, for the modern handler's server factory. */
-const modernInstructions = new WeakMap<Request, string>();
+/** Each modern request's instructions and caller, for the modern handler's server factory. */
+const modernRequests = new WeakMap<Request, { instructions: string; caller: string | undefined }>();
 
 /** The 2026-07-28 era: every request carries the client's version, name
  *  and capabilities in _meta, and server/discover replaces initialize. JSON
@@ -1074,7 +1084,8 @@ const modernInstructions = new WeakMap<Request, string>();
 const modern = createMcpHandler(
 	({ requestInfo }) => {
 		const req = requestInfo as Request;
-		return buildServer(modernInstructions.get(req) ?? INSTRUCTIONS, req.signal);
+		const known = modernRequests.get(req);
+		return buildServer(known?.instructions ?? INSTRUCTIONS, req.signal, known?.caller);
 	},
 	{ legacy: "reject", responseMode: "json", onerror: logMcpError },
 );
@@ -1099,15 +1110,17 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
 	// loop means it is teaching), and names it when it says who it is.
 	const caller = req.method === "POST" ? await callerOf(req) : null;
 	if (caller) recordCheckIn({ name: caller.name });
+	// Only a client's own name changes the shared one; a guess names just this request.
+	const agent = caller?.name ?? caller?.guessed ?? agentName();
 	// Only initialize and server/discover hand instructions to the agent, so only they build the briefing.
 	const instructions = caller?.wantsInstructions ? connectInstructions() : INSTRUCTIONS;
 	if (!(await isLegacyRequest(req))) {
-		modernInstructions.set(req, instructions);
+		modernRequests.set(req, { instructions, caller: agent });
 		return modern.fetch(req);
 	}
 	// The 2025 era starts with initialize (Codex still does). The SDK's own
 	// fallback for it answers in SSE, so it keeps this JSON-mode transport.
-	const server = buildServer(instructions, req.signal);
+	const server = buildServer(instructions, req.signal, agent);
 	const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
 	transport.onerror = logMcpError;
 	await server.connect(transport);

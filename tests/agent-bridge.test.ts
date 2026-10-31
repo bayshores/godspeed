@@ -969,6 +969,19 @@ describe("the work loop's status, references and recovery", () => {
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
 	});
 
+	it("answers the agent making the call, not the one that checked in last", async () => {
+		await initialize("claude-code"); // the waiter checks in as Claude Code
+		const codex = async (name: string, args: Record<string, unknown>) =>
+			(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args, _meta: { "x-codex-turn-metadata": { session_id: "codex-caller" } } } }))).json()).result as { content: { text: string }[] };
+		assert.match(JSON.parse((await codex("wait_for_work", { timeout_seconds: 1 })).content[0]!.text).note, /Call wait_for_work again/);
+		const saved: unknown[] = [];
+		const off = subscribe((e) => { if (e.type === "rules-changed") saved.push((e as { saved?: { agent?: string } }).saved?.agent); });
+		await codex("save_rule", { rule: "Use Python for code examples." });
+		off();
+		assert.deepEqual(saved, ["Codex"]);
+		assert.equal(mcp.mcpAccessStatus().agentName, "Claude Code", "a guess doesn't rename the connected agent");
+	});
+
 	it("a client with a longer tool timeout may wait up to 10 minutes", async () => {
 		const tools = (await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }))).json()).result.tools as { name: string; inputSchema: { properties: Record<string, { maximum?: number }> } }[];
 		assert.equal(tools.find((t) => t.name === "wait_for_work")!.inputSchema.properties.timeout_seconds!.maximum, 600);
