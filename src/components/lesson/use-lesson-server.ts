@@ -147,13 +147,13 @@ export function useLessonServer({
 		const transitioned = prevStatusRef.current !== "ready" && status === "ready";
 		prevStatusRef.current = status;
 		if (!transitioned) return;
-		void syncTurns();
 		// Canonize onto the record when our own turn's settle was announced,
-		// so the previous message never shows twice.
+		// so the previous message never shows twice; that sync refreshes the
+		// stats too, so only the other settles fetch them alone.
 		if (settleAnnouncedRef.current) {
 			settleAnnouncedRef.current = false;
 			void syncFromServer();
-		}
+		} else void syncTurns();
 	}, [status, syncTurns, syncFromServer]);
 
 	// A stream that died mid-flight: the server turn runs on — re-enter the
