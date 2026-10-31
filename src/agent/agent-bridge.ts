@@ -314,7 +314,10 @@ function instructionsAndTools(messages: Message[]): { instructions: string; tool
 	const tools = new Map<string, WorkTool>();
 	for (const m of messages) {
 		if (m.role !== "system") continue;
-		if (!instructions) instructions = renderMessage(m)?.role === "system" ? (renderMessage(m) as { text: string }).text : "";
+		if (!instructions) {
+			const rendered = renderMessage(m);
+			instructions = rendered?.role === "system" ? rendered.text : "";
+		}
 		for (const t of m.toolsAdded ?? []) tools.set(t.name, { name: t.name, description: t.description, parameters: t.parameters });
 	}
 	return { instructions, tools: [...tools.values()] };
