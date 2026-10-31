@@ -79,9 +79,9 @@ export function getClass(id: string): ClassRecord | null {
 	return stores.classStore.getClass(id);
 }
 
-/** Saved PDF text: the extracted text of one version of a file, named by
- *  its content fingerprint, so a relaunch that re-processes an unfinished
- *  file skips re-reading an unchanged PDF. */
+/** Saved PDF text and recording transcripts: the text of one version of a
+ *  file, named by its content fingerprint, so processing an unchanged file
+ *  again skips re-reading the PDF or re-transcribing the recording. */
 function isDocumentFile(name: string): boolean {
 	return (DOCUMENT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
@@ -635,14 +635,14 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	}
 }
 
-/** A file's text for the notes pipeline: a recording's transcript, a PDF's
- *  saved (or freshly read) text, the file itself otherwise. */
+/** A file's text for the notes pipeline: a recording's or PDF's saved (or
+ *  freshly made) text, the file itself otherwise. */
 async function fileText(classId: string, file: ClassFile, abs: string, fp: string): Promise<string> {
-	if (isRecordingFile(file.name)) return transcribeRecording(abs, transcriptPathOf(classId, file.id));
-	if (!isDocumentFile(file.name)) return fileToText(abs);
+	const recording = isRecordingFile(file.name);
+	if (!recording && !isDocumentFile(file.name)) return fileToText(abs);
 	const cached = readCachedText(classId, file.id, fp);
 	if (cached !== null) return cached;
-	const text = await fileToText(abs);
+	const text = recording ? await transcribeRecording(abs, transcriptPathOf(classId, file.id)) : await fileToText(abs);
 	writeCachedText(classId, file.id, fp, text);
 	return text;
 }

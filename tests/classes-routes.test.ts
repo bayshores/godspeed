@@ -456,6 +456,37 @@ describe("the class file pipeline", () => {
 		}
 	});
 
+	it("a recording processed again with the same bytes is not transcribed again", { skip: process.platform === "win32" }, async () => {
+		const id = await makeClass("ECE 35");
+		const bin = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-fake-whisper-"));
+		const runs = path.join(bin, "runs.txt");
+		const oldPath = process.env.PATH;
+		fs.writeFileSync(path.join(bin, "ffmpeg"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+		fs.writeFileSync(
+			path.join(bin, "whisper-cli"),
+			`#!/bin/sh\nwhile [ $# -gt 0 ]; do if [ "$1" = "-of" ]; then out="$2"; fi; shift; done\necho run >> "${runs}"\nprintf "Ohm's law" > "$out.txt"\n`,
+			{ mode: 0o755 },
+		);
+		fs.mkdirSync(path.join(TMP_DATA, "models"), { recursive: true });
+		fs.writeFileSync(path.join(TMP_DATA, "models", "ggml-base.en.bin"), "model");
+		process.env.PATH = `${bin}${path.delimiter}${oldPath ?? ""}`;
+		try {
+			const up = await (await upload(id, "study", [["lecture.m4a", "audio bytes"]])).json();
+			await classIdle(id);
+			const fileId = up.results[0].file.id as string;
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+			const retried = await fileRoute.PUT(json("/x", "PUT", { retry: true }), ctx({ id, fileId }));
+			assert.equal(retried.status, 200);
+			await classIdle(id);
+			assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+			assert.equal(fs.readFileSync(runs, "utf-8").trim().split("\n").length, 1, "whisper ran once");
+			assert.deepEqual(getNames(id), ["Ohm's law"]);
+		} finally {
+			process.env.PATH = oldPath;
+			fs.rmSync(bin, { recursive: true, force: true });
+		}
+	});
+
 	// Root reads any file, and Windows ignores the mode bits.
 	const cannotLock = process.platform === "win32" || process.getuid?.() === 0;
 
