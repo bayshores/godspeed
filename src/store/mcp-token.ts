@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { PATHS } from "../config.ts";
+import { writeFileAtomic } from "./write-file-atomic.ts";
 
 const TOKEN_FILE = path.join(PATHS.data, "mcp-token");
 
@@ -23,10 +24,7 @@ export function readMcpToken(): string | null {
 /** Write a fresh token (first start, or rotating it). */
 export function writeNewMcpToken(): string {
 	const token = randomBytes(32).toString("hex");
-	fs.mkdirSync(PATHS.data, { recursive: true });
-	const tmp = `${TOKEN_FILE}.${process.pid}.tmp`;
-	fs.writeFileSync(tmp, token, { mode: 0o600 });
-	fs.renameSync(tmp, TOKEN_FILE);
+	writeFileAtomic(TOKEN_FILE, token, 0o600);
 	return token;
 }
 
