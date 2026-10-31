@@ -28,7 +28,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
 import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem } from "../core/contracts.ts";
-import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, safeName, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { extractionEnabled } from "../core/settings-resolution.ts";
@@ -270,12 +270,6 @@ function patchFile(classId: string, fileId: string, patch: Partial<ClassFile>): 
 }
 
 const newFileId = () => `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-
-/** A filename safe to store (no folders, no control chars). */
-export function safeName(name: string): string {
-	const base = path.basename(name.replace(/\\/g, "/")).replace(/[\u0000-\u001f]/g, "").trim();
-	return base.length > 0 && base !== "." && base !== ".." ? base.slice(0, 200) : "file";
-}
 
 /** Copy a file into the class (the "Add files…" button / MCP add_class_file). */
 export function addCopiedFile(classId: string, name: string, bytes: Uint8Array, kind: ClassFileKind): ClassOutcome<ClassFile> {

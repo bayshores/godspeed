@@ -43,7 +43,7 @@ import {
 import { getGraph } from "../core/graph.ts";
 import { pageBlocks, splitPages } from "../core/work-pages.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
-import { CLASS_ICONS, cleanSignature, parseClassScope, SIGNATURE_MAX, type ClassDeadline, type ClassFileStatus, type ClassIcon, type ClassScope } from "../core/contracts.ts";
+import { CLASS_ICONS, cleanSignature, parseClassScope, safeName, SIGNATURE_MAX, type ClassDeadline, type ClassFileStatus, type ClassIcon, type ClassScope } from "../core/contracts.ts";
 import { localDay } from "../core/progress.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { extraction, handleChatInput } from "./chat-handler.ts";
@@ -57,7 +57,6 @@ import {
 	linkFolder,
 	removeClassDeadline,
 	replaceCopiedFile,
-	safeName,
 	setFileKind,
 	unlinkFolder,
 	updateClass,

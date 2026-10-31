@@ -9,7 +9,7 @@ import * as path from "node:path";
 import { describe, it } from "node:test";
 import { fileToText, transcriptToText, walkLinkedFolder, RecordingNeedsTranscriptError } from "../src/server/class-files.ts";
 import { findProgram } from "../src/server/transcribe.ts";
-import { MAX_LINKED_FILES } from "../src/core/contracts.ts";
+import { MAX_LINKED_FILES, safeName } from "../src/core/contracts.ts";
 
 describe("transcriptToText", () => {
 	it("strips WebVTT headers, timings, tags and rolling duplicates", () => {
@@ -98,5 +98,21 @@ describe("findProgram", () => {
 		} finally {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
+	});
+});
+
+describe("safeName", () => {
+	it("keeps only the last path segment, without control characters", () => {
+		assert.equal(safeName("..\\..\\x.md"), "x.md");
+		assert.equal(safeName("a/b/c.md"), "c.md");
+		assert.equal(safeName("dir/"), "dir");
+		assert.equal(safeName("  notes.md "), "notes.md");
+		assert.equal(safeName("we\u0000ek\u001f1.md"), "week1.md");
+	});
+	it('falls back to "file" for a name with nothing left', () => {
+		for (const name of ["\u0001\u0002", ".", "..", " ", "", "/", "a/.."]) assert.equal(safeName(name), "file", JSON.stringify(name));
+	});
+	it("cuts a long name to 200 characters", () => {
+		assert.equal(safeName(`${"x".repeat(300)}.md`).length, 200);
 	});
 });
