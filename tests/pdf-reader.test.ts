@@ -227,6 +227,37 @@ describe("pdf-reader loop (faux engine)", () => {
 		assert.deepEqual(headless.calls, ["render:2,3"]);
 	});
 
+	it("two renders in one turn: every rendered page reaches the model", async () => {
+		const engine = fauxEngine([
+			fauxAssistantMessage(
+				[fauxToolCall("pdf_render", { pages: "2" }, { id: "r1" }), fauxToolCall("pdf_render", { pages: "3" }, { id: "r2" })],
+				{ stopReason: "toolUse" },
+			),
+			fauxAssistantMessage([fauxText("Pages 2 and 3 (p. 2, p. 3).")]),
+		]);
+		let lastMessages: Array<{ role: string; content: unknown }> = [];
+		const stream = engine.streamFn;
+		engine.streamFn = (...args) => {
+			lastMessages = JSON.parse(JSON.stringify(args[1])).messages;
+			return stream(...args);
+		};
+		await runPdfReaderAgent({ path: FIXTURE, question: "q" }, { engine, headless: fakeHeadless() });
+		const imageMessage = lastMessages.find(
+			(m) => m.role === "user" && Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === "image"),
+		);
+		assert.ok(imageMessage, "the render images were sent");
+		const parts = imageMessage.content as Array<{ type: string; text?: string }>;
+		assert.equal(parts.filter((c) => c.type === "image").length, 2);
+		assert.match(parts[0]!.text ?? "", /p2, p3/);
+	});
+
+	it("a bounced unconsulted finish on the last iteration is not delivered", async () => {
+		const engine = fauxEngine([fauxAssistantMessage([fauxText("The answer is 42, trust me.")])]);
+		const result = await runPdfReaderAgent({ path: FIXTURE, question: "q" }, { engine, maxIterations: 1 });
+		assert.match(result.brief, /^PDF failed:/);
+		assert.deepEqual(result.pagesConsulted, []);
+	});
+
 	it("no Chrome: render calls degrade to an error note, text tools still work", async () => {
 		const engine = fauxEngine([
 			fauxAssistantMessage([fauxToolCall("pdf_render", { pages: "1", dpi: 150 }, { id: "r1" })], {

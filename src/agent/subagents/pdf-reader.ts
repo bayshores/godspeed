@@ -189,7 +189,6 @@ export async function runPdfReaderAgent(
 	 *  Search-hit context lines consult but don't read, so a search can't
 	 *  overstate how much was read. */
 	const read = new Set<number>();
-	let finalText = "";
 	let nudged = false;
 
 	try {
@@ -209,7 +208,7 @@ export async function runPdfReaderAgent(
 				(c): c is Extract<typeof c, { type: "toolCall" }> => c.type === "toolCall",
 			);
 			if (toolCalls.length === 0) {
-				finalText = result.content
+				const finalText = result.content
 					.filter((c): c is { type: "text"; text: string } => c.type === "text")
 					.map((c) => c.text)
 					.join("")
@@ -232,7 +231,7 @@ export async function runPdfReaderAgent(
 			const toolResults: ToolResultMessage[] = [];
 			/** Rendered pages this batch, appended as images AFTER the tool
 			 *  results — the visual-maker's image-in-the-loop idiom. */
-			let renderedImages: { page: number; png: Buffer }[] | null = null;
+			const renderedImages: { page: number; png: Buffer }[] = [];
 
 			for (const call of toolCalls) {
 				const args = (call.arguments ?? {}) as Record<string, unknown>;
@@ -282,7 +281,7 @@ export async function runPdfReaderAgent(
 						if (pages.length === 0) {
 							toolResults.push(toolText(call.id, call.name, "ERROR: no pages rendered (spec matched nothing?)"));
 						} else {
-							renderedImages = pages;
+							renderedImages.push(...pages);
 							toolResults.push(
 								toolText(
 									call.id,
@@ -301,7 +300,7 @@ export async function runPdfReaderAgent(
 			}
 
 			messages = [...messages, ...toolResults];
-			if (renderedImages) {
+			if (renderedImages.length > 0) {
 				messages = [
 					...messages,
 					{
@@ -329,11 +328,11 @@ export async function runPdfReaderAgent(
 		forgetConversation(sessionId);
 	}
 
-	// Iteration limit: deliver whatever was honestly consulted (never invention).
+	// Iteration limit: any finish text here is the unconsulted brief the gate bounced.
 	return {
 		path: pdfPath,
 		question: input.question,
-		brief: finalText || `PDF failed: iteration limit (${maxIterations}) reached without a brief.`,
+		brief: `PDF failed: iteration limit (${maxIterations}) reached without a brief.`,
 		pagesRead: [...read].sort((a, b) => a - b),
 		pagesConsulted: [...consulted].sort((a, b) => a - b),
 	};
