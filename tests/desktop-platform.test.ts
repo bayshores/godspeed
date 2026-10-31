@@ -223,8 +223,8 @@ describe("desktop packaging policy", () => {
 		await validateConfiguration(config, { isEnabled: false });
 	});
 
-	it("flips the fuses that close debugger attach and plaintext cookies, keeping run-as-Node for the server", () => {
-		assert.equal(config.electronFuses.enableCookieEncryption, true);
+	it("flips the fuse that closes debugger attach, keeping run-as-Node for the server and the keychain-free cookie store", () => {
+		assert.equal(config.electronFuses.enableCookieEncryption, undefined, "the app keeps no cookies, and the keychain can hang unsigned builds");
 		assert.equal(config.electronFuses.enableNodeCliInspectArguments, false);
 		assert.equal(config.electronFuses.runAsNode, undefined, "main.cjs starts the server with ELECTRON_RUN_AS_NODE");
 	});

@@ -1,6 +1,6 @@
 [
 	{
-		"version": "0.6.0",
+		"version": "0.5.4",
 		"date": "2026-10-30",
 		"changes": [
 			"What you type in a lesson is saved as you go, so switching pages or a restart no longer wipes your answer.",
