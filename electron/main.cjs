@@ -734,7 +734,8 @@ function openBugReport() {
 }
 
 /** macOS needs an application menu with the Edit roles — without one,
- *  Cmd+C/V/A do nothing in the renderer. Everything else stays minimal. */
+ *  Cmd+C/V/A do nothing in the renderer. Everything else stays minimal.
+ *  Hide and Hide Others only work on macOS, so other OSes leave them out. */
 function installMenu() {
 	const template = [
 		{
@@ -744,9 +745,7 @@ function installMenu() {
 				// Manual checks report their result in Settings → General.
 				{ label: "Check for Updates…", click: () => checkForUpdatesFromMenu() },
 				{ type: "separator" },
-				{ role: "hide" },
-				{ role: "hideOthers" },
-				{ type: "separator" },
+				...(process.platform === "darwin" ? [{ role: "hide" }, { role: "hideOthers" }, { type: "separator" }] : []),
 				{ role: "quit" },
 			],
 		},
