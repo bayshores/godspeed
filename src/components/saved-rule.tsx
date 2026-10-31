@@ -41,6 +41,8 @@ export function useSavedRule(where: RuleWhere, saved: string) {
 		setDraft: (draft: string) => setMode({ kind: "editing", draft }),
 		cancel: () => setMode({ kind: "saved" }),
 		save: (draft: string) => {
+			// Enter and Save share these checks.
+			if (busy || !draft.trim()) return;
 			if (draft.trim() === rule) return setMode({ kind: "saved" });
 			void run({ action: "edit", where, text: rule, newText: draft }, (next) => {
 				if (next) setRule(next);
