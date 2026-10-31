@@ -13,7 +13,9 @@
 import assert from "node:assert";
 import test from "node:test";
 import type { LhViewMessage } from "../src/core/view.ts";
-import { phaseAt3, phaseTimeline, type Phase3 } from "../src/core/phases.ts";
+import { phaseTimeline, type Phase3 } from "../src/core/phases.ts";
+
+const phaseAt3 = (m: Parameters<typeof phaseTimeline>[0]) => phaseTimeline(m).at(-1) ?? "probe";
 
 /** Text-only user message. */
 function user(text: string): LhViewMessage {
