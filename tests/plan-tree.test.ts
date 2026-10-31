@@ -12,7 +12,8 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
-import { derivePlanStatuses, derivedNodeStatus, type PlanTree } from "../src/core/contracts.ts";
+import { derivePlanStatuses, derivePlanStatusesLh, derivedNodeStatus, type PlanTree } from "../src/core/contracts.ts";
+import type { LhMessage } from "../src/core/native-messages.ts";
 import { createTree, PlanTreeError } from "../src/core/plan-tree.ts";
 import { planTools } from "../src/agent/tools/plan.ts";
 import { parseMermaidPlan } from "../src/agent/tools/mermaid-plan.ts";
@@ -445,5 +446,33 @@ describe("derivePlanStatuses: tagged explain calls move the map like quiz calls"
 		]);
 		assert.equal(st.current, "b");
 		assert.deepEqual([...st.visited], ["a"]);
+	});
+
+	it("the native record derives the same statuses as the view parts", () => {
+		type Call = [tool: "quiz" | "explain" | "plan_init", nodeId: string | undefined];
+		const asParts = (calls: Call[]) =>
+			calls.map(([tool, nodeId]) => msg({ type: `tool-${tool}`, state: "input-available", input: nodeId === undefined ? {} : { nodeId } }));
+		const asNative = (calls: Call[]) => [
+			{ id: "u1", role: "user", content: "go", timestamp: 0 },
+			...calls.map(([tool, nodeId], i) => ({
+				id: `m${i}`,
+				role: "assistant",
+				content: [{ type: "toolCall", id: `call${i}`, name: tool, arguments: nodeId === undefined ? {} : { nodeId } }],
+			})),
+		] as unknown as LhMessage[];
+		const scenarios: Record<string, Call[]> = {
+			"repeats in a row": [["quiz", "a"], ["quiz", "a"], ["quiz", "b"], ["quiz", "b"]],
+			"a→b→a revisit": [["quiz", "a"], ["quiz", "b"], ["quiz", "a"]],
+			"untagged and unknown": [["quiz", "a"], ["quiz", undefined], ["quiz", "zzz"], ["plan_init", "c"]],
+			"explain": [["explain", "b"], ["quiz", "c"], ["explain", "c"]],
+		};
+		for (const [name, calls] of Object.entries(scenarios)) {
+			const view = derivePlanStatuses(tree, asParts(calls));
+			const native = derivePlanStatusesLh(tree, asNative(calls));
+			assert.equal(native.current, view.current, `${name}: current`);
+			assert.deepEqual([...native.visited], [...view.visited], `${name}: visited`);
+		}
+		assert.equal(derivePlanStatusesLh(tree, asNative(scenarios["a→b→a revisit"]!)).current, "a");
+		assert.deepEqual([...derivePlanStatusesLh(tree, asNative(scenarios["untagged and unknown"]!)).visited], []);
 	});
 });

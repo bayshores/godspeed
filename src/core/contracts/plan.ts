@@ -2,6 +2,8 @@
  * Plan-tree contracts — the session-scoped dependency tree.
  * Pure types + protocol docs + tiny pure helpers.
  */
+import type { LhMessage } from "../native-messages.ts";
+
 // ─── Plan tree (vision §2 "formal plan tree") ────────────────────────────────
 // A session-scoped dependency tree authored by the teacher via plan tools.
 // One substrate with the global graph: tree nodes fold into graph nodes.
@@ -72,49 +74,48 @@ export function derivedNodeStatus(statuses: DerivedPlanStatuses, nodeId: string)
 	return "upcoming";
 }
 
-export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarrier[]): DerivedPlanStatuses {
-	const ids = new Set(tree.nodes.map((n) => n.id));
-	const runs: string[] = []; // distinct tagged nodes in call order, CONSECUTIVE
-	// duplicates collapsed (several checks on one node = one stay on it)
-	for (const m of messages) {
-		for (const part of m.parts) {
-			// Either quizzing tool (quiz/explain) tags position — the mechanic
-			// is a settings switch; the fold recognizes both.
-			if (part.type !== "tool-quiz" && part.type !== "tool-explain") continue;
-			const nodeId = (part.input as { nodeId?: unknown } | undefined)?.nodeId;
-			if (typeof nodeId !== "string" || !ids.has(nodeId)) continue; // untagged/unknown — moves nothing
-			if (runs.at(-1) !== nodeId) runs.push(nodeId);
-		}
-	}
-	const current = runs.at(-1) ?? null;
-	// Visited = been there in an EARLIER stay: everything before the current
-	// run. A revisit (a→b→a) puts a in visited AND current — current wins at
-	// render (derivedNodeStatus), visited records it has been left before.
-	const visited = new Set(runs.slice(0, -1));
-	return { current, visited };
-}
-
-// ─── the native fold (derivePlanStatuses over LhMessage[]) ───────────────────
-
-import type { LhMessage } from "../native-messages.ts";
-
-/** The same derivation over the NATIVE record: quiz CALLS only (any state —
- *  a dangling call still moves position; results feed nothing). */
-export function derivePlanStatusesLh(tree: PlanTree, messages: readonly LhMessage[]): DerivedPlanStatuses {
+/** Position from the tagged calls, in call order. A tag that isn't a node of
+ *  the current tree moves nothing (untagged, or a rewrite dropped it).
+ *  Consecutive repeats collapse into one stay (several checks on one node).
+ *  The last stay is current and every earlier stay is visited, so a revisit
+ *  (a→b→a) puts a in both; current wins at render (derivedNodeStatus). */
+function statusesFromTags(tree: PlanTree, tags: Iterable<unknown>): DerivedPlanStatuses {
 	const ids = new Set(tree.nodes.map((n) => n.id));
 	const runs: string[] = [];
+	for (const nodeId of tags) {
+		if (typeof nodeId !== "string" || !ids.has(nodeId)) continue;
+		if (runs.at(-1) !== nodeId) runs.push(nodeId);
+	}
+	return { current: runs.at(-1) ?? null, visited: new Set(runs.slice(0, -1)) };
+}
+
+/** Either quizzing tool (quiz/explain) tags position. */
+function* partTags(messages: readonly PartsCarrier[]): Generator<unknown> {
+	for (const m of messages) {
+		for (const part of m.parts) {
+			if (part.type === "tool-quiz" || part.type === "tool-explain") yield (part.input as { nodeId?: unknown } | undefined)?.nodeId;
+		}
+	}
+}
+
+export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarrier[]): DerivedPlanStatuses {
+	return statusesFromTags(tree, partTags(messages));
+}
+
+/** The native record's quiz/explain CALLS, in any state: a dangling call
+ *  still moves position, and results feed nothing. */
+function* nativeTags(messages: readonly LhMessage[]): Generator<unknown> {
 	for (const m of messages) {
 		if ((m as { role?: string }).role !== "assistant") continue;
 		const content = (m as { content?: unknown }).content;
 		if (!Array.isArray(content)) continue;
 		for (const block of content as Array<{ type?: string; name?: string; arguments?: unknown }>) {
-			if (block.type !== "toolCall" || (block.name !== "quiz" && block.name !== "explain")) continue;
-			const nodeId = (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
-			if (typeof nodeId !== "string" || !ids.has(nodeId)) continue;
-			if (runs.at(-1) !== nodeId) runs.push(nodeId);
+			if (block.type === "toolCall" && (block.name === "quiz" || block.name === "explain")) yield (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
 		}
 	}
-	const current = runs.at(-1) ?? null;
-	const visited = new Set(runs.slice(0, -1));
-	return { current, visited };
+}
+
+/** derivePlanStatuses over the native record. */
+export function derivePlanStatusesLh(tree: PlanTree, messages: readonly LhMessage[]): DerivedPlanStatuses {
+	return statusesFromTags(tree, nativeTags(messages));
 }
