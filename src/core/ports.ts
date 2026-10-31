@@ -272,8 +272,7 @@ export interface PromptOverrideStore {
 	readOverride(segmentPath: string): string | null;
 	/** Persist override text for a segment path (creates parents). */
 	writeOverride(segmentPath: string, text: string): void;
-	/** Remove the override file, if present (switches are untouched — an
-	 *  on-switch with no file composes the source default, inert). */
+	/** Remove the override file, if present (the segment then composes its source default). */
 	deleteOverride(segmentPath: string): void;
 }
 

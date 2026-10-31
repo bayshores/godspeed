@@ -101,9 +101,9 @@ export interface MdRenderingSettings {
 	/** Heading font weight (100–900, default 900). CSS resolves the nearest
 	 *  available weight of the chosen font — no font introspection needed. */
 	headingWeight?: number;
-	/** Color for **bold** spans (default #ffffff). */
+	/** Color for **bold** spans (null = the text color). */
 	boldColor?: string | null;
-	/** Color for *italic* spans (default #ffffff). */
+	/** Color for *italic* spans (null = the text color). */
 	italicColor?: string | null;
 }
 

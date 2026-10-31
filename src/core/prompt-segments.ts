@@ -8,7 +8,7 @@
  *
  * Path grammar: "system-prompt.md" (the shared base), "shared/<fragment>"
  * (fragments composed by BOTH agents), "prober/<fragment>" /
- * "teacher/<fragment>" — where <fragment> is numeric-prefixed + .md
+ * "teacher/<fragment>" / "practice/<fragment>" — where <fragment> is numeric-prefixed + .md
  * (e.g. 20-teaching.md). POSIX-relative, no traversal, no nesting.
  */
 
@@ -23,7 +23,7 @@ export type PromptAgent = "prober" | "teacher" | "practice";
 /** One segment of one agent's composed prompt. */
 export interface PromptSegmentInfo {
 	/** The override/store key — mirrors the source layout ("system-prompt.md",
-	 *  "shared/05-learner-files.md", "teacher/20-teaching.md"). Stable across
+	 *  "shared/30-learner-files.md", "teacher/20-teaching.md"). Stable across
 	 *  agents: the base and shared/ fragments use the SAME path in both
 	 *  agents' lists. */
 	path: string;
