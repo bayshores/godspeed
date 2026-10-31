@@ -356,11 +356,18 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 
 	try {
 		await withBrowserPage(async (page) => {
+		// Off before withBrowserPage's teardown: its about:blank navigation
+		// cancels in-flight requests, which is not the demo's fault.
+		let recording = true;
 		page.on("console", (msg) => {
-			if (msg.type() === "error") consoleErrors.push(msg.text());
+			if (recording && msg.type() === "error") consoleErrors.push(msg.text());
 		});
-		page.on("pageerror", (err) => pageErrors.push(err instanceof Error ? err.message : String(err)));
-		page.on("requestfailed", (req) => failedRequests.push(`${req.url()} (${req.failure()?.errorText ?? "failed"})`));
+		page.on("pageerror", (err) => {
+			if (recording) pageErrors.push(err instanceof Error ? err.message : String(err));
+		});
+		page.on("requestfailed", (req) => {
+			if (recording) failedRequests.push(`${req.url()} (${req.failure()?.errorText ?? "failed"})`);
+		});
 
 		try {
 			await page.goto(pathToFileURL(file).href, { waitUntil: "load", timeout: 30_000 });
@@ -375,6 +382,8 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 			}
 		} catch (err) {
 			pageErrors.push(err instanceof Error ? err.message : String(err));
+		} finally {
+			recording = false;
 		}
 		});
 	} finally {
