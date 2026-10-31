@@ -3,7 +3,7 @@
  * what its Try again does. The raw text stays in the banner's hover tip.
  * Pure.
  */
-import type { LhMessage } from "@/core";
+import { pdfNoteOf, type LhMessage } from "@/core";
 import { STREAM_DROPPED } from "@/components/session-core";
 
 /** send: the learner's input didn't go through (it is back where they typed
@@ -26,8 +26,8 @@ export function lessonError(message: string): { text: string; kind: LessonErrorK
 	return { text: "The teacher's reply stopped with an error.", kind: "reply" };
 }
 
-/** The learner's message the failed reply was answering, when it was a
- *  plain text message (so Try again can send it again). */
+/** The learner's typed words in the message the failed reply was answering
+ *  (so Try again can send them again). Pictures and PDF notes are left out. */
 export function lastLearnerText(messages: readonly LhMessage[]): string | null {
 	for (let i = messages.length - 1; i >= 0; i--) {
 		const m = messages[i] as { role?: string; stopReason?: string; content?: unknown };
@@ -35,7 +35,7 @@ export function lastLearnerText(messages: readonly LhMessage[]): string | null {
 		if (m.role !== "user") return null;
 		if (typeof m.content === "string") return m.content.trim() || null;
 		if (!Array.isArray(m.content)) return null;
-		const text = (m.content as Array<{ type?: string; text?: string }>).filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n").trim();
+		const text = (m.content as Array<{ type?: string; text?: string }>).filter((c) => c.type === "text" && pdfNoteOf(c.text ?? "") === null).map((c) => c.text ?? "").join("\n").trim();
 		return text || null;
 	}
 	return null;

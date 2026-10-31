@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lastLearnerText, lessonError, retryAction } from "../src/components/lesson/lesson-error-model.ts";
 import { STREAM_DROPPED } from "../src/components/session-core.ts";
-import type { LhMessage } from "../src/core/index.ts";
+import { pdfNote, type LhMessage } from "../src/core/index.ts";
 
 describe("lessonError", () => {
 	it("turns known failures into plain sentences", () => {
@@ -24,6 +24,10 @@ describe("lastLearnerText", () => {
 	it("finds the learner's text the failed reply was answering", () => {
 		assert.equal(lastLearnerText([user("why?"), failed]), "why?");
 		assert.equal(lastLearnerText([user([{ type: "text", text: "with a picture" }, { type: "image" }]), failed]), "with a picture");
+	});
+	it("leaves a PDF note out of the resend", () => {
+		assert.equal(lastLearnerText([user([{ type: "text", text: "explain this" }, pdfNote("notes.pdf", "/p/x.pdf")]), failed]), "explain this");
+		assert.equal(lastLearnerText([user([pdfNote("notes.pdf", "/p/x.pdf")]), failed]), null, "a PDF-only message runs the reply again");
 	});
 	it("is null when the reply answered something else", () => {
 		const result = { id: "r", role: "toolResult", toolCallId: "q1", content: [] } as unknown as LhMessage;
