@@ -67,6 +67,7 @@ function fakeFetch() {
 		if (method !== "GET") calls.push({ method, url, body });
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
 		if (url === "/api/classes/cls_a" && method === "GET") return Response.json({ class: served });
+		if (url === "/api/classes/cls_a" && method === "DELETE") return Response.json({ ok: true, lessonIds: ["l1", "l2"] });
 		if (url === "/api/classes/cls_a/deadlines" && method === "POST")
 			return Response.json({ deadline: { id: "ddl_new", done: false, ...body } }, { status: 201 });
 		return Response.json({ ok: true });
@@ -365,6 +366,27 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal(q("class-signature"), null);
 		assert.equal(q("class-icon"), null);
 		assert.equal(q("class-save")!.textContent, "Create class");
+	});
+});
+
+describe("Delete class", () => {
+	it("drops the saved drafts of the class's lessons", async () => {
+		const store = new Map([["lh:lesson-draft:l1", "{}"], ["lh:lesson-draft:l2", "{}"], ["lh:lesson-draft:other", "{}"]]);
+		(globalThis as { localStorage?: unknown }).localStorage = { removeItem: (k: string) => store.delete(k) };
+		try {
+			fakeFetch();
+			await mount({ kind: "edit", classId: "cls_a" });
+			await click(q("class-delete"));
+			await click(q("class-delete-confirm-button"));
+			await act(async () => {
+				await new Promise((r) => setTimeout(r, 10));
+			});
+			assert.equal(`${calls[0]?.method} ${calls[0]?.url}`, "DELETE /api/classes/cls_a");
+			assert.equal(closed, 1);
+			assert.deepEqual([...store.keys()], ["lh:lesson-draft:other"], "another lesson's draft stays");
+		} finally {
+			delete (globalThis as { localStorage?: unknown }).localStorage;
+		}
 	});
 });
 

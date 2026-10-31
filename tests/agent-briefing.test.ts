@@ -1,6 +1,7 @@
 /**
- * "Where you left off" (core/agent-briefing.ts): the end of the MCP
- * instructions, and the note parsing behind it (core/agent-notes.ts).
+ * "Where you left off" (core/agent-briefing.ts): the MCP instructions'
+ * briefing and its length budget, and the note parsing behind it
+ * (core/agent-notes.ts).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -17,7 +18,20 @@ function deadline(name: string, date: string, extra: Partial<ClassDeadline> = {}
 }
 
 function input(over: Partial<BriefingInput> = {}): BriefingInput {
-	return { now: NOW, timeZone: TZ, classes: [], lessons: [], notes: [], ...over };
+	return { now: NOW, timeZone: TZ, classes: [], lessons: [], notes: [], maxChars: Infinity, ...over };
+}
+
+/** Two classes, 5 lessons (newest ch_0), 4 open deadlines (nearest HW 1) and 4 notes (oldest note_0). */
+function busy(maxChars: number): BriefingInput {
+	return input({
+		maxChars,
+		classes: [
+			{ id: "cls_21", name: "CSE 21", archived: false, deadlines: [1, 2, 3, 4].map((n) => deadline(`HW ${n}`, `2026-11-0${n}`)) },
+			{ id: "cls_29", name: "CSE 29", archived: false, deadlines: [] },
+		],
+		lessons: [0, 1, 2, 3, 4].map((n) => ({ id: `ch_${n}`, title: `Lesson ${n}`, classId: "cls_21", updatedAt: `2026-10-2${9 - n}T12:00:00Z`, waiting: false })),
+		notes: [0, 1, 2, 3].map((n) => ({ id: `note_${n}`, text: `Note number ${n} about the learner.`, createdAt: `2026-10-2${n}T12:00:00Z` })),
+	});
 }
 
 describe("agentBriefing", () => {
@@ -78,6 +92,44 @@ describe("agentBriefing", () => {
 				'- Wants hints, not answers. (saved Thu Oct 29, note_id "note_2")',
 			].join("\n"),
 		);
+	});
+
+	it("within its budget, it is the whole briefing", () => {
+		const full = agentBriefing(busy(Infinity));
+		assert.equal(agentBriefing(busy(full.length)), full);
+		assert.doesNotMatch(full, /Left out/);
+	});
+
+	/** The briefing at `maxChars`, checked to fit. */
+	function fitted(maxChars: number): string {
+		const text = agentBriefing(busy(maxChars));
+		assert.ok(text.length <= maxChars, `${text.length} > ${maxChars}`);
+		return text;
+	}
+
+	it("over budget, lessons go first, then deadlines, then notes (only here), and classes last", () => {
+		const full = agentBriefing(busy(Infinity)).length;
+		const count = (text: string, re: RegExp) => (text.match(re) ?? []).length;
+		let last = { lessons: 5, deadlines: 4, notes: 4, classes: 2 };
+		for (let max = full; max >= 250; max -= 10) {
+			const text = fitted(max);
+			const now = { lessons: count(text, /Lesson \d/g), deadlines: count(text, /HW \d/g), notes: count(text, /note_\d/g), classes: count(text, /^- CSE \d+/gm) };
+			if (now.deadlines < 4) assert.equal(now.lessons, 0, `deadlines cut while lessons remain at ${max}`);
+			if (now.notes < 4) assert.equal(now.deadlines, 0, `notes cut while deadlines remain at ${max}`);
+			if (now.classes < 2) assert.equal(now.notes, 0, `classes cut while notes remain at ${max}`);
+			assert.ok(now.lessons <= last.lessons && now.deadlines <= last.deadlines && now.notes <= last.notes);
+			last = now;
+		}
+	});
+
+	it("the newest items stay longest, and the last line says what was left out", () => {
+		const text = fitted(agentBriefing(busy(Infinity)).length - 1);
+		assert.match(text, /Lesson 0/);
+		assert.doesNotMatch(text, /Lesson 4/);
+		assert.match(text, /\n\nLeft out to fit: \d lessons?\. Use list_lessons \/ read_class for lessons and deadlines\.$/);
+		const notesOnly = agentBriefing(busy(1));
+		assert.doesNotMatch(notesOnly, /Last lessons|Next deadlines|Notes saved/, "a section left out entirely loses its heading too");
+		assert.match(notesOnly, /Left out to fit: 5 lessons, 4 deadlines, 4 notes, 2 classes\./);
 	});
 });
 

@@ -8,7 +8,7 @@ import { useEffect } from "react";
  *
  * The fields are gathered at keypress time from live DOM: they mount and
  * unmount with the docks, so a query beats stale refs. The quiz dock's own
- * Tab claim (rows ↔ thinking) stops propagation at the document level, and
+ * Tab claim (rows → thinking) stops propagation at the document level, and
  * a key another handler already took (the code editor indents) is left
  * alone.
  */

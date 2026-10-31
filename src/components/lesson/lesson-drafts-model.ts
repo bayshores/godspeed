@@ -4,7 +4,7 @@
  * practice problem's thinking). Saved per lesson so leaving the lesson or a
  * window reload never loses it. Pure.
  */
-import { answeredCallIds, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/core";
+import { answeredCallIds, danglingQuestionOf, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/core";
 import { isLocalMessage } from "@/components/session-core";
 
 export interface LessonDraft {
@@ -66,6 +66,18 @@ export function withoutSettled(d: LessonDraft, record: readonly LhMessage[], act
 	const problems = { ...d.problems };
 	for (const id of staleProblems) delete problems[id];
 	return { ...d, questions, problems };
+}
+
+/** Reading the drafts back keeps only the question the saved record still
+ *  waits on: one answered, skipped or left behind by a stopped turn never
+ *  comes back. Returns `d` itself when nothing goes. */
+export function withoutEndedQuestions(d: LessonDraft, record: readonly LhMessage[]): LessonDraft {
+	const waiting = danglingQuestionOf(record.filter((m) => !isLocalMessage(m)))?.toolCallId;
+	const ended = Object.keys(d.questions).filter((id) => id !== waiting);
+	if (ended.length === 0) return d;
+	const questions = { ...d.questions };
+	for (const id of ended) delete questions[id];
+	return { ...d, questions };
 }
 
 /** Whether the learner has unsent text in what the lesson shows now. */

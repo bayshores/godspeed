@@ -16,7 +16,7 @@ export interface AgentStatus {
 	connected: boolean;
 	/** The agent ran the work loop recently (wait_for_work, respond, read_work). */
 	teaching: boolean;
-	/** The agent's name from its MCP handshake ("Claude Code"). */
+	/** The agent's name from its MCP client info ("Claude Code"). */
 	name?: string;
 	/** Requests waiting for (or being handled by) the agent. */
 	pendingWork: number;

@@ -69,13 +69,32 @@ function saveImages(content, workId) {
 	});
 }
 
+/** The 2026-07-28 MCP version: every request says its version and client
+ *  in _meta and headers. An app from before it answers 400; the waiter then
+ *  sends the older shape for the rest of its run. */
+const MCP_VERSION = "2026-07-28";
+let modern = true;
+const pluginVersion = JSON.parse(fs.readFileSync(new URL("../.claude-plugin/plugin.json", import.meta.url), "utf8")).version;
+const ENVELOPE = {
+	"io.modelcontextprotocol/protocolVersion": MCP_VERSION,
+	"io.modelcontextprotocol/clientCapabilities": {},
+	// It waits for Claude Code, so godspeed names the agent Claude Code.
+	"io.modelcontextprotocol/clientInfo": { name: "claude-code", version: pluginVersion },
+};
+
 /** One wait_for_work call. Returns the parsed tool result, or throws. */
 async function waitOnce() {
 	const { url, token } = target();
 	if (!token) fail(NO_TOKEN);
+	const meta = { ...(modern ? ENVELOPE : {}), ...(agent ? { "godspeed/agent": agent } : {}) };
 	const res = await fetch(url, {
 		method: "POST",
-		headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${token}` },
+		headers: {
+			"content-type": "application/json",
+			accept: "application/json, text/event-stream",
+			authorization: `Bearer ${token}`,
+			...(modern ? { "mcp-protocol-version": MCP_VERSION, "mcp-method": "tools/call", "mcp-name": "wait_for_work" } : {}),
+		},
 		body: JSON.stringify({
 			jsonrpc: "2.0",
 			id: 1,
@@ -83,11 +102,15 @@ async function waitOnce() {
 			params: {
 				name: "wait_for_work",
 				arguments: { timeout_seconds: 55, ...(lessonId ? { lesson_id: lessonId } : {}) },
-				...(agent ? { _meta: { "godspeed/agent": agent } } : {}),
+				...(Object.keys(meta).length ? { _meta: meta } : {}),
 			},
 		}),
 	});
 	const body = await res.text();
+	if (res.status === 400 && modern) {
+		modern = false;
+		return waitOnce();
+	}
 	if (res.status === 401 || res.status === 403) {
 		let detail = body;
 		try {

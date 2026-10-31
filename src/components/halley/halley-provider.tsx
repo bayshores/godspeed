@@ -705,7 +705,7 @@ function HalleyStage({
 					if (engineRef.current?.consumeDragClick()) return;
 					setPanelOpen(!panelOpen);
 				}}
-				className="lh-halley fixed left-0 top-0 z-40 cursor-pointer touch-none select-none border-0 bg-transparent p-0 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
+				className="lh-halley fixed left-0 top-0 z-40 cursor-pointer touch-none select-none border-0 bg-transparent p-0"
 				// The engine owns position and size from the first frame on; these
 				// never change, so React never writes over it.
 				style={{ width: SIZE, height: SIZE, transform: "translate(-200px, -200px)" }}

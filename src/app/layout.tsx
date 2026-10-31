@@ -15,6 +15,7 @@ import { SoundProvider } from "@/components/sounds";
 import { firstLoadScreen, onboardingNeeded, readSettingsRecord, whatsNewSince } from "@/server/settings-read";
 import { Onboarding } from "@/components/onboarding/onboarding";
 import { RestartNotice } from "@/components/restart-notice";
+import { NoticeStack } from "@/components/notice-stack";
 import { WhatsNew } from "@/components/whats-new";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
@@ -94,9 +95,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				</ClassProvider>
 				</AgentStatusProvider>
 			</ServerEventsProvider>
-			{/* Auto-update banner: fixed card, Electron-only pushes. */}
-			<UpdateBanner />
-			{firstLoad === "restarted" && <RestartNotice />}
+			{/* Auto-update banner (Electron-only pushes) and the restart notice. */}
+			<NoticeStack>
+				<UpdateBanner />
+				{firstLoad === "restarted" && <RestartNotice />}
+			</NoticeStack>
 			{/* "What's new" after an update (after the welcome screen when it
 			    shows); Settings reopens it. */}
 			{!onboarding && <WhatsNew since={welcome ? null : whatsNew} />}

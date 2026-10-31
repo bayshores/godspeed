@@ -34,7 +34,7 @@ import { beginTurn, endTurn } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
 import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.ts";
 import { persistTurn, triggerExtraction, TurnPersistenceError } from "./turn-service.ts";
-import { hasProbeDone, danglingQuestionOf } from "../core/native-messages.ts";
+import { hasProbeDone, danglingQuestionOf, retryContext } from "../core/native-messages.ts";
 import { composeInstructions } from "../agent/teacher-agent.ts";
 import { ensureCompacted, kickCompaction, effectiveThresholdTokens } from "./compaction.ts";
 import { emit } from "../core/events.ts";
@@ -270,7 +270,9 @@ export async function handleChatInput(
 	// ride this same write-ahead - the pump de-queued them at fire, so this
 	// is the ONLY copy ever appended.)
 	const merged = [...record.messages, ...appends];
-	const persistBaseCount = merged.length;
+	// A continue (Try again) runs again from before a failed or stopped reply.
+	const context = input.type === "continue" ? retryContext(merged) : merged;
+	const persistBaseCount = context.length;
 	try {
 		stores.chatStore.saveMessages(chatId, merged);
 	} catch (err) {
@@ -324,7 +326,7 @@ export async function handleChatInput(
 		// quiz/ask/fs/plan/probe_done are always-on).
 		const agentOpts: AgentBuildOptions = {
 			engine,
-			messages: asAgentMessages(merged),
+			messages: asAgentMessages(context),
 			onUsage: collectUsage,
 			toolToggles: effective.agent.tools,
 			chatId,
@@ -480,7 +482,7 @@ export async function handleChatInput(
 			},
 			onFinish: (turnMessages, isAborted) => {
 				// The record write is the agent's own final state —
-				// the new messages are the slice past the merged base.
+				// the new messages are the slice past the context it started from.
 				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, turnMessages, isAborted);
 				noteSteersDurable(chatId, stores.chatStore.getChat(chatId)?.messages ?? stamped);
 				// usage log append (idempotent per turn id) — the stats bar

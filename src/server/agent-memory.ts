@@ -11,9 +11,10 @@ import { localTimeZone } from "./today-note.ts";
 
 export { removeAgentNote } from "../store/agent-notes.ts";
 
-export function currentAgentBriefing(now = new Date()): string {
+export function currentAgentBriefing(maxChars: number): string {
 	return agentBriefing({
-		now,
+		now: new Date(),
+		maxChars,
 		timeZone: localTimeZone(),
 		classes: stores.classStore.listClasses().map((c) => ({
 			id: c.id,

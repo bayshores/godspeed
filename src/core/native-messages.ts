@@ -780,6 +780,19 @@ export function endsInDismissal(messages: readonly LhMessage[]): boolean {
 	return last !== undefined && isDismissedResult(last);
 }
 
+/** The record a continue runs from: everything before a trailing failed or
+ *  stopped reply. pi can't continue from an assistant message, and the
+ *  providers skip those replies anyway. The saved record keeps them. */
+export function retryContext(messages: readonly LhMessage[]): LhMessage[] {
+	let end = messages.length;
+	while (end > 0) {
+		const m = messages[end - 1] as { role?: string; stopReason?: string };
+		if (m.role !== "assistant" || (m.stopReason !== "error" && m.stopReason !== "aborted")) break;
+		end--;
+	}
+	return messages.slice(0, end);
+}
+
 /**
  * Does the record END on un-consumed tool results — a turn that stopped
  * after its tools ran (a job dispatch's ack, an aborted answer turn),

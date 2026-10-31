@@ -276,6 +276,31 @@ describe("Home: actions", () => {
 		}
 	});
 
+	it("a start shows the error of whichever start ran last (the Overview's Learn this and rings)", async () => {
+		const router = { push: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
+		let lesson!: ReturnType<typeof useLessonStart>;
+		function Harness() {
+			lesson = useLessonStart();
+			return null;
+		}
+		const original = globalThis.fetch;
+		globalThis.fetch = (async () => Response.json({ error: "boom" }, { status: 500 })) as typeof fetch;
+		try {
+			await mount(
+				<AppRouterContext.Provider value={router}>
+					<Harness />
+				</AppRouterContext.Provider>,
+			);
+			await act(async () => lesson.start({ title: "Induction" }));
+			await act(async () => lesson.start({ title: "Practice: Induction", kind: "practice" }));
+			assert.equal(lesson.error, "Couldn't start practice. Try again.");
+			await act(async () => lesson.start({ title: "Induction" }));
+			assert.equal(lesson.error, "Couldn't start the lesson. Try again.");
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
 	it("the mode switch reports the picked mode", async () => {
 		const picked: string[] = [];
 		const host = await mount(<ModeSwitch mode="teach" onMode={(m) => picked.push(m)} />);

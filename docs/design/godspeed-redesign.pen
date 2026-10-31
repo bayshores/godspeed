@@ -185,7 +185,7 @@
                           "name": "Class switcher",
                           "width": "fill_container",
                           "fill": "$g-panel",
-                          "gap": 12,
+                          "gap": 10,
                           "padding": [
                             10,
                             12
@@ -194,23 +194,23 @@
                           "children": [
                             {
                               "type": "frame",
-                              "id": "TSUZZ",
-                              "name": "Class mark",
-                              "width": 34,
-                              "height": 34,
-                              "fill": "$g-accent",
+                              "id": "UWDp8",
+                              "name": "Icon tile",
+                              "width": 30,
+                              "height": 30,
+                              "fill": "$g-tone-2",
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
                                 {
-                                  "type": "text",
-                                  "id": "l8F0QW",
-                                  "name": "Initials",
-                                  "fill": "#000000",
-                                  "content": "21",
-                                  "fontFamily": "$g-ui",
-                                  "fontSize": 14,
-                                  "fontWeight": "800"
+                                  "type": "icon",
+                                  "id": "eah6e",
+                                  "name": "sigma",
+                                  "width": 17,
+                                  "height": 17,
+                                  "icon": "sigma",
+                                  "library": "lucide",
+                                  "fill": "$g-text"
                                 }
                               ]
                             },
@@ -2671,7 +2671,7 @@
                           "name": "Class switcher",
                           "width": "fill_container",
                           "fill": "$g-panel",
-                          "gap": 12,
+                          "gap": 10,
                           "padding": [
                             10,
                             12
@@ -2680,23 +2680,23 @@
                           "children": [
                             {
                               "type": "frame",
-                              "id": "gGrvS",
-                              "name": "Class mark",
-                              "width": 34,
-                              "height": 34,
-                              "fill": "$g-accent",
+                              "id": "vOWVa",
+                              "name": "Icon tile",
+                              "width": 30,
+                              "height": 30,
+                              "fill": "$g-tone-2",
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
                                 {
-                                  "type": "text",
-                                  "id": "QVhh8",
-                                  "name": "Initials",
-                                  "fill": "#000000",
-                                  "content": "21",
-                                  "fontFamily": "$g-ui",
-                                  "fontSize": 14,
-                                  "fontWeight": "800"
+                                  "type": "icon",
+                                  "id": "RIpfF",
+                                  "name": "sigma",
+                                  "width": 17,
+                                  "height": 17,
+                                  "icon": "sigma",
+                                  "library": "lucide",
+                                  "fill": "$g-text"
                                 }
                               ]
                             },
@@ -4616,7 +4616,7 @@
                           "name": "Class switcher",
                           "width": "fill_container",
                           "fill": "$g-panel",
-                          "gap": 12,
+                          "gap": 10,
                           "padding": [
                             10,
                             12
@@ -4625,23 +4625,23 @@
                           "children": [
                             {
                               "type": "frame",
-                              "id": "p5ZWmT",
-                              "name": "Class mark",
-                              "width": 34,
-                              "height": 34,
-                              "fill": "$g-accent",
+                              "id": "gh6FF",
+                              "name": "Icon tile",
+                              "width": 30,
+                              "height": 30,
+                              "fill": "$g-tone-2",
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
                                 {
-                                  "type": "text",
-                                  "id": "a8Nkn0",
-                                  "name": "Initials",
-                                  "fill": "#000000",
-                                  "content": "21",
-                                  "fontFamily": "$g-ui",
-                                  "fontSize": 14,
-                                  "fontWeight": "800"
+                                  "type": "icon",
+                                  "id": "E6ZTu",
+                                  "name": "sigma",
+                                  "width": 17,
+                                  "height": 17,
+                                  "icon": "sigma",
+                                  "library": "lucide",
+                                  "fill": "$g-text"
                                 }
                               ]
                             },

@@ -160,7 +160,7 @@ export function updateClass(
  * any of its lessons has a turn or job running; extractions are aborted
  * and waited out. A linked folder on the learner's computer is untouched.
  */
-export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRemoved: number }>> {
+export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonIds: string[] }>> {
 	const record = stores.classStore.getClass(id);
 	if (!record) return fail(404, "not_found", "No such class");
 	const lessons = stores.chatStore.listChats().filter((c) => c.classId === id);
@@ -185,19 +185,19 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonsRem
 	cancelledClasses.add(id);
 	cancelTopicGrouping(id);
 	// THE SYNC BLOCK: lessons → class folder.
-	let lessonsRemoved = 0;
+	const lessonIds: string[] = [];
 	for (const lesson of lessons) {
 		stores.jobStore.deleteJobsForChat(lesson.id);
 		if (stores.chatStore.deleteChat(lesson.id)) {
 			discardChatDeliveries(lesson.id);
 			clearTurnFailure(lesson.id);
-			lessonsRemoved++;
+			lessonIds.push(lesson.id);
 		}
 	}
 	stores.classStore.deleteClass(id);
 	forgetGraphStore(id);
 	forgetClassSearch(id);
-	return { ok: true, value: { lessonsRemoved } };
+	return { ok: true, value: { lessonIds } };
 }
 
 // ─── deadlines ──────────────────────────────────────────────────────────────

@@ -2,7 +2,9 @@
  * THE MCP SERVER: how outside agents (Claude Code, Codex, any MCP client)
  * reach godspeed. Served at /api/mcp (Streamable HTTP, stateless),
  * guarded by a bearer token (data/mcp-token — always present, shown in
- * Settings → Connection).
+ * Settings → Connection). It speaks both MCP versions: 2026-07-28 (every
+ * request says who sent it; server/discover hands over the instructions)
+ * and the older one that starts with initialize (Codex).
  *
  * Four kinds of tools:
  *  - THE WORK LOOP (wait_for_work / read_work / respond): every lesson turn, helper
@@ -14,12 +16,12 @@
  *    add files, link folders, read them, start lessons inside them.
  *    Deleting a class is app-only on purpose: no tool here can wipe a class.
  *  - MEMORY: remember / forget save short notes about the learner; they
- *    and a "Where you left off" briefing end the instructions an agent
- *    gets when it connects, so it knows the learner in any folder.
+ *    and a "Where you left off" briefing follow the work loop in the
+ *    instructions an agent gets when it connects, so it knows the learner
+ *    in any folder.
  */
 import { timingSafeEqual } from "node:crypto";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { CLIENT_INFO_META_KEY, createMcpHandler, isLegacyRequest, McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import {
 	agentConnected,
@@ -93,21 +95,28 @@ const REMOVES = { destructiveHint: true, idempotentHint: true, openWorldHint: fa
 /** Study files are read by the agent itself, as background work items. */
 const READING_NOTE = "The reading work comes to you through wait_for_work; it does not progress until you run the loop.";
 
-const INSTRUCTIONS = `godspeed is a learning app, and you are its AI: the teacher in lessons, and the worker behind its helpers (research, demos, diagrams, PDF reading) and its knowledge-graph builder. All of the app's model work comes to you.
+/** Claude Code cuts a server's instructions after this many characters,
+ *  so the loop comes first and the briefing is sized to end before the
+ *  cut. The margin allows for a count that differs a little from ours. */
+const INSTRUCTIONS_CUT = 4096;
+const CUT_MARGIN = 96;
+
+const INSTRUCTIONS = `godspeed is a learning app and you are its AI: the teacher in lessons, the worker behind its helpers (research, demos, diagrams, PDF reading) and its knowledge-graph builder.
 
 The work loop:
-1. Call wait_for_work. It returns a work item (or "idle" after a while — then call it again).
-2. A work item is a JSON block with "tools" (the tools you may call, with JSON schemas) and "messages" (the conversation so far). Its instructions (your system prompt for this conversation — follow them exactly, they are the app's teaching method) follow it as a plain-text block, and so does every long message text: that message's "text" reads "[text N]", and its block starts with "[text N]". Later items in the same conversation have "continued": true and carry only the new messages. In a new conversation, what you already have comes by reference: "instructionsAsIn" names the earlier work item with the same instructions, and "toolsAsBefore" lists tools whose schemas you already got. A long work item comes in pages: read every page with read_work before you respond. Images in the messages appear as "[image N]"; the images themselves come with the work item, in that order.
-3. Answer with respond: your text and/or tool calls, exactly as a model would. The app runs the tools and, when it needs you again in the same conversation (e.g. tool results), respond returns the next work item directly.
-4. When respond says the turn is complete, the app is waiting on the learner (they read and answer in the godspeed window). Call wait_for_work again.
+1. Call wait_for_work. It returns a work item, or "idle" after a while; then call it again.
+2. A work item is a JSON block with "tools" (what you may call) and "messages" (the conversation so far), then plain-text blocks: its instructions (your system prompt here, the app's teaching method; follow them exactly) and each long message text (the message reads "[text N]" and its block starts with "[text N]"). "continued": true means only new messages follow. "instructionsAsIn" and "toolsAsBefore" point at instructions and tool schemas you already got. A long item comes in pages: read every page with read_work before you respond. "[image N]" marks the images sent with the item, in order.
+3. Answer with respond: text and/or tool calls, exactly as a model would. If the app needs you again right away (e.g. tool results), respond returns the next work item.
+4. When respond says the turn is complete, the learner is answering in the godspeed window. Call wait_for_work again.
 
-If you lose track of a work item (your context was compacted, or you no longer have the instructions or tools it refers to), call read_work with its work_id and full: true: it sends the item again with its instructions, every tool and the whole conversation. Without its workId, call wait_for_work with full_context: true.
+Lost track of a work item (context compacted, or missing the instructions or tools it refers to)? Call read_work with its work_id and full: true. Without the workId, call wait_for_work with full_context: true.
 
-Keep looping until the user tells you to stop. Never invent tool names; use only the tools listed in the work item. Inside a work item, use only that item's tools, called through respond, even when this server has a tool with the same name (like read_class or search_class_files): only then does the lesson keep what you looked up. The learner never sees text you write outside respond.
+Loop until the user says stop. Use only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_class): only then does the lesson keep what you looked up. The learner never sees text outside respond.`;
 
-Classes: the learner can organize learning by class (a university course). Each class has its own lessons, its own knowledge graph, a description, and files. A file is either "study" material (notes, readings, transcripts, recordings: godspeed turns it into graph facts) or "info" (syllabus, assignments, logistics: the teacher can read it, it never becomes facts). A class can also link a folder on the learner's computer; new files there are added as study material automatically. A class can also have deadlines: exams, homework, quizzes and projects, each with a date, an optional time, and the class files it covers. Add them with add_class_deadline, and fix them, tick them done or remove them with update_class_deadline / remove_class_deadline. Take them from the syllabus or course info; when a date, time or the covered files aren't clear, ask the learner instead of guessing. Use list_classes / read_class to see them, create_class / update_class (name, description, a one-line signature for the class's cover, and a subject icon for the class switcher) / add_class_file / set_class_file_kind / link_class_folder to set them up, and start_lesson with class_id to teach inside one. Lessons without a class live in "No class". Every class needs a subject icon: create_class takes one, and when list_classes shows a class with icon null, set one with update_class without asking. Archived classes take no new lessons; ask the learner to unarchive one first. Classes can only be deleted in the godspeed window.
+const MEMORY_INSTRUCTIONS = `Memory: "Where you left off" above is the learner's state when you connected; list_lessons and read_class have anything newer. When the learner tells you something outside a lesson that will matter next time (an exam is over, what to study next, how they like to learn), save it with remember, one fact per note, never passwords or private details. Remove out-of-date notes with forget.`;
 
-Memory: godspeed remembers for you, whatever folder you were started in. "Where you left off" below shows the learner's classes, last lessons, next deadlines and saved notes as of when you connected; use list_lessons / read_class for anything newer. When the learner tells you something outside a lesson that will matter next time (an exam is over, what they want to study next, how they like to learn), save it with remember, one fact per note. Never save passwords or private details. Remove notes that are out of date with forget.`;
+// Last because each class tool's description says the same, so a client's cut loses least here.
+const CLASS_INSTRUCTIONS = `Classes: the learner can sort learning into classes (university courses), each with its own lessons, knowledge graph, description and files. "study" files (notes, readings, transcripts, recordings) become graph facts; "info" files (syllabus, assignments, logistics) are only read by the teacher. A linked folder adds its new files as study material. Take deadlines (exam, homework, quiz, project: a date, an optional time, the files they cover) from the syllabus or course info with add_class_deadline; change, tick done or remove them with update_class_deadline / remove_class_deadline. If a date, time or the covered files aren't clear, ask the learner instead of guessing. Teach inside a class with start_lesson and class_id; lessons without one are in "No class". Every class needs a subject icon: if list_classes shows icon null, set one with update_class without asking. Archived classes take no new lessons; ask the learner to unarchive one first. Only the godspeed window can delete a class.`;
 
 // ─── Class arguments ────────────────────────────────────────────────────────
 
@@ -320,7 +329,8 @@ function waitMs(seconds: number | undefined): number {
 function buildServer(instructions: string, signal: AbortSignal): McpServer {
 	const server = new McpServer(
 		{ name: "godspeed", version: packageMetadata.version },
-		{ instructions },
+		// The tool list never changes, so clients don't hold a stream open to hear about it.
+		{ instructions, capabilities: { tools: { listChanged: false } } },
 	);
 
 	server.registerTool(
@@ -328,7 +338,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Wait for work",
 			description: "Wait for the next request from godspeed (a lesson turn, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
-			inputSchema: {
+			inputSchema: z.object({
 				timeout_seconds: z
 					.number()
 					.int()
@@ -338,12 +348,12 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 					.describe(`How long to wait in seconds (default ${DEFAULT_WAIT_S}, at most ${MAX_WAIT_S}). Stay under your client's tool timeout: for Codex that is tool_timeout_sec in ~/.codex/config.toml (60 unless raised; godspeed's setup sets 600).`),
 				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
-			},
+			}),
 			annotations: ADDS,
 		},
-		async ({ timeout_seconds, lesson_id, full_context }, extra) => {
+		async ({ timeout_seconds, lesson_id, full_context }, ctx) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(extra._meta), signal });
+			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(ctx.mcpReq._meta), signal });
 			return view ? workResult(view) : result(idle());
 		},
 	);
@@ -353,7 +363,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Respond to work",
 			description: "Answer a work item the way a model would: text for the learner (or the task), and/or calls to the tools listed in the work item. Returns the next work item in the same conversation when the app needs you again right away (for example with tool results), or status \"turn_complete\".",
-			inputSchema: {
+			inputSchema: z.object({
 				work_id: z.string().describe("The workId from wait_for_work or a previous respond."),
 				text: z.string().optional().describe("Your message (markdown)."),
 				tool_calls: z
@@ -361,7 +371,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 					.optional()
 					.describe("Tool calls, run in order. Use only tools listed in the work item."),
 				wait_seconds: z.number().int().min(0).max(RESPOND_MAX_WAIT_S).optional().describe("How long to wait for the follow-up (default 30)."),
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
@@ -388,11 +398,11 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Read more of a work item",
 			description: "Read one page of a long work item, or (full: true) get the item again in full: its instructions, every tool and the whole conversation, for when you lost track of it. When a work item says it has several pages, read all of them before you respond.",
-			inputSchema: {
+			inputSchema: z.object({
 				work_id: z.string().describe("The workId of the work item."),
 				page: z.number().int().min(1).optional().describe("The page to read, from 2."),
 				full: z.boolean().optional().describe("Send the whole item again instead of one page (after your context was compacted, or when you no longer have the instructions or tools it refers to)."),
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ work_id, page, full }) => {
@@ -413,10 +423,10 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "List lessons",
 			description: "List the learner's lessons and practice sessions, newest first, each with its class. total says how many match.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string().optional().describe('Only the lessons of this class (from list_classes), or "none" for lessons without a class. Leave it out for all lessons.'),
 				limit: z.number().int().min(1).max(200).optional().describe("Most lessons to return (default 20)."),
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ class_id, limit }) => {
@@ -448,10 +458,10 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Read a lesson",
 			description: "Read one lesson as markdown: everything the teacher and learner said, quizzes and answers included. A long lesson comes in pages; each page says which page it is and how many there are.",
-			inputSchema: {
+			inputSchema: z.object({
 				lesson_id: z.string(),
 				page: z.number().int().min(1).optional().describe("The page to read (default 1)."),
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ lesson_id, page = 1 }) => {
@@ -470,11 +480,11 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Search the knowledge graph",
 			description: "Search one class's knowledge graph (each class has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
-			inputSchema: {
+			inputSchema: z.object({
 				query: z.string().optional().describe("What to look for, in plain words (matched by meaning and by keywords)."),
 				limit: z.number().int().min(1).max(200).optional().describe("Most facts to return (default 30)."),
 				class_id: CLASS_ID_ARG,
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ query, limit, class_id }) => {
@@ -513,11 +523,11 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Import notes",
 			description: "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns right away. With class_id the notes become a study file of that class (to add a file from disk, use add_class_file).",
-			inputSchema: {
+			inputSchema: z.object({
 				name: z.string().describe("A file-like name for the notes, e.g. \"biology-ch3.md\". In a class, re-importing the same name replaces that file and rebuilds its facts; in No class it is processed again and adds to that import."),
 				text: z.string().min(1).describe("The notes."),
 				class_id: CLASS_ID_ARG,
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ name, text, class_id }) => {
@@ -548,11 +558,11 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Start a lesson",
 			description: "Start a new lesson (or practice session) in godspeed taught by you (the outside agent). The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. Then call wait_for_work to teach it; the learner follows along in the godspeed window.",
-			inputSchema: {
+			inputSchema: z.object({
 				topic: z.string().min(1).describe("What the learner wants to understand (or practice), in their words."),
 				class_id: CLASS_ID_ARG,
 				kind: z.enum(["teach", "practice"]).optional().describe('"teach" (default) or "practice".'),
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ topic, class_id, kind }) => {
@@ -584,10 +594,10 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Remember a note",
 			description: `Save a short note about the learner. Every agent that connects to godspeed later sees it under "Where you left off", in any folder. Save what the learner tells you outside lessons that will matter next time: an exam that is over, what they plan to study next, how they like to learn. One fact per note, at most ${NOTE_MAX_CHARS} characters. Never save passwords or private details. The learner can see and delete notes in Settings → Connection.`,
-			inputSchema: {
+			inputSchema: z.object({
 				text: z.string().min(1).max(NOTE_MAX_CHARS).describe("The note, one line."),
 				class_id: z.string().optional().describe("The class the note is about, if one (from list_classes)."),
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ text, class_id }) => {
@@ -603,7 +613,7 @@ function buildServer(instructions: string, signal: AbortSignal): McpServer {
 		{
 			title: "Forget a note",
 			description: 'Delete a saved note by its note_id (from "Where you left off" or from remember). Use it when a note is out of date or the learner asks.',
-			inputSchema: { note_id: z.string() },
+			inputSchema: z.object({ note_id: z.string() }),
 			annotations: REMOVES,
 		},
 		async ({ note_id }) => (removeAgentNote(note_id) ? result({ removed: note_id }) : failure(`No note "${note_id}".`)),
@@ -687,7 +697,7 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "List classes",
 			description: "List the learner's classes (university courses), archived ones included, with file and lesson counts.",
-			inputSchema: {},
+			inputSchema: z.object({}),
 			annotations: READ_ONLY,
 		},
 		async () => {
@@ -711,10 +721,10 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Read a class",
 			description: "Read one class: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_class_files.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				files: z.boolean().optional().describe("List every file with its id (needed for file_ids). Default false."),
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ class_id, files }) => {
@@ -728,11 +738,11 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Search a class's files",
 			description: "Search all of a class's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				query: z.string().min(1).describe("What to look for, in plain words."),
 				limit: z.number().int().min(1).max(20).optional().describe("Most passages to return (default 8)."),
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ class_id, query, limit }) => {
@@ -750,12 +760,12 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Read a passage of a class file",
 			description: "Read one passage of a class file by its id from search_class_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				passage_id: z.string().optional().describe("A passage id from search_class_files (or a previous/next id)."),
 				file_id: z.string().optional().describe("Instead of passage_id: a file id from read_class, with range."),
 				range: z.string().optional().describe('With file_id: the place, e.g. "p. 12", "12:30" or "lines 40".'),
-			},
+			}),
 			annotations: READ_ONLY,
 		},
 		async ({ class_id, passage_id, file_id, range }) => {
@@ -771,12 +781,12 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Create a class",
 			description: "Create a class for a course the learner is taking. The description is shown to the teacher in every lesson of the class: level, textbook, the professor's notation, what exams and assignments look like. Add the class's deadlines with add_class_deadline.",
-			inputSchema: {
+			inputSchema: z.object({
 				name: z.string().min(1).describe('The course, e.g. "MATH 20C – Calculus III".'),
 				description: z.string().optional().describe("What the teacher should know about the course, in the learner's terms."),
 				signature: SIGNATURE_ARG,
 				icon: ICON_ARG,
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ name, description, signature, icon }) => {
@@ -793,14 +803,14 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Update a class",
 			description: "Rename a class, change its description, signature or icon, or archive / unarchive it (archiving hides it from the class switcher but keeps everything; an archived class takes no new lessons).",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				name: z.string().min(1).optional(),
 				description: z.string().optional(),
 				signature: SIGNATURE_ARG,
 				icon: ICON_ARG.optional(),
 				archived: z.boolean().optional(),
-			},
+			}),
 			annotations: SETS,
 		},
 		async ({ class_id, name, description, signature, icon, archived }) => {
@@ -822,11 +832,11 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Add a file to a class",
 			description: "Copy a file from this computer into a class. Supported: .md .txt .pdf .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Study files are turned into facts by you, through wait_for_work.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				path: z.string().describe("The file's absolute path."),
 				kind: FILE_KIND,
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ class_id, path, kind }) => {
@@ -842,11 +852,11 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Set class files' kind",
 			description: "Switch one or more class files between study material and course info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				file_ids: z.array(z.string()).min(1).describe("The files to switch (ids from read_class with files: true)."),
 				kind: FILE_KIND,
-			},
+			}),
 			annotations: REMOVES,
 		},
 		async ({ class_id, file_ids, kind }) => {
@@ -874,7 +884,7 @@ function registerClassTools(server: McpServer): void {
 			title: "Add deadlines to a class",
 			description:
 				"Add one or more deadlines to a class (send all of a syllabus's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times, and the covered lectures from the syllabus or course info; file ids come from read_class with files: true. If a date, a time or the covered files aren't clear, ask the learner instead of guessing. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				deadlines: z
 					.array(
@@ -887,7 +897,7 @@ function registerClassTools(server: McpServer): void {
 						}),
 					)
 					.min(1),
-			},
+			}),
 			annotations: ADDS,
 		},
 		async ({ class_id, deadlines }) => {
@@ -914,7 +924,7 @@ function registerClassTools(server: McpServer): void {
 			title: "Update a class deadline",
 			description:
 				"Change a deadline's kind, name, date, time or covered files, or tick it done (done: true) or not done (done: false). file_ids replaces the whole list; time: null removes the time. Ask the learner instead of guessing when a change isn't clear.",
-			inputSchema: {
+			inputSchema: z.object({
 				class_id: z.string(),
 				deadline_id: z.string(),
 				kind: DEADLINE_KIND.optional(),
@@ -923,7 +933,7 @@ function registerClassTools(server: McpServer): void {
 				time: z.string().nullable().optional().describe('24-hour "HH:MM", or null to remove the time.'),
 				file_ids: z.array(z.string()).optional(),
 				done: z.boolean().optional(),
-			},
+			}),
 			annotations: SETS,
 		},
 		async ({ class_id, deadline_id, kind, name, date, time, file_ids, done }) => {
@@ -948,7 +958,7 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Remove a class deadline",
 			description: "Remove one deadline from a class (its files and facts are not touched).",
-			inputSchema: { class_id: z.string(), deadline_id: z.string() },
+			inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }),
 			annotations: REMOVES,
 		},
 		async ({ class_id, deadline_id }) => {
@@ -965,7 +975,7 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Link a folder to a class",
 			description: "Link a folder on this computer to a class. Its supported files are added as study material, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed never changes the folder. Use set_class_file_kind afterwards for course-info files (their ids come from read_class with files: true).",
-			inputSchema: { class_id: z.string(), path: z.string().describe("The folder's absolute path.") },
+			inputSchema: z.object({ class_id: z.string(), path: z.string().describe("The folder's absolute path.") }),
 			annotations: SETS,
 		},
 		async ({ class_id, path }) => {
@@ -981,7 +991,7 @@ function registerClassTools(server: McpServer): void {
 		{
 			title: "Unlink a class's folder",
 			description: "Unlink the class's folder: its files leave the class together with their facts. The folder itself is not touched.",
-			inputSchema: { class_id: z.string() },
+			inputSchema: z.object({ class_id: z.string() }),
 			annotations: REMOVES,
 		},
 		async ({ class_id }) => {
@@ -994,18 +1004,25 @@ function registerClassTools(server: McpServer): void {
 	);
 }
 
-/** The MCP initialize request in the body, if any, with the client's name. */
-async function initializeRequest(req: Request): Promise<{ name: string | undefined } | null> {
+type ClientInfo = { name?: unknown; title?: unknown };
+
+/** Who sent the request: the client's name (from initialize, or from a
+ *  modern request's _meta), and whether the request is one that hands the
+ *  instructions over (initialize or server/discover). */
+async function callerOf(req: Request): Promise<{ name: string | undefined; wantsInstructions: boolean }> {
+	const caller = { name: undefined as string | undefined, wantsInstructions: false };
 	try {
 		const body: unknown = await req.clone().json();
 		for (const message of Array.isArray(body) ? body : [body]) {
-			const m = message as { method?: unknown; params?: { clientInfo?: { name?: unknown; title?: unknown } } } | null;
-			if (m?.method === "initialize") return { name: displayAgentName(m.params?.clientInfo) };
+			const m = message as { method?: unknown; params?: { clientInfo?: ClientInfo; _meta?: Record<string, unknown> } } | null;
+			const info = m?.method === "initialize" ? m.params?.clientInfo : (m?.params?._meta?.[CLIENT_INFO_META_KEY] as ClientInfo | undefined);
+			caller.name ??= displayAgentName(info);
+			if (m?.method === "initialize" || m?.method === "server/discover") caller.wantsInstructions = true;
 		}
 	} catch {
 		/* not JSON: the transport reports it */
 	}
-	return null;
+	return caller;
 }
 
 /** /api/mcp/forget: the Claude Code plugin's hook says an agent lost its
@@ -1021,18 +1038,52 @@ export async function handleAgentForget(req: Request): Promise<Response> {
 	return Response.json({ ok: true });
 }
 
-/** The /api/mcp transport: one stateless server per request. */
+/** Each modern request's instructions, for the modern handler's server factory. */
+const modernInstructions = new WeakMap<Request, string>();
+
+/** The 2026-07-28 era: every request carries the client's version, name
+ *  and capabilities in _meta, and server/discover replaces initialize. JSON
+ *  replies only, because the plugin's scripts read one JSON body. */
+const modern = createMcpHandler(
+	({ requestInfo }) => {
+		const req = requestInfo as Request;
+		return buildServer(modernInstructions.get(req) ?? INSTRUCTIONS, req.signal);
+	},
+	{ legacy: "reject", responseMode: "json", onerror: logMcpError },
+);
+
+function logMcpError(error: Error): void {
+	console.error("[mcp] request failed:", error);
+}
+
+/** What an agent gets on connecting: the loop (and the waiter, in Claude
+ *  Code), the briefing sized to end before Claude Code's cut, then memory
+ *  and classes. */
+function connectInstructions(claudeCode: boolean): string {
+	const head = claudeCode ? `${INSTRUCTIONS}\n\n${CLAUDE_CODE_WAITING}` : INSTRUCTIONS;
+	const briefing = currentAgentBriefing(INSTRUCTIONS_CUT - CUT_MARGIN - head.length - "\n\n".length);
+	return [head, briefing, MEMORY_INSTRUCTIONS, CLASS_INSTRUCTIONS].join("\n\n");
+}
+
+/** The /api/mcp transport: one stateless server per request, in either era. */
 export async function handleMcpRequest(req: Request): Promise<Response> {
 	const refused = refuse(req);
 	if (refused) return refused;
 	// Every authorized request means an agent is connected (only the work
-	// loop means it is teaching); initialize also names the agent.
-	const init = req.method === "POST" ? await initializeRequest(req) : null;
-	if (req.method === "POST") recordCheckIn({ name: init?.name });
-	// Only initialize hands instructions to the agent, so only it builds the briefing.
-	const waiting = init?.name === "Claude Code" ? `\n\n${CLAUDE_CODE_WAITING}` : "";
-	const server = buildServer(init ? `${INSTRUCTIONS}${waiting}\n\n${currentAgentBriefing()}` : INSTRUCTIONS, req.signal);
+	// loop means it is teaching), and names it when it says who it is.
+	const caller = req.method === "POST" ? await callerOf(req) : null;
+	if (caller) recordCheckIn({ name: caller.name });
+	// Only initialize and server/discover hand instructions to the agent, so only they build the briefing.
+	const instructions = caller?.wantsInstructions ? connectInstructions(caller.name === "Claude Code") : INSTRUCTIONS;
+	if (!(await isLegacyRequest(req))) {
+		modernInstructions.set(req, instructions);
+		return modern.fetch(req);
+	}
+	// The 2025 era starts with initialize (Codex still does). The SDK's own
+	// fallback for it answers in SSE, so it keeps this JSON-mode transport.
+	const server = buildServer(instructions, req.signal);
 	const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+	transport.onerror = logMcpError;
 	await server.connect(transport);
 	try {
 		return await transport.handleRequest(req);

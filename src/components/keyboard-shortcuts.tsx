@@ -31,7 +31,7 @@ import {
 	KEYBOARD_ACTIONS,
 } from "@/core";
 import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
-import { trapTabInDialog } from "@/components/focus-hygiene";
+import { showFocusRingAfterTab, trapTabInDialog } from "@/components/focus-hygiene";
 
 // Re-exported for the contract pin (tests/keyboard-toggle-sidebar.test.ts):
 // the dispatcher composes event names through the ONE helper — a second
@@ -114,7 +114,11 @@ export function KeyboardShortcuts() {
 
 	useEffect(() => {
 		document.addEventListener("keydown", trapTabInDialog, true);
-		return () => document.removeEventListener("keydown", trapTabInDialog, true);
+		const stopRing = showFocusRingAfterTab(document);
+		return () => {
+			document.removeEventListener("keydown", trapTabInDialog, true);
+			stopRing();
+		};
 	}, []);
 
 	return <CheatSheet open={cheatOpen} onClose={() => setCheatOpen(false)} />;

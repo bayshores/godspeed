@@ -17,7 +17,7 @@
  *
  * CHECK-INS: every authorized MCP request counts as the agent being
  * connected; only the work loop (wait_for_work, respond, read_work) counts
- * as teaching. The MCP initialize handshake also names it ("Claude Code").
+ * as teaching. The client info a request carries names it ("Claude Code").
  * Status changes go out as the "agent-changed" event so open windows
  * (onboarding, the sidebar, the activity panel) update live.
  * Requests wait for an agent with no time limit, so work queued while no
@@ -141,7 +141,7 @@ interface BridgeState {
 	/** agent id → the instructions (hash → the workId that carried them)
 	 *  and tools (hashes) it has, so a new conversation can skip them. */
 	known: Map<string, { instructions: Map<string, string>; tools: Set<string> }>;
-	/** The agent's name from its MCP initialize handshake ("Claude Code"). */
+	/** The agent's name from its MCP client info ("Claude Code"). */
 	agentName?: string;
 	/** Fires "agent-changed" when the connection lapses. */
 	lapseTimer?: ReturnType<typeof setTimeout>;
@@ -208,7 +208,7 @@ export function agentConnected(now = Date.now()): boolean {
 }
 
 /** An agent runs the work loop. Without this, a connected agent (any
- *  Claude Code session with the plugin) only initialized or called other
+ *  Claude Code session with the plugin) only connected or called other
  *  tools, and lessons wait. */
 export function agentTeaching(now = Date.now()): boolean {
 	return recent(state().lastWork, now);
@@ -243,8 +243,8 @@ export function displayAgentName(clientInfo: { name?: unknown; title?: unknown }
 }
 
 /** The agent checked in: any authorized MCP request, or (`working`) a
- *  work-loop call. `name` comes from the initialize handshake; later
- *  requests keep the last name. */
+ *  work-loop call. `name` comes from the request's client info; requests
+ *  without one keep the last name. */
 export function recordCheckIn(how: { name?: string; working?: boolean } = {}, now = Date.now()): void {
 	const s = state();
 	const before = { connected: agentConnected(now), teaching: agentTeaching(now), name: s.agentName };

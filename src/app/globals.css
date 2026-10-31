@@ -15,16 +15,21 @@
  *     the appearance settings can reassign them.
  */
 
-/* No focus rings: the browser's default
-   focus/focus-visible outline appears NOWHERE in the app. Pointer focus
-   never showed it; any keypress while a clicked element still held focus
-   DID (:focus-visible re-evaluates on key input — a clicked sidebar
-   session lit up when the quiz's ←/→ were pressed). Surfaces carry their
-   own hover/active/selected affordances; the dock's keyboard walk uses
-   its own ring utilities, unaffected by an outline reset. */
+/* One focus ring, for keyboard focus only. The browser's own outline never
+   shows: a keypress lights :focus-visible on a clicked control too (a
+   clicked sidebar lesson lit up at the quiz's arrow keys), so the ring
+   waits for Tab (data-tab-focus, focus-hygiene.ts) and goes at the next
+   click. Text fields keep their own focus edge. A color picker is invisible
+   over its tile (Settings, Appearance), so the tile wears its ring.
+   Unlayered on purpose, so it wins over any outline-none utility. */
 *:focus,
 *:focus-visible {
 	outline: none;
+}
+:root[data-tab-focus] :focus-visible:not(textarea, [contenteditable="true"], input:not([type="checkbox"], [type="radio"], [type="range"])),
+:root[data-tab-focus] :has(> input[type="color"]:focus-visible) {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
 }
 
 /* Palette: the OLED-black default — background

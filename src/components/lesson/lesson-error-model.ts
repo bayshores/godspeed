@@ -42,12 +42,13 @@ export function lastLearnerText(messages: readonly LhMessage[]): string | null {
 }
 
 /** What Try again does: send the message box again, send the learner's
- *  last message again, or read the lesson again. */
+ *  last message again, run a failed reply to anything else (an answer)
+ *  again, or read the lesson again. */
 export function retryAction(
 	kind: LessonErrorKind,
 	s: { boxHasText: boolean; lastText: string | null },
-): { type: "send-box" } | { type: "resend"; text: string } | { type: "resync" } {
+): { type: "send-box" } | { type: "resend"; text: string } | { type: "continue" } | { type: "resync" } {
 	if (kind !== "sync" && s.boxHasText) return { type: "send-box" };
-	if (kind === "reply" && s.lastText) return { type: "resend", text: s.lastText };
+	if (kind === "reply") return s.lastText ? { type: "resend", text: s.lastText } : { type: "continue" };
 	return { type: "resync" };
 }

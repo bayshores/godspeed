@@ -17,13 +17,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, CircleCheckIcon, CopyIcon, FolderDownIcon } from "lucide-react";
+import { CheckIcon, CircleCheckIcon, FolderDownIcon } from "lucide-react";
 import { useAgentStatus } from "@/components/agent-status";
 import { useSound } from "@/components/sounds";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { ACCESS_ERROR, CLAUDE_CODE_SETUP, codexConfig, maskToken } from "@/components/settings/connection-section";
 import { linkClassFolder, uploadClassFiles } from "@/components/files/class-files-api";
 import { CLASS_FILE_ACCEPT } from "@/components/files/files-model";
+import { CopyButton } from "@/components/copy-button";
+import { showFocusRingAfterTab } from "@/components/focus-hygiene";
 import { cn } from "@/lib/utils";
 import { Constellation, type ConstellationMode } from "./constellation";
 
@@ -80,6 +82,8 @@ export function Onboarding() {
 	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
 	const [saveFailed, setSaveFailed] = useState(false);
 	const status = useAgentStatus();
+	// The app shell's keyboard listener isn't mounted here yet.
+	useEffect(() => showFocusRingAfterTab(document), []);
 
 	const finish = useCallback(async () => {
 		setSaveFailed(false);
@@ -198,33 +202,18 @@ function StepColumn({ at, title, sub, children }: { at: 1 | 2; title: string; su
 	);
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
-	const [copied, setCopied] = useState(false);
-	return (
-		<button
-			type="button"
-			aria-label={`Copy ${label}`}
-			className="lh-press flex items-center gap-1.5 text-[12.5px] font-bold text-ink-2 hover:text-ink"
-			onClick={() => {
-				void navigator.clipboard.writeText(text).then(() => {
-					setCopied(true);
-					setTimeout(() => setCopied(false), 1500);
-				});
-			}}
-		>
-			{copied ? <CheckIcon className="size-3.5" aria-hidden /> : <CopyIcon className="size-3.5" aria-hidden />}
-			{copied ? "Copied" : "Copy"}
-		</button>
-	);
-}
-
 /** A copyable code block: a header (label + Copy) and the lines. */
 function CodeBlock({ label, lines, copy }: { label: string; lines: string[]; copy: string }) {
 	return (
 		<div className="border border-tone-2 bg-panel">
 			<div className="flex items-center justify-between border-b border-tone-2 px-4 py-2.5">
 				<span className="text-[12.5px] text-ink-3">{label}</span>
-				<CopyButton text={copy} label={label} />
+				<CopyButton
+					text={copy}
+					icon
+					aria-label={`Copy ${label}`}
+					className="lh-press flex items-center gap-1.5 text-[12.5px] font-bold text-ink-2 hover:text-ink"
+				/>
 			</div>
 			<pre className="overflow-x-auto px-4 py-3.5 font-mono text-[13.5px] leading-[1.9] text-ink">{lines.join("\n")}</pre>
 		</div>

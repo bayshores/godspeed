@@ -74,3 +74,24 @@ test("committed-answer reveals keep the first paragraph inline without flattenin
 		assert.deepEqual(answer, before);
 	} finally { await act(async () => root.unmount()); host.remove(); }
 });
+
+test("Tab from a quiz row goes to the thinking field; Tab from the thinking field moves on as usual", async () => {
+	const input = { question: "Which planet is closest to the sun?", options: [{ label: "Venus" }, { label: "Mercury" }], correctAnswer: "Mercury", explanation: "Mercury is the innermost planet." };
+	const host = document.createElement("div"); document.body.append(host);
+	const root = createRoot(host);
+	const tab = (target: Element) => {
+		const e = new window.Event("keydown", { bubbles: true, cancelable: true });
+		Object.defineProperty(e, "key", { value: "Tab" });
+		target.dispatchEvent(e);
+		return e.defaultPrevented;
+	};
+	try {
+		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="tab_loop" input={input} onSubmit={() => {}} />));
+		assert.equal(tab(host.querySelector('[data-kbdrow="0"]')!), true, "the dock moves focus from the rows to the thinking field");
+		const thinking = host.querySelector<HTMLTextAreaElement>('[data-testid="thinking-field"] textarea')!;
+		// React's old-browser input tracking (what linkedom looks like to it) needs these.
+		Object.assign(thinking, { attachEvent() {}, detachEvent() {} });
+		thinking.dispatchEvent(new window.Event("focusin", { bubbles: true }));
+		assert.equal(tab(thinking), false, "the browser's own Tab moves on toward Submit");
+	} finally { await act(async () => root.unmount()); host.remove(); }
+});

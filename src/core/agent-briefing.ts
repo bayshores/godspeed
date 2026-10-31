@@ -1,7 +1,8 @@
 /**
- * "Where you left off": the end of godspeed's MCP instructions, built each
+ * "Where you left off": part of godspeed's MCP instructions, built each
  * time an agent connects, so an agent started in any folder knows the
- * learner's classes, last lessons, next deadlines and saved notes.
+ * learner's classes, last lessons, next deadlines and saved notes. It is
+ * trimmed to fit a length budget, least important lines first.
  *
  * Pure: `now` and `timeZone` are inputs so tests are deterministic.
  */
@@ -19,10 +20,21 @@ export interface BriefingInput {
 	classes: readonly { id: string; name: string; archived: boolean; deadlines: readonly ClassDeadline[] }[];
 	lessons: readonly { id: string; title: string; classId?: string; updatedAt: string; waiting: boolean }[];
 	notes: readonly AgentNote[];
+	/** The longest the briefing may be: some clients cut the instructions it ends up in. */
+	maxChars: number;
 }
 
+type Section = "classes" | "lessons" | "deadlines" | "notes";
+
+const LEFT_OUT: Record<Section, [one: string, many: string]> = {
+	lessons: ["lesson", "lessons"],
+	deadlines: ["deadline", "deadlines"],
+	notes: ["note", "notes"],
+	classes: ["class", "classes"],
+};
+
 export function agentBriefing(input: BriefingInput): string {
-	const { now, timeZone, classes, lessons, notes } = input;
+	const { now, timeZone, classes, lessons, notes, maxChars } = input;
 	const names = new Map(classes.map((c) => [c.id, c.name]));
 	const day = (iso: string) => dayLabel(wallClock(new Date(iso), timeZone).day);
 	const moment = (iso: string) => {
@@ -30,44 +42,68 @@ export function agentBriefing(input: BriefingInput): string {
 		return `${dayLabel(clock.day)} ${clockLabel(clock.time)}`;
 	};
 
-	const lines = ["## Where you left off", "", `Now: ${todayNoteText({ now, timeZone, cls: null }).replace(/^\[Today\] /, "")}.`];
-
 	const active = classes.filter((c) => !c.archived);
-	lines.push("", active.length ? "Classes:" : "Classes: none yet.");
-	for (const c of active) lines.push(`- ${c.name} (class_id "${c.id}")`);
+	const classLines = active.map((c) => `- ${c.name} (class_id "${c.id}")`);
 
-	const recent = [...lessons].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, LAST_LESSONS);
-	if (recent.length) {
-		lines.push("", "Last lessons (newest first):");
-		for (const l of recent) {
+	const lessonLines = [...lessons]
+		.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+		.slice(0, LAST_LESSONS)
+		.map((l) => {
 			const cls = (l.classId && names.get(l.classId)) || "No class";
-			lines.push(`- ${l.title} (${cls}), last active ${moment(l.updatedAt)}, lesson_id "${l.id}"${l.waiting ? ", waiting for the learner's answer" : ""}`);
-		}
-	}
+			return `- ${l.title} (${cls}), last active ${moment(l.updatedAt)}, lesson_id "${l.id}"${l.waiting ? ", waiting for the learner's answer" : ""}`;
+		});
 
 	const clock = wallClock(now, timeZone);
 	const nowStamp = `${clock.day}T${clock.time}`;
-	const open = active
+	const deadlineLines = active
 		.flatMap((c) => c.deadlines.filter((d) => !d.done).map((d) => ({ ...d, className: c.name })))
 		.sort(compareDeadlines)
-		.slice(0, NEXT_DEADLINES);
-	if (open.length) {
-		lines.push("", "Next deadlines (not marked done):");
-		for (const d of open) {
+		.slice(0, NEXT_DEADLINES)
+		.map((d) => {
 			const due = deadlineDueAt(d);
 			const overdue = `${due.date}T${due.time}:00` < nowStamp;
-			lines.push(`- ${d.className}: ${d.name} (${d.kind}), ${overdue ? "overdue, was due" : "due"} ${whenLabel(d)}`);
-		}
-	}
+			return `- ${d.className}: ${d.name} (${d.kind}), ${overdue ? "overdue, was due" : "due"} ${whenLabel(d)}`;
+		});
 
-	if (notes.length) {
-		lines.push("", "Notes saved with remember (oldest first):");
-		for (const n of notes) {
-			const cls = n.classId && names.get(n.classId);
-			lines.push(`- ${n.text} (${cls ? `${cls}, ` : ""}saved ${day(n.createdAt)}, note_id "${n.id}")`);
-		}
-	} else {
-		lines.push("", "Notes saved with remember: none yet.");
+	const noteLines = notes.map((n) => {
+		const cls = n.classId && names.get(n.classId);
+		return `- ${n.text} (${cls ? `${cls}, ` : ""}saved ${day(n.createdAt)}, note_id "${n.id}")`;
+	});
+
+	const left: Record<Section, number> = { classes: 0, lessons: 0, deadlines: 0, notes: 0 };
+	const render = () => {
+		const lines = ["## Where you left off", "", `Now: ${todayNoteText({ now, timeZone, cls: null }).replace(/^\[Today\] /, "")}.`];
+		const kept = {
+			classes: classLines.slice(0, classLines.length - left.classes),
+			lessons: lessonLines.slice(0, lessonLines.length - left.lessons),
+			deadlines: deadlineLines.slice(0, deadlineLines.length - left.deadlines),
+			notes: noteLines.slice(left.notes),
+		};
+		if (!classLines.length) lines.push("", "Classes: none yet.");
+		else if (kept.classes.length) lines.push("", "Classes:", ...kept.classes);
+		if (kept.lessons.length) lines.push("", "Last lessons (newest first):", ...kept.lessons);
+		if (kept.deadlines.length) lines.push("", "Next deadlines (not marked done):", ...kept.deadlines);
+		if (!noteLines.length) lines.push("", "Notes saved with remember: none yet.");
+		else if (kept.notes.length) lines.push("", "Notes saved with remember (oldest first):", ...kept.notes);
+		const cut = (Object.keys(LEFT_OUT) as Section[]).filter((s) => left[s] > 0).map((s) => `${left[s]} ${LEFT_OUT[s][left[s] === 1 ? 0 : 1]}`);
+		if (cut.length) lines.push("", `Left out to fit: ${cut.join(", ")}. Use list_lessons / read_class for lessons and deadlines.`);
+		return lines.join("\n");
+	};
+
+	// Lessons and deadlines go first: list_lessons and read_class bring them
+	// back, while notes live only here. Classes go only when nothing else is left.
+	const repeat = (section: Section, n: number) => Array<Section>(Math.max(n, 0)).fill(section);
+	const dropOrder = [
+		...repeat("lessons", lessonLines.length),
+		...repeat("deadlines", deadlineLines.length),
+		...repeat("notes", noteLines.length),
+		...repeat("classes", classLines.length),
+	];
+	let text = render();
+	for (const section of dropOrder) {
+		if (text.length <= maxChars) break;
+		left[section]++;
+		text = render();
 	}
-	return lines.join("\n");
+	return text;
 }

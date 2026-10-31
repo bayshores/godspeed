@@ -33,7 +33,7 @@ the keys.
 - **Tab moves focus as usual**, through buttons and links too. In a
   lesson's text fields Tab jumps to the next text field; from the last
   one it moves on as usual (`src/components/field-cycle.ts`). An open
-  question claims Tab from its rows and thinking field (see below). An
+  question claims Tab from its rows (see below). An
   open modal dialog keeps Tab inside itself (`trapTabInDialog` in
   `src/components/focus-hygiene.ts`).
 - **Inside a text field only shortcuts with a modifier fire** (like ⌘B).
@@ -43,8 +43,9 @@ the keys.
   action. When nothing is open, Esc stops the running turn. A turn the
   server started has no browser request to stop, so the lesson decides
   what Esc can stop.
-- **No focus ring.** `src/app/globals.css` turns off the browser's focus
-  outline everywhere. Surfaces show their own hover and selected styles.
+- **The focus ring shows after Tab and hides on the next mouse press**
+  (`showFocusRingAfterTab` in `src/components/focus-hygiene.ts`, drawn in
+  `src/app/globals.css`). A hidden color picker rings its tile instead.
 
 ## Key map
 
@@ -73,5 +74,6 @@ modifier held:
   know").
 - **Space** acts on the walked row like a click.
 - **Enter** submits once there is an answer.
-- **Tab** switches focus between the thinking field and the rows. This
-  one also works from the thinking field.
+- **Tab** from the rows moves focus to the thinking field. From the
+  thinking field Tab moves on like in the other lesson fields, so it
+  reaches Submit.

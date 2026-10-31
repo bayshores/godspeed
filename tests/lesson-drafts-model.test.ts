@@ -6,10 +6,12 @@ import {
 	parseLessonDraft,
 	serializeLessonDraft,
 	withComposer,
+	withoutEndedQuestions,
 	withoutSettled,
 	withProblem,
 	withQuestion,
 } from "../src/components/lesson/lesson-drafts-model.ts";
+import { forgetLessonDraft } from "../src/components/lesson/use-lesson-drafts.ts";
 import { newAnswerResult, type LhMessage, type QuestionAnswerData, type QuestionFormDraft } from "../src/core/index.ts";
 
 const form: QuestionFormDraft = { selection: { selected: new Set([1]), otherSelected: true, dontKnow: false }, thinking: "reasoning", other: "custom answer", text: "", confidenceIndex: 4 };
@@ -51,6 +53,35 @@ describe("lesson drafts", () => {
 		assert.deepEqual(next.questions, {});
 		assert.equal(next.problems.p1, "work");
 		assert.deepEqual(withoutSettled(d, [], null).problems, {}, "a discarded or finished problem's draft goes");
+	});
+
+	it("read back, keeps only the question the saved record still waits on", () => {
+		const asks = (id: string, callId: string, stopReason = "toolUse") =>
+			({ id, role: "assistant", stopReason, content: [{ type: "toolCall", id: callId, name: "quiz", arguments: {} }] }) as unknown as LhMessage;
+		const d = withQuestion(withQuestion(withQuestion(EMPTY_LESSON_DRAFT, "skipped", { form }), "stopped", { form }), "open", { form });
+		const record = [
+			asks("a1", "skipped"),
+			newAnswerResult("skipped", "quiz", { ...answer, dismissed: true }) as LhMessage,
+			asks("a2", "stopped", "aborted"),
+			{ id: "a3", role: "assistant", stopReason: "stop", content: [{ type: "text", text: "Let's go on." }] } as unknown as LhMessage,
+			asks("a4", "open"),
+		];
+		assert.deepEqual(Object.keys(withoutEndedQuestions(d, record).questions), ["open"]);
+		assert.deepEqual(withoutEndedQuestions(d, record.slice(0, 4)).questions, {}, "nothing waits: every question draft goes");
+		const kept = withQuestion(EMPTY_LESSON_DRAFT, "open", { form });
+		assert.equal(withoutEndedQuestions(kept, record), kept);
+	});
+
+	it("a deleted lesson's saved drafts are removed", () => {
+		const store = new Map([["lh:lesson-draft:l1", "{}"], ["lh:lesson-draft:l2", "{}"]]);
+		(globalThis as { localStorage?: unknown }).localStorage = { removeItem: (k: string) => store.delete(k) };
+		try {
+			forgetLessonDraft("l1");
+			assert.deepEqual([...store.keys()], ["lh:lesson-draft:l2"]);
+		} finally {
+			delete (globalThis as { localStorage?: unknown }).localStorage;
+		}
+		assert.doesNotThrow(() => forgetLessonDraft("l2"), "no storage: nothing to remove");
 	});
 
 	it("holds Follow only for unsent text the lesson shows now", () => {

@@ -4,12 +4,12 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 
 /**
- * The stop guard: the global Esc → abort chain, the Skip question and
- * Discard problem buttons, and the stuck-turn line open this confirm
- * popup. Esc on the popup itself cancels (claimed —
- * it must never chain into another abort), which is also why Chat's
- * abort handler ignores events while this dialog is open: two window
- * listeners fire per Esc and stopPropagation alone cannot order them.
+ * The stop guard: the global Esc → abort chain and the Skip question and
+ * Discard problem buttons open this confirm popup. Esc on the popup
+ * itself cancels (claimed — it must never chain into another abort),
+ * which is also why Chat's abort handler ignores events while this
+ * dialog is open: two window listeners fire per Esc and stopPropagation
+ * alone cannot order them.
  *
  * MINIMAL, the delete-node dialog's tone: title, one line, Cancel +
  * action. No busy state — both actions are local (a fetch that fires

@@ -404,6 +404,102 @@ describe("the /api/mcp door", () => {
 		}
 	});
 
+	describe("both MCP eras", () => {
+		// Later tests expect a name change when Claude Code connects.
+		after(() => bridge.recordCheckIn({ name: "test" }));
+		const auth = () => ({ authorization: `Bearer ${ensureMcpToken()}` });
+		const envelope = {
+			"io.modelcontextprotocol/protocolVersion": "2026-07-28",
+			"io.modelcontextprotocol/clientCapabilities": {},
+			"io.modelcontextprotocol/clientInfo": { name: "claude-code", version: "1" },
+		};
+		/** A 2026-07-28 request: the _meta envelope plus the matching headers (`without` leaves one out). */
+		function modern(id: number, method: string, params: Record<string, unknown>, without?: string) {
+			const headers: Record<string, string> = { ...auth(), "mcp-protocol-version": "2026-07-28", "mcp-method": method };
+			if (typeof params.name === "string") headers["mcp-name"] = params.name;
+			if (without) delete headers[without];
+			const body = { jsonrpc: "2.0", id, method, params: { ...params, _meta: { ...envelope, ...(params._meta as object) } } };
+			return mcp.handleMcpRequest(rpc(body, headers));
+		}
+
+		it("old era: initialize names Codex, and its instructions carry the briefing between the loop and Memory, as plain JSON", async () => {
+			const res = await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "codex-mcp-client", version: "1" } } }, auth()));
+			assert.match(res.headers.get("content-type") ?? "", /^application\/json/);
+			const instructions = (await res.json()).result.instructions as string;
+			assert.match(instructions, /The work loop:[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nClasses: the learner/);
+			assert.doesNotMatch(instructions, /wait-for-work\.mjs/);
+			assert.equal(mcp.mcpAccessStatus().agentName, "Codex");
+		});
+
+		it("modern: server/discover names Claude Code and hands over the instructions with the briefing", async () => {
+			const res = await modern(1, "server/discover", {});
+			assert.equal(res.status, 200, await res.clone().text());
+			assert.match(res.headers.get("content-type") ?? "", /^application\/json/);
+			const result = (await res.json()).result;
+			assert.ok(result.supportedVersions.includes("2026-07-28"));
+			assert.deepEqual(result.capabilities.tools, { listChanged: false }, "so Claude Code opens no subscriptions/listen stream");
+			assert.match(result.instructions, /The work loop:[\s\S]*scripts\/wait-for-work\.mjs[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nClasses: the learner/);
+			assert.equal(mcp.mcpAccessStatus().agentName, "Claude Code");
+		});
+
+		it("modern: a tool call with no handshake before it names the agent and works", async () => {
+			await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "other-agent", version: "1" } } }, auth()));
+			assert.equal(mcp.mcpAccessStatus().agentName, "other-agent");
+			const res = await modern(2, "tools/call", { name: "list_classes", arguments: {} });
+			assert.equal(res.status, 200, await res.clone().text());
+			assert.ok(Array.isArray(JSON.parse((await res.json()).result.content[0].text).classes));
+			assert.equal(mcp.mcpAccessStatus().agentName, "Claude Code");
+		});
+
+		/** Runs `send` and returns what it logged with console.error. */
+		async function loggedErrors(send: () => Promise<void>): Promise<unknown[][]> {
+			const logged: unknown[][] = [];
+			const consoleError = console.error;
+			console.error = (...args: unknown[]) => void logged.push(args);
+			try {
+				await send();
+			} finally {
+				console.error = consoleError;
+			}
+			return logged;
+		}
+
+		it("modern: a tool call without its Mcp-Method header is refused, and the server log says why", async () => {
+			const logged = await loggedErrors(async () => {
+				const res = await modern(3, "tools/call", { name: "list_classes", arguments: {} }, "mcp-method");
+				assert.equal(res.status, 400);
+				assert.equal((await res.json()).error.code, -32020);
+			});
+			assert.equal(logged.length, 1);
+			assert.equal(logged[0]![0], "[mcp] request failed:");
+			assert.ok(logged[0]![1] instanceof Error);
+		});
+
+		it("old era: a request the transport refuses is in the server log too", async () => {
+			const logged = await loggedErrors(async () => {
+				const init = { jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "codex-mcp-client", version: "1" } } };
+				const res = await mcp.handleMcpRequest(rpc(init, { ...auth(), "content-type": "text/plain" }));
+				assert.equal(res.status, 415);
+			});
+			assert.equal(logged.length, 1);
+			assert.equal(logged[0]![0], "[mcp] request failed:");
+			assert.match(String(logged[0]![1]), /Unsupported Media Type/);
+		});
+
+		it("modern: the waiter's call gets plain JSON, and the seen tracking still knows its agent", async () => {
+			const chat = chatStore.createChat("Modern waiter");
+			await handleChatInput(chat.id, { type: "text", text: "hi" });
+			const res = await modern(4, "tools/call", { name: "wait_for_work", arguments: { timeout_seconds: 5, lesson_id: chat.id }, _meta: { "godspeed/agent": "modern-agent" } });
+			assert.match(res.headers.get("content-type") ?? "", /^application\/json/);
+			const header = JSON.parse((await res.json()).result.content[0].text);
+			for (let page = 2; page <= (header.pages ?? 1); page++) assert.ok(bridge.readWorkPage(header.workId, page).ok);
+			assert.ok(bridge.respondToWork(header.workId, { text: "Hello." }, 0).ok);
+			await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+			const saved = JSON.parse(fs.readFileSync(path.join(scratch, "data", "agent-seen.json"), "utf8"));
+			assert.ok(saved.agents["modern-agent"]?.conversations[chat.id], "godspeed/agent survives the SDK lifting the envelope out of _meta");
+		});
+	});
+
 	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {
 		const token = ensureMcpToken();
 		const auth = { authorization: `Bearer ${token}` };

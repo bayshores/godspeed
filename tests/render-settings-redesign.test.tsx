@@ -137,6 +137,35 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-token")!.textContent, "••••••••••••2222");
 	});
 
+	it("Copy puts the whole token on the clipboard and says Copied", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+		const el = await mount(<ConnectionSection />);
+		const copied: string[] = [];
+		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
+		const button = el.querySelector<HTMLButtonElement>('[aria-label="Copy access token"]')!;
+		await act(async () => button.click());
+		assert.deepEqual(copied, ["tok_secret_a91f"]);
+		assert.equal(button.textContent, "Copied");
+	});
+
+	it("Continue is off while the new token is being made, so a double click makes one token", async () => {
+		let posts = 0;
+		globalThis.fetch = (async (url: string, init?: RequestInit) => {
+			if (String(url).startsWith("/api/agent-notes")) return Response.json({ notes: [] });
+			if (init?.method === "POST") {
+				posts += 1;
+				return new Promise<Response>(() => {});
+			}
+			return Response.json({ token: "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+		}) as unknown as typeof fetch;
+		await mount(<ConnectionSection />);
+		await act(async () => q("agent-new-token")!.click());
+		await act(async () => q("agent-new-token-continue")!.click());
+		assert.equal((q("agent-new-token-continue") as HTMLButtonElement).disabled, true);
+		await act(async () => q("agent-new-token-continue")!.click());
+		assert.equal(posts, 1);
+	});
+
 	it("Remembered lists the agent's notes with a Delete button", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, [
 			{ id: "note_1", text: "CSE 29 exam is done.", className: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },

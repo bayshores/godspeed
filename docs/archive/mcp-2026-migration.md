@@ -1,6 +1,6 @@
 # MCP 2026-07-28 migration plan
 
-Status: plan only. Nothing here is built yet. The owner decides the open questions at the end before any code changes.
+Status: built (steps 1 to 5). The owner's answers: briefing option A only, migrate now, the plugin (connector and waiter) speaks the new version as 0.4.2, keep the old version with no date to drop it, and `^2.4.0` like the other dependencies.
 
 ## 1. What changes, and when clients need it
 

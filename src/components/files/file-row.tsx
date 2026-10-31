@@ -1,6 +1,7 @@
 import { memo, useCallback, useRef, useState, type DragEvent } from "react";
 import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, GripVerticalIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
 import type { ClassFile, FileCoverage } from "@/core";
+import { CopyButton } from "@/components/copy-button";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -162,25 +163,16 @@ function RowState({
 
 /** The speech tool's install step, under a recording that needs it. */
 function InstallLine({ fileId, command }: { fileId: string; command: string }) {
-	const [copied, setCopied] = useState(false);
 	return (
 		<span data-testid={`class-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1 pl-[49px] text-[12.5px] text-ink-2">
 			To turn recordings into text, run this in Terminal, then click Retry.
 			<span className="flex items-center gap-2">
 				<code className="bg-tone px-1.5 py-0.5 font-mono text-[12.5px] text-ink">{command}</code>
-				<button
-					type="button"
+				<CopyButton
+					text={command}
 					data-testid={`class-file-install-copy-${fileId}`}
-					onClick={() => {
-						void navigator.clipboard.writeText(command).then(() => {
-							setCopied(true);
-							setTimeout(() => setCopied(false), 1500);
-						});
-					}}
 					className="lh-press text-[12.5px] font-bold text-ink hover:text-ink-max"
-				>
-					{copied ? "Copied" : "Copy"}
-				</button>
+				/>
 			</span>
 		</span>
 	);

@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { footerLabel, teachStep, useAgentStatus } from "@/components/agent-status";
+import { CopyButton } from "@/components/copy-button";
 import { cn } from "@/lib/utils";
 import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
 import { RememberedNotes } from "./remembered-notes.tsx";
@@ -47,32 +48,14 @@ function shortUrl(url: string): string {
 	return url.replace(/^https?:\/\//, "");
 }
 
-function CopyButton({ text, label, children = "Copy" }: { text: string; label: string; children?: string }) {
-	const [copied, setCopied] = useState(false);
-	return (
-		<button
-			type="button"
-			aria-label={`Copy ${label}`}
-			className={OUTLINE_BUTTON}
-			onClick={() => {
-				void navigator.clipboard.writeText(text).then(() => {
-					setCopied(true);
-					setTimeout(() => setCopied(false), 1500);
-				});
-			}}
-		>
-			{copied ? "Copied" : children}
-		</button>
-	);
-}
-
 const MONO = "min-w-0 truncate font-mono text-[12.5px] text-ink-2";
 
 export function ConnectionSection() {
 	const [access, setAccess] = useState<AccessView | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	// "New token" asks first, then says what to copy again.
-	const [rotate, setRotate] = useState<"idle" | "asking" | "done">("idle");
+	// "New token" asks first, then says what to copy again. "making": Continue
+	// is off until the new token arrives, so a double click makes one token.
+	const [rotate, setRotate] = useState<"idle" | "asking" | "making" | "done">("idle");
 
 	// Any success clears an earlier failure, so a stale error never sits under good data.
 	const loaded = useCallback((a: AccessView) => {
@@ -88,7 +71,8 @@ export function ConnectionSection() {
 		refresh();
 	}, [refresh, live]);
 
-	const makeToken = () =>
+	const makeToken = () => {
+		setRotate("making");
 		request({ method: "POST", body: JSON.stringify({ action: "rotate" }) }).then(
 			(a) => {
 				loaded(a);
@@ -99,6 +83,7 @@ export function ConnectionSection() {
 				setRotate("idle");
 			},
 		);
+	};
 
 	if (!access) return <p className="text-xs text-ink-2">{error ?? "Loading…"}</p>;
 	const token = access.token;
@@ -122,20 +107,26 @@ export function ConnectionSection() {
 						<span data-testid="agent-token" className={MONO}>
 							{maskToken(token)}
 						</span>
-						<CopyButton label="access token" text={token} />
-						<button type="button" data-testid="agent-new-token" className={OUTLINE_BUTTON} disabled={rotate === "asking"} onClick={() => setRotate("asking")}>
+						<CopyButton aria-label="Copy access token" className={OUTLINE_BUTTON} text={token} />
+						<button type="button" data-testid="agent-new-token" className={OUTLINE_BUTTON} disabled={rotate === "asking" || rotate === "making"} onClick={() => setRotate("asking")}>
 							New token
 						</button>
 					</span>
 				</SettingsRow>
-				{rotate === "asking" && (
+				{(rotate === "asking" || rotate === "making") && (
 					<div data-testid="agent-new-token-confirm" className="flex items-center justify-between gap-4 bg-tone px-3.5 py-2.5">
 						<span className="text-[13px] text-ink-2">Codex and other apps will need the new config. Continue?</span>
 						<span className="flex shrink-0 items-center gap-2">
 							<button type="button" className="lh-press px-2.5 py-[5px] text-[13px] font-bold text-ink-2 hover:text-ink" onClick={() => setRotate("idle")}>
 								Cancel
 							</button>
-							<button type="button" data-testid="agent-new-token-continue" className={OUTLINE_BUTTON} onClick={() => void makeToken()}>
+							<button
+								type="button"
+								data-testid="agent-new-token-continue"
+								className={OUTLINE_BUTTON}
+								disabled={rotate === "making"}
+								onClick={makeToken}
+							>
 								Continue
 							</button>
 						</span>
@@ -163,11 +154,11 @@ export function ConnectionSection() {
 				>
 					<span className="flex min-w-0 items-center gap-2">
 						<span className={MONO}>/plugin install godspeed@godspeed</span>
-						<CopyButton label="Claude Code setup" text={CLAUDE_CODE_SETUP} />
+						<CopyButton aria-label="Copy Claude Code setup" className={OUTLINE_BUTTON} text={CLAUDE_CODE_SETUP} />
 					</span>
 				</SettingsRow>
 				<SettingsRow label="Codex" hint="Add this to ~/.codex/config.toml, then ask Codex to use the godspeed tools to teach you. Set Codex's approvals to Full Access first, so it never stops to ask your permission.">
-					<CopyButton label="Codex config" text={codexConfig(access.url, token)}>
+					<CopyButton aria-label="Copy Codex config" className={OUTLINE_BUTTON} text={codexConfig(access.url, token)}>
 						Copy config
 					</CopyButton>
 				</SettingsRow>
@@ -183,7 +174,7 @@ export function ConnectionSection() {
 				>
 					<span className="flex min-w-0 items-center gap-2">
 						<span className={MONO}>{shortUrl(access.url)}</span>
-						<CopyButton label="MCP address" text={access.url} />
+						<CopyButton aria-label="Copy MCP address" className={OUTLINE_BUTTON} text={access.url} />
 					</span>
 				</SettingsRow>
 			</SettingsGroup>

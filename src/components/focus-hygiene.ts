@@ -1,6 +1,7 @@
 /**
- * FOCUS HYGIENE — transient transcript controls don't keep focus, and Tab
- * stays inside an open modal dialog (trapTabInDialog, below).
+ * FOCUS HYGIENE — transient transcript controls don't keep focus, the
+ * focus ring shows only after Tab (showFocusRingAfterTab), and Tab stays
+ * inside an open modal dialog (trapTabInDialog, below).
  *
  * Transient controls: a
  * pointer click on a thinking toggle, a copy button or a plan chip would
@@ -27,6 +28,25 @@ export function blurAfterPointerClick(e: {
 	if (e.detail === 0) return;
 	const el = e.currentTarget as { blur?: unknown } | null;
 	if (el && typeof el.blur === "function") (el.blur as () => void).call(el);
+}
+
+/** Turns the keyboard focus ring on at Tab and off at the next pointer
+ *  press (globals.css draws it under html[data-tab-focus]). :focus-visible
+ *  alone isn't enough: Chromium also lights it on a clicked control once
+ *  any key is pressed. Returns the cleanup. */
+export function showFocusRingAfterTab(doc: Document): () => void {
+	const root = doc.documentElement;
+	const onKey = (e: KeyboardEvent) => {
+		if (e.key === "Tab") root.setAttribute("data-tab-focus", "");
+	};
+	const onPointer = () => root.removeAttribute("data-tab-focus");
+	doc.addEventListener("keydown", onKey, true);
+	doc.addEventListener("pointerdown", onPointer, true);
+	return () => {
+		doc.removeEventListener("keydown", onKey, true);
+		doc.removeEventListener("pointerdown", onPointer, true);
+		root.removeAttribute("data-tab-focus");
+	};
 }
 
 /** What Tab can reach inside a dialog. */

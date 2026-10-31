@@ -35,6 +35,7 @@ const { ComingUp } = await import("../src/components/home-page/coming-up.tsx");
 const { ClassBlock } = await import("../src/components/home-page/class-block.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../src/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const { NoticeStack } = await import("../src/components/notice-stack.tsx");
 
 // Wed Oct 28 2026, 4:12 PM local.
 const NOW = new Date(2026, 9, 28, 16, 12).getTime();
@@ -170,6 +171,7 @@ describe("Ticking a deadline done", () => {
 		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
 		await mount(
 			<ServerEventsProvider connect={connect as never}>
+				<NoticeStack>{null}</NoticeStack>
 				<OpenDeadlinesProvider>
 					<Harness />
 				</OpenDeadlinesProvider>
@@ -188,6 +190,7 @@ describe("Ticking a deadline done", () => {
 	it("says 'Marked done · Undo', and Undo ticks it back", async () => {
 		await mountProvider();
 		assert.equal(notice()!.textContent, "Marked done·Undo");
+		assert.equal(notice()!.parentElement!.id, "lh-notices", "it stacks with the update and restart notices");
 		assert.equal(notice()!.getAttribute("role"), "status");
 		await act(async () => {
 			document.querySelector<HTMLButtonElement>('[data-testid="done-notice-undo"]')!.click();

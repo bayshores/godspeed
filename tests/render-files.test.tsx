@@ -43,6 +43,7 @@ const { FilesPage } = await import("../src/components/files/files-page.tsx");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
 const { ClassProvider } = await import("../src/components/class-context.tsx");
 const { AgentStatusProvider } = await import("../src/components/agent-status.tsx");
+const { CopyButton } = await import("../src/components/copy-button.tsx");
 
 function file(id: string, name: string, over: Partial<ClassFile> = {}): ClassFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
@@ -367,5 +368,50 @@ describe("FilesPage", () => {
 		assert.deepEqual(scrolled, ["file-f2"]);
 		assert.equal(q("class-file-f2")!.getAttribute("data-flash"), "true");
 		assert.equal(q("class-file-f1")!.getAttribute("data-flash"), null);
+	});
+});
+
+describe("CopyButton", () => {
+	async function mountButton(button: React.ReactElement) {
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		await act(async () => root!.render(button));
+		return host.querySelector("button")!;
+	}
+
+	it("icon-only: no label, reads the text at click time, runs onClick, flips to a check", async () => {
+		const copied: string[] = [];
+		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
+		let source = "old";
+		let clicks = 0;
+		const button = await mountButton(<CopyButton text={() => source} icon="only" aria-label="Copy code" onClick={() => clicks++} />);
+		assert.equal(button.textContent, "", "no Copy word");
+		assert.match(button.innerHTML, /lucide-copy/);
+		source = "new";
+		await act(async () => button.click());
+		assert.deepEqual(copied, ["new"]);
+		assert.equal(clicks, 1);
+		assert.equal(button.textContent, "", "no Copied word either");
+		assert.match(button.innerHTML, /lucide-check/);
+	});
+
+	it("when the clipboard API refuses, the legacy copy path still copies", async () => {
+		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async () => Promise.reject(new Error("denied")) } } });
+		const doc = document as unknown as { execCommand?: (cmd: string) => boolean };
+		const commands: string[] = [];
+		doc.execCommand = (cmd) => (commands.push(cmd), true);
+		// linkedom's textarea has no select().
+		const proto = dom.window.HTMLElement.prototype as unknown as { select?: () => void };
+		proto.select = () => {};
+		try {
+			const button = await mountButton(<CopyButton text="hello" />);
+			await act(async () => button.click());
+			assert.deepEqual(commands, ["copy"]);
+			assert.equal(button.textContent, "Copied");
+		} finally {
+			delete doc.execCommand;
+			delete proto.select;
+		}
 	});
 });

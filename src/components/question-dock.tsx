@@ -264,7 +264,7 @@ function QuestionDockForm({
 	   1–9 pick an option, 0 = "I don't know" (quiz). ↑/↓ walk every row,
 	   clamped at the ends; Space acts on the walked row like a click; Enter
 	   submits once an answer exists. ←/→ move the confidence level. Tab
-	   toggles focus between the rows and the thinking field. Keys typed into a field keep their
+	   from the rows goes to the thinking field. Keys typed into a field keep their
 	   meaning, and modifier combos are never ours. */
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
 	const rootRef = useRef<HTMLFormElement>(null);
@@ -301,8 +301,9 @@ function QuestionDockForm({
 					t.tagName === "TEXTAREA" ||
 					t.isContentEditable);
 			const modded = e.altKey || e.metaKey || e.ctrlKey;
-			// Tab is ours only from the rows, the thinking field or nowhere; elsewhere it moves focus as usual.
-			const ownsTab = !t || t === document.body || !!t.closest?.("[data-kbdrow]") || t === thinkingRef.current;
+			// Tab is ours only from the rows or nowhere; elsewhere (the thinking
+			// field included) it moves on as usual, so Submit stays reachable.
+			const ownsTab = !t || t === document.body || !!t.closest?.("[data-kbdrow]");
 			if (rowCount > 0 && e.key === "Tab" && !e.shiftKey && !modded && ownsTab) {
 				e.preventDefault();
 				e.stopPropagation();

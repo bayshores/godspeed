@@ -530,7 +530,7 @@ describe("lessons in classes", () => {
 		const lesson = await (await chatsRoute.POST(json("/api/chats", "POST", { title: "Gone", classId: id }))).json();
 		const res = await classRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
 		assert.equal(res.status, 200);
-		assert.equal((await res.json()).lessonsRemoved, 1);
+		assert.deepEqual((await res.json()).lessonIds, [lesson.id]);
 		assert.equal(stores.chatStore.getChat(lesson.id), null);
 		assert.equal(fs.existsSync(path.join(TMP_DATA, "classes", id)), false);
 	});

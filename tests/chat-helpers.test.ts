@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { restoreUnsent, sendBlockedReason, stuckClaimMinutes } from "../src/components/lesson/chat-helpers.ts";
+import { restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "../src/components/lesson/chat-helpers.ts";
+import type { LhMessage } from "../src/core/index.ts";
 
 describe("restoreUnsent", () => {
 	it("fills an empty composer with the unsent text", () => {
@@ -33,5 +34,24 @@ describe("stuckClaimMinutes", () => {
 	});
 	it("an unreadable time is never stuck", () => {
 		assert.equal(stuckClaimMinutes("not a date", t), null);
+	});
+});
+
+describe("stuckRetry", () => {
+	const msg = (m: Record<string, unknown>) => ({ id: "m", ...m }) as unknown as LhMessage;
+	const user = (content: unknown) => msg({ role: "user", content });
+	const assistant = msg({ role: "assistant", stopReason: "toolUse", content: [] });
+	const search = msg({ role: "toolResult", toolName: "search_graph", isError: false, content: [] });
+	const answer = msg({ role: "toolResult", toolName: "quiz", isError: false, content: [] });
+	it("sends the learner's plain message again, past the turn's own replies and tool results", () => {
+		assert.deepEqual(stuckRetry([user("why?")]), { type: "text", text: "why?" });
+		assert.deepEqual(stuckRetry([user("why?"), assistant, search]), { type: "text", text: "why?" });
+		assert.deepEqual(stuckRetry([answer, user("why?"), assistant, msg({ role: "toolResult", toolName: "quiz", isError: true, content: [] })]), { type: "text", text: "why?" });
+	});
+	it("runs the turn again from the record after an answer or anything else", () => {
+		assert.deepEqual(stuckRetry([user("why?"), assistant, answer]), { type: "continue" });
+		assert.deepEqual(stuckRetry([user([{ type: "text", text: "see this" }, { type: "image" }])]), { type: "continue" }, "a message with files");
+		assert.deepEqual(stuckRetry([msg({ role: "custom", customType: "practice-thinking" })]), { type: "continue" });
+		assert.deepEqual(stuckRetry([]), { type: "continue" });
 	});
 });

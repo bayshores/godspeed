@@ -5,7 +5,8 @@
  *           (the switcher asks when you switch to the class)
  *  PUT    — { name?, description?, archived?, signature?, icon?, rules? } (signature null clears it)
  *  DELETE — the class with its lessons, copied files and graph (a linked
- *           folder on your computer is never touched)
+ *           folder on your computer is never touched); { lessonIds } names the
+ *           removed lessons so the window can drop their saved drafts
  */
 import { deleteClass, folderProblemOf, getClass, scanLinkedFolder, updateClass } from "@/server";
 import { cleanSignature, isClassIcon, isClassId, SIGNATURE_MAX } from "@/core";

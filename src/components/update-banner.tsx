@@ -19,7 +19,7 @@ export default function UpdateBanner() {
 	if ((!ready && state?.status !== "downloading") || (ready && later)) return null;
 	const name = state.version ? `godspeed ${state.version}` : "A new godspeed";
 	return (
-		<div data-testid="update-banner" role="status" className="lh-rise lh-glass fixed right-4 bottom-4 z-50 flex w-[320px] flex-col gap-3 px-4 py-3.5 font-ui">
+		<div data-testid="update-banner" role="status" className="lh-rise lh-glass flex w-[320px] flex-col gap-3 px-4 py-3.5 font-ui">
 			<div className="flex flex-col gap-1">
 				<span className="text-[15px] font-bold text-ink">{ready ? `${name} is ready` : `${name} is downloading`}</span>
 				<span className="text-sm text-ink-2">

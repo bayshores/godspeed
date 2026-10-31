@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
+import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 import type { ChatDeleteMode, ChatListItem } from "@/core";
 
 /** The graph-traces checkbox copy: the graph-touching consequence says
@@ -109,6 +110,7 @@ export function DeleteSessionDialog({
 				setBusy(false);
 				return;
 			}
+			forgetLessonDraft(chat.id);
 			onDeleted(chat.id, mode, body.graphRevision ?? 0);
 		} catch {
 			setFailure({ code: "network", error: "Delete failed: network error. Try again." });

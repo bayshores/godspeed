@@ -8,7 +8,9 @@ import React from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { describe, it } from "node:test";
+import { parseHTML } from "linkedom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TeachingSection } from "../src/components/settings/teaching-section.tsx";
 import { AppearanceSection } from "../src/components/settings/appearance-section.tsx";
@@ -148,6 +150,18 @@ describe("AppearanceSection (SSR)", () => {
 		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="true"'));
 		assert.ok(html.includes('aria-label="#b4541e"'));
 		assert.ok(!html.includes('aria-label="#f2c14e"'));
+	});
+
+	it("Tab onto a hidden color picker rings its visible tile", () => {
+		const css = fs.readFileSync("src/app/globals.css", "utf-8");
+		assert.ok(css.includes(':root[data-tab-focus] :has(> input[type="color"]:focus-visible)'), "the ring rule for a picker's tile");
+		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
+		const pickers = [...parseHTML(`<div>${html}</div>`).document.querySelectorAll('input[type="color"]')];
+		assert.equal(pickers.length, 2);
+		for (const input of pickers) {
+			assert.match(input.className, /opacity-0/, "the picker itself is invisible");
+			assert.match(input.parentElement!.className, /\bborder\b/, `${input.getAttribute("aria-label")} sits right in its tile`);
+		}
 	});
 });
 

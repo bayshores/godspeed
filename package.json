@@ -37,7 +37,7 @@
 		"@earendil-works/pi-ai": "1.4.0",
 		"@huggingface/transformers": "^4.3.2",
 		"@lezer/highlight": "^1.2.5",
-		"@modelcontextprotocol/sdk": "^1.32.2",
+		"@modelcontextprotocol/server": "^2.4.0",
 		"@mozilla/readability": "^0.6.0",
 		"@napi-rs/canvas": "^1.0.9",
 		"@replit/codemirror-vim": "^6.4.0",

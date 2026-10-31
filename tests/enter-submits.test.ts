@@ -14,10 +14,10 @@ import assert from "node:assert/strict";
 import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import { buttonKeepsNativeEnter } from "../src/components/enter-submits.ts";
-import { blurAfterPointerClick, dialogTabTarget } from "../src/components/focus-hygiene.ts";
+import { blurAfterPointerClick, dialogTabTarget, showFocusRingAfterTab } from "../src/components/focus-hygiene.ts";
 import { nextField } from "../src/components/field-cycle.ts";
 
-const { document } = parseHTML("<html><body></body></html>");
+const { document, Event } = parseHTML("<html><body></body></html>");
 
 function buttonIn(attrs: Record<string, string>): HTMLElement {
 	const host = document.createElement("div");
@@ -99,6 +99,29 @@ describe("dialogTabTarget (Tab stays inside a modal dialog)", () => {
 	});
 	it("a dialog with no controls gives nothing to focus", () => {
 		assert.equal(dialogTabTarget([], null, false, false), null);
+	});
+});
+
+describe("showFocusRingAfterTab (the keyboard focus ring)", () => {
+	const press = (type: string, key?: string) => {
+		const e = new Event(type);
+		if (key) Object.assign(e, { key });
+		document.dispatchEvent(e);
+	};
+	const on = () => document.documentElement.hasAttribute("data-tab-focus");
+	it("Tab turns the ring on; other keys don't; a pointer press turns it off", () => {
+		const stop = showFocusRingAfterTab(document);
+		press("keydown", "ArrowRight");
+		assert.equal(on(), false, "a clicked control doesn't light up at the arrow keys");
+		press("keydown", "Tab");
+		assert.equal(on(), true);
+		press("pointerdown");
+		assert.equal(on(), false);
+		press("keydown", "Tab");
+		stop();
+		assert.equal(on(), false, "the cleanup removes it");
+		press("keydown", "Tab");
+		assert.equal(on(), false, "and stops listening");
 	});
 });
 

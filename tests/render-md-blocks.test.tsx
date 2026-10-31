@@ -44,6 +44,9 @@ describe("md-blocks — code", () => {
 		// No "Copied" pill — the icon flip alone conveys the copy (owner ask,
 		// 2026-09-19; the pill was tried and removed same day).
 		assert.ok(!html.includes('data-testid="md-copy-pill"'), "no Copied pill anywhere — icon flip is the feedback");
+		const corner = /<button[^>]*data-testid="md-copy"[^>]*>(.*?)<\/button>/.exec(html)?.[1] ?? "";
+		assert.match(corner, /lucide-copy/, "the corner is the shared copy button, icon only");
+		assert.doesNotMatch(corner, />Copy</, "no Copy word in the corner");
 	});
 });
 

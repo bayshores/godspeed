@@ -348,6 +348,36 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal(danglingQuestionOf(saved2.messages), null);
 	});
 
+	it("Try again after a failed reply to an answer: continue runs again from the answer, the failed reply stays saved", async () => {
+		const { engine, calls } = scriptedTeacher((calls) => [
+			...defaultLesson(calls).slice(0, 1),
+			() => {
+				throw new Error("provider down");
+			},
+			(context) => {
+				calls.push(context.messages.map((m) => (m as { role: string }).role));
+				return fauxAssistantMessage([fauxText("Right — Mercury it is.")]);
+			},
+		]);
+		const chat = createConfiguredChat("Test: retry a failed reply");
+		createdChats.push(chat.id);
+		await drainTurn(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
+		await drainTurn(post(chat.id, { type: "answer", toolCallId: "call-1", answer: gradedAnswer(QUIZ_INPUT, ["Mercury"]) }), agentFactory(engine));
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "failed reply settle");
+		const failed = chatStore.getChat(chat.id)!.messages.at(-1) as { role?: string; stopReason?: string };
+		assert.equal(failed.role, "assistant");
+		assert.equal(failed.stopReason, "error");
+
+		await drainTurn(post(chat.id, { type: "continue" }), agentFactory(engine));
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "retry settle");
+		assert.equal(calls.at(-1)!.at(-1), "toolResult", "the retry's context ends at the learner's answer");
+		const saved = chatStore.getChat(chat.id)!.messages;
+		assert.deepEqual(
+			saved.slice(-3).map((m) => [(m as { role: string }).role, (m as { stopReason?: string }).stopReason ?? null]),
+			[["toolResult", null], ["assistant", "error"], ["assistant", "stop"]],
+		);
+	});
+
 	it("rejects unknown chats", async () => {
 		const res = await handleChatRequest(post("chat_nonexistent", { type: "text", text: "hi" }));
 		assert.equal(res.status, 404);
@@ -1143,6 +1173,39 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 
 		// Honest 409 semantics: there is nothing left to abort.
 		assert.deepEqual(abortTurn(chat.id), { ok: false, reason: "not_running" }, "second abort is not_running");
+	});
+
+	it("a stopped turn runs again with continue: the agent starts from before the stopped reply", async () => {
+		const roles: string[][] = [];
+		const faux = createFauxCore({});
+		faux.setResponses([
+			((_ctx: unknown, opts: { signal?: AbortSignal } | undefined) =>
+				new Promise((resolve) => {
+					if (opts?.signal?.aborted) return resolve(fauxAssistantMessage("late"));
+					opts?.signal?.addEventListener("abort", () => resolve(fauxAssistantMessage("late")), { once: true });
+				})) as unknown as FauxResponseStep,
+			(context) => {
+				roles.push(context.messages.map((m) => (m as { role: string }).role));
+				return fauxAssistantMessage([fauxText("Here it is.")]);
+			},
+		]);
+		const engine: PiEngine = { model: faux.getModel(), streamFn: faux.streamSimple };
+		const chat = createConfiguredChat("Test: stop and try again");
+		createdChats.push(chat.id);
+
+		const res = await handleChatRequest(post(chat.id, { type: "text", text: "wait forever" }), agentFactory(engine));
+		assert.equal(res.status, 200);
+		const viewText = new Response(runningTurn(chat.id)!.subscribe()).text();
+		assert.deepEqual(abortTurn(chat.id), { ok: true });
+		await viewText;
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "stopped turn settle");
+		assert.equal((chatStore.getChat(chat.id)!.messages.at(-1) as { stopReason?: string }).stopReason, "aborted");
+
+		await drainTurn(post(chat.id, { type: "continue" }), agentFactory(engine));
+		await waitFor(() => !isTurnRunning(chat.id), 8000, "retry settle");
+		assert.equal(roles.at(-1)!.at(-1), "user", "the retry's context ends at the learner's message");
+		const saved = chatStore.getChat(chat.id)!.messages;
+		assert.deepEqual(saved.slice(-2).map((m) => (m as { stopReason?: string }).stopReason), ["aborted", "stop"]);
 	});
 
 	it("subscribe after settle: the cheap terminal tells the client the record is current", async () => {

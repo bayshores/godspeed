@@ -40,9 +40,11 @@ describe("retryAction", () => {
 	it("resends the learner's last message after a failed reply", () => {
 		assert.deepEqual(retryAction("reply", { boxHasText: false, lastText: "why?" }), { type: "resend", text: "why?" });
 	});
+	it("runs a failed reply to an answer again", () => {
+		assert.deepEqual(retryAction("reply", { boxHasText: false, lastText: null }), { type: "continue" });
+	});
 	it("otherwise reads the lesson again", () => {
 		assert.deepEqual(retryAction("sync", { boxHasText: true, lastText: "why?" }), { type: "resync" });
 		assert.deepEqual(retryAction("send", { boxHasText: false, lastText: "why?" }), { type: "resync" });
-		assert.deepEqual(retryAction("reply", { boxHasText: false, lastText: null }), { type: "resync" });
 	});
 });

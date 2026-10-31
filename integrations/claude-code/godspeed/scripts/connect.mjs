@@ -4,7 +4,8 @@
  * to the running godspeed app (its /api/mcp endpoint), adding the access
  * token from the app's data folder (found by target.mjs). Tool calls carry
  * Claude Code's session id, so godspeed sends this session only the
- * messages it hasn't seen yet. No dependencies — Node 18+.
+ * messages it hasn't seen yet. Messages in the 2026-07-28 MCP version get
+ * the headers that version requires. No dependencies — Node 18+.
  */
 import readline from "node:readline";
 import { NO_TOKEN, target } from "./target.mjs";
@@ -21,6 +22,18 @@ function send(message) {
 function replyError(id, text) {
 	if (id === undefined || id === null) return;
 	send({ jsonrpc: "2.0", id, error: { code: -32000, message: text } });
+}
+
+/** A 2026-07-28 message (its version is in _meta) repeats its version,
+ *  method and tool name in headers; older messages send none. */
+function modernHeaders(message) {
+	const version = message?.params?._meta?.["io.modelcontextprotocol/protocolVersion"];
+	if (typeof version !== "string") return {};
+	return {
+		"mcp-protocol-version": version,
+		"mcp-method": message.method,
+		...(message.method === "tools/call" ? { "mcp-name": message.params.name } : {}),
+	};
 }
 
 async function forward(line) {
@@ -51,6 +64,7 @@ async function forward(line) {
 				"content-type": "application/json",
 				accept: "application/json, text/event-stream",
 				authorization: `Bearer ${token}`,
+				...modernHeaders(message),
 			},
 			body: JSON.stringify(message),
 			signal: controller.signal,
@@ -65,7 +79,9 @@ async function forward(line) {
 	if (!res.ok && res.status !== 202) {
 		let detail = body;
 		try {
-			detail = JSON.parse(body).error ?? body;
+			// godspeed's own refusals say { error: "..." }; MCP errors say { error: { message } }.
+			const { error } = JSON.parse(body);
+			detail = error?.message ?? error ?? body;
 		} catch {
 			/* plain text */
 		}

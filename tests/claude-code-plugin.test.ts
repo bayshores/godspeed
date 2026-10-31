@@ -15,10 +15,16 @@ after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 
 interface Seen {
 	body: Record<string, unknown>;
+	headers: http.IncomingHttpHeaders;
 	closedEarly: Promise<boolean>;
 }
 
-/** A stand-in app: `answer` returns a JSON-RPC result, or undefined to keep the request open. */
+/** An HTTP 400 with a JSON-RPC error, the way the MCP SDK refuses a request. */
+class Refusal {
+	constructor(readonly error: { code: number; message: string }) {}
+}
+
+/** A stand-in app: `answer` returns a JSON-RPC result, a Refusal, or undefined to keep the request open. */
 async function fakeApp(answer: (body: Record<string, unknown>) => unknown) {
 	const seen: Seen[] = [];
 	const server = http.createServer((req, res) => {
@@ -26,11 +32,11 @@ async function fakeApp(answer: (body: Record<string, unknown>) => unknown) {
 		req.on("data", (chunk) => (raw += chunk));
 		req.on("end", () => {
 			const body = JSON.parse(raw) as Record<string, unknown>;
-			seen.push({ body, closedEarly: new Promise((resolve) => res.on("close", () => resolve(!res.writableEnded))) });
+			seen.push({ body, headers: req.headers, closedEarly: new Promise((resolve) => res.on("close", () => resolve(!res.writableEnded))) });
 			const result = answer(body);
 			if (result === undefined) return;
-			res.writeHead(200, { "content-type": "application/json" });
-			res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result }));
+			res.writeHead(result instanceof Refusal ? 400 : 200, { "content-type": "application/json" });
+			res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, ...(result instanceof Refusal ? { error: result.error } : { result }) }));
 		});
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -96,9 +102,83 @@ describe("the MCP connector", () => {
 			app.close();
 		}
 	});
+
+	it("adds the version, method and tool name headers to modern messages only", async () => {
+		const app = await fakeApp(() => ({}));
+		const { child } = run("connect.mjs", [], app.url);
+		try {
+			const meta = { "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {} };
+			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_classes", arguments: {}, _meta: meta } })}\n`);
+			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "server/discover", params: { _meta: meta } })}\n`);
+			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_classes", arguments: {} } })}\n`);
+			await until(() => app.seen.length === 3);
+			const headers = (id: number) => {
+				const h = app.seen.find((s) => s.body.id === id)!.headers;
+				return { version: h["mcp-protocol-version"], method: h["mcp-method"], name: h["mcp-name"] };
+			};
+			assert.deepEqual(headers(1), { version: "2026-07-28", method: "tools/call", name: "list_classes" });
+			assert.deepEqual(headers(2), { version: "2026-07-28", method: "server/discover", name: undefined });
+			assert.deepEqual(headers(3), { version: undefined, method: undefined, name: undefined });
+		} finally {
+			child.kill();
+			app.close();
+		}
+	});
+
+	it("passes an MCP error's message on, not [object Object]", async () => {
+		const app = await fakeApp(() => new Refusal({ code: -32020, message: "Mcp-Method header is absent" }));
+		const { child } = run("connect.mjs", [], app.url);
+		let stdout = "";
+		child.stdout.on("data", (chunk) => (stdout += chunk));
+		try {
+			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })}\n`);
+			await until(() => stdout.includes("\n"));
+			assert.equal(JSON.parse(stdout).error.message, "godspeed refused the request (400): Mcp-Method header is absent");
+		} finally {
+			child.kill();
+			app.close();
+		}
+	});
 });
 
 describe("the background waiter", () => {
+	it("speaks the 2026-07-28 MCP version, as Claude Code, with its session id", async () => {
+		const item = { status: "work", workId: "work_3_1", messages: [] };
+		const app = await fakeApp(() => ({ content: [{ type: "text", text: JSON.stringify(item) }] }));
+		try {
+			assert.equal((await run("wait-for-work.mjs", [], app.url).exited).code, 0);
+			const [{ body, headers }] = app.seen as [Seen];
+			const meta = (body.params as { _meta: Record<string, unknown> })._meta;
+			assert.equal(meta["io.modelcontextprotocol/protocolVersion"], "2026-07-28");
+			assert.deepEqual(meta["io.modelcontextprotocol/clientCapabilities"], {});
+			assert.equal((meta["io.modelcontextprotocol/clientInfo"] as { name: string }).name, "claude-code");
+			assert.equal(meta["godspeed/agent"], "session-1");
+			assert.deepEqual([headers["mcp-protocol-version"], headers["mcp-method"], headers["mcp-name"]], ["2026-07-28", "tools/call", "wait_for_work"]);
+		} finally {
+			app.close();
+		}
+	});
+
+	it("falls back to the older shape when the app refuses the newer one", async () => {
+		const item = { status: "work", workId: "work_4_1", messages: [] };
+		const app = await fakeApp((body) => {
+			const meta = (body.params as { _meta: Record<string, unknown> })._meta;
+			return meta["io.modelcontextprotocol/protocolVersion"]
+				? new Refusal({ code: -32000, message: "Bad Request: Unsupported protocol version: 2026-07-28" })
+				: { content: [{ type: "text", text: JSON.stringify(item) }] };
+		});
+		try {
+			const { code, stdout } = await run("wait-for-work.mjs", [], app.url).exited;
+			assert.equal(code, 0);
+			assert.deepEqual(JSON.parse(stdout), item);
+			assert.equal(app.seen.length, 2);
+			assert.deepEqual((app.seen[1]!.body.params as { _meta: unknown })._meta, { "godspeed/agent": "session-1" });
+			assert.equal(app.seen[1]!.headers["mcp-protocol-version"], undefined);
+		} finally {
+			app.close();
+		}
+	});
+
 	it("waits for any work when the lesson it stayed on was deleted", async () => {
 		const item = { status: "work", workId: "work_1_1", messages: [] };
 		const app = await fakeApp((body) => {

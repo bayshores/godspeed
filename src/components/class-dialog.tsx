@@ -22,6 +22,7 @@ import { jsonInit, send, useClassRecord } from "@/components/files/class-files-a
 import type { ClassDeadline, ClassIcon, ClassRecord, ClassSignature, SignatureKind } from "@/core";
 import { ClassSignatureField } from "@/components/class-signature-field";
 import { ClassIconField } from "@/components/class-icon-field";
+import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 
 /** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
 export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
@@ -385,8 +386,9 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								data-testid="class-delete-confirm-button"
 								disabled={busy}
 								onClick={() =>
-									void call(`/api/classes/${record.id}`, { method: "DELETE" }).then((ok) => {
-										if (ok) {
+									void call(`/api/classes/${record.id}`, { method: "DELETE" }).then((body) => {
+										if (body) {
+											for (const id of (body as { lessonIds: string[] }).lessonIds) forgetLessonDraft(id);
 											if (record.id === active) setActive(null);
 											onClose();
 										}

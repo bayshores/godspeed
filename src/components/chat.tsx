@@ -32,7 +32,7 @@ import {
 	type LhMessage,
 	type QuestionAnswerData,
 } from "@/core";
-import { escAbortTarget, initialPromptOwed, restoreUnsent, sendBlockedReason, stuckClaimMinutes } from "@/components/lesson/chat-helpers";
+import { escAbortTarget, initialPromptOwed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/components/lesson/chat-helpers";
 import { holdsDraft } from "@/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/components/lesson/use-lesson-drafts";
@@ -165,6 +165,18 @@ export function Chat({
 			/* transient — the turn settles on its own */
 		});
 	}, [chatId, stop, localStreamRef]);
+
+	// The stuck-turn line stops the turn and runs it again at once (its
+	// wording is the confirmation); send() waits until the stopped turn ends.
+	// The line hides at once, so a double click can't stop the new turn too.
+	const [retriedClaim, setRetriedClaim] = useState<string>();
+	const stuck = stuckMinutes !== null && claimedAt !== retriedClaim ? stuckRetry(nativeMessages) : null;
+	const stopAndRetry = () => {
+		if (!stuck) return;
+		setRetriedClaim(claimedAt);
+		abortInFlightTurn();
+		void send(stuck);
+	};
 
 	// The phase at every message (the teach seam) and the current phase.
 	const phases = useMemo(() => phaseTimeline(messages), [messages]);
@@ -421,13 +433,14 @@ export function Chat({
 		[chatId, syncFromServer, send, steer, sendBlocked],
 	);
 
-	// The error banner's Try again: send again what didn't go through, or
-	// read the lesson again (and attach to a running reply).
+	// The error banner's Try again: send again what didn't go through, run a
+	// failed reply again, or read the lesson again (and attach to a running reply).
 	const retry = () => {
 		if (!error) return;
 		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(nativeMessages) });
 		if (action.type === "send-box") onSend();
 		else if (action.type === "resend") void send({ type: "text", text: action.text });
+		else if (action.type === "continue") void send({ type: "continue" });
 		else {
 			clearError();
 			resumeStream();
@@ -498,11 +511,11 @@ export function Chat({
 										attachments,
 										waitingForAgent,
 										notice:
-											stuckMinutes !== null ? (
+											stuck ? (
 												<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
 													Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
-													<button type="button" data-testid="turn-stuck-stop" onClick={() => setAbortAsk("turn")} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
-														Stop and send again?
+													<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
+														{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
 													</button>
 												</p>
 											) : undefined,

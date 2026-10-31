@@ -23,7 +23,7 @@
  */
 
 import { cloneElement, isValidElement, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
-import { CheckIcon, CopyIcon, MaximizeIcon } from "lucide-react";
+import { MaximizeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
 	CodeBlock,
@@ -35,46 +35,18 @@ import type { ExtraProps } from "streamdown";
 import { MERMAID_FONT_SIZE, renderMermaid } from "@/components/mermaid-render";
 import { MermaidError } from "@/components/mermaid-error";
 import { blurAfterPointerClick } from "@/components/focus-hygiene";
+import { CopyButton } from "@/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/components/session-overlay";
 import { Hint } from "@/components/ui/hint";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
-
-/** Clipboard write with a fallback: navigator.clipboard needs the
- *  `clipboard-sanitized-write` permission, which Electron's deny-by-default
- *  handler (electron/main.cjs) must grant from the loopback origin — and
- *  browsers with a stale/absent API reject too. The hidden-textarea
- *  execCommand path is the fallback: a failed write would otherwise be a
- *  silent no-op. Returns whether the copy landed. */
-async function copyText(text: string): Promise<boolean> {
-	try {
-		await navigator.clipboard.writeText(text);
-		return true;
-	} catch {
-		/* fall through to the legacy path */
-	}
-	try {
-		const ta = document.createElement("textarea");
-		ta.value = text;
-		ta.setAttribute("readonly", "");
-		ta.style.position = "fixed";
-		ta.style.opacity = "0";
-		document.body.appendChild(ta);
-		ta.select();
-		const ok = document.execCommand("copy");
-		ta.remove();
-		return ok;
-	} catch {
-		return false;
-	}
-}
 
 /** A small muted copy icon for a block's top-right corner. The CONSUMER'S
  *  wrapper carries `group/md relative` (a NAMED group — the message container
  *  is also a `group`, and an unnamed group-hover would light EVERY corner in
  *  the message at once) and positions this via className; the icon
  *  self-hides until hover (opacity-0 → group-hover/md:opacity-100). Copies
- *  getText() on click; the icon flips to a check for a beat. */
+ *  getText() on click. */
 function CopyCorner({
 	getText,
 	label,
@@ -84,29 +56,16 @@ function CopyCorner({
 	label: string;
 	className?: string;
 }) {
-	const [copied, setCopied] = useState(false);
-	const timerRef = useRef<number | undefined>(undefined);
-	useEffect(() => () => window.clearTimeout(timerRef.current), []);
 	return (
 		<span className={cn("relative inline-flex", className)}>
-			<button
-				type="button"
+			<CopyButton
+				text={getText}
+				icon="only"
 				aria-label={label}
 				data-testid="md-copy"
 				className="lh-press flex size-6 items-center justify-center text-muted-foreground/70 opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
-				onClick={(e) => {
-					blurAfterPointerClick(e);
-					void copyText(getText()).then((ok) => {
-						if (!ok) return;
-						setCopied(true);
-						window.clearTimeout(timerRef.current);
-						timerRef.current = window.setTimeout(() => setCopied(false), 1500);
-					});
-				}}
-			>
-				{/* The copied check settles in. */}
-				{copied ? <CheckIcon className="size-3.5 motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]" /> : <CopyIcon className="size-3.5" />}
-			</button>
+				onClick={blurAfterPointerClick}
+			/>
 		</span>
 	);
 }

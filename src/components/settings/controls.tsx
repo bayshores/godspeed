@@ -76,7 +76,7 @@ export function SettingsRow({
 			<span className="min-w-0">
 				{tip ? (
 					<Tip title={label} body={<span className="text-xs text-ink-2">{tip}</span>} side="top" align="start" className="max-w-80">
-						<span tabIndex={0} className="block w-fit cursor-default text-[14.5px] text-ink outline-none focus-visible:underline focus-visible:underline-offset-4">
+						<span tabIndex={0} className="block w-fit cursor-default text-[14.5px] text-ink">
 							{label}
 						</span>
 					</Tip>
@@ -266,4 +266,4 @@ export function CommitInput({
 }
 /** The settings' small outlined button ("Copy", "New token"). */
 export const OUTLINE_BUTTON =
-	"lh-press shrink-0 px-2.5 py-[5px] text-[13px] font-bold text-ink border border-tone-2 hover:bg-tone-2 focus-visible:border-ink-3 disabled:opacity-50";
+	"lh-press shrink-0 px-2.5 py-[5px] text-[13px] font-bold text-ink border border-tone-2 hover:bg-tone-2 disabled:opacity-50";
