@@ -15,6 +15,15 @@ export interface ProbeDoneContext {
 	deliver: (steer: SteerMessage) => void;
 }
 
+/** This turn's probe state. The stored record only updates when the turn
+ *  ends (persistTurn), so it can't see a question or a probe_done from
+ *  earlier in the same turn. One per createProberTools call (the agent is
+ *  built per request), so nothing leaks across turns. */
+export interface ProbeTurnGate {
+	questionPosed: boolean;
+	concluded: boolean;
+}
+
 /**
  * probe_done — the probe→planning seam.
  *
@@ -38,7 +47,7 @@ export interface ProbeDoneContext {
  * construction seam: from that message on, every request builds the
  * TEACHER agent. A refusal concludes nothing, so the prober can retry.
  */
-export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<any>> {
+export function probeDoneTool(ctx: ProbeDoneContext, gate: ProbeTurnGate): Record<string, AgentTool<any>> {
 	return {
 		probe_done: {
 			name: "probe_done",
@@ -58,7 +67,7 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 				const record = ctx.chatStore.getChat(ctx.chatId);
 				if (!record) return { ok: false, error: `Chat not found: ${ctx.chatId}` };
 
-				if (danglingQuestionOf(record.messages) !== null) {
+				if (gate.questionPosed || danglingQuestionOf(record.messages) !== null) {
 					return {
 						ok: false,
 						error:
@@ -66,9 +75,10 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 							"probe_done only fires with no question outstanding.",
 					};
 				}
-				if (hasProbeDone(record.messages)) {
+				if (gate.concluded || hasProbeDone(record.messages)) {
 					return { ok: false, error: "The probe is already concluded — probe_done fires exactly once." };
 				}
+				gate.concluded = true;
 				try {
 					ctx.deliver(buildProbeHandoffSteer(ctx.chatId));
 				} catch (err) {
