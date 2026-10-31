@@ -843,7 +843,7 @@ describe("truncated stream recovery", () => {
 
 describe("automatic continuation after recovery failure", () => {
 	const question = { ...assistantMsg("question", ""), content: [{ type: "toolCall", id: "q1", name: "quiz", arguments: { question: "Q?" } }] } as LhMessage;
-	const answer = buildAnswer({ id: "q1", kind: "quiz", question: "Q?", mode: "single-select", options: [], createdAt: "fixture" }, { dontKnow: true });
+	const answer = buildAnswer({ kind: "quiz", question: "Q?", mode: "single-select", options: [] }, { dontKnow: true });
 	const answered = [question, newAnswerResult("q1", "quiz", answer)];
 
 	it("a retained failure seeds the banner and blocks continuation even after banner dismissal", async () => {
@@ -892,7 +892,7 @@ describe("answer submission recovery", () => {
 		...assistantMsg("question", "Q?"),
 		content: [{ type: "toolCall", id: "q1", name: "quiz", arguments: { question: "Q?" } }],
 	} as LhMessage;
-	const answer = buildAnswer({ id: "q1", kind: "quiz", question: "Q?", mode: "single-select", options: [], createdAt: "fixture" }, { dontKnow: true, thinking: "keep my reasoning" });
+	const answer = buildAnswer({ kind: "quiz", question: "Q?", mode: "single-select", options: [] }, { dontKnow: true, thinking: "keep my reasoning" });
 
 	it("restores the question after a failed POST and checks the record before another POST", async () => {
 		const calls: string[] = [];
@@ -1599,7 +1599,6 @@ describe("pendingCallTool", () => {
 describe("newAnswerResult two audiences", () => {
 	it("MODEL sees the compact learner-only record; details keeps the FULL graded answer", () => {
 		const qd: QuestionData = {
-			id: "call-1",
 			kind: "quiz",
 			question: "Which planet is closest to the Sun?",
 			mode: "single-select",
@@ -1609,7 +1608,6 @@ describe("newAnswerResult two audiences", () => {
 			],
 			correctIndices: [1],
 			explanation: "Mercury orbits closest.",
-			createdAt: "2026-01-01T00:00:00Z",
 		};
 		const full = buildAnswer(qd, { values: ["mercury"], confidence: 70, thinking: "guessed" });
 		const msg = newAnswerResult("call-1", "quiz", full);

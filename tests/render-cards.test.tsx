@@ -41,26 +41,22 @@ const quizInput = {
 function quizQD(): QuestionData {
 	const options = normalizeOptions(quizInput.options);
 	return {
-		id: "q1",
 		kind: "quiz",
 		question: quizInput.question,
 		mode: "single-select",
 		options,
 		correctIndices: resolveCorrect(quizInput.correctAnswer, options).indices,
 		explanation: quizInput.explanation,
-		createdAt: new Date().toISOString(),
 	};
 }
 
 function askQD(): QuestionData {
 	const options = normalizeOptions([{ label: "Very" }, { label: "Somewhat" }]);
 	return {
-		id: "a1",
 		kind: "ask",
 		question: "How confident are you?",
 		mode: "single-select",
 		options,
-		createdAt: new Date().toISOString(),
 	};
 }
 
@@ -324,12 +320,10 @@ describe("render smoke tests", () => {
 
 	it("AnsweredCard does NOT grade ask answers", () => {
 		const qd: QuestionData = {
-			id: "a1",
 			kind: "ask",
 			question: "How confident are you?",
 			mode: "single-select",
 			options: normalizeOptions([{ label: "Very" }, { label: "Somewhat" }]),
-			createdAt: new Date().toISOString(),
 		};
 		const answer = buildAnswer(qd, { values: ["Somewhat"] });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
@@ -387,14 +381,12 @@ describe("math rendering (streamdown + KaTeX)", () => {
 
 		const options = normalizeOptions(mathQuiz.options);
 		const qd: QuestionData = {
-			id: "m1",
 			kind: "quiz",
 			question: mathQuiz.question,
 			mode: "single-select",
 			options,
 			correctIndices: resolveCorrect(mathQuiz.correctAnswer, options).indices,
 			explanation: mathQuiz.explanation,
-			createdAt: new Date().toISOString(),
 		};
 		const answeredHtml = renderToStaticMarkup(
 			<AnsweredCard answer={buildAnswer(qd, { values: ["$2x$"] })} />,
@@ -475,13 +467,11 @@ describe("probe-done card", () => {
 
 describe("AnsweredCard: the explain variant", () => {
 	const explainQD = (): QuestionData => ({
-		id: "e1",
 		kind: "explain",
 		question: "Explain why the null result matters.",
 		mode: "text",
 		options: [],
 		committedAnswer: "It ruled out the luminiferous aether — a stationary aether predicts a fringe shift, and none was seen.",
-		createdAt: new Date().toISOString(),
 	});
 
 	it("reveals the single committed answer (reasoning inside it) with NO verdict chips", () => {
@@ -522,7 +512,6 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 
 	it("an answered probe labels Warm-up — the phase boundary visible in the transcript", () => {
 		const qd: QuestionData = {
-			id: "p2",
 			kind: "quiz",
 			question: "Which planet is closest to the sun?",
 			mode: "single-select",
@@ -530,7 +519,6 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 			correctIndices: [1],
 			committedAnswer: "Mercury — closest orbit.",
 			explanation: "Mercury, always Mercury.",
-			createdAt: new Date().toISOString(),
 		};
 		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: ["mercury"] }, "probe")} />);
 		assert.match(html, /Warm-up/);
@@ -539,13 +527,11 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 
 	it("an answered recall labels Recall", () => {
 		const recallQD: QuestionData = {
-			id: "r2",
 			kind: "explain",
 			question: "Explain why the null result matters.",
 			mode: "text",
 			options: [],
 			committedAnswer: "It ruled out the luminiferous aether.",
-			createdAt: new Date().toISOString(),
 		};
 		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(recallQD, { text: "A hand-wave." }, "recall")} />);
 		assert.match(html, /Recall/);
@@ -554,13 +540,11 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 
 	it("old records (no tool) keep the kind labels", () => {
 		const oldQD: QuestionData = {
-			id: "o2",
 			kind: "explain",
 			question: "Explain why the null result matters.",
 			mode: "text",
 			options: [],
 			committedAnswer: "It ruled out the luminiferous aether.",
-			createdAt: new Date().toISOString(),
 		};
 		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(oldQD, { text: "A hand-wave." })} />);
 		assert.match(html, /Explain/, "no tool field → the standing kind label");
@@ -680,12 +664,10 @@ describe("question context renders as markdown everywhere (owner, 2026-10-12)", 
 			],
 		};
 		const qd: QuestionData = {
-			id: "d2",
 			kind: "ask",
 			question: input.question,
 			mode: "single-select",
 			options: normalizeOptions(input.options),
-			createdAt: new Date().toISOString(),
 		};
 		const answer = buildAnswer(qd, { values: ["Classical"] });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={input} defaultOpen />);
@@ -708,14 +690,12 @@ describe("question context renders as markdown everywhere (owner, 2026-10-12)", 
 		};
 		const options = normalizeOptions(input.options);
 		const qd: QuestionData = {
-			id: "d3",
 			kind: "quiz",
 			question: input.question,
 			mode: "single-select",
 			options,
 			correctIndices: resolveCorrect(input.correctAnswer, options).indices,
 			explanation: input.explanation,
-			createdAt: new Date().toISOString(),
 		};
 		const answer = buildAnswer(qd, { values: ["a"] });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={input} defaultOpen />);

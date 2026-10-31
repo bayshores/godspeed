@@ -107,14 +107,12 @@ function agentFactory(engine: PiEngine): Parameters<typeof handleChatRequest>[1]
 function gradedAnswer(input: typeof QUIZ_INPUT, values: string[]) {
 	const options = normalizeOptions(input.options);
 	const qd: QuestionData = {
-		id: "call-1",
 		kind: "quiz",
 		question: input.question,
 		mode: "single-select",
 		options,
 		correctIndices: resolveCorrect(input.correctAnswer, options).indices,
 		explanation: input.explanation,
-		createdAt: new Date().toISOString(),
 	};
 	return buildAnswer(qd, { values });
 }
@@ -1308,13 +1306,11 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 
 	// The client answers in his own words (the dock's buildAnswer seam):
 	const qd: QuestionData = {
-		id: "call-1",
 		kind: "explain",
 		question: EXPLAIN_INPUT.question,
 		mode: "text",
 		options: [],
 		committedAnswer: EXPLAIN_INPUT.correctAnswer,
-		createdAt: new Date().toISOString(),
 	};
 	const answer = buildAnswer(qd, { text: "It stays near the Sun." });
 	assert.equal(answer.correct, undefined, "no client grading — the model grades");

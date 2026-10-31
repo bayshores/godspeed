@@ -187,14 +187,12 @@ function QuestionDockForm({
 		const options = normalizeOptions((quizInput?.options ?? askInput?.options ?? []) as { label: string; value?: string }[]);
 		const ordered = kind === "quiz" && options.length > 0 ? shuffleOptions(options, seededRandom(toolCallId)) : options;
 		const q: QuestionData = {
-			id: toolCallId,
 			kind,
 			questionType: kind === "quiz" ? normalizeQuizType((input as { type?: unknown }).type) : undefined,
 			question: input.question,
 			context: input.details,
 			mode,
 			options: ordered,
-			createdAt: new Date().toISOString(),
 		};
 		if (quizInput) {
 			const resolved = resolveCorrect(quizInput.correctAnswer, ordered);

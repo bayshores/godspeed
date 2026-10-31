@@ -315,14 +315,12 @@ describe("exact answer membership precedes debris cleanup", () => {
 		const resolved = resolveCorrect(parsed.correctAnswer, options);
 		assert.deepEqual(resolved, { indices: [1] });
 		const qd: QuestionData = {
-			id: "calculus-period",
 			kind: "quiz",
 			question: parsed.question,
 			mode: "single-select",
 			options,
 			correctIndices: resolved.indices,
 			explanation: parsed.explanation,
-			createdAt: "2026-10-12T00:00:00Z",
 		};
 		assert.equal(buildAnswer(qd, { values: [correct] }).correct, true);
 		assert.equal(buildAnswer(qd, { values: [input.options[0]!.label] }).correct, false);
@@ -407,7 +405,6 @@ describe("isCorrect", () => {
 
 function quizData(overrides?: Partial<QuestionData>): QuestionData {
 	return {
-		id: "q_test",
 		kind: "quiz",
 		question: "Which planet is closest to the Sun?",
 		mode: "single-select",
@@ -417,7 +414,6 @@ function quizData(overrides?: Partial<QuestionData>): QuestionData {
 		]),
 		correctIndices: [1],
 		explanation: "Mercury orbits closest.",
-		createdAt: "2026-01-01T00:00:00Z",
 		...overrides,
 	};
 }
@@ -681,13 +677,11 @@ describe("explainInputBase / explainInputProblems (the commitment contract)", ()
 
 describe("buildAnswer / formatAnswerMessage: explain", () => {
 	const explainQD = (overrides?: Partial<QuestionData>): QuestionData => ({
-		id: "e1",
 		kind: "explain",
 		question: "Why does the Michelson-Morley null result matter?",
 		mode: "text",
 		options: [],
 		committedAnswer: "It ruled out the luminiferous aether — a stationary aether would produce a fringe shift, none was observed — and set up special relativity.",
-		createdAt: new Date().toISOString(),
 		...overrides,
 	});
 
@@ -782,14 +776,12 @@ describe("the quiz role field (predict | check)", () => {
 	function quizQd(): QuestionData {
 		const options = normalizeOptions(valid.options);
 		return {
-			id: "q1",
 			kind: "quiz",
 			question: valid.question,
 			mode: "single-select",
 			options,
 			correctIndices: resolveCorrect(valid.correctAnswer, options).indices,
 			explanation: valid.explanation,
-			createdAt: new Date().toISOString(),
 		};
 	}
 
