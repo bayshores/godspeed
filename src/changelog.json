@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.9",
+		"date": "2026-10-31",
+		"changes": [
+			"Lots of small fixes all over the app, about 150 of them. Most you will never notice, but a few you might.",
+			"Stop now works during the very first reply of a lesson, and a lesson no longer gets stuck if a turn fails right after you dismiss a question.",
+			"Turning the knowledge graph back on in Settings starts the class files that were waiting, without a restart.",
+			"Due soon in the sidebar moves on to the next day after midnight.",
+			"Codex stops refusing to start when an old godspeed entry is left in its settings, and the copied start command works for home folders with unusual characters.",
+			"Figures, demos and PDF readings fail less often for no good reason, and your teacher handles binary and very large files more carefully."
+		]
+	},
+	{
 		"version": "0.5.8",
 		"date": "2026-10-31",
 		"changes": [
