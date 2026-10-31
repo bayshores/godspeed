@@ -176,13 +176,13 @@ export function SettingsDialogBody({
 	useEffect(() => {
 		if (state === "closed") return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape" && !e.defaultPrevented) {
-				// Claimed at the document level so the window's Esc
-				// (abort) does not also act: one Esc, one action.
-				e.preventDefault();
-				e.stopPropagation();
-				onClose();
-			}
+			if (e.key !== "Escape") return;
+			// A tooltip also prevents Escape, so only a field's counts as used.
+			const fieldUsed = e.defaultPrevented && e.target instanceof HTMLInputElement;
+			// Always claimed, so the window's Esc (abort) never also acts.
+			e.preventDefault();
+			e.stopPropagation();
+			if (!fieldUsed) onClose();
 		};
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);

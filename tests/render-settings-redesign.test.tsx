@@ -22,6 +22,7 @@ Object.assign(globalThis, {
 	document: dom.document,
 	Element: dom.window.Element,
 	HTMLElement: dom.window.HTMLElement,
+	HTMLInputElement: dom.window.HTMLInputElement,
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
 	// The agent menu (MenuShell) places itself on the next frame.
@@ -123,11 +124,36 @@ describe("settings restyle", () => {
 		assert.equal(fieldEscape.defaultPrevented, true, "the field claims its Escape");
 		const used = escape();
 		used.preventDefault();
-		await act(async () => document.dispatchEvent(used));
+		await act(async () => input.dispatchEvent(used));
 		assert.equal(closes, 0, "an Escape a field used does not close Settings");
 		assert.deepEqual(puts, [], "the dropped edit is not saved");
 		await act(async () => document.body.dispatchEvent(escape()));
 		assert.equal(closes, 1, "a plain Escape closes Settings");
+	});
+
+	it("Escape while a tooltip shows closes Settings and never reaches the window's abort", async () => {
+		globalThis.fetch = (async () => Response.json({ settings: { version: 1 } })) as typeof fetch;
+		// An open Radix tooltip prevents Escape in a document capture listener
+		// (added first: linkedom runs capture listeners in the bubble pass).
+		const tooltip = (e: KeyboardEvent) => {
+			if (e.key === "Escape") e.preventDefault();
+		};
+		let windowSaw = 0;
+		const onWindow = () => windowSaw++;
+		document.addEventListener("keydown", tooltip, true);
+		window.addEventListener("keydown", onWindow);
+		let closes = 0;
+		try {
+			await mount(<SettingsDialogBody initialSection="general" onClose={() => closes++} />);
+			const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
+			Object.defineProperty(e, "key", { value: "Escape" });
+			await act(async () => document.body.dispatchEvent(e));
+		} finally {
+			document.removeEventListener("keydown", tooltip, true);
+			window.removeEventListener("keydown", onWindow);
+		}
+		assert.equal(closes, 1, "one Escape closes Settings");
+		assert.equal(windowSaw, 0, "the window's Esc (abort the turn) never sees it");
 	});
 
 	it("Connection: Access, the token masked, connection status, and the button that opens your agent", async () => {
