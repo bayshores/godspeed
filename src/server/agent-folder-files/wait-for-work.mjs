@@ -33,6 +33,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { NO_TOKEN, target } from "./target.mjs";
 
 const args = process.argv.slice(2);
@@ -59,7 +60,7 @@ const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif"
 function saveImages(content, workId) {
 	const blocks = (content ?? []).filter((c) => c?.type === "image" && typeof c.data === "string");
 	if (!blocks.length) return [];
-	const dir = path.join(import.meta.dirname, "images");
+	const dir = fileURLToPath(new URL("./images/", import.meta.url));
 	fs.mkdirSync(dir, { recursive: true });
 	return blocks.map((block, i) => {
 		const file = path.join(dir, `${String(workId).replace(/[^\w-]/g, "")}-${i + 1}.${EXTENSIONS[block.mimeType] ?? "png"}`);
