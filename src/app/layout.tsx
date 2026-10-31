@@ -11,8 +11,8 @@ import UpdateBanner from "@/components/update-banner";
 import { ClassProvider } from "@/components/class-context";
 import { SoundProvider } from "@/components/sounds";
 // The light server door — the @/server barrel would load the whole server
-// (agent engine, MCP, extraction) just for these two render-time reads.
-import { firstLoadScreen, folderNoticeAgent, onboardingNeeded, readSettingsRecord, refreshAgentFolder, whatsNewSince } from "@/server/settings-read";
+// (agent engine, MCP, extraction) just for these render-time reads.
+import { classStore, firstLoadScreen, folderNoticeAgent, onboardingNeeded, readSettingsRecord, refreshAgentFolder, whatsNewSince } from "@/server/settings-read";
 import { Onboarding } from "@/components/onboarding/onboarding";
 import { RestartNotice } from "@/components/restart-notice";
 import { NoticeStack } from "@/components/notice-stack";
@@ -75,7 +75,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	try {
 		const general = readSettingsRecord()?.general;
 		const raw = general?.activeClass;
-		initialActive = raw && raw !== "none" ? raw : null;
+		// A class deleted behind the app's back falls back to No class.
+		initialActive = raw && raw !== "none" && classStore.getClass(raw) ? raw : null;
 		teacherName = general?.teacherName;
 		soundsOn = general?.sounds !== false;
 	} catch {
