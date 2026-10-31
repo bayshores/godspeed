@@ -6,10 +6,10 @@ import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
 import { forgetConversation, labelConversation } from "../agent-bridge.ts";
 
 /**
- * The shared sub-agent runner: one helper every
- * background agent (researcher, demo-builder, visual-maker, extractor,
- * topic grouper) runs on — a stateless pi Agent built per call, driven to
- * completion, with the seams the job runner and usage reporting need.
+ * The shared sub-agent runner: the researcher, demo-builder, extractor and
+ * topic grouper (via submit-agent) and the compaction summarizer run on it —
+ * a stateless pi Agent built per call, driven to completion, with the seams
+ * the job runner and usage reporting need.
  *
  * Provider/loop failures THROW (pi encodes them in the stream; this helper
  * surfaces them), and an abort throws an AbortError so callers'
@@ -20,10 +20,7 @@ interface SubagentRunOptions {
 	/** The runner's or a test's engine; without one, the outside agent runs it. */
 	engine?: PiEngine;
 	systemPrompt: string;
-	/** Initial transcript (continuation semantics: ends user / toolResult). */
-	messages?: AgentMessage[];
-	/** Fresh-run prompt text (mutually exclusive with a continuation). */
-	prompt?: string;
+	prompt: string;
 	/** Max model calls (a safety net). */
 	maxTurns: number;
 	/** Abort mid-model-call (the real-kill semantics). */
@@ -75,7 +72,7 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 			systemPrompt: opts.systemPrompt,
 			model: engine.model,
 			tools,
-			messages: opts.messages ?? [],
+			messages: [],
 		},
 		streamFn: engine.streamFn,
 		// "end" exits before the steering poll.
@@ -90,7 +87,6 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 	const onAbort = () => agent.abort();
 	opts.abortSignal?.addEventListener("abort", onAbort, { once: true });
 
-	const before = opts.messages?.length ?? 0;
 	let step = 0;
 	let errorMessage: string | undefined;
 	let aborted = false;
@@ -118,12 +114,7 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 					break;
 			}
 		});
-		if (opts.prompt !== undefined) await agent.prompt({
-			role: "user",
-			content: opts.prompt,
-			timestamp: Date.now(),
-		});
-		else await agent.continue();
+		await agent.prompt({ role: "user", content: opts.prompt, timestamp: Date.now() });
 	} finally {
 		opts.abortSignal?.removeEventListener("abort", onAbort);
 		forgetConversation(sessionId);
@@ -136,12 +127,8 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 	}
 	if (errorMessage !== undefined) throw new Error(errorMessage);
 
-	// Drop the seeded leading SystemMessage before slicing past the input
-	// count, or the seed displaces the slice and the last INPUT message
-	// leaks in.
-	const newMessages = agent.state.messages
-		.filter((m) => (m as { role?: string }).role !== "system")
-		.slice(before);
+	// Drop the seeded leading SystemMessage.
+	const newMessages = agent.state.messages.filter((m) => (m as { role?: string }).role !== "system");
 	const assistants = newMessages.filter((m) => (m as { role?: string }).role === "assistant") as AssistantMessage[];
 	const last = assistants[assistants.length - 1];
 	const text = last
