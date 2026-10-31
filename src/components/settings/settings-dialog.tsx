@@ -164,8 +164,10 @@ export function SettingsDialogBody({
 		fetch("/api/settings")
 			.then((r) => (r.ok ? r.json() : null))
 			.then((body: { settings: UserSettings | null } | null) => {
-				const agent = body?.settings?.agent;
-				setRecord((prev) => (prev ? { ...prev, agent } : prev));
+				// A failed read keeps the record: writes rebuild the section from it.
+				const settings = body?.settings;
+				if (!settings) return;
+				setRecord((prev) => (prev ? { ...prev, agent: settings.agent } : prev));
 			})
 			.catch(() => {});
 	});
