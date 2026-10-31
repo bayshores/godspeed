@@ -1,5 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { MaximizeIcon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
+import { useEffect, useId, useMemo } from "react";
+import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 // The placement engine is mermaid's own: dagre-d3-es, the fork mermaid 11
 // ships with. The deep subpath is how mermaid itself imports it.
@@ -8,7 +8,7 @@ import { layout as dagreLayout } from "dagre-d3-es/src/dagre/index.js";
 // Mermaid's default flowchart edge curve: dagre's waypoints drawn through
 // d3's curveBasis (the exact recipe dagre-d3's own renderer uses).
 import { curveBasis, line } from "d3-shape";
-import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/components/pan-zoom";
+import { usePanZoomViewport, ZoomControls } from "@/components/pan-zoom-viewport";
 import type { PlanBlockData, PlanNodeStatus } from "@/core";
 import { derivedNodeStatus, derivePlanStatuses } from "@/core";
 import { Hint } from "@/components/ui/hint";
@@ -632,10 +632,6 @@ export { type PopupMessage } from "@/components/plan-latest";
  *  the in-chat block (monochrome, no glow) stays tight at GRAPH_PAD. */
 const POPUP_PAD = GLOW_REACH;
 
-// The pan/zoom math lives in pan-zoom.ts, shared with the mermaid focus
-// overlay: fully zoomed out IS the fit, panning locks at the floor, zoom
-// ceiling 4× for reading node titles closely.
-
 /**
  * The full plan, live: latest tree + statuses derived at click time. Esc,
  * backdrop click, or the X close it; drag pans, wheel zooms to the cursor,
@@ -680,17 +676,6 @@ export function PlanPopup({
 		return () => document.removeEventListener("keydown", onKey);
 	}, [onClose]);
 
-	// ── pan/zoom viewport (harvested semantics: fit floor = the default) ──
-	const viewportRef = useRef<HTMLDivElement>(null);
-	const [size, setSize] = useState({ w: 0, h: 0 });
-	useEffect(() => {
-		const el = viewportRef.current;
-		if (!el || typeof ResizeObserver === "undefined") return;
-		const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
-		ro.observe(el);
-		return () => ro.disconnect();
-	}, []);
-
 	const layout = useMemo(() => (tree ? blockLayout(tree.nodes, tree.edges) : null), [tree]);
 	// The fit box is the PADDED ink box — the diagram renders with POPUP_PAD
 	// (= the glow's reach) so the blurred glow never clips at the frame, and
@@ -699,86 +684,7 @@ export function PlanPopup({
 		() => (layout ? { w: layout.width + 2 * POPUP_PAD, h: layout.height + 2 * POPUP_PAD } : { w: 0, h: 0 }),
 		[layout],
 	);
-	const fitZoom = useMemo(() => fitZoomFor(box, size), [box, size]);
-
-	const [view, setView] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
-	const userAdjustedRef = useRef(false);
-	const atFloor = view.zoom <= fitZoom + 1e-9;
-	// The transition stays off until the FIRST fit has been applied — the
-	// popup paints at the fit directly instead of flying in from the initial
-	// top-left zoom:1 state.
-	const [settled, setSettled] = useState(false);
-
-	useEffect(() => {
-		if (atFloor) userAdjustedRef.current = false;
-	}, [atFloor]);
-	useEffect(() => {
-		if (userAdjustedRef.current || !size.w || !size.h) return;
-		setView(fitGraphView(box, size, fitZoom));
-		// Enable the transition only AFTER the fit has painted: flipping
-		// settled in the SAME commit lets the browser animate from the
-		// initial top-left zoom:1 state (a visible fly-in).
-		const raf = requestAnimationFrame(() => setSettled(true));
-		return () => cancelAnimationFrame(raf);
-	}, [fitZoom, size, box]);
-
-	useEffect(() => {
-		const el = viewportRef.current;
-		if (!el) return;
-		const onWheel = (e: WheelEvent) => {
-			e.preventDefault();
-			const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-			const factor = Math.exp(-dy * 0.0015);
-			const rect = el.getBoundingClientRect();
-			setView((v) =>
-				zoomedGraphView(v, factor, fitZoom, { x: e.clientX - rect.left, y: e.clientY - rect.top }, box, size),
-			);
-			userAdjustedRef.current = true;
-		};
-		el.addEventListener("wheel", onWheel, { passive: false });
-		return () => el.removeEventListener("wheel", onWheel);
-	}, [fitZoom, box, size]);
-
-	// Smooth zoom: the transform eases between states (CSS retargets from the
-	// current computed value, so chained wheel ticks stay fluid). Panning is
-	// per-frame — the transition is off while dragging or it rubber-bands.
-	const [panning, setPanning] = useState(false);
-	const dragRef = useRef<{ px: number; py: number; x: number; y: number; moved: boolean } | null>(null);
-	const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-		if (e.button !== 0) return;
-		if ((e.target as HTMLElement).closest("button")) return;
-		if (atFloor) return;
-		dragRef.current = { px: e.clientX, py: e.clientY, x: view.x, y: view.y, moved: false };
-		setPanning(true);
-		e.currentTarget.classList.add("cursor-grabbing");
-		e.currentTarget.setPointerCapture(e.pointerId);
-	};
-	const moveDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-		const d = dragRef.current;
-		if (!d) return;
-		d.moved = true;
-		setView((v) =>
-			v.zoom <= fitZoom + 1e-9 ? v : { ...v, x: d.x + (e.clientX - d.px), y: d.y + (e.clientY - d.py) },
-		);
-	};
-	const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-		const d = dragRef.current;
-		if (d) {
-			dragRef.current = null;
-			if (d.moved) userAdjustedRef.current = true;
-		}
-		setPanning(false);
-		e.currentTarget.classList.remove("cursor-grabbing");
-	};
-	const stepZoom = (factor: number) => {
-		userAdjustedRef.current = true;
-		setView((v) => zoomedGraphView(v, factor, fitZoom, { x: size.w / 2, y: size.h / 2 }, box, size));
-	};
-	const fitView = () => {
-		userAdjustedRef.current = false;
-		if (!size.w || !size.h) return;
-		setView(fitGraphView(box, size, fitZoom));
-	};
+	const { viewportRef, view, atFloor, settled, panning, startDrag, moveDrag, endDrag, stepZoom, fitView } = usePanZoomViewport(box, true);
 
 	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
 
@@ -850,42 +756,7 @@ export function PlanPopup({
 								naturalSize
 							/>
 						</div>
-						<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-							<span className="text-xs text-muted-foreground/60">Drag to pan · scroll to zoom</span>
-							<div className="flex gap-1">
-								<Hint label="Zoom out" side="bottom">
-<button
-									type="button"
-									aria-label="Zoom out"
-									onClick={() => stepZoom(1 / 1.25)}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
-								>
-									<MinusIcon className="size-3.5" />
-								</button>
-</Hint>
-								<Hint label="Fit plan to screen" side="bottom">
-<button
-									type="button"
-									aria-label="Fit plan to screen"
-									onClick={fitView}
-									data-testid="plan-popup-fit"
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
-								>
-									<MaximizeIcon className="size-3.5" />
-								</button>
-</Hint>
-								<Hint label="Zoom in" side="bottom">
-<button
-									type="button"
-									aria-label="Zoom in"
-									onClick={() => stepZoom(1.25)}
-									className="lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground"
-								>
-									<PlusIcon className="size-3.5" />
-								</button>
-</Hint>
-							</div>
-						</div>
+						<ZoomControls fitLabel="Fit plan to screen" fitTestId="plan-popup-fit" onStep={stepZoom} onFit={fitView} />
 					</>
 				) : (
 					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
