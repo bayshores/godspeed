@@ -1,5 +1,5 @@
 /**
- * The appearance wave's font dropdown (2026-09-26): the pure row-set
+ * The appearance wave's font dropdown: the pure row-set
  * (fontMenuResults — the DEFAULT row is a fuzzy candidate, so Enter can
  * never pick a row that isn't on screen), the pick composer (null = the
  * factory Source Sans 3), the curated dev-browser fallback roster, the
@@ -77,7 +77,7 @@ describe("FontMenuList (thin SSR)", () => {
 		assert.ok(html.includes('data-testid="font-option-Georgia"'), "a family row");
 		assert.ok(html.includes('data-testid="font-option-Menlo"'), "another family row");
 		assert.ok(html.includes('data-testid="font-search"'), "the search field");
-		// ONE field (owner ask 2026-09-26: "why two?") — the custom-family
+		// ONE field — the custom-family
 		// input is gone; the search field absorbed its job via the
 		// "Use '<query>'" action row.
 		assert.ok(!html.includes('data-testid="font-custom-input"'), "no separate custom input");
@@ -145,7 +145,7 @@ describe("the emphasis-ink factory ruling (globals.css)", () => {
 	});
 });
 
-describe("customFamilyFor — the single-field custom escape (2026-09-26)", () => {
+describe("customFamilyFor — the single-field custom escape", () => {
 	const families = ["Arial", "CMU Serif", "Georgia", "Menlo"];
 
 	it("a query matching nothing becomes the custom pick", () => {

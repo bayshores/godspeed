@@ -75,8 +75,8 @@ import { saveRuleByAgent } from "./agent-rules.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
 
 /** Codex's default MCP tool timeout is 60 s, so the default wait stays
- *  under it. A client with a longer timeout (Codex with tool_timeout_sec
- *  raised) may ask for longer waits, which saves it a model turn each. */
+ *  under it. A client with a longer timeout (Codex started from the godspeed
+ *  folder) may ask for longer waits, which saves it a model turn each. */
 const DEFAULT_WAIT_S = 45;
 const MAX_WAIT_S = 600;
 /** respond's wait for a follow-up stays under Codex's default timeout. */

@@ -4,7 +4,7 @@ import type { AgentEvent } from "@earendil-works/pi-agent-core";
 import { ToolCallIdUniquifier, collectToolCallIds } from "../src/server/pi/call-ids.ts";
 
 /**
- * THE LACAN INCIDENT (owner-approved fix, 2026-10-04): DeepSeek (via
+ * THE LACAN INCIDENT: DeepSeek (via
  * OpenRouter) returns tool-call ids that reset every response — a
  * one-call-per-turn session names EVERY call `call_0`. The uniquifier sits
  * at the wire boundary (runPiTurn): colliding ids remint once, and the

@@ -1,5 +1,5 @@
 /**
- * The LH_DATA_DIR seam (Electron contract, 2026-09-17): when set, every
+ * The LH_DATA_DIR seam (Electron contract): when set, every
  * mutable record relocates under it; when unset, byte-for-byte the old
  * repo-data/ behavior. The desktop shell's whole data story rests on this,
  * so pin both directions.

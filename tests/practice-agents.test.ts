@@ -1,5 +1,5 @@
 /**
- * THE PRACTICE AGENT (practice sessions, owner design 2026-10-04): the
+ * THE PRACTICE AGENT (practice sessions): the
  * tool gating law (an agent cannot pose while a problem is active, cannot
  * conclude with nothing active), the registry shape (problem + conclude
  * ONLY — no question, plan, or job tools), and the prompt composition
@@ -137,7 +137,7 @@ describe("the practice tool gating law", () => {
 	});
 });
 
-// ── target validation (the mastery-trace contract, owner round 9) ──────────
+// ── target validation (the mastery-trace contract) ──────────
 
 describe("target validation — names normalize to ids, unknowns reject", () => {
 	const NODES = [
@@ -169,7 +169,7 @@ describe("target validation — names normalize to ids, unknowns reject", () => 
 		assert.equal(rejected.isError, true);
 		assert.match((rejected.details as { problems: string[] }).problems[0]!, /ghost-prop/);
 		assert.match((rejected.details as { problems: string[] }).problems[0]!, /proposition ids from the session context/);
-		// the message teaches the exit (round 12): omitting always works
+		// the message teaches the exit: omitting always works
 		assert.match((rejected.details as { problems: string[] }).problems[0]!, /omit target entirely/);
 		// honest activation (the BKT law): a rejected pose frees the slot —
 		// the next, valid pose goes through.
@@ -177,7 +177,7 @@ describe("target validation — names normalize to ids, unknowns reject", () => 
 		assert.equal(valid.isError, undefined);
 	});
 
-	it("UNTAGGED PROBLEMS (owner round 12): absent target poses freely; [] heals away to absent", async () => {
+	it("UNTAGGED PROBLEMS: absent target poses freely; [] heals away to absent", async () => {
 		const tool = problemTool(createPracticeGate(ctxOf([])), graphNodes);
 		const absent = await tool.execute("call_a", { statement: "S", mode: "recall", modelSolution: "M" } as never);
 		assert.equal(absent.isError, undefined, "no targets = an untagged problem, never a rejection");
@@ -204,7 +204,7 @@ describe("the practice agent", () => {
 		);
 	});
 
-	it("THE RARELY-NEEDED SET (owner round 10): jobs + map readers compose in when their roots are passed", () => {
+	it("THE RARELY-NEEDED SET: jobs + map readers compose in when their roots are passed", () => {
 		const jobs = { chatId: "c1", jobStore: null as never, spawn: (() => {}) as never };
 		const graph = { chatStore: null as never, graphStore: null as never };
 		const tools = practiceTools({ ...ctxOf([]), jobs, graph });
@@ -338,9 +338,9 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 		assert.doesNotMatch(prompt, /predict/i);
 	});
 
-	it("the SHARED voice + accuracy compose (owner round 13): ONE law across every agent, and the stale line is dead", () => {
+	it("the SHARED voice + accuracy compose: ONE law across every agent, and the stale line is dead", () => {
 		const prompt = composeInstructions("practice");
-		// accuracy (prompt-refinement round, 2026-10-07): the felt-doubt bar —
+		// accuracy: the felt-doubt bar —
 		// one law across every agent; the old round-10 pointer lived in the
 		// accuracy chunk, the mechanics now live in each agent's own sections
 		assert.match(prompt, /one confidently-delivered hallucination poisons that/);
@@ -357,13 +357,13 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 		assert.match(teacher, /Everything in this section deletes a default/);
 		assert.match(teacher, /The bar is the doubt itself/);
 		assert.match(teacher, /primary data/);
-		// the no-double-plan rule (owner-reported: plan drawn twice)
+		// the no-double-plan rule
 		assert.match(teacher, /Never draw the plan again in your prose/);
 		// plan rewriting is normal, not exceptional (continuous adaptation)
 		assert.match(teacher, /Rewriting is a normal, common event/);
 		// planning is the natural verification moment
 		assert.match(teacher, /planning is the natural moment for verification/);
-		// no size ceilings, and the detour keeps the pace (owner round, 2026-10-07)
+		// no size ceilings, and the detour keeps the pace
 		assert.ok(!teacher.includes("Typically 5–15 nodes"), "the node-count cap is dead");
 		assert.match(teacher, /No size ceiling/);
 		assert.match(teacher, /never rush the repair/);
@@ -371,7 +371,7 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 		assert.match(teacher, /nothing to rush/, "the goal reiteration composes");
 	});
 
-	it("the prober doctrine steers difficulty by evidence (owner round, 2026-10-07)", () => {
+	it("the prober doctrine steers difficulty by evidence", () => {
 		const prober = composeInstructions("prober");
 		assert.match(prober, /Enter near the top, not the bottom/);
 		assert.match(prober, /Strands inform each other/);
@@ -380,7 +380,7 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 		assert.match(prober, /the verdict, his confidence, and his thinking field together set where the next question should sit/);
 	});
 
-	it("the SHARED formatting guide composes (owner, 2026-10-04 late): LaTeX delimiters in every setting", () => {
+	it("the SHARED formatting guide composes: LaTeX delimiters in every setting", () => {
 		const prompt = composeInstructions("practice");
 		// The standard delimiter law is shared by all three authoring agents.
 		for (const agent of ["practice", "prober", "teacher"] as const) {

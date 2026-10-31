@@ -10,7 +10,7 @@
  * docs/archive/pi-engine-swap.md §7). Wave B: POSTs carry ONE INPUT EVENT (never a client
  * transcript), the record is pi-native agent history (read through the
  * projection where a part shape is pinned), and the answer arrives as the
- * question call's real tool result (fork 1, owner 2026-09-26).
+ * question call's real tool result (fork 1).
  */
 
 import assert from "node:assert/strict";
@@ -136,7 +136,7 @@ async function drain(res: Response): Promise<string> {
 	return res.text(); // consumes the SSE stream to completion (fires onFinish)
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10 — parallel-session freeze postmortem):
+/** CONNECTION DIET B:
  *  POST /api/chat no longer streams the turn — it acks and closes, and the
  *  submitter (like every view) attaches via the reattach stream. This
  *  mirrors drain(): assert the 200 ack, then drain the turn's SSE body to
@@ -238,7 +238,7 @@ function dismissPost(chatId: string, toolCallId: string, kind: "quiz" | "ask" | 
 /** A scripted test chat (the injected faux engine runs the loop). */
 function createConfiguredChat(title: string) {
 	const chat = chatStore.createChat(title);
-	// nodeId is required on teach quizzes (owner ruling 2026-09-26) — the
+	// nodeId is required on teach quizzes — the
 	// scripted lessons quiz against this seeded tree.
 	chatStore.saveTree(chat.id, {
 		nodes: [
@@ -431,14 +431,13 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal(events[execEnd]!.isError, false, "the clean end is what mounts the dock");
 	});
 
-	it("a pump-fired wake turn never double-appends its steer (Wave B regression of the 2026-09-18 bug)", { timeout: 15000 }, async () => {
+	it("a pump-fired wake turn never double-appends its steer", { timeout: 15000 }, async () => {
 		// THE SHAPE: the pump fires {type:'steer'} while the SAME steer still
 		// sits at the head of the delivery queue (the pump shifts its entry
 		// only AFTER the turn registers). Wave B's claimSteers filter checked
 		// only the PRE-write-ahead record, so the copy carried by the input
 		// was invisible — the marker persisted TWICE with the same id, two
-		// view messages shared one React key, and the client crashed (live,
-		// 2026-09-26: steer_job_muhlokbf_84e9373c in chat_muhlcltz).
+		// view messages shared one React key, and the client crashed.
 		const chat = createConfiguredChat("Test: wake single-copy");
 		createdChats.push(chat.id);
 		// Seed a plain-text turn (no dangling question — waitForIdle must pass).
@@ -484,7 +483,7 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("Wave C steering: a mid-run result injects BETWEEN turn units — never splitting a toolCall from its toolResult", { timeout: 15000 }, async () => {
-		// THE OWNER'S CORRECTION (2026-09-26): a real lesson is ONE continuous
+		// THE OWNER'S CORRECTION: a real lesson is ONE continuous
 		// teach→quiz→teach run, so a subagent result must land BETWEEN messages
 		// inside the run — pi's steering queue, drained at turn boundaries
 		// (after a completed assistant message AND its tool results). Waiting
@@ -516,7 +515,7 @@ describe("teacher chat flow (scripted model)", () => {
 				seen.push(context.messages.map((m) => JSON.stringify((m as { content: unknown }).content)).join("\n"));
 				// HOLD the turn open past the injection: the marker's
 				// message_end already fired, so the job must be flipped
-				// done NOW (dock fix, owner 2026-09-26) — not at this
+				// done NOW (dock fix) — not at this
 				// turn's settle.
 				jobFlippedMidTurn = jobStore.getJob(jobIdMid)?.status;
 				await gate2;
@@ -578,7 +577,7 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal(wakes, 0, "delivery rode the live run end to end");
 	});
 
-	it("the view canon HOISTS reasoning above the message text (owner ruling 2026-09-26)", () => {
+	it("the view canon HOISTS reasoning above the message text", () => {
 		// GLM emits trailing reasoning tokens — the persisted content lands
 	// [text, thinking] (and [text, thinking, toolCall]), which arrival-order
 	// presentation rendered as reasoning UNDER its message. The projection
@@ -620,7 +619,7 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.deepEqual(view2[1]!.parts.filter((p) => p.type !== "step-start").map((p) => p.type), ["reasoning", "text"], "think-first messages project identically");
 	});
 
-	it("an arrived-but-empty STREAMING message projects the thinking row; a settled empty one stays hidden (optimistic round 3)", () => {
+	it("an arrived-but-empty STREAMING message projects the thinking row; a settled empty one stays hidden", () => {
 		const emptyArrived: LhMessage = {
 			id: "a_empty",
 			role: "assistant",
@@ -644,7 +643,7 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal(settled.length, 1, "a settled empty message renders nothing");
 	});
 
-	it("a cancelled view NEVER aborts the turn — it runs to completion (owner ruling 2026-09-25)", async () => {
+	it("a cancelled view NEVER aborts the turn — it runs to completion", async () => {
 		let release!: () => void;
 		const gate = new Promise<void>((r) => (release = r));
 		const engine = gatedTeacher(gate);
@@ -653,7 +652,7 @@ describe("teacher chat flow (scripted model)", () => {
 
 		const res = await handleChatRequest(post(chat.id, { type: "text", text: "hold my turn" }), agentFactory(engine));
 		assert.equal(res.status, 200);
-		// CONNECTION DIET B (2026-10-10): the POST is a closed ack — the view
+		// CONNECTION DIET B: the POST is a closed ack — the view
 		// wire is the reattach stream. Attach, read one chunk, then cancel —
 		// the browser view leaves mid-stream.
 		const view = new Response(runningTurn(chat.id)!.subscribe());
@@ -751,8 +750,7 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("structurally invalid quiz input (unhealable garbage) never reaches the dock and retries clean", async () => {
-		// The two-tier world (owner, 2026-10-09 — the universal argument
-		// heal): a JSON-ENCODED stand-in for the schema shape (the live
+		// The two-tier world (the universal argument heal): a JSON-ENCODED stand-in for the schema shape (the live
 		// string-options habit) now heals at EVERY registry — see
 		// tests/tool-heal.test.ts for that pin — so the structural reject
 		// this test holds is the OTHER tier: garbage no mechanical rule
@@ -1046,8 +1044,8 @@ describe("renameChat (the header's click-to-edit title)", () => {
 	});
 });
 
-describe("background-turn runner (owner ruling 2026-09-25: every turn is a server-side process, clients are views)", () => {
-	it("CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes — the response never holds the turn's stream", async () => {
+describe("background-turn runner (clients are views)", () => {
+	it("CONNECTION DIET B: the POST acks and closes — the response never holds the turn's stream", async () => {
 		let release!: () => void;
 		const gate = new Promise<void>((r) => (release = r));
 		const engine = gatedTeacher(gate);
@@ -1077,7 +1075,7 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 
 		const ack = await handleChatRequest(post(chat.id, { type: "text", text: "hold my turn" }), agentFactory(engine));
 		assert.equal(ack.status, 200);
-		// CONNECTION DIET B (2026-10-10): the POST acks and closes; the first
+		// CONNECTION DIET B: the POST acks and closes; the first
 		// view consumes a little of the reattach wire (the start chunk is out).
 		const firstHandle = runningTurn(chat.id)!;
 		const firstView = new Response(firstHandle.subscribe());
@@ -1113,7 +1111,7 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 		assert.ok(firstTail.endsWith("data: [DONE]\n\n"), "first view closes cleanly at settle, unaffected by the reattach");
 	});
 
-	it("COMPACTION LAW (owner 2026-10-09): the log stores state, not chunks — a chunk burst coalesces to ONE update, slim wire, full content", async () => {
+	it("COMPACTION LAW: the log stores state, not chunks — a chunk burst coalesces to ONE update, slim wire, full content", async () => {
 		// The parallel-session freeze postmortem: pi's message_update is a FULL
 		// snapshot per provider chunk; retaining and re-serializing every one
 		// made memory and replay quadratic in message length (one high-thinking
@@ -1255,14 +1253,14 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 	});
 });
 
-// ─── the explain mechanic end-to-end (free-recall, owner 2026-09-27) ───────
+// ─── the explain mechanic end-to-end (free-recall) ───────
 
 it("explain tool call persists as a pending part; the free-text answer reveals the commitment and reaches the model", async () => {
 	const EXPLAIN_INPUT = {
 		question: "Explain why Mercury is hard to observe.",
 		correctAnswer: "Its small angular separation from the Sun — it never strays far from the Sun in our sky.",
 		nodeId: "planet-order",
-		type: "check", // the teach explain's role field (owner, 2026-10-09)
+		type: "check", // the teach explain's role field
 	};
 	const { engine, calls } = scriptedTeacher((cs) => [
 		(context) => {
@@ -1322,7 +1320,7 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	assert.equal((part as { state?: string }).state, "output-available");
 	const out = (part as { output?: { committed?: string; explanation?: string } }).output!;
 	assert.equal(out.committed, EXPLAIN_INPUT.correctAnswer, "the commitment snapshots into the answer record");
-	assert.equal(out.explanation, undefined, "no explanation remnant — one committed field (owner 2026-09-27)");
+	assert.equal(out.explanation, undefined, "no explanation remnant — one committed field");
 
 	// The model's continuation saw the answer JSON (fork 1: the answer IS
 	// the call's tool result) — his text AND the commitment snapshot ride it.
@@ -1334,7 +1332,7 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	assert.equal(danglingQuestionOf(saved2.messages), null, "no pending question remains");
 });
 
-// ─── the silent dismissal (owner design 2026-10-03, "A2") ──────────────────
+// ─── the silent dismissal ──────────────────
 
 describe("the silent dismissal (A2)", () => {
 	it("writes the toolResult with NO wake — the next plain message carries it to the model", async () => {
@@ -1411,7 +1409,7 @@ describe("the silent dismissal (A2)", () => {
 	});
 });
 
-// ─── parallel question calls (the deepseek batch incident, 2026-10-03) ─────
+// ─── parallel question calls (the deepseek batch incident) ─────
 
 describe("parallel question calls: the answer defers its wake while a sibling dangles", () => {
 	const ASK_INPUT = {
@@ -1487,7 +1485,7 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 	});
 });
 
-describe("parallel rounds: the LAST resolution decides the wake (owner ruling 2026-10-03)", () => {
+describe("parallel rounds: the LAST resolution decides the wake", () => {
 	/** The batch lesson, shared: turn 1 poses quiz + ask; turn 2 reacts. */
 	function batchLesson(calls: string[][]): FauxResponseStep[] {
 		return [
@@ -1546,7 +1544,7 @@ describe("parallel rounds: the LAST resolution decides the wake (owner ruling 20
 	});
 });
 
-// ─── composer steering (owner arc 2026-10-03): the route + the live rail ────
+// ─── composer steering: the route + the live rail ────
 
 describe("composer steering: POST /api/chats/[id]/steer", () => {
 	const steerPost = (chatId: string, body: unknown): Promise<Response> =>
@@ -1631,7 +1629,7 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 	});
 });
 
-// ─── THE LACAN INCIDENT: per-response tool-call ids (owner fix 2026-10-04) ──
+// ─── THE LACAN INCIDENT: per-response tool-call ids ──
 // DeepSeek (via OpenRouter) returns tool-call ids that reset every response —
 // `call_0` for every turn's single call. Before the uniquifier, the duplicate
 // ids corrupted the fold (the quiz answer overwrote the ask card, the ask

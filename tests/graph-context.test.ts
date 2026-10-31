@@ -1,5 +1,5 @@
 /**
- * THE GRAPH-CONTEXT MARKER (owner, 2026-10-04 late): a session started
+ * THE GRAPH-CONTEXT MARKER: a session started
  * with map picks gets its context as a SEPARATE custom message BEFORE
  * the learner's first user message — the picked propositions plus the
  * reasoning chains among them (formatChainLine lines), no more seed
@@ -49,7 +49,7 @@ describe("newGraphContextMessage", () => {
 		const m = newGraphContextMessage(PICKS, ["Modus ponens → Soundness"]);
 		assert.equal(m.customType, "graph-context");
 		assert.match(m.content, /\[Session context\] — picked from the learner's knowledge map/);
-		// IDS FIRST (owner round 9): every pick carries its id — the problem
+		// IDS FIRST: every pick carries its id — the problem
 		// tool's target field references these; names alone no longer.
 		assert.ok(m.content.includes(`- [${PICKS[0]!.id}] Modus ponens: If P implies Q and P holds, Q holds.`));
 		assert.ok(m.content.includes("Reasoning chains among them"));
@@ -83,7 +83,7 @@ describe("newGraphContextMessage", () => {
 	});
 });
 
-// ── the first-send gate (the dead first turn, owner report 2026-10-04) ──────
+// ── the first-send gate (the dead first turn) ──────
 
 describe("initialPromptOwed", () => {
 	it("a marker-only record still owes the prompt — scaffolding is not conversation", () => {

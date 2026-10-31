@@ -1,5 +1,5 @@
 /**
- * THE COMPACTION SERVICE (owner round 14, 2026-10-05): the trigger
+ * THE COMPACTION SERVICE: the trigger
  * plumbing — settle kick + turn-start gate, the registry mutex, the
  * summary call, usage, events. Pinned here with an injected summarizer
  * (the sub-agent one-shot needs a live engine; the SERVICE laws don't).

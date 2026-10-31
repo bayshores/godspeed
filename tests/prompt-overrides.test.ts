@@ -63,7 +63,7 @@ after(() => {
 });
 
 /** A scripted pi engine (pi-ai's faux provider) — the agent build needs an
- *  injected engine since BYOK removed the factory pins (owner, 2026-09-22). */
+ *  injected engine since BYOK removed the factory pins. */
 function fauxEngine(): PiEngine {
 	const faux = createFauxCore({});
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
@@ -160,8 +160,8 @@ describe("the source-derived segment list", () => {
 		assert.equal(prober[0].sourceText.length > 0, true, "base prompt text loads");
 		// Fragments track the REAL source tree (numeric order, right agent dir),
 		// the agent's OWN fragments between the base and the shared/ appendix —
-		// the exact order composeInstructions loads them in (reorder, 2026-09-27:
-		// job and method lead, mechanics trail).
+		// the exact order composeInstructions loads them in (job and method
+		// lead, mechanics trail).
 		assert.deepEqual(
 			prober.map((s) => s.path),
 			[
@@ -190,8 +190,7 @@ describe("the source-derived segment list", () => {
 		// the shared fragments compose for BOTH agents, same path key.
 		assert.equal(teacher.some((s) => s.path === "shared/30-learner-files.md" && s.shared), true);
 		assert.equal(prober.some((s) => s.path === "shared/30-learner-files.md" && s.shared), true);
-		// Voice + accuracy moved BACK to shared/ fragments (owner round 13,
-		// 2026-10-05): one law across every agent — including practice, whose
+		// Voice + accuracy live in shared/ fragments: one law across every agent — including practice, whose
 		// near-copy had drifted stale ("You have no research tool here").
 		assert.equal(prober.some((s) => s.path === "shared/10-voice.md" && s.shared), true);
 		assert.equal(teacher.some((s) => s.path === "shared/10-voice.md" && s.shared), true);
@@ -211,7 +210,7 @@ describe("the source-derived segment list", () => {
 	});
 });
 
-// ─── composeInstructions honors overrides (P2 reconciliation, 2026-09-19) ────
+// ─── composeInstructions honors overrides (P2 reconciliation) ────
 // This file OWNS the (isolated) PROMPTS_OVERRIDE_DIR (parallel-test
 // discipline), so every override-writing composition test lives here.
 
@@ -220,7 +219,7 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 
 	it("with no saved versions, composition is byte-identical to the plain loader", () => {
 		// The plain loader, rebuilt inline: base + the agent's own
-		// fragments + the shared/ appendix (the 2026-09-27 reorder),
+		// fragments + the shared/ appendix (the  reorder),
 		// trimmed, empties dropped, joined with the separator.
 		const oldLoader = (kind: "prober" | "teacher") => {
 			const fragmentsOf = (dir: string) =>

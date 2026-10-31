@@ -1,5 +1,5 @@
 /**
- * CLASSES WAVE PINS (2026-10-26), Phase 3/7 — the to-text step and the
+ * CLASSES PINS — the to-text step and the
  * transcriber's program lookup (no whisper run here).
  */
 import assert from "node:assert/strict";

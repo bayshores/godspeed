@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { escAbortTarget } from "../src/components/lesson/chat-helpers.ts";
 
 /**
- * THE LAYERED ESC (owner report, 2026-10-04): Esc over an open overlay —
+ * THE LAYERED ESC: Esc over an open overlay —
  * a mermaid focus or the plan popup — must CLOSE THE
  * OVERLAY, never dismiss a pending question (or abort a turn) underneath.
  * KeyboardShortcuts dispatches lh:kbd-abort-turn on every unclaimed Esc
@@ -11,23 +11,23 @@ import { escAbortTarget } from "../src/components/lesson/chat-helpers.ts";
  * can never outrun it — the state gate in ChatView (this ruling, exported
  * pure) is the defense. Priority = stacking order.
  */
-describe("escAbortTarget (the layered-Esc ruling)", () => {
+describe("escAbortTarget", () => {
 	const none = { abortAsk: false, mermaidFocus: false, planOpen: false, pending: false, problem: false, busy: false };
 
-	it("no overlays: the 2026-10-02 chain stands (question before turn)", () => {
+	it("no overlays: the base chain stands (question before turn)", () => {
 		assert.equal(escAbortTarget({ ...none, pending: true }), "question");
 		assert.equal(escAbortTarget({ ...none, busy: true }), "turn");
 		assert.equal(escAbortTarget(none), null);
 		assert.equal(escAbortTarget({ ...none, pending: true, busy: true }), "question", "a pending question outranks the turn");
 	});
 
-	it("an active practice problem sits between question and turn (2026-10-04)", () => {
+	it("an active practice problem sits between question and turn", () => {
 		assert.equal(escAbortTarget({ ...none, problem: true }), "problem");
 		assert.equal(escAbortTarget({ ...none, problem: true, busy: true }), "problem", "the problem card outranks the turn abort");
 		assert.equal(escAbortTarget({ ...none, planOpen: true, problem: true }), "plan", "an open popup still outranks the problem");
 	});
 
-	it("an open overlay claims Esc over a pending question — the owner's report", () => {
+	it("an open overlay claims Esc over a pending question", () => {
 		for (const overlay of ["mermaidFocus", "planOpen"] as const) {
 			const target = escAbortTarget({ ...none, [overlay]: true, pending: true });
 			assert.notEqual(target, "question", `${overlay} open must not dismiss the question`);

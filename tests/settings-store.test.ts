@@ -1,12 +1,12 @@
 /**
- * Tests for the settings STORE (settings-storage wave, 2026-09-19):
+ * Tests for the settings STORE:
  * src/store/settings.ts — the record's fs adapter. Writes the real repo
  * data/ files (npm test's shared data/, disposable scratch by doctrine)
  * and cleans up after itself; a pre-existing settings.json is snapshotted
  * and restored so the worktree's own dev state survives the run.
  *
  * (The legacy default-settings.json fold and the chat-section facade died
- * with per-session models, owner 2026-09-28 — sessions own their model
+ * with per-session models — sessions own their model
  * from birth, stamped from the strong slot server-side.)
  */
 
@@ -49,7 +49,7 @@ describe("the settings store", () => {
 		assert.deepEqual(out.graph, { enabled: false });
 	});
 
-	it("a chat section on disk is IGNORED — the field died with per-session models (owner, 2026-09-28)", () => {
+	it("a chat section on disk is IGNORED — the field died with per-session models", () => {
 		fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
 		// A fossil `chat` section (the old default-settings record) must not
 		// resurrect through the sanitizer — the key is simply gone.

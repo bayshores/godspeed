@@ -1,7 +1,7 @@
 /**
- * Lesson layout B (redesign, Phase 3): the plan step bar, the Your-turn
+ * Lesson layout B: the plan step bar, the Your-turn
  * panel's states, the question panel's keys, the practice progress, and
- * the view's message reuse (Phase 7: only the streaming row redraws).
+ * the view's message reuse.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;

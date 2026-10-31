@@ -1,5 +1,5 @@
 /**
- * The Class Overview (redesign plan, Phase 4): the page body rendered from a
+ * The Class Overview: the page body rendered from a
  * fixture ProgressPayload — Ready for what's due (the runway's stops,
  * rings, lines, "+N later", Most needed), How lessons went (one block per
  * answer, score, lesson links), the confidence chart (target lines, red

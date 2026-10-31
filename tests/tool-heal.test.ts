@@ -1,5 +1,5 @@
 /**
- * THE WHITEHEAD INCIDENT PINS (owner, 2026-10-09): glm-5.3 (z-ai via
+ * THE WHITEHEAD INCIDENT PINS: glm-5.3 (z-ai via
  * OpenRouter) emitted two argument-wobble shapes in one real session —
  * quiz `type: "\"predict\""` (the literal with quotes baked in; the
  * schema's own description displayed the values quoted+colon) rejected
@@ -100,7 +100,7 @@ describe("the death-loop shape — quiz type with quotes baked in", () => {
 		assert.equal(healed.type, "predict");
 	});
 
-	it("WIRING: the 2026-09-26 string-options shape heals through the bare quiz too", () => {
+	it("WIRING: the old string-options shape heals through the bare quiz too", () => {
 		// The universal heal covers the ORIGINAL incident's shape as well:
 		// options serialized as a JSON string (then healed only on the
 		// plan-tree quiz path; the bare registries had nothing).

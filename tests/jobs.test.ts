@@ -121,7 +121,7 @@ function trackJob(id: string) {
 	createdJobs.push(id);
 }
 
-/* THE HERMETICITY FENCE (owner round 7, 2026-10-05): the jobs seams are
+/* THE HERMETICITY FENCE: the jobs seams are
  * MODULE-GLOBAL (setJobRespawn / setTurnRunner / the abort registry) and
  * the sweep scans EVERY job in the store. An async test that times out
  * under full-suite load leaves a "running" record and a late wake behind
@@ -196,7 +196,7 @@ function abortableFactory(): FauxResponseStep {
 	return factory as unknown as FauxResponseStep;
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes; drain
+/** CONNECTION DIET B: the POST acks and closes; drain
  *  the turn's wire through the reattach stream instead. */
 async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequest>[1]): Promise<string> {
 	const cloned = req.clone();
@@ -220,7 +220,7 @@ function post(chatId: string, input: unknown): Request {
 	});
 }
 
-/* 30s budget (owner round, 2026-10-05): under the FULL suite's parallel
+/* 30s budget: under the FULL suite's parallel
  * load the event loop starves and an 8s wall-clock budget expired before
  * healthy conditions were ever observed — and a timed-out delivery leaked
  * a late wake into the NEXT test (the respawn hook is module-global),
@@ -273,7 +273,7 @@ describe("job store", () => {
 		assert.equal(jobStore.findJobByToolCallId("chat_storetest", "call-missing"), null);
 	});
 
-	// ── push-architecture S4 (2026-10-02): every WRITE announces on the
+	// ── push-architecture S4: every WRITE announces on the
 	// events channel (notify-after-write); reads stay silent ──
 	it("every mutation emits jobs-changed {chatId}; reads emit nothing", () => {
 		const got: { chatId?: string }[] = [];
@@ -1026,7 +1026,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		// The record ends in a DISMISSAL (owner design 2026-10-03): the
+		// The record ends in a DISMISSAL: the
 		// question was skipped via the silent route — no dangling call (the
 		// quiz gate would pass), so ONLY the dismissal pause holds the wake.
 		chatStore.saveMessages(chatId, [
@@ -1425,7 +1425,7 @@ describe("prompt composition", () => {
 
 	it("the question principles compose into the teacher prompt; the probe's quick-measurement revision landed", () => {
 		const teacher = composeInstructions("teacher");
-		// the T2a doctrine fragment (user-locked wording 2026-09-15): verbatim presence
+		// the T2a doctrine fragment (user-locked wording): verbatim presence
 		for (const pin of [
 			"Answerable by reasoning from the session",
 			"Never just reciting your words back",
@@ -1449,7 +1449,7 @@ describe("prompt composition", () => {
 		assert.ok(!prober.includes("Question principles"), "the teach-phase fragment never composes into the prober");
 	});
 
-	it("the predict-check cycle composes into the teacher; the craft chunk reaches BOTH agents (owner 2026-10-03)", () => {
+	it("the predict-check cycle composes into the teacher; the craft chunk reaches BOTH agents", () => {
 		const teacher = composeInstructions("teacher");
 		// the cycle doctrine (28-predictions.md) — teacher-only
 		assert.ok(teacher.includes("predict → teach → check"), "the cycle line is in");
@@ -1486,7 +1486,7 @@ describe("prompt composition", () => {
 			assert.ok(instructions.includes("home directory"), `${kind} knows the home-anchored path rule`);
 		}
 		// the agent's OWN fragments compose before the shared appendix
-		// (the reorder's order rule, 2026-09-27: job and method lead)
+		// (job and method lead)
 		const teacher = composeInstructions("teacher");
 		assert.ok(
 			teacher.indexOf("## Learner source files") < teacher.indexOf("## Learner files"),
@@ -1677,7 +1677,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 	});
 });
 
-// ─── 7. crash recovery, LIVENESS-GATED (observability-accuracy wave, 2026-09-19) ──
+// ─── 7. crash recovery, LIVENESS-GATED ──
 //
 // The sweep (recoverStaleJobs) keys on the abort registry (subagents/aborts.ts
 // isJobLive), not record age: a "running" record with a live registration
@@ -1711,7 +1711,7 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 		// alone must NOT trigger recovery anymore.
 		jobStore.updateJob(jobId, { updatedAt: new Date(Date.now() - 30 * 60_000).toISOString() });
 		registerJobAbort(jobId, new AbortController()); // a loop is executing
-		// JURISDICTIONAL (owner round 8, 2026-10-05): the sweep scans the
+		// JURISDICTIONAL: the sweep scans the
 		// SHARED jobs dir — under the full suite, OTHER FILES' processes
 		// legitimately leave running records this sweep may respawn. Only
 		// THIS test's job is this test's business: collect ids, assert ours
@@ -1781,7 +1781,7 @@ describe("job refusal (no engine)", () => {
 
 		const done = jobStore.getJob(job.id)!;
 		// The refusal lands through the SAME convention as every other
-		// failed job (BYOK review fix, Teacher stream 2026-09-22): the kind's
+		// failed job (BYOK review fix, Teacher stream): the kind's
 		// failure result steers the teacher — a dispatched job is never
 		// stranded waiting for a result that will never come — and
 		// finalizeJob flips the record to error after the delivery.
@@ -1797,7 +1797,7 @@ describe("job refusal (no engine)", () => {
 	});
 });
 
-// ─── composer steering (owner arc 2026-10-03): the user-steer registry ──────
+// ─── composer steering: the user-steer registry ──────
 
 describe("composer steering: steerLiveChat + the deliver-or-requeue lifecycle", () => {
 	/** A minimal stand-in for pi's Agent — only steer() is touched. */

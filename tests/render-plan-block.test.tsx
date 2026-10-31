@@ -69,8 +69,8 @@ describe("plan block layout (pure)", () => {
 		// basis curve starts exactly at the border point; the END pulls
 		// back by HEAD_TIP_OVERHANG + the docking gap (92 − 2.359 − 2.667) so
 		// the head's TIP floats 2.67 short of the border with its mouth at
-		// the path's end, on a straight shaft (owner, rounds 11–12; the head
-		// + gap scaled ⅔ with the 1px lines, 2026-09-26).
+		// the path's end, on a straight shaft (the head + gap scaled ⅔ with
+		// the 1px lines).
 		const d = edgePathD([{ x: 80, y: 44 }, { x: 80, y: 68 }, { x: 80, y: 92 }]);
 		assert.ok(d.startsWith("M80,44"), "starts at the source border point");
 		assert.ok(d.endsWith("L80,86.974"), "mouth pulled back; tip floats 2.67 off the border");
@@ -83,7 +83,7 @@ describe("plan block layout (pure)", () => {
 		assert.equal(pd, d);
 	});
 
-	it("edgePathD clamps the entry to ±40° of the face perpendicular (owner, round 14)", () => {
+	it("edgePathD clamps the entry to ±40° of the face perpendicular", () => {
 		const box = { x: 20, y: 100, w: 160, h: 44 };
 		// A 60° tilt into the top face swings to the 40° cone edge: the
 		// mouth lands at (97.726, 93.289) and the final segment runs at
@@ -112,7 +112,7 @@ describe("plan block layout (pure)", () => {
 			"Chain rule intuition and", // 24 — appending "fluency" would pass 28
 			"fluency",
 		]);
-		// Oversized word hard-chunked, nothing lost (owner, round 7).
+		// Oversized word hard-chunked, nothing lost.
 		assert.deepEqual(wrapTitle("supercalifragilisticexpialidocious word"), [
 			"supercalifragilisticexpialid", // the chunker cuts AT maxChars
 			"ocious word",
@@ -122,7 +122,7 @@ describe("plan block layout (pure)", () => {
 
 	it("nodeWidth hugs the wrapped text (the box grows WITH its lines)", () => {
 		// Short titles floor at the min; wide ones size to the widest line.
-		// Per-char-CLASS estimate (owner follow-up: the flat px/char rate
+		// Per-char-CLASS estimate (the flat px/char rate
 		// overshot the rendered width — invisible slack beside the text).
 		assert.equal(nodeWidth(["supercalifragilistic"]), 117); // est ≈ 85 + 2×16
 		assert.equal(nodeWidth(wrapTitle("Symmetry and orthogonal complements")), 149);
@@ -151,24 +151,22 @@ describe("plan block render", () => {
 		assert.ok(!/data-testid="plan-block-full"[^>]*border/.test(html), "no wrapping chrome");
 		// Fills the column UP TO the chat-font cap: the svg is w-full +
 		// mx-auto with maxWidth = extent × TEXT_CAP_SCALE, so node text never
-		// renders past the 16px prose size (owner, plan-graph round 1; the
-		// snap 16.5→16 landed in typography round 4).
+		// renders past the 16px prose size.
 		assert.match(html, /<svg[^>]*class="block h-auto w-full mx-auto"/);
-		// The reading font, not the mono UI font (owner, 2026-09-26) — via the
+		// The reading font, not the mono UI font — via the
 		// runtime var (the font-prose utility would bake the @theme literal
 		// and ignore the Appearance reading-font override).
 		assert.match(html, /<svg[^>]*font-family:var\(--font-prose\)/);
-		// Lines + outlines at the app's standard 1px border weight (owner,
-		// 2026-09-26; was 1.5).
+		// Lines + outlines at the app's standard 1px border weight.
 		assert.match(html, /<rect[^>]*stroke-width="1"/);
 		assert.match(html, /max-width:143\.36px/); // (96+16) × 1.28 — boxes hug now
-		// Centered text (owner, plan-hug round 2026-10-07): every title line
+		// Centered text: every title line
 		// anchors to its box's midline — the old x=12 left inset is gone.
 		assert.match(html, /<text[^>]*x="48"[^>]*text-anchor="middle"/); // 96/2
 		assert.ok(!/x="12"/.test(html), "no left-inset text");
-		// The in-chat block speaks the dock language (owner, 2026-10-07):
+		// The in-chat block speaks the dock language:
 		// lighter-background boxes like the composer shells — with WHITE
-		// outlines (owner follow-up: gray fill good, box edges stay white).
+		// outlines (box edges stay white).
 		assert.match(html, /<rect[^>]*class="fill-card stroke-ink-max"/);
 		// Two stacked nodes: 2*NODE_H + GAP_Y = 136 extent + GRAPH_PAD on
 		// every side (strokes/glow never clip at the edges). The width
@@ -223,22 +221,22 @@ describe("plan popup (live derivation)", () => {
 		assert.match(html, /data-testid="plan-node-b" data-status="current"/);
 		assert.match(html, /data-testid="plan-node-c" data-status="upcoming"/);
 		// The current node is the glow target: a faint yellow fill, blurred
-		// so it bleeds over the edges — static, no pulse (owner, round 6).
+		// so it bleeds over the edges — static, no pulse.
 		assert.match(html, /fill-yellow-400\/25/);
 		assert.match(html, /feGaussianBlur/);
 		assert.doesNotMatch(html, /animate-pulse/);
-		// Arrows into not-yet-visited nodes are grayed out (owner, round 6).
+		// Arrows into not-yet-visited nodes are grayed out.
 		assert.match(html, /marker-end="url\(#.*-dim\)"/);
 		assert.match(html, /live: statuses derive from your check outcomes/);
 		// No top-left flash: at static render settled=false, so the diagram
 		// wrapper paints at opacity 0 — the fit runs in an effect AFTER the
 		// first paint and the chart would otherwise flash at the initial
-		// top-left zoom:1 state for a frame (owner report, 2026-09-19;
-		// transition-gating alone didn't hide it).
+		// top-left zoom:1 state for a frame (transition-gating alone
+		// doesn't hide it).
 		assert.match(html, /opacity: ?0[;,}]/, "diagram hidden until the first fit applies");
 	});
 
-	it("dims an arrow when EITHER end is gray — white needs both ends white (owner, 2026-09-26)", () => {
+	it("dims an arrow when EITHER end is gray — white needs both ends white", () => {
 		// x upcoming → y visited: the OLD rule (target-only) painted this
 		// white; the new rule keeps it gray — a gray box's outgoing arrows
 		// stay gray even into covered territory. y → z (visited → current)

@@ -2,8 +2,8 @@
  * phases — the event-driven phase chain (docs/archive/probe-teach-split.md §4).
  *
  * probe ends at the first CONCLUDED probe_done (output-available); teaching
- * begins at the FIRST nodeId-tagged quiz CALL (the inferred seam, owner
- * ruling 2026-09-26 — the verdict death: presenting the plan ends the
+ * begins at the FIRST nodeId-tagged quiz CALL (the inferred seam:
+ * presenting the plan ends the
  * teacher's turn, the learner's reply is natural text, and nothing flips
  * the phase until a question ABOUT a plan node is actually posed). No
  * stored-tree seam: the phase is a pure fold over the transcript, so it can
@@ -195,7 +195,7 @@ test("phaseAt3Lh (native fold): probe→plan at the clean probe_done result; pla
 	);
 });
 
-// ─── the explain mechanic at the seam (owner 2026-09-27) ───────────────────
+// ─── the explain mechanic at the seam ───────────────────
 // Both quizzing tools (quiz OR explain, whichever the settings armed) open
 // teaching — the seam is structural, not name-bound to the MC tool.
 

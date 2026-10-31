@@ -154,7 +154,7 @@ describe("provider-neutral raw agent loops", { concurrency: false }, () => {
 				controller.abort();
 				const run = await runLoop(loop, { model: faux.getModel(), streamFn: faux.streamSimple }, controller.signal);
 				const failure = "svg" in run.result ? run.result.notes : run.result.brief;
-				assert.match(failure ?? "", /crashed — aborted/);
+				assert.match(failure ?? "", /crashed: aborted/);
 				assert.deepEqual(run.renders, []);
 				assert.equal(run.usages.length, 0);
 			});

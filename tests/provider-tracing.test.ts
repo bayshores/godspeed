@@ -39,11 +39,11 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 	it("preserves all secret exclusions exactly", () => {
 		assert.deepEqual(patterns, ["**/data/**/*", "auth.json", "chatgpt-credentials.json*", "github-copilot-credentials.json*", "xai-credentials.json*", ".env*"]);
 	});
-	it("retains exactly the runtime includes (the native-provider closure was removed with the sign-ins, 2026-10-27)", () => {
+	it("retains exactly the runtime includes (the native-provider closure was removed with the sign-ins)", () => {
 		assert.deepEqual(nextConfig.outputFileTracingIncludes!["*"], [
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
-			// Speed plan (2026-10-27): the class-PDF text worker, loaded by path.
+			// Speed plan: the class-PDF text worker, loaded by path.
 			"src/server/workers/**/*",
 			"src/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",

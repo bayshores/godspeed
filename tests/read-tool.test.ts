@@ -1,7 +1,7 @@
 /**
  * The read tool (sources v0) — a Node port of pi's read semantics:
  * truncation with continuation offsets, image mime detection, error paths.
- * Driven through the NATIVE AgentTool execute (Wave A, 2026-09-26): text
+ * Driven through the NATIVE AgentTool execute: text
  * reads return the raw string as details (the record's tool part output
  * reads it); image reads return native pi content parts (text + image)
  * with null details (the output-less part until the record persists).

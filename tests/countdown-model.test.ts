@@ -1,5 +1,5 @@
 /**
- * The deadline countdown (plan 2026-10-28, Phase 3): "in N days" until the
+ * The deadline countdown: "in N days" until the
  * last 24h, then HH:MM:SS, then MM:SS.hh in the last hour, "Overdue" once
  * past due; the grey → red fade over the last 24h; how fast the clock
  * must tick; and a deadline with no time being due at 23:59.

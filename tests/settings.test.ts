@@ -1,6 +1,5 @@
 /**
- * Tests for the settings record's core layer (settings-storage wave,
- * 2026-09-19): the delta schema's sanitizer (core/settings.ts) — strict
+ * Tests for the settings record's core layer: the delta schema's sanitizer (core/settings.ts) — strict
  * known-field validation with graceful degradation, unknown-key
  * preservation (forward-compat: a newer record must survive an older
  * app), and the factory defaults. The store/adapter tests live in
@@ -17,14 +16,11 @@ import {
 } from "../src/core/settings.ts";
 
 describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
-	it("pins the owner-decided defaults", () => {
+	it("pins the factory defaults", () => {
 		assert.equal(CURRENT_SETTINGS_VERSION, 2);
 		assert.deepEqual(FACTORY_SETTINGS.compaction, { thresholdTokens: 40_000 });
 		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeClass: "none", teacherName: "Halley", sounds: true });
-		// wave 7 collapse: the master switch ONLY + the extraction-UX
-		// redesign's chunk budget (2026-09-24); doubled to 8192 with the
-		// digest-aware redesign (2026-09-30), then HALVED BACK to 4096
-		// with the message anchors (owner, 2026-10-13)
+		// the master switch ONLY + the chunk budget (4096)
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, extractionChunkTokens: 4096 });
 		const a = FACTORY_SETTINGS.appearance;
 		assert.equal(a.background, null); // black
@@ -99,7 +95,7 @@ describe("sanitizeUserSettings", () => {
 		assert.deepEqual(out.appearance, {});
 		assert.deepEqual(out.graph, {});
 
-		// extractionChunkTokens (extraction-UX redesign, 2026-09-24):
+		// extractionChunkTokens:
 		// clamp-never-reject — a finite positive value survives (fractions
 		// floor), below-floor values clamp UP to the cost floor, junk drops
 		// (the factory default resolves at read time).
@@ -146,7 +142,7 @@ describe("sanitizeUserSettings", () => {
 		}
 	});
 
-	it("legacy model settings (removed 2026-10-27: the outside agent is the only model) are dropped", () => {
+	it("legacy model settings (the outside agent is the only model) are dropped", () => {
 		const out = sanitizeUserSettings({
 			version: 1,
 			agent: { models: { researcher: { model: { provider: "openrouter", id: "x/y" } } }, tools: { demo: false } },
@@ -163,7 +159,7 @@ describe("sanitizeUserSettings", () => {
 		assert.equal("search" in (legacy?.agent ?? {}), false);
 	});
 
-	it("graphTools subsection: boolean survives; bad shapes drop (default ON resumes) — wave 7, 2026-09-23", () => {
+	it("graphTools subsection: boolean survives; bad shapes drop (default ON resumes)", () => {
 		const on = sanitizeUserSettings({ version: 1, agent: { graphTools: { enabled: true } } });
 		assert.deepEqual(on?.agent?.graphTools, { enabled: true });
 		const off = sanitizeUserSettings({ version: 1, agent: { graphTools: { enabled: false } } });

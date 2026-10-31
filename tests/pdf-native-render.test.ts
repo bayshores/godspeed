@@ -1,5 +1,5 @@
 /**
- * Wave E stage 1 (owner 2026-10-10): pdf_render is NATIVE — pdfjs paints
+ * Wave E stage 1: pdf_render is NATIVE — pdfjs paints
  * into @napi-rs/canvas in-process, no browser anywhere. These tests pin
  * the real renderer against the real fixture: valid canonical PNGs, dpi
  * scaling arithmetic (scale = dpi/72), out-of-range page skipping, and the

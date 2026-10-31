@@ -195,7 +195,7 @@ describe("KeyboardSection (thin SSR)", () => {
 		const html = renderToStaticMarkup(<KeyboardSection />);
 		assert.ok(html.includes("Fixed, part of this screen"));
 		assert.ok(!html.includes(`data-testid="kbd-rebind-question-next-row"`), "surface keys stay put");
-		// The model-menu entries are GONE entirely (owner, 2026-10-10):
+		// The model-menu entries are GONE entirely:
 		// obvious in-field navigation, not settings material.
 		assert.ok(!html.includes("Model menu"), "model-menu rows removed");
 		assert.ok(!KEYBOARD_ACTIONS.some((a) => a.id as string === "model-menu-walk"));

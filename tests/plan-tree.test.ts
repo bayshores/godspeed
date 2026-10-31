@@ -12,7 +12,8 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
-import { derivePlanStatuses, derivedNodeStatus, type PlanTree } from "../src/core/contracts.ts";
+import { derivePlanStatuses, derivePlanStatusesLh, derivedNodeStatus, type PlanTree } from "../src/core/contracts.ts";
+import type { LhMessage } from "../src/core/native-messages.ts";
 import { createTree, PlanTreeError } from "../src/core/plan-tree.ts";
 import { planTools } from "../src/agent/tools/plan.ts";
 import { parseMermaidPlan } from "../src/agent/tools/mermaid-plan.ts";
@@ -164,7 +165,7 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 		assert.match(err, /line 2/);
 		assert.match(err, /line 3/);
 		assert.match(err, /line 4/);
-		// Context diet (2026-10-09): failures carry just the error — no tree echo.
+		// Context diet: failures carry just the error — no tree echo.
 		assert.equal(res.tree, undefined);
 		assert.equal(chatStore.getChat(chatId)!.tree, undefined, "nothing persisted on failure");
 	});
@@ -177,7 +178,7 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 		});
 		assert.equal(res.ok, false);
 		assert.match(res.error!, /cycle/);
-		assert.equal(res.tree, undefined, "no tree echo on failure (context diet, 2026-10-09)");
+		assert.equal(res.tree, undefined, "no tree echo on failure (context diet)");
 	});
 
 	it("only plan_init exists — the seven mutation/tracking tools are gone by design", () => {
@@ -246,7 +247,7 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 	});
 
 	it("rejects: non-slug ids (with the SPECIFIC message), self-loops, subgraphs, missing header, empty", () => {
-		// The muscle-protein post-mortem (2026-09-11): underscore ids died at
+		// The muscle-protein post-mortem: underscore ids died at
 		// the regex layer with a generic message, and the teacher spent four
 		// plan_init calls hunting punctuation the parser didn't care about.
 		// Now EVERY bad id reaches the slug check — the message names the id.
@@ -265,7 +266,7 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 		assert.ok(!parse("%% only a comment\n").ok, "empty plan");
 	});
 
-	it("free-form pass (2026-09-11): underscores, chains, arrow synonyms, any direction, quoted titles", () => {
+	it("free-form pass: underscores, chains, arrow synonyms, any direction, quoted titles", () => {
 		// Underscores are first-class slug chars — kept verbatim, referenced
 		// verbatim by quiz nodeId.
 		const us = parse("graph TD\n  mps_translation[Ribosomes build protein] --> net_balance[Net balance]\n");
@@ -412,7 +413,7 @@ describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 	});
 });
 
-// ─── the explain mechanic derives position identically (owner 2026-09-27) ──
+// ─── the explain mechanic derives position identically ──
 
 describe("derivePlanStatuses: tagged explain calls move the map like quiz calls", () => {
 	const tree: PlanTree = {
@@ -452,5 +453,33 @@ describe("derivePlanStatuses: tagged explain calls move the map like quiz calls"
 		]);
 		assert.equal(st.current, "b");
 		assert.deepEqual([...st.visited], ["a"]);
+	});
+
+	it("the native record derives the same statuses as the view parts", () => {
+		type Call = [tool: "quiz" | "explain" | "plan_init", nodeId: string | undefined];
+		const asParts = (calls: Call[]) =>
+			calls.map(([tool, nodeId]) => msg({ type: `tool-${tool}`, state: "input-available", input: nodeId === undefined ? {} : { nodeId } }));
+		const asNative = (calls: Call[]) => [
+			{ id: "u1", role: "user", content: "go", timestamp: 0 },
+			...calls.map(([tool, nodeId], i) => ({
+				id: `m${i}`,
+				role: "assistant",
+				content: [{ type: "toolCall", id: `call${i}`, name: tool, arguments: nodeId === undefined ? {} : { nodeId } }],
+			})),
+		] as unknown as LhMessage[];
+		const scenarios: Record<string, Call[]> = {
+			"repeats in a row": [["quiz", "a"], ["quiz", "a"], ["quiz", "b"], ["quiz", "b"]],
+			"a→b→a revisit": [["quiz", "a"], ["quiz", "b"], ["quiz", "a"]],
+			"untagged and unknown": [["quiz", "a"], ["quiz", undefined], ["quiz", "zzz"], ["plan_init", "c"]],
+			"explain": [["explain", "b"], ["quiz", "c"], ["explain", "c"]],
+		};
+		for (const [name, calls] of Object.entries(scenarios)) {
+			const view = derivePlanStatuses(tree, asParts(calls));
+			const native = derivePlanStatusesLh(tree, asNative(calls));
+			assert.equal(native.current, view.current, `${name}: current`);
+			assert.deepEqual([...native.visited], [...view.visited], `${name}: visited`);
+		}
+		assert.equal(derivePlanStatusesLh(tree, asNative(scenarios["a→b→a revisit"]!)).current, "a");
+		assert.deepEqual([...derivePlanStatusesLh(tree, asNative(scenarios["untagged and unknown"]!)).visited], []);
 	});
 });

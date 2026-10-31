@@ -4,19 +4,18 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 
 /**
- * The node-deletion confirm dialog (node interlude, Platform's 50bfcba
- * engine; multi-node extension + MINIMAL REWRITE, owner 2026-09-30):
+ * The node-deletion confirm dialog (single and multi-node):
  * render pins for the copy — the copy is design, not implementation.
  * The delete path itself is live-verified against the real API
  * (dev-verification notes); SSR here pins what static rendering CAN
  * pin.
  *
- * The minimal contract (owner ruling, 2026-09-30): NO pre-flight
+ * The minimal contract: NO pre-flight
  * impact read — what full death takes is obvious, the fetch
  * flickered, and richer facts would only confuse as deletion
  * semantics evolve (rewiring talk is on the table). Title + names +
  * one permanence line + Cancel/Delete. And "node"/"nodes" is THE UI
- * word for graph objects (standardized everywhere, same ruling).
+ * word for graph objects (standardized everywhere).
  */
 
 import { DeleteNodeBody, DeleteNodeDialog } from "../src/components/delete-node-dialog.tsx";
@@ -45,11 +44,11 @@ describe("DeleteNodeDialog (thin SSR)", () => {
 	});
 });
 
-describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
+describe("DeleteNodeBody — the minimal screen", () => {
 	it("single: 'Delete node?' title, the name alone in mono, the one permanence line", () => {
 		const html = bodyAt([{ id: "kepler", name: "Kepler's three laws" }]);
 		assert.match(html, /data-testid="delete-node-dialog"/);
-		// (owner, 2026-10-13 polish) the title in the abort-turn look —
+		// the title in the abort-turn look —
 		// text-sm font-semibold (JetBrains Mono via the UI default), red
 		// kept, NO font-title serif; the NAME rides below in JetBrains
 		// Mono at normal text-sm size, NO code-block chrome — same shape
@@ -57,7 +56,7 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		assert.match(html, /Delete node\?/);
 		const title = html.match(/<h2[^>]*>/)?.[0] ?? "";
 		assert.match(title, /text-sm font-semibold text-destructive/);
-		assert.ok(!title.includes("font-title"), "no serif display title (owner, 2026-10-13)");
+		assert.ok(!title.includes("font-title"), "no serif display title");
 		const name = html.match(/data-testid="node-name-code"[^>]*>/)?.[0] ?? "";
 		assert.match(name, /font-mono text-sm/);
 		assert.ok(!name.includes("bg-muted"), "no code-block chrome — the font already says code");
@@ -65,7 +64,7 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the node\. This cannot be undone\./);
 		assert.match(html, /data-testid="node-delete-cancel"/);
 		assert.match(html, /data-testid="node-delete-confirm"/);
-		// the Delete button carries the destructive red (owner, polish round)
+		// the Delete button carries the destructive red
 		assert.match(html, /border-destructive\/50[^>]*text-destructive/);
 	});
 
@@ -78,7 +77,7 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		assert.ok(!html.includes("links to other topics"), "no edge count — it is obvious");
 	});
 
-	it("multi: 'Delete N nodes?' (the UI word is node, owner 2026-09-30), names capped at 8 + and-K-more", () => {
+	it("multi: 'Delete N nodes?' (the UI word is node), names capped at 8 + and-K-more", () => {
 		const three = bodyAt([
 			{ id: "kepler", name: "Kepler's three laws" },
 			{ id: "newton", name: "Newton's second law" },

@@ -1,5 +1,5 @@
 /**
- * Tests for the section parsers (settings-storage wave, 2026-09-19):
+ * Tests for the section parsers:
  * src/server/settings-body.ts — general/agent/appearance/graph strictness.
  * Same discipline as parseSettingsBody (its tests live in
  * default-settings.test.ts): every known field is strict (bad type/shape
@@ -60,7 +60,7 @@ describe("parseAgentSettingsBody", () => {
 	});
 
 
-	it("graphTools: strict object subsection, enabled boolean when present — wave 7, 2026-09-23", () => {
+	it("graphTools: strict object subsection, enabled boolean when present", () => {
 		const off = parseAgentSettingsBody({ graphTools: { enabled: false } });
 		assert.ok(off.ok);
 		assert.deepEqual(off.settings.graphTools, { enabled: false });
@@ -130,7 +130,7 @@ describe("parseAppearanceSettingsBody", () => {
 });
 
 describe("parseGraphSettingsBody", () => {
-	it("parses the collapsed section replace-whole (wave 7: the master switch ONLY)", () => {
+	it("parses the collapsed section replace-whole (the master switch ONLY)", () => {
 		const r = parseGraphSettingsBody({ enabled: false });
 		assert.ok(r.ok);
 		assert.deepEqual(r.settings, { enabled: false });
@@ -142,13 +142,13 @@ describe("parseGraphSettingsBody", () => {
 		assert.equal(parseGraphSettingsBody("nope").ok, false);
 	});
 
-	it("the removed rendering switch (2026-10-27) is no longer read from a body", () => {
+	it("the removed rendering switch is no longer read from a body", () => {
 		const body = parseGraphSettingsBody({ enabled: true, rendering: false });
 		assert.ok(body.ok);
 		assert.deepEqual(body.settings, { enabled: true });
 	});
 
-	it("extractionChunkTokens: whole tokens ≥ the 500 floor (extraction-UX redesign, 2026-09-24)", () => {
+	it("extractionChunkTokens: whole tokens ≥ the 500 floor", () => {
 		const ok = parseGraphSettingsBody({ enabled: true, extractionChunkTokens: 2048 });
 		assert.ok(ok.ok);
 		assert.deepEqual(ok.settings, { enabled: true, extractionChunkTokens: 2048 });
@@ -180,7 +180,7 @@ describe("parseGraphSettingsBody", () => {
 	});
 });
 
-describe("parseCompactionSettingsBody (owner round 14)", () => {
+describe("parseCompactionSettingsBody", () => {
 	it("parses a threshold; absent = the empty section (factory default at resolution)", () => {
 		const r = parseCompactionSettingsBody({ thresholdTokens: 120000 });
 		assert.ok(r.ok);
@@ -209,7 +209,7 @@ describe("parseCompactionSettingsBody (owner round 14)", () => {
 
 describe("SETTINGS_SECTIONS (the route's section map)", () => {
 	it("maps exactly the five record sections", () => {
-		// compaction joined (owner round 14): its own section PUT — the
+		// compaction joined: its own section PUT — the
 		// threshold is engine behavior, not an agent-section key.
 		assert.deepEqual(
 			Object.keys(SETTINGS_SECTIONS),

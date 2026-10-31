@@ -1,7 +1,7 @@
 /**
  * Tests for the resolution layer: core/settings-resolution.ts — the
  * delta→concrete projection. There are no model settings anymore: the
- * outside agent (MCP) is the only model (owner, 2026-10-27).
+ * outside agent (MCP) is the only model.
  */
 
 import assert from "node:assert/strict";
@@ -20,9 +20,8 @@ describe("resolveSettings", () => {
 		assert.equal(eff.appearance.proseFontSize, 16);
 		assert.equal(eff.appearance.sessionNameSerif, true);
 		assert.equal(eff.appearance.mdRendering.headingWeight, 900);
-		// wave 7 collapse: the master switch ONLY + the redesign's chunk
-		// budget — absent record resolves the factory 4096 (halved back
-		// from the digest-era 8192, owner, 2026-10-13)
+		// the master switch ONLY + the chunk budget — absent record
+		// resolves the factory 4096
 		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
 	});
 
@@ -44,8 +43,8 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.rules, { voice: ["No jokes"] });
 		assert.equal(eff.appearance.proseFontSize, 20);
 		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
-		// wave 7 collapse: the section IS the master switch (absent budget
-		// field = factory 4096 — a pre-redesign record resolves cleanly).
+		// the section IS the master switch (absent budget field =
+		// factory 4096 — an older record resolves cleanly).
 		assert.deepEqual(eff.graph, { enabled: false, extractionChunkTokens: 4096 });
 		
 		// The chunk budget rides the same resolution: stored value wins.
@@ -53,14 +52,14 @@ describe("resolveSettings", () => {
 		assert.deepEqual(budgeted.graph, { enabled: true, extractionChunkTokens: 2000 });
 	});
 
-	it("an old record's graph.rendering (removed 2026-10-27) is not read", () => {
+	it("an old record's graph.rendering (removed) is not read", () => {
 		const eff = resolveSettings({ version: 1, graph: { rendering: false } as never });
 		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
 	});
 });
 
 describe("the graph channel gates (the wave's seam honoring)", () => {
-	it("PROBER GRAPH TOOLS gate (wave 7, owner ruling 2026-09-23): the agent toggle AND the graph master switch compose", () => {
+	it("PROBER GRAPH TOOLS gate: the agent toggle AND the graph master switch compose", () => {
 		const graph = { enabled: true };
 		assert.equal(graphToolsEnabled({ graph, agent: { graphTools: {} } }), true, "absent subsection = ON");
 		assert.equal(graphToolsEnabled({ graph, agent: { graphTools: { enabled: true } } }), true);

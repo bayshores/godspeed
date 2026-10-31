@@ -109,7 +109,7 @@ flowchart TB
 ```
 src/
   app/                          Next.js App Router: pages (/ Home, /new, /chat/[id],
-                                /class Overview, /class/files, /graph) + 37 thin API
+                                /class Overview, /class/files, /graph) + thin API
                                 route handlers. Settings is a dialog, not a page
   components/                   Home (home-page/), the lesson screen (lesson/), question
                                 dock, plan panel, topic map (graph/), class Overview and
@@ -185,7 +185,9 @@ data/                           runtime state, git-ignored:
                                 prompts/ (edited system prompts) · models/ (the
                                 downloaded speech model) · settings.json ·
                                 mcp-token · mcp-endpoint.json (desktop only) ·
-                                agent-notes.json · agent-seen.json
+                                agent-notes.json · agent-seen.json · agent-rules.json
+                                (marks agent-saved rules) · agent-folder.json (the
+                                godspeed folder + notice seen)
 ```
 
 ## Key mechanisms
@@ -199,8 +201,8 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 - **The item's shape.** A compact JSON block, then the instructions and long message texts (`[text N]`) as plain-text blocks.
 - **Paging.** A long work item comes in pages of at most 24,000 UTF-8 bytes (`src/core/work-pages.ts`). The agent reads pages 2 and up with `read_work`; `respond` is refused until every page is read. `read_work` with `full: true` sends the item again in full.
 - **Per-agent seen tracking.** Later items in a lesson carry only the new messages. What each agent (by its session id) has seen of each lesson is saved in `data/agent-seen.json`, so a restart or a second agent gets the right part. Instructions and tools an agent already got come by reference in a new conversation (`instructionsAsIn`, `toolsAsBefore`).
-- **Waiting.** Claude Code waits in the godspeed folder's background script (`.godspeed/wait-for-work.mjs`) for free. Codex waits with `wait_for_work` up to its tool timeout; the folder's start command passes `-c mcp_servers.godspeed.tool_timeout_sec=620` so it can ask for waits up to 600 s.
-- **The forget hook.** The forget hook in `.godspeed/claude-settings.json` (`forget.mjs`) runs when Claude Code compacts or the learner runs `/clear`. It calls `POST /api/mcp/forget` so that agent's next item comes in full, or edits `agent-seen.json` itself when the app is closed.
+- **Waiting.** Claude Code waits in a background script in the godspeed folder (`.godspeed/wait-for-work.mjs`) for free. Codex has no waiter. It waits with `wait_for_work` up to its MCP tool timeout. Its start command sets `tool_timeout_sec=620` with `-c` flags (`src/core/agent-folder.ts`), so it can ask for waits up to 600 s.
+- **The forget hook.** The forget hook in `.godspeed/claude-settings.json` runs `.godspeed/forget.mjs` when Claude Code compacts or the learner runs `/clear`. It calls `POST /api/mcp/forget` so that agent's next item comes in full, or edits `agent-seen.json` itself when the app is closed.
 - **The other tools.** `list_lessons` takes `class_id` and `limit` and returns `total`; `read_lesson` comes in pages like a work item; `read_class` gives file counts and only the failed files unless asked for `files: true`; `add_class_deadline` and `set_class_file_kind` take lists (`deadlines`, `file_ids`) and return failed items under `refused`. Inside a work item the agent uses only that item's tools, through `respond`. See [architecture.md](architecture.md) §8.1.
 - **Both MCP versions.** `/api/mcp` serves the 2026-07-28 version (every request carries the client's version and name, and `server/discover` replaces the `initialize` handshake; Claude Code and the folder's scripts) and the older one that starts with `initialize` (Codex). How it was moved: [archive/mcp-2026-migration.md](archive/mcp-2026-migration.md).
 - **Agent notes and the briefing.** `remember` / `forget` save short notes about the learner in `data/agent-notes.json` (Settings → Connection lists them). Every `initialize` or `server/discover` puts a "Where you left off" briefing right after the work loop in its instructions: classes, last lessons, next deadlines and notes (`src/server/agent-memory.ts`, `src/core/agent-briefing.ts`), trimmed to end before Claude Code's 4096-character cut.

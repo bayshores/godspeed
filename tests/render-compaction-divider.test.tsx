@@ -1,12 +1,11 @@
 /**
- * THE COMPACTION DIVIDERS — SSR render pins (owner round 14; inert since
- * release polish 2026-10-06). Two ruled surfaces from one marker: the
+ * THE COMPACTION DIVIDERS — SSR render pins (inert). Two ruled surfaces from one marker: the
  * MOMENT divider (minimal centered small text, the retrying-message
  * register — no rule lines) where the user is when compaction lands, and
  * the CUT divider (the longer one — phase-divider geometry, dotted rules
  * + a chip carrying the summarized token count) at the kept boundary.
  *
- * NOT VIEWABLE (owner, 2026-10-06): the summary dialog is gone — the
+ * NOT VIEWABLE: the summary dialog is gone — the
  * compaction content is model-facing plumbing; anyone who wants to
  * inspect it reads their provider logs. The pins below hold the
  * dividers INERT: plain markup, no button, no affordance, and the
@@ -34,14 +33,14 @@ const data: CompactionDividerData = {
 	},
 };
 
-const INERT = ["no click affordance survives the 2026-10-06 ruling"];
+const INERT = ["no click affordance survives"];
 
 describe("CompactionMomentDivider", () => {
 	it("renders the minimal centered note — no rule lines, retrying-message register", () => {
 		const html = renderToStaticMarkup(<CompactionMomentDivider data={data} />);
 		assert.ok(html.includes('data-testid="compaction-divider"'));
 		assert.ok(html.includes("Lesson summarized"));
-		// NO horizontal rule (the owner ruling: minimal, unlike the cut)
+		// NO horizontal rule (unlike the cut)
 		assert.ok(!html.includes("border-t-2"));
 	});
 });
@@ -57,7 +56,7 @@ describe("CompactionCutDivider", () => {
 	});
 });
 
-describe("not viewable (owner, release polish 2026-10-06)", () => {
+describe("not viewable", () => {
 	it("neither divider is a button — plain markup, no click affordance", () => {
 		for (const html of [
 			renderToStaticMarkup(<CompactionMomentDivider data={data} />),

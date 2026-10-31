@@ -1,5 +1,5 @@
 /**
- * The LIVE tool-input card (owner, streaming round 2026-10-01): what a
+ * The LIVE tool-input card: what a
  * tool call looks like while the agent writes it — Braille spinner +
  * shimmered activity label in the header (the retired bottom line's
  * text, one glimmer recipe), the streaming input watchable on expand.

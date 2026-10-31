@@ -1,5 +1,5 @@
 /**
- * Wave E stage 3 (owner 2026-10-10): demos run in the app's own Chromium
+ * Wave E stage 3: demos run in the app's own Chromium
  * via a --browser-service helper (main.cjs boots a hidden window with a CDP
  * port), system Chrome as fallback. These pin the pure halves of that
  * chain: the handshake line parser and the spawn-env sanitizer. The live

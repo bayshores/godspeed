@@ -1,5 +1,5 @@
 /**
- * CLASSES WAVE PINS (owner-approved 2026-10-26), Phase 2-3 — the routes and
+ * CLASSES PINS — the routes and
  * the file pipeline, end to end against a real temp data dir:
  *  - create / list / edit / archive / delete classes
  *  - course-info files never reach the graph; study files import into the
@@ -119,7 +119,7 @@ describe("class icon route", () => {
 	});
 });
 
-describe("deadline routes (plan 2026-10-28; exams before that)", () => {
+describe("deadline routes", () => {
 	it("lists, adds, edits and removes deadlines; refuses bad input", async () => {
 		const id = await makeClass("CSE 21");
 		const up = await (await upload(id, "study", [["lecture1.md", "Counting"]])).json();

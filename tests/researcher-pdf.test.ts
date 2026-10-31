@@ -1,5 +1,5 @@
 /**
- * Researcher PDF capability (PDF wave, 2026-10-07, design B): web_fetch_pdf
+ * Researcher PDF capability (design B): web_fetch_pdf
  * downloads a PDF into a per-job temp dir and returns the triage summary;
  * pdf_info/pdf_extract/pdf_search read it page-level, ALL scoped to the dir
  * (the researcher's filesystem ends at the temp wall). web_fetch gained the

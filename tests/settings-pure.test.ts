@@ -132,7 +132,7 @@ describe("appearanceVars — the mapping the provider applies", () => {
 	});
 });
 
-describe("staleVarNames — the removal half of application (owner repro: resets never reverted)", () => {
+describe("staleVarNames — the removal half of application (resets revert)", () => {
 	it("a full delta applied, then factory: every delta-only name goes stale", () => {
 		const fullDelta = appearanceVars(
 			resolveAppearance({

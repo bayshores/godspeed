@@ -1,6 +1,5 @@
 /**
- * The Edit class dialog's deadline drafts (plan 2026-10-28; exams before
- * that): Save turns the drafts into the deadline routes' writes; drafts
+ * The Edit class dialog's deadline drafts: Save turns the drafts into the deadline routes' writes; drafts
  * that can't be saved are caught first; the row's date, time and
  * file-count labels.
  */

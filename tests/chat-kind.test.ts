@@ -1,5 +1,5 @@
 /**
- * SESSION-KIND PINS (practice sessions, owner 2026-10-04): ChatRecord.kind
+ * SESSION-KIND PINS (practice sessions): ChatRecord.kind
  * is ABSENT-BY-DEFAULT — absence reads as teach, so pre-practice records
  * never migrate; "practice" marks an adaptive-practice session (the
  * practice agent + its two tools from turn 1, no extraction, no graph
@@ -25,7 +25,7 @@ after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
 });
 
-describe("session kind (practice sessions, 2026-10-04)", () => {
+describe("session kind (practice sessions)", () => {
 	it("createChat default carries NO kind field — absence reads as teach", () => {
 		const chat = chatStore.createChat("plain session");
 		assert.equal("kind" in chat, false, "teach records carry no kind marker");

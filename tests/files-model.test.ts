@@ -1,5 +1,5 @@
 /**
- * The Files page's pure helpers (redesign plan, Phase 6): the row's state
+ * The Files page's pure helpers: the row's state
  * from a file's status and coverage, the coverage bar, the hash anchor,
  * the two sections and the home-folder shortening.
  */

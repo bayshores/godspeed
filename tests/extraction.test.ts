@@ -105,10 +105,10 @@ function memoryLedgers() {
 			}
 		},
 		// Cluster labelings — mirrors the real store: append dedupes by id.
-		// Topic snapshots (redesign 2026-10-27) — the last one wins.
+		// Topic snapshots — the last one wins.
 		readTopics: () => topics.at(-1) ?? null,
 		appendTopics: (t: TopicSnapshot) => void topics.push(t),
-		// The destructive seam (wave 6 session deletion) — mirrors the real
+		// The destructive seam — mirrors the real
 		// store: replace the provided ledgers' full contents.
 		rewriteLedgers: (next) => {
 			if (next.nodes) nodes.splice(0, nodes.length, ...next.nodes.map((n) => ({ ...n, provenance: [...n.provenance], aliases: [...n.aliases] })));
@@ -225,9 +225,8 @@ after(() => {
 	}
 });
 
-/** What the extractor SUBMITS for the fixture session (owner redesign,
- *  2026-09-30): propositions + REASONING CHAINS on the wire — one chain
- *  (p1 ⟹ p2). Each proposition carries its passage anchor (2026-10-13):
+/** What the extractor SUBMITS for the fixture session: propositions + REASONING CHAINS on the wire — one chain
+ *  (p1 ⟹ p2). Each proposition carries its passage anchor:
  *  the fixture's teacher-prose messages are a1 (chain rule prose) and a2
  *  (derivative prose) — p1 anchors to a2, p2 to a1. */
 const FINDINGS = {
@@ -325,7 +324,7 @@ function silentModel(): PiEngine {
 
 // ─── transcriptView (pure) ───────────────────────────────────────────────────
 
-describe("transcriptView (pure — teacher prose only, owner 2026-09-28)", () => {
+describe("transcriptView (pure — teacher prose only)", () => {
 	it("renders ONLY the teacher's prose — no learner, no checks, no tool notes", () => {
 		const { record } = fixtureChat();
 		const view = transcriptView(record);
@@ -336,7 +335,7 @@ describe("transcriptView (pure — teacher prose only, owner 2026-09-28)", () =>
 		assert.match(view, /^TEACHER \[a1\] The chain rule composes rates of change along a path\.$/m);
 		assert.match(view, /^TEACHER \[a2\] The derivative measures how fast a function changes\.$/m);
 
-		// MESSAGE-ID LABELS (owner, 2026-10-13): the passages carry their
+		// MESSAGE-ID LABELS: the passages carry their
 		// ACTUAL message ids, in exactly messageViewLines' shape — the same
 		// seam the coverage fingerprints hash. No label without prose: a3
 		// (quiz only) and the learner messages are not passages.
@@ -413,7 +412,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 		off();
 	});
 
-	it("stringified-payload heal (owner, 2026-09-28): propositions arriving as ONE JSON string still validate and merge", async () => {
+	it("stringified-payload heal: propositions arriving as ONE JSON string still validate and merge", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 
@@ -431,7 +430,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 		assert.deepEqual(stats, { nodes: 2, chains: 1 });
 	});
 
-	it("stringified-payload heal: the CHAINS array arriving as ONE JSON string still validates (redesign, 2026-09-30)", async () => {
+	it("stringified-payload heal: the CHAINS array arriving as ONE JSON string still validates", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 		const extractor = submitModel("submit_findings", {
@@ -517,7 +516,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 		assert.equal(ledgers.readCoverage().length, 0);
 	});
 
-	it("the LLM cluster-namer is DEAD (wave 7): a merge mints no naming runs — labels are session names now", async () => {
+	it("the LLM cluster-namer is DEAD: a merge mints no naming runs — labels are session names now", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 		const pipeline = createExtractionPipeline({
@@ -567,7 +566,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 		assert.equal(stats.nodes, 2, "the direct-value seam ran, untouched by engineFor");
 	});
 
-	it("a failing extractor is ISOLATED (per-chunk jobs, owner 2026-09-28): the job fails, nothing merges — and a sibling batch still merges", async () => {
+	it("a failing extractor is ISOLATED (per-chunk jobs): the job fails, nothing merges — and a sibling batch still merges", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 
@@ -600,8 +599,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 			chatStore,
 			graphStore: ledgers,
 			// 4096 budget: the fixture is sized to split in two (the factory
-			// default again — halved back from the digest-era 8192, owner
-			// 2026-10-13).
+			// default).
 			getChunkTokens: () => 4096,
 			engineFor: () => fauxEngine([countingStep]),
 		});
@@ -849,7 +847,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 
 		release();
 		// The gated extractor never submits — an ISOLATED job failure now
-		// (per-chunk jobs, owner 2026-09-28): the run resolves with zeros
+		// (per-chunk jobs): the run resolves with zeros
 		// instead of throwing.
 		assert.deepEqual(await first, { nodes: 0, chains: 0 });
 	});
@@ -914,7 +912,7 @@ describe("the extraction pipeline (extractor → merger)", () => {
 	});
 });
 
-// ─── message anchors (messageId — owner, 2026-10-13) ────────────────────────
+// ─── message anchors (messageId) ────────────────────────
 
 describe("message anchors (session propositions carry their passage's id)", () => {
 	/** A single-proposition submit with an explicit anchor. */
@@ -939,7 +937,7 @@ describe("message anchors (session propositions carry their passage's id)", () =
 		// The degraded shape: propositions without anchors, chains present —
 		// only the REQUIRED field is missing, and the schema refuses it on
 		// every turn until the budget is gone (the required-field doctrine,
-		// 2026-09-28, now covering the anchor too).
+		// covering the anchor too).
 		const bare = () =>
 			fauxEngine(
 				Array.from({ length: 4 }, () =>
@@ -1084,9 +1082,9 @@ const NOTES_FINDINGS = {
 	reteaches: [],
 } as const;
 
-// ─── the extractor redesign (owner, 2026-09-30) ─────────────────────────────
+// ─── the extractor redesign ─────────────────────────────
 
-describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable", () => {
+describe("the extractor redesign: chains are the deliverable", () => {
 	/** A retry engine: step 1 submits the BAD payload (schema-valid, law-
 	 *  violating — so the pin proves the VALIDATE channel fired, not the
 	 *  schema), step 2 submits the clean one. */
@@ -1308,7 +1306,7 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 		assert.ok(NOTES_EXTRACTOR_INSTRUCTIONS.startsWith(NOTES_PREAMBLE));
 		assert.ok(NOTES_EXTRACTOR_INSTRUCTIONS.includes(EXTRACTION_CORE), "the notes extractor shares the core by construction");
 
-		// THE ANCHOR RULE (owner, 2026-10-13) is SESSION-ONLY: the exact
+		// THE ANCHOR RULE is SESSION-ONLY: the exact
 		// sentence rides the session instructions; the notes
 		// contextualization never mentions message ids at all.
 		assert.equal(
@@ -1323,7 +1321,7 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 		assert.match(SESSION_PREAMBLE, /a teaching\s+session, rendered as the teacher's prose in reading order/);
 		assert.match(NOTES_PREAMBLE, /the\s+author's personal notes, rendered in reading order/);
 
-		// NO RULE ARMOR (owner, 2026-09-30): the defensive lists are CUT
+		// NO RULE ARMOR: the defensive lists are CUT
 		// from both contextualizations.
 		for (const prompt of [EXTRACTOR_INSTRUCTIONS, NOTES_EXTRACTOR_INSTRUCTIONS]) {
 			assert.doesNotMatch(prompt, /DROP:/);
@@ -1364,7 +1362,7 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		assert.equal(source.extractions![0]!.stats?.nodes, 1);
 		assert.ok(source.extractions![0]!.stages.extractor.steps.length > 0, "faux usage captured");
 
-		// File-scoped provenance (submit-schema slim, 2026-09-28): the
+		// File-scoped provenance (submit-schema slim): the
 		// node carries ONE chat-level point — the source key itself, no
 		// message anchors.
 		const node = ledgers.readNodes()[0]!;
@@ -1374,7 +1372,7 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		assert.equal(ledgers.readCheckpoints()[0]!.chatId, source.id);
 	});
 
-	it("chunks a large file: one extract→merge per chunk, part headers in each view (owner, 2026-09-28)", async () => {
+	it("chunks a large file: one extract→merge per chunk, part headers in each view", async () => {
 		const ledgers = memoryLedgers();
 		const views: string[] = [];
 		let calls = 0;
@@ -1408,14 +1406,14 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		assert.match(views[0]!, new RegExp(`part 1/${calls}`));
 		assert.match(views.at(-1)!, new RegExp(`part ${calls}/${calls}`));
 		// Same findings in every chunk → one node PER CHUNK: jobs merge
-		// independently (owner, 2026-09-29 — the mappings ledger is gone);
+		// independently (the mappings ledger is gone);
 		// cross-chunk identity is the extractor's reteaches, and these
 		// fixtures submit none.
 		assert.deepEqual(stats, { nodes: calls, chains: 0 });
 		assert.equal(ledgers.readNodes().length, calls);
 	});
 
-	it("required top-level fields (owner, 2026-09-28; chains since 2026-09-30): a findings submit MISSING chains fails validation — no silent structure-less merge", async () => {
+	it("required top-level fields: a findings submit MISSING chains fails validation — no silent structure-less merge", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 		// The degraded-retry shape from the OpenRouter log: propositions
@@ -1438,7 +1436,7 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 			graphStore: ledgers,
 			engineFor: () => noEdges(),
 		});
-		// Isolated job failure (per-chunk jobs, owner 2026-09-28): the run
+		// Isolated job failure (per-chunk jobs): the run
 		// resolves zeros — no throw — and still nothing merged.
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 0, chains: 0 });
 		assert.equal(ledgers.readNodes().length, 0);
@@ -1504,7 +1502,7 @@ function capturedView(context: unknown): string {
 }
 
 /** An extractor step that submits FINDINGS, optionally capturing its view.
- *  The step plays by the anchor law it runs under (2026-10-13): every
+ *  The step plays by the anchor law it runs under: every
  *  proposition's messageId is copied from a TEACHER [id] label of the
  *  CURRENT stretch, so multi-batch fixtures reuse this step across batches
  *  without ever naming a passage their batch does not hold. */
@@ -1532,7 +1530,7 @@ function chunkyChat() {
 	createdChats.push(chat.id);
 	// ~1230 tok per TEACHER message (chars/4): three fill the 4096 budget,
 	// the fourth would overflow — deterministic batches [m1,m2,m3] + [m4,m5].
-	// Teacher prose only (owner, 2026-09-28): learner messages are
+	// Teacher prose only: learner messages are
 	// invisible to coverage, so the fixture is all-teacher.
 	chatStore.saveMessages(
 		chat.id,
@@ -1551,8 +1549,7 @@ describe("the chunked pipeline (extraction coverage)", () => {
 			chatStore,
 			graphStore: ledgers,
 			// 4096 budget: the fixture is sized to split in two (the factory
-			// default again — halved back from the digest-era 8192, owner
-			// 2026-10-13).
+			// default).
 			getChunkTokens: () => 4096,
 			extractor: fauxEngine([findingsStep((v) => views.push(v)), findingsStep((v) => views.push(v))]),
 		});
@@ -1568,7 +1565,7 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		assert.doesNotMatch(views[0]!, /### /, "no speaker headers — passages are TEACHER [id] lines");
 		// The document header is the session title.
 		assert.ok(views[0]!.startsWith("# Chunky coverage fixture"));
-		// MESSAGE-ID LABELS (2026-10-13): every passage carries its REAL
+		// MESSAGE-ID LABELS: every passage carries its REAL
 		// message id — batch 1 holds a1-a3, batch 2 a4-a5, and the labels
 		// follow the split exactly.
 		assert.match(views[0]!, /^TEACHER \[a1\] topic 1:/m);
@@ -1578,7 +1575,7 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		assert.match(views[1]!, /^TEACHER \[a5\] topic 5:/m);
 
 		// Batch 1 merged the full findings; batch 2's identical ids are a
-		// SEPARATE job's namespace (owner, 2026-09-29 — no mapping table)
+		// SEPARATE job's namespace (no mapping table)
 		// — its propositions merge again as fresh nodes. Cross-batch
 		// identity is the extractor's reteaches, never the merger's.
 		assert.deepEqual(stats, { nodes: 4, chains: 2 });
@@ -1595,7 +1592,7 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		const again = await pipeline.runExtraction(chatId);
 		assert.deepEqual(again, { nodes: 0, chains: 0 });
 		assert.equal(views.length, before);
-		// PER-CHUNK JOBS (owner 2026-09-28): one usage record per batch job
+		// PER-CHUNK JOBS: one usage record per batch job
 		// (two), and the no-op run adds none.
 		assert.equal(chatStore.getChat(chatId)!.extractions?.length, 2, "one usage record per batch job; the no-op run persists none");
 	});
@@ -1637,8 +1634,7 @@ describe("the chunked pipeline (extraction coverage)", () => {
 			chatStore,
 			graphStore: ledgers,
 			// 4096 budget: the fixture is sized to split in two (the factory
-			// default again — halved back from the digest-era 8192, owner
-			// 2026-10-13).
+			// default).
 			getChunkTokens: () => 4096,
 			// Batch 1 submits and merges; batch 2's extractor call HANGS
 			// until the abort fires — the dock's abort button, mid-run.
@@ -1724,8 +1720,8 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		assert.equal(afterAttach.uncoveredCount, 0, "data parts don't change the fingerprint");
 
 		// A teacher-prose edit changes the message's view → exactly that
-		// message re-opens, and the next run extracts it alone. (Under the
-		// 2026-09-28 ruling only TEACHER prose can re-open anything.)
+		// message re-opens, and the next run extracts it alone. (Only
+		// TEACHER prose can re-open anything.)
 		const mutated = record().map((m) =>
 			(m as { id?: string }).id === "s1"
 				? ({ ...m, content: [...(m as { content: unknown[] }).content, { type: "text", text: "the answer merged in late" }] } as never)
@@ -1749,11 +1745,11 @@ describe("the chunked pipeline (extraction coverage)", () => {
 	});
 });
 
-// ─── session deletion mid-run (wave 6) ─────────────────────────────────────
+// ─── session deletion mid-run ─────────────────────────────────────
 
-// ─── per-chunk parallel jobs (owner, 2026-09-28) ─────────────────────────────
+// ─── per-chunk parallel jobs ─────────────────────────────
 
-describe("per-chunk parallel jobs (owner, 2026-09-28)", () => {
+describe("per-chunk parallel jobs", () => {
 	const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 	/** 8 single-line chunks: one line per chunk under a tiny budget — a
@@ -1765,7 +1761,7 @@ describe("per-chunk parallel jobs (owner, 2026-09-28)", () => {
 		const ledgers = memoryLedgers();
 		// The extractor call hangs until its ABORT — the observation window:
 		// the parked chunk-1 job must be the ONLY live row (later chunks
-		// mint only when their turn comes, digest order, owner 2026-09-30).
+		// mint only when their turn comes, digest order).
 		const abortingStep: FauxResponseStep = (_context, options) =>
 			new Promise((_resolve, reject) => {
 				const sig = options?.signal;
@@ -1870,7 +1866,7 @@ describe("the session-deletion guard (chat deleted mid-run)", () => {
 	});
 });
 
-// ─── graph-context-aware serialized extraction + chain simplification (owner, 2026-09-30 evening) ────
+// ─── graph-context-aware serialized extraction + chain simplification ────
 
 describe("graph-context-aware serialized extraction (the extractor is the assembler)", () => {
 	it("the system prompt is goal-first: core ideas, foundations direction, build on the graph context, reteaches", () => {
@@ -2069,7 +2065,7 @@ describe("graph-context-aware serialized extraction (the extractor is the assemb
 			chatStore,
 			graphStore: ledgers,
 			extractor: fauxEngine([findingsStep((v) => views.push(v)), findingsStep((v) => views.push(v))]),
-			getChunkTokens: () => 4096, // two batches over the chunky fixture (the factory default, 4096 — halved back 2026-10-13)
+			getChunkTokens: () => 4096, // two batches over the chunky fixture (the factory default, 4096 — halved back)
 		});
 		const stats = await pipeline.runExtraction(chatId);
 		assert.equal(views.length, 2);
@@ -2079,7 +2075,7 @@ describe("graph-context-aware serialized extraction (the extractor is the assemb
 	});
 });
 
-describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 evening)", () => {
+describe("chain simplification (the merger's maintenance pass)", () => {
 	const chain = (id: string, premises: string[], conclusion: string, createdAt: string): GraphChain => ({
 		id,
 		premises,
@@ -2088,7 +2084,7 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 		provenance: [{ chatId: "src_1", messageId: "" }],
 	});
 
-	it("the owner example: [A,B]⇒X + [X,C]⇒Y make [A,B,C]⇒Y redundant", () => {
+	it("the worked example: [A,B]⇒X + [X,C]⇒Y make [A,B,C]⇒Y redundant", () => {
 		const kept = simplifyChains([
 			chain("arg_3", ["n_a", "n_b", "n_c"], "n_y", "2026-09-30T03:00:00.000Z"),
 			chain("arg_1", ["n_a", "n_b"], "n_x", "2026-09-30T01:00:00.000Z"),

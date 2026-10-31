@@ -1,5 +1,5 @@
 /**
- * Session Find — the pure matcher plus the DOM seam (owner, 2026-10-13).
+ * Session Find — the pure matcher plus the DOM seam.
  * The DOM seam runs under linkedom (styles resolve to defaults: display
  * block/inline behave; the hidden/overlay paths are exercised through the
  * selectors and inline styles linkedom DOES evaluate). The highlight/

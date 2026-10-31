@@ -1,6 +1,5 @@
 /**
- * BIRTH-SESSION CLUSTERING + THE PROBER GRAPH-TOOLS DATA SEAM (wave 7,
- * owner-locked 2026-09-23): embeddings are dead — a proposition's cluster
+ * BIRTH-SESSION CLUSTERING + THE PROBER GRAPH-TOOLS DATA SEAM: embeddings are dead — a proposition's cluster
  * is the session that created it, derived on read from provenance
  * (session-clusters.ts); labels are session names; the prober tools read a
  * session list + per-session propositions with the extractor's latest
@@ -111,7 +110,7 @@ describe("birthSessionPartition", () => {
 // ─── notes files as birth sessions (production shape) ────────────────────────
 
 describe("notes files as birth sessions", () => {
-	// The mapping-line fallback is GONE (owner, 2026-09-29): the mappings
+	// The mapping-line fallback is GONE: the mappings
 	// ledger itself died with per-job in-memory resolution, and every merge
 	// writes provenance points — the src id IS the birth session.
 	it("graphSessionIndex lists imported files as kind:file with birth counts (production shape)", () => {
@@ -132,7 +131,7 @@ describe("notes files as birth sessions", () => {
 		], "the file births under its src id; the childless chat has no entry (birth sessions only)");
 	});
 
-	it("graphSessionPropositions lists the file's births under the src id (a pure birth list, 2026-09-27)", () => {
+	it("graphSessionPropositions lists the file's births under the src id (a pure birth list)", () => {
 		const deps = fakeStores([node("a", "Alpha", [pt("src_abc")]), node("b", "Beta", [pt("src_abc")])], {
 			sources: [{ id: "src_abc", filePath: "/vault/learn vim.md", importedAt: "2026-09-22T00:00:00.000Z" }],
 		});
@@ -171,7 +170,7 @@ describe("graphSnapshot birth-session clusters", () => {
 			id: "src_notes",
 			label: "/vault/notes.md",
 			members: ["d", "e", "f"],
-		}, "a notes file is a birth-session too (owner ruling)");
+		}, "a notes file is a birth-session too");
 		// A 2-proposition session renders no hull (the presentation rule).
 		const two = fakeStores([node("x", "X", [pt("chat1")]), node("y", "Y", [pt("chat1")])], {
 			chats: [{ id: "chat1", title: "tiny", createdAt: "", updatedAt: "" }],
@@ -236,7 +235,7 @@ describe("graphSessionIndex (the prober's session list)", () => {
 });
 
 describe("graphSessionPropositions (the per-session view)", () => {
-	it("birth propositions — a pure list, no evaluations (2026-09-27 cleanup)", () => {
+	it("birth propositions — a pure list, no evaluations", () => {
 		const nodes = [
 			node("a", "Alpha", [pt("chat1")]),
 			node("b", "Beta", [pt("chat1")]),
@@ -250,7 +249,7 @@ describe("graphSessionPropositions (the per-session view)", () => {
 	});
 });
 
-// ─── imp-node cluster assignment (physics arc, owner 2026-09-30) ─────────────
+// ─── imp-node cluster assignment (physics arc) ─────────────
 
 describe("impClusterKey (majority among PREMISES' births)", () => {
 	const chainOf = (premises: string[], provenance: Array<{ chatId: string; messageId: string }> = []) =>
@@ -321,7 +320,7 @@ describe("attachImpToCommunities (the shared seam for pull + hulls)", () => {
 
 // ─── the snapshot seam: imp ids ride cluster members to BOTH consumers ──────
 
-describe("graphSnapshot imp-node cluster assignment (physics arc, 2026-09-30)", () => {
+describe("graphSnapshot imp-node cluster assignment (physics arc)", () => {
 	const chats = [{ id: "chatA", title: "Session A", createdAt: "2026-09-30T00:00:00.000Z", updatedAt: "2026-09-30T00:00:00.000Z" }];
 	const multi = (id: string, premises: string[], conclusion: string, chatId = "chatA"): GraphChain => ({
 		id, premises, conclusion, provenance: [pt(chatId)], createdAt: "2026-09-30T00:00:00.000Z",

@@ -1,5 +1,5 @@
 /**
- * Wave E stage 2 (owner 2026-10-10): renderSvg is NATIVE FIRST — resvg
+ * Wave E stage 2: renderSvg is NATIVE FIRST — resvg
  * rasterizes in-process; the old Chrome path stays as fallback for
  * exotic-SVG parse failures. These tests pin the native path against real
  * SVGs: attribute-sized, viewBox-only (the 900px default), text-bearing

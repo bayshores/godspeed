@@ -1,5 +1,5 @@
 /**
- * "Ready for what's due" (Class Overview, plan 2026-10-28 Phase 3): which
+ * "Ready for what's due" (Class Overview): which
  * deadlines the runway shows (the next 5, or 4 and "+N later"), the gap
  * and meta labels, the ring tooltip lines and the "Most needed" topic.
  */

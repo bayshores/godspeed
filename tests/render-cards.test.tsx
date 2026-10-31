@@ -146,7 +146,7 @@ describe("render smoke tests", () => {
 		// INSIDE the dock — never called optional, inviting the dump.
 		assert.ok(html.includes('data-testid="thinking-field"'), "thinking field present");
 		assert.match(html, /Your thinking/, "labeled as the learner's voice");
-		assert.match(html, /Why this answer\? Whatever comes to mind/, "placeholder invites, not apologizes (owner, placeholder round 2026-10-07)");
+		assert.match(html, /Why this answer\? Whatever comes to mind/, "placeholder invites, not apologizes");
 		assert.ok(!html.includes("optional"), "the field is never called optional");
 		assert.match(html, /Submit answer/, "send becomes Submit answer");
 		assert.ok(!html.includes("Enter"), "mouse-first: no key label on the submit bar");
@@ -195,7 +195,7 @@ describe("render smoke tests", () => {
 		assert.ok(html.includes('role="group"'), "checkbox group");
 		assert.ok((html.match(/role="checkbox"/g) ?? []).length >= 3, "options AND the Other row are checkboxes");
 		assert.ok(html.includes('data-testid="other-option"'), "Other is still an option row in multi-select");
-		// The bigger \u2713 glyph (text-base, 2026-09-24 owner round) only
+		// The bigger \u2713 glyph (text-base) only
 		// mounts on a CHECKED row — unreachable from the unselected static
 		// render, so it's live-verified (Playwright: 14px computed in the
 		// 16px box) instead of pinned here.
@@ -248,7 +248,7 @@ describe("render smoke tests", () => {
 		assert.ok(!html.includes("tucked-explanation"));
 		const open = renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />);
 		assert.ok(open.includes("tucked-explanation") && open.includes("innermost"), "opened: the explanation");
-		// Glyph-shaped SVG marks (owner preference) — pinned via data-mark.
+		// Glyph-shaped SVG marks — pinned via data-mark.
 		assert.ok(open.includes('data-mark="check"') && open.includes('data-mark="x"'));
 	});
 
@@ -292,7 +292,7 @@ describe("render smoke tests", () => {
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />);
 		assert.ok(html.includes('data-testid="your-thinking"'), "the thinking row exists");
 		assert.match(html, /Your thinking/, "labeled as the learner's voice");
-		// COLLAPSED ARRIVAL (owner round 2, 2026-10-05): the trigger row only.
+		// COLLAPSED ARRIVAL: the trigger row only.
 		assert.ok(html.includes('data-testid="your-thinking-trigger"'), "the trigger row");
 		assert.ok(html.includes('aria-expanded="false"'), "arrives collapsed");
 		const yourRow = html.slice(html.indexOf('data-testid="your-thinking"'));
@@ -412,7 +412,7 @@ describe("probe-done card", () => {
 		summary: "Bracketed: teach the symbols on the intuition he has.",
 	};
 
-	it("renders the strand-by-strand assessment — the CALL is its home (context diet 2026-10-09)", () => {
+	it("renders the strand-by-strand assessment — the CALL is its home (context diet)", () => {
 		const html = renderToStaticMarkup(
 			<ProbeDoneCard
 				part={{ state: "output-available", input: { assessment: validAssessment }, output: { ok: true } } as never}
@@ -463,7 +463,7 @@ describe("probe-done card", () => {
 	});
 });
 
-// ─── the explain reveal (free-recall, owner 2026-09-27) ────────────────────
+// ─── the explain reveal (free-recall) ────────────────────
 
 describe("AnsweredCard: the explain variant", () => {
 	const explainQD = (): QuestionData => ({
@@ -480,7 +480,7 @@ describe("AnsweredCard: the explain variant", () => {
 		assert.match(html, /The answer:/);
 		assert.match(html, /luminiferous aether/);
 		assert.match(html, /fringe shift/);
-		assert.ok(!html.includes("Why:"), "no separate explanation field — one committed answer (owner 2026-09-27)");
+		assert.ok(!html.includes("Why:"), "no separate explanation field — one committed answer");
 		assert.ok(!html.includes("incorrect") && !html.includes("correct</"), "no client grading");
 		assert.ok(!html.includes('data-mark="x"') && !html.includes('data-mark="check"'));
 	});
@@ -492,7 +492,7 @@ describe("AnsweredCard: the explain variant", () => {
 
 });
 
-// ─── probe-phase naming (owner, 2026-10-09): the probe/recall rename —
+// ─── probe-phase naming: the probe/recall rename —
 //     both surfaces carry the tool's OWN name ────────────────────────────
 
 describe("probe-phase naming: Warm-up/Recall labels", () => {
@@ -551,7 +551,7 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 	});
 });
 
-// ─── the two roles in the UI (predict vs check, owner 2026-10-03) ─────────
+// ─── the two roles in the UI (predict vs check) ─────────
 // Predictions arrive OPEN before the teaching; checks arrive collapsed after
 // it. The answered card tells them apart (eyebrow) and tucks a prediction's
 // explanation (the teaching that follows IS the explanation) while a check's
@@ -571,7 +571,7 @@ describe("predict vs check rendering", () => {
 		assert.ok(html.includes("Prediction"), `eyebrow missing: ${html.slice(0, 200)}`);
 	});
 
-	it("a check quiz reads the 'Check' eyebrow — the type name IS the label (owner, 2026-10-09)", () => {
+	it("a check quiz reads the 'Check' eyebrow — the type name IS the label", () => {
 		const html = renderToStaticMarkup(
 			<QuestionDock
 				{...{
@@ -591,13 +591,13 @@ describe("predict vs check rendering", () => {
 		const answer = buildAnswer(qd, { values: ["Venus"] }); // wrong on purpose
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
 		assert.ok(html.includes("Prediction"), "the eyebrow distinguishes the card");
-		assert.ok(/incorrect|wrong|&times;|✗/i.test(html), "the verdict still shows (owner: predictions are graded)");
+		assert.ok(/incorrect|wrong|&times;|✗/i.test(html), "the verdict still shows (predictions are graded)");
 		assert.ok(!html.includes("innermost"), "the explanation is not center stage");
 		assert.ok(html.includes('data-testid="answer-toggle"'), "it sits behind the toggle");
 		assert.ok(renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />).includes("tucked-explanation"));
 	});
 
-	it("a check answer tucks the explanation like every question (owner, 2026-10-07)", () => {
+	it("a check answer tucks the explanation like every question", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Venus"] });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
 		assert.ok(html.includes('data-testid="answer-toggle"'), "the prediction tuck is now universal");
@@ -611,8 +611,7 @@ describe("predict vs check rendering", () => {
 			readingThinking: "was unsure mid-paragraph",
 		});
 		const html = renderToStaticMarkup(<AnsweredCard answer={withReading} defaultOpen />);
-		// The unified ThinkingBlock (owner round, 2026-10-05; round two
-		// 2026-10-07): the reading thoughts render BEFORE the card as the
+		// The unified ThinkingBlock: the reading thoughts render BEFORE the card as the
 		// banded user-thinking row, arriving EXPANDED (clearly sent).
 		const blockAt = html.indexOf("reading-thinking-block");
 		const cardAt = html.indexOf("answered-card");
@@ -621,7 +620,7 @@ describe("predict vs check rendering", () => {
 		assert.ok(html.includes("Your thinking"), "the plain label");
 		assert.ok(!html.includes("Your thinking while reading"), "the old verbose label is gone");
 		assert.ok(!html.includes("your-reading-thinking"), "the in-card inset is gone");
-		// EXPANDED ARRIVAL (owner round two, 2026-10-07): transcript rows
+		// EXPANDED ARRIVAL: transcript rows
 		// render their text; the in-card answer thinking stays collapsed.
 		assert.ok(html.includes('data-testid="your-thinking-trigger"'), "the answer thinking stays inside the card");
 		assert.ok(html.includes("was unsure mid-paragraph"), "the lifted row arrives expanded");
@@ -632,9 +631,9 @@ describe("predict vs check rendering", () => {
 	});
 });
 
-// ─── details + option descriptions render as markdown (owner, 2026-10-12) ──
+// ─── details + option descriptions render as markdown ──
 
-describe("question context renders as markdown everywhere (owner, 2026-10-12)", () => {
+describe("question context renders as markdown everywhere", () => {
 	it("pending dock: ask option descriptions render LaTeX, not plain text", () => {
 		const html = renderDock({
 			toolName: "ask_user_question",
@@ -701,8 +700,7 @@ describe("question context renders as markdown everywhere (owner, 2026-10-12)", 
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={input} defaultOpen />);
 		const katexCount = (html.match(/class="katex"/g) ?? []).length;
 		assert.ok(katexCount >= 3, `details + option-label math renders (got ${katexCount})`);
-		// Quiz options carry NO description field at all (owner ruling
-		// 2026-09-26) — the desc map is ask-only and stays empty here.
+		// Quiz options carry NO description field at all — the desc map is ask-only and stays empty here.
 		assert.ok(!html.includes("lh-prose block text-xs"), "no option-subtext slot on quiz rows");
 	});
 

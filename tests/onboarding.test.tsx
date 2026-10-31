@@ -1,5 +1,5 @@
 /**
- * First-launch onboarding (owner, 2026-10-27): who sees it
+ * First-launch onboarding: who sees it
  * (server/onboarding.ts, decided once from data/mcp-token and stored as
  * general.onboarded), the settings field, the screens' pure helpers, the
  * constellation's markup, and the class picker following the server's

@@ -21,7 +21,7 @@ import { lsTool } from "../src/agent/tools/ls.ts";
 import { readTool } from "../src/agent/tools/read.ts";
 
 /**
- * The learner-filesystem tools (sources v1, 2026-09-19): ls/find/grep as
+ * The learner-filesystem tools (sources v1): ls/find/grep as
  * pure-Node pi ports, read re-anchored to the home directory. All calls go
  * through absolute paths — the tools' relative resolution targets the real
  * home, which tests must not touch.
@@ -274,7 +274,7 @@ describe("read (home-anchored re-port)", () => {
 	});
 });
 
-describe("abort plumbing (the 2026-09-19 cascade fix)", () => {
+describe("abort plumbing (the cascade fix)", () => {
 	it("walkFiles stops promptly when the signal aborts mid-walk", async () => {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "lh-fs-abort-"));
 		for (let i = 0; i < 20; i++) await fs.writeFile(path.join(root, `f${i}.txt`), "needle\n");

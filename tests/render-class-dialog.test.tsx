@@ -1,5 +1,5 @@
 /**
- * The Edit class dialog with Deadlines (plan 2026-10-28; exams before that),
+ * The Edit class dialog with Deadlines,
  * mounted over linkedom with a fake fetch: rows read "Midterm 1 · Exam ·
  * Thu Oct 29, 7:00 PM · 2 files" (done ones show a tick); one opens to its
  * kind, name, date, time, a checkbox per study file and Done; Add deadline

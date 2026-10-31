@@ -1,5 +1,5 @@
 /**
- * "What's new" after an update (owner, 2026-10-27): the version math
+ * "What's new" after an update: the version math
  * (src/core/changelog.ts), who sees the notes (src/server/whats-new.ts,
  * stored as general.lastSeenVersion), the settings field, the shipped
  * changelog's shape, and the dialog's markup.

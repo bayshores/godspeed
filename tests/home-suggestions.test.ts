@@ -1,5 +1,5 @@
 /**
- * Home's "Suggested for <class>" rows (redesign Phase 6): which lesson is
+ * Home's "Suggested for <class>" rows: which lesson is
  * Continue, Next up, which Work-on-next list counts (the soonest open
  * deadline with files, else the class's), the two-row cap, and the
  * Continue step.

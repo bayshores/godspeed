@@ -1,5 +1,5 @@
 /**
- * Lesson-row render tests (redesign 2026-10-27): the braille spinner while
+ * Lesson-row render tests: the braille spinner while
  * a turn is in flight, a 6×6 white square while the lesson waits for the
  * learner's answer, and otherwise just the short age. Pure function of the
  * list item, so SSR of <SessionRow> pins every visible state. Same tsx
@@ -36,7 +36,7 @@ function render(chat: ChatListItem, active = false) {
 	return renderToStaticMarkup(<SessionRow chat={chat} active={active} onOpen={() => {}} />);
 }
 
-describe("SessionRow (redesign 2026-10-27)", () => {
+describe("SessionRow", () => {
 	it("no phase strips, no phase colors — the retired decoration", () => {
 		const html = render(item({ phase: "teach" }));
 		assert.ok(!html.includes("phase-strip"), "strip removed by design (too busy)");

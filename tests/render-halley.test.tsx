@@ -1,5 +1,5 @@
 /**
- * Halley's screens (plan 2026-10-28, Phase 4): the face (one svg, every
+ * Halley's screens: the face (one svg, every
  * mood, plain black eyes), the panel (head, Follow switch, Now, Recent,
  * Background jobs), the Follow chip, the teacher name setting, and the
  * sidebar footer opening the panel instead of the old popup.

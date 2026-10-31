@@ -295,7 +295,7 @@ describe("dispatch card rendering (the tool-call ack box)", () => {
 		assert.equal(html, "");
 	});
 
-	// sources v0 — the live browser smoke (2026-09-19) caught the pdf dispatch
+	// sources v0 — the live browser smoke caught the pdf dispatch
 	// part rendering nothing: PdfJobCard is the fix.
 	it("pdf dispatch renders the live PDF-reader card while the job runs", () => {
 		const pdfJob: JobRecord = ({
@@ -374,14 +374,14 @@ describe("steer card rendering (the delivered artifact)", () => {
 		const html = renderToStaticMarkup(<SubagentSteerCard message={projectNative([steer])[0] as never} />);
 		assert.ok(html.includes(encodeURIComponent(svg)), "the image URL contains the original SVG");
 		assert.match(html, /Figure/);
-		// Natural sizing (owner, 2026-10-07): a DECLARED width (200) means the
+		// Natural sizing: a DECLARED width (200) means the
 		// holder hugs + centers rather than stretching full-width.
 		assert.match(html, /w-fit/, "holder hugs the declared size");
 		assert.match(html, /class="block h-auto max-w-full"/, "image shrinks to fit only when oversized");
 		assert.ok(!html.includes("Looking at the render"), "model-facing notes never render");
 	});
 
-	it("renders the abort chip for an aborted job's steer (2026-09 dock semantics; the message type is the marker PART)", () => {
+	it("renders the abort chip for an aborted job's steer (the message type is the marker PART)", () => {
 		const steer = buildAbortSteer({ id: "jc", kind: "research", toolCallId: "cc" });
 		// Wave B: the steer is a native marker — the card renders its
 		// PROJECTION (the same view the transcript renderer hands it).
@@ -474,7 +474,7 @@ describe("steer card rendering (the delivered artifact)", () => {
 });
 
 
-describe("artifact chrome — scrollbar, invert toggles, downloads (release polish 2026-10-07)", () => {
+describe("artifact chrome — scrollbar, invert toggles, downloads", () => {
 	it("demo iframe: scrolling OFF (the bridge auto-sizes; a scrollable iframe traps the wheel) and the invert + download buttons render", () => {
 		const steer = buildSubagentSteer(
 			{ id: "jd3", kind: "demo", toolCallId: "cd3" },
@@ -498,7 +498,7 @@ describe("artifact chrome — scrollbar, invert toggles, downloads (release poli
 		assert.ok(!html.includes("hue-rotate"), "inversion OFF by default");
 	});
 
-	it("figure card: NO card chrome, image first, caption row BELOW (owner round, 2026-10-07)", () => {
+	it("figure card: NO card chrome, image first, caption row BELOW", () => {
 		const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><circle cx="50" cy="50" r="20"/></svg>';
 		const html = renderToStaticMarkup(<VisualOutputCard output={{ svg }} />);
 		// Document material: the outer box carries no card styling.
@@ -513,7 +513,7 @@ describe("artifact chrome — scrollbar, invert toggles, downloads (release poli
 		// The invert affordance: the contrast-circle disc + the tooltip.
 		assert.ok(html.includes("size-3"), "the icon disc");
 		assert.ok(html.includes('title="Invert colors"'), "the tooltip names the toggle");
-		// The half-moon is ACTUALLY filled (owner catch: lucide's Contrast
+		// The half-moon is ACTUALLY filled (lucide's Contrast
 		// renders it hollow — fill="none" default; ours fills currentColor).
 		assert.ok(
 			html.includes('fill="currentColor" stroke="none"'),
@@ -546,11 +546,11 @@ describe("artifact chrome — scrollbar, invert toggles, downloads (release poli
 	});
 });
 
-describe("bridge height: the body-based measure (ratchet fix, 2026-10-07)", () => {
+describe("bridge height: the body-based measure (ratchet fix)", () => {
 	it("DEMO_BRIDGE_SCRIPT measures the BODY (scrollHeight + rect + margins), not the viewport-clamped documentElement", () => {
 		// documentElement.scrollHeight = max(content, viewport) latches at
 		// the parent's own height — a demo could grow but never shrink on
-		// window resize (owner-reported). The body metrics are pure content.
+		// window resize. The body metrics are pure content.
 		assert.ok(DEMO_BRIDGE_SCRIPT.includes("Math.max(b.scrollHeight,b.getBoundingClientRect().height)"));
 		assert.ok(DEMO_BRIDGE_SCRIPT.includes("getComputedStyle(b)"));
 		assert.ok(!/post=function\(\)\{send\(\{type:"demo-resize",height:document\.documentElement\.scrollHeight\}\)\};/.test(DEMO_BRIDGE_SCRIPT));
@@ -799,7 +799,7 @@ function waitFor(cond: () => boolean, timeoutMs = 5000, what = "condition"): Pro
 	});
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes; drain
+/** CONNECTION DIET B: the POST acks and closes; drain
  *  the turn's wire through the reattach stream instead (settle-tolerant:
  *  a short turn may finish inside the handler). */
 async function drainRunning(chatId: string): Promise<string> {
@@ -1035,8 +1035,7 @@ describe("tool + renderer registry wiring", () => {
 		for (const t of ["read", "ls", "find", "grep"]) {
 			assert.equal(artifactRenderers[t], ToolCallCard, `${t} renders the tool-call card`);
 		}
-		// wave 7 — the prober's graph tools join the SAME discipline (they
-		// rendered like nothing happened before this interlude)
+		// the prober's graph tools join the SAME discipline
 		for (const t of ["list_sessions", "list_propositions"]) {
 			assert.equal(artifactRenderers[t], ToolCallCard, `${t} renders the tool-call card`);
 		}

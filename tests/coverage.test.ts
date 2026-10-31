@@ -14,8 +14,8 @@ import {
 import type { CoverageEntry } from "../src/core/contracts/graph.ts";
 
 /**
- * Extraction coverage — the pure core under the TEACHER-PROSE ruling
- * (owner, 2026-09-28): the extractor sees only the teacher's text
+ * Extraction coverage — the pure core under the TEACHER-PROSE rule:
+ * the extractor sees only the teacher's text
  * blocks; fingerprints, slots, tokens, and batching all derive from that
  * one selection. Everything else is invisible — it neither opens nor
  * joins a run.
@@ -99,7 +99,7 @@ describe("messageFingerprint — what changes it, what never does", () => {
 		);
 	});
 
-	it("quiz Q&A is INVISIBLE under the teacher-prose ruling (owner, 2026-09-28)", () => {
+	it("quiz Q&A is INVISIBLE under the teacher-prose ruling", () => {
 		// Neither the asking message nor the graded answer produces view
 		// lines — a quiz exchange can never open or join an extraction run.
 		const asking = assistantWithCalls("a1", [{ id: "q1", name: "quiz", args: { question: "Q?" } }]);
@@ -189,7 +189,7 @@ describe("batchRuns — token-budgeted, consecutive, never splits a message", ()
 		assert.deepEqual(batchRuns([], [], 4096), []);
 	});
 
-	it("learner messages and tool results never join a batch — teacher prose only (owner, 2026-09-28)", () => {
+	it("learner messages and tool results never join a batch — teacher prose only", () => {
 		// The inseparability bond died with the ruling: tool results are
 		// invisible, so nothing needs keeping together. Batches are pure
 		// greedy runs over the TEACHER slots alone.
@@ -210,7 +210,7 @@ describe("batchRuns — token-budgeted, consecutive, never splits a message", ()
 	});
 });
 
-describe("the all-sessions coverage GET is dead (extraction-UX close-out, 2026-09-24)", () => {
+describe("the all-sessions coverage GET is dead", () => {
 	it("the route file is gone — the only coverage endpoint is the Extract POST", () => {
 		// UI confirmation (ff1ec7a): nothing client-side consumes the
 		// all-sessions list anymore — the sidebar block and the ring both

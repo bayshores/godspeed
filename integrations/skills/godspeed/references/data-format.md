@@ -14,6 +14,7 @@ Paths below are relative to the selected **data** directory:
 chats/<session-id>.json    Full session: messages, optional plan, usage metadata
 chats/<session-id>/        PDFs the learner attached to that session (messages name their path)
 agent-notes.json          Short notes agents saved about the learner (remember/forget); the learner sees them in Settings → Connection
+agent-rules.json          Which rules an agent saved: {version: 1, rules: [{where: {area} | {classId}, text, at}]}. A rule whose text no longer matches was edited and counts as the learner's
 graph/nodes.jsonl          Proposition assertions; IDs can repeat
 graph/chains.jsonl         Reasoning-chain assertions; logical chains can repeat
 graph/sources.json        Imported-note source metadata, keyed by source ID
@@ -48,7 +49,7 @@ Only the last valid line counts. Members that are no longer propositions are
 ignored; propositions in no topic are "Ungrouped".
 
 `mcp-token` is the app's access secret: never read or print it. `mcp-endpoint.json`,
-`agent-seen.json`, `settings.json`, `prompts/`, downloaded models, caches, and
+`agent-seen.json`, `agent-folder.json`, `settings.json`, `prompts/`, downloaded models, caches, and
 provider debug logs are not needed to interpret learning history. Imported-note
 paths, research URLs, and artifact references are not automatically followed by
 the readers.
