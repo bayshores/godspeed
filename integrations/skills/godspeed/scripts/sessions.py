@@ -421,7 +421,7 @@ def list_sessions(root: Path) -> dict[str, Any]:
             continue
         entry = {key: record.get(key, "teach" if key == "kind" else None)
                  for key in ("id", "title", "kind", "createdAt", "updatedAt")}
-        # Classes (2026-10-26): absent = "No class".
+        # Absent classId means "No class".
         entry["classId"] = record.get("classId") if isinstance(record.get("classId"), str) else None
         sessions.append(entry)
     return {"data_dir": str(root), "sessions": sessions, "skipped": skipped, "skipped_count": len(skipped)}
