@@ -1,6 +1,5 @@
 /**
- * THE NOTIFICATION CHANNEL'S CLIENT HALF (push-architecture S3,
- * 2026-10-02): one EventSource per window fanned out through the hub.
+ * THE NOTIFICATION CHANNEL'S CLIENT HALF: one EventSource per window fanned out through the hub.
  * The provider's ENTIRE effect body is wireSource(source, hub) — a plain
  * function — so these pins drive the real wiring with a fake source, no
  * React and no server: typed dispatch, resync-on-open, error isolation,

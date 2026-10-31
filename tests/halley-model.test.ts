@@ -1,5 +1,5 @@
 /**
- * Halley's pure parts (plan 2026-10-28, Phase 4): mood precedence, visit
+ * Halley's pure parts: mood precedence, visit
  * pacing and the >5 burst summary, Follow (stop / pause / resume), corner
  * snapping, placement beside a target, and the comet trail.
  */

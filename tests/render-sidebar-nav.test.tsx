@@ -1,5 +1,5 @@
 /**
- * The redesigned sidebar's chrome (2026-10-27): the Home row (2026-10-28),
+ * The redesigned sidebar's chrome: the Home row,
  * the class nav (active row, the Files count, Files hidden under "No
  * class"), the footer line, and the class mark's initials.
  */

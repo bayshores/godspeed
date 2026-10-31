@@ -1,5 +1,5 @@
 /**
- * Home and the sidebar's Due soon (plan 2026-10-28, Phase 3): the Due soon
+ * Home and the sidebar's Due soon: the Due soon
  * rows (overdue first, at most 4, the red box once overdue, the meta line,
  * the countdown, "All" to Home, hidden when nothing is open, the done
  * click), Coming up (groups, rows, covers + ready bar, the class chip, the

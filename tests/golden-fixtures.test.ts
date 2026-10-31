@@ -1,5 +1,5 @@
 /**
- * GOLDEN FIXTURES (owner ruling, 2026-10-10): real user data, verbatim,
+ * GOLDEN FIXTURES: real user data, verbatim,
  * read through the PRODUCTION read paths. tests/fixtures/golden-data/ is a
  * real data dir (see its README); this suite copies it to a temp dir, points
  * the stores at it via the LH_DATA_DIR seam (set BEFORE any config-loading
@@ -204,7 +204,7 @@ test("settings: the stamped record parses", () => {
 	assert.ok(s, "settings record reads");
 	assert.equal(s!.version, 2, "the v1 stamp reads upgraded to v2 (its 50k threshold is the learner's own)");
 	assert.deepEqual(s!.compaction, { thresholdTokens: 50000 });
-	assert.equal("models" in s!, false, "the fixture's old model slots are dropped on read (removed 2026-10-27)");
+	assert.equal("models" in s!, false, "the fixture's old model slots are dropped on read");
 });
 
 // ── read-only: readers never write ──────────────────────────────────────────

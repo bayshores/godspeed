@@ -1,6 +1,6 @@
 /**
  * enter-submits + focus-hygiene — the pointer/keyboard Enter split and the
- * transient-control blur (owner, keyboard round 2026-10-10).
+ * transient-control blur.
  *
  * The regression this pins: clicking a transcript control (a thinking
  * toggle) left focus on its <button>; the learner's next Enter re-activated

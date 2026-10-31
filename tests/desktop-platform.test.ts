@@ -65,7 +65,7 @@ describe("desktop window chrome", () => {
 		assert.equal(windowOptions("darwin").webPreferences.autoplayPolicy, "no-user-gesture-required");
 	});
 
-	it("no window receives a sign-in transport marker (built-in sign-ins removed 2026-10-27)", () => {
+	it("no window receives a sign-in transport marker (built-in sign-ins removed)", () => {
 		assert.equal(windowOptions("darwin").webPreferences.additionalArguments, undefined);
 		assert.equal(windowOptions("darwin", { LH_DEV_URL: "http://localhost:3000" }).webPreferences.additionalArguments, undefined);
 	});

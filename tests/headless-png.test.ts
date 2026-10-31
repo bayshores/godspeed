@@ -4,17 +4,17 @@ import * as zlib from "node:zlib";
 import { providerSafePng } from "../src/agent/subagents/headless.ts";
 
 /**
- * The 2026-09-19 visual-maker fix (the "image format is illegal" 400s):
+ * The visual-maker fix (the "image format is illegal" 400s):
  * Chrome writes PNGs with a SPLIT IDAT stream (4KB chunks); Alibaba's vision
  * decoder — behind OpenRouter's qwen3.8-flash, the visual-maker's look-model —
- * rejected those during the 2026-09-18/19 window while every single-IDAT form
+ * rejected those while every single-IDAT form
  * passed. providerSafePng merges the split back into the canonical ONE-IDAT
  * form (PNG spec: the IDAT chunks are an arbitrary split of ONE zlib stream —
  * the merged form carries the byte-identical stream). Pure Node on purpose:
  * historically the process already carried a native image lib via
  * @huggingface/transformers' nested sharp/libvips, and a second copy (root
  * sharp) triggered macOS's duplicate-libvips ObjC warning — the transformers
- * embedder died with wave 6 (2026-09-23) but the no-native-deps rule lives
+ * embedder is gone but the no-native-deps rule lives
  * on: app code carries no image library. These tests pin the property with
  * no native deps at all.
  */

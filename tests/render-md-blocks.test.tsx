@@ -1,5 +1,5 @@
 /**
- * Render tests for the chrome-melt wave (2026-09-19): the md-blocks
+ * Render tests for the chrome-melt wave: the md-blocks
  * component overrides (Streamdown `components` prop) + the session-scoped
  * overlays. Idiom shared with render-markdown.test.tsx: static HTML via
  * react-dom/server (no DOM, effects never run — mermaid stays at its
@@ -38,11 +38,10 @@ describe("md-blocks — code", () => {
 		assert.match(html, /aria-label="Copy code"/, "the corner copy affordance is present");
 		// NAMED group (group/md) — the message container is also a `group`,
 		// and an unnamed group-hover would light every corner in the message at
-		// once (owner report, 2026-09-19); only the hovered block reveals.
+		// once; only the hovered block reveals.
 		assert.ok(html.includes("group/md"), "the block uses the named md group");
 		assert.match(html, /group-hover\/md:opacity-100/, "the corner reveals via the named group only");
-		// No "Copied" pill — the icon flip alone conveys the copy (owner ask,
-		// 2026-09-19; the pill was tried and removed same day).
+		// No "Copied" pill — the icon flip alone conveys the copy.
 		assert.ok(!html.includes('data-testid="md-copy-pill"'), "no Copied pill anywhere — icon flip is the feedback");
 		const corner = /<button[^>]*data-testid="md-copy"[^>]*>(.*?)<\/button>/.exec(html)?.[1] ?? "";
 		assert.match(corner, /lucide-copy/, "the corner is the shared copy button, icon only");
@@ -74,7 +73,7 @@ describe("md-blocks — tables", () => {
 		assert.ok(!html.match(/Fullscreen|aria-label="Download"/), "no fullscreen/download chrome on tables");
 		// The corner is CONTAINED in the table (top-1 right-1, not the old
 		// -top-3 that straddled the top outline — the 24px button at a 12px
-		// offset sat half over the border; owner report, 2026-09-19).
+		// offset sat half over the border).
 		assert.match(html, /absolute top-1 right-1 z-10/, "the corner sits inside the table's top-right");
 		// Table text runs at the session prose size — no text-sm pin (the
 		// cells' own text-sm is overridden to inherit via globals.css).
@@ -83,7 +82,7 @@ describe("md-blocks — tables", () => {
 });
 
 describe("md-blocks — display math", () => {
-	it("the block corner reveals ONLY on its own block — named group, not the message-level group (owner report: all-at-once)", () => {
+	it("the block corner reveals ONLY on its own block — named group, not the message-level group", () => {
 		const md = "```js\nconst x = 1;\n```\n\n| A | B |\n| --- | --- |\n| 1 | 2 |";
 		const html = render(md);
 		// No UNNAMED group-hover on the corners: that selector would fire from
@@ -100,7 +99,7 @@ describe("md-blocks — display math", () => {
 		// The wrapper is BLOCK: the katex-display child is display:block, and
 		// an inline wrapper around it fragments — the absolute corner then has
 		// no clean containing block and pointer events never land (the math
-		// corner neither highlighted nor copied; owner report, 2026-09-19).
+		// corner neither highlighted nor copied).
 		assert.match(html, /group\/md relative block/, "the math wrapper is a block box");
 		assert.match(html, /absolute top-0 right-0 z-10/, "the corner stacks above the equation");
 	});
@@ -113,7 +112,7 @@ describe("md-blocks — codeSource (pure)", () => {
 	});
 });
 
-describe("session-scoped overlays (chrome-melt wave, 2026-09-19)", () => {
+describe("session-scoped overlays", () => {
 	it("mermaid overlay mounts inside the session area — absolute (not fixed), 80% + blur, closeable", () => {
 		const html = renderToStaticMarkup(<MermaidOverlay chart="graph TD\nA --> B" onClose={() => {}} />);
 		assert.match(html, /class="absolute inset-0[^"]*z-40/, "absolute inset-0 z-40 — scoped, not fullscreen");
@@ -133,7 +132,7 @@ describe("session-scoped overlays (chrome-melt wave, 2026-09-19)", () => {
 		assert.ok(!html.includes("fixed inset-0"), "never fixed — the drag bar stays uncovered");
 	});
 
-	it("the diagram wrapper is hidden until the first fit applies (no top-left flash — owner report, 2026-09-19)", () => {
+	it("the diagram wrapper is hidden until the first fit applies (no top-left flash)", () => {
 		// Covered in render-plan-block.test.tsx, which has a real tree
 		// fixture (an empty-messages popup renders no diagram to gate) — and
 		// the same gate is asserted on the mermaid overlay's wrapper here:
@@ -178,14 +177,14 @@ describe("mermaid expand — the context seam", () => {
 	});
 });
 
-describe("md-blocks — key-idea callouts (GitHub alerts, owner round 2026-10-07)", () => {
+describe("md-blocks — key-idea callouts (GitHub alerts)", () => {
 	it("an [!IMPORTANT] callout renders as the sharp white-outline box, marker never leaks", () => {
 		const html = render("> [!IMPORTANT]\n> ALL X is done through Y.");
 		assert.ok(html.includes('data-testid="md-callout"'), "the callout box mounts");
 		assert.ok(html.includes('data-alert-kind="important"'), "the kind is recorded");
 		assert.match(html, /ALL X is done through Y\./, "the prose survives");
 		assert.ok(!html.includes("[!IMPORTANT]"), "the marker line never leaks as text");
-		// The owner's minimal law: sharp corners (no rounded), white stroke,
+		// The minimal law: sharp corners (no rounded), white stroke,
 		// no background, no label, no icon — and the box hugs its text.
 		assert.match(html, /border-ink-max/, "white stroke");
 		assert.match(html, /w-fit/, "width: fit-content — the hug");
@@ -234,7 +233,7 @@ describe("parseAlertMarker (pure)", () => {
 	});
 });
 
-describe("md-blocks — the restored plain blockquote (owner round, 2026-10-07)", () => {
+describe("md-blocks — the restored plain blockquote", () => {
 	it("a plain quote carries Streamdown's own styling (the override displaced it)", () => {
 		const html = renderToStaticMarkup(
 			<MessageResponse mode="static">{"Before.\n\n> An ordinary quote.\n\nAfter."}</MessageResponse>,
@@ -245,8 +244,8 @@ describe("md-blocks — the restored plain blockquote (owner round, 2026-10-07)"
 	});
 });
 
-describe("ThinkingBlock — the document band + ⌘T sync (owner rounds, 2026-10-07)", () => {
-	it("the row is the document band — round four geometry (owner, 2026-10-07)", () => {
+describe("ThinkingBlock — the document band + ⌘T sync", () => {
+	it("the row is the document band", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="banded" defaultOpen />);
 		assert.ok(html.includes("bg-card"), "the card-color band");
 		assert.ok(html.includes("border-l-[calc(3ch-14px)]"), "narrow rail — 14px gap inside the 3ch inset");
@@ -257,7 +256,7 @@ describe("ThinkingBlock — the document band + ⌘T sync (owner rounds, 2026-10
 		assert.ok(html.includes("banded"), "text visible on arrival");
 	});
 
-	it("in-card rows take no band — the accent step read too light (owner round five)", () => {
+	it("in-card rows take no band — the accent step read too light", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="in card" inCard />);
 		assert.ok(!html.includes("bg-accent") && !html.includes("bg-card"), "transparent on the card");
 		assert.ok(html.includes("border-l-[calc(3ch-14px)]"), "rail only, same geometry");

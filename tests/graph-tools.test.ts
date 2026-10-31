@@ -1,10 +1,9 @@
-// THE PROBER'S GRAPH TOOLS (wave 7; understanding levels removed
-// 2026-09-27) — pinned behaviors:
+// THE PROBER'S GRAPH TOOLS — pinned behaviors:
 // 1. REGISTRATION: the factory registers list_sessions/list_propositions
 //    on the prober ONLY when the composition root passes a graphStore
 //    (the graphToolsEnabled gate lives server-side; absent store = closed
 //    gate — the factory must not reach for settings itself).
-// 2. OUTPUT: names only — the owner ruling bars statement text and session
+// 2. OUTPUT: names only — the rule bars statement text and session
 //    contents from the prober's view of the map.
 // 3. HONESTY: empty graph, unknown session id — the tools answer in
 //    their own voice, never throw, never guess.
@@ -86,8 +85,7 @@ describe("prober graph tools — registration", () => {
 	it("graphStore present → list_sessions + list_propositions join the registry beside the usual set", () => {
 		const { chatStore, graphStore } = fakeStores([node("n1", "Water cycle", [pt("c1")])]);
 		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
-		// The standing set (fix wave 2026-09-20: research + pdf are
-		// phase-omnipresent) plus the two graph-map readers.
+		// The standing set (research + pdf are phase-omnipresent) plus the two graph-map readers.
 		assert.deepEqual(Object.keys(tools).sort(), [
 			"ask_user_question",
 			"find",
@@ -134,7 +132,7 @@ describe("list_sessions", () => {
 		assert.match(out, /First lesson \(chat, 2 propositions, born 2026-09-20T10:00:00.000Z, last active 2026-09-21T10:00:00.000Z\) — id: c1/);
 		// The unrecorded birth session falls back honestly: the id, no fake date.
 		assert.match(out, /c-file \(file, 1 proposition, born unknown date\) — id: c-file/);
-		// The owner ruling: the map's prose never reaches the prober.
+		// The map's prose never reaches the prober.
 		assert.ok(!out.includes("statement of"));
 	});
 
@@ -147,7 +145,7 @@ describe("list_sessions", () => {
 });
 
 describe("list_propositions", () => {
-	it("names only — what the session covered (2026-09-27: no levels, no dating)", async () => {
+	it("names only — what the session covered (no levels, no dating)", async () => {
 		const { chatStore, graphStore } = fakeStores([
 			node("n1", "Water cycle", [pt("c1")]),
 			node("n2", "Evaporation", [pt("c1")]),
@@ -157,7 +155,7 @@ describe("list_propositions", () => {
 		assert.match(out, /2 proposition\(s\) covered in this session:/);
 		assert.match(out, /- Water cycle/);
 		assert.match(out, /- Evaporation/);
-		// The owner ruling: no levels, no dating, never the statement text.
+		// No levels, no dating, never the statement text.
 		assert.ok(!out.includes("as of"));
 		assert.ok(!out.includes("solid"));
 		assert.ok(!out.includes("statement of"));
@@ -179,7 +177,7 @@ describe("list_propositions", () => {
 	});
 });
 
-// ─── classes wave (owner-approved 2026-10-26): reads cross classes ──────────
+// ─── reads cross classes ──────────
 
 describe("prober graph tools — cross-class reads", () => {
 	it("list_sessions lists every class graph, the lesson's own class first, tagged by class", async () => {

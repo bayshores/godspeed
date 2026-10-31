@@ -1,5 +1,5 @@
 /**
- * LESSON STREAMING PERF (redesign Phase 7, lesson part). Not part of
+ * LESSON STREAMING PERF (lesson part). Not part of
  * `npm test` (it lives outside the tests/*.test.* glob): run it by hand,
  *
  *   NODE_ENV=test npx tsx tests/perf/lesson-stream.perf.tsx

@@ -49,16 +49,15 @@ const boundaryOk = (schema: TSchema, input: unknown, problems: string[]): boolea
 	Value.Check(schema, input) && problems.length === 0;
 
 describe("the schema's argument order (reasoning before the pick)", () => {
-	// Argument-order ruling (owner, 2026-09-25): the explanation is
+	// Argument-order ruling: the explanation is
 	// reasoning, and reasoning happens BEFORE the answer is chosen — models
 	// emit tool args in schema order, so explanation sits immediately before
 	// correctAnswer. The TypeBox authoring order IS the model-facing JSON
 	// Schema property order, so this pin guards the emission end to end.
 	// All consumers read by key — the order is authoring guidance.
 	it("emits explanation immediately before correctAnswer (both agents' schemas)", () => {
-		// The 2026-09-25 ruling stands for the CONTENT fields (reasoning
-		// before the pick); the 2026-10-09 reorder adds its mirror for the
-		// teach schema — the required pair (`type`, `nodeId`) LEADS the
+		// The CONTENT fields put reasoning before the pick; the
+		// teach schema mirrors it — the required pair (`type`, `nodeId`) LEADS the
 		// object, because glm-5.3 dropped exactly those fields when they
 		// trailed every long content field (the tools_fails_2 drops).
 		// Models emit tool args in schema order: commit to the role and the
@@ -198,7 +197,7 @@ describe("normalizeOptions", () => {
 		assert.throws(() => normalizeOptions([{ label: "a", value: "x" }, { label: "b", value: "x" }]), /duplicate/);
 	});
 
-it("quiz options carry NO description field; ask keeps it (owner nuke, 2026-09-26)", () => {
+it("quiz options carry NO description field; ask keeps it", () => {
 	// The model used quiz option descriptions to telegraph correctness
 	// ("that's not the gradient") in every quiz of the gradient-descent
 	// session — the field is gone from BOTH quiz schemas; ask (ungraded,
@@ -423,7 +422,7 @@ function quizData(overrides?: Partial<QuestionData>): QuestionData {
 }
 
 describe("confidence stops", () => {
-	it("the 1–5 meter saves as 20/40/60/80/100 (redesign, 2026-10-27)", () => {
+	it("the 1–5 meter saves as 20/40/60/80/100", () => {
 		assert.deepEqual(CONFIDENCE_STOPS, [20, 40, 60, 80, 100]);
 		assert.deepEqual(([1, 2, 3, 4, 5] as const).map(levelPercent), [20, 40, 60, 80, 100]);
 	});
@@ -488,7 +487,7 @@ describe("buildAnswer", () => {
 		assert.deepEqual(ad.answers.map((a) => a.value), ["mercury"]);
 	});
 
-	// Confidence (owner, 2026-10-01): the slider's raw probability rides on
+	// Confidence: the slider's raw probability rides on
 	// real quiz answers only — never on "I don't know" (no answer, no
 	// probability), never on ask/explain. Clamped defensively.
 	it("carries confidence on quiz answers and clamps out-of-range values", () => {
@@ -529,7 +528,7 @@ describe("buildAnswer", () => {
 });
 
 
-// ─── compactAnswerForModel (the model-visible diet, owner 2026-10-02) ──────
+// ─── compactAnswerForModel (the model-visible diet) ──────
 
 describe("compactAnswerForModel", () => {
 	it("quiz: the learner's selection, verdict, confidence, note — NOTHING the model authored", () => {
@@ -575,7 +574,7 @@ describe("compactAnswerForModel", () => {
 	});
 });
 
-// ─── dismissedAnswer / toolQuestionKind (ESC-abort dismissal, 2026-10-02) ──
+// ─── dismissedAnswer / toolQuestionKind (ESC-abort dismissal) ──
 
 describe("dismissedAnswer (the ESC-abort record)", () => {
 	it("the minimum honest answer: kind, questionText, dismissed — nothing else claimed", () => {
@@ -652,10 +651,10 @@ describe("dock selection (toggleOption / toggleOther)", () => {
 	});
 });
 
-// ─── the explain tool: free-recall quizzing (owner 2026-09-27) ─────────────
+// ─── the explain tool: free-recall quizzing ─────────────
 
 describe("explainInputBase / explainInputProblems (the commitment contract)", () => {
-	it("has ONE authoring field — no explanation remnant (owner ruling 2026-09-27)", () => {
+	it("has ONE authoring field — no explanation remnant", () => {
 		// The MC quiz's explanation/answer split was quiz baggage: free
 		// recall commits a single correctAnswer, reasoning included.
 		const keys = Object.keys(explainInputBase.properties);
@@ -663,7 +662,7 @@ describe("explainInputBase / explainInputProblems (the commitment contract)", ()
 	});
 
 	it("the teach object LEADS with the required pair (type, nodeId) — base fields follow", () => {
-		// Owner, 2026-10-09: glm-5.3 dropped `type`/`nodeId` when they trailed
+		// glm-5.3 dropped `type`/`nodeId` when they trailed
 		// the content fields — required fields generated FIRST get dropped
 		// least, and the order doubles as the authoring order (role, target,
 		// then the question). Mirrors the quiz reorder (see above).
@@ -720,7 +719,7 @@ describe("buildAnswer / formatAnswerMessage: explain", () => {
 
 });
 
-// ─── the question's role: predict vs check (owner 2026-10-03) ─────────────
+// ─── the question's role: predict vs check ─────────────
 // Teaching units are a predict → teach → check cycle. The teach quiz schema
 // carries a REQUIRED `type` declaring the role; the prober's quiz never does
 // (probing questions are role-less). The reveal law keys off it: only CHECKS
@@ -771,7 +770,7 @@ describe("the quiz role field (predict | check)", () => {
 		assert.equal(questionNeedsReveal("quiz", { type: "predict" }, "probe"), false);
 		assert.equal(questionNeedsReveal("quiz", { type: "check" }, "probe"), false);
 		assert.equal(questionNeedsReveal("ask_user_question", {}, "teach"), false);
-		// Explain joined the law 2026-10-09: teach checks collapse, predictions
+		// Explain follows the same law: teach checks collapse, predictions
 		// don't, old no-type records render check-style — mirroring quiz exactly.
 		assert.equal(questionNeedsReveal("explain", { type: "check" }, "teach"), true);
 		assert.equal(questionNeedsReveal("explain", { type: "predict" }, "teach"), false);

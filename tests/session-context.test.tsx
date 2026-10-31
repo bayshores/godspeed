@@ -40,7 +40,7 @@ describe("RenameRow — the inline rename surface", () => {
 		assert.ok(html.includes(`value="${chat.title}"`));
 		// the meta line rides along (row never changes height mid-edit)
 		assert.ok(html.includes("session-rename-row"));
-		// (owner, polish round) NOTHING MOVES: no status spacer, no input
+		// NOTHING MOVES: no status spacer, no input
 		// border/padding — the draft text sits at the idle row's title x,
 		// and the input is the ONLY shift-proof editing cue (underline).
 		assert.ok(!html.includes("w-3.5 shrink-0"), "no always-on spacer (idle rows have none)");
@@ -51,7 +51,7 @@ describe("RenameRow — the inline rename surface", () => {
 	});
 });
 
-describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-09-24; portals no-op in SSR; pin the pure body)", () => {
+describe("DeleteSessionDialog — the node-dialog shape (portals no-op in SSR; pin the pure body)", () => {
 	it("closed (chat=null) renders nothing", () => {
 		const html = renderToStaticMarkup(
 			<DeleteSessionDialog chat={null} onClose={() => {}} onDeleted={() => {}} />,
@@ -73,9 +73,9 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 		);
 		assert.match(html, /Delete lesson\?/);
 		const title = html.match(/<h2[^>]*>/)?.[0] ?? "";
-		assert.match(title, /text-sm font-semibold text-destructive/); // red, abort-turn look (owner, 2026-10-13)
+		assert.match(title, /text-sm font-semibold text-destructive/); // red, abort-turn look
 		assert.ok(!title.includes("font-title"), "no serif display title");
-		// the name: mono, normal text-sm size (owner, 2026-10-13), NO bg-muted code-block chrome
+		// the name: mono, normal text-sm size, NO bg-muted code-block chrome
 		const name = html.match(/data-testid="session-name-code"[^>]*>/)?.[0] ?? "";
 		assert.match(name, /font-mono text-sm/);
 		assert.ok(!name.includes("bg-muted"), "no code-block chrome");

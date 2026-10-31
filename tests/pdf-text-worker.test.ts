@@ -1,5 +1,5 @@
 /**
- * SPEED PLAN PINS (owner-approved 2026-10-27), fix 2 — class PDFs never
+ * SPEED PLAN PINS, fix 2 — class PDFs never
  * stall the server:
  *  - the worker-thread reader returns exactly what the in-process reader
  *    did (pdf-text-worker.mjs duplicates pdfExtract's page format)

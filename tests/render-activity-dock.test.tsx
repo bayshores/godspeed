@@ -88,7 +88,7 @@ describe("activity dock pure layer", () => {
 		assert.equal(blobs[1]!.id, "new");
 	});
 
-	it("per-chunk jobs (owner, 2026-09-28): one source, N rows — unique ids (React keys), one chatId, part-suffixed titles", () => {
+	it("per-chunk jobs: one source, N rows — unique ids (React keys), one chatId, part-suffixed titles", () => {
 		const rows = [
 			{ id: "src_a#1", chatId: "src_a", kind: "notes", part: { i: 1, n: 2 }, title: "notes.md · 1/2", phase: "extracting", startedAt: NOW - 1000 },
 			{ id: "src_a#2", chatId: "src_a", kind: "notes", part: { i: 2, n: 2 }, title: "notes.md · 2/2", phase: "waiting", startedAt: NOW - 500 },
@@ -118,7 +118,7 @@ describe("activity dock pure layer", () => {
 		};
 		const withLast = job({
 			usage: { ...base, lastStep: step(90_000, 2_000) },
-			// The amendment (owner 2026-09-23): the limit is the server's
+			// The amendment: the limit is the server's
 			// live-catalog join riding the feed — the dock never resolves it.
 			contextLimit: 131_072,
 		});
@@ -136,7 +136,7 @@ describe("activity dock pure layer", () => {
 		})[0]!;
 		assert.equal(uncatalogued.context, null);
 		// The numerator is the same cache-inclusive fold the session meter
-		// uses (context-meter audit, owner 2026-09-23): provider "input"
+		// uses (context-meter audit): provider "input"
 		// EXCLUDES cacheRead/cacheWrite, so input+output alone reads wildly
 		// low on cache-heavy jobs — 10k+0.5k+120k+30k = 160.5k, not 10.5k.
 		const cached = toBlobs({

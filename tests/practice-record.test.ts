@@ -1,5 +1,5 @@
 /**
- * PRACTICE RECORD MECHANICS (practice sessions, owner 2026-10-04): the
+ * PRACTICE RECORD MECHANICS (practice sessions): the
  * native shapes beneath the two practice tools — the active-problem fold
  * (conclude-before-next-problem), the thinking marker (label registers),
  * the ask-style dismissal (UI-only marker; the conclude pair rides the
@@ -208,7 +208,7 @@ describe("the thinking input", () => {
 		assert.equal(appends.length, 1);
 		const marker = appends[0] as { customType: string; content: string; details: unknown };
 		assert.equal(marker.customType, "practice-thinking");
-		// The single label (owner round 2, 2026-10-05): the register is read
+		// The single label: the register is read
 		// from the text by the agent, never declared by a button.
 		assert.match(marker.content, /Your thinking:\n/);
 		assert.deepEqual(marker.details, {
@@ -233,7 +233,7 @@ describe("the thinking input", () => {
 	});
 });
 
-// ── the move-on signal (owner round 16, 2026-10-06) ─────────────────────────
+// ── the move-on signal ─────────────────────────
 
 describe("the next input", () => {
 	it("parses bare and appends the practice-next marker in an idle practice session", () => {
@@ -338,7 +338,7 @@ describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 		// The pose's terminate:true ended that turn deliberately; the
 		// ack persists (unlike a question's placeholder). Without the
 		// carve-out, a reload after a posed problem would wake a
-		// phantom turn (owner design, 2026-10-04).
+		// phantom turn.
 		assert.equal(needsContinuation(problemPose()), false);
 	});
 
@@ -371,7 +371,7 @@ describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 });
 
 
-// ── the reveal join (owner round, 2026-10-05) ───────────────────────────────
+// ── the reveal join ───────────────────────────────
 
 describe("modelSolutionForConclude (the conclusion's hero is the pose's commitment)", () => {
 	it("returns the cleanly-posed problem's modelSolution before the conclude", () => {
@@ -403,7 +403,7 @@ describe("modelSolutionForConclude (the conclusion's hero is the pose's commitme
 		const conclude = view.flatMap((m) => m.parts).find((p) => p.type === "tool-conclude");
 		assert.ok(conclude, "the conclude part projects");
 		assert.equal(conclude!.reveal, "Show that…", "the view-seam join carries the committed solution");
-		// THE FULL POSE FOLD (owner round 17): the whole problem-call input
+		// THE FULL POSE FOLD: the whole problem-call input
 		// rides the conclude part — the observability drawer's data.
 		assert.deepEqual(conclude!.problemInput, {
 			statement: "Show that…",

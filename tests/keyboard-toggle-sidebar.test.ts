@@ -11,7 +11,7 @@ import {
 import { kbdEventForAction as kbdEventForActionFromUi } from "../src/components/keyboard-shortcuts.tsx";
 
 /**
- * The ⌘B sidebar bug interlude (owner, 2026-09-25): ⌘B did nothing because
+ * The ⌘B sidebar bug interlude: ⌘B did nothing because
  * the sidebar listened on the pre-convention "lh:toggle-sidebar" while the
  * dispatcher sent "lh:kbd-toggle-sidebar". The fix is structural — both
  * sides compose the event name through the ONE helper — and these pins
@@ -32,7 +32,7 @@ describe("kbdEventForAction — the one spelling for action events", () => {
 });
 
 describe("the ⌘B chain — keypress → binding → action → event", () => {
-	it("mod+t is the toggle-user-thinking action (owner round, 2026-10-07)", () => {
+	it("mod+t is the toggle-user-thinking action", () => {
 		assert.equal(actionForBinding("mod+t"), "toggle-user-thinking");
 		assert.equal(bindingForAction("toggle-user-thinking"), "mod+t");
 		assert.equal(kbdEventForAction("toggle-user-thinking"), "lh:kbd-toggle-user-thinking");
@@ -51,7 +51,7 @@ describe("the ⌘B chain — keypress → binding → action → event", () => {
 	});
 });
 
-describe("shift+tab and mod+k bind to nothing (the model controls were removed 2026-10-27)", () => {
+describe("shift+tab and mod+k bind to nothing (the model controls were removed)", () => {
 	it("no action fires, and the label still formats per platform", () => {
 		assert.equal(actionForBinding("shift+tab") ?? null, null);
 		assert.equal(actionForBinding("mod+k") ?? null, null);
@@ -59,7 +59,7 @@ describe("shift+tab and mod+k bind to nothing (the model controls were removed 2
 	});
 });
 
-describe("the Alt session cycle is RETIRED (owner, 2026-10-10)", () => {
+describe("the Alt session cycle is RETIRED", () => {
 	// Barely used, felt laggy — session navigation lives IN the search
 	// now (↑/↓ walk the filtered list, Enter opens; sidebar.tsx).
 	it("⌥↑ / ⌥↓ / ⌥↵ bind to NOTHING — no stray action fires", () => {

@@ -1,5 +1,5 @@
 /**
- * Halley's server half (plan 2026-10-28, Phase 4): every MCP tool that
+ * Halley's server half: every MCP tool that
  * changes something records an agent action — {id, at, agent, label,
  * classId, target, page} — announces it as "agent-action", and the last
  * 20 are served by GET /api/agent-actions.

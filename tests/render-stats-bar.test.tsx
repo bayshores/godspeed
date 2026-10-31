@@ -9,7 +9,7 @@ import type { TurnUsage } from "../src/core/contracts.ts";
 // The stats bar: folds only (no cost math in the component), the "–"
 // doctrine for absent data, and the outside agent's context budget as the
 // meter's denominator. There is no model control (the outside agent picks
-// its own model — owner, 2026-10-27).
+// its own model).
 
 function step(inputTokens: number, outputTokens: number, over: Record<string, number | undefined> = {}) {
 	return { inputTokens, outputTokens, cacheReadTokens: undefined, cacheWriteTokens: undefined, reasoningTokens: undefined, ...over };
@@ -63,7 +63,7 @@ describe("stats bar", () => {
 
 describe("prettyModel", () => {
 	it("prettyModel strips vendor + date suffix, keeps dashes", () => {
-		assert.equal(prettyModel("z-ai/glm-5.3-flash"), "glm-5.3-flash"); // dashes kept (owner round 5)
+		assert.equal(prettyModel("z-ai/glm-5.3-flash"), "glm-5.3-flash"); // dashes kept
 		assert.equal(prettyModel("qwen/qwen3.8-max-0902"), "qwen3.8-max");
 	});
 

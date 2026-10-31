@@ -1,6 +1,5 @@
 /**
- * THE EVENT BUS + NOTIFICATION CHANNEL (push-architecture slice 1,
- * 2026-10-02): the bus is pure core law (typed, globalThis-shared, error-
+ * THE EVENT BUS + NOTIFICATION CHANNEL: the bus is pure core law (typed, globalThis-shared, error-
  * isolated); the SSE seam is one connection per open window — frames in,
  * cancel out, bus untouched. These pins are the channel's contract: every
  * future consumer (chat view, sidebar, dock) builds on exactly this.

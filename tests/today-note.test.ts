@@ -1,4 +1,4 @@
-/** The [Today] note (plan 2026-10-28, Phase 2): the exact text, when a new
+/** The [Today] note: the exact text, when a new
  *  note is appended, how it reaches the model, and that the lesson view
  *  shows nothing for it. Pure core, no data dir. */
 import assert from "node:assert/strict";
@@ -42,7 +42,7 @@ function dl(d: Partial<ClassDeadline> & Pick<ClassDeadline, "id" | "kind" | "nam
 	return { fileIds: [], done: false, ...d };
 }
 
-/** Board 4's class (owner-approved text). */
+/** Board 4's class. */
 const BOARD: TodayNoteClass = {
 	files: FILES,
 	deadlines: [

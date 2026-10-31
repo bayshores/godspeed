@@ -1,5 +1,5 @@
 /**
- * Home (redesign Phase 6): the Teach/Practice switch, the topic box
+ * Home: the Teach/Practice switch, the topic box
  * ("Start from facts", the white "Start lesson ↵", Enter starts) and the
  * "Suggested for <class>" rows (Continue / Next up / Work on next with
  * their buttons and meta).

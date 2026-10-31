@@ -1,5 +1,5 @@
 /**
- * The P2 tool-toggle bridge (2026-09-19): AgentBuildOptions.toolToggles is
+ * The P2 tool-toggle bridge: AgentBuildOptions.toolToggles is
  * first-class — the agent constructors thread it to the factories' enabled?
  * param (an explicit opts.tools registry is never filtered), and the
  * settings write side rejects unknown tool keys against TOGGLEABLE_TOOLS
@@ -23,7 +23,7 @@ import { createFauxCore } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../src/agent/models.ts";
 
 /** A scripted pi engine — the agent builds need an injected engine since
- *  BYOK removed the factory pins (owner, 2026-09-22). */
+ *  BYOK removed the factory pins. */
 function fauxEngine(): PiEngine {
 	const faux = createFauxCore({});
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
@@ -82,7 +82,7 @@ describe("parseAgentSettingsBody: tool keys validate at write time", () => {
 		assert.deepEqual(r.ok && r.settings.tools, { research: false, pdf: false });
 	});
 
-	it("the quizzing-mechanics key (explain) is writable (owner 2026-09-27)", () => {
+	it("the quizzing-mechanics key (explain) is writable", () => {
 		const r = parse({ explain: true });
 		assert.equal(r.ok, true);
 		assert.deepEqual(r.ok && r.settings.tools, { explain: true });

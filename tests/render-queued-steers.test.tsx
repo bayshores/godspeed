@@ -1,6 +1,5 @@
 /**
- * The queued-steer indicator's pins (composer steering, owner arc
- * 2026-10-03): the quiet one-liners above the composer shell, and the
+ * The queued-steer indicator's pins (composer steering): the quiet one-liners above the composer shell, and the
  * visibleQueuedSteers fold that decides which queued steers still show.
  */
 import { describe, it } from "node:test";

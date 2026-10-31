@@ -1,5 +1,5 @@
 /**
- * Open deadlines across classes (plan 2026-10-28, Phase 3): the sidebar's
+ * Open deadlines across classes: the sidebar's
  * Due soon pick, Home's Coming up groups (Overdue / Today / Tomorrow /
  * dates / Later), the head summary and the short labels.
  */

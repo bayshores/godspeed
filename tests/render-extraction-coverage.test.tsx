@@ -31,7 +31,7 @@ describe("CoverageMenuBody — the context-menu block", () => {
 			<CoverageMenuBody coverage={coverage()} extracting={false} onExtract={() => {}} />,
 		);
 		assert.ok(html.includes('data-testid="ctx-coverage"'), "the block carries its testid");
-		assert.match(html, /2k tok uncovered/, "the unit is typed out — tok (owner refinement round)");
+		assert.match(html, /2k tok uncovered/, "the unit is typed out — tok");
 		assert.match(html, /5 messages unextracted/);
 		assert.ok(html.includes('data-testid="ctx-extract"'), "the Extract affordance");
 		assert.ok(!html.includes('disabled=""'), "an uncovered session can extract (the disabled: utilities alone don't count)");

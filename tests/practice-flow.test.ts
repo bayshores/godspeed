@@ -1,6 +1,5 @@
 /**
- * Practice-flow integration test (practice sessions, owner design
- * 2026-10-04) — the full practice loop with zero tokens, mirroring
+ * Practice-flow integration test — the full practice loop with zero tokens, mirroring
  * chat-flow.test.ts's harness (handleChatRequest + the faux engine):
  *
  *   learner opens → practice agent poses (problem, terminate) → thinking
@@ -81,7 +80,7 @@ function post(chatId: string, input: unknown): Request {
 	});
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10): POST acks and closes; the turn's
+/** CONNECTION DIET B: POST acks and closes; the turn's
  *  wire is the reattach stream. Mirrors drain(): 200-ack assert + the fully
  *  drained SSE body via runningTurn + subscribe (subscribe immediately —
  *  faux turns settle in microtask rounds). */
@@ -147,7 +146,7 @@ describe("practice flow (scripted model)", () => {
 
 		// ── Turn 2: the submission arrives as a single-lane thinking message ──
 		await drainTurn(post(chat.id, { type: "thinking", problemCallId: "call-p1", text: "|G|=p; ⟨x⟩ has order dividing p" }), factory);
-		// The model saw the one label (owner round 2, 2026-10-05): the
+		// The model saw the one label: the
 		// register is read from the text, not declared by a button.
 		assert.ok(lastSaw(calls, "Your thinking:"), "the conclude turn's prompt carries the thinking");
 		const afterConclude = chatStore.getChat(chat.id)!.messages;
@@ -155,7 +154,7 @@ describe("practice flow (scripted model)", () => {
 			(m) => (m as ToolResultMessage).role === "toolResult" && (m as ToolResultMessage).toolName === "conclude",
 		) as LhMessage & ToolResultMessage;
 		assert.ok(concludeAck, "the conclude ack persisted");
-		// Owner round 16: the ack carries the turn-ends law (no more tools,
+		// The ack carries the turn-ends law (no more tools,
 		// the learner's go-ahead paces the next problem).
 		assert.ok((concludeAck.content[0] as { text: string }).text.includes("END YOUR TURN"));
 		// The turn continued past conclude to the reveal text.

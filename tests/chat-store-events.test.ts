@@ -1,5 +1,5 @@
 /**
- * CHAT STORE EVENT PINS (push-architecture S6, 2026-10-02): the sidebar's
+ * CHAT STORE EVENT PINS (push-architecture S6): the sidebar's
  * 2.5s poll died — list truth now rides chats-changed. The store's law:
  * list-SHAPE writes (create/rename/delete) announce post-write; content
  * writes (messages/usage/settings/tree) are DELIBERATELY silent — the

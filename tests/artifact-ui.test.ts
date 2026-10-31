@@ -1,5 +1,5 @@
 /**
- * THE ARTIFACT-UI ROUTE (owner, 2026-10-07): POST /api/chats/:id/artifact-ui
+ * THE ARTIFACT-UI ROUTE: POST /api/chats/:id/artifact-ui
  * persists the learner's invert switch onto a demo/figure steer message
  * (details.ui.inverted) — the silent record-write route (no wake, no SSE).
  * The pure core (setSteerUiInverted) is pinned in tests/demos.test.tsx;

@@ -166,7 +166,7 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 		assert.match(err, /line 2/);
 		assert.match(err, /line 3/);
 		assert.match(err, /line 4/);
-		// Context diet (2026-10-09): failures carry just the error — no tree echo.
+		// Context diet: failures carry just the error — no tree echo.
 		assert.equal(res.tree, undefined);
 		assert.equal(chatStore.getChat(chatId)!.tree, undefined, "nothing persisted on failure");
 	});
@@ -179,7 +179,7 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 		});
 		assert.equal(res.ok, false);
 		assert.match(res.error!, /cycle/);
-		assert.equal(res.tree, undefined, "no tree echo on failure (context diet, 2026-10-09)");
+		assert.equal(res.tree, undefined, "no tree echo on failure (context diet)");
 	});
 
 	it("only plan_init exists — the seven mutation/tracking tools are gone by design", () => {
@@ -237,7 +237,7 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 	});
 
 	it("rejects: non-slug ids (with the SPECIFIC message), self-loops, subgraphs, missing header, empty", () => {
-		// The muscle-protein post-mortem (2026-09-11): underscore ids died at
+		// The muscle-protein post-mortem: underscore ids died at
 		// the regex layer with a generic message, and the teacher spent four
 		// plan_init calls hunting punctuation the parser didn't care about.
 		// Now EVERY bad id reaches the slug check — the message names the id.
@@ -256,7 +256,7 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 		assert.ok(!parse("%% only a comment\n").ok, "empty plan");
 	});
 
-	it("free-form pass (2026-09-11): underscores, chains, arrow synonyms, any direction, quoted titles", () => {
+	it("free-form pass: underscores, chains, arrow synonyms, any direction, quoted titles", () => {
 		// Underscores are first-class slug chars — kept verbatim, referenced
 		// verbatim by quiz nodeId.
 		const us = parse("graph TD\n  mps_translation[Ribosomes build protein] --> net_balance[Net balance]\n");
@@ -404,7 +404,7 @@ describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 	});
 });
 
-// ─── the explain mechanic derives position identically (owner 2026-09-27) ──
+// ─── the explain mechanic derives position identically ──
 
 describe("derivePlanStatuses: tagged explain calls move the map like quiz calls", () => {
 	const tree: PlanTree = {

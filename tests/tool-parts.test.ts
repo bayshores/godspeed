@@ -1,7 +1,7 @@
 /**
  * Unit tests — the UI parse seam (src/core/tool-parts.ts).
  *
- * The rule born of the 2026-09-12 live crashes: model-authored tool input
+ * The rule: model-authored tool input
  * is consumed only through these parsers, each running the SAME zod schema
  * the model faced at the boundary. These pins hold the two exact live
  * crash shapes (the model's double-encoding habit) and the boundary-parity
@@ -56,7 +56,7 @@ describe("parseQuizInput", () => {
 		assert.ok(parsed);
 		assert.equal(parsed.question, TEACHER_QUIZ.question);
 		assert.equal((parsed as Record<string, unknown>).nodeId, undefined, "unknown keys are stripped, not trusted");
-		assert.equal((parsed as { type?: unknown }).type, "check", "the role field survives the display parse (owner 2026-10-03)");
+		assert.equal((parsed as { type?: unknown }).type, "check", "the role field survives the display parse");
 	});
 
 	it("parses a boundary-valid PROBER quiz (no nodeId at all)", () => {
@@ -73,10 +73,9 @@ describe("parseQuizInput", () => {
 		assert.ok(parseQuizInput(PROBER_QUIZ));
 	});
 
-	it("boundary parity: the 2026-09-26 string-options shape heals on read (universal-heal mirror, 2026-10-09)", () => {
+	it("boundary parity: the old string-options shape heals on read (universal-heal mirror)", () => {
 		// The boundary now heals a JSON-encoded options string at EVERY
-		// registry (healToolRecord, owner 2026-10-09 — the bare-quiz sets
-		// carried no prepareArguments at all), and the record keeps the RAW
+		// registry (healToolRecord), and the record keeps the RAW
 		// args — so the display parse heals the same shape, per this file's
 		// own parity law: anything the boundary accepts, the display parse
 		// accepts, or the posed quiz renders nowhere while the turn has
@@ -87,7 +86,7 @@ describe("parseQuizInput", () => {
 		assert.deepEqual(parsed.options, PROBER_QUIZ.options);
 	});
 
-	it("boundary parity under Value.Convert: a NUMERIC correctAnswer parses (live-smoke lockout fix, 2026-09-26)", () => {
+	it("boundary parity under Value.Convert: a NUMERIC correctAnswer parses (live-smoke lockout fix)", () => {
 		// The live smoke's model emitted correctAnswer: 17 (number). pi's
 		// boundary runs Value.Convert before Value.Check, so the quiz posed
 		// — but the record keeps the RAW args. A parse seam without Convert
@@ -169,7 +168,7 @@ describe("parseProbeDoneInput", () => {
 		assert.equal(parseProbeDoneInput({ assessment: { summary: "…" } }), undefined);
 	});
 });
-describe("LaTeX-escape restoration (the JSON-debris fix, owner ruling 2026-09-26)", () => {
+describe("LaTeX-escape restoration (the JSON-debris fix)", () => {
 	// The exact live shapes from the modal-logic session: single-backslash
 	// LaTeX inside JSON args — JSON escape resolution ate the command's
 	// first letter (\f → FF ate 'f' of \forall, \v → VT ate 'v' of \varphi).
@@ -233,7 +232,7 @@ describe("LaTeX-escape restoration (the JSON-debris fix, owner ruling 2026-09-26
 	});
 });
 
-describe("display-math newline rule (Option A, owner ruling 2026-09-27)", () => {
+describe("display-math newline rule (Option A)", () => {
 	// TS literal below: \\[ is \[, \\forall is intact \forall, \n is a REAL newline, \\\\ is the LaTeX \\ line break.
 	const MULTILINE = "Compare:\n\\[\n\\forall x, & f(x) = x^2 \\\\\n& g(x) = x^3\n\\]";
 
@@ -366,7 +365,7 @@ describe("dollar-delimiter recognition — existing escape restoration rules", (
 	});
 });
 
-// ─── parseExplainInput (free-recall display parse, owner 2026-09-27) ───────
+// ─── parseExplainInput (free-recall display parse) ───────
 
 describe("parseExplainInput: the dock's display seam for explain calls", () => {
 	const good = {

@@ -11,7 +11,7 @@ describe("the reading-thinking field (redesign: fills the Your-turn panel)", () 
 		assert.match(html, /Thinking while reading/);
 		assert.match(html, /<textarea[^>]*class="[^"]*flex-1/, "the field grows into the free height");
 		// Vertical padding absorbs Source Sans 3's 1px overhang (the old
-		// permanent-scrollbar bug, owner round 2026-10-07).
+		// permanent-scrollbar bug).
 		assert.match(html, /<textarea[^>]*class="[^"]*py-3/);
 	});
 });

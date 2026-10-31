@@ -2,10 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { blockLayout, edgePathD, type LayoutNode } from "../src/components/plan-block.tsx";
 
-// ─── The canvas must cover the arrows (owner, 2026-10-10) ────────────────────
-// The owner's REAL linear-algebra plan (chat_mv19m6xe, plan_init's mermaid
-// parsed to nodes/edges — golden fixtures use real data, owner ruling
-// 2026-10-10): a cross-column edge's bezier control points reached x=776
+// ─── The canvas must cover the arrows ────────────────────
+// A REAL linear-algebra plan (chat_mv19m6xe, plan_init's mermaid
+// parsed to nodes/edges — golden fixtures use real data): a cross-column edge's bezier control points reached x=776
 // while dagre's node-extent width was 754 — 14px of arrow clipped at the
 // viewBox edge (the Hume plan cut 20px the same way).
 const LINEAR_ALGEBRA_NODES: LayoutNode[] = [
@@ -45,7 +44,7 @@ const LINEAR_ALGEBRA_EDGES: ReadonlyArray<{ from: string; to: string }> = [
 ];
 
 describe("blockLayout ink extent", () => {
-	it("covers every edge path's control points — arrows never clip (owner, 2026-10-10)", () => {
+	it("covers every edge path's control points — arrows never clip", () => {
 		const L = blockLayout(LINEAR_ALGEBRA_NODES, LINEAR_ALGEBRA_EDGES);
 		// The viewBox extent must reach the furthest control point of
 		// every drawn edge (a bezier never leaves its control-point hull).

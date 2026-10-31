@@ -1,5 +1,5 @@
 /**
- * SPEED PLAN PIN (owner-approved 2026-10-27), fix 5 — the helper browser
+ * SPEED PLAN PIN, fix 5 — the helper browser
  * closes after it has been idle (5 minutes in the app), never mid-job, and
  * a new job before the deadline keeps it open.
  */

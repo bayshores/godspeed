@@ -1,5 +1,5 @@
 /**
- * THE SESSION MARKDOWN EXPORT ROUTE (owner, release polish 2026-10-06):
+ * THE SESSION MARKDOWN EXPORT ROUTE:
  * GET /api/chats/:id/markdown — the user-facing export. The engine
  * itself is pinned by tests/session-markdown.test.ts; this file pins
  * the ROUTE contract: 404 unknown chat, the attachment headers, the

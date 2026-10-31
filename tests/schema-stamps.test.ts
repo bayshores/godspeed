@@ -1,5 +1,5 @@
 /**
- * SCHEMA STAMPS (schema-versioning wave, owner 2026-10-10): LAZY v1 for
+ * SCHEMA STAMPS: LAZY v1 for
  * chats (record.version, stamped at the write choke point) and the graph
  * family (data/graph/format.json sidecar — ledgers, sources).
  * Honest refusal: records stamped NEWER than this build are refused on

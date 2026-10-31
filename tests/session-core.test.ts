@@ -15,7 +15,7 @@
  *   bubbles;
  * - the view application (applyWireEvent → projectView): full-partial
  *   replaces, the fork-2 question-placeholder ignore, execution states,
- *   raw error display (owner ruling);
+ *   raw error display;
  * - the continuation fold (needsContinuation): the mount/sync seam's
  *   native replacement for lastAssistantMessageIsCompleteWithToolCalls.
  */
@@ -58,8 +58,7 @@ function sseResponse(...events: unknown[]): Response {
 	return new Response(sse(...events), { status: 200 });
 }
 
-/** CONNECTION DIET B mock (owner, 2026-10-10 — parallel-session freeze
- *  postmortem): send() no longer consumes the POST response — it acks,
+/** CONNECTION DIET B mock: send() no longer consumes the POST response — it acks,
  *  closes, and reattaches. The wire sequence a send drives: POST /api/chat
  *  (tiny JSON ack) → GET /api/chats/chat_x (record refetch — the
  *  write-ahead absorbs the optimistic bubble) → GET .../stream (the SSE
@@ -150,7 +149,7 @@ function installFetch(routes: {
 
 describe("postInputEvent (the 409 identity-retry)", { skip: process.env.NO_SLOW ? true : undefined }, () => {
 	it("the model's default fetch is RECEIVER-SAFE (the browser 'Illegal invocation' pin)", async () => {
-		// The live empty-session bug (2026-09-26): storing globalThis.fetch
+		// The live empty-session bug: storing globalThis.fetch
 		// UNBOUND and calling it as this.fetch(...) throws "Illegal
 		// invocation" in the browser (native fetch requires this === Window;
 		// Node's undici doesn't care, so every test passed while the app was
@@ -263,7 +262,7 @@ describe("send (one input event, verbatim consumption)", () => {
 	});
 
 	it("N id-less updates replace the SAME tail slot (the per-chunk divider bug pin)", async () => {
-		// pi's wire (captured live, 2026-09-26): message_start/update/end carry
+		// pi's wire (captured live): message_start/update/end carry
 		// AssistantMessages with NO id. The bug: minting a fresh id per event
 		// made every message_update APPEND a full copy — the tail grew one
 		// message per chunk, and projectView's step separators + thinking
@@ -429,7 +428,7 @@ describe("send (one input event, verbatim consumption)", () => {
 		// turn_end carries the placeholder as a toolResult MESSAGE (details:
 		// null — tool-execute questionResult): it must not flip the part to
 		// output-available either — the AnsweredCard would read .dismissed off
-		// null and crash the whole render (the live crash, 2026-09-26).
+		// null and crash the whole render (the live crash).
 		push({
 			type: "turn_end",
 			message: { role: "assistant", content: [{ type: "text", text: "" }], stopReason: "toolUse" },
@@ -493,7 +492,7 @@ it("Wave C: markers injected mid-run (custom role, follow-up delivery) append to
 	assert.equal(again.messages.length, state.messages.length, "same id upserts, never appends a second copy");
 });
 
-	it("a provider error rides VERBATIM (owner ruling) — no masking anywhere", async () => {
+	it("a provider error rides VERBATIM — no masking anywhere", async () => {
 		globalThis.fetch = dietFetch({
 			userText: "q",
 			stream: () =>
@@ -1100,7 +1099,7 @@ describe("resumeStream (the reattach path)", () => {
 		assert.equal(m.getState().status, "ready");
 	});
 
-	it("ATTACH-FIRST (owner, reattach round 2026-10-02): a fresh-mount reattach skips the blocking record refetch", async () => {
+	it("ATTACH-FIRST: a fresh-mount reattach skips the blocking record refetch", async () => {
 		const urls: string[] = [];
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
 			const url = String(input);
@@ -1124,7 +1123,7 @@ describe("resumeStream (the reattach path)", () => {
 		// (the earlier test in this block pins that order).
 	});
 
-	it("OPTIMISTIC SUBMIT (owner, optimistic round 2026-10-02): send flips status synchronously — the placeholder is live before the server answers anything", async () => {
+	it("OPTIMISTIC SUBMIT: send flips status synchronously — the placeholder is live before the server answers anything", async () => {
 		let release!: (r: Response) => void;
 		const gate = new Promise<Response>((res) => (release = res));
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -1145,7 +1144,7 @@ describe("resumeStream (the reattach path)", () => {
 		// submitted at entry, before its fetches).
 	});
 
-	it("PROTOCOL EVENTS RELEASE NOTHING (owner, optimistic round 3): agent_start keeps the placeholder; the first APPLIED event flips streaming", async () => {
+	it("PROTOCOL EVENTS RELEASE NOTHING: agent_start keeps the placeholder; the first APPLIED event flips streaming", async () => {
 		// The round-2 bug chain, fixed at the machine: status used to flip
 		// streaming at the first wire BYTE (agent_start, emitted before the
 		// provider has produced anything), vanishing the placeholder into an
@@ -1191,7 +1190,7 @@ describe("resumeStream (the reattach path)", () => {
 		assert.equal(m.getState().status, "ready");
 	});
 
-	it("SESSION START SURVIVES A STOP() RACING THE SUBMIT (owner, 2026-10-10 — the dead-practice-start postmortem)", async () => {
+	it("SESSION START SURVIVES A STOP() RACING THE SUBMIT", async () => {
 		// React StrictMode's simulated remount fires the unmount cleanup
 		// (~8ms in) while the ?prompt first send's POST is in flight — the
 		// exact live repro: pre-fix, the POST rode consumeAbort and died
@@ -1233,7 +1232,7 @@ describe("resumeStream (the reattach path)", () => {
 		assert.equal(m.getState().status, "ready");
 	});
 
-	it("REATTACH REPLAYS ONTO A CLEAN SLATE (owner, optimistic round 3): an aborted attempt's partials never double", async () => {
+	it("REATTACH REPLAYS ONTO A CLEAN SLATE: an aborted attempt's partials never double", async () => {
 		// StrictMode's simulated remount aborts the first resume mid-replay;
 		// its partial tail survived into the retry and the replay DOUBLED
 		// every message (the record refetch's accidental tail reset died
@@ -1374,7 +1373,7 @@ describe("resumeStream (the reattach path)", () => {
 	});
 });
 
-// ─── adoption (append-only ground rules, owner 2026-09-15) ──────────────────
+// ─── adoption (append-only ground rules) ──────────────────
 
 function userText(id: string, text: string): LhMessage {
 	return { ...newUserMessage(text), id };
@@ -1506,7 +1505,7 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 	});
 });
 
-// ─── the dismissal pause (owner design 2026-10-03, "A2") ────────────────────
+// ─── the dismissal pause ────────────────────
 
 describe("the dismissal pause (needsContinuation + endsInDismissal)", () => {
 	/** The record's silent dismiss write: the toolResult the dismiss route
@@ -1594,7 +1593,7 @@ describe("pendingCallTool", () => {
 	});
 });
 
-// ─── newAnswerResult: the two-audience split (owner, 2026-10-02) ────────────
+// ─── newAnswerResult: the two-audience split ────────────
 
 describe("newAnswerResult two audiences", () => {
 	it("MODEL sees the compact learner-only record; details keeps the FULL graded answer", () => {
@@ -1626,7 +1625,7 @@ describe("newAnswerResult two audiences", () => {
 	});
 });
 
-// ─── the practice live-view law (owner, 2026-10-05) ─────────────────────────
+// ─── the practice live-view law ─────────────────────────
 //
 // The two-spinners + doubled-card incident: submitting thinking flipped the
 // POSE turn's problem call back to a live spinner mid-transcript (session

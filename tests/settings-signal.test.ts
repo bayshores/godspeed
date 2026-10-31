@@ -1,5 +1,5 @@
 /**
- * The cross-surface settings signal (fix wave, owner ruling 2026-09-22):
+ * The cross-surface settings signal:
  * writers dispatch lh:settings-saved {section} after a successful PUT,
  * readers re-read. These tests pin the SEAM's contract — delivery,
  * section detail, unsubscribe, and junk-event tolerance — against a bare

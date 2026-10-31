@@ -1,5 +1,5 @@
 /**
- * Update-banner render tests (Wave C, 2026-10-10): the banner is a pure
+ * Update-banner render tests: the banner is a pure
  * function of the shell's observational status — hidden without a bridge
  * or snapshot/event, visible with the downloaded
  * status, Restart wired to the bridge. The subscribe effect only runs

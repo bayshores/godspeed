@@ -22,7 +22,7 @@ import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import { projectView } from "../src/core/view.ts";
 
 /**
- * COMPACTION (owner round 14, 2026-10-05) — the pure core: the cut walk,
+ * COMPACTION — the pure core: the cut walk,
  * the marker, and the ONE model-facing projection (toLlmMessages) that
  * swaps [summary] + [kept tail] for the dropped span.
  *
@@ -62,7 +62,7 @@ const resultFor = (callId: string, text: string): LhMessage & ToolResultMessage 
 
 const big = (id: string, kb = 8): LhMessage => newUserMessage(`${id}: ${"x".repeat(kb * 1024)}`);
 
-// ─── the anchored estimator (pi's law — 2026-10-05 incident fix) ─────────────
+// ─── the anchored estimator (pi's law) ─────────────
 
 describe("estimateContextTokens (usage-anchored, pi's law)", () => {
 	const usageAssistant = (id: string, total: number, trailing = false): LhMessage =>
@@ -330,7 +330,7 @@ describe("serializeForSummary + buildCompactionPrompt", () => {
 });
 
 // ---------------------------------------------------------------------------
-// THE VIEW FOLD (owner round 14): two dividers from one marker —
+// THE VIEW FOLD: two dividers from one marker —
 // the minimal moment divider where the user is, the longer cut divider
 // at the kept boundary. Both carry the full summary payload.
 // ---------------------------------------------------------------------------
@@ -370,7 +370,7 @@ describe("projectView compaction dividers", () => {
 });
 
 // ---------------------------------------------------------------------------
-// THE CHROME LAW (the OpenRouter no-tools incident, owner 2026-10-05):
+// THE CHROME LAW (the OpenRouter no-tools incident):
 // pi-agent-core seeds a leading SystemMessage (prompt + tool
 // declarations) at state.messages[0]; the record never persists it. The
 // cut slices the RECORD's history — the chrome carries through ahead of

@@ -53,8 +53,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 	});
 
 	test("old records with an auditor stage still fold it", () => {
-		// (The cluster-naming channel died with the extraction-UX close-out,
-		// 2026-09-24 — two channels: chat + notes front doors.)
+		// Two channels: chat + notes front doors.
 		const input: CostSummaryInput = {
 			chats: [{ title: "Testing session", extractions: [extractionRun(100, PLAN, PLAN)] }],
 			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PLAN, PLAN)] }],

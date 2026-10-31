@@ -1,5 +1,5 @@
 /**
- * TOPICS (redesign plan, owner-approved 2026-10-27):
+ * TOPICS:
  *  - the read rule (last snapshot, dead members dropped, "Ungrouped")
  *  - the write rule (every fact in exactly one topic; ids kept stable)
  *  - the topic grouper against a fake model (names validated → retry)

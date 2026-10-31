@@ -1,5 +1,5 @@
 /**
- * CLASSES WAVE PINS (2026-10-26), Phase 5 — static renders of the class
+ * CLASSES PINS — static renders of the class
  * surfaces: the lesson's class card, a Files-page row, and the switcher's
  * closed state outside a provider (reads as "No class").
  */

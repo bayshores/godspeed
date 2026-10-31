@@ -1,5 +1,5 @@
 /**
- * The topic Graph page (redesign Phase 5): static renders of both right
+ * The topic Graph page: static renders of both right
  * panels over a fixture ProgressPayload, and keyboard access to the map's
  * topics (Tab-focusable, focus shows the tooltip, Enter/Space select).
  */

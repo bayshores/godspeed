@@ -1,7 +1,6 @@
 /**
- * The shared session-markdown engine (core/session-markdown.ts, owner ruling
- * 2026-09-27): ONE renderer for the extractor's source view and the future
- * user-facing session export — id-anchored speaker blocks, readable
+ * The shared session-markdown engine (core/session-markdown.ts): ONE
+ * renderer for the extractor's source view and the session export — id-anchored speaker blocks, readable
  * quiz/recall/question blocks, one-line notes for other tools. Pinned here:
  * block shapes, anchor handling (on/off), title header, empty-message
  * skipping, and content parity with the coverage line builder.
@@ -99,7 +98,7 @@ describe("messageMarkdown", () => {
 		assert.match(md, /The learner answered in his own words: it never strays far/);
 	});
 
-	it("probe-phase questions export under their own names (owner, 2026-10-09)", () => {
+	it("probe-phase questions export under their own names", () => {
 		const probe = messageMarkdown(
 			result("r1", "p1", "probe", { questionText: "What is a derivative?", correct: true, dontKnow: false }),
 			"r1",
@@ -133,7 +132,7 @@ describe("messageMarkdown", () => {
 	});
 });
 
-describe("sessionMarkdown — the practice join (owner-approved, 2026-10-06)", () => {
+describe("sessionMarkdown — the practice join", () => {
 	it("a problem result renders the POSE's statement, joined off the call id", () => {
 		const messages = [
 			callMsg("a1", "call-p1", "problem", {
@@ -202,7 +201,7 @@ describe("sessionMarkdown", () => {
 		assert.equal(md, "### Learner · u1\n\ngo");
 	});
 
-	it("the seam split (owner, 2026-09-28): teacher prose renders in BOTH; the rest renders ONLY here", () => {
+	it("the seam split: teacher prose renders in BOTH; the rest renders ONLY here", () => {
 		// The extraction view became TEACHER-PROSE-ONLY: its line builder
 		// yields lines for teacher text alone. This engine keeps the FULL
 		// session format for the future user-facing export — so parity now

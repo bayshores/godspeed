@@ -1,5 +1,5 @@
 /**
- * The auto-title's smart truncation (owner, 2026-10-06): the cut snaps to
+ * The auto-title's smart truncation: the cut snaps to
  * a word boundary at or under TITLE_MAX_CHARS (72); a single word longer
  * than the cap splits at the cap. Pure seam: titleFromPrompt in
  * core/contracts/graph.ts, applied server-side at chat creation (the one

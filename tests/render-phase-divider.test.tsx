@@ -35,7 +35,7 @@ describe("PhaseDivider (transcript boundary)", () => {
 	});
 });
 
-describe("teachStepIndex (WHERE teaching begins inside the flipping message — owner round 8)", () => {
+describe("teachStepIndex (WHERE teaching begins inside the flipping message)", () => {
 	const call = { type: "tool-quiz", input: { nodeId: "n1", question: "q?" } };
 
 	it("the flip call in the message's FIRST step → -1 (divider prepends before the message)", () => {

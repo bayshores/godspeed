@@ -67,7 +67,7 @@ const validQuiz = {
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 
-/** The Wave A boundary predicate (2026-09-26): pi's loop structurally
+/** The Wave A boundary predicate: pi's loop structurally
  *  validates against the TypeBox parameters, then execute re-runs the
  *  authoring refinements (the old superRefine) and returns an isError
  *  result on problems (pi 1.0 convention — invalidInputResult; the model
@@ -132,7 +132,7 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		assert.match(problemLines(res.error).at(-1)!, /No plan map exists yet — call plan_init/);
 	});
 
-	it("missing nodeId is rejected at the boundary (owner ruling 2026-09-26: no untagged quizzes)", async () => {
+	it("missing nodeId is rejected at the boundary (no untagged quizzes)", async () => {
 		const chatId = newChat("NodeId: required");
 		chatStore.saveTree(chatId, {
 			nodes: [{ id: "arith", title: "Arithmetic" }],
@@ -186,7 +186,7 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 describe("the prober's quiz: no nodeId field at all", () => {
 	it("the probe schema accepts a plain quiz; a smuggled nodeId is NOT in the wire schema", () => {
 		assert.ok(Value.Check(probeQuizInputSchema, validQuiz));
-		// Wave A delta (2026-09-26): pi's TypeBox validation tolerates unknown
+		// Wave A delta: pi's TypeBox validation tolerates unknown
 		// keys rather than stripping them — but the probe schema's wire
 		// properties carry no nodeId at all, and the display parse seam
 		// (tool-parts parseQuizInput, Value.Clean) strips it before the dock.
@@ -200,7 +200,7 @@ describe("the prober's quiz: no nodeId field at all", () => {
 	it("the prober's tool registry carries the nodeId-less quiz, probe_done, and the learner-filesystem set", () => {
 		const chatId = newChat("Prober: registry");
 		const tools = createProberTools({ chatId, chatStore, deliver: () => {}, jobStore, spawn: () => {} });
-		// Fix wave (2026-09-20): the owner ruling adds research + pdf dispatch
+		// research + pdf dispatch join
 		// to the probe phase's registry (demo/visual stay teach-only).
 		assert.deepEqual(Object.keys(tools).sort(), [
 			"ask_user_question", "find", "grep", "ls", "pdf", "probe", "probe_done", "read", "research", "work_plan", "write_code",
@@ -209,7 +209,7 @@ describe("the prober's quiz: no nodeId field at all", () => {
 		assert.equal(Value.Check(probe.parameters, { ...validQuiz, nodeId: "anything" }), true, "no session check to fail");
 	});
 });
-// ─── the description example (owner, 2026-10-12) ─────────────────────────
+// ─── the description example ─────────────────────────
 
 describe("quiz tool descriptions carry the complete, phase-correct example", () => {
 	it("the canonical body is schema-valid and authoring-clean (never ship a broken exemplar)", () => {
@@ -238,7 +238,7 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 		const desc = teachQuizToolFor({ chatId, chatStore }).description;
 		const teachExample = { type: "check", nodeId: "chain-rule", ...quizExampleBody };
 		assert.ok(desc.includes("```json\n" + JSON.stringify(teachExample, null, 2) + "\n```"));
-		// The 2026-10-09 drop-order ruling: type+nodeId LEAD the object —
+		// The drop-order rule: type+nodeId LEAD the object —
 		// fields generated first get dropped least.
 		assert.ok(
 			/```json\n\{\n {2}"type": "check",\n {2}"nodeId": "chain-rule",/.test(desc),
@@ -254,8 +254,7 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 
 describe("tool toggles (core/pending.ts + factories)", () => {
 	it("TOGGLEABLE_TOOLS: the sub-agent dispatch tools; quiz/ask/read stay off the list", () => {
-		// THE DEFINITIVE vocabulary (adjudicated with the user 2026-09-19, P2
-		// reconciliation): the job tools only. quiz/ask_user_question are
+		// THE DEFINITIVE vocabulary: the job tools only. quiz/ask_user_question are
 		// permanently always-on (the prober's assessment + teaching doctrine
 		// are built on graded questions — the wedge danger), as are the
 		// learner-fs set, plan tools, and probe_done. The settings WRITE side
@@ -273,13 +272,13 @@ describe("tool toggles (core/pending.ts + factories)", () => {
 		const noAsk = createProberTools(ctx, { ask_user_question: false });
 		assert.deepEqual(Object.keys(noAsk).sort(), ["find", "grep", "ls", "pdf", "probe", "probe_done", "read", "research", "work_plan", "write_code"]);
 
-		// Quizzing is mechanics-managed now (owner 2026-09-27): quiz/explain
+		// Quizzing is mechanics-managed now: quiz/explain
 		// NEVER pass through the generic filter — hand-written quiz:false is a
 		// no-op (the wedge danger stands: a quiz-less prober collapses its
 		// assessment flow). probe_done is never droppable — it ends the phase.
 		const noQuiz = createProberTools(ctx, { quiz: false });
 		assert.deepEqual(Object.keys(noQuiz).sort(), ["ask_user_question", "find", "grep", "ls", "pdf", "probe", "probe_done", "read", "research", "work_plan", "write_code"]);
-		// The mechanic switch (owner 2026-09-27): tools.explain === true arms
+		// The mechanic switch: tools.explain === true arms
 		// free-recall — explain in, quiz out, exactly one quizzing tool.
 		const free = createProberTools(ctx, { explain: true });
 		assert.deepEqual(Object.keys(free).sort(), ["ask_user_question", "find", "grep", "ls", "pdf", "probe_done", "read", "recall", "research", "work_plan", "write_code"]);
@@ -307,7 +306,7 @@ describe("tool toggles (core/pending.ts + factories)", () => {
 			"absent keys mean enabled — old records behave exactly as today",
 		);
 
-		// The mechanic switch (owner 2026-09-27): free-recall swaps the teach
+		// The mechanic switch: free-recall swaps the teach
 		// quiz for the teach explain — one quizzing tool, whichever is armed.
 		const freeFull = ["ask_user_question", "demo", "explain", "find", "grep", "ls", "pdf", "plan_init", "read", "research", "visual", "work_plan", "write_code"];
 		assert.deepEqual(Object.keys(createTeacherTools(ctx, { explain: true })).sort(), freeFull);
@@ -320,7 +319,7 @@ describe("tool toggles (core/pending.ts + factories)", () => {
 });
 
 
-// ─── prepareArguments: the GLM string-encoded options guard (2026-09-26) ────
+// ─── prepareArguments: the GLM string-encoded options guard ────
 
 describe("prepareQuestionArguments (the string-encoded options wobble)", () => {
 	// The gradient-descent session (chat_muhskq6p): 6 of 7 quiz validation
@@ -355,7 +354,7 @@ describe("prepareQuestionArguments (the string-encoded options wobble)", () => {
 	});
 });
 
-// ─── the explain tool boundary (free-recall, owner 2026-09-27) ─────────────
+// ─── the explain tool boundary (free-recall) ─────────────
 
 describe("teachExplainToolFor: the explain variant validates nodeId like the quiz", () => {
 	const validExplain = {
@@ -428,7 +427,7 @@ describe("the prober's explain: no nodeId field at all", () => {
 	});
 });
 
-// ─── descriptions are MECHANICS (owner 2026-10-03) ────────────────────────
+// ─── descriptions are MECHANICS ────────────────────────
 // Question-design doctrine lives in the system prompt (shared craft chunk +
 // teacher fragments), NOT in tool descriptions. A description that teaches
 // the model how to write questions drifts the moment a new variant (prober,

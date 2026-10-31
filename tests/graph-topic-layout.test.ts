@@ -1,5 +1,5 @@
 /**
- * The topic Graph's pure parts (redesign Phase 5): the map layout
+ * The topic Graph's pure parts: the map layout
  * (src/components/graph/layout.ts), the panels' helpers (derive.ts) and the
  * practice picks (practice.ts).
  */

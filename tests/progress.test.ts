@@ -1,5 +1,5 @@
 /**
- * PROGRESS (redesign plan, owner-approved 2026-10-27): every derived number
+ * PROGRESS: every derived number
  * of the Overview and the topic Graph (core/progress.ts), plus the server
  * assembly behind GET /api/progress. Isolated LH_DATA_DIR for the route.
  */

@@ -254,7 +254,7 @@ describe("render — bold is the real <strong> (the dead Bold-color fix)", () =>
 	});
 });
 
-// ─── escaped dollars inside math (owner, 2026-10-12) ────────────────────────
+// ─── escaped dollars inside math ────────────────────────
 //
 // micromark's mathText closer is code-span logic — ANY size-matched `$` run
 // closes, `\$` included — so `$x = \$5$` closed at the escape and errored.
@@ -346,7 +346,7 @@ describe("escaped dollars inside math — rendering", () => {
 	});
 });
 
-describe("over-escaped command heal — doubled backslashes in tool args (owner ruling 2026-10-15)", () => {
+describe("over-escaped command heal — doubled backslashes in tool args", () => {
 	// Field evidence: xiaomi/mimo-v2.6-pro and deepseek-v4.1-flash
 	// stochastically DOUBLE LaTeX command backslashes inside JSON tool
 	// arguments — sometimes per-field within one call (the gradient-descent

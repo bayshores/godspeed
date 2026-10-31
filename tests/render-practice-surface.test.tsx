@@ -78,7 +78,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Problem/);
 		assert.match(html, /Prove the parity claim\./);
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
-		// No chevron, no collapsed bar (owner round, 2026-10-05).
+		// No chevron, no collapsed bar.
 		assert.doesNotMatch(html, /lucide-chevron|<button/, "nothing collapsible");
 	});
 
@@ -95,12 +95,12 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /data-testid="conclude-card"/);
 		assert.match(html, /Solved with hints/);
 		assert.match(html, /Pair them; each pair is even\./, "the committed solution, verbatim");
-		assert.match(html, /Concluded/); // the plain eyebrow (owner round 3)
+		assert.match(html, /Concluded/); // the plain eyebrow
 		assert.match(html, /Solved/); // the outcome rides the quiz chip
 		assert.match(html, /Model solution/); // the labeled hero after the divider
 		assert.ok(html.indexOf("Solved") < html.indexOf("Model solution"), "chip at the top");
 		assert.match(html, /The pairing came after R2\./);
-		// VERDICT FIRST (owner round 3): verdict under the heading row, then
+		// VERDICT FIRST: verdict under the heading row, then
 		// the divider, then the labeled model solution.
 		assert.ok(html.indexOf("The pairing came after R2.") < html.indexOf("Pair them; each pair is even."));
 		assert.doesNotMatch(html, /<button/, "nothing collapsible");
@@ -118,7 +118,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Pair them; each pair is even\./);
 	});
 
-	it("ConcludeCard: THE METADATA POPOVER (owner round 17 refinement) — quiet trigger at the bottom, box hidden until clicked", () => {
+	it("ConcludeCard: THE METADATA POPOVER — quiet trigger at the bottom, box hidden until clicked", () => {
 		const html = renderToStaticMarkup(
 			<ConcludeCard
 				part={part({
@@ -157,12 +157,12 @@ describe("the practice transcript cards", () => {
 		assert.doesNotMatch(html, /The solution/);
 	});
 
-	it("ThinkingCard: one label, right side, expanded arrival (owner round, 2026-10-07)", () => {
+	it("ThinkingCard: one label, right side, expanded arrival", () => {
 		const trace = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: false, text: "stuck at step two" }} />);
 		assert.match(trace, /YOUR THINKING/);
 		// Transcript rows arrive EXPANDED (clearly conveyed as sent) as
 		// full-width card-color bands with the 6px rail (the document,
-		// all-in — owner round two, 2026-10-07).
+		// all-in).
 		assert.match(trace, /aria-expanded="true"/);
 		assert.ok(trace.includes("stuck at step two"), "the text is visible on arrival");
 		assert.ok(trace.includes("bg-card"), "the card-color band");

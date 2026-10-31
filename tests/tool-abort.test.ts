@@ -1,6 +1,6 @@
 /**
- * The abort-cascade fix (2026-09-19), pinned against the pi-native seams
- * (Wave A, 2026-09-26): serverExecute (tool-execute.ts) races every tool
+ * The abort-cascade fix, pinned against the pi-native seams:
+ * serverExecute (tool-execute.ts) races every tool
  * body against the run's AbortSignal and the system-level per-call timeout
  * — aborting the run kills a running tool, the timeout is the net so no
  * tool can hold a turn hostage (the 2.7-minute grep lesson). Question
@@ -116,7 +116,7 @@ describe("serverExecute: cooperative settle, mapping parity, question bypass", (
 		const result = await askUserQuestionTool.execute("c6", { question: "q" }, ac.signal);
 		assert.match((result.content[0] as { text?: string }).text!, /Question posed/);
 		assert.equal(result.details, null);
-		assert.equal(result.terminate, true, "owner Option A: question results end the batch natively");
+		assert.equal(result.terminate, true, "question results end the batch natively");
 	});
 
 	it("authoring failures return an isError result with the retryable problem list", async () => {

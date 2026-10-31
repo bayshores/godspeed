@@ -296,7 +296,7 @@ describe("the /api/mcp door", () => {
 			"update_class_deadline",
 			"wait_for_work",
 		]);
-		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a class is app-only (owner ruling)");
+		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a class is app-only");
 
 		const call = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_lessons", arguments: {} } }, auth))).json();
 		const lessons = JSON.parse(call.result.content[0].text).lessons;
@@ -502,7 +502,7 @@ describe("the /api/mcp door", () => {
 		});
 	});
 
-	it("sets up a class and reads it back (classes wave, 2026-10-26)", async () => {
+	it("sets up a class and reads it back", async () => {
 		const token = ensureMcpToken();
 		const auth = { authorization: `Bearer ${token}` };
 		const call = async (name: string, args: Record<string, unknown>) => {
@@ -537,7 +537,7 @@ describe("the /api/mcp door", () => {
 		const searched = await call("search_graph", { class_id: id, query: "anything" });
 		assert.equal(searched.error, false, JSON.stringify(searched.body));
 
-		// Deadlines (2026-10-28; exams before): add from the syllabus, fix, tick done, remove.
+		// Deadlines: add from the syllabus, fix, tick done, remove.
 		const added = await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "homework", name: "HW 1", date: "2026-11-05", time: "17:00" }] });
 		assert.equal(added.error, false, JSON.stringify(added.body));
 		const deadlineId = added.body.deadlines[0].id as string;
@@ -645,7 +645,7 @@ describe("the /api/mcp door", () => {
 	});
 });
 
-describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
+describe("agent check-ins and images", () => {
 	function rpc(body: unknown, token: string) {
 		return new Request("http://127.0.0.1:3000/api/mcp", {
 			method: "POST",
@@ -704,7 +704,7 @@ describe("agent check-ins and images (phase 2, owner 2026-10-27)", () => {
 	});
 });
 
-describe("the [Today] note and the outside agent (plan 2026-10-28, Phase 2)", () => {
+describe("the [Today] note and the outside agent", () => {
 	ensureMcpToken();
 
 	async function turn(chatId: string, text: string) {

@@ -1,9 +1,9 @@
 /**
- * CLASSES WAVE PINS (owner-approved 2026-10-26), Phase 1 — storage:
+ * CLASSES PINS — storage:
  *  - the ClassStore record lifecycle (create, list, update, files, delete)
  *  - honest refusal of a newer-stamped class record
  *  - one graph family PER CLASS: a class graph never sees the "No class"
- *    graph's lines and vice versa (owner ruling: separate graph per class)
+ *    graph's lines and vice versa (a separate graph per class)
  *  - lessons carry an optional classId (absent = "No class")
  *  - deleteSourceTraces: a class file's facts die, shared facts survive
  * Runs under an isolated LH_DATA_DIR (set before any config-loading import).
@@ -114,7 +114,7 @@ describe("ClassStore", () => {
 	});
 });
 
-describe("deadlines (plan 2026-10-28; exams before that)", () => {
+describe("deadlines", () => {
 	const studyFile = (id: string) => ({
 		id,
 		origin: "copied" as const,

@@ -1,6 +1,5 @@
 /**
- * THE WEAK-MODEL ARGUMENT HEAL (owner, 2026-10-04 — the GLM practice-loop
- * incident): glm-5.3 sent `"mode": "\"recall\""` — a JSON-string-encoded
+ * THE WEAK-MODEL ARGUMENT HEAL: glm-5.3 sent `"mode": "\"recall\""` — a JSON-string-encoded
  * enum — on 19 consecutive `problem` calls; TypeBox's "must be equal to
  * constant" error never named the expected values, so the model re-emitted
  * the identical payload until the dev server was killed.

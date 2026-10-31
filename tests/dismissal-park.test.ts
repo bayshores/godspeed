@@ -1,5 +1,5 @@
 /**
- * PARKED DISMISSALS (owner, 2026-10-04): ESC-discard while the turn is
+ * PARKED DISMISSALS: ESC-discard while the turn is
  * still working. Mid-turn the stored record holds no pending question or
  * problem (the turn's messages land at settle), so the dismiss route
  * cannot validate — it PARKS the intent (202) and the turn's settle path

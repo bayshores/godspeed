@@ -1,5 +1,5 @@
 /**
- * The Files page (redesign plan, Phase 6 — docs/design/exports/files.html),
+ * The Files page,
  * mounted over linkedom with a fake fetch: the two sections and counts,
  * the linked folder, each row's state (coverage bar, Building facts…,
  * Failed + Retry), the Study/Info toggle and Unlink writing through the
