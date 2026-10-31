@@ -197,6 +197,22 @@ describe("grep (pi port)", () => {
 		const out = await runText(grepTool, { pattern: "zzzz", path: FIXTURE });
 		assert.equal(out, "No matches found");
 	});
+
+	it("a binary file named by path says so instead of 'No matches found'", async () => {
+		const out = await runText(grepTool, { pattern: "eig", path: path.join(FIXTURE, "binary.bin") });
+		assert.match(out, /^Binary file/);
+	});
+
+	it("a file over 2MB named by path says so instead of 'No matches found'", async () => {
+		const file = path.join(FIXTURE, "huge.log");
+		await fs.writeFile(file, "needle\n" + "x".repeat(2 * 1024 * 1024));
+		try {
+			const out = await runText(grepTool, { pattern: "needle", path: file });
+			assert.match(out, /over the 2048\.0KB grep limit/);
+		} finally {
+			await fs.unlink(file);
+		}
+	});
 });
 
 describe("read (home-anchored re-port)", () => {

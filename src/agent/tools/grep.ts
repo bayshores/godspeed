@@ -75,6 +75,14 @@ export const grepTool: AgentTool<typeof grepInput> = {
 		let timedOut = false;
 		let aborted = false;
 		if (!isDirectory) {
+			// A file the model named gets a reason, not a false "No matches found"
+			// (the silent skips below are for walks).
+			if (stat.size > MAX_FILE_BYTES) {
+				return `File is ${formatSize(stat.size)}, over the ${formatSize(MAX_FILE_BYTES)} grep limit. Use read with offset/limit instead.`;
+			}
+			if (await isBinaryFile(searchPath).catch(() => true)) {
+				return "Binary file, not searched. For a PDF, dispatch a pdf job if you have that tool.";
+			}
 			files.push(searchPath);
 		} else {
 			const result = await walkFiles(
