@@ -223,9 +223,10 @@ export class HalleyEngine {
 		}
 		look.style.transform = `translate(${round(lx)}px, ${round(ly)}px)`;
 
-		// The trail: recent centers, only while flying.
+		// The trail: recent centers, only while flying. Resting adds none, so
+		// the old ones age out and the loop can stop.
 		const head = { x: this.p.x + half, y: this.p.y + half, t: now };
-		if (!reduce && !this.drag?.moved) this.hist.push(head);
+		if (!reduce && !this.drag?.moved && !atRest) this.hist.push(head);
 		pruneTrail(this.hist, now);
 		const shape = reduce || this.drag?.moved ? null : trailShape(this.hist, half);
 		this.drawTrail(shape);
