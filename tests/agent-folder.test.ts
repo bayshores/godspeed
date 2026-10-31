@@ -92,6 +92,9 @@ describe("the folder's files and commands", () => {
 
 	it("removes only the old godspeed block from Codex's config", () => {
 		assert.equal(core.withoutOldCodexServer(OLD_CODEX), 'model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\n');
+		const withApprovals = OLD_CODEX.replace("[mcp_servers.other]", '[mcp_servers.godspeed.tools.wait_for_work]\napproval_mode = "approve"\n\n[mcp_servers.other]');
+		assert.equal(core.withoutOldCodexServer(withApprovals), 'model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\n', "its sub-tables go too");
+		assert.equal(core.withoutOldCodexServer(`${OLD_CODEX}\n[mcp_servers.godspeed.env]\nA = "1"\n`), 'model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\n', "even away from the main table");
 		assert.equal(core.withoutOldCodexServer('[mcp_servers.godspeed]\ncommand = "node"\n'), null, "not one godspeed wrote");
 		assert.equal(core.withoutOldCodexServer('model = "gpt-5"\n'), null);
 	});

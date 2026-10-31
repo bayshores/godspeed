@@ -137,19 +137,29 @@ export function startScript(agent: FolderAgent, folder: string, platform: Platfo
 	].join("\n");
 }
 
+const TABLE = /^\s*\[/;
+const GODSPEED_TABLE = /^\s*\[\s*mcp_servers\.("godspeed"|godspeed)\s*\]\s*$/;
+const GODSPEED_SUBTABLE = /^\s*\[\[?\s*mcp_servers\.("godspeed"|godspeed)\./;
+
 /** ~/.codex/config.toml without the [mcp_servers.godspeed] block godspeed
  *  used to have the learner paste (it pointed at the app's /api/mcp), or
- *  null when there is none. Codex now gets godspeed only in the folder. */
+ *  null when there is none. Codex now gets godspeed only in the folder.
+ *  Its sub-tables (e.g. tool approvals) go too: left alone they'd still
+ *  define a godspeed server, one with no url, and Codex refuses that. */
 export function withoutOldCodexServer(toml: string): string | null {
 	const lines = toml.split("\n");
-	const start = lines.findIndex((l) => /^\s*\[\s*mcp_servers\.("godspeed"|godspeed)\s*\]\s*$/.test(l));
+	const start = lines.findIndex((l) => GODSPEED_TABLE.test(l));
 	if (start < 0) return null;
 	let end = start + 1;
-	while (end < lines.length && !/^\s*\[/.test(lines[end]!)) end++;
+	while (end < lines.length && !TABLE.test(lines[end]!)) end++;
 	const block = lines.slice(start, end).join("\n");
 	if (!/^\s*url\s*=\s*"[^"]*\/api\/mcp"/m.test(block)) return null;
-	const kept = [...lines.slice(0, start), ...lines.slice(end)].join("\n");
-	return kept.replace(/\n{3,}/g, "\n\n");
+	let dropping = false;
+	const kept = lines.filter((l) => {
+		if (TABLE.test(l)) dropping = GODSPEED_TABLE.test(l) || GODSPEED_SUBTABLE.test(l);
+		return !dropping;
+	});
+	return kept.join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
 /** A JSON file's text without the entry at `keys` (e.g. ["plugins",
