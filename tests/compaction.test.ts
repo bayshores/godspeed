@@ -281,6 +281,17 @@ describe("toLlmMessages honors the cut", () => {
 		assert.ok(flat.includes("FRESH"));
 		assert.ok(!flat.includes("OLD"), "the superseded marker dropped with its span");
 	});
+
+	it("a reused call id pairs only with a result AFTER it (legacy call_0 ids)", () => {
+		const first = assistantWithCall("a1", "call_0");
+		const second = assistantWithCall("a2", "call_0");
+		const out = toLlmMessages([first, resultFor("call_0", "answered"), second] as never);
+		const results = out.filter((m) => (m as never as { toolCallId?: string }).toolCallId === "call_0");
+		assert.equal(results.length, 2, "the real result plus one synthesis");
+		assert.equal(JSON.stringify(out[1]).includes("answered"), true, "the first call keeps its real result, no synthesis");
+		assert.equal(out.length, 4, "first, its result, second, the second's synthesis");
+		assert.equal((out[3] as never as { toolCallId: string }).toolCallId, "call_0", "the second call gets the interrupted result");
+	});
 });
 
 // ─── the summarizer input ────────────────────────────────────────────────────

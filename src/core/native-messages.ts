@@ -672,6 +672,13 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 	const out: Message[] = [];
 	if (leading) out.push(leading);
 	if (head) out.push(head);
+	// The last index of each call id's result, built once: a call is
+	// answered when its id has a result after it (legacy providers reuse
+	// ids like call_0, so "after" matters, not "anywhere").
+	const lastResultAt = new Map<string, number>();
+	messages.forEach((m, j) => {
+		if ((m as { role?: string }).role === "toolResult") lastResultAt.set((m as ToolResultMessage).toolCallId, j);
+	});
 	for (let i = leading ? Math.max(start, 1) : start; i < messages.length; i++) {
 		const m = messages[i]!;
 		const role = (m as { role?: string }).role;
@@ -702,9 +709,8 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 			const assistant = m as AssistantMessage;
 			const calls = assistant.content.filter((b) => b.type === "toolCall");
 			if (calls.length === 0) continue;
-			const answered = resultIdsFrom(messages.slice(i + 1));
 			for (const call of calls) {
-				if (answered.has(call.id)) continue;
+				if ((lastResultAt.get(call.id) ?? -1) > i) continue;
 				out.push({
 					role: "toolResult",
 					toolCallId: call.id,
