@@ -60,6 +60,7 @@ describe("the folder's files and commands", () => {
 			"cd ~/godspeed && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/me/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
 		);
 		assert.equal(core.copyCommand("claude", "/Volumes/My Drive/gs", "/Users/me", "darwin"), 'cd "/Volumes/My Drive/gs" && claude --settings .godspeed/claude-settings.json "Start teaching"');
+		assert.equal(core.copyCommand("claude", "/Users/me/R&D/gs", "/Users/me", "darwin"), 'cd "/Users/me/R&D/gs" && claude --settings .godspeed/claude-settings.json "Start teaching"');
 		assert.equal(core.copyCommand("claude", "C:\\Users\\me\\godspeed", "C:\\Users\\me", "win32"), 'cd /d "C:\\Users\\me\\godspeed" && claude --settings .godspeed/claude-settings.json "Start teaching"');
 		assert.equal(core.copyCommand("codex", "C:\\Users\\me\\godspeed", "C:\\Users\\me", "win32"), '"C:\\Users\\me\\godspeed\\.godspeed\\start-codex.cmd"');
 	});

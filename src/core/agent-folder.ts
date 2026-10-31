@@ -106,7 +106,7 @@ export function copyCommand(agent: FolderAgent, folder: string, home: string, pl
 		return `cd /d "${folder}" && claude ${CLAUDE_ARGS.map(cmdQuote).join(" ")}`;
 	}
 	const short = shortFolder(folder, home);
-	const cd = short.startsWith("~") && !/\s/.test(short) ? short : posixQuote(folder);
+	const cd = /^~[\w./-]*$/.test(short) ? short : posixQuote(folder);
 	const args = agent === "claude" ? CLAUDE_ARGS : codexArgs(folder, platform);
 	return `cd ${cd} && ${agent} ${args.map(posixQuote).join(" ")}`;
 }
