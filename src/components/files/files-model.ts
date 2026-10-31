@@ -108,9 +108,11 @@ function count(n: number, one: string, many: string): string {
 	return `${n} ${n === 1 ? one : many}`;
 }
 
-/** What "Move to Course info" does to a study file's facts (null: not known yet). */
+/** What "Move to Course info" does to a study file's facts (null: not
+ *  known yet). A file with no facts loses nothing, so it says nothing. */
 function factsLeave(facts: number | null): string {
-	return facts ? `Its ${count(facts, "fact leaves", "facts leave")} the graph.` : "Its facts leave the graph.";
+	if (facts === 0) return "";
+	return `${facts === null ? "Its facts leave" : `Its ${count(facts, "fact leaves", "facts leave")}`} the graph. `;
 }
 
 /** A change on the Files page that waits for the learner's OK. */
@@ -162,7 +164,7 @@ export function confirmCopy(
 		case "move":
 			return {
 				title: "Move to Course info?",
-				body: `${factsLeave(known ? (coverage.get(change.file.id)?.facts ?? 0) : null)} The teacher can still read it.`,
+				body: `${factsLeave(known ? (coverage.get(change.file.id)?.facts ?? 0) : null)}The teacher can still read it.`,
 				action: "Move",
 			};
 	}
@@ -179,6 +181,6 @@ export function dropCopy(
 		const what = drag.count > 0 ? `${drag.count} ${drag.count === 1 ? "file" : "files"}` : "files";
 		return { title: `Drop to add ${what} as ${kindTitle(kind).toLowerCase()}` };
 	}
-	if (kind === "info") return { title: "Move to Course info", detail: `${factsLeave(drag.facts)} The teacher can still read it.` };
+	if (kind === "info") return { title: "Move to Course info", detail: `${factsLeave(drag.facts)}The teacher can still read it.` };
 	return { title: "Move to Study material", detail: "It gets turned into facts for the graph." };
 }

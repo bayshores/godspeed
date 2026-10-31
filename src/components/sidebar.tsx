@@ -37,11 +37,13 @@ export { SessionRow, RenameRow } from "@/components/sidebar/session-row";
 const STORAGE_KEY = "lh:sidebar-open";
 
 /*
- * Narrow-window behavior: below SIDEBAR_AUTOCLOSE the sidebar would
- * squeeze the page below the 640px window floor (the two numbers compose:
- * 640 + 288 sidebar = 928), so it auto-closes — and auto-RESTORES when the
- * window widens again (no manual re-open). The whole behavior is one
- * expression: rendered = pref && !narrow, where pref is the persisted user choice.
+ * Narrow-window behavior: below SIDEBAR_AUTOCLOSE the sidebar auto-closes,
+ * and auto-RESTORES when the window widens again (no manual re-open). The
+ * number is fixed, not derived from the sidebar's width (SIDEBAR_WIDTH:
+ * 256px to start, dragged between 200 and 360); at the starting width it
+ * leaves the page 672px, above the 640px window floor. The whole behavior
+ * is one expression: rendered = pref && !narrow, where pref is the
+ * persisted user choice.
  * Manual closes persist and stay closed; auto-close does not touch the
  * preference. Opening the sidebar while narrow asks the Electron shell to
  * widen the window to the threshold (window.lh.expandWindow, IPC in

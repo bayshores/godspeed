@@ -1077,12 +1077,10 @@ body {
 .lh-halley-face[data-mood="idle"] .hy-m-idle,
 .lh-halley-face[data-mood="talking"] .hy-m-idle,
 .lh-halley-face[data-mood="happy"] .hy-m-happy,
-.lh-halley-face[data-mood="sparkle"] .hy-m-sparkle,
 .lh-halley-face[data-mood="thinking"] .hy-m-thinking,
 .lh-halley-face[data-mood="oops"] .hy-m-oops,
 .lh-halley-face[data-mood="shocked"] .hy-m-shocked,
 .lh-halley-face[data-mood="dizzy"] .hy-m-dizzy,
-.lh-halley-face[data-mood="embarrassed"] .hy-m-embarrassed,
 .lh-halley-face[data-mood="sleepy"] .hy-m-sleepy {
 	display: inline;
 }
@@ -1113,8 +1111,7 @@ body {
 		transform: scale(0.98, 1.03);
 	}
 }
-.lh-halley-face[data-mood="happy"] .hy-bob,
-.lh-halley-face[data-mood="sparkle"] .hy-bob {
+.lh-halley-face[data-mood="happy"] .hy-bob {
 	animation: hy-hop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) infinite;
 }
 @keyframes hy-hop {
@@ -1210,20 +1207,6 @@ body {
 	100% {
 		transform: translateY(12px);
 		opacity: 0;
-	}
-}
-.lh-halley-face .hy-twinkle {
-	transform-box: fill-box;
-	transform-origin: center;
-	animation: hy-twinkle 0.9s ease-in-out infinite;
-}
-@keyframes hy-twinkle {
-	0%,
-	100% {
-		transform: scale(1);
-	}
-	50% {
-		transform: scale(0.7);
 	}
 }
 .lh-halley-face .hy-zz {

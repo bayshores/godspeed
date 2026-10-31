@@ -436,6 +436,41 @@ describe("Esc on the class dialogs", () => {
 		assert.ok(q("class-discard-confirm"));
 	});
 
+	it("Save drops an untouched blank new deadline row instead of asking for its name", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a", newDeadline: true });
+		await typeInto(q("class-name"), "CSE 21A");
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.equal(q("class-dialog-error"), null);
+		assert.deepEqual(calls, [{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21A" } }], "no deadline POST");
+		assert.equal(closed, 1);
+	});
+
+	it("Edit class that can't load shows Try again in place of the fields, and Save is off", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		let down = true;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (down && String(input) === "/api/classes/cls_a" && (init?.method ?? "GET") === "GET") return Response.json({ error: "boom" }, { status: 500 });
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", classId: "cls_a" });
+		assert.match(q("load-failed")!.textContent!, /Couldn't load this class\./);
+		assert.equal(q("class-name"), null);
+		assert.equal((q("class-save") as HTMLButtonElement).disabled, true);
+		down = false;
+		await click(q("load-failed-retry"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.equal(q("load-failed"), null);
+		assert.equal((q("class-name") as HTMLInputElement).value, "CSE 21");
+		assert.equal((q("class-save") as HTMLButtonElement).disabled, false);
+	});
+
 	it("New class asks before throwing away a typed name", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });

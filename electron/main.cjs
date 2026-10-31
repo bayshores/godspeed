@@ -467,8 +467,8 @@ function createWindow(url, serverUp = null) {
 		// Narrow-window behavior: 640px is the floor —
 		// below it even a wrapped chrome row gets cramped and the chat header
 		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
-		// auto-closes below 928 = 640 + 288 (sidebar) in the renderer
-		// (src/components/sidebar.tsx, SIDEBAR_AUTOCLOSE); its "lh:expand-window"
+		// auto-closes below SIDEBAR_AUTOCLOSE (a fixed 928) in the renderer
+		// (src/components/sidebar.tsx); its "lh:expand-window"
 		// IPC widens the window back to that threshold.
 		minWidth: 640,
 		minHeight: 600,

@@ -80,6 +80,9 @@ describe("files-model", () => {
 			body: "Its 30 facts leave the graph. The teacher can still read it.",
 			action: "Move",
 		});
+		const empty = new Map<string, FileCoverage>([["a", { ...cov(0, 0), fileId: "a" }]]);
+		assert.equal(confirmCopy({ kind: "move", file: files[0]! }, "CSE 21", files, empty).body, "The teacher can still read it.", "no facts: nothing to lose");
+		assert.equal(confirmCopy({ kind: "move", file: files[0]! }, "CSE 21", files, none).body, "Its facts leave the graph. The teacher can still read it.", "counts not loaded yet");
 	});
 
 	it("studiedFill is the share of facts that came up in lessons", () => {
@@ -97,6 +100,7 @@ describe("files-model", () => {
 			detail: "Its 28 facts leave the graph. The teacher can still read it.",
 		});
 		assert.equal(dropCopy("info", { type: "row", facts: null }).detail, "Its facts leave the graph. The teacher can still read it.");
+		assert.equal(dropCopy("info", { type: "row", facts: 0 }).detail, "The teacher can still read it.", "no facts: nothing to lose");
 		assert.deepEqual(dropCopy("study", { type: "row", facts: null }), { title: "Move to Study material", detail: "It gets turned into facts for the graph." });
 	});
 

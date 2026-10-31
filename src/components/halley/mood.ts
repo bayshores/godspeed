@@ -13,11 +13,9 @@ export const HALLEY_MOODS = [
 	"talking",
 	"thinking",
 	"happy",
-	"sparkle",
 	"oops",
 	"shocked",
 	"dizzy",
-	"embarrassed",
 	"sleepy",
 ] as const;
 export type HalleyMood = (typeof HALLEY_MOODS)[number];
@@ -61,5 +59,5 @@ export function crossedUnderHour(deadlines: readonly { id: string; dueMs: number
 
 /** Moods where the eyes don't follow the mouse. */
 export function eyesStill(mood: HalleyMood): boolean {
-	return mood === "sleepy" || mood === "dizzy" || mood === "embarrassed";
+	return mood === "sleepy" || mood === "dizzy";
 }

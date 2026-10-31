@@ -159,6 +159,12 @@ function blankDraft(d: DeadlineDraft): boolean {
 	return !d.id && d.name.trim() === "" && d.date === "" && d.time === "" && d.fileIds.length === 0 && !d.done;
 }
 
+/** The drafts minus untouched blank new rows: they are neither a change
+ *  nor something Save should refuse. */
+export function withoutBlankDrafts(drafts: readonly DeadlineDraft[]): DeadlineDraft[] {
+	return drafts.filter((d) => !blankDraft(d));
+}
+
 /** The learner changed something since the dialog opened: a field or a
  *  deadline (an untouched blank new row doesn't count). */
 export function hasUnsavedChanges<T extends object>(
@@ -167,7 +173,7 @@ export function hasUnsavedChanges<T extends object>(
 	drafts: readonly DeadlineDraft[],
 ): boolean {
 	if (Object.keys(changedFields(seeded.fields, fields)).length > 0) return true;
-	return deadlineWrites(seeded.deadlines, drafts.filter((d) => !blankDraft(d))).length > 0;
+	return deadlineWrites(seeded.deadlines, withoutBlankDrafts(drafts)).length > 0;
 }
 
 /** "2026-10-29" → "Thu Oct 29" (a calendar date: no time zone shifts);

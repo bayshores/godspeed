@@ -17,7 +17,7 @@ import { usePresence } from "@/components/presence";
 import { useClasses } from "@/components/class-context";
 import { DeadlinesEditor } from "@/components/class-deadlines";
 import { RuleChips } from "@/components/rule-chips";
-import { changedFields, deadlineWrites, draftProblem, draftsFrom, dropRemoved, hasUnsavedChanges, type DeadlineDraft } from "@/components/class-deadlines-model";
+import { changedFields, deadlineWrites, draftProblem, draftsFrom, dropRemoved, hasUnsavedChanges, withoutBlankDrafts, type DeadlineDraft } from "@/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/components/files/class-files-api";
 import { DEFAULT_TEACHER_NAME, savedTimes, type ClassDeadline, type ClassIcon, type ClassRecord, type ClassSignature, type SignatureKind } from "@/core";
 import { useHalley } from "@/components/halley/halley-provider";
@@ -25,6 +25,7 @@ import { useSavedRules } from "@/components/use-saved-rules";
 import { ClassSignatureField } from "@/components/class-signature-field";
 import { ClassIconField } from "@/components/class-icon-field";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
+import { LoadFailed } from "@/components/load-failed";
 
 /** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
 export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
@@ -57,7 +58,9 @@ const FIELD =
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { active, setActive } = useClasses();
 	const classId = mode.kind === "edit" ? mode.classId : null;
-	const { record, reload } = useClassRecord(classId);
+	const { record, failed: recordFailed, reload } = useClassRecord(classId);
+	// Edit class with nothing to edit: say so instead of showing empty fields.
+	const loadFailed = mode.kind === "edit" && !record && recordFailed;
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [signature, setSignature] = useState<{ kind: SignatureKind; value: string }>({ kind: "math", value: "" });
@@ -173,7 +176,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	 *  updates the seeded copy, so a retried Save sends only what is left.
 	 *  An edited deadline that was removed while the dialog was open is
 	 *  dropped and named in the returned message; it is never added back. */
-	const saveDeadlines = async (classId: string, seed: { deadlines: ClassDeadline[] }): Promise<string | null> => {
+	const saveDeadlines = async (classId: string, seed: { deadlines: ClassDeadline[] }, drafts: readonly DeadlineDraft[]): Promise<string | null> => {
 		const base = `/api/classes/${encodeURIComponent(classId)}/deadlines`;
 		const settle = (id: string, deadline?: ClassDeadline) => {
 			seed.deadlines = seed.deadlines.flatMap((d) => (d.id !== id ? [d] : deadline ? [deadline] : []));
@@ -232,7 +235,9 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		}
 		const seed = seeded.current;
 		if (!record || !seed) return;
-		const problem = draftProblem(drafts);
+		const filled = withoutBlankDrafts(drafts);
+		if (filled.length !== drafts.length) setDrafts(filled);
+		const problem = draftProblem(filled);
 		if (problem) {
 			setError(problem);
 			return;
@@ -245,7 +250,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			failed = (await send(`/api/classes/${encodeURIComponent(record.id)}`, jsonInit("PUT", body))).error;
 			if (!failed) seed.fields = fields;
 		}
-		const deadlinesFailed = failed ?? (await saveDeadlines(record.id, seed));
+		const deadlinesFailed = failed ?? (await saveDeadlines(record.id, seed, filled));
 		setBusy(false);
 		if (deadlinesFailed) {
 			setError(deadlinesFailed);
@@ -282,29 +287,35 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				</div>
 
 				<div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-5 pb-5">
-					<label className="flex flex-col gap-1.5">
-						<span className={LABEL}>Name</span>
-						<input
-							type="text"
-							data-testid="class-name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="e.g. MATH 20C – Calculus III"
-							className={`h-10 ${FIELD}`}
-							autoFocus
-						/>
-					</label>
-					<label className="mt-2.5 flex flex-col gap-1.5">
-						<span className={LABEL}>Description</span>
-						<textarea
-							data-testid="class-description"
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							rows={2}
-							placeholder="Level, textbook, the professor's notation, what exams look like… The teacher reads this."
-							className={`min-h-[72px] resize-y ${FIELD}`}
-						/>
-					</label>
+					{loadFailed ? (
+						<LoadFailed message="Couldn't load this class." onRetry={() => void reload()} />
+					) : (
+						<>
+							<label className="flex flex-col gap-1.5">
+								<span className={LABEL}>Name</span>
+								<input
+									type="text"
+									data-testid="class-name"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									placeholder="e.g. MATH 20C – Calculus III"
+									className={`h-10 ${FIELD}`}
+									autoFocus
+								/>
+							</label>
+							<label className="mt-2.5 flex flex-col gap-1.5">
+								<span className={LABEL}>Description</span>
+								<textarea
+									data-testid="class-description"
+									value={description}
+									onChange={(e) => setDescription(e.target.value)}
+									rows={2}
+									placeholder="Level, textbook, the professor's notation, what exams look like… The teacher reads this."
+									className={`min-h-[72px] resize-y ${FIELD}`}
+								/>
+							</label>
+						</>
+					)}
 
 					{mode.kind === "edit" && record && <ClassIconField icon={icon} disabled={busy} labelClass={LABEL} onChange={setIcon} />}
 
@@ -439,7 +450,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						<button
 							type="button"
 							data-testid="class-save"
-							disabled={busy}
+							disabled={busy || loadFailed}
 							onClick={() => void save()}
 							className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 						>
