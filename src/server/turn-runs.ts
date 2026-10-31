@@ -9,10 +9,11 @@
  * GET .../stream entry. globalThis spans module instances within the
  * process.
  *
- * Registration lifecycle: chat-handler registers the handle the moment
- * the turn starts (after the 409 guard) and its onFinish unregisters LAST
- * — after persist, usage, extraction, and endTurn — so anything that sees
- * "no running turn" sees durable record truth. Failed settlement also
+ * Registration lifecycle: chat-handler registers the handle synchronously
+ * after the 409 guard, with no await in between, and its onFinish
+ * unregisters LAST — after persist, usage, extraction, and endTurn — so
+ * anything that sees "no running turn" sees durable record truth. Failed
+ * settlement also
  * retains its small notice before unregistering, so late attachments do
  * not mistake an unsaved reply for success. The per-chat
  * 409 guard means a chatId can hold at most one handle.
