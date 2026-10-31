@@ -164,16 +164,21 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonIds:
 		if (Date.now() > deadline) return fail(503, "extraction_winding_down", "The class's file imports are still stopping. Try again in a moment.");
 		await new Promise((r) => setTimeout(r, 50));
 	}
-	// A turn may have started during the waits above; recheck with no await before the sync block.
-	for (const lesson of lessons) {
+	// Lessons may have started a turn, or been created in or moved out of the class, during the
+	// waits above: read them again, with no await before the sync block.
+	const current = stores.chatStore.listChats().filter((c) => c.classId === id);
+	for (const lesson of current) {
 		const busy = runningWorkBlocker(lesson.id);
 		if (busy) return fail(busy.status, busy.code, `${lesson.title}: ${busy.error}`);
+		if (extractionStatuses().some((run) => run.chatId === lesson.id)) {
+			return fail(503, "extraction_winding_down", `${lesson.title}: This lesson is still finishing its graph work. Try again in a moment.`);
+		}
 	}
 	cancelledClasses.add(id);
 	cancelTopicGrouping(id);
 	// THE SYNC BLOCK: lessons → class folder.
 	const lessonIds: string[] = [];
-	for (const lesson of lessons) {
+	for (const lesson of current) {
 		stores.jobStore.deleteJobsForChat(lesson.id);
 		if (stores.chatStore.deleteChat(lesson.id)) {
 			discardChatDeliveries(lesson.id);

@@ -599,6 +599,19 @@ describe("lessons in classes", () => {
 		assert.equal(loose.messages.some((m) => (m as { customType?: string }).customType === "class-context"), false);
 	});
 
+	it("deleting a class also removes a lesson created in it while the delete waited", async () => {
+		const id = await makeClass("Doomed too");
+		const first = await (await chatsRoute.POST(json("/api/chats", "POST", { title: "First", classId: id }))).json();
+		const deleting = server.deleteClass(id);
+		const late = server.createLesson({ title: "Late", classId: id });
+		assert.equal(late.ok, true);
+		const res = await deleting;
+		assert.equal(res.ok, true);
+		const lateId = late.ok ? late.chat.id : "";
+		assert.deepEqual(res.ok ? res.value.lessonIds.sort() : [], [first.id, lateId].sort());
+		assert.equal(stores.chatStore.getChat(lateId), null);
+	});
+
 	it("deleting a class removes its lessons and folder", async () => {
 		const id = await makeClass("Doomed");
 		const lesson = await (await chatsRoute.POST(json("/api/chats", "POST", { title: "Gone", classId: id }))).json();
