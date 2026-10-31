@@ -63,12 +63,12 @@ export interface EmissionStats {
 }
 
 /** One provenance point — message-granular: nodes and
- *  edges record every (chat, message) where they came up, deep-linkable to
+ *  chains record every (chat, message) where they came up, deep-linkable to
  *  the exact transcript point. */
 export interface ProvenancePoint {
 	/** The chat this point anchors to — or a notes source id ("src_…"):
 	 *  imports carry no message anchors (provenance is the file itself,
-	 *  recorded through the mapping line + the source record). */
+	 *  recorded through the source record). */
 	chatId: string;
 	messageId: string;
 }
@@ -80,7 +80,7 @@ export interface ProvenancePoint {
  *  as a STATIC entry (not a link). The run's usage log lives here,
  *  mirroring ChatRecord.extractions. Ids are "src_" + hash of the file
  *  path — deterministic, so re-importing the same file re-runs extraction
- *  against the same source id (mappings dedupe by it). */
+ *  against the same source id (re-merges dedupe by it). */
 export interface NotesSource {
 	id: string;
 	filePath: string;
@@ -198,7 +198,7 @@ export interface CoverageEntry {
 
 /** One proposed proposition — a node candidate (or a re-encounter of one). */
 export interface ExtractedProposition {
-	/** Extractor-local id ("p1", …) referenced by edges. */
+	/** Extractor-local id ("p1", …) referenced by chains. */
 	id: string;
 	/** A very short label — a few words, a compact handle like a glossary
 	 *  headword. Not a sentence, needn't be unique or self-contained: the
@@ -248,10 +248,10 @@ export interface SessionFindings {
  * node ids; the renderer draws the hull from member positions at draw
  * time and gates the label inversely on the node-label zoom control. */
 export interface Cluster {
-	/** The labeling record id when claimed; unlabeled clusters still
-	 * appear (hull, no name) with a member-hash id. */
+	/** The birth session's id: a chatId, or a notes source id ("src_…"). */
 	id: string;
-	/** null until the naming call has minted/claimed a labeling. */
+	/** The session's name (chat title or imported file path); null when
+	 * that session's record is gone. */
 	label: string | null;
 	/** Node ids, sorted. Hull + centroid are renderer concerns. */
 	members: string[];
