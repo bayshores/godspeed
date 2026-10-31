@@ -217,22 +217,20 @@ export function layoutTopics(topics: readonly LayoutTopic[], links: readonly Lay
 	};
 }
 
+export const MIN_SCALE = 0.3;
+export const MAX_SCALE = 2.5;
+export const FIT_MIN_SCALE = 0.6;
+const FIT_PAD = { x: 32, top: 56, bottom: 56 };
+
 /** The camera that fits the map into a viewport: never zooms in past 1×
  *  and never out past FIT_MIN_SCALE (labels stay readable). A map still
  *  too big at that scale starts at its left/top edge — the foundations
  *  first — and the learner pans to the rest. */
-export const MIN_SCALE = 0.3;
-export const MAX_SCALE = 2.5;
-export const FIT_MIN_SCALE = 0.6;
-export function fitTransform(
-	bounds: TopicLayout["bounds"],
-	viewport: { w: number; h: number },
-	pad: { x: number; top: number; bottom: number } = { x: 32, top: 56, bottom: 56 },
-): { k: number; x: number; y: number } {
-	const w = Math.max(1, viewport.w - pad.x * 2);
-	const h = Math.max(1, viewport.h - pad.top - pad.bottom);
+export function fitTransform(bounds: TopicLayout["bounds"], viewport: { w: number; h: number }): { k: number; x: number; y: number } {
+	const w = Math.max(1, viewport.w - FIT_PAD.x * 2);
+	const h = Math.max(1, viewport.h - FIT_PAD.top - FIT_PAD.bottom);
 	const k = Math.max(FIT_MIN_SCALE, Math.min(1, w / Math.max(1, bounds.w), h / Math.max(1, bounds.h)));
-	const x = bounds.w * k > w ? pad.x - bounds.x * k : pad.x + w / 2 - (bounds.x + bounds.w / 2) * k;
-	const y = bounds.h * k > h ? pad.top - bounds.y * k : pad.top + h / 2 - (bounds.y + bounds.h / 2) * k;
+	const x = bounds.w * k > w ? FIT_PAD.x - bounds.x * k : FIT_PAD.x + w / 2 - (bounds.x + bounds.w / 2) * k;
+	const y = bounds.h * k > h ? FIT_PAD.top - bounds.y * k : FIT_PAD.top + h / 2 - (bounds.y + bounds.h / 2) * k;
 	return { k, x: r2(x), y: r2(y) };
 }
