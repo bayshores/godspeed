@@ -599,6 +599,10 @@ export function ChainTableOverlay({
 		else setInternalSelection(next);
 	};
 
+	const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+	// Only nodes that still exist: one deleted elsewhere drops out of the count.
+	const liveSelection = useMemo<ReadonlySet<string>>(() => new Set([...selection].filter((id) => byId.has(id))), [selection, byId]);
+
 	// Esc dismisses (unless a dialog has focus — each dialog's own Esc
 	// owns its layer; all listen on window, so the guards are explicit).
 	useEffect(() => {
@@ -618,11 +622,10 @@ export function ChainTableOverlay({
 
 	if (!open) return null;
 
-	const byId = new Map(nodes.map((n) => [n.id, n]));
-	const selectedNodes = [...selection].map((id) => byId.get(id)).filter((n): n is GraphNode => n !== undefined);
+	const selectedNodes = [...liveSelection].map((id) => byId.get(id)).filter((n): n is GraphNode => n !== undefined);
 
 	const toggleNodes = (ids: string[], next: boolean) => {
-		const s = new Set(selection);
+		const s = new Set(liveSelection);
 		for (const id of ids) {
 			if (next) s.add(id);
 			else s.delete(id);
@@ -657,7 +660,7 @@ export function ChainTableOverlay({
 								: { col, dir: col === "name" ? 1 : -1 },
 						)
 					}
-					selection={selection}
+					selection={liveSelection}
 					expandedClusters={expandedClusters}
 					expandedChains={expandedChains}
 					onToggleCluster={(key) => setExpandedClusters((prev) => toggleIn(prev, key))}
@@ -681,7 +684,7 @@ export function ChainTableOverlay({
 					// snapshot — fresh nodes/edges flow back in as props.
 					setDeleteOpen(false);
 					const dead = new Set(deadIds);
-					applySelection(new Set([...selection].filter((id) => !dead.has(id))));
+					applySelection(new Set([...liveSelection].filter((id) => !dead.has(id))));
 					window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { graphRevision } }));
 				}}
 			/>
