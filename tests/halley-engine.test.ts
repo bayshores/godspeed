@@ -81,6 +81,19 @@ describe("HalleyEngine loop", () => {
 		assert.equal(queue.length, 0);
 	});
 
+	it("keeps following a moving goal after it arrives", () => {
+		const e = engine();
+		drain();
+		let row = { x: 500, y: 400 };
+		e.flyTo(() => row);
+		assert.equal(drain(600), 600, "the loop keeps running while the goal can move");
+		row = { x: 500, y: 200 };
+		drain(600);
+		e.goHome();
+		assert.ok(drain() < 5000);
+		assert.equal(queue.length, 0);
+	});
+
 	it("stops after a burst of mouse movement", () => {
 		engine();
 		drain();

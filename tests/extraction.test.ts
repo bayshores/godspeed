@@ -2065,7 +2065,7 @@ describe("graph-context-aware serialized extraction (the extractor is the assemb
 			chatStore,
 			graphStore: ledgers,
 			extractor: fauxEngine([findingsStep((v) => views.push(v)), findingsStep((v) => views.push(v))]),
-			getChunkTokens: () => 4096, // two batches over the chunky fixture (the factory default, 4096 — halved back)
+			getChunkTokens: () => 4096, // two batches over the chunky fixture (the factory default)
 		});
 		const stats = await pipeline.runExtraction(chatId);
 		assert.equal(views.length, 2);

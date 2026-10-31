@@ -483,7 +483,7 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("Wave C steering: a mid-run result injects BETWEEN turn units — never splitting a toolCall from its toolResult", { timeout: 15000 }, async () => {
-		// THE OWNER'S CORRECTION: a real lesson is ONE continuous
+		// A real lesson is ONE continuous
 		// teach→quiz→teach run, so a subagent result must land BETWEEN messages
 		// inside the run — pi's steering queue, drained at turn boundaries
 		// (after a completed assistant message AND its tool results). Waiting

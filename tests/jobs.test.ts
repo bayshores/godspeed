@@ -1508,7 +1508,7 @@ describe("prompt composition", () => {
 	});
 });
 
-// ─── abort (2026-09 semantics: real kill, cancelled status, teacher told) ───
+// ─── abort (real kill, cancelled status, teacher told) ───
 
 describe("abort (src/server/jobs.ts abortJob)", () => {
 	/** A hanging model whose call never resolves until its abort signal

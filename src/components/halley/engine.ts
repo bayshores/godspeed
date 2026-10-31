@@ -243,7 +243,9 @@ export class HalleyEngine {
 			bubble.style.transform = `translate(${round(bx)}px, ${round(by)}px)`;
 		}
 
-		const keepGoing = !atRest || !!this.drag?.moved || this.hist.length > 1 || (!this.locked && !this.goal);
+		// A function goal re-aims each frame (its row may move), so it keeps the loop alive.
+		const keepGoing =
+			!atRest || !!this.drag?.moved || this.hist.length > 1 || typeof this.goal === "function" || (!this.locked && !this.goal);
 		if (keepGoing) this.kick();
 	};
 

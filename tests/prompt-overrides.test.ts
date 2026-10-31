@@ -219,7 +219,7 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 
 	it("with no saved versions, composition is byte-identical to the plain loader", () => {
 		// The plain loader, rebuilt inline: base + the agent's own
-		// fragments + the shared/ appendix (the  reorder),
+		// fragments + the shared/ appendix (the reorder),
 		// trimmed, empties dropped, joined with the separator.
 		const oldLoader = (kind: "prober" | "teacher") => {
 			const fragmentsOf = (dir: string) =>

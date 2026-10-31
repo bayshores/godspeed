@@ -246,7 +246,7 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 		);
 	});
 });
-// ─── tool availability (2026-09 settings seam) ───────────────────────────────
+// ─── tool availability (settings seam) ───────────────────────────────
 
 describe("tool toggles (core/pending.ts + factories)", () => {
 	it("TOGGLEABLE_TOOLS: the sub-agent dispatch tools; quiz/ask/read stay off the list", () => {
