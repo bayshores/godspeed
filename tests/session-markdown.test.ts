@@ -90,6 +90,24 @@ describe("messageMarkdown", () => {
 		assert.match(md, /\*\(his thinking: mixed up signs\)\*/);
 	});
 
+	it("quiz and ask blocks show the learner's thinking (the current key)", () => {
+		const quiz = messageMarkdown(
+			result("r1", "q1", "quiz", { questionText: "What is a derivative?", correct: true, dontKnow: false, thinking: "slope of the tangent" }),
+			"r1",
+		)!;
+		assert.match(quiz, /\*\(his thinking: slope of the tangent\)\*/);
+		const ask = messageMarkdown(
+			result("r2", "a1", "ask_user_question", {
+				questionText: "Which way?",
+				answers: [{ label: "Right", value: "right", index: 1 }],
+				thinking: "it looked shorter",
+			}),
+			"r2",
+		)!;
+		assert.match(ask, /The learner chose: Right/);
+		assert.match(ask, /\*\(his thinking: it looked shorter\)\*/);
+	});
+
 	it("explain results: the learner's own words are shown", () => {
 		const md = messageMarkdown(
 			result("r1", "e1", "explain", { questionText: "Why does Mercury stay near the Sun?", text: "it never strays far" }),
@@ -114,7 +132,7 @@ describe("messageMarkdown", () => {
 
 	it("ask blocks: question + chosen options + free text", () => {
 		const chosen = messageMarkdown(
-			result("r1", "a1", "ask_user_question", { questionText: "Which way?", answers: ["second"], other: "also the third" }),
+			result("r1", "a1", "ask_user_question", { questionText: "Which way?", answers: [{ label: "second", value: "b", index: 2 }], other: "also the third" }),
 			"r1",
 		)!;
 		assert.match(chosen, /^### Question · r1$/m);
