@@ -99,6 +99,10 @@ async function forward(line) {
 
 // Messages are handled concurrently: a long wait_for_work must not block others.
 const rl = readline.createInterface({ input: process.stdin });
+// stdin closing means the client is shutting down: end every wait so godspeed doesn't claim work for an agent that's gone.
+rl.on("close", () => {
+	for (const c of inFlight.values()) c.abort();
+});
 rl.on("line", (line) => {
 	if (line.trim()) void forward(line);
 });
