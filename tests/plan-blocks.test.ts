@@ -31,7 +31,6 @@ const TREE: PlanTree = {
 		{ from: "b", to: "d" },
 		{ from: "d", to: "e" },
 	],
-	version: 1,
 };
 
 /** A rewrite fixture: 3 fresh nodes (x, y, z), different from TREE. */
@@ -42,7 +41,6 @@ const TREE2: PlanTree = {
 		{ id: "z", title: "Z" },
 	],
 	edges: [{ from: "x", to: "y" }, { from: "y", to: "z" }],
-	version: 2,
 };
 
 /** A native assistant message with one tool call (the projection's tool
@@ -209,7 +207,7 @@ test("no tree / empty tree / no messages are no-ops", () => {
 		resultOf("m1", "plan_init", { ok: true, tree: TREE }),
 	];
 	assert.equal(planBlocksFor([], turn, null, []).length, 0, "no tree → nothing");
-	const emptyTree: PlanTree = { nodes: [], edges: [], version: 0 };
+	const emptyTree: PlanTree = { nodes: [], edges: [] };
 	assert.equal(planBlocksFor([], turn, emptyTree, []).length, 0, "empty tree → nothing");
 	assert.equal(planBlocksFor([], [], TREE, []).length, 0, "no messages → nothing");
 });

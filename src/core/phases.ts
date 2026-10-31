@@ -18,7 +18,7 @@
  * question is posed. nodeId is schema-required at the teach quiz
  * boundary, so the seam signal is structural, not prompt-mandated.
  *
- * TWO FOLDS over the same events: `phaseAt3`/`phaseTimeline` fold
+ * TWO FOLDS over the same events: `phaseTimeline` folds
  * VIEW messages (the client's dividers and dock — part shapes, pure and
  * structural); `phaseAt3Lh` folds the NATIVE record (server summaries,
  * tests) — probe→plan advances at the probe_done RESULT message, plan→teach
@@ -26,8 +26,10 @@
  * Both are strictly sequential; the two derivations agree on every settled
  * record (a call's part projects into the same view boundary).
  *
- * Pure: no imports, no runtime deps — safe on server, client, and tests.
+ * Pure: type-only imports, no runtime deps — safe on server, client, and tests.
  */
+
+import type { LhMessage } from "./native-messages.ts";
 
 /** The three phases of a session, as the picker / header / dividers see them. */
 export type Phase3 = "probe" | "plan" | "teach";
@@ -56,16 +58,6 @@ function taggedNodeId(input: unknown): boolean {
  *  result; that concludes nothing. */
 function refusedProbe(output: unknown): boolean {
 	return (output as { ok?: unknown } | null | undefined)?.ok === false;
-}
-
-/** The phase at `upToIndex` (inclusive; default: the last message). */
-export function phaseAt3(messages: readonly PhaseMessage[], upToIndex?: number): Phase3 {
-	let phase: Phase3 = "probe";
-	const last = Math.min(upToIndex ?? messages.length - 1, messages.length - 1);
-	for (let i = 0; i <= last; i++) {
-		phase = advance(phase, messages[i]?.parts);
-	}
-	return phase;
 }
 
 /** One message's advance of the phase (pure fold step). */
@@ -133,12 +125,8 @@ export function teachStepIndex(
 	return -1;
 }
 
-/**
- * The phase at EVERY message index, in one forward fold — the transcript
- * dividers render one per boundary, so phaseAt3(m, i) per index would rescan
- * 0..i each time (quadratic); this is the same derivation, linear.
- * out[i] === phaseAt3(messages, i) for every i.
- */
+/** The phase at every message index, in one forward fold (the transcript
+ *  dividers render one per boundary). */
 export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
 	const out: Phase3[] = [];
 	let phase: Phase3 = "probe";
@@ -151,18 +139,13 @@ export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
 
 // ─── the native fold (record-side phase over LhMessage[]) ───────────────────
 
-import type { LhMessage } from "./native-messages.ts";
-
-/** The phase at `upToIndex` (inclusive; default: the last message) of a
- *  NATIVE record. probe→plan advances at the probe_done call's clean
+/** The current phase of a NATIVE record. probe→plan advances at the probe_done call's clean
  *  toolResult; plan→teach at the assistant message carrying the first
  *  nodeId-tagged quiz CALL (mirrors the view fold — same seam, native
  *  shape). */
-export function phaseAt3Lh(messages: readonly LhMessage[], upToIndex?: number): Phase3 {
+export function phaseAt3Lh(messages: readonly LhMessage[]): Phase3 {
 	let phase: Phase3 = "probe";
-	const last = Math.min(upToIndex ?? messages.length - 1, messages.length - 1);
-	for (let i = 0; i <= last; i++) {
-		const m = messages[i]!;
+	for (const m of messages) {
 		const role = (m as { role?: string }).role;
 		if (role === "toolResult") {
 			const result = m as { toolName?: string; isError?: boolean; details?: unknown };

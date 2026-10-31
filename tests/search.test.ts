@@ -40,13 +40,18 @@ describe("passages", () => {
 		const para = (n: number) => `Paragraph ${n} `.repeat(42).trim();
 		const text = ["", para(1), "", para(2), "", para(3), "", para(4), ""].join("\n");
 		const { chunks, extent } = chunkText(text);
-		assert.equal(extent, "9 lines");
+		assert.equal(extent, "8 lines");
 		assert.deepEqual(
 			chunks.map((c) => c.range),
 			["lines 2–6", "lines 8–8"],
 		);
 		assert.ok(chunks.every((c) => c.text.length <= 1600));
 		assert.ok(chunks[1]!.text.startsWith("Paragraph 4"));
+	});
+
+	it("a trailing newline is not counted as a line", () => {
+		assert.equal(chunkText("one\n").extent, "1 line");
+		assert.equal(chunkText("").extent, "0 lines");
 	});
 
 	it("names a point in a file: page, time or line", () => {

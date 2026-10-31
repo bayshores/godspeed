@@ -4,7 +4,6 @@
  */
 import type { CallUsage } from "./chat.ts";
 import type { LhMessage, LhMarkerMessage } from "../native-messages.ts";
-import { newHandoffMessage } from "../native-messages.ts";
 
 // ─── Async sub-agent jobs (vision §2.5) ─────────────────────────────────────
 
@@ -285,10 +284,10 @@ export interface SteerDetails extends SubagentResultMeta {
 	ui?: { inverted?: boolean };
 }
 
-/** Set a steer message's ui.inverted (pure): returns a NEW message array
- *  with the target's details updated — no-op (same array) when the message
- *  is missing or not an invertible artifact steer. The silent route's
- *  whole body. */
+/** Set a steer message's ui.inverted (pure). Always returns a new array;
+ *  every message except the target is the same object, and a missing or
+ *  non-demo/visual target comes back unchanged. The silent route's whole
+ *  body. */
 export function setSteerUiInverted(
 	messages: readonly LhMessage[],
 	messageId: string,
@@ -405,20 +404,6 @@ function abortText(kind: JobKind): string {
 	if (kind === "pdf")
 		return "The PDF reading job was aborted by the learner — no brief is coming. Acknowledge it in one line and continue without it (a re-dispatch is fine if the learner wants it).";
 	return "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).";
-}
-
-// ─── the probe handoff steer (docs/archive/probe-teach-split.md §2) ──────────
-//
-// probe_done's execute queues this through the same wake pipeline; the
-// pump fires it once the prober's turn ends (gates + grace). It carries no
-// artifact — the assessment it references is durable in the transcript as
-// the probe_done tool result. Deterministic id per chat: exactly one
-// handoff, idempotent re-delivery. The marker's content is HANDOFF_TEXT
-// (core/contracts/chat.ts — single source); the UI renders the quiet
-// system line off the customType. Nothing human-looking is persisted, ever.
-
-export function buildProbeHandoffSteer(chatId: string): SteerMessage {
-	return newHandoffMessage(chatId);
 }
 
 /** True when the transcript already carries this steer — idempotent

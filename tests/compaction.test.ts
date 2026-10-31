@@ -321,7 +321,6 @@ describe("serializeForSummary + buildCompactionPrompt", () => {
 				{ id: "b", title: "Beta" },
 			],
 			edges: [{ from: "a", to: "b" }],
-			version: 1,
 		};
 		const text = planTreeToText(tree as never, [])!;
 		assert.ok(text.includes("Alpha (a) — first"));

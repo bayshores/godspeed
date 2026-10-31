@@ -1,9 +1,9 @@
 /**
  * Plan-tree tests (W1) — two layers:
  *
- *  1. Pure ops (src/core/plan-tree.ts): every validation error path and
- *     version semantics (structure only — progress derives from the
- *     transcript, docs/archive/probe-teach-split.md §3).
+ *  1. Pure ops (src/core/plan-tree.ts): every validation error path
+ *     (structure only — progress derives from the transcript,
+ *     docs/archive/probe-teach-split.md §3).
  *  2. Tool execute (src/agent/tools/plan.ts): against the REAL chat store —
  *     plan_init happy path, the re-callable rewrite, error results.
  */
@@ -40,11 +40,10 @@ function assertReject(fn: () => unknown, needle: RegExp): void {
 // ─── 1. pure ops ─────────────────────────────────────────────────────────────
 
 describe("plan-tree pure ops", () => {
-	it("createTree builds version 1 with no mutation of its inputs", () => {
+	it("createTree does not mutate its inputs", () => {
 		const nodes = [N("a", "A"), N("b", "B")];
 		const edges = [E("a", "b")];
 		const t = createTree(nodes, edges);
-		assert.equal(t.version, 1);
 		assert.ok(!("currentNodeId" in t), "no stored progress — structure only");
 		assert.ok(!("doneNodeIds" in t), "no done ledger of any kind");
 		assert.deepEqual(t.nodes.map((n) => n.id), ["a", "b"]);
@@ -117,7 +116,6 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 		assert.equal(res.ok, true);
 		assert.equal(res.error, undefined);
 		const tree = res.tree!;
-		assert.equal(tree.version, 1);
 		assert.deepEqual(
 			tree.nodes.map((n) => n.id),
 			["primitives", "operators", "expressions", "detour"],
@@ -324,7 +322,6 @@ describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 			{ from: "a", to: "b" },
 			{ from: "b", to: "c" },
 		],
-		version: 1,
 	};
 	const quizPart = (state: string, nodeId: string | undefined, correct?: boolean) => ({
 		type: "tool-quiz",
@@ -424,7 +421,6 @@ describe("derivePlanStatuses: tagged explain calls move the map like quiz calls"
 			{ id: "b", title: "B" },
 		],
 		edges: [{ from: "a", to: "b" }],
-		version: 1,
 	};
 	const explainPart = (nodeId: string | undefined) => ({
 		type: "tool-explain",

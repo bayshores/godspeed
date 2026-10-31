@@ -63,12 +63,12 @@ export interface EmissionStats {
 }
 
 /** One provenance point — message-granular: nodes and
- *  edges record every (chat, message) where they came up, deep-linkable to
+ *  chains record every (chat, message) where they came up, deep-linkable to
  *  the exact transcript point. */
 export interface ProvenancePoint {
 	/** The chat this point anchors to — or a notes source id ("src_…"):
 	 *  imports carry no message anchors (provenance is the file itself,
-	 *  recorded through the mapping line + the source record). */
+	 *  recorded through the source record). */
 	chatId: string;
 	messageId: string;
 }
@@ -80,7 +80,7 @@ export interface ProvenancePoint {
  *  as a STATIC entry (not a link). The run's usage log lives here,
  *  mirroring ChatRecord.extractions. Ids are "src_" + hash of the file
  *  path — deterministic, so re-importing the same file re-runs extraction
- *  against the same source id (mappings dedupe by it). */
+ *  against the same source id (re-merges dedupe by it). */
 export interface NotesSource {
 	id: string;
 	filePath: string;
@@ -153,9 +153,8 @@ export interface SessionCheckpoint {
 /** coverage.jsonl line: ONE MESSAGE of one chat has been extracted — by content fingerprint over
  *  exactly what the extraction view sees. The MESSAGE is the unit of
  *  coverage; "uncovered" is derived (fingerprint the current transcript,
- *  diff) — never dual-tracked. A quiz answer merging into the asking
- *  message changes its fingerprint: the message re-opens itself, only
- *  itself. Chat extractions write these instead of whole-chat checkpoints;
+ *  diff) — never dual-tracked. Only a change to the message's teacher
+ *  prose changes its fingerprint and re-opens it, and only it. Chat extractions write these instead of whole-chat checkpoints;
  *  notes imports keep the checkpoint (a file is one shot). */
 export interface CoverageEntry {
 	chatId: string;
@@ -169,7 +168,7 @@ export interface CoverageEntry {
 
 /**
  * Store format (src/store/graph.ts): JSONL ledgers at config.LEDGER_FILES
- * (nodes/chains/sessions), all append-only. Edges are NEVER stored — the
+ * (nodes/chains/sessions/coverage/topics), all append-only. Edges are NEVER stored — the
  * derived view (implication nodes + untyped arrows) is rebuilt from chains
  * on every read.
  *
@@ -199,7 +198,7 @@ export interface CoverageEntry {
 
 /** One proposed proposition — a node candidate (or a re-encounter of one). */
 export interface ExtractedProposition {
-	/** Extractor-local id ("p1", …) referenced by edges. */
+	/** Extractor-local id ("p1", …) referenced by chains. */
 	id: string;
 	/** A very short label — a few words, a compact handle like a glossary
 	 *  headword. Not a sentence, needn't be unique or self-contained: the
@@ -249,10 +248,10 @@ export interface SessionFindings {
  * node ids; the renderer draws the hull from member positions at draw
  * time and gates the label inversely on the node-label zoom control. */
 export interface Cluster {
-	/** The labeling record id when claimed; unlabeled clusters still
-	 * appear (hull, no name) with a member-hash id. */
+	/** The birth session's id: a chatId, or a notes source id ("src_…"). */
 	id: string;
-	/** null until the naming call has minted/claimed a labeling. */
+	/** The session's name (chat title or imported file path); null when
+	 * that session's record is gone. */
 	label: string | null;
 	/** Node ids, sorted. Hull + centroid are renderer concerns. */
 	members: string[];
@@ -315,17 +314,10 @@ export const TITLE_MAX_CHARS = 72;
 export function titleFromPrompt(prompt: string): string {
 	const oneLine = prompt.replace(/\s+/g, " ").trim();
 	if (oneLine.length <= TITLE_MAX_CHARS) return oneLine;
-	// Last space among the first TITLE_MAX_CHARS characters; the cut sits
-	// before it so no trailing space rides into the title.
-	let cut = -1;
-	for (let i = TITLE_MAX_CHARS; i > 0; i--) {
-		if (oneLine[i - 1] === " ") {
-			cut = i - 1;
-			break;
-		}
-	}
-	// One long word: no boundary exists under the cap — split it. This also lands correctly when the first word exactly
-	// fills the cap: cutting at the cap IS the boundary.
-	if (cut < 0) cut = TITLE_MAX_CHARS;
+	// Last space at or before the cap. A space at index TITLE_MAX_CHARS means the first TITLE_MAX_CHARS chars are whole words.
+	const space = oneLine.lastIndexOf(" ", TITLE_MAX_CHARS);
+	let cut = space > 0 ? space : TITLE_MAX_CHARS;
+	// One long word: don't split a surrogate pair.
+	if (space <= 0 && /[\uD800-\uDBFF]/.test(oneLine[cut - 1]!)) cut--;
 	return `${oneLine.slice(0, cut)}…`;
 }

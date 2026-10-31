@@ -557,7 +557,7 @@ describe("bridge height: the body-based measure (ratchet fix, 2026-10-07)", () =
 	});
 });
 
-describe("setSteerUiInverted (the persisted invert switch, 2026-10-07)", () => {
+describe("setSteerUiInverted (the persisted invert switch)", () => {
 	const demoSteer = buildSubagentSteer(
 		{ id: "jx", kind: "demo", toolCallId: "cx" },
 		{ title: "T", html: "<p>x</p>", tested: true },

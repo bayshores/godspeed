@@ -30,7 +30,6 @@ const CHAIN: PlanTree = {
 		{ from: "a", to: "b" },
 		{ from: "b", to: "c" },
 	],
-	version: 1,
 };
 
 describe("plan block layout (pure)", () => {
@@ -254,7 +253,6 @@ describe("plan popup (live derivation)", () => {
 				{ from: "x", to: "y" },
 				{ from: "y", to: "z" },
 			],
-			version: 1,
 		};
 		const msgs: PopupMessage[] = [
 			{ parts: [{ type: "tool-plan_init", state: "output-available", output: { ok: true, tree } }] },

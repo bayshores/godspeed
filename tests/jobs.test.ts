@@ -41,7 +41,6 @@ import {
 	type ResearchResult,
 	type SteerMessage,
 	type VisualResult,
-	buildProbeHandoffSteer,
 } from "../src/core/contracts.ts";
 import { composeInstructions, createTeacherAgent } from "../src/agent/teacher-agent.ts";
 import { createTeacherTools } from "../src/agent/tools.ts";
@@ -73,7 +72,7 @@ import type { PiEngine } from "../src/agent/models.ts";
 import { PATHS } from "../src/config.ts";
 import { projectView as projectNative } from "../src/core/view.ts";
 import { subscribe } from "../src/core/events.ts";
-import type { LhMessage } from "../src/core/native-messages.ts";
+import { newHandoffMessage, type LhMessage } from "../src/core/native-messages.ts";
 import type { SteerInput } from "../src/core/input-events.ts";
 // The agent engine loads on first use in the app; agent-building tests load it up front.
 await (await import("../src/agent/engine-load.ts")).loadAgentCore();
@@ -405,7 +404,7 @@ describe("steer helpers (contracts.ts)", () => {
 		assert.equal(steerDelivered([steer], steer.id), true);
 		assert.equal(steerDelivered([steer], "steer_job_z"), false);
 		// the probe handoff shares the id-space contract
-		const handoff = buildProbeHandoffSteer("chat_q");
+		const handoff = newHandoffMessage("chat_q");
 		assert.equal(handoff.id, "steer_probe_chat_q");
 		assert.equal(steerDelivered([handoff], handoff.id), true);
 		assert.equal(steerDelivered([steer], handoff.id), false);
@@ -913,7 +912,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		// native seam the chat-handler's construction branch keys on) and no
 		// open question.
 		chatStore.saveMessages(chat.id, nativeToolMessages("teach me calc", "probe_done", "call-pd", { ok: true }));
-		const handoff = buildProbeHandoffSteer(chat.id);
+		const handoff = newHandoffMessage(chat.id);
 		let seen: { chatId: string; steers: SteerMessage[] } | undefined;
 		setTurnRunner(async (cid, input) => {
 			seen = { chatId: cid, steers: (input as SteerInput).steers as SteerMessage[] };
@@ -931,7 +930,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 	it("a redelivered handoff dedupes via the transcript (idempotent by steer id)", async () => {
 		const chat = chatStore.createChat("Test: handoff idempotent");
 		trackChat(chat.id);
-		const handoff = buildProbeHandoffSteer(chat.id);
+		const handoff = newHandoffMessage(chat.id);
 		// The transcript already carries the steer (a previous wake completed).
 		chatStore.saveMessages(chat.id, [handoff as never]);
 		let fired = 0;
@@ -1173,7 +1172,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		const chat = chatStore.createChat("Test: handoff never live");
 		trackChat(chat.id);
 		chatStore.saveMessages(chat.id, nativeToolMessages("teach me calc", "probe_done", "call-pd", { ok: true }));
-		const handoff = buildProbeHandoffSteer(chat.id);
+		const handoff = newHandoffMessage(chat.id);
 		const { handed, agent } = fakeAgent();
 		const fired: SteerMessage[][] = [];
 		setTurnRunner(async (_cid, input) => {

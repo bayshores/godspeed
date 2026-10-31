@@ -47,6 +47,18 @@ describe("titleFromPrompt (smart truncation)", () => {
 		assert.equal(titleFromPrompt(giant), `${"x".repeat(TITLE_MAX_CHARS)}…`);
 	});
 
+	it("a space right at the cap keeps the last whole word", () => {
+		const prompt = `x${"abc ".repeat(18)}more words`; // index TITLE_MAX_CHARS is a space
+		assert.equal(titleFromPrompt(prompt), `${prompt.slice(0, TITLE_MAX_CHARS)}…`);
+	});
+
+	it("one long word never splits a surrogate pair", () => {
+		const out = titleFromPrompt(`a${"😀".repeat(50)}`);
+		const kept = out.slice(0, -1);
+		assert.equal(kept.length, TITLE_MAX_CHARS - 1);
+		assert.doesNotMatch(kept.at(-1)!, /[\uD800-\uDBFF]/);
+	});
+
 	it("the kept title never carries a trailing space", () => {
 		const prompt = `${"c".repeat(60)}  ${"d".repeat(60)}`; // collapses to one space
 		const out = titleFromPrompt(prompt);

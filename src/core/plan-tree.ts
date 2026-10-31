@@ -1,21 +1,17 @@
 import type { PlanEdge, PlanNode, PlanTree } from "./contracts.ts";
 
 /**
- * Pure, validated plan-tree operations (vision §2 "the formal plan tree").
+ * Pure, validated plan-tree building (vision §2 "the formal plan tree").
  *
- * Every function takes a tree and returns a NEW tree — never mutates its
- * input. All validation throws PlanTreeError with a message written for the
- * agent (it flows straight back as a tool-result error), stating exactly what
- * is wrong and which id/edge is at fault.
+ * `createTree` copies its inputs and never mutates them. Every failure
+ * throws PlanTreeError with a message written for the agent (it flows
+ * straight back as a tool-result error), stating exactly what is wrong and
+ * which id/edge is at fault.
  *
- * Invariants enforced everywhere:
+ * Invariants:
  * - Node ids are unique and non-empty; every edge endpoint references an
  *   existing node.
  * - The structure is a DAG: no self-loops, no duplicate edges, no cycles.
- * - `version` increments on every successful STATE-CHANGING op. True no-ops
- *   (setCurrent to the already-current node, markDone of an already-done
- *   node) return the input tree unchanged — version drives UI re-animation,
- *   so a non-change must not tick it. createTree always starts at version 1.
  */
 
 /** Error thrown by every op on invalid input. Message is agent-readable. */
@@ -79,8 +75,7 @@ function createsCycle(edges: PlanEdge[], from: string, to: string): boolean {
 }
 
 /** Full edge validation against existing nodes/edges: endpoints exist, no self-loop, no duplicate, acyclic. */
-function assertValidEdge(from: string, to: string, nodes: PlanNode[], existingEdges: PlanEdge[]): void {
-	const map = nodeMap(nodes); // also re-validates nodes on createTree
+function assertValidEdge(from: string, to: string, map: Map<string, PlanNode>, existingEdges: PlanEdge[]): void {
 	requireNode(map, from, "Edge `from`");
 	requireNode(map, to, "Edge `to`");
 	if (from === to) {
@@ -99,21 +94,17 @@ function assertValidEdge(from: string, to: string, nodes: PlanNode[], existingEd
 
 // ─── ops ─────────────────────────────────────────────────────────────────────
 
-/** Build a fresh tree (version 1) from node and edge lists, validating all invariants. */
+/** Build a fresh tree from node and edge lists, validating all invariants. */
 export function createTree(nodes: PlanNode[], edges: PlanEdge[]): PlanTree {
 	const map = nodeMap(nodes);
-	for (const e of edges) {
-		requireNode(map, e.from, "Edge `from`");
-		requireNode(map, e.to, "Edge `to`");
-	}
 	const accepted: PlanEdge[] = [];
 	for (const e of edges) {
 		// Each edge is checked against the ones already accepted, so any
 		// violation names the culprit edge.
-		assertValidEdge(e.from, e.to, nodes, accepted);
+		assertValidEdge(e.from, e.to, map, accepted);
 		accepted.push({ from: e.from, to: e.to });
 	}
-	return { nodes: nodes.map((n) => ({ ...n })), edges: accepted, version: 1 };
+	return { nodes: nodes.map((n) => ({ ...n })), edges: accepted };
 }
 
 // No per-node mutation ops: the tree carries structure ONLY, no progress
