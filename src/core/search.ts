@@ -189,7 +189,9 @@ export function chunkText(text: string): ChunkedFile {
 		else if (size >= TEXT_WINDOW_CHARS) flush();
 	});
 	flush();
-	return { chunks, extent: `${lines.length} lines` };
+	// A trailing newline ends the last line; it doesn't start another.
+	const count = lines.at(-1) === "" ? lines.length - 1 : lines.length;
+	return { chunks, extent: `${count} ${count === 1 ? "line" : "lines"}` };
 }
 
 /** Which passage(s) read_passage opens: one by id, or every passage of a
