@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.5.8",
+		"date": "2026-10-31",
+		"changes": [
+			"If the old godspeed plugin is still on your computer, godspeed tells you in the corner and in Settings, with a Remove button. The old plugin let Claude Code chats outside your godspeed folder connect, so the app could say your agent was connected when it wasn't really there.",
+			"The same goes for an old godspeed entry in Codex's settings.",
+			"Setting up the godspeed folder now removes all of the old plugin, not just part of it."
+		]
+	},
+	{
 		"version": "0.5.7",
 		"date": "2026-10-30",
 		"changes": [

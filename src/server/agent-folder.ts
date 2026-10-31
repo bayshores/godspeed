@@ -18,11 +18,12 @@ import {
 	startScript,
 	startScriptPath,
 	usableFolder,
-	withoutOldCodexServer,
 	type FolderAgent,
+	type OldSetup,
 	type Platform,
 } from "../core/agent-folder.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
+import { oldSetup, removeOldSetup } from "./old-setup.ts";
 
 const STATE_FILE = path.join(PATHS.data, "agent-folder.json");
 const TEMPLATE = path.join(process.cwd(), "src", "server", "agent-folder-files");
@@ -43,6 +44,9 @@ interface AgentFolderView {
 	exists: boolean;
 	/** What "Copy the command" copies, per agent. */
 	commands: Record<FolderAgent, string>;
+	/** The old setup still left once the folder is set up (the first-time
+	 *  notice covers people without a folder). */
+	oldSetup: OldSetup;
 }
 
 /** A folder that can't be used, in words for the learner. */
@@ -75,48 +79,14 @@ function agentFolder(): string {
 
 export function agentFolderView(folder = agentFolder()): AgentFolderView {
 	const home = os.homedir();
+	const exists = fs.existsSync(path.join(folder, ".godspeed", "connect.mjs"));
 	return {
 		folder,
 		short: shortFolder(folder, home),
-		exists: fs.existsSync(path.join(folder, ".godspeed", "connect.mjs")),
+		exists,
 		commands: { claude: copyCommand("claude", folder, home, platform()), codex: copyCommand("codex", folder, home, platform()) },
+		oldSetup: exists ? oldSetup() : { plugin: false, codex: false },
 	};
-}
-
-/** The retired Claude Code plugin is still installed. */
-function oldPluginInstalled(): boolean {
-	const dir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
-	try {
-		return fs.readFileSync(path.join(dir, "plugins", "installed_plugins.json"), "utf8").includes('"godspeed@godspeed"');
-	} catch {
-		return false;
-	}
-}
-
-function codexConfigFile(): string {
-	return path.join(process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex"), "config.toml");
-}
-
-/** Remove the godspeed server the learner once pasted into Codex's config:
- *  it would clash with the folder's, and it loaded godspeed everywhere. */
-function removeOldCodexServer(): void {
-	const file = codexConfigFile();
-	let toml: string;
-	try {
-		toml = fs.readFileSync(file, "utf8");
-	} catch {
-		return;
-	}
-	const kept = withoutOldCodexServer(toml);
-	if (kept !== null) writeFileAtomic(file, kept);
-}
-
-function oldCodexServer(): boolean {
-	try {
-		return withoutOldCodexServer(fs.readFileSync(codexConfigFile(), "utf8")) !== null;
-	} catch {
-		return false;
-	}
 }
 
 /** Write a file only when it changed, so a refresh leaves the folder alone. */
@@ -157,12 +127,11 @@ function writeFolder(folder: string): void {
 	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs"]) put(path.join(dot, script), template(script));
 	put(path.join(dot, "package.json"), `${JSON.stringify({ private: true, type: "module", version: process.env.LH_VERSION ?? "0.0.0" }, null, "\t")}\n`);
 	put(path.join(dot, "claude-settings.json"), claudeSettings(folder, p));
-	const removePlugin = oldPluginInstalled();
-	for (const agent of AGENTS) put(startScriptPath(folder, agent, p), startScript(agent, folder, p, removePlugin), 0o755);
+	for (const agent of AGENTS) put(startScriptPath(folder, agent, p), startScript(agent, folder, p), 0o755);
 	dropOldImages(folder);
 }
 
-/** Make (or update) the folder, remember it, and clear out the old Codex
+/** Make (or update) the folder, remember it, and clear out the old
  *  setup. Throws AgentFolderError when the folder can't be used. */
 export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	if (!usableFolder(folder)) throw new AgentFolderError("Pick a folder whose name has no quotes or $ signs in it.");
@@ -171,7 +140,7 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	} catch (err) {
 		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
 	}
-	removeOldCodexServer();
+	removeOldSetup();
 	writeState({ ...readState(), folder, noticeSeen: true });
 	return agentFolderView(folder);
 }
@@ -196,7 +165,8 @@ export function refreshAgentFolder(): void {
  *  notice; otherwise null. */
 export function folderNoticeAgent(): FolderAgent | null {
 	if (readState().noticeSeen || agentFolderView().exists) return null;
-	return oldPluginInstalled() ? "claude" : oldCodexServer() ? "codex" : null;
+	const old = oldSetup();
+	return old.plugin ? "claude" : old.codex ? "codex" : null;
 }
 
 export function dismissFolderNotice(): void {

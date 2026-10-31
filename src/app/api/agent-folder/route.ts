@@ -5,8 +5,10 @@
  *   folder when given; the app remembers it).
  *   POST { action: "dismiss-notice" }: hide the one-time notice for
  *   people who set up the old way.
+ *   POST { action: "remove-old-setup" }: remove the old plugin and the old
+ *   Codex block (the view's oldSetup).
  */
-import { AgentFolderError, agentFolderView, dismissFolderNotice, setUpAgentFolder } from "@/server";
+import { AgentFolderError, agentFolderView, dismissFolderNotice, removeOldSetup, setUpAgentFolder } from "@/server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,15 @@ export async function POST(req: Request) {
 		dismissFolderNotice();
 		return Response.json({ ok: true }, { headers: NO_STORE });
 	}
-	if (body.action !== "setup") return Response.json({ error: 'action must be "setup" or "dismiss-notice"' }, { status: 400 });
+	if (body.action === "remove-old-setup") {
+		try {
+			removeOldSetup();
+		} catch (err) {
+			return Response.json({ error: `Couldn't remove it: ${(err as Error).message}` }, { status: 500 });
+		}
+		return Response.json(agentFolderView(), { headers: NO_STORE });
+	}
+	if (body.action !== "setup") return Response.json({ error: 'action must be "setup", "dismiss-notice" or "remove-old-setup"' }, { status: 400 });
 	if (body.folder !== undefined && typeof body.folder !== "string") return Response.json({ error: "folder must be a string" }, { status: 400 });
 	try {
 		return Response.json(setUpAgentFolder(body.folder), { headers: NO_STORE });

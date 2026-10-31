@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { footerLabel, teachStep, useAgentStatus } from "@/components/agent-status";
 import { AgentLauncher } from "@/components/agent-folder/agent-launcher";
+import { OldSetupWarning } from "@/components/agent-folder/old-setup";
 import { CopyButton } from "@/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/components/mcp-access";
 import { cn } from "@/lib/utils";
@@ -124,6 +125,7 @@ export function ConnectionSection() {
 
 			<SettingsGroup label="Your agent">
 				<div className="py-3">
+					<OldSetupWarning />
 					<AgentLauncher />
 				</div>
 			</SettingsGroup>

@@ -9,6 +9,13 @@
 
 export type FolderAgent = "claude" | "codex";
 
+/** The old ways godspeed loaded outside the folder that are still set up:
+ *  the retired Claude Code plugin, and the block once pasted into Codex's config. */
+export interface OldSetup {
+	plugin: boolean;
+	codex: boolean;
+}
+
 export type Platform = "darwin" | "win32" | "linux";
 
 /** The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means. */
@@ -109,20 +116,14 @@ const NOT_INSTALLED: Record<FolderAgent, string> = {
 	codex: "Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.",
 };
 
-/** The start script the button runs in a new terminal window. With
- *  removePlugin it first uninstalls the retired godspeed plugin, so other
- *  Claude Code chats stop loading godspeed. */
-export function startScript(agent: FolderAgent, folder: string, platform: Platform, removePlugin: boolean): string {
+/** The start script the button runs in a new terminal window. */
+export function startScript(agent: FolderAgent, folder: string, platform: Platform): string {
 	const args = agent === "claude" ? CLAUDE_ARGS : codexArgs(folder, platform);
-	const unplug = removePlugin && agent === "claude";
 	if (platform === "win32") {
 		return [
 			"@echo off",
 			`cd /d "${folder}"`,
 			`where ${agent} >nul 2>nul || (echo ${NOT_INSTALLED[agent]} & exit /b 1)`,
-			...(unplug
-				? ["echo Removing the old godspeed plugin...", "call claude plugin uninstall godspeed@godspeed >nul 2>nul", "call claude plugin marketplace remove godspeed >nul 2>nul"]
-				: []),
 			`${agent} ${args.map(cmdQuote).join(" ")}`,
 			"",
 		].join("\r\n");
@@ -131,9 +132,6 @@ export function startScript(agent: FolderAgent, folder: string, platform: Platfo
 		"#!/bin/sh",
 		`cd ${posixQuote(folder)} || exit 1`,
 		`command -v ${agent} >/dev/null 2>&1 || { echo ${posixQuote(NOT_INSTALLED[agent])}; exit 1; }`,
-		...(unplug
-			? ["echo 'Removing the old godspeed plugin...'", "claude plugin uninstall godspeed@godspeed >/dev/null 2>&1", "claude plugin marketplace remove godspeed >/dev/null 2>&1"]
-			: []),
 		`exec ${agent} ${args.map(posixQuote).join(" ")}`,
 		"",
 	].join("\n");
@@ -152,4 +150,25 @@ export function withoutOldCodexServer(toml: string): string | null {
 	if (!/^\s*url\s*=\s*"[^"]*\/api\/mcp"/m.test(block)) return null;
 	const kept = [...lines.slice(0, start), ...lines.slice(end)].join("\n");
 	return kept.replace(/\n{3,}/g, "\n\n");
+}
+
+/** A JSON file's text without the entry at `keys` (e.g. ["plugins",
+ *  "godspeed@godspeed"]), or null when it has none or isn't JSON. */
+export function withoutJsonEntry(text: string, keys: readonly [...string[], string]): string | null {
+	let root: unknown;
+	try {
+		root = JSON.parse(text);
+	} catch {
+		return null;
+	}
+	let parent = root;
+	for (const key of keys.slice(0, -1)) parent = isRecord(parent) ? parent[key] : undefined;
+	const last = keys[keys.length - 1]!;
+	if (!isRecord(parent) || !Object.hasOwn(parent, last)) return null;
+	delete parent[last];
+	return JSON.stringify(root, null, 2);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }

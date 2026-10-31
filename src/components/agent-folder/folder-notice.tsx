@@ -3,8 +3,8 @@
 /**
  * Once, for people who set up godspeed the old way (the Claude Code plugin
  * or the Codex config): godspeed has its own folder now. "Set up my
- * folder" makes it and opens the agent there (its start script removes
- * the old plugin first); "Later" hides the notice for good. It opens after
+ * folder" makes it, removes the old setup and opens the agent there;
+ * "Later" hides the notice for good. It opens after
  * the welcome screen (openFolderNotice), or right away without one.
  */
 

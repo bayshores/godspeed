@@ -29,7 +29,7 @@ export * from "./events.ts";
 // partition from the server.
 export * from "./plan-tree.ts";
 // The godspeed folder's agents (the "Open Claude Code" button).
-export type { FolderAgent } from "./agent-folder.ts";
+export type { FolderAgent, OldSetup } from "./agent-folder.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
 export * from "./prompt-segments.ts";

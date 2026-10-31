@@ -54,6 +54,7 @@ const FOLDER = {
 	short: "~/godspeed",
 	exists: false,
 	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json "Start teaching"', codex: "cd ~/godspeed && codex" },
+	oldSetup: { plugin: false, codex: false },
 };
 
 /** The Connection section's reads: the access view, the saved notes and the godspeed folder. */
@@ -106,6 +107,31 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-status")!.textContent, "Your agent · 1 job");
 		assert.equal(q("agent-folder-path")!.textContent, "Folder: ~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
+		assert.equal(q("old-setup-warning"), null, "nothing old left: no warning");
+	});
+
+	it("warns about the old plugin left on the computer, and Remove says to restart open chats", async () => {
+		const posted: unknown[] = [];
+		const left = { ...FOLDER, exists: true, oldSetup: { plugin: true, codex: false } };
+		const access = { token: "tok_secret_c33d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 };
+		globalThis.fetch = (async (url: string, init?: RequestInit) => {
+			const path = String(url);
+			if (path.startsWith("/api/agent-folder")) {
+				if (init?.method === "POST") {
+					posted.push(JSON.parse(String(init.body)));
+					return Response.json({ ...left, oldSetup: { plugin: false, codex: false } });
+				}
+				return Response.json(left);
+			}
+			return Response.json(path.startsWith("/api/agent-notes") ? { notes: [] } : access);
+		}) as unknown as typeof fetch;
+		await mount(<ConnectionSection />);
+		const warning = q("old-setup-warning")!;
+		assert.match(warning.textContent!, /Old godspeed plugin found\./);
+		await act(async () => warning.querySelector("button")!.click());
+		assert.deepEqual(posted, [{ action: "remove-old-setup" }]);
+		assert.equal(q("old-setup-warning"), null);
+		assert.ok(document.body.textContent!.includes("Removed. Restart any open Claude Code chats to finish."));
 	});
 
 	it("access is always on: no on/off switch, setup always shown", async () => {

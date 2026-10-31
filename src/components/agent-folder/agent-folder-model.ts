@@ -3,7 +3,7 @@
  * and the live log under it. Pure — exported for tests.
  */
 
-import type { FolderAgent } from "@/core";
+import type { FolderAgent, OldSetup } from "@/core";
 
 /** The button's menu: an agent the app opens, or the setup for any other MCP app. */
 export type LaunchChoice = FolderAgent | "other";
@@ -16,6 +16,7 @@ export interface FolderView {
 	short: string;
 	exists: boolean;
 	commands: Record<FolderAgent, string>;
+	oldSetup: OldSetup;
 }
 
 /** One step of a launch: running, done, or failed with a message. */
@@ -60,4 +61,23 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 /** The agent the sidebar's button opens: the last one opened here, else Claude Code. */
 export function rememberedAgent(saved: string | null): FolderAgent {
 	return saved === "codex" ? "codex" : "claude";
+}
+
+/** What is left of the old setup, one entry each: `short` for Settings,
+ *  `full` for the notice. Empty when nothing is left. */
+export function oldSetupLines(old: OldSetup, short: string): { short: string; full: string }[] {
+	return [
+		...(old.plugin
+			? [{ short: "Old godspeed plugin found.", full: `The old godspeed plugin is still on this computer. It lets Claude Code chats outside ${short} use godspeed.` }]
+			: []),
+		...(old.codex
+			? [{ short: "Old godspeed entry found in Codex's settings.", full: `An old godspeed entry is still in Codex's settings. It lets Codex chats outside ${short} use godspeed.` }]
+			: []),
+	];
+}
+
+/** After Remove: which open chats still have it until they restart. */
+export function removedNote(removed: OldSetup): string {
+	const chats = [removed.plugin && "Claude Code", removed.codex && "Codex"].filter(Boolean).join(" and ");
+	return `Removed. Restart any open ${chats} chats to finish.`;
 }

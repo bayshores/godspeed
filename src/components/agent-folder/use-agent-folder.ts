@@ -7,7 +7,7 @@ import type { FolderView, Launch } from "./agent-folder-model";
 const AGENT_KEY = "lh-folder-agent";
 const UNREACHABLE = "Couldn't reach godspeed. Try again.";
 
-async function post(body: object): Promise<FolderView> {
+export async function postAgentFolder(body: object): Promise<FolderView> {
 	let res: Response;
 	try {
 		res = await fetch("/api/agent-folder", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -54,7 +54,7 @@ export function useAgentFolder() {
 		setLaunch({ agent, made: "wait" });
 		let made: FolderView;
 		try {
-			made = await post({ action: "setup" });
+			made = await postAgentFolder({ action: "setup" });
 		} catch (err) {
 			setLaunch({ agent, made: { error: (err as Error).message } });
 			return;
@@ -75,7 +75,7 @@ export function useAgentFolder() {
 		const folder = await window.lh?.pickFolder?.();
 		if (!folder) return null;
 		try {
-			setView(await post({ action: "setup", folder }));
+			setView(await postAgentFolder({ action: "setup", folder }));
 			setLaunch(null);
 			return null;
 		} catch (err) {

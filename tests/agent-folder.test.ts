@@ -18,6 +18,7 @@ process.env.CODEX_HOME = path.join(scratch, "codex");
 
 const core = await import("../src/core/agent-folder.ts");
 const server = await import("../src/server/agent-folder.ts");
+const { removeOldSetup } = await import("../src/server/old-setup.ts");
 const model = await import("../src/components/agent-folder/agent-folder-model.ts");
 const terminal = createRequire(import.meta.url)("../electron/open-terminal.cjs") as {
 	startScript: (folder: unknown, agent: unknown, platform: string) => string | null;
@@ -63,16 +64,22 @@ describe("the folder's files and commands", () => {
 		assert.equal(core.copyCommand("codex", "C:\\Users\\me\\godspeed", "C:\\Users\\me", "win32"), '"C:\\Users\\me\\godspeed\\.godspeed\\start-codex.cmd"');
 	});
 
-	it("writes start scripts that check the agent is installed, and remove the old plugin only when asked", () => {
-		const plain = core.startScript("claude", "/Users/me/godspeed", "darwin", false);
+	it("writes start scripts that check the agent is installed", () => {
+		const plain = core.startScript("claude", "/Users/me/godspeed", "darwin");
 		assert.match(plain, /^#!\/bin\/sh\ncd \/Users\/me\/godspeed \|\| exit 1\ncommand -v claude /);
 		assert.match(plain, /\nexec claude --settings \.godspeed\/claude-settings\.json "Start teaching"\n$/);
-		assert.doesNotMatch(plain, /plugin uninstall/);
-		assert.match(core.startScript("claude", "/Users/me/godspeed", "darwin", true), /claude plugin uninstall godspeed@godspeed[^\n]*\nclaude plugin marketplace remove godspeed/);
-		assert.doesNotMatch(core.startScript("codex", "/Users/me/godspeed", "darwin", true), /plugin/, "only Claude Code had the plugin");
-		const win = core.startScript("codex", "C:\\gs", "win32", false);
+		const win = core.startScript("codex", "C:\\gs", "win32");
 		assert.match(win, /^@echo off\r\ncd \/d "C:\\gs"\r\nwhere codex /);
 		assert.match(win, /codex -c "mcp_servers\.godspeed\.command='node'"/);
+	});
+
+	it("withoutJsonEntry drops one entry and leaves the rest", () => {
+		const installed = JSON.stringify({ version: 2, plugins: { "godspeed@godspeed": [{ scope: "local" }], "other@x": [] } }, null, 2);
+		assert.deepEqual(JSON.parse(core.withoutJsonEntry(installed, ["plugins", "godspeed@godspeed"])!), { version: 2, plugins: { "other@x": [] } });
+		assert.equal(core.withoutJsonEntry(installed, ["plugins", "nope"]), null);
+		assert.equal(core.withoutJsonEntry(installed, ["missing", "godspeed@godspeed"]), null);
+		assert.equal(core.withoutJsonEntry("not json", ["godspeed"]), null);
+		assert.equal(core.withoutJsonEntry('["godspeed"]', ["0"]), null, "only object keys");
 	});
 
 	it("refuses folders it can't quote", () => {
@@ -123,10 +130,31 @@ describe("writing the folder", () => {
 		fs.writeFileSync(path.join(scratch, "codex", "config.toml"), OLD_CODEX);
 		assert.equal(server.folderNoticeAgent(), "claude");
 		const view = server.setUpAgentFolder();
-		const platform = process.platform === "darwin" ? "darwin" : "linux";
-		assert.match(fs.readFileSync(core.startScriptPath(view.folder, "claude", platform), "utf8"), /plugin uninstall godspeed@godspeed/);
+		assert.doesNotMatch(fs.readFileSync(path.join(scratch, "claude", "plugins", "installed_plugins.json"), "utf8"), /godspeed/);
 		assert.doesNotMatch(fs.readFileSync(path.join(scratch, "codex", "config.toml"), "utf8"), /godspeed/);
+		assert.deepEqual(view.oldSetup, { plugin: false, codex: false });
 		assert.equal(server.folderNoticeAgent(), null, "set up: no notice");
+	});
+
+	it("finds the plugin's leftover files once the folder is set up, and Remove takes only godspeed's", () => {
+		const plugins = path.join(scratch, "claude", "plugins");
+		server.setUpAgentFolder();
+		assert.deepEqual(server.agentFolderView().oldSetup, { plugin: false, codex: false });
+		fs.mkdirSync(path.join(plugins, "cache", "godspeed", "godspeed", "0.4.2"), { recursive: true });
+		fs.mkdirSync(path.join(plugins, "cache", "other"), { recursive: true });
+		fs.writeFileSync(path.join(plugins, "known_marketplaces.json"), JSON.stringify({ godspeed: {}, other: { a: 1 } }, null, 2));
+		fs.writeFileSync(path.join(plugins, "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "other@other": [] } }, null, 2));
+		fs.mkdirSync(path.join(scratch, "codex"), { recursive: true });
+		fs.writeFileSync(path.join(scratch, "codex", "config.toml"), OLD_CODEX);
+		assert.deepEqual(server.agentFolderView().oldSetup, { plugin: true, codex: true });
+
+		removeOldSetup();
+		assert.deepEqual(server.agentFolderView().oldSetup, { plugin: false, codex: false });
+		assert.equal(fs.existsSync(path.join(plugins, "cache", "godspeed")), false);
+		assert.equal(fs.existsSync(path.join(plugins, "cache", "other")), true);
+		assert.deepEqual(JSON.parse(fs.readFileSync(path.join(plugins, "known_marketplaces.json"), "utf8")), { other: { a: 1 } });
+		assert.deepEqual(JSON.parse(fs.readFileSync(path.join(plugins, "installed_plugins.json"), "utf8")), { version: 2, plugins: { "other@other": [] } });
+		assert.match(fs.readFileSync(path.join(scratch, "codex", "config.toml"), "utf8"), /\[mcp_servers\.other\]/);
 	});
 
 	it("asks Codex users too, and Later hides the notice", () => {
@@ -191,6 +219,15 @@ describe("the setup log", () => {
 		assert.deepEqual(texts(model.logLines({ agent: "claude", made: { error: "Couldn't write" } }, off, "~/godspeed", true)), ["error: Couldn't write"]);
 		assert.deepEqual(texts(model.logLines({ agent: "claude", made: "done", opened: { error: "No terminal" } }, off, "~/godspeed", true)), ["done: Made ~/godspeed", "error: No terminal"]);
 		assert.equal(model.logLines({ agent: "claude", made: "done", opened: "manual" }, off, "~/godspeed", true)[1]!.text, "Copy the command and run it in your terminal");
+	});
+
+	it("says what is left of the old setup, and which chats to restart after Remove", () => {
+		assert.deepEqual(model.oldSetupLines({ plugin: false, codex: false }, "~/godspeed"), []);
+		const both = model.oldSetupLines({ plugin: true, codex: true }, "~/godspeed");
+		assert.deepEqual(both.map((l) => l.short), ["Old godspeed plugin found.", "Old godspeed entry found in Codex's settings."]);
+		assert.match(both[0]!.full, /Claude Code chats outside ~\/godspeed use godspeed\.$/);
+		assert.equal(model.removedNote({ plugin: true, codex: false }), "Removed. Restart any open Claude Code chats to finish.");
+		assert.equal(model.removedNote({ plugin: true, codex: true }), "Removed. Restart any open Claude Code and Codex chats to finish.");
 	});
 
 	it("remembers Codex, and falls back to Claude Code", () => {

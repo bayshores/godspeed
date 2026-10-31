@@ -18,6 +18,7 @@ import { RestartNotice } from "@/components/restart-notice";
 import { NoticeStack } from "@/components/notice-stack";
 import { WhatsNew } from "@/components/whats-new";
 import { FolderNotice } from "@/components/agent-folder/folder-notice";
+import { OldSetupNotice } from "@/components/agent-folder/old-setup";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
 // Serif (the bundled lh-cmu @font-face in globals.css — no CDN).
@@ -110,6 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			<NoticeStack>
 				<UpdateBanner />
 				{firstLoad === "restarted" && <RestartNotice />}
+				{!onboarding && <OldSetupNotice />}
 			</NoticeStack>
 			{/* "What's new" after an update (after the welcome screen when it
 			    shows); Settings reopens it. */}
