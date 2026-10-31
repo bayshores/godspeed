@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Type } from "typebox";
 import { questionResult } from "../src/agent/tool-execute.ts";
-import { composeInstructions, createProberAgent, createTeacherAgent } from "../src/agent/teacher-agent.ts";
+import { composeInstructions, createPracticeAgent, createProberAgent, createTeacherAgent } from "../src/agent/teacher-agent.ts";
 import { switchedOffToolsNote } from "../src/core/tool-switches.ts";
 import type { ProberToolContext } from "../src/agent/tools.ts";
 import { jobStore } from "../src/store/jobs.ts";
@@ -64,6 +64,14 @@ describe("AgentBuildOptions.toolToggles (the P2 bridge)", () => {
 		assert.ok(teacher.state.systemPrompt.includes("Web research (`research`) and Demos (`demo`)"));
 		const allOn = createProberAgent(ctx, { engine: fauxEngine(), toolToggles: { research: true } });
 		assert.equal(allOn.state.systemPrompt, composeInstructions("prober"));
+	});
+
+	it("practice names only its own switched-off tools", () => {
+		const chatId = chatStore.createChat("Practice toggle note test").id;
+		const practice = createPracticeAgent({ chatId, chatStore }, { engine: fauxEngine(), toolToggles: { demo: false, visual: false, pdf: false } });
+		assert.equal(practice.state.systemPrompt, `${composeInstructions("practice")}\n\n---\n\n${switchedOffToolsNote({ pdf: false }, ["research", "pdf"])}`);
+		assert.ok(!practice.state.systemPrompt.includes("Demos"), "practice has no demo tool to mention");
+		assert.ok(!practice.state.systemPrompt.includes("Figures"), "practice has no figure tool to mention");
 	});
 
 	it("an explicitly injected opts.tools registry is NEVER toggle-filtered", () => {
