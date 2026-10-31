@@ -239,49 +239,47 @@ function log(line) {
 /** `restarted`: the app is starting it again after a crash, so its first
  *  page shows a notice instead of the welcome screen (src/server/welcome.ts). */
 function startServer(port, restarted = false) {
-	return new Promise((resolve) => {
-		const child = spawn(
-			process.execPath,
-			[
-				// Only the macOS backend needs this: Next's native title setter
-				// otherwise checks this Node-mode process in as a foreground app.
-				...(process.platform === "darwin" ? ["--require", path.join(process.resourcesPath, "server-title-guard.cjs")] : []),
-				"--require", path.join(process.resourcesPath, "server-parent-guard.cjs"),
-				serverEntry(),
-			],
-			{
-				cwd: path.dirname(serverEntry()),
-				env: {
-					...process.env,
-					ELECTRON_RUN_AS_NODE: "1",
-					NODE_ENV: "production",
-					PORT: String(port),
-					HOSTNAME: "127.0.0.1", // the server defaults to 0.0.0.0 — never
-					LH_DATA_DIR: DATA_DIR(),
-					LH_DESKTOP_SERVER: "1",
-					LH_DESKTOP_API_SECRET: desktopAPISecret,
-					// Node's on-disk compile cache: later launches skip re-compiling
-					// the server's code (measured: first page 1366 → 1157 ms).
-					NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
-					...(restarted ? { LH_SERVER_RESTARTED: "1" } : {}),
-				},
-				// The IPC slot ties the server's lifetime to this process (see
-				// server-parent-guard.cjs), like the browser-service helper.
-				stdio: ["ignore", "pipe", "pipe", "ipc"],
+	const child = spawn(
+		process.execPath,
+		[
+			// Only the macOS backend needs this: Next's native title setter
+			// otherwise checks this Node-mode process in as a foreground app.
+			...(process.platform === "darwin" ? ["--require", path.join(process.resourcesPath, "server-title-guard.cjs")] : []),
+			"--require", path.join(process.resourcesPath, "server-parent-guard.cjs"),
+			serverEntry(),
+		],
+		{
+			cwd: path.dirname(serverEntry()),
+			env: {
+				...process.env,
+				ELECTRON_RUN_AS_NODE: "1",
+				NODE_ENV: "production",
+				PORT: String(port),
+				HOSTNAME: "127.0.0.1", // the server defaults to 0.0.0.0 — never
+				LH_DATA_DIR: DATA_DIR(),
+				LH_DESKTOP_SERVER: "1",
+				LH_DESKTOP_API_SECRET: desktopAPISecret,
+				// Node's on-disk compile cache: later launches skip re-compiling
+				// the server's code (measured: first page 1366 → 1157 ms).
+				NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
+				...(restarted ? { LH_SERVER_RESTARTED: "1" } : {}),
 			},
-		);
-		serverProcess = child;
-		const fwd = (buf) => buf.toString().trimEnd().split("\n").forEach((l) => l && log(`server: ${l}`));
-		child.stdout.on("data", fwd);
-		child.stderr.on("data", fwd);
-		child.on("exit", (code, signal) => {
-			log(`server exited (code=${code} signal=${signal})`);
-			if (serverProcess === child) serverProcess = null;
-			// A crash during the first start is handled where main() waits for it.
-			if (!stoppingServer && serverReady) void restartServer(port);
-		});
-		resolve(child);
+			// The IPC slot ties the server's lifetime to this process (see
+			// server-parent-guard.cjs), like the browser-service helper.
+			stdio: ["ignore", "pipe", "pipe", "ipc"],
+		},
+	);
+	serverProcess = child;
+	const fwd = (buf) => buf.toString().trimEnd().split("\n").forEach((l) => l && log(`server: ${l}`));
+	child.stdout.on("data", fwd);
+	child.stderr.on("data", fwd);
+	child.on("exit", (code, signal) => {
+		log(`server exited (code=${code} signal=${signal})`);
+		if (serverProcess === child) serverProcess = null;
+		// A crash during the first start is handled where main() waits for it.
+		if (!stoppingServer && serverReady) void restartServer(port);
 	});
+	return child;
 }
 
 /** No "ready" event exists — poll until the server answers (docs-confirmed).
@@ -367,7 +365,7 @@ async function restartServer(port) {
 	restartTimes = times;
 	log(`restarting server (${times.length} in the last minute)`);
 	const url = `http://127.0.0.1:${port}`;
-	const child = await startServer(port, true);
+	const child = startServer(port, true);
 	try {
 		await waitUntilUp(url, child);
 	} catch (err) {
@@ -809,7 +807,7 @@ async function main() {
 		});
 		log(`starting server: ${serverEntry()}`);
 		log(`data dir: ${DATA_DIR()}`);
-		serverUp = waitUntilUp(url, await startServer(new URL(url).port)).then(
+		serverUp = waitUntilUp(url, startServer(new URL(url).port)).then(
 			() => {
 				serverReady = true;
 				log(`server up: ${url}`);
