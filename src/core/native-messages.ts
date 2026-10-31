@@ -479,20 +479,6 @@ function cleanToolCallIds(messages: readonly LhMessage[]): Set<string> {
 	return ids;
 }
 
-/** The conclusion's reveal: the hero of a
- *  conclude card is the modelSolution committed at POSE time — the newest
- *  cleanly-posed problem BEFORE this conclude call. The reveal is never
- *  re-authored (the conclude schema has no solutionReveal); stored conclude
- *  inputs that still carry their own solutionReveal fall back to it at the
- *  card. Undefined when the pose carries no string solution. */
-export function modelSolutionForConclude(
-	messages: readonly LhMessage[],
-	concludeCallId: string,
-): string | undefined {
-	const input = problemInputForConclude(messages, concludeCallId);
-	return typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
-}
-
 /** The full pose-side fold:
  * EVERYTHING the agent filled into the problem call — mode, target ids,
  * statement, the committed solution — joined onto the conclude part so

@@ -27,7 +27,7 @@ import {
 } from "../src/core/native-messages.ts";
 import { CONCLUDE_ACK_TEXT } from "../src/core/contracts/chat.ts";
 import { dismissAppends, inputAppends, parseChatInput, parseDismissInput } from "../src/core/input-events.ts";
-import { modelSolutionForConclude } from "../src/core/native-messages.ts";
+import { problemInputForConclude } from "../src/core/native-messages.ts";
 import { projectView } from "../src/core/index.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────
@@ -373,17 +373,17 @@ describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 
 // ── the reveal join (owner round, 2026-10-05) ───────────────────────────────
 
-describe("modelSolutionForConclude (the conclusion's hero is the pose's commitment)", () => {
+describe("problemInputForConclude (the conclusion's hero is the pose's commitment)", () => {
 	it("returns the cleanly-posed problem's modelSolution before the conclude", () => {
 		const messages = [...problemPose(), ...concludeCall("solved")];
-		assert.equal(modelSolutionForConclude(messages, "call_conclude_solved"), "Show that…");
+		assert.equal(problemInputForConclude(messages, "call_conclude_solved")?.modelSolution, "Show that…");
 	});
 
 	it("skips refused poses — a rejected pose revealed nothing", () => {
 		const rejected = problemPose("call_bad", "A different student…");
 		(rejected[1]! as unknown as { isError: boolean }).isError = true;
 		const messages = [...rejected, ...concludeCall("solved")];
-		assert.equal(modelSolutionForConclude(messages, "call_conclude_solved"), undefined);
+		assert.equal(problemInputForConclude(messages, "call_conclude_solved")?.modelSolution, undefined);
 	});
 
 	it("the newest pose before ITS conclude wins (multi-problem records)", () => {
@@ -393,8 +393,8 @@ describe("modelSolutionForConclude (the conclusion's hero is the pose's commitme
 			...problemPose("call_p2", "second"),
 			...concludeCall("movedOn"),
 		];
-		assert.equal(modelSolutionForConclude(messages, "call_conclude_movedOn"), "second");
-		assert.equal(modelSolutionForConclude(messages, "call_conclude_solved"), "first");
+		assert.equal(problemInputForConclude(messages, "call_conclude_movedOn")?.modelSolution, "second");
+		assert.equal(problemInputForConclude(messages, "call_conclude_solved")?.modelSolution, "first");
 	});
 
 	it("projectView enriches the conclude part with the reveal", () => {

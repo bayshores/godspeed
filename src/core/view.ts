@@ -32,7 +32,7 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { modelSolutionForConclude, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
+import { PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
 import { QUESTION_TOOLS } from "./pending.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
@@ -252,12 +252,15 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 						// ordinary prose, including while its arguments stream.
 						continue;
 					}
-					// The conclusion's reveal join: the
-					// hero of a conclude card is the modelSolution committed at POSE
-					// time — a record fold, enriched here so the card renders pure.
+					// The conclusion's reveal join: the hero of a conclude card is
+					// the modelSolution committed at POSE time, never re-authored
+					// (the conclude schema has no solutionReveal; stored inputs that
+					// still carry one fall back to it at the card). A record fold,
+					// enriched here so the card renders pure.
 					if (block.name === PRACTICE_CONCLUDE_TOOL) {
-						part.reveal = modelSolutionForConclude(messages, block.id);
-						part.problemInput = problemInputForConclude(messages, block.id);
+						const input = problemInputForConclude(messages, block.id);
+						part.problemInput = input;
+						part.reveal = typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
 					}
 					rest.push(part);
 				}
