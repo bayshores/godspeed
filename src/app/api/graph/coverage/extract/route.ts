@@ -9,7 +9,7 @@
  * flight (the dock is the source of truth for that); failures are logged
  * by the pipeline and leave coverage untouched — the button stays honest.
  */
-import { extraction, extractionStatuses } from "@/server";
+import { extraction, extractionStatuses, getChat } from "@/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
 	if (typeof chatId !== "string" || chatId === "") {
 		return Response.json({ error: 'Body must be {chatId: string}' }, { status: 400 });
 	}
+	if (!getChat(chatId)) return Response.json({ error: "Not found" }, { status: 404 });
 	if (extractionStatuses().some((run) => run.kind === "chat" && run.chatId === chatId)) {
 		return Response.json({ error: "Godspeed is already adding this lesson to your graph." }, { status: 409 });
 	}
