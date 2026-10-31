@@ -23,7 +23,6 @@ import { withBgLlmSlot } from "../agent/subagents/bg-llm-semaphore.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";
 import type { ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
-import { extractionEnabled } from "../core/settings-resolution.ts";
 import { MIN_FACTS_FOR_TOPICS, resolveTopics, sameFactSet } from "../core/topics.ts";
 import { effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 
@@ -144,7 +143,7 @@ async function groupOnce(scope: ClassScope, force: boolean): Promise<TopicGroupi
 	const record = scope === null ? null : stores.classStore.getClass(scope);
 	const className = scope === null ? "No class" : record?.name;
 	if (className === undefined) return { status: "skipped", reason: "no_class" };
-	if (!extractionEnabled(effectiveSettings().graph)) return { status: "skipped", reason: "graph_off" };
+	if (!effectiveSettings().graph.enabled) return { status: "skipped", reason: "graph_off" };
 	if (!force && record?.files.some((f) => f.status === "pending" || f.status === "extracting")) {
 		return { status: "skipped", reason: "files_waiting" };
 	}

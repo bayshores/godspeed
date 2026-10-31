@@ -92,16 +92,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 	};
 }
 
-// ─── Graph channel gates ─────────────────────────────────────────────────────
-
-/**
- * The WRITE channel gate (extraction): dies with the master
- * switch. Used by the chat-handler's post-turn trigger.
- */
-export function extractionEnabled(graph: { enabled: boolean }): boolean {
-	return graph.enabled;
-}
-
+// ─── Graph tools gate ────────────────────────────────────────────────────────
 
 /**
  * The PROBER GRAPH TOOLS gate: the
