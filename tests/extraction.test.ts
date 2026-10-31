@@ -1600,6 +1600,34 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		assert.equal(chatStore.getChat(chatId)!.extractions?.length, 2, "one usage record per batch job; the no-op run persists none");
 	});
 
+	it("an abort in batch 1 survives a usage-write error and no later batch runs", async () => {
+		const { chatId } = chunkyChat();
+		let calls = 0;
+		let cancelled = false;
+		const failingChatStore = {
+			...chatStore,
+			appendExtractionUsage: (...args: Parameters<typeof chatStore.appendExtractionUsage>) => {
+				if (cancelled) throw new Error("synthetic usage write failure during abort");
+				return chatStore.appendExtractionUsage(...args);
+			},
+		};
+		const step = () => {
+			calls++;
+			cancelled = true;
+			assert.equal(abortExtraction(chatId), true);
+			return fauxAssistantMessage([fauxToolCall("submit_findings", FINDINGS as unknown as ToolCall["arguments"])], { stopReason: "toolUse" });
+		};
+		const pipeline = createExtractionPipeline({
+			chatStore: failingChatStore,
+			graphStore: memoryLedgers(),
+			getChunkTokens: () => 4096,
+			extractor: fauxEngine([step, step]),
+		});
+		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 0, chains: 0 });
+		assert.equal(calls, 1, "batch 2 never reached the extractor");
+		assert.equal(extractionStatuses().length, 0, "the cancelled job row is removed");
+	});
+
 	it("aborting after a merged batch keeps it covered; the re-run extracts only the remainder", async () => {
 		const { chatId, record } = chunkyChat();
 		const ledgers = memoryLedgers();

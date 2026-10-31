@@ -836,7 +836,22 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			persistRunUsage(jobKey, Math.round(performance.now() - t0), stats);
 			return stats;
 		} catch (err) {
-			persistRunUsage(jobKey, Math.round(performance.now() - t0), undefined);
+			// Read before finishExtraction drops the row. A usage write that
+			// fails after an abort must not hide it: the fan-out stops only on
+			// AbortError, and a later part would get a fresh controller.
+			const aborted =
+				runningExtractions.get(jobKey)?.controller.signal.aborted || (err instanceof Error && err.name === "AbortError");
+			try {
+				persistRunUsage(jobKey, Math.round(performance.now() - t0), undefined);
+			} catch (usageErr) {
+				if (!aborted) throw usageErr;
+				const abortErr = new Error(
+					`extraction aborted; job cleanup failed: ${usageErr instanceof Error ? usageErr.message : String(usageErr)}`,
+					{ cause: usageErr },
+				);
+				abortErr.name = "AbortError";
+				throw abortErr;
+			}
 			throw err;
 		} finally {
 			finishExtraction(jobKey);
@@ -1081,15 +1096,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			const settled: PromiseSettledResult<EmissionStats>[] = [];
 			for (const [chunkIndex, chunk] of chunks.entries()) {
 				const part = chunks.length > 1 ? { i: chunkIndex + 1, n: chunks.length } : undefined;
-				// Keep the actual signal after runJob tears down its registry row:
-				// usage persistence can throw and mask the body's AbortError.
-				let chunkSignal: AbortSignal | undefined;
 				try {
 					settled.push({
 						status: "fulfilled",
 						value: await runJob({ id, kind: "notes", label: input.filePath, part }, async (jobKey) => {
-							setPhase(jobKey, "waiting", "notes", input.filePath, part); // creates the row, so its signal exists
-							chunkSignal = runningExtractions.get(jobKey)?.controller.signal;
 							return withGraphLock(jobKey, "notes", input.filePath, part, async () => {
 								setPhase(jobKey, "extracting", "notes", input.filePath, part);
 								const findings = await notesExtract(jobKey, { ...input, text: chunk, part });
@@ -1111,19 +1121,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 						}),
 					});
 				} catch (err) {
-					let failure = err;
-					if (chunkSignal?.aborted && !(err instanceof Error && err.name === "AbortError")) {
-						// Notes-only: never start a fresh chunk after user cancellation,
-						// even when usage cleanup replaced the original abort rejection.
-						// Keep the secondary failure visible in the final import error.
-						const aborted = new Error(`Notes import aborted; job cleanup failed: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
-						aborted.name = "AbortError";
-						failure = aborted;
-					}
-					settled.push({ status: "rejected", reason: failure });
+					settled.push({ status: "rejected", reason: err });
 					// Same source-wide-abort law as the chat door: stop the
 					// run; isolated failures keep going.
-					if (failure instanceof Error && failure.name === "AbortError") break;
+					if (err instanceof Error && err.name === "AbortError") break;
 				}
 			}
 			const stats = aggregateJobs(id, settled);
