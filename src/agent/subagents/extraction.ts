@@ -52,13 +52,6 @@ import { runSubmitAgent } from "./submit-agent.ts";
 
 // ─── the source view (what the extractor sees) ──────────────────────────────
 
-/**
- * The extraction view: the session as teacher prose only, each passage
- * labeled with its message id. The markdown engine
- * (core/session-markdown.ts) serves the markdown export and read_lesson;
- * the extractor does not use it.
- */
-
 /** The whole-record view (used by callers that render a full session;
  *  the pipeline itself batches): teacher prose only, passages labeled
  *  with their message ids.
@@ -127,8 +120,8 @@ const chainSchema = Type.Object({
 });
 
 // Weak-model tolerance: optional per-item fields are Type.Optional here
-// with a ??-fill at the submit seam (fillFindings below), so omission is
-// tolerated and empty never means "invalid".
+// with a ??-fill in asSessionFindings, so omission is tolerated and empty
+// never means "invalid".
 const propositionsDescription =
 	"Only the NEW core ideas this stretch contributes — ideas the prompt's THE GRAPH SO FAR or RELATED " +
 	"IDEAS already hold are referenced by id (in chains and reteaches), never restated here.";
@@ -176,9 +169,9 @@ const sessionFindingsSchema = Type.Object({
 	reteaches: reteachesSchema,
 });
 
-/** What the extractor SUBMITS — propositions + chains. fillFindings
- *  normalizes it; validateFindingsChains checks the chain laws;
- *  asSessionFindings lifts it straight into SessionFindings (chains are
+/** What the extractor SUBMITS — propositions + chains.
+ *  validateFindingsChains checks the chain laws; asSessionFindings fills
+ *  the aliases and lifts it straight into SessionFindings (chains are
  *  stored AS-IS, no edge translation at any seam). */
 type FindingsSubmit = Static<typeof findingsSchema>;
 
@@ -186,41 +179,26 @@ type FindingsSubmit = Static<typeof findingsSchema>;
  *  on every proposition. */
 type SessionFindingsSubmit = Static<typeof sessionFindingsSchema>;
 
-// The notes front door's wire shape is the session shape MINUS the
-// messageId anchor (notes have no messages): one base findings type for
-// both doors, the anchor riding as an optional field.
-type NotesFindings = SessionFindings;
-
 // ── the submit seam ──
 //
 // Every top-level field on each submit tool is REQUIRED, so a payload
 // missing `chains` or `reteaches` fails validation instead of merging a
 // pile of nodes with no structure (a truncated retry used to pass with
-// propositions only). Only the per-item aliases stay optional with a
-// ??-fill.
+// propositions only). Only the per-item aliases stay optional, filled in
+// asSessionFindings.
 
-function fillFindings<T extends { propositions: Array<{ aliases?: string[] }>; chains: unknown }>(
-	raw: T,
-): T {
-	return {
-		...raw,
-		propositions: raw.propositions.map((p) => ({ ...p, aliases: p.aliases ?? [] })),
-	};
-}
-
-/** The notes fill: the shared alias ??-fill PLUS the door's boundary — a
- *  stray messageId (the notes schema has none; extra properties pass
- *  schema validation) is stripped so notes provenance stays chat-level
- *  (the file is the anchor). */
+/** The notes door's boundary: a stray messageId (the notes schema has
+ *  none; extra properties pass schema validation) is stripped so notes
+ *  provenance stays chat-level (the file is the anchor). */
 function fillNotesFindings(raw: FindingsSubmit): FindingsSubmit {
-	return fillFindings({
+	return {
 		...raw,
 		propositions: raw.propositions.map((p) => {
 			const stripped = { ...p } as typeof p & { messageId?: unknown };
 			delete stripped.messageId;
 			return stripped;
 		}),
-	});
+	};
 }
 
 /** The chain laws — the LOUD channel: runSubmitAgent turns a
@@ -274,9 +252,8 @@ function validateSessionAnchors(value: SessionFindingsSubmit, batchIds: Readonly
 
 /** The wire IS the pipeline shape: propositions + chains, no translation
  *  (the stores keep the chains; the derived edge view is recomputed on
- *  read). The fill already ran inside runSubmitAgent; this only
- *  re-asserts the aliases-filled type and keeps the session submit's
- *  messageId anchor (both doors lift through here). */
+ *  read). The one place omitted aliases are filled; it keeps the session
+ *  submit's messageId anchor (both doors lift through here). */
 const asSessionFindings = (
 	raw: {
 		propositions: Array<{ id: string; name: string; statement: string; aliases?: string[]; messageId?: string }>;
@@ -409,7 +386,7 @@ function runExtractor(
 		toolName: "submit_findings",
 		toolDescription: "Submit the session findings.",
 		parameters: sessionFindingsSchema,
-		fill: fillFindings,
+		fill: (raw: SessionFindingsSubmit) => raw,
 		validate: (value) => validateSessionAnchors(value, batchIds) ?? validateFindingsChains(value, existingIds),
 		systemPrompt: EXTRACTOR_INSTRUCTIONS,
 		prompt,
@@ -431,7 +408,7 @@ function runNotesExtractor(
 	existingIds: ReadonlySet<string>,
 	signal: AbortSignal | undefined,
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void,
-): Promise<NotesFindings> {
+): Promise<SessionFindings> {
 	return runSubmitAgent<FindingsSubmit>({
 		taskLabel,
 		toolName: "submit_findings",
@@ -1054,7 +1031,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	async function notesExtract(
 		jobKey: string,
 		input: { id: string; filePath: string; text: string; part?: { i: number; n: number } },
-	): Promise<NotesFindings> {
+	): Promise<SessionFindings> {
 		// jobKey: the registry key ("src#i" for chunk jobs) so the abort
 		// signal reaches the call; input.id stays the SOURCE id.
 		const signal = runningExtractions.get(jobKey)?.controller.signal;

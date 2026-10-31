@@ -80,7 +80,7 @@ export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[
 		toolName: "submit_topics",
 		toolDescription: "Submit the full topic grouping for the course's facts.",
 		parameters: submitSchema,
-		fill: (raw: TopicsSubmit) => ({ topics: raw.topics.map((t) => ({ ...t, members: t.members ?? [] })) }),
+		fill: (raw: TopicsSubmit) => raw,
 		validate: (value) => {
 			const problems = value.topics.map((t) => topicNameProblem(t.name)).filter((p): p is string => p !== null);
 			if (value.topics.length === 0) problems.push("Submit at least one topic.");
