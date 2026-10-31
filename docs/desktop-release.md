@@ -42,7 +42,7 @@ npx electron-builder -c electron/electron-builder.yml --linux --x64 --publish ne
 
 `.github/workflows/ci.yml` runs on main pushes and pull requests:
 
-- Typecheck, full deterministic test suite, lint, and the dead-code check (knip) on Ubuntu. This is the same as `npm run check`. The tag-push gates in `release.yml` run typecheck, tests and lint.
+- Typecheck, full deterministic test suite, lint, and the dead-code check (knip) on Ubuntu. This is the same as `npm run check`. The same job also runs the skill's Python tests (`tests/skills`). The tag-push gates in `release.yml` run typecheck, tests and lint.
 - Native renderer tests plus standalone build/boot-smoke on macOS (`macos-15`), Windows, and Linux. This macOS job does not compile the Icon Composer asset; only release packaging needs the newer runner.
 
 `.github/workflows/release.yml` has two deliberately separate modes:

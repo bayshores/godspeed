@@ -33,6 +33,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - name: Skill tests (Python)
+        run: python3 -B -m unittest discover -s tests/skills
       - run: npm run lint
       - run: npm run deadcode
 
