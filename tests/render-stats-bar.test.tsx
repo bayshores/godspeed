@@ -27,12 +27,9 @@ function turn(over: Partial<TurnUsage> = {}): TurnUsage {
 }
 
 describe("stats bar", () => {
-	it("renders NOTHING on the left when there are no turns yet, and no model control", () => {
+	it("a lesson with no turns yet still shows the summary, and no model control", () => {
 		const html = renderToStaticMarkup(<StatsBar turns={[]} />);
-		assert.match(html, /data-testid="stats-bar"/);
-		assert.ok(!html.includes('data-testid="stats-summary"'), "no summary button pre-chat");
-		assert.ok(!html.includes('data-testid="stats-context"'), "no context figure pre-chat");
-		assert.ok(!html.includes('data-testid="stats-cost"'), "no cost figure pre-chat");
+		assert.match(html, /data-testid="stats-summary"/);
 		assert.ok(!html.includes('data-testid="stats-model"'), "no model control");
 		assert.ok(!html.includes('data-testid="stats-thinking"'), "no thinking control");
 	});
@@ -56,7 +53,7 @@ describe("stats bar", () => {
 		assert.equal(formatContextMeasurement(null, 100_000), "? / 100k");
 		assert.equal(formatContextMeasurement(83_000, 100_000), "83k / 100k");
 		assert.equal(formatContextMeasurement(83_000, null), "83k");
-		const html = renderToStaticMarkup(<StatsBar chatId="fixture" turns={[turn()]} contextTokens={null} />);
+		const html = renderToStaticMarkup(<StatsBar turns={[turn()]} contextTokens={null} />);
 		assert.match(html, /data-testid="stats-context">\? \/ 200k</);
 	});
 });

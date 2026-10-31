@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState } from "react";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/core";
 import { formatTokens, planCostLabel, prettyModel } from "@/components/usage-format";
 import { usePresence } from "@/components/presence";
@@ -10,10 +10,9 @@ export function formatContextMeasurement(tokens: number | null, limit: number | 
 }
 
 /**
- * The below-composer stats bar: the session's context window + usage as
- * one quiet row beneath the composer. Clicking it opens the per-turn
- * detail popover. Without a session yet the summary doesn't render: an
- * empty summary over an empty popover is noise.
+ * The lesson's stats bar: the session's context window + usage as one
+ * quiet row in the Your-turn panel's footer. Clicking it opens the
+ * per-turn detail popover.
  *
  * Lessons run on the outside agent's own plan, so cost reads as the plan's
  * label; missing cost stays "–", never fake zero. Context is a separate
@@ -25,18 +24,10 @@ export function StatsBar({
 	turns,
 	contextTokens = null,
 	pricing,
-	chatId,
-	leadingSlot,
 }: {
 	turns: TurnUsage[];
 	contextTokens?: number | null;
 	pricing?: SessionPricing;
-	/** The bound session: present on the in-session bar. */
-	chatId?: string;
-	/** The row's LEFT edge: the home
-	 *  composer's teach | practice switch rides here — before the session
-	 *  data (which renders nothing pre-chat on that surface). */
-	leadingSlot?: ReactNode;
 }) {
 	const [open, setOpen] = useState(false);
 	const detail = usePresence(open);
@@ -52,17 +43,8 @@ export function StatsBar({
 	return (
 		<div
 			data-testid="stats-bar"
-			// pointer-events-auto: the sticky composer wrapper is pointer-events-none
-			// (so its transparent gradient area never blocks scrolling); this row
-			// must re-enable events or every control on it is dead.
-			className="pointer-events-auto relative flex items-center justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground"
+			className="relative flex items-center justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground"
 		>
-			{/* The leading slot: the leftmost control surface, the home
-			    composer's mode switch. */}
-			{leadingSlot}
-			{/* The left side: the session-data summary — only once a session
-			    exists (turns). Pre-chat renders nothing (see the header). */}
-			{(chatId || turns.length > 0) && (
 			<div ref={barRef} className="relative">
 				{/* The popover and the outside-close ref anchor to this wrapper,
 				    so the popover centers over the button, not the whole row.
@@ -131,7 +113,6 @@ export function StatsBar({
 					</div>
 				)}
 			</div>
-			)}
 		</div>
 	);
 }

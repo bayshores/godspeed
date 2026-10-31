@@ -519,7 +519,7 @@ export function Chat({
 												</p>
 											) : undefined,
 									}}
-									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} chatId={chatId} />}
+									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} />}
 								/>
 
 								{/* The session-scoped focuses: absolute over the lesson area, below
