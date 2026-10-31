@@ -18,7 +18,7 @@ import type {
 	GraphSettings,
 } from "../core/settings.ts";
 import { COMPACTION_THRESHOLD_FLOOR, EXTRACTION_CHUNK_TOKENS_FLOOR, sanitizeTeacherName } from "../core/settings.ts";
-import { WRITABLE_TOOL_KEYS } from "../core/pending.ts";
+import { WRITABLE_TOOL_KEYS } from "../core/tool-switches.ts";
 import { TEACHING_AREAS, sanitizeAreaRules } from "../core/teaching-areas.ts";
 
 /** Parsed-or-rejected — `ok: false` carries the 400's error message. */

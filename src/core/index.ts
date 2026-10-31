@@ -32,6 +32,7 @@ export * from "./plan-tree.ts";
 export type { FolderAgent, OldSetup } from "./agent-folder.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
+export * from "./tool-switches.ts";
 export * from "./prompt-segments.ts";
 export * from "./math-delims.ts";
 // The native record (LhMessage) and the input-events contract — pure,

@@ -20,7 +20,7 @@ import {
 	ShapesIcon,
 	WaypointsIcon,
 } from "lucide-react";
-import { savedTimes, TEACHING_AREAS, type AgentSettings, type AreaId, type GraphSettings, type PromptSegmentInfo, type TeachingArea } from "@/core";
+import { savedTimes, TEACHING_AREAS, TOOL_SWITCH_LABELS, type AgentSettings, type AreaId, type GraphSettings, type PromptSegmentInfo, type TeachingArea, type ToggleableTool } from "@/core";
 import { HalleyFace } from "@/components/halley/halley-face";
 import { RuleChips } from "@/components/rule-chips";
 import { useSavedRules } from "@/components/use-saved-rules";
@@ -66,14 +66,14 @@ export function TeachingSection({
 
 	const tools = agent?.tools ?? {};
 	const graphOn = graph?.enabled ?? true;
-	const toolRow = (icon: Icon, id: string, label: string, about: string) => (
-		<SwitchRow icon={icon} label={label} about={about} on={tools[id] ?? true} onChange={(on) => onSectionChange(composeTool(agent, id, on))} />
+	const toolRow = (icon: Icon, id: ToggleableTool, about: string) => (
+		<SwitchRow icon={icon} label={TOOL_SWITCH_LABELS[id]} about={about} on={tools[id] ?? true} onChange={(on) => onSectionChange(composeTool(agent, id, on))} />
 	);
 	const controls: Partial<Record<AreaId, React.ReactNode>> = {
 		questions: <QuizStyle free={tools.explain === true} onPick={(style) => onSectionChange(composeQuizStyle(agent, style))} />,
 		facts: (
 			<SwitchGroup>
-				{toolRow(GlobeIcon, "research", "Web research", "Looks things up while you read")}
+				{toolRow(GlobeIcon, "research", "Looks things up while you read")}
 				<SwitchRow
 					icon={WaypointsIcon}
 					label="Your graph"
@@ -86,11 +86,11 @@ export function TeachingSection({
 		),
 		demos: (
 			<SwitchGroup>
-				{toolRow(PlayIcon, "demo", "Demos", "Builds things you can play with")}
-				{toolRow(ShapesIcon, "visual", "Figures", "Draws precise diagrams")}
+				{toolRow(PlayIcon, "demo", "Builds things you can play with")}
+				{toolRow(ShapesIcon, "visual", "Draws precise diagrams")}
 			</SwitchGroup>
 		),
-		files: <SwitchGroup>{toolRow(FileTextIcon, "pdf", "PDF reading", "Reads your PDFs page by page")}</SwitchGroup>,
+		files: <SwitchGroup>{toolRow(FileTextIcon, "pdf", "Reads your PDFs page by page")}</SwitchGroup>,
 	};
 
 	return (

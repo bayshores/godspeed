@@ -24,7 +24,7 @@ import { proberGraphTools, type GraphToolContext } from "./graph.ts";
 import { classTools, type ClassToolContext } from "./class.ts";
 import { ruleTools, type SaveRule } from "./rules.ts";
 import { activeProblemOf } from "../../core/native-messages.ts";
-import { filterEnabledTools, type EnabledTools } from "../../core/pending.ts";
+import { filterEnabledTools, type EnabledTools } from "../../core/tool-switches.ts";
 import type { LhMessage } from "../../core/native-messages.ts";
 import { concludeResult, invalidInputResult, problemResult } from "../tool-execute.ts";
 import { healEncodedArguments, healToolRecord } from "./heal.ts";

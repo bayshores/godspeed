@@ -14,7 +14,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Type } from "typebox";
 import { questionResult } from "../src/agent/tool-execute.ts";
-import { createProberAgent, createTeacherAgent } from "../src/agent/teacher-agent.ts";
+import { composeInstructions, createProberAgent, createTeacherAgent } from "../src/agent/teacher-agent.ts";
+import { switchedOffToolsNote } from "../src/core/tool-switches.ts";
 import type { ProberToolContext } from "../src/agent/tools.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { parseAgentSettingsBody } from "../src/server/settings-body.ts";
@@ -50,6 +51,19 @@ describe("AgentBuildOptions.toolToggles (the P2 bridge)", () => {
 		const names = toolNames(prober);
 		assert.ok(!names.includes("ask_user_question"), "the delta dropped the tool");
 		assert.ok(names.includes("probe_done"), "probe_done always-on");
+	});
+
+	it("the system prompt names the agent's switched-off tools, and only those", () => {
+		const chatId = chatStore.createChat("Toggle note test").id;
+		const ctx: ProberToolContext = { chatId, chatStore, deliver: () => {}, jobStore, spawn: () => {} };
+		const toolToggles = { research: false, demo: false };
+		const prober = createProberAgent(ctx, { engine: fauxEngine(), toolToggles });
+		assert.equal(prober.state.systemPrompt, `${composeInstructions("prober")}\n\n---\n\n${switchedOffToolsNote(toolToggles, ["research"])}`);
+		assert.ok(!prober.state.systemPrompt.includes("Demos"), "the prober has no demo tool to mention");
+		const teacher = createTeacherAgent(undefined, { engine: fauxEngine(), toolToggles });
+		assert.ok(teacher.state.systemPrompt.includes("Web research (`research`) and Demos (`demo`)"));
+		const allOn = createProberAgent(ctx, { engine: fauxEngine(), toolToggles: { research: true } });
+		assert.equal(allOn.state.systemPrompt, composeInstructions("prober"));
 	});
 
 	it("an explicitly injected opts.tools registry is NEVER toggle-filtered", () => {

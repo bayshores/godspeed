@@ -26,7 +26,7 @@ import {
 	teachQuizToolFor,
 	type TeacherToolContext,
 } from "../src/agent/tools.ts";
-import { TOGGLEABLE_TOOLS } from "../src/core/pending.ts";
+import { TOGGLEABLE_TOOLS } from "../src/core/tool-switches.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { probeQuizInputSchema, quizInputObject, quizInputProblems } from "../src/core/question-core.ts";
 import { chatStore } from "../src/store/chats.ts";
@@ -248,7 +248,7 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 });
 // ─── tool availability (settings seam) ───────────────────────────────
 
-describe("tool toggles (core/pending.ts + factories)", () => {
+describe("tool toggles (core/tool-switches.ts + factories)", () => {
 	it("TOGGLEABLE_TOOLS: the sub-agent dispatch tools; quiz/ask/read stay off the list", () => {
 		// THE DEFINITIVE vocabulary: the job tools only. quiz/ask_user_question are
 		// permanently always-on (the prober's assessment + teaching doctrine

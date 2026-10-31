@@ -14,7 +14,8 @@ import {
 import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
 import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../core/question-core.ts";
-import { QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
+import { QUESTION_TOOLS } from "../core/pending.ts";
+import { switchedOffToolsNote, TOGGLEABLE_TOOLS, type EnabledTools, type ToggleableTool } from "../core/tool-switches.ts";
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
@@ -48,6 +49,14 @@ import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts
  *  directory plus a curated shared set (see prompt-segments.ts). */
 type AgentKind = "prober" | "teacher" | "practice";
 
+/** The switchable tools each agent's factory carries (tools.ts,
+ *  tools/practice.ts): demos and figures are teacher-only. */
+const AGENT_SWITCHES: Record<AgentKind, readonly ToggleableTool[]> = {
+	prober: ["research", "pdf"],
+	teacher: TOGGLEABLE_TOOLS,
+	practice: ["research", "pdf"],
+};
+
 /** Exported for tests: assert what composes into the model's prompt.
  *  Composition order: the shared base (not for practice) → the agent's own fragments → shared/
  *  fragments (effectivePromptSegments). A part the learner saved their
@@ -75,9 +84,10 @@ export interface AgentBuildOptions {
 	/** Tests may pass a bare tool registry to drive deterministic flows.
 	 *  An explicit registry is NEVER toggle-filtered — the caller owns it. */
 	tools?: Record<string, AgentTool<any>>;
-	/** The resolved per-user tool toggles (core/pending EnabledTools); the
-	 *  factories drop any tool explicitly false. The toggleable set is
-	 *  TOGGLEABLE_TOOLS (job tools only). */
+	/** The resolved per-user tool toggles (core/tool-switches EnabledTools);
+	 *  the factories drop any tool explicitly false, and the system prompt
+	 *  names the ones that are off. The toggleable set is TOGGLEABLE_TOOLS
+	 *  (job tools only). */
 	toolToggles?: EnabledTools;
 	/** The learner's rules section (core learnerRulesSection), appended
 	 *  after the instructions; "" or absent = none. */
@@ -129,7 +139,9 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 	// The handler always injects the engine; the outside agent is the fallback.
 	const engine = opts.engine ?? agentEngine();
 	const stopper = makeQuestionStopper(kind);
-	const systemPrompt = [composeInstructions(kind), opts.learnerRules].filter(Boolean).join("\n\n---\n\n");
+	// The doctrine still mentions switched-off tools; the note tells the model they're gone.
+	const toolsNote = switchedOffToolsNote(opts.toolToggles, AGENT_SWITCHES[kind]);
+	const systemPrompt = [composeInstructions(kind), toolsNote, opts.learnerRules].filter(Boolean).join("\n\n---\n\n");
 	const agent = new (agentCore().Agent)({
 		identity: APP_IDENTITY,
 		sessionId: opts.chatId,

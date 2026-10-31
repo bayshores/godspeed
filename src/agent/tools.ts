@@ -15,7 +15,8 @@ import {
 	quizInputProblems,
 } from "../core/question-core.ts";
 import { writeCodeInputProblems, writeCodeInputSchema } from "../core/code-question.ts";
-import { filterEnabledTools, QUESTION_TOOLS, type EnabledTools } from "../core/pending.ts";
+import { QUESTION_TOOLS } from "../core/pending.ts";
+import { filterEnabledTools, type EnabledTools } from "../core/tool-switches.ts";
 import type { JobRecord } from "../core/contracts.ts";
 import type { JobStore } from "../core/ports.ts";
 import { jobTools, type DemoInput, type PdfInput, type ResearchInput, type VisualInput } from "./tools/jobs.ts";
@@ -299,7 +300,7 @@ export interface ProberToolContext extends ProbeDoneContext {
 /** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
  *  set + probe_done + the two phase-omnipresent job dispatch tools +
  *  (gated) the graph-map reader. `enabled` is the resolved
- *  settings seam (core/pending.ts): any tool explicitly false is dropped
+ *  settings seam (core/tool-switches.ts): any tool explicitly false is dropped
  *  from the registry. probe_done stays always-on regardless — it is how
  *  the phase ENDS; a prober that can never conclude is a lockout. */
 export function createProberTools(
