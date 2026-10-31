@@ -229,9 +229,9 @@ export function problemResult(): AgentToolResult<null> {
 	};
 }
 
-/** The conclude ack: NOT terminate — the turn continues so the same reply
- *  can reveal + pose the next problem. Text single-sourced in contracts
- *  (CONCLUDE_ACK_TEXT — shared with the dismissal-synthesized pair). */
+/** The conclude ack: not terminate, so the agent can add closing words after
+ *  it; the next pose waits for the learner's go-ahead. Text single-sourced in
+ *  contracts (CONCLUDE_ACK_TEXT, shared with the dismissal-synthesized pair). */
 export function concludeResult(): AgentToolResult<null> {
 	return {
 		content: [{ type: "text", text: CONCLUDE_ACK_TEXT }],
