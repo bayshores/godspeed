@@ -87,8 +87,8 @@ export function abortTurn(chatId: string): { ok: true } | { ok: false; reason: "
  *  failure is delivered first, including when no view attached in time.
  *  Chosen as an EVENT (not a status code), consuming ONE wire
  *  protocol end to end. */
-export function settledTurnResponse(chatId?: string): Response {
-	const errorText = chatId ? turnFailure(chatId) : undefined;
+export function settledTurnResponse(chatId: string): Response {
+	const errorText = turnFailure(chatId);
 	const notice = errorText === undefined ? "" : `data: ${JSON.stringify({ type: "error", errorText })}\n\n`;
 	return new Response(`${notice}data: {"type":"turn-settled"}\n\ndata: [DONE]\n\n`, {
 		headers: {

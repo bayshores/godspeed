@@ -43,8 +43,8 @@ import { ToolCallIdUniquifier } from "./call-ids.ts";
  * server-side background object decoupled from any single HTTP response —
  * clients are VIEWS. runPiTurn returns the handle (compacted state +
  * subscriber set); piTurnResponse wraps a subscriber stream as the SSE
- * response, and the POST /api/chat response and GET /api/chats/[id]/stream
- * are BOTH exactly that. Cancelling a view detaches it ONLY — never aborts
+ * response, and GET /api/chats/[id]/stream serves it (POST /api/chat only
+ * acknowledges). Cancelling a view detaches it ONLY — never aborts
  * the turn; the handle's abort() is the one remote kill.
  *
  * THE COMPACTION LAW: the turn log stores STATE, not chunks. pi's native
@@ -80,7 +80,7 @@ interface PiTurnSpec {
 	/** The canonical end-of-turn seam: persist + usage + extraction + endTurn.
 	 *  Receives the agent's FULL final state (native messages) — the caller
 	 *  persists the slice past its own base count. */
-	onFinish: (messages: AgentMessage[], isAborted: boolean) => void;
+	onFinish: (messages: AgentMessage[]) => void;
 	/** Tool-call ids already used in this chat's record: when present, a ToolCallIdUniquifier
 	 *  sits at this boundary — providers that reset ids every response
 	 *  (DeepSeek's `call_0` × every turn) get colliding ids reminted ONCE
@@ -108,7 +108,7 @@ export interface PiTurnHandle {
 	 *  until the turn settles (ending [DONE]). Cancelling it detaches the
 	 *  view only — the turn runs on. */
 	subscribe(): ReadableStream<Uint8Array>;
-	/** The remote kill — the ONLY way a running turn dies early: sawAbort +
+	/** The remote kill — the ONLY way a running turn dies early:
 	 *  agent.abort(); the loop's agent_end does the rest (the settle seam
 	 *  persists the partial transcript to every listener). */
 	abort(): void;
@@ -119,7 +119,6 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 	const uniquifier = usedToolCallIds ? new ToolCallIdUniquifier(usedToolCallIds) : undefined;
 
 	let settled = false;
-	let sawAbort = false;
 	let reportedErrorText: string | undefined;
 
 	// THE PER-TURN STATE LOG (memory-only — the settle-only disk writes
@@ -219,7 +218,7 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 	const settleWith = () => {
 		try {
 			const settled_ = [...agent.state.messages].filter((m) => (m as { role?: string }).role !== "system");
-			onFinish((uniquifier?.remapSettled(settled_) as AgentMessage[]) ?? settled_, sawAbort);
+			onFinish((uniquifier?.remapSettled(settled_) as AgentMessage[]) ?? settled_);
 		} catch (err) {
 			console.error("[turn] settlement failed:", err);
 			try { onSettleFailure?.(err, reportedErrorText); }
@@ -243,10 +242,6 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 				? { type: "message_update", message: uniqued.message }
 				: uniqued;
 		send(wire);
-		if (event.type === "message_end") {
-			const m = event.message as { role?: string; stopReason?: string } | undefined;
-			if (m?.role === "assistant" && m.stopReason === "aborted") sawAbort = true;
-		}
 		if (event.type === "agent_end") {
 			// Persist/report before the terminal closes every view to new frames.
 			settleWith();
@@ -326,15 +321,12 @@ export function runPiTurn(spec: PiTurnSpec): PiTurnHandle {
 		},
 		abort() {
 			if (settled) return;
-			sawAbort = true;
 			agent.abort();
 		},
 	};
 }
 
-/** The subscriber-shaped SSE response — the POST /api/chat response and
- * GET /api/chats/[id]/stream are BOTH this: same headers, same wire
- * dialect, one protocol for the client to consume. */
+/** The subscriber-shaped SSE response that GET /api/chats/[id]/stream serves. */
 export function piTurnResponse(handle: PiTurnHandle): Response {
 	return new Response(handle.subscribe(), {
 		headers: {

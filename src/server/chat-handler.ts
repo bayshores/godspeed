@@ -38,7 +38,6 @@ import { hasProbeDone, danglingQuestionOf, retryContext } from "../core/native-m
 import { composeInstructions } from "../agent/teacher-agent.ts";
 import { ensureCompacted, kickCompaction, effectiveThresholdTokens, type CompactionDeps } from "./compaction.ts";
 import { emit } from "../core/events.ts";
-import { settledTurnResponse } from "./turn-runs.ts";
 import { asAgentMessages } from "../core/native-messages.ts";
 import {
 	ChatInputError,
@@ -107,13 +106,7 @@ export const extraction = createExtractionPipeline({
 // delivers its steers through THIS composition root (one event: the steer
 // marker, appended natively under the turn claim), and crash recovery
 // re-spawns orphaned sub-agent loops through THIS runner.
-setTurnRunner(async (chatId, input) => {
-	const res = await handleChatInput(chatId, input);
-	// Drive the stream to completion server-side — nobody else will read it,
-	// and onFinish (persist, extraction, endTurn) only runs when it drains.
-	await res.arrayBuffer().catch(() => undefined);
-	return res.status;
-});
+setTurnRunner(async (chatId, input) => (await handleChatInput(chatId, input)).status);
 setJobRespawn((jobId) => void jobRunner.runJob(jobId));
 
 /** The lesson's class name and rules, for the learner's-rules section. */
@@ -267,7 +260,7 @@ export async function handleChatInput(
 			return new Response("Your input could not be saved. Please try again.", { status: 500 });
 		}
 		emit("record-changed", { chatId });
-		return settledTurnResponse(); // the cheap terminal — no beginTurn, no turn
+		return Response.json({ ok: true }); // no beginTurn, no turn: the client attaches and gets the settled terminal
 	}
 
 	// One turn per chat, ever. A second request while a turn runs means a
@@ -456,9 +449,10 @@ export async function handleChatInput(
 		// transcript, not usage); when it's ours, usage flows through
 		// the factory's subscription (wired above via onUsage).
 		// THE TURN AS A BACKGROUND OBJECT: runPiTurn executes decoupled from
-		// this response — the POST stream is just the FIRST subscriber (a view).
+		// this response — the POST only acknowledges, and views attach
+		// through GET /api/chats/[id]/stream.
 		// A client disconnect cannot abort the turn; the remote kill is the abort
-		// channel, and late views reattach via GET /api/chats/[id]/stream.
+		// channel.
 		// Steering: register the live agent BEFORE runPiTurn — the loop's start
 		// steering-poll drains the queue SYNCHRONOUSLY inside that call, so a later
 		// registration would miss it. Registration also steers any pending
@@ -507,10 +501,10 @@ export async function handleChatInput(
 				reconcileUserSteers(chatId, persisted);
 				settleSteers(chatId, persisted, true, constructed);
 			},
-			onFinish: (turnMessages, isAborted) => {
+			onFinish: (turnMessages) => {
 				// The record write is the agent's own final state —
 				// the new messages are the slice past the context it started from.
-				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, turnMessages, isAborted);
+				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, turnMessages);
 				noteSteersDurable(chatId, stores.chatStore.getChat(chatId)?.messages ?? stamped);
 				// usage log append (idempotent per turn id) — the stats bar
 				// refolds this on the client after the turn settles. The

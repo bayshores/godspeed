@@ -885,7 +885,7 @@ describe("researcher agent", () => {
 
 /**
  * Pipeline tests drive deliverJobResult with an injected fake turn runner
- * (setTurnRunner) — the real wiring (chat-handler's handleChatRequest
+ * (setTurnRunner) — the real wiring (chat-handler's handleChatInput
  * adapter) never fires here, so no teacher model is touched.
  *
  * Timing: the pump polls at 400ms with a 1.5s grace after the gates open —
@@ -1324,7 +1324,7 @@ describe("persistTurn (native history, Wave B)", () => {
 				stopReason: "stop",
 				timestamp: 1,
 			} as never,
-		], false);
+		]);
 		assert.notEqual(stamped[0]!.id, "", "empty id replaced");
 		assert.match(stamped[0]!.id, /^msg_/);
 		assert.equal(stamped[1]!.id, "msg_kept", "server-authored id untouched");
@@ -1356,7 +1356,7 @@ describe("persistTurn (native history, Wave B)", () => {
 				timestamp: 1,
 			} as never,
 		];
-		const stamped = persistTurn(chatStore, chat.id, 1, state, false);
+		const stamped = persistTurn(chatStore, chat.id, 1, state);
 		assert.equal(stamped.length, 1, "only the turn's new tail persists");
 		const record = chatStore.getChat(chat.id)!;
 		assert.equal(record.messages.length, 2, "the base record is untouched — append-only");
@@ -1400,7 +1400,7 @@ describe("persistTurn (native history, Wave B)", () => {
 				isError: true,
 				timestamp: 1,
 			} as never,
-		], false);
+		]);
 		assert.equal(stamped.length, 2, "the clean placeholder is filtered, the errored result stays");
 		const record = chatStore.getChat(chat.id)!;
 		assert.equal(record.messages.length, 2);

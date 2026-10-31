@@ -1214,7 +1214,7 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 		createdChats.push(chat.id);
 
 		// A quiet chat: no turn ever ran — the stream is the same terminal.
-		const term = settledTurnResponse();
+		const term = settledTurnResponse(chat.id);
 		assert.equal(await term.text(), 'data: {"type":"turn-settled"}\n\ndata: [DONE]\n\n', "terminal is one event + [DONE]");
 		assert.equal(runningTurn(chat.id), undefined);
 

@@ -59,7 +59,6 @@ export function persistTurn(
 	chatId: string,
 	baseCount: number,
 	turnMessages: readonly AgentMessage[],
-	isAborted: boolean,
 ): LhMessage[] {
 	try {
 		const record = chatStore.getChat(chatId);
@@ -85,7 +84,7 @@ export function persistTurn(
 		chatStore.saveMessages(chatId, [...record.messages, ...stamped, ...blocks]);
 		return stamped;
 	} catch (err) {
-		console.error(`[chat ${chatId}] persist failed:`, err, { isAborted });
+		console.error(`[chat ${chatId}] persist failed:`, err);
 		throw new TurnPersistenceError(err);
 	}
 }

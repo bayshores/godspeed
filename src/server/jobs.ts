@@ -129,7 +129,7 @@ function state(): WakeState {
 	return (g.__lhWakePipeline ??= { queues: new Map(), liveAgents: new Map(), userSteers: new Map(), pumping: new Set(), lastSweepAt: 0 });
 }
 
-/** chat-handler wires this at module init: its adapter around handleChatRequest. */
+/** chat-handler wires this at module init: its adapter around handleChatInput. */
 export function setTurnRunner(run: TurnRunner): void {
 	state().turnRunner = run;
 }
