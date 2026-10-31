@@ -509,6 +509,7 @@ interface ClassQueuesGlobal {
 	__lhClassQueued?: Set<string>;
 	__lhClassScanTimer?: ReturnType<typeof setInterval>;
 	__lhFolderProblems?: Map<string, FolderProblem>;
+	__lhCancelledClasses?: Set<string>;
 }
 const G = globalThis as typeof globalThis & ClassQueuesGlobal;
 
@@ -520,7 +521,7 @@ const queued = (G.__lhClassQueued ??= new Set());
  *  every launch rescans). */
 const folderProblems = (G.__lhFolderProblems ??= new Map());
 /** Classes deleted while work was queued — their queued work is skipped. */
-const cancelledClasses = new Set<string>();
+const cancelledClasses = (G.__lhCancelledClasses ??= new Set<string>());
 
 /** Queue one file for processing (deduped while waiting). */
 export function enqueueFile(classId: string, fileId: string): void {
@@ -643,7 +644,8 @@ async function fileText(classId: string, file: ClassFile, abs: string, fp: strin
 	const cached = readCachedText(classId, file.id, fp);
 	if (cached !== null) return cached;
 	const text = recording ? await transcribeRecording(abs, transcriptPathOf(classId, file.id)) : await fileToText(abs);
-	writeCachedText(classId, file.id, fp, text);
+	// Removed, or its class deleted, during the read: saving would bring its folder back.
+	if (stores.classStore.getClass(classId)?.files.some((f) => f.id === file.id)) writeCachedText(classId, file.id, fp, text);
 	return text;
 }
 
