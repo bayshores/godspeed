@@ -54,7 +54,6 @@ function serverEntry() {
 	return path.join(process.resourcesPath, "server", "standalone", "server.js");
 }
 
-// ─── Single instance: two instances would fight over the data dir ─────────
 // ─── Browser-service helper ───────────────────────────────────────────
 // The render engines for agent jobs: PDFs and SVGs rasterize natively
 // (pdfjs+Skia, resvg — no browser); DEMOS execute JS and need one. The
