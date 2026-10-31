@@ -794,7 +794,6 @@ async function main() {
 	// The child must not outlive us — cover every quit path.
 	app.on("before-quit", killServer);
 	process.on("exit", killServer);
-	process.on("SIGHUP", killServer);
 
 	await app.whenReady();
 
