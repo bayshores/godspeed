@@ -215,7 +215,8 @@ async function startBrowserService(): Promise<number | null> {
 		// Cast: the sanitizer is pure over a loose record; NODE_ENV is
 		// always present in a real process.env.
 		env: browserServiceSpawnEnv(process.env) as NodeJS.ProcessEnv,
-		stdio: ["ignore", "pipe", "pipe", "ipc"] as const,
+		// stderr ignored: an unread pipe fills up and freezes the helper.
+		stdio: ["ignore", "pipe", "ignore", "ipc"] as const,
 	});
 	browserServiceProc = proc;
 	const port = await new Promise<number | null>((resolve) => {
@@ -226,9 +227,14 @@ async function startBrowserService(): Promise<number | null> {
 		}, BROWSER_SERVICE_TIMEOUT_MS);
 		const onData = (chunk: Buffer) => {
 			buf += chunk.toString("utf8");
-			const line = buf.split("\n").find((l) => parseBrowserServiceLine(l) !== null);
+			// Complete lines only; keep the unfinished tail for the next chunk.
+			const lines = buf.split("\n");
+			buf = lines.pop() ?? "";
+			const line = lines.find((l) => parseBrowserServiceLine(l) !== null);
 			if (line !== undefined) {
 				clearTimeout(timer);
+				// The stream keeps flowing, so later output is discarded.
+				proc.stdout!.off("data", onData);
 				resolve(parseBrowserServiceLine(line));
 			}
 		};
@@ -356,11 +362,18 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 
 	try {
 		await withBrowserPage(async (page) => {
+		// Off before withBrowserPage's teardown: its about:blank navigation
+		// cancels in-flight requests, which is not the demo's fault.
+		let recording = true;
 		page.on("console", (msg) => {
-			if (msg.type() === "error") consoleErrors.push(msg.text());
+			if (recording && msg.type() === "error") consoleErrors.push(msg.text());
 		});
-		page.on("pageerror", (err) => pageErrors.push(err instanceof Error ? err.message : String(err)));
-		page.on("requestfailed", (req) => failedRequests.push(`${req.url()} (${req.failure()?.errorText ?? "failed"})`));
+		page.on("pageerror", (err) => {
+			if (recording) pageErrors.push(err instanceof Error ? err.message : String(err));
+		});
+		page.on("requestfailed", (req) => {
+			if (recording) failedRequests.push(`${req.url()} (${req.failure()?.errorText ?? "failed"})`);
+		});
 
 		try {
 			await page.goto(pathToFileURL(file).href, { waitUntil: "load", timeout: 30_000 });
@@ -375,6 +388,8 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 			}
 		} catch (err) {
 			pageErrors.push(err instanceof Error ? err.message : String(err));
+		} finally {
+			recording = false;
 		}
 		});
 	} finally {
@@ -398,8 +413,12 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 
 function svgViewport(svg: string, opts: RenderSvgOptions): { width: number; height: number } {
 	if (opts.width && opts.height) return { width: opts.width, height: opts.height };
-	const width = Number(svg.match(/\bwidth\s*=\s*"?(\d+(?:\.\d+)?)/)?.[1]);
-	const height = Number(svg.match(/\bheight\s*=\s*"?(\d+(?:\.\d+)?)/)?.[1]);
+	// The root tag's own size only: not stroke-width, a child's width, or a percentage.
+	const root = svg.match(/<svg\b[^>]*>/i)?.[0] ?? "";
+	const attr = (name: string) =>
+		Number(root.match(new RegExp(`(?<![\\w-])${name}\\s*=\\s*["']?(\\d+(?:\\.\\d+)?)(?![\\d.]|%)`))?.[1]);
+	const width = attr("width");
+	const height = attr("height");
 	return {
 		width: Math.ceil(Number.isFinite(width) && width > 0 ? width : 900),
 		height: Math.ceil(Number.isFinite(height) && height > 0 ? height : 700),

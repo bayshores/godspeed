@@ -1,4 +1,4 @@
-import type { AssistantMessage, Message, Tool, ToolResultMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Message, Tool, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
 // Subpath, not the package root: the root loads every provider.
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import type { PiEngine } from "../models.ts";
@@ -7,7 +7,9 @@ import type { PiEngine } from "../models.ts";
  * One raw model call for the hand-rolled loops (pdf-reader, visual-maker):
  * they feed rendered images back between calls, which the agent loop's
  * execute-tool plumbing can't express. Drains the event stream to the final
- * AssistantMessage; provider errors and aborts throw.
+ * AssistantMessage; provider errors and aborts throw. A failed call still
+ * reports its usage (it may have billed tokens); an aborted one does not,
+ * the same as runSubagent.
  */
 export async function streamOnce(
 	engine: PiEngine,
@@ -16,6 +18,7 @@ export async function streamOnce(
 	tools: Tool[],
 	sessionId: string,
 	abortSignal?: AbortSignal,
+	onUsage?: (usage: Usage) => void,
 ): Promise<AssistantMessage> {
 	// Providers take a TranscriptContext (the prompt and tools fold into a
 	// leading system message); normalizeContext is the only way to build one.
@@ -24,13 +27,17 @@ export async function streamOnce(
 		signal: abortSignal,
 	} as never);
 	for await (const event of stream) {
-		if (event.type === "done") return event.message;
+		if (event.type === "done") {
+			onUsage?.(event.message.usage);
+			return event.message;
+		}
 		if (event.type === "error") {
 			if (event.reason === "aborted") {
 				const err = new Error("aborted");
 				err.name = "AbortError";
 				throw err;
 			}
+			onUsage?.(event.error.usage);
 			throw new Error(event.error.errorMessage ?? "the model call failed");
 		}
 	}

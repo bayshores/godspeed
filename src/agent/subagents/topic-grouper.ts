@@ -40,21 +40,6 @@ const submitSchema = Type.Object({
 
 type TopicsSubmit = Static<typeof submitSchema>;
 
-/** Weak-model heal: `topics` sent as one JSON string instead of an array. */
-function healTopicsString(raw: unknown): unknown {
-	if (typeof raw !== "object" || raw === null) return raw;
-	const out: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
-	if (typeof out.topics === "string") {
-		try {
-			const parsed: unknown = JSON.parse(out.topics);
-			if (Array.isArray(parsed)) out.topics = parsed;
-		} catch {
-			/* leave it for validation */
-		}
-	}
-	return out;
-}
-
 interface TopicFact {
 	id: string;
 	name: string;
@@ -95,7 +80,7 @@ export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[
 		toolName: "submit_topics",
 		toolDescription: "Submit the full topic grouping for the course's facts.",
 		parameters: submitSchema,
-		fill: (raw: TopicsSubmit) => ({ topics: raw.topics.map((t) => ({ ...t, members: t.members ?? [] })) }),
+		fill: (raw: TopicsSubmit) => raw,
 		validate: (value) => {
 			const problems = value.topics.map((t) => topicNameProblem(t.name)).filter((p): p is string => p !== null);
 			if (value.topics.length === 0) problems.push("Submit at least one topic.");
@@ -107,7 +92,6 @@ export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[
 		signal: input.signal,
 		onStep: (usage, model, step) => input.onStep?.(usage, model, step),
 		neverSubmitted: "the topic grouper never submitted topics",
-		prepareArguments: healTopicsString,
 	});
 	const drafts: TopicDraft[] = submitted.topics;
 	return repairTopics(

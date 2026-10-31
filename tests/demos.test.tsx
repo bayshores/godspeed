@@ -749,6 +749,26 @@ describe("visual maker (fake model + fake headless)", () => {
 		assert.equal(result.notes, "Fixed and verified.");
 	});
 
+	it("at the iteration limit, never delivers a render the model has not seen", async () => {
+		const model = scriptedModel([
+			{ toolCalls: [{ toolCallId: "w1", toolName: "write_svg", input: { svg: SVG_1 } }] },
+			{ toolCalls: [{ toolCallId: "r1", toolName: "render_svg", input: {} }] },
+		]);
+		const result = await runVisualMaker({ brief: "b" }, { engine: model, headless: fakeHeadless(), maxIterations: 2 });
+		assert.equal(result.svg, "");
+		assert.match(result.notes ?? "", /^FAILED: iteration limit/);
+	});
+
+	it("at the iteration limit, delivers a render the model saw on its last call", async () => {
+		const model = scriptedModel([
+			{ toolCalls: [{ toolCallId: "w1", toolName: "write_svg", input: { svg: SVG_1 } }] },
+			{ toolCalls: [{ toolCallId: "r1", toolName: "render_svg", input: {} }] },
+			{ toolCalls: [{ toolCallId: "r2", toolName: "render_svg", input: {} }] },
+		]);
+		const result = await runVisualMaker({ brief: "b" }, { engine: model, headless: fakeHeadless(), maxIterations: 3 });
+		assert.equal(result.svg, SVG_1);
+	});
+
 	it("fails when the model never writes an svg", async () => {
 		const model = scriptedModel([{ text: "This idea is purely relational — belongs in mermaid." }]);
 		const result = await runVisualMaker({ brief: "b" }, { engine: model, headless: fakeHeadless() });

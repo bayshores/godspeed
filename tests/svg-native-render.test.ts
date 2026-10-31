@@ -36,15 +36,26 @@ describe("native renderSvg (resvg in-process, browser fallback)", () => {
 	});
 
 	it("viewBox-only SVG gets the 900px-wide default", async () => {
-		// No width attr anywhere (svgViewport grabs the FIRST width= in the
-		// document — children included — a pre-existing quirk kept for
-		// parity; use a circle so the default branch is exercised).
 		const svg =
 			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200"><circle cx="150" cy="100" r="90" fill="#aa5533"/></svg>';
 		const png = await realHeadless.renderSvg(svg);
 		const f = pngFacts(png);
 		assert.equal(f.w, 900, "svgViewport default width");
 		assert.equal(f.h, 600, "aspect preserved from viewBox");
+	});
+
+	it("a viewBox-only root ignores child widths and stroke-width", async () => {
+		const svg =
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200"><line x1="0" y1="0" x2="300" y2="200" stroke="#000" stroke-width="2"/><rect width="100%" height="100%" fill="white"/></svg>';
+		const f = pngFacts(await realHeadless.renderSvg(svg));
+		assert.equal(f.w, 900);
+	});
+
+	it("a percentage root width falls back to the 900px default", async () => {
+		const svg =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 300 200"><circle cx="150" cy="100" r="90" fill="#aa5533"/></svg>';
+		const f = pngFacts(await realHeadless.renderSvg(svg));
+		assert.equal(f.w, 900);
 	});
 
 	it("width/height opts override for viewBox-only SVGs", async () => {

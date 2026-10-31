@@ -122,33 +122,37 @@ export async function pdfShape(filePath: string): Promise<{ pageCount: number; a
 /** pdf_info: page count + per-page triage signals. ALWAYS run first. */
 export async function pdfInfo(filePath: string): Promise<PdfInfo> {
 	const pdfjs = await loadPdfjs(); // OPS constant for the operator-list scan
-	const { doc } = await openDocument(filePath);
-	const pages: PdfPageInfo[] = [];
-	let totalText = 0;
-	for (let i = 1; i <= doc.numPages; i++) {
-		const page = await doc.getPage(i);
-		const content = await page.getTextContent();
-		const text = itemsToText(content.items as unknown[]);
-		// count page images: paintImageXObject ops in the operator list
-		const ops = await page.getOperatorList();
-		let imageCount = 0;
-		for (const fn of ops.fnArray) {
-			if (fn === pdfjs.OPS.paintImageXObject) imageCount++;
+	const { doc, task } = await openDocument(filePath);
+	try {
+		const pages: PdfPageInfo[] = [];
+		let totalText = 0;
+		for (let i = 1; i <= doc.numPages; i++) {
+			const page = await doc.getPage(i);
+			const content = await page.getTextContent();
+			const text = itemsToText(content.items as unknown[]);
+			// count page images: paintImageXObject ops in the operator list
+			const ops = await page.getOperatorList();
+			let imageCount = 0;
+			for (const fn of ops.fnArray) {
+				if (fn === pdfjs.OPS.paintImageXObject) imageCount++;
+			}
+			totalText += text.length;
+			pages.push({
+				page: i,
+				text_length: text.length,
+				image_count: imageCount,
+				math_density: Math.round(mathDensity(text) * 10000) / 10000,
+			});
 		}
-		totalText += text.length;
-		pages.push({
-			page: i,
-			text_length: text.length,
-			image_count: imageCount,
-			math_density: Math.round(mathDensity(text) * 10000) / 10000,
-		});
+		return {
+			path: filePath,
+			page_count: doc.numPages,
+			mean_text_length: Math.round(totalText / Math.max(doc.numPages, 1)),
+			pages,
+		};
+	} finally {
+		await task.destroy();
 	}
-	return {
-		path: filePath,
-		page_count: doc.numPages,
-		mean_text_length: Math.round(totalText / Math.max(doc.numPages, 1)),
-		pages,
-	};
 }
 
 /** Parse 'all' | '1-5' | '1,3,7' | '3' into a sorted 1-indexed page list. */
@@ -174,17 +178,21 @@ export function parsePageSpec(spec: string, total: number): number[] {
 
 /** pdf_extract: text of the requested pages, `--- Page N ---` headed. */
 export async function pdfExtract(filePath: string, pageSpec: string): Promise<string> {
-	const { doc } = await openDocument(filePath);
-	const pages = parsePageSpec(pageSpec, doc.numPages);
-	if (pages.length === 0) return "No pages selected — page spec matched nothing.";
-	const out: string[] = [];
-	for (const i of pages) {
-		const page = await doc.getPage(i);
-		const content = await page.getTextContent();
-		out.push(`--- Page ${i} ---`);
-		out.push(itemsToText(content.items as unknown[]));
+	const { doc, task } = await openDocument(filePath);
+	try {
+		const pages = parsePageSpec(pageSpec, doc.numPages);
+		if (pages.length === 0) return "No pages selected — page spec matched nothing.";
+		const out: string[] = [];
+		for (const i of pages) {
+			const page = await doc.getPage(i);
+			const content = await page.getTextContent();
+			out.push(`--- Page ${i} ---`);
+			out.push(itemsToText(content.items as unknown[]));
+		}
+		return out.join("\n");
+	} finally {
+		await task.destroy();
 	}
-	return out.join("\n");
 }
 
 interface PdfSearchHit {
@@ -194,16 +202,13 @@ interface PdfSearchHit {
 	context: string;
 }
 
-/** pdf_search: keyword/regex across all pages with context lines.
- *  pageTexts rides along so the agent can extract a hit's full page without
- *  a second pass (the skill pipelines `search → extract` the same way). */
+/** pdf_search: keyword/regex across all pages with context lines. */
 export async function pdfSearch(
 	filePath: string,
 	query: string,
 	opts?: { contextLines?: number; literal?: boolean },
-): Promise<{ hits: PdfSearchHit[]; pageTexts: Map<number, string> }> {
+): Promise<{ hits: PdfSearchHit[] }> {
 	const contextLines = opts?.contextLines ?? 3;
-	const { doc } = await openDocument(filePath);
 	let pattern: RegExp;
 	if (opts?.literal) {
 		pattern = new RegExp(escapeRegex(query), "i");
@@ -214,26 +219,28 @@ export async function pdfSearch(
 			throw new Error(`Invalid regex: ${(err as Error).message}`);
 		}
 	}
-	const hits: PdfSearchHit[] = [];
-	const pageTexts = new Map<number, string>();
-	for (let i = 1; i <= doc.numPages; i++) {
-		const page = await doc.getPage(i);
-		const content = await page.getTextContent();
-		const text = itemsToText(content.items as unknown[]);
-		pageTexts.set(i, text);
-		const lines = text.split("\n");
-		for (let ln = 0; ln < lines.length; ln++) {
-			if (!pattern.test(lines[ln]!)) continue;
-			const start = Math.max(0, ln - contextLines);
-			const end = Math.min(lines.length, ln + contextLines + 1);
-			const context = lines
-				.slice(start, end)
-				.map((l, j) => `${start + j === ln ? ">>>" : "   "} ${l}`)
-				.join("\n");
-			hits.push({ page: i, line: ln + 1, context });
+	const { doc, task } = await openDocument(filePath);
+	try {
+		const hits: PdfSearchHit[] = [];
+		for (let i = 1; i <= doc.numPages; i++) {
+			const page = await doc.getPage(i);
+			const content = await page.getTextContent();
+			const lines = itemsToText(content.items as unknown[]).split("\n");
+			for (let ln = 0; ln < lines.length; ln++) {
+				if (!pattern.test(lines[ln]!)) continue;
+				const start = Math.max(0, ln - contextLines);
+				const end = Math.min(lines.length, ln + contextLines + 1);
+				const context = lines
+					.slice(start, end)
+					.map((l, j) => `${start + j === ln ? ">>>" : "   "} ${l}`)
+					.join("\n");
+				hits.push({ page: i, line: ln + 1, context });
+			}
 		}
+		return { hits };
+	} finally {
+		await task.destroy();
 	}
-	return { hits, pageTexts };
 }
 
 function escapeRegex(s: string): string {

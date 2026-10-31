@@ -16,7 +16,7 @@ import type { GraphStore } from "../../core/ports.ts";
 import { emit } from "../../core/events.ts";
 import { batchRuns, coverageOf, messageViewLines } from "../../core/coverage.ts";
 import { failedOutputCallIds, type LhMessage } from "../../core/native-messages.ts";
-import { runSubmitAgent, healStringifiedArrays } from "./submit-agent.ts";
+import { runSubmitAgent } from "./submit-agent.ts";
 
 /**
  * The extraction pipeline — the sole graph writer. Two stages:
@@ -51,13 +51,6 @@ import { runSubmitAgent, healStringifiedArrays } from "./submit-agent.ts";
  */
 
 // ─── the source view (what the extractor sees) ──────────────────────────────
-
-/**
- * The extraction view: the session as teacher prose only, each passage
- * labeled with its message id. The markdown engine
- * (core/session-markdown.ts) serves the markdown export and read_lesson;
- * the extractor does not use it.
- */
 
 /** The whole-record view (used by callers that render a full session;
  *  the pipeline itself batches): teacher prose only, passages labeled
@@ -127,8 +120,8 @@ const chainSchema = Type.Object({
 });
 
 // Weak-model tolerance: optional per-item fields are Type.Optional here
-// with a ??-fill at the submit seam (fillFindings below), so omission is
-// tolerated and empty never means "invalid".
+// with a ??-fill in asSessionFindings, so omission is tolerated and empty
+// never means "invalid".
 const propositionsDescription =
 	"Only the NEW core ideas this stretch contributes — ideas the prompt's THE GRAPH SO FAR or RELATED " +
 	"IDEAS already hold are referenced by id (in chains and reteaches), never restated here.";
@@ -176,9 +169,9 @@ const sessionFindingsSchema = Type.Object({
 	reteaches: reteachesSchema,
 });
 
-/** What the extractor SUBMITS — propositions + chains. fillFindings
- *  normalizes it; validateFindingsChains checks the chain laws;
- *  asSessionFindings lifts it straight into SessionFindings (chains are
+/** What the extractor SUBMITS — propositions + chains.
+ *  validateFindingsChains checks the chain laws; asSessionFindings fills
+ *  the aliases and lifts it straight into SessionFindings (chains are
  *  stored AS-IS, no edge translation at any seam). */
 type FindingsSubmit = Static<typeof findingsSchema>;
 
@@ -186,41 +179,26 @@ type FindingsSubmit = Static<typeof findingsSchema>;
  *  on every proposition. */
 type SessionFindingsSubmit = Static<typeof sessionFindingsSchema>;
 
-// The notes front door's wire shape is the session shape MINUS the
-// messageId anchor (notes have no messages): one base findings type for
-// both doors, the anchor riding as an optional field.
-type NotesFindings = SessionFindings;
-
 // ── the submit seam ──
 //
 // Every top-level field on each submit tool is REQUIRED, so a payload
 // missing `chains` or `reteaches` fails validation instead of merging a
 // pile of nodes with no structure (a truncated retry used to pass with
-// propositions only). Only the per-item aliases stay optional with a
-// ??-fill.
+// propositions only). Only the per-item aliases stay optional, filled in
+// asSessionFindings.
 
-function fillFindings<T extends { propositions: Array<{ aliases?: string[] }>; chains: unknown }>(
-	raw: T,
-): T {
-	return {
-		...raw,
-		propositions: raw.propositions.map((p) => ({ ...p, aliases: p.aliases ?? [] })),
-	};
-}
-
-/** The notes fill: the shared alias ??-fill PLUS the door's boundary — a
- *  stray messageId (the notes schema has none; extra properties pass
- *  schema validation) is stripped so notes provenance stays chat-level
- *  (the file is the anchor). */
+/** The notes door's boundary: a stray messageId (the notes schema has
+ *  none; extra properties pass schema validation) is stripped so notes
+ *  provenance stays chat-level (the file is the anchor). */
 function fillNotesFindings(raw: FindingsSubmit): FindingsSubmit {
-	return fillFindings({
+	return {
 		...raw,
 		propositions: raw.propositions.map((p) => {
 			const stripped = { ...p } as typeof p & { messageId?: unknown };
 			delete stripped.messageId;
 			return stripped;
 		}),
-	});
+	};
 }
 
 /** The chain laws — the LOUD channel: runSubmitAgent turns a
@@ -274,9 +252,8 @@ function validateSessionAnchors(value: SessionFindingsSubmit, batchIds: Readonly
 
 /** The wire IS the pipeline shape: propositions + chains, no translation
  *  (the stores keep the chains; the derived edge view is recomputed on
- *  read). The fill already ran inside runSubmitAgent; this only
- *  re-asserts the aliases-filled type and keeps the session submit's
- *  messageId anchor (both doors lift through here). */
+ *  read). The one place omitted aliases are filled; it keeps the session
+ *  submit's messageId anchor (both doors lift through here). */
 const asSessionFindings = (
 	raw: {
 		propositions: Array<{ id: string; name: string; statement: string; aliases?: string[]; messageId?: string }>;
@@ -409,7 +386,7 @@ function runExtractor(
 		toolName: "submit_findings",
 		toolDescription: "Submit the session findings.",
 		parameters: sessionFindingsSchema,
-		fill: fillFindings,
+		fill: (raw: SessionFindingsSubmit) => raw,
 		validate: (value) => validateSessionAnchors(value, batchIds) ?? validateFindingsChains(value, existingIds),
 		systemPrompt: EXTRACTOR_INSTRUCTIONS,
 		prompt,
@@ -417,7 +394,6 @@ function runExtractor(
 		signal,
 		onStep,
 		neverSubmitted: "the extractor never submitted findings",
-		prepareArguments: healStringifiedArrays,
 	}).then(asSessionFindings);
 }
 
@@ -432,7 +408,7 @@ function runNotesExtractor(
 	existingIds: ReadonlySet<string>,
 	signal: AbortSignal | undefined,
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void,
-): Promise<NotesFindings> {
+): Promise<SessionFindings> {
 	return runSubmitAgent<FindingsSubmit>({
 		taskLabel,
 		toolName: "submit_findings",
@@ -446,7 +422,6 @@ function runNotesExtractor(
 		signal,
 		onStep,
 		neverSubmitted: "the extractor never submitted findings",
-		prepareArguments: healStringifiedArrays,
 	}).then(asSessionFindings);
 }
 
@@ -861,7 +836,22 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			persistRunUsage(jobKey, Math.round(performance.now() - t0), stats);
 			return stats;
 		} catch (err) {
-			persistRunUsage(jobKey, Math.round(performance.now() - t0), undefined);
+			// Read before finishExtraction drops the row. A usage write that
+			// fails after an abort must not hide it: the fan-out stops only on
+			// AbortError, and a later part would get a fresh controller.
+			const aborted =
+				runningExtractions.get(jobKey)?.controller.signal.aborted || (err instanceof Error && err.name === "AbortError");
+			try {
+				persistRunUsage(jobKey, Math.round(performance.now() - t0), undefined);
+			} catch (usageErr) {
+				if (!aborted) throw usageErr;
+				const abortErr = new Error(
+					`extraction aborted; job cleanup failed: ${usageErr instanceof Error ? usageErr.message : String(usageErr)}`,
+					{ cause: usageErr },
+				);
+				abortErr.name = "AbortError";
+				throw abortErr;
+			}
 			throw err;
 		} finally {
 			finishExtraction(jobKey);
@@ -1056,7 +1046,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	async function notesExtract(
 		jobKey: string,
 		input: { id: string; filePath: string; text: string; part?: { i: number; n: number } },
-	): Promise<NotesFindings> {
+	): Promise<SessionFindings> {
 		// jobKey: the registry key ("src#i" for chunk jobs) so the abort
 		// signal reaches the call; input.id stays the SOURCE id.
 		const signal = runningExtractions.get(jobKey)?.controller.signal;
@@ -1106,15 +1096,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			const settled: PromiseSettledResult<EmissionStats>[] = [];
 			for (const [chunkIndex, chunk] of chunks.entries()) {
 				const part = chunks.length > 1 ? { i: chunkIndex + 1, n: chunks.length } : undefined;
-				// Keep the actual signal after runJob tears down its registry row:
-				// usage persistence can throw and mask the body's AbortError.
-				let chunkSignal: AbortSignal | undefined;
 				try {
 					settled.push({
 						status: "fulfilled",
 						value: await runJob({ id, kind: "notes", label: input.filePath, part }, async (jobKey) => {
-							setPhase(jobKey, "waiting", "notes", input.filePath, part); // creates the row, so its signal exists
-							chunkSignal = runningExtractions.get(jobKey)?.controller.signal;
 							return withGraphLock(jobKey, "notes", input.filePath, part, async () => {
 								setPhase(jobKey, "extracting", "notes", input.filePath, part);
 								const findings = await notesExtract(jobKey, { ...input, text: chunk, part });
@@ -1136,19 +1121,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 						}),
 					});
 				} catch (err) {
-					let failure = err;
-					if (chunkSignal?.aborted && !(err instanceof Error && err.name === "AbortError")) {
-						// Notes-only: never start a fresh chunk after user cancellation,
-						// even when usage cleanup replaced the original abort rejection.
-						// Keep the secondary failure visible in the final import error.
-						const aborted = new Error(`Notes import aborted; job cleanup failed: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
-						aborted.name = "AbortError";
-						failure = aborted;
-					}
-					settled.push({ status: "rejected", reason: failure });
+					settled.push({ status: "rejected", reason: err });
 					// Same source-wide-abort law as the chat door: stop the
 					// run; isolated failures keep going.
-					if (failure instanceof Error && failure.name === "AbortError") break;
+					if (err instanceof Error && err.name === "AbortError") break;
 				}
 			}
 			const stats = aggregateJobs(id, settled);
