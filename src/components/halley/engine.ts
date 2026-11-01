@@ -4,7 +4,8 @@
  * 130 ms of positions while it flies, leans the eyes toward where it is
  * heading (or toward the mouse at rest), and keeps the bubble above it.
  * At home it peeks over the edge and rises out of it on hover.
- * The loop stops whenever Halley rests, and starts again on demand.
+ * The loop stops whenever Halley rests, and starts again on demand. Resting
+ * at a goal that can move (a row), a slow timer checks it instead.
  *
  * Reduced motion: it jumps instead of flying and draws no trail.
  */
@@ -54,6 +55,8 @@ interface EngineHooks {
 
 const STEP_MS = 1000 / 60;
 const DRAG_START_PX = 4;
+/** How often a resting Halley checks whether a moving goal has moved. */
+const WATCH_MS = 250;
 /** How far the halo reaches past the dot (kept clear of the clip). */
 const HALO_PX = 40;
 
@@ -61,14 +64,15 @@ export class HalleyEngine {
 	private p: Point = { x: -200, y: -200 };
 	private v: Point = { x: 0, y: 0 };
 	private size = SIZE;
-	/** Center to fly to (or a function that says, each frame, so a target
-	 *  that moves while Halley flies is still met); null = home. */
+	/** Center to fly to (or a function that says where, so a target that
+	 *  moves is still met); null = home. */
 	private goal: Point | (() => Point) | null = null;
 	/** At home and settled: follows the home spot exactly (scrolling). */
 	private locked = false;
 	private placed = false;
 	private hist: TrailPoint[] = [];
 	private raf = 0;
+	private watchTimer: ReturnType<typeof setTimeout> | undefined;
 	private last = 0;
 	private mouse: Point | null = null;
 	private point: Point | null = null;
@@ -92,6 +96,7 @@ export class HalleyEngine {
 
 	destroy(): void {
 		cancelAnimationFrame(this.raf);
+		clearTimeout(this.watchTimer);
 		this.parts.root.removeEventListener("pointerdown", this.onDown);
 		this.parts.root.removeEventListener("pointerenter", this.onEnter);
 		window.removeEventListener("pointermove", this.onMove);
@@ -148,6 +153,8 @@ export class HalleyEngine {
 	}
 
 	private kick = (): void => {
+		clearTimeout(this.watchTimer);
+		this.watchTimer = undefined;
 		if (this.raf) return;
 		this.last = performance.now();
 		this.raf = requestAnimationFrame(this.frame);
@@ -243,10 +250,19 @@ export class HalleyEngine {
 			bubble.style.transform = `translate(${round(bx)}px, ${round(by)}px)`;
 		}
 
-		// A function goal re-aims each frame (its row may move), so it keeps the loop alive.
-		const keepGoing =
-			!atRest || !!this.drag?.moved || this.hist.length > 1 || typeof this.goal === "function" || (!this.locked && !this.goal);
+		const keepGoing = !atRest || !!this.drag?.moved || this.hist.length > 1 || (!this.locked && !this.goal);
 		if (keepGoing) this.kick();
+		else if (typeof this.goal === "function") this.watchTimer = setTimeout(this.watch, WATCH_MS);
+	};
+
+	/** At rest on a function goal: fly again once its row has moved. */
+	private watch = (): void => {
+		this.watchTimer = undefined;
+		if (typeof this.goal !== "function") return;
+		const goal = this.goal();
+		const half = this.size / 2;
+		if (settled(this.p, this.v, { x: goal.x - half, y: goal.y - half })) this.watchTimer = setTimeout(this.watch, WATCH_MS);
+		else this.kick();
 	};
 
 	private drawTrail(shape: ReturnType<typeof trailShape>): void {
