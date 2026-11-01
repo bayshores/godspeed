@@ -26,6 +26,7 @@ export function InstructionsPanel({
 	const [activePath, setActivePath] = useState(parts[0]?.path ?? "");
 	const [drafts, setDrafts] = useState<Record<string, string>>({});
 	const [error, setError] = useState<string | null>(null);
+	const [busy, setBusy] = useState(false);
 	const part = parts.find((p) => p.path === activePath) ?? parts[0];
 
 	// Escape closes the panel only, not the dialog behind it.
@@ -49,32 +50,31 @@ export function InstructionsPanel({
 			return rest;
 		});
 
-	async function save() {
+	/** One request at a time; a failed or unreachable one shows `failure`. */
+	async function send(init: RequestInit, failure: string) {
 		if (!part) return;
-		setError(null);
 		const path = part.path;
-		// Saving the original text unchanged is the same as resetting.
-		const res =
-			text === part.sourceText
-				? await fetch(`/api/settings/prompts/${path}`, { method: "DELETE" })
-				: await fetch(`/api/settings/prompts/${path}`, {
-						method: "PUT",
-						headers: { "content-type": "application/json" },
-						body: JSON.stringify({ text }),
-					});
-		if (!res.ok) return setError("Could not save. Try again.");
+		setError(null);
+		setBusy(true);
+		const res = await fetch(`/api/settings/prompts/${path}`, init).catch(() => null);
+		setBusy(false);
+		if (!res?.ok) return setError(failure);
 		forget(path);
 		onChanged();
 	}
 
-	async function reset() {
-		if (!part) return;
-		setError(null);
-		if (part.overrideText === null) return forget(part.path);
-		const res = await fetch(`/api/settings/prompts/${part.path}`, { method: "DELETE" });
-		if (!res.ok) return setError("Could not reset. Try again.");
-		forget(part.path);
-		onChanged();
+	function save() {
+		// Saving the original text unchanged is the same as resetting.
+		const init: RequestInit =
+			text === part?.sourceText
+				? { method: "DELETE" }
+				: { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) };
+		return send(init, "Could not save. Try again.");
+	}
+
+	function reset() {
+		if (part?.overrideText === null) return forget(part.path);
+		return send({ method: "DELETE" }, "Could not reset. Try again.");
 	}
 
 	return (
@@ -142,12 +142,12 @@ export function InstructionsPanel({
 						)}
 					</span>
 					<span className="flex items-center gap-2">
-						<button type="button" disabled={part.overrideText === null && !dirty} onClick={() => void reset()} className={OUTLINE_BUTTON}>
+						<button type="button" disabled={busy || (part.overrideText === null && !dirty)} onClick={() => void reset()} className={OUTLINE_BUTTON}>
 							Reset to original
 						</button>
 						<button
 							type="button"
-							disabled={!dirty}
+							disabled={busy || !dirty}
 							onClick={() => void save()}
 							className="lh-press bg-primary px-3 py-[5px] text-[13px] font-bold text-primary-foreground hover:opacity-90 disabled:opacity-40"
 						>
