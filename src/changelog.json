@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.12",
+		"date": "2026-11-01",
+		"changes": [
+			"If your lessons or the Teaching instructions can't load, you now see Try again instead of an empty list or greyed out buttons.",
+			"A lesson rename that fails keeps the old name and tells you.",
+			"Long deadline and class names are cut short with the full name on hover, so menus and Coming up stay tidy.",
+			"A diagram still being written shows its loading spinner.",
+			"Halley uses less battery while she waits next to a row."
+		]
+	},
+	{
 		"version": "0.5.11",
 		"date": "2026-11-01",
 		"changes": [
