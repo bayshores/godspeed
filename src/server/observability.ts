@@ -103,6 +103,8 @@ export function activityFeed(now = Date.now()): {
 			}
 		}
 	}
+	// Titles come from the cached summaries: a record read parses the whole transcript.
+	const titles = new Map(chats.map((chat) => [chat.id, chat.title]));
 	const extractions: ActivityExtraction[] = extractionStatuses().map((run) => ({
 		id: run.part ? `${run.chatId}#${run.part.i}` : run.chatId,
 		chatId: run.chatId,
@@ -111,7 +113,7 @@ export function activityFeed(now = Date.now()): {
 		// The run's own label (a notes import's file path), else the chat's
 		// title, else the bare id, plus the chunk suffix when the source fanned out.
 		title:
-			(run.label ?? chatStore.getChat(run.chatId)?.title ?? run.chatId) +
+			(run.label ?? titles.get(run.chatId) ?? run.chatId) +
 			(run.part ? ` · ${run.part.i}/${run.part.n}` : ""),
 		phase: run.phase,
 		startedAt: run.startedAt,

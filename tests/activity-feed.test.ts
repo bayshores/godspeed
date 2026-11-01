@@ -13,7 +13,7 @@ import * as path from "node:path";
 import { chatStore } from "../src/store/chats.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { PATHS } from "../src/config.ts";
-import { activityFeed } from "../src/server/observability.ts";
+import { activityFeed, extractionStatuses } from "../src/server/observability.ts";
 
 test("activityFeed: running jobs across ALL chats, running-only, title-joined, oldest first", () => {
 	const chatA = chatStore.createChat("feed chat A");
@@ -93,5 +93,21 @@ test("activityFeed: outside-agent jobs carry the agent's context budget; nothing
 		for (const id of createdJobs) {
 			fs.unlinkSync(path.join(jobsDir, `${id}.json`));
 		}
+	}
+});
+
+test("activityFeed: a lesson's graph run is titled from the lesson list, without reading the lesson", () => {
+	const chat = chatStore.createChat("graph run chat");
+	extractionStatuses(); // creates the run registry
+	const running = (globalThis as { __lhExtractionRuns?: { running: Map<string, unknown> } }).__lhExtractionRuns!.running;
+	running.set(chat.id, { chatId: chat.id, kind: "chat", phase: "extracting", startedAt: 1, usage: {}, controller: new AbortController() });
+	const read = chatStore.getChat;
+	chatStore.getChat = () => assert.fail("the feed must not parse a lesson for its title");
+	try {
+		assert.deepEqual(activityFeed().extractions.map((e) => e.title), ["graph run chat"]);
+	} finally {
+		chatStore.getChat = read;
+		running.delete(chat.id);
+		fs.unlinkSync(`${PATHS.chats}/${chat.id}.json`);
 	}
 });
