@@ -24,7 +24,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { PATHS, PROMPTS_OVERRIDE_DIR } from "../config.ts";
+import { PATHS, promptOverrideFile } from "../config.ts";
 import { FRAGMENT_RE, isValidSegmentPath, type PromptAgent, type PromptSegmentInfo } from "../core/prompt-segments.ts";
 
 const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");
@@ -36,18 +36,13 @@ const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");
  *  tools). */
 const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "12-class-context.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
 
-/** Absolute path for an override file (unchecked — validate first). */
-function overrideFileFor(segmentPath: string): string {
-	return path.join(PROMPTS_OVERRIDE_DIR, ...segmentPath.split("/"));
-}
-
 /** Read one override file, or null when absent/invalid — the composition
  *  side's reader (the store's readOverride is the same mirror layout,
  *  kept separate because the layers may not import each other). */
 function readPromptOverride(segmentPath: string): string | null {
 	if (!isValidSegmentPath(segmentPath)) return null;
 	try {
-		return fs.readFileSync(overrideFileFor(segmentPath), "utf-8");
+		return fs.readFileSync(promptOverrideFile(segmentPath), "utf-8");
 	} catch {
 		return null;
 	}
