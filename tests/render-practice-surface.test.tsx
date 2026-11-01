@@ -57,6 +57,16 @@ describe("PracticeDock", () => {
 		assert.ok(!html.includes("practice-nudge") && !html.includes("practice-commit"), "the two-lane buttons are gone");
 		assert.ok(!html.includes("practice-dock-bar"), "no collapsed bar — the panel is always open");
 	});
+
+	it("the header says who is writing while a turn runs, like the question dock", () => {
+		const header = (busy: boolean, waitingForAgent: boolean) =>
+			renderToStaticMarkup(
+				<PracticeDock problemCallId="call_p1" input={{ statement: "S" }} onSubmit={async () => true} busy={busy} waitingForAgent={waitingForAgent} />,
+			).match(/data-testid="panel-eyebrow"[^>]*>([^<]*)</)?.[1];
+		assert.equal(header(false, false), "Your turn");
+		assert.equal(header(true, false), "Teacher is writing…");
+		assert.equal(header(true, true), "Waiting for your agent");
+	});
 });
 
 // ── the transcript cards ─────────────────────────────────────────────────────

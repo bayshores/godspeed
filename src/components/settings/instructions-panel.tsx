@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { XIcon } from "lucide-react";
 import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/core";
+import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
 import { OUTLINE_BUTTON } from "./controls.tsx";
 
@@ -90,9 +91,16 @@ export function InstructionsPanel({
 						<h3 className="text-lg font-bold text-ink">{area.label}</h3>
 						<span className="text-[12.5px] text-ink-2">What the teacher reads before every lesson</span>
 					</span>
-					<button type="button" aria-label="Close instructions" onClick={onClose} className="lh-press mt-1 text-ink-2 hover:text-ink">
-						<XIcon className="size-4" aria-hidden />
-					</button>
+					<Hint label="Close" side="left">
+						<button
+							type="button"
+							aria-label="Close instructions"
+							onClick={onClose}
+							className="lh-press -mx-1.5 -mb-1.5 -mt-0.5 flex size-7 shrink-0 items-center justify-center text-ink-2 hover:text-ink"
+						>
+							<XIcon className="size-4" aria-hidden />
+						</button>
+					</Hint>
 				</header>
 				{parts.length > 1 && (
 					<div role="tablist" aria-label="Parts" className="flex flex-wrap gap-1 px-6">

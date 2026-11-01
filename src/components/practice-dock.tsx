@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { ActionBar, FieldLabel, HeaderChip, KindChip, PANEL_FIELD, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, HeaderChip, KindChip, PANEL_FIELD, PanelBody, PanelHeader, turnEyebrow } from "@/components/lesson/panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import type { ChatAttachment } from "@/core";
@@ -29,6 +29,8 @@ interface PracticeDockProps {
 	onSubmit: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** A turn is running: a send now would be dropped, so the field keeps its text. */
 	busy?: boolean;
+	/** The running turn waits on the outside agent (the header says so). */
+	waitingForAgent?: boolean;
 	/** Compaction is running: the POST would block on the server's gate. */
 	compactionRunning?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
@@ -47,6 +49,7 @@ export function PracticeDock({
 	number,
 	onSubmit,
 	busy = false,
+	waitingForAgent = false,
 	compactionRunning = false,
 	footer,
 	initialDraft = "",
@@ -94,7 +97,7 @@ export function PracticeDock({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow="Your turn"
+					eyebrow={turnEyebrow(busy, waitingForAgent)}
 					right={
 						<HeaderChip exit={onDiscard && { label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
 							<KindChip testId="problem-number">

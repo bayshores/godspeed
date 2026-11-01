@@ -7,6 +7,7 @@
 import { useEffect } from "react";
 import { XIcon } from "lucide-react";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
+import { Hint } from "@/components/ui/hint";
 import type { ChangelogEntry } from "@/core";
 
 /** "2026-10-27" → "Oct 27, 2026" (fixed locale and zone: no hydration drift). */
@@ -54,9 +55,17 @@ export function WhatsNewDialog({
 			>
 				<div className="flex shrink-0 items-center justify-between px-5 py-[18px]">
 					<h2 className="text-base font-bold text-ink">{title}</h2>
-					<button type="button" aria-label="Close" data-testid="whats-new-close" onClick={onClose} className="lh-press text-ink-2 hover:text-ink">
-						<XIcon className="size-4" aria-hidden />
-					</button>
+					<Hint label="Close" side="left">
+						<button
+							type="button"
+							aria-label="Close"
+							data-testid="whats-new-close"
+							onClick={onClose}
+							className="lh-press -m-1.5 flex size-7 shrink-0 items-center justify-center text-ink-2 hover:text-ink"
+						>
+							<XIcon className="size-4" aria-hidden />
+						</button>
+					</Hint>
 				</div>
 				<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5">
 					{entries.map((entry) => (
