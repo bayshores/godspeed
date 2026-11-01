@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { escapeRegex } from "../../core/escape-regex.ts";
 
 /**
  * PDF plumbing for the pdf-reader sub-agent: Node ports of the four
@@ -241,9 +242,5 @@ export async function pdfSearch(
 	} finally {
 		await task.destroy();
 	}
-}
-
-function escapeRegex(s: string): string {
-	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 

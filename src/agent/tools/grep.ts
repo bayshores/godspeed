@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
+import { escapeRegex } from "../../core/escape-regex.ts";
 import {
 	formatSize,
 	GREP_MAX_LINE_LENGTH,
@@ -63,7 +64,7 @@ export const grepTool: AgentTool<typeof grepInput> = {
 		const isDirectory = stat.isDirectory();
 
 		const regex = new RegExp(
-			input.literal ? input.pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : input.pattern,
+			input.literal ? escapeRegex(input.pattern) : input.pattern,
 			input.ignoreCase ? "i" : undefined,
 		);
 		const contextValue = input.context && input.context > 0 ? input.context : 0;

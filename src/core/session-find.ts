@@ -1,3 +1,5 @@
+import { escapeRegex } from "./escape-regex.ts";
+
 /** Literal, case-insensitive session Find. The DOM seam
  * supplies only displayed text; no transcript/Markdown/TeX indexing lives here. */
 interface SessionTextMatch {
@@ -9,8 +11,7 @@ export function findSessionTextMatches(text: string, query: string): SessionText
 	if (!query) return [];
 	// Escape the user's string, never expose regex semantics. RegExp retains
 	// ORIGINAL UTF-16 offsets, unlike lowercasing text (İ can change length).
-	const literal = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const pattern = new RegExp(literal, "giu");
+	const pattern = new RegExp(escapeRegex(query), "giu");
 	return Array.from(text.matchAll(pattern), (m) => ({ start: m.index, end: m.index + m[0].length }));
 }
 
