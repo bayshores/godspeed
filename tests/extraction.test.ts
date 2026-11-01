@@ -36,11 +36,10 @@ import type {
 	SessionFindings,
 } from "../src/core/contracts.ts";
 import type { GraphStore } from "../src/core/ports.ts";
+import { abortExtraction, extractionStatuses } from "../src/agent/subagents/extraction-runs.ts";
 import {
-	abortExtraction,
 	createExtractionPipeline,
 	NotesImportError,
-	extractionStatuses,
 	transcriptView,
 	graphContext,
 	EXTRACTION_CORE,

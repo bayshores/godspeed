@@ -1,4 +1,4 @@
-import { abortExtraction, extractionStatuses } from "../agent/subagents/extraction.ts";
+import { abortExtraction, extractionStatuses } from "../agent/subagents/extraction-runs.ts";
 import { isJobLive } from "../agent/subagents/aborts.ts";
 import { coverageOf } from "../core/coverage.ts";
 import type { ChatRecord } from "../core/contracts.ts";

@@ -8,7 +8,7 @@ import {
 	deleteNodeTraces,
 	type NodeDeletionStats,
 } from "../core/graph-deletion.ts";
-import { extractionStatuses } from "../agent/subagents/extraction.ts";
+import { extractionStatuses } from "../agent/subagents/extraction-runs.ts";
 import { graphDirFor, graphStoreFor, stores } from "./stores.ts";
 
 /**
