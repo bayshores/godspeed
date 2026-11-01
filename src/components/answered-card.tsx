@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CheckIcon, XIcon } from "lucide-react";
+import { blurAfterPointerClick } from "@/components/focus-hygiene";
 import { GlyphMark } from "@/components/ui/glyph-mark";
 import { ThinkingBlock } from "@/components/thinking-block";
 import { useFold } from "@/components/use-fold";
@@ -115,7 +116,10 @@ export function AnsweredCard({
 							type="button"
 							data-testid="answer-toggle"
 							aria-expanded={open}
-							onClick={() => setOpen((v) => !v)}
+							onClick={(e) => {
+								setOpen((v) => !v);
+								blurAfterPointerClick(e);
+							}}
 							className="lh-press shrink-0 font-bold text-ink-2 hover:text-ink"
 						>
 							{toggleLabel} {open ? "▴" : "▾"}

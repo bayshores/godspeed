@@ -95,3 +95,21 @@ test("Tab from a quiz row goes to the thinking field; Tab from the thinking fiel
 		assert.equal(tab(thinking), false, "the browser's own Tab moves on toward Submit");
 	} finally { await act(async () => root.unmount()); host.remove(); }
 });
+
+test("a pointer click on Why does not leave focus on it, like the thinking toggle", async () => {
+	const input = { question: "Closest planet?", options: [{ label: "Venus" }, { label: "Mercury" }], correctAnswer: "Mercury", explanation: "Innermost." };
+	const answer = { kind: "quiz", questionText: input.question, answers: [{ value: "Venus", label: "Venus" }], correct: false, explanation: input.explanation } as unknown as QuestionAnswerData;
+	const host = document.createElement("div"); document.body.append(host);
+	const root = createRoot(host);
+	try {
+		await act(async () => root.render(<AnsweredCard answer={answer} input={input} />));
+		const why = host.querySelector<HTMLButtonElement>('[data-testid="answer-toggle"]')!;
+		let blurred = 0;
+		why.blur = () => { blurred++; };
+		// detail 1 marks a pointer click (a keyboard click has detail 0).
+		const click = Object.defineProperty(new window.Event("click", { bubbles: true }), "detail", { value: 1 });
+		await act(async () => why.dispatchEvent(click));
+		assert.equal(why.getAttribute("aria-expanded"), "true");
+		assert.equal(blurred, 1);
+	} finally { await act(async () => root.unmount()); host.remove(); }
+});
