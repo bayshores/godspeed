@@ -42,7 +42,7 @@ interface PendingToolCall {
  *  probe-phase names (probe/recall) join their teach
  *  twins — old records keep the teach names; new probe-phase calls carry
  *  the phase names. */
-export const QUESTION_TOOLS = [
+const QUESTION_TOOLS = [
 	"quiz",
 	"probe",
 	"ask_user_question",
@@ -50,6 +50,10 @@ export const QUESTION_TOOLS = [
 	"recall",
 	"write_code",
 ] as const;
+
+export function isQuestionTool(name: string): boolean {
+	return (QUESTION_TOOLS as readonly string[]).includes(name);
+}
 
 /** The tool→kind map (the dock's own fold, named once — the dismissal
  *  path and the dock must never disagree on what a tool is). The probe
@@ -67,7 +71,7 @@ export function findPendingToolCall(messages: UIMessage[]): PendingToolCall | nu
 			const part = msg.parts[p]!;
 			if (isToolUIPart(part) && part.state === "input-available") {
 				const tool = part.type.slice("tool-".length);
-				if ((QUESTION_TOOLS as readonly string[]).includes(tool)) {
+				if (isQuestionTool(tool)) {
 					return { toolCallId: part.toolCallId as string, tool, input: part.input };
 				}
 			}
@@ -100,6 +104,6 @@ const ACTIVITY_LABELS: Record<string, string> = {
  *  tool-input card. Question tools render in the dock, never a live
  *  card. */
 export function toolActivityLabel(tool: string): string {
-	if ((QUESTION_TOOLS as readonly string[]).includes(tool)) return "Writing a question…";
+	if (isQuestionTool(tool)) return "Writing a question…";
 	return ACTIVITY_LABELS[tool] ?? "Working…";
 }

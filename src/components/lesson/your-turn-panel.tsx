@@ -5,7 +5,7 @@ import { QuestionDock, type QuestionDockProps } from "@/components/question-dock
 import { ReadingThinkingField } from "@/components/reading-thinking";
 import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/core";
 import { PanelComposer, SideQuestionBox } from "./panel-composer";
-import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
+import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit, turnEyebrow } from "./panel-parts";
 import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
@@ -113,7 +113,7 @@ export function YourTurnPanel({
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>
 					<PanelHeader
-						eyebrow="Your turn"
+						eyebrow={turnEyebrow(composer.busy, composer.waitingForAgent ?? false)}
 						right={
 							<HeaderChip exit={skipExit(onSkipQuestion)}>
 								<KindChip>
@@ -143,6 +143,7 @@ export function YourTurnPanel({
 				onSkip={onSkipQuestion}
 				compactionRunning={compacting}
 				busy={composer.busy}
+				waitingForAgent={composer.waitingForAgent}
 				footer={footer}
 			/>
 		);
@@ -180,7 +181,7 @@ export function YourTurnPanel({
 				{body}
 			</div>
 			{/* Outside the keyed state, so opening the check keeps what's typed. */}
-			{pending && <SideQuestionBox busy={composer.busy} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} canSend={composer.canSend} />}
+			{pending && <SideQuestionBox busy={composer.busy} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} />}
 		</aside>
 	);
 }

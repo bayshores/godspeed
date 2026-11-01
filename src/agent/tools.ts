@@ -15,7 +15,7 @@ import {
 	quizInputProblems,
 } from "../core/question-core.ts";
 import { writeCodeInputProblems, writeCodeInputSchema } from "../core/code-question.ts";
-import { QUESTION_TOOLS } from "../core/pending.ts";
+import { isQuestionTool } from "../core/pending.ts";
 import { filterEnabledTools, type EnabledTools } from "../core/tool-switches.ts";
 import type { JobRecord } from "../core/contracts.ts";
 import type { JobStore } from "../core/ports.ts";
@@ -372,7 +372,7 @@ export function createProberTools(
 function withProbeGate(gate: ProbeTurnGate, tools: Record<string, AgentTool<any>>): Record<string, AgentTool<any>> {
 	return Object.fromEntries(
 		Object.entries(tools).map(([name, tool]) => {
-			if (!(QUESTION_TOOLS as readonly string[]).includes(name)) return [name, tool];
+			if (!isQuestionTool(name)) return [name, tool];
 			const gated: AgentTool<any> = {
 				...tool,
 				execute: async (toolCallId, input, signal, onUpdate) => {

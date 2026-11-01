@@ -17,7 +17,7 @@ import {
 	firstSourceTextParts,
 	isAttachmentPart,
 	messageAnchorId,
-	QUESTION_TOOLS,
+	isQuestionTool,
 	teachStepIndex,
 	textPartMessageId,
 	type ArtifactPartProps,
@@ -171,7 +171,7 @@ function partShows(part: LhViewPart, hideSteps: boolean): boolean {
 	const tool = part.type.slice("tool-".length);
 	if (hideSteps && STEP_TOOLS.has(tool)) return false;
 	if (part.state === "output-error" && part.errorText !== "Operation aborted") return true;
-	if ((QUESTION_TOOLS as readonly string[]).includes(tool)) return part.state === "output-available";
+	if (isQuestionTool(tool)) return part.state === "output-available";
 	return part.state === "input-streaming" || tool in artifactRenderers;
 }
 

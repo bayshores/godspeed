@@ -20,7 +20,7 @@
 import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, PlanNodeStatus, PlanTree, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines, derivedNodeStatus, derivePlanStatuses } from "./contracts.ts";
 import type { LhMessage } from "./native-messages.ts";
-import { QUESTION_TOOLS } from "./pending.ts";
+import { isQuestionTool } from "./pending.ts";
 import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
 import { birthSessionOf } from "./session-clusters.ts";
 import { resolveTopics } from "./topics.ts";
@@ -136,7 +136,7 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 		if (role !== "toolResult") continue;
 		const result = m as { toolCallId?: string; toolName?: string; details?: unknown };
 		// Any question's answer is the learner speaking: a new turn starts.
-		if ((QUESTION_TOOLS as readonly string[]).includes(result.toolName ?? "")) turn = [];
+		if (isQuestionTool(result.toolName ?? "")) turn = [];
 		const call = result.toolCallId ? calls.get(result.toolCallId) : undefined;
 		if (!call) continue;
 		turn = [];

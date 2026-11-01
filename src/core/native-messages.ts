@@ -33,7 +33,7 @@
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, Message, ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
-import { QUESTION_TOOLS } from "./pending.ts";
+import { isQuestionTool } from "./pending.ts";
 import {
 	CONCLUDE_ACK_TEXT,
 	HANDOFF_TEXT,
@@ -59,6 +59,17 @@ export const SIDE_PENDING_TEXT =
 
 /** How that later answer (or skip) reaches the model, at its own place. */
 export const SIDE_ANSWER_LEAD = "The learner answered your open question: ";
+
+/** SIDE_ANSWER_LEAD, naming the question when its message asked several:
+ *  out of place, the answer no longer sits next to its own call. */
+function sideAnswerLead(asker: LhMessage, callId: string): string {
+	if (asker.role !== "assistant") return SIDE_ANSWER_LEAD;
+	const questions = asker.content.filter((b) => b.type === "toolCall" && isQuestionTool(b.name));
+	if (questions.length < 2) return SIDE_ANSWER_LEAD;
+	const call = questions.find((b) => b.type === "toolCall" && b.id === callId);
+	const question = call?.type === "toolCall" && typeof call.arguments.question === "string" ? call.arguments.question : callId;
+	return `The learner answered your open question (${JSON.stringify(question)}): `;
+}
 
 // ─── The record's message type ───────────────────────────────────────────────
 
@@ -204,23 +215,31 @@ function sideQuestionAfter(messages: readonly LhMessage[], i: number): number {
 }
 
 /** The question calls a side question was asked around: call id → the
- *  index of that side question. Their result, if any, comes after it. */
-export function sideHeldQuestions(messages: readonly LhMessage[]): Map<string, number> {
+ *  index of the message that asked it and of that side question. Their
+ *  result, if any, comes after the side question. */
+export function sideHeldQuestions(messages: readonly LhMessage[]): Map<string, { callAt: number; sideAt: number }> {
 	const answeredAt = new Map<string, number>();
 	messages.forEach((m, j) => {
 		if (m.role === "toolResult") answeredAt.set(m.toolCallId, j);
 	});
-	const held = new Map<string, number>();
+	const held = new Map<string, { callAt: number; sideAt: number }>();
 	messages.forEach((m, j) => {
 		if (m.role !== "assistant") return;
 		const side = sideQuestionAfter(messages, j);
 		if (side < 0) return;
 		for (const block of m.content) {
-			if (block.type !== "toolCall" || !(QUESTION_TOOLS as readonly string[]).includes(block.name)) continue;
-			if ((answeredAt.get(block.id) ?? side) >= side) held.set(block.id, side);
+			if (block.type !== "toolCall" || !isQuestionTool(block.name)) continue;
+			if ((answeredAt.get(block.id) ?? side) >= side) held.set(block.id, { callAt: j, sideAt: side });
 		}
 	});
 	return held;
+}
+
+/** Does this turn answer a side question: the learner's newest message is
+ *  one and the question it was asked around is still open? */
+export function isSideTurn(messages: readonly LhMessage[]): boolean {
+	const learner = messages.findLast((m) => m.role === "user");
+	return learner !== undefined && isSideQuestion(learner) && danglingQuestionOf(messages) !== null;
 }
 
 /** A steered user message (mid-turn composer steering):
@@ -750,9 +769,11 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 		}
 		if (role === "toolResult") {
 			const result = m as ToolResultMessage;
-			if (i > (sideHeld.get(result.toolCallId) ?? i)) {
+			const held = sideHeld.get(result.toolCallId);
+			if (held && i > held.sideAt) {
 				const answer = result.content.map((c) => (c.type === "text" ? c.text : "")).join("");
-				out.push({ role: "user", content: [{ type: "text", text: SIDE_ANSWER_LEAD + answer }], timestamp: result.timestamp });
+				const lead = sideAnswerLead(lhMessages[held.callAt]!, result.toolCallId);
+				out.push({ role: "user", content: [{ type: "text", text: lead + answer }], timestamp: result.timestamp });
 				continue;
 			}
 		}
@@ -799,7 +820,7 @@ export function danglingQuestionOf(
 		const answered = resultIdsFrom(messages.slice(mi + 1));
 		for (const block of m.content) {
 			if (block.type !== "toolCall") continue;
-			if (!(QUESTION_TOOLS as readonly string[]).includes(block.name)) continue;
+			if (!isQuestionTool(block.name)) continue;
 			if (answered.has(block.id)) continue;
 			return { toolCallId: block.id, tool: block.name, input: block.arguments };
 		}
@@ -910,11 +931,7 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 		return false;
 	}
 	// An answer given after side questions: its call sits before them.
-	const lastCallId = (last as ToolResultMessage).toolCallId;
-	const heldAt = messages.findLastIndex(
-		(m, j) => j < start && m.role === "assistant" && m.content.some((b) => b.type === "toolCall" && b.id === lastCallId) && sideQuestionAfter(messages, j) >= 0,
-	);
-	const ownerAt = heldAt >= 0 ? heldAt : start - 1;
+	const ownerAt = sideHeldQuestions(messages).get((last as ToolResultMessage).toolCallId)?.callAt ?? start - 1;
 	const owner = messages[ownerAt];
 	if (!owner || (owner as { role?: string }).role !== "assistant") return false;
 	const content = (owner as { content?: unknown }).content;

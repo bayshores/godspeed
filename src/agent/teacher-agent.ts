@@ -14,7 +14,7 @@ import {
 import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
 import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../core/question-core.ts";
-import { QUESTION_TOOLS } from "../core/pending.ts";
+import { isQuestionTool } from "../core/pending.ts";
 import { switchedOffToolsNote, TOGGLEABLE_TOOLS, type EnabledTools, type ToggleableTool } from "../core/tool-switches.ts";
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
@@ -124,7 +124,7 @@ function makeQuestionStopper(kind: AgentKind) {
 		const called = new Set(
 			context.message.content
 				.filter((c) => c.type === "toolCall" && c.name !== undefined && (
-					(QUESTION_TOOLS as readonly string[]).includes(c.name) ||
+					isQuestionTool(c.name) ||
 					(kind === "practice" && c.name === PRACTICE_PROBLEM_TOOL)
 				))
 				.map((c) => c.id!),
@@ -151,7 +151,7 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		initialState: {
 			systemPrompt,
 			model: engine.model,
-			tools: opts.sideTurn ? tools.filter((t) => !(QUESTION_TOOLS as readonly string[]).includes(t.name)) : tools,
+			tools: opts.sideTurn ? tools.filter((t) => !isQuestionTool(t.name)) : tools,
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,

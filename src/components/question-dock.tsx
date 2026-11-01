@@ -3,7 +3,7 @@ import { LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter } from "@/components/confidence-meter";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit, turnEyebrow } from "@/components/lesson/panel-parts";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/components/sounds";
 import {
@@ -69,6 +69,8 @@ export interface QuestionDockProps {
 	compactionRunning?: boolean;
 	/** The teacher is replying to a side question: submit waits. */
 	busy?: boolean;
+	/** That reply waits for an agent to take it (the header says so). */
+	waitingForAgent?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
 	footer?: React.ReactNode;
 }
@@ -92,7 +94,7 @@ export function QuestionDock(props: QuestionDockProps) {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>
-					<PanelHeader eyebrow="Your turn" />
+					<PanelHeader eyebrow={turnEyebrow(props.busy ?? false, props.waitingForAgent ?? false)} />
 					<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
 						This question came through broken. Skip it and the teacher will ask again.
 					</div>
@@ -153,6 +155,7 @@ function QuestionDockForm({
 	onSkip,
 	compactionRunning = false,
 	busy = false,
+	waitingForAgent = false,
 	footer,
 }: Omit<QuestionDockProps, "input"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
 	const kind = toolQuestionKind(toolName);
@@ -371,7 +374,7 @@ function QuestionDockForm({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow="Your turn"
+					eyebrow={turnEyebrow(busy, waitingForAgent)}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
 							<KindChip testId="question-kind">

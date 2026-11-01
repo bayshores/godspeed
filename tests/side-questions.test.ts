@@ -21,6 +21,7 @@ const {
 	dismissedAnswer,
 	findPendingToolCall,
 	inputAppends,
+	isSideTurn,
 	needsContinuation,
 	newAnswerResult,
 	newCompactionMarker,
@@ -37,7 +38,10 @@ type LhMessage = import("../src/core/index.ts").LhMessage;
 const { createTeacherAgent } = await import("../src/agent/teacher-agent.ts");
 const { handleChatInput } = await import("../src/server/chat-handler.ts");
 const { runningTurn } = await import("../src/server/turn-runs.ts");
+const { deliverJobResult, discardChatDeliveries, setTurnRunner } = await import("../src/server/jobs.ts");
+const { buildSubagentSteer } = await import("../src/core/contracts.ts");
 const { chatStore } = await import("../src/store/chats.ts");
+const { jobStore } = await import("../src/store/jobs.ts");
 await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
 after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
@@ -130,6 +134,18 @@ describe("what the model sees (toLlmMessages)", () => {
 		assert.equal(textOf(toLlmMessages([...asked, skipped]).at(-1)), SIDE_ANSWER_LEAD + JSON.stringify({ kind: "quiz", dismissed: true }));
 	});
 
+	it("with parallel questions, each late answer names its question", () => {
+		const second = { ...QUIZ, question: "Which planet is second?" };
+		const both = assistant("a1", [
+			{ type: "toolCall", id: "q1", name: "quiz", arguments: QUIZ },
+			{ type: "toolCall", id: "q2", name: "quiz", arguments: second },
+		]);
+		const out = toLlmMessages([newUserMessage("go"), both, newSideQuestion("why?"), reply("a2", "Because."), answer("q1"), answer("q2")]);
+		const [first, last] = out.slice(-2).map(textOf);
+		assert.ok(first!.startsWith(`The learner answered your open question (${JSON.stringify(QUIZ.question)}): `));
+		assert.ok(last!.startsWith(`The learner answered your open question (${JSON.stringify(second.question)}): `));
+	});
+
 	it("without side questions nothing changes: the answer is the call's tool result", () => {
 		const out = toLlmMessages([...start, answer("q1")]);
 		assert.deepEqual(out.map((m) => m.role), ["user", "assistant", "toolResult"]);
@@ -161,6 +177,18 @@ describe("the side input", () => {
 		assert.equal((m as { side?: boolean }).side, true);
 		assert.throws(() => inputAppends({ messages: [newUserMessage("go")] }, { type: "side", text: "why?" }), ChatInputError);
 		assert.throws(() => inputAppends({ messages: [...waiting.messages, answer("q1")] }, { type: "side", text: "why?" }), ChatInputError);
+	});
+});
+
+describe("which turn is a side turn (isSideTurn)", () => {
+	const waiting = [newUserMessage("go"), quizCall("a1", ["q1"])];
+
+	it("only a turn whose newest learner message is a side question, while the question is open", () => {
+		assert.equal(isSideTurn([...waiting, newSideQuestion("why?")]), true);
+		assert.equal(isSideTurn([...waiting, newSideQuestion("why?"), reply("a2", "Because."), newSideQuestion("and?")]), true);
+		assert.equal(isSideTurn([...waiting, newUserMessage("hi")]), false, "a plain message while a question waits");
+		assert.equal(isSideTurn([...waiting, newSideQuestion("why?"), reply("a2", "Because."), answer("q1")]), false, "the answer turn");
+		assert.equal(isSideTurn(waiting), false);
 	});
 });
 
@@ -239,5 +267,41 @@ describe("a side question through the chat handler", () => {
 		assert.ok(seen[2]!.tools.includes("quiz"), "the answer turn has the question tools back");
 		assert.equal(seen[2]!.roles.at(-1), "user");
 		assert.ok(seen[2]!.last.includes(SIDE_ANSWER_LEAD), "the answer arrives as the learner's message");
+	});
+
+	it("a side turn takes no [Today] note and no job result, so nothing but the side reply follows the question", async () => {
+		const faux = createFauxCore({});
+		faux.setResponses([
+			() => fauxAssistantMessage([fauxToolCall("quiz", QUIZ, { id: "call-q" })], { stopReason: "toolUse" }),
+			() => fauxAssistantMessage([fauxText("Mercury orbits closest.")]),
+		]);
+		const engine = { model: faux.getModel(), streamFn: faux.streamSimple };
+		const build: Parameters<typeof handleChatInput>[2] = (opts) => createTeacherAgent(undefined, { engine, messages: opts.messages, sideTurn: opts.sideTurn });
+		// Any wake while the question waits would be a bug; keep it hermetic.
+		let wakes = 0;
+		setTurnRunner(async () => {
+			wakes++;
+			return 200;
+		});
+		const chat = chatStore.createChat("side questions: no note, no job");
+		await run(chat.id, { type: "text", text: "teach me planets" }, build);
+		// No note in view, as on a new day: a learner message would get one.
+		const isNote = (m: LhMessage) => m.role === "custom" && m.customType === "today-context";
+		chatStore.saveMessages(chat.id, chatStore.getChat(chat.id)!.messages.filter((m) => !isNote(m)));
+		const job = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "call-r" });
+		const steer = buildSubagentSteer(job, { brief: "A finished brief.", sources: [] });
+		void deliverJobResult(steer);
+
+		await run(chat.id, { type: "side", text: "why does it matter?" }, build);
+		const messages = chatStore.getChat(chat.id)!.messages;
+		const callAt = messages.findIndex((m) => m.role === "assistant" && m.content.some((b) => b.type === "toolCall" && b.id === "call-q"));
+		assert.deepEqual(
+			messages.slice(callAt + 1).map((m) => (m.role === "user" ? `user${(m as { side?: true }).side ? ":side" : ""}` : m.role)),
+			["user:side", "assistant"],
+			"no note and no job result after the waiting question",
+		);
+		assert.equal(danglingQuestionOf(messages)?.toolCallId, "call-q");
+		assert.equal(wakes, 0);
+		discardChatDeliveries(chat.id);
 	});
 });

@@ -1,4 +1,4 @@
-import { QUESTION_TOOLS, type JobRecord, type LhViewMessage, type LhViewPart } from "@/core";
+import { isQuestionTool, type JobRecord, type LhViewMessage, type LhViewPart } from "@/core";
 
 /**
  * What the teacher is doing in the reply it is working on, read from that
@@ -115,7 +115,7 @@ export function agentWork(message: LhViewMessage | undefined, jobs: readonly Job
 		const tool = toolOf(part);
 		if (!tool) continue;
 		// An answered question ended a reply: what came before belongs to it.
-		if (part.state === "output-available" && (QUESTION_TOOLS as readonly string[]).includes(tool)) {
+		if (part.state === "output-available" && isQuestionTool(tool)) {
 			plan = null;
 			planStart = 0;
 			steps.length = 0;

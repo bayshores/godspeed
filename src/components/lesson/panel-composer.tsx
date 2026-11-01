@@ -2,7 +2,7 @@ import { SquareIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
-import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, ToneButton, fieldKeys } from "./panel-parts";
+import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, ToneButton, fieldKeys, turnEyebrow } from "./panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
@@ -68,15 +68,8 @@ export function PanelComposer({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={!busy ? "Your turn" : waitingForAgent ? "Waiting for your agent" : "Teacher is writing…"}
-					right={
-						busy && (
-							<ToneButton testId="stop-turn" onClick={onStop}>
-								<SquareIcon aria-hidden className="size-3" />
-								Stop
-							</ToneButton>
-						)
-					}
+					eyebrow={turnEyebrow(busy, waitingForAgent)}
+					right={busy && <StopButton onStop={onStop} />}
 				/>
 				{busy && <div className="pt-3 text-sm leading-5 text-ink-2">Sends when the teacher finishes.</div>}
 				{notice && <div className="pt-3">{notice}</div>}
@@ -122,24 +115,35 @@ export function PanelComposer({
 	);
 }
 
+/** Stops the running turn (Esc does too). */
+function StopButton({ onStop }: { onStop: () => void }) {
+	return (
+		<ToneButton testId="stop-turn" onClick={onStop}>
+			<SquareIcon aria-hidden className="size-3" />
+			Stop
+		</ToneButton>
+	);
+}
+
 /**
  * The message box in compact form, under a waiting question: the learner
  * asks the teacher something on the side and the question stays. Text
- * only, and it waits while the teacher replies.
+ * only; while the teacher replies, Send becomes Stop.
  */
 export function SideQuestionBox({
 	busy,
 	value,
 	onChange,
 	onSend,
+	onStop,
 	canSend,
-}: Pick<React.ComponentProps<typeof PanelComposer>, "busy" | "value" | "onChange" | "onSend" | "canSend">) {
+}: Pick<React.ComponentProps<typeof PanelComposer>, "busy" | "value" | "onChange" | "onSend" | "onStop" | "canSend">) {
 	const send = () => {
 		if (canSend) onSend();
 	};
 	return (
 		<div data-testid="side-question" className="shrink-0 px-6 py-3">
-			<div className={cn("flex items-end bg-background", busy && "opacity-50")}>
+			<div className="flex items-end bg-background">
 				<textarea
 					rows={1}
 					value={value}
@@ -148,12 +152,16 @@ export function SideQuestionBox({
 					onKeyDown={(e) => fieldKeys(e, send)}
 					placeholder="Ask the teacher something"
 					aria-label="Ask the teacher something"
-					className="lh-input field-sizing-content max-h-32 min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px]! leading-5! text-ink outline-none placeholder:text-ink-3"
+					className="lh-input field-sizing-content max-h-32 min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px]! leading-5! text-ink outline-none placeholder:text-ink-3 disabled:opacity-50"
 				/>
 				<div className="p-2">
-					<ToneButton testId="side-question-send" onClick={send} disabled={!canSend}>
-						Send
-					</ToneButton>
+					{busy ? (
+						<StopButton onStop={onStop} />
+					) : (
+						<ToneButton testId="side-question-send" onClick={send} disabled={!canSend}>
+							Send
+						</ToneButton>
+					)}
 				</div>
 			</div>
 		</div>

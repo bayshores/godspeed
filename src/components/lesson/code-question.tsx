@@ -4,7 +4,7 @@ import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
 import { buildCodeAnswer, codeLanguage, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
 import { CodeEditor } from "./code-editor";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit } from "./panel-parts";
+import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit, turnEyebrow } from "./panel-parts";
 
 /** The task in lesson prose, 18px in the full text color (the question
  *  panel's size). */
@@ -31,6 +31,7 @@ export function CodeQuestion({
 	onSkip,
 	compactionRunning = false,
 	busy = false,
+	waitingForAgent = false,
 	footer,
 }: {
 	toolName: string;
@@ -43,6 +44,7 @@ export function CodeQuestion({
 	onSkip?: () => void;
 	compactionRunning?: boolean;
 	busy?: boolean;
+	waitingForAgent?: boolean;
 	footer?: React.ReactNode;
 }) {
 	const language = codeLanguage(input.language);
@@ -79,7 +81,7 @@ export function CodeQuestion({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow="Your turn"
+					eyebrow={turnEyebrow(busy, waitingForAgent)}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
 							<KindChip testId="question-kind">Code</KindChip>

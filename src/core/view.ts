@@ -34,9 +34,9 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
+import { answeredCallIds, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
-import { QUESTION_TOOLS } from "./pending.ts";
+import { isQuestionTool } from "./pending.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
 import type { PlanBlockData } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
@@ -140,15 +140,15 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	// Output calls become text rather than tool parts, so read settled
 	// failures up front: a failed call must retain the normal error path.
 	const outputErrors = new Map<string, ToolResultMessage>();
-	const resultIds = new Set<string>();
 	for (const message of messages) {
-		if (message.role !== "toolResult") continue;
-		resultIds.add(message.toolCallId);
-		if (message.toolName === SEND_TO_USER_TOOL && message.isError) outputErrors.set(message.toolCallId, message);
+		if (message.role === "toolResult" && message.toolName === SEND_TO_USER_TOOL && message.isError) {
+			outputErrors.set(message.toolCallId, message);
+		}
 	}
 	// Answered questions that side questions were asked around: their parts
 	// wait here for their result's place.
 	const sideHeld = sideHeldQuestions(messages);
+	const answered = answeredCallIds(messages);
 	const movedParts = new Map<string, LhViewPart>();
 
 	const lastAssistant = (): LhViewMessage | undefined => {
@@ -278,7 +278,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 						part.problemInput = input;
 						part.reveal = typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
 					}
-					if (sideHeld.has(block.id) && resultIds.has(block.id)) {
+					if (sideHeld.has(block.id) && answered.has(block.id)) {
 						movedParts.set(block.id, part);
 						continue;
 					}
@@ -373,7 +373,7 @@ export function reuseUnchangedMessages(
  *  but the ConcludeCard reads the call's input, and output-available with
  *  output undefined renders fine). */
 function isPlaceholderResultTool(name: string): boolean {
-	return (QUESTION_TOOLS as readonly string[]).includes(name) || name === "problem";
+	return isQuestionTool(name) || name === "problem";
 }
 
 /** A tool call block → its view part, with the live execution layer.

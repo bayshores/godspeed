@@ -369,24 +369,17 @@ export function Chat({
 	const onSend = () => {
 		if (compacting) return;
 		const t = textRef.current.trim();
-		if (pending) {
-			if (!t || busy) return;
-			editText("");
-			void send({ type: "side", text: t }).then((sent) => {
-				if (!sent) editText(restoreUnsent(t, textRef.current));
-			});
-			return;
-		}
 		const files = attachments.files.map((f) => f.attachment);
-		if (!t && files.length === 0) return;
-		if (busy) {
-			if (files.length > 0) return;
+		// Text only: a side question, or a steer of the running turn.
+		if (pending || busy) {
+			if (!t || (pending ? busy : files.length > 0)) return;
 			editText("");
-			void steer(t).then((sent) => {
+			void (pending ? send({ type: "side", text: t }) : steer(t)).then((sent) => {
 				if (!sent) editText(restoreUnsent(t, textRef.current));
 			});
 			return;
 		}
+		if (!t && files.length === 0) return;
 		const drafts = attachments.files;
 		editText("");
 		attachments.clear();

@@ -1,11 +1,12 @@
 /** Pure helpers for the lesson view (src/components/chat.tsx). */
-import { QUESTION_TOOLS, type LhMessage, type LhViewMessage } from "@/core";
+import { isQuestionTool, type LhMessage, type LhViewMessage } from "@/core";
 
 /** Layered Esc: an open overlay claims Esc
  *  — closing itself — before the abort chain may open its confirm.
  *  Priority is stacking order: the abort confirm (claims via its own
  *  dialog), the session overlays (mermaid above plan), then question →
- *  problem → turn. */
+ *  problem → turn. A turn running under a waiting question (a side reply)
+ *  stops alone, so the question stays. */
 type EscAbortTarget = "mermaid" | "plan" | "question" | "problem" | "turn" | null;
 
 export function escAbortTarget(s: {
@@ -21,7 +22,7 @@ export function escAbortTarget(s: {
 	if (s.abortAsk) return null; // the popup's own Esc — claimed by the dialog
 	if (s.mermaidFocus) return "mermaid";
 	if (s.planOpen) return "plan";
-	if (s.pending) return "question";
+	if (s.pending) return s.busy ? "turn" : "question";
 	if (s.problem) return "problem";
 	if (s.busy) return "turn";
 	return null;
@@ -76,7 +77,7 @@ export function stuckRetry(messages: readonly LhMessage[]): { type: "text"; text
 		const m = messages[i] as { role?: string; toolName?: string; isError?: boolean; content?: unknown };
 		// The running turn's own replies and tool results.
 		if (m.role === "assistant") continue;
-		if (m.role === "toolResult" && (m.isError || !(QUESTION_TOOLS as readonly string[]).includes(m.toolName ?? ""))) continue;
+		if (m.role === "toolResult" && (m.isError || !isQuestionTool(m.toolName ?? ""))) continue;
 		return m.role === "user" && typeof m.content === "string" && m.content.trim() ? { type: "text", text: m.content } : { type: "continue" };
 	}
 	return { type: "continue" };

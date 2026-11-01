@@ -18,7 +18,7 @@ describe("escAbortTarget", () => {
 		assert.equal(escAbortTarget({ ...none, pending: true }), "question");
 		assert.equal(escAbortTarget({ ...none, busy: true }), "turn");
 		assert.equal(escAbortTarget(none), null);
-		assert.equal(escAbortTarget({ ...none, pending: true, busy: true }), "question", "a pending question outranks the turn");
+		assert.equal(escAbortTarget({ ...none, pending: true, busy: true }), "turn", "a side reply stops alone; the question stays");
 	});
 
 	it("an active practice problem sits between question and turn", () => {

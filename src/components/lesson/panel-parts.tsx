@@ -13,6 +13,11 @@ export function PanelBody({ children, className }: { children: React.ReactNode; 
 	);
 }
 
+/** The header's eyebrow: whose turn it is. */
+export function turnEyebrow(busy: boolean, waitingForAgent: boolean): string {
+	return !busy ? "Your turn" : waitingForAgent ? "Waiting for your agent" : "Teacher is writing…";
+}
+
 /** "Your turn" (or "Teacher is writing…") with an optional chip right. */
 export function PanelHeader({ eyebrow, right }: { eyebrow: React.ReactNode; right?: React.ReactNode }) {
 	return (

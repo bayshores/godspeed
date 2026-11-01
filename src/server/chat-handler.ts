@@ -34,7 +34,7 @@ import { beginTurn, endTurn, isTurnRunning } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
 import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.ts";
 import { persistTurn, triggerExtraction, TurnPersistenceError } from "./turn-service.ts";
-import { hasProbeDone, danglingQuestionOf, retryContext } from "../core/native-messages.ts";
+import { hasProbeDone, danglingQuestionOf, isSideTurn, retryContext } from "../core/native-messages.ts";
 import { composeInstructions } from "../agent/teacher-agent.ts";
 import { ensureCompacted, kickCompaction, effectiveThresholdTokens, type CompactionDeps } from "./compaction.ts";
 import { emit } from "../core/events.ts";
@@ -282,8 +282,7 @@ export async function handleChatInput(
 	// A continue (Try again) runs again from before a failed or stopped reply.
 	const context = input.type === "continue" ? retryContext(merged) : merged;
 	const persistBaseCount = context.length;
-	// A turn that runs while a question waits answers a side question.
-	const sideTurn = danglingQuestionOf(context) !== null;
+	const sideTurn = isSideTurn(context);
 	try {
 		stores.chatStore.saveMessages(chatId, merged);
 	} catch (err) {

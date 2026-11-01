@@ -13,7 +13,7 @@ import {
 	writeCodeInputSchema,
 } from "../src/core/code-question.ts";
 import { compactAnswerForModel, dismissedAnswer } from "../src/core/question-core.ts";
-import { QUESTION_TOOLS, toolQuestionKind } from "../src/core/pending.ts";
+import { isQuestionTool, toolQuestionKind } from "../src/core/pending.ts";
 import { parseWriteCodeInput } from "../src/core/tool-parts.ts";
 import { answerForPresentation } from "../src/core/answer-presentation.ts";
 import { newAnswerResult, type LhMessage } from "../src/core/native-messages.ts";
@@ -55,7 +55,7 @@ describe("write_code input", () => {
 	});
 
 	it("is a question tool of its own kind", () => {
-		assert.ok((QUESTION_TOOLS as readonly string[]).includes("write_code"));
+		assert.ok(isQuestionTool("write_code"));
 		assert.equal(toolQuestionKind("write_code"), "code");
 		assert.equal(dismissedAnswer(toolQuestionKind("write_code"), "q").kind, "code");
 	});

@@ -217,14 +217,55 @@ describe("the side question box", () => {
 		assert.ok(!side.includes("—") && !side.includes("Enter"));
 	});
 
-	it("while the teacher replies, the box and Submit answer wait", () => {
+	it("while the teacher replies, the box and Submit answer wait, the header says so and Stop takes Send's place", () => {
 		const picked: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "", other: "", text: "" };
 		const submit = /data-testid="question-submit"[^>]*disabled=""/;
 		assert.ok(!submit.test(panel({ ...waiting, initialQuestionDraft: picked })), "an answer is ready to submit");
 		const html = panel({ ...waiting, initialQuestionDraft: picked, composer: composer({ busy: true, value: "why?" }) });
 		assert.match(html, submit);
 		assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
-		assert.match(html, /data-testid="side-question-send"[^>]*disabled=""/);
+		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Teacher is writing…</);
+		const side = html.slice(html.indexOf('data-testid="side-question"'));
+		assert.match(side, /data-testid="stop-turn"/);
+		assert.ok(!side.includes('data-testid="side-question-send"'));
+		const waitingForAgent = panel({ ...waiting, requiresReveal: true, composer: composer({ busy: true, waitingForAgent: true }) });
+		assert.match(waitingForAgent, /data-testid="panel-eyebrow"[^>]*>Waiting for your agent</, "the check behind its reveal too");
+	});
+
+	it("Stop ends the side reply alone, with no skip", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const calls: string[] = [];
+		try {
+			await act(async () =>
+				root.render(
+					<YourTurnPanel
+						pending={waiting.pending}
+						requiresReveal={false}
+						onSaveQuestionDraft={() => {}}
+						onSubmitAnswer={() => {}}
+						onSkipQuestion={() => calls.push("skip")}
+						readingThinking=""
+						onReadingThinking={() => {}}
+						practice={null}
+						practiceNumber={null}
+						onSavePracticeDraft={() => {}}
+						onSubmitThinking={async () => true}
+						onDiscardProblem={() => {}}
+						sessionBusy={false}
+						compacting={false}
+						composer={composer({ busy: true, onStop: () => calls.push("stop") })}
+						stats={null}
+					/>,
+				),
+			);
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="stop-turn"]')!.click());
+			assert.deepEqual(calls, ["stop"]);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
 	});
 
 	it("Send asks the side question, and only when there is something to send", async () => {
