@@ -494,6 +494,7 @@ describe("Esc on the class dialogs", () => {
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);
 		assert.equal((q("class-dialog-close") as HTMLButtonElement).disabled, true);
+		assert.equal((q("class-delete") as HTMLButtonElement).disabled, true, "Delete class waits like Archive");
 		await act(async () => {
 			saving.resolve();
 			await new Promise((r) => setTimeout(r, 10));
