@@ -65,6 +65,9 @@ export function SessionMessageNavigation() {
 		return true;
 	}, [clearFlash]);
 
+	// clearFlash is stable, so this cleanup runs only on unmount.
+	useEffect(() => clearFlash, [clearFlash]);
+
 	// Arrival on mount (a graph link opened this session, or a full load
 	// carried the hash): retry on a short interval until the scroller and the
 	// anchor both exist, then stop. The ~4s watchdog covers a never-arriving
