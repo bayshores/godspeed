@@ -96,7 +96,7 @@ export interface AgentBuildOptions {
 	 * across reconstructed prober, teacher, and practice Agents. */
 	chatId?: string;
 	/** The turn answers a side question: a question is already waiting, so
-	 *  the question tools are left out. */
+	 *  the question tools refuse (sideTurnTools). */
 	sideTurn?: boolean;
 }
 
@@ -138,6 +138,19 @@ function makeQuestionStopper(kind: AgentKind) {
 	};
 }
 
+/** A side turn keeps the question tools but refuses them: an unchanged tool
+ *  list keeps the outside agent's conversation a cheap delta instead of a
+ *  full resend. */
+function sideTurnTools(tools: AgentTool<any, any>[]): AgentTool<any, any>[] {
+	return tools.map((t) =>
+		isQuestionTool(t.name)
+			? { ...t, execute: async () => ({ content: [{ type: "text" as const, text: SIDE_TURN_REFUSAL }], isError: true, details: undefined }) }
+			: t,
+	);
+}
+
+const SIDE_TURN_REFUSAL = "A question is already waiting for the learner. Answer the side question in text instead.";
+
 function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: AgentTool<any, any>[]) {
 	// The handler always injects the engine; the outside agent is the fallback.
 	const engine = opts.engine ?? agentEngine();
@@ -151,7 +164,7 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		initialState: {
 			systemPrompt,
 			model: engine.model,
-			tools: opts.sideTurn ? tools.filter((t) => !isQuestionTool(t.name)) : tools,
+			tools: opts.sideTurn ? sideTurnTools(tools) : tools,
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,

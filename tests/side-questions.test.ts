@@ -193,10 +193,12 @@ describe("which turn is a side turn (isSideTurn)", () => {
 });
 
 describe("a side turn can't pose a question", () => {
-	it("the question tools are left out of a side turn", () => {
-		const names = (sideTurn: boolean) => createTeacherAgent(undefined, { sideTurn }).state.tools.map((t) => t.name);
-		assert.deepEqual(names(false).sort(), ["ask_user_question", "quiz"]);
-		assert.deepEqual(names(true), []);
+	it("keeps the same tool list, but the question tools refuse", async () => {
+		const tools = (sideTurn: boolean) => createTeacherAgent(undefined, { sideTurn }).state.tools;
+		assert.deepEqual(tools(true).map((t) => t.name), tools(false).map((t) => t.name), "an unchanged list keeps the agent's delta cheap");
+		const quiz = tools(true).find((t) => t.name === "quiz")!;
+		const result = await quiz.execute("call-x", {} as never);
+		assert.equal(result.isError, true);
 	});
 });
 
@@ -258,13 +260,12 @@ describe("a side question through the chat handler", () => {
 		assert.equal(danglingQuestionOf(afterSide)?.toolCallId, "call-q", "the question is still waiting");
 		assert.equal(afterSide.at(-1)!.role, "assistant");
 		assert.equal((afterSide.at(-1) as { stopReason?: string }).stopReason, "stop");
-		assert.equal(seen[1]!.tools.includes("quiz"), false, "the side turn has no question tools");
+		assert.deepEqual(seen[1]!.tools, seen[0]!.tools, "the side turn keeps the same tools");
 		assert.deepEqual(seen[1]!.roles.slice(-3), ["assistant", "toolResult", "user"]);
 		assert.equal(seen[1]!.last, "why does it matter?");
 
 		await run(chat.id, { type: "answer", toolCallId: "call-q", answer: { kind: "quiz", correct: true, answers: [{ index: 1, label: "Mercury" }] } }, build);
 		assert.equal(danglingQuestionOf(chatStore.getChat(chat.id)!.messages), null);
-		assert.ok(seen[2]!.tools.includes("quiz"), "the answer turn has the question tools back");
 		assert.equal(seen[2]!.roles.at(-1), "user");
 		assert.ok(seen[2]!.last.includes(SIDE_ANSWER_LEAD), "the answer arrives as the learner's message");
 	});
