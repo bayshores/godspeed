@@ -32,26 +32,24 @@ export interface DemoRunResult {
 	ok: boolean;
 }
 
-export interface RunDemoOptions {
-	/** How long to let the page settle (animations, async CDN loads) — default 2s. */
-	settleMs?: number;
+interface RunDemoOptions {
 	/** Optional JS expression evaluated in the page after settling; its value
 	 * is returned to the builder so it can assert on internal state. */
 	probe?: string;
 }
 
-export interface RenderSvgOptions {
+interface RenderSvgOptions {
 	/** Viewport size — defaults to the SVG's width/height attrs, else 900×700. */
 	width?: number;
 	height?: number;
 }
 
-export interface RenderPdfOptions {
+interface RenderPdfOptions {
 	/** Render DPI — 72 is 100% zoom; the skill's guidance is 100/150/200. */
 	dpi?: number;
 }
 
-export interface RenderedPdfPage {
+interface RenderedPdfPage {
 	page: number;
 	png: Buffer;
 }
@@ -348,8 +346,10 @@ function tempDir(prefix: string): string {
 
 // ─── Demo execution ──────────────────────────────────────────────────────────
 
+/** How long to let the page settle (animations, async CDN loads). */
+const DEMO_SETTLE_MS = 2000;
+
 async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRunResult> {
-	const settleMs = opts.settleMs ?? 2000;
 	const dir = tempDir("lh-demo-");
 	const file = path.join(dir, "demo.html");
 	fs.writeFileSync(file, html, "utf-8");
@@ -377,7 +377,7 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 
 		try {
 			await page.goto(pathToFileURL(file).href, { waitUntil: "load", timeout: 30_000 });
-			await new Promise((resolve) => setTimeout(resolve, settleMs));
+			await new Promise((resolve) => setTimeout(resolve, DEMO_SETTLE_MS));
 			if (opts.probe) {
 				try {
 					probeResult = await page.evaluate(opts.probe);

@@ -50,10 +50,10 @@ export function lessonWaiting(chat: ChatListItem): boolean {
 }
 
 /** The meta line's text. */
-function sessionMeta(chat: ChatListItem, now = new Date()): string {
+function sessionMeta(chat: ChatListItem): string {
 	if (chat.compacting) return "Summarizing the lesson…";
 	if (chat.busy) return "Working…";
-	return shortAgo(chat.updatedAt, now);
+	return shortAgo(chat.updatedAt);
 }
 
 /** The meta line: spinner while working, the white square while waiting. */

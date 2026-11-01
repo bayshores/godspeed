@@ -366,7 +366,7 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 
 /** One file line of the class card. `path` is where the teacher can read
  *  it (a recording's transcript once it exists; null when not readable). */
-export interface ClassCardFile {
+interface ClassCardFile {
 	name: string;
 	kind: "study" | "info";
 	path: string | null;

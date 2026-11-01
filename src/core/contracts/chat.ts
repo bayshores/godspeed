@@ -13,7 +13,7 @@ import type { EmissionStats } from "./graph.ts";
  *  the default and ABSENT on pre-practice records (no migration — absence
  *  reads as teach); "practice" marks an adaptive-practice session — the
  *  practice agent, its two tools, no extraction, no graph writes. */
-export type ChatKind = "teach" | "practice";
+type ChatKind = "teach" | "practice";
 
 /** Every lesson id starts with this (store/chats.ts makes them). The
  *  outside-agent bridge uses it to tell lesson work from background jobs. */

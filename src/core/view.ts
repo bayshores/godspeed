@@ -290,8 +290,8 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 				// An arrived-but-silent STREAMING message: the turn's first
 				// applied event can
 				// carry empty content — project ONE empty reasoning part so
-				// the message's ARRIVAL renders the thinking row (chat.tsx's
-				// Reasoning isStreamings the last part: the same spinner +
+				// the message's ARRIVAL renders the thinking row (message-row.tsx's
+				// Reasoning streams the last part: the same spinner +
 				// shimmer as the placeholder it replaces — the handoff is
 				// seamless and the two can never double). Settled empty
 				// messages stay hidden (presentation-only).

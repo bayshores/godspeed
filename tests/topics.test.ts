@@ -23,7 +23,7 @@ const { groupTopics, TOPIC_GROUPER_INSTRUCTIONS, TOPIC_GROUPING_RULE } = await i
 const topics = await import("../src/server/topics.ts");
 const { classStore } = await import("../src/store/classes.ts");
 const { graphStoreFor } = await import("../src/server/stores.ts");
-const { extractionStatuses } = await import("../src/agent/subagents/extraction.ts");
+const { extractionStatuses } = await import("../src/agent/subagents/extraction-runs.ts");
 const bridge = await import("../src/agent/agent-bridge.ts");
 
 after(() => {

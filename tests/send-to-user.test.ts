@@ -38,7 +38,7 @@ const { SEND_TO_USER_TOOL, sendToUserText, userFacingTextOf } = await import("..
 const { coverageOf, messageFingerprint, messageViewLines } = await import("../src/core/coverage.ts");
 const { projectView } = await import("../src/core/view.ts");
 const { sessionMarkdown } = await import("../src/core/session-markdown.ts");
-const { transcriptView } = await import("../src/agent/subagents/extraction.ts");
+const { proseView } = await import("../src/agent/subagents/extraction.ts");
 const { chatStore } = await import("../src/store/chats.ts");
 const { jobStore } = await import("../src/store/jobs.ts");
 
@@ -147,7 +147,7 @@ describe("send_to_user extraction and Markdown", () => {
 		const md = sessionMarkdown(messages, { anchors: false });
 		assert.equal(md, "### Teacher\n\nFirst.\n\n### Teacher\n\nSecond.\n\n### Teacher\n\nThird.");
 		const record = chatStore.createChat("Synthetic extraction");
-		assert.equal(transcriptView({ ...record, messages }), "# Synthetic extraction\n\nTEACHER [a1] First.\n\nTEACHER [a1] Second.\n\nTEACHER [a1] Third.");
+		assert.equal(proseView(messages, record.title), "# Synthetic extraction\n\nTEACHER [a1] First.\n\nTEACHER [a1] Second.\n\nTEACHER [a1] Third.");
 		const legacy = assistant([fauxText("Old text."), fauxThinking("Old thinking.")], "legacy");
 		const oldFingerprint = createHash("sha256").update(JSON.stringify(["assistant", ["TEACHER [legacy] Old text."]])).digest("hex");
 		assert.equal(messageFingerprint(legacy), oldFingerprint, "no re-extraction/migration of legacy prose");
@@ -158,7 +158,7 @@ describe("send_to_user extraction and Markdown", () => {
 		const messages = [message, ack("send-1", true)];
 		assert.equal(sessionMarkdown(messages, { anchors: false }), "### Teacher\n\nKeep this.");
 		const record = chatStore.createChat("Failed output fixture");
-		assert.ok(!transcriptView({ ...record, messages }).includes("Do not treat"));
+		assert.ok(!proseView(messages, record.title).includes("Do not treat"));
 		const coverage = coverageOf([assistant([outputCall()]), ack("send-1", true)], [], "fixture");
 		assert.equal(coverage.uncoveredCount, 0);
 		assert.equal(coverage.uncoveredTokens, 0);

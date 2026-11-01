@@ -54,7 +54,7 @@ const SUMMARIZER_SYSTEM_PROMPT =
 
 /** The one-shot summary call: zero tools, one turn, text out. The engine
  *  is the chat's own conversation engine. Injectable for tests. */
-export type Summarizer = (prompt: string, engine: PiEngine) => Promise<{ summary: string; usage: Usage }>;
+type Summarizer = (prompt: string, engine: PiEngine) => Promise<{ summary: string; usage: Usage }>;
 
 /** The production summarizer over the sub-agent seam. */
 async function subagentSummarizer(prompt: string, engine: PiEngine): Promise<{ summary: string; usage: Usage }> {

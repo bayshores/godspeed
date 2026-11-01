@@ -27,7 +27,7 @@ interface ProbeStrand {
 }
 
 /** The prober's read of the learner, carried by probe_done. */
-export interface ProbeAssessment {
+interface ProbeAssessment {
 	strands: ProbeStrand[];
 	/** Optional overall synthesis: the learner's apparent goal and edge. */
 	summary?: string;

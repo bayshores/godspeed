@@ -32,7 +32,7 @@ export interface GraphToolContext {
 	graphs?: () => ScopedGraph[];
 }
 
-export interface ScopedGraph {
+interface ScopedGraph {
 	className: string;
 	graphStore: GraphStore;
 	own: boolean;

@@ -26,7 +26,8 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { extractionStatuses, abortExtraction, NotesImportError } from "../agent/subagents/extraction.ts";
+import { NotesImportError } from "../agent/subagents/extraction.ts";
+import { extractionStatuses, abortExtraction } from "../agent/subagents/extraction-runs.ts";
 import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem } from "../core/contracts.ts";
 import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, safeName, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";

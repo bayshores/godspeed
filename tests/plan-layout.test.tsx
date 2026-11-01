@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { blockLayout, edgePathD, type LayoutNode } from "../src/components/plan-block.tsx";
+import { blockLayout, edgePathD, type LayoutNode } from "../src/components/plan-block-model.ts";
 
 // ─── The canvas must cover the arrows ────────────────────
 // A REAL linear-algebra plan (chat_mv19m6xe, plan_init's mermaid

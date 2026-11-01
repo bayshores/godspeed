@@ -24,7 +24,7 @@ import { stripModelValueDebris } from "./value-debris.ts";
 
 // ─── shared types ───────────────────────────────────────────────────────────
 
-export interface QuizOption {
+interface QuizOption {
 	label: string;
 	value: string;
 	description?: string;
@@ -191,7 +191,7 @@ const quizInputBase = Type.Object({
 // never reaches the learner: quizInputProblems and the plan-nodeId check
 // (tools.ts) run in the tool's execute.
 const QUIZ_QUESTION_TYPES = ["predict", "check"] as const;
-export type QuizQuestionType = (typeof QUIZ_QUESTION_TYPES)[number];
+type QuizQuestionType = (typeof QUIZ_QUESTION_TYPES)[number];
 
 /** Normalize a persisted quiz `type` (display seam): old records carry
  *  none, and unhealable wobble degrades to undefined — callers render
@@ -357,7 +357,7 @@ export type ExplainDisplayInput = Static<typeof explainDisplayInputSchema>;
 
 
 /** A real selected answer, in the order the options were displayed. */
-export interface OptionAnswer {
+interface OptionAnswer {
 	label: string;
 	value: string;
 	index: number; // 1-based display index

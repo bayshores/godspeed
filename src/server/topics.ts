@@ -15,7 +15,7 @@
  *  - It runs on the outside agent (MCP) as a labeled work item.
  *  - Result: one full snapshot appended to the graph's topics.jsonl.
  */
-import { abortExtraction, finishBackgroundGraphRun, startBackgroundGraphRun } from "../agent/subagents/extraction.ts";
+import { abortExtraction, finishBackgroundGraphRun, startBackgroundGraphRun } from "../agent/subagents/extraction-runs.ts";
 import { groupTopics } from "../agent/subagents/topic-grouper.ts";
 import { withBgLlmSlot } from "../agent/subagents/bg-llm-semaphore.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";

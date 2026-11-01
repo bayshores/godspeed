@@ -112,3 +112,8 @@ export const SETTINGS_FILE = path.join(DATA_ROOT, "settings.json");
  * stops applying but stays on disk.
  */
 export const PROMPTS_OVERRIDE_DIR = path.join(DATA_ROOT, "prompts");
+
+/** Absolute path for an override file (unchecked: validate the segment path first). */
+export function promptOverrideFile(segmentPath: string): string {
+	return path.join(PROMPTS_OVERRIDE_DIR, ...segmentPath.split("/"));
+}

@@ -650,7 +650,8 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 
 /** This computer's date and time, "YYYY-MM-DD HH:MM" (deadlines are in
  *  the same local wall clock). */
-function localNow(now = new Date()): string {
+function localNow(): string {
+	const now = new Date();
 	const pad = (n: number) => String(n).padStart(2, "0");
 	return `${localDay(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }

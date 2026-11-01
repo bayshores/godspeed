@@ -45,7 +45,7 @@ interface FeedUsage extends NonNullable<JobRecord["usage"]> {
 	lastStep?: CallUsage;
 }
 
-export interface FeedJob extends JobRecord {
+interface FeedJob extends JobRecord {
 	title: string;
 	usage?: FeedUsage;
 	/** Server-joined live catalog limit —
@@ -66,7 +66,7 @@ export interface FeedExtraction {
 }
 
 /** A job that failed lately (server/observability.ts ActivityFailedJob). */
-export interface FeedFailedJob {
+interface FeedFailedJob {
 	id: string;
 	kind: JobKind;
 	chatId: string;

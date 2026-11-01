@@ -49,7 +49,7 @@ import { DeleteNodeDialog } from "@/components/delete-node-dialog";
 import { LatexGlyph } from "@/components/latex-glyph";
 
 /** The sortable columns. */
-export type ChainSortCol = "name" | "props" | "created";
+type ChainSortCol = "name" | "props" | "created";
 export interface ChainSort {
 	col: ChainSortCol;
 	/** 1 = ascending (A→Z, oldest-first, smallest-first), -1 = descending. */
@@ -680,7 +680,7 @@ export function ChainTableOverlay({
 				onDeleted={(deadIds, graphRevision) => {
 					// Close the dialog; prune the dead ids from the
 					// selection (the rest of a big selection survives);
-					// announce the revision so GraphView refetches the
+					// announce the revision so the graph screen refetches the
 					// snapshot — fresh nodes/edges flow back in as props.
 					setDeleteOpen(false);
 					const dead = new Set(deadIds);

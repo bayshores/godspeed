@@ -7,7 +7,7 @@ import { isQuestionTool, type JobRecord, type LhViewMessage, type LhViewPart } f
  * several replies, since an answered question continues the same group.
  */
 
-export interface WorkPlan {
+interface WorkPlan {
 	items: string[];
 	done: number;
 }

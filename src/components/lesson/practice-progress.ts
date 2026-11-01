@@ -5,7 +5,7 @@
  * follows it.
  */
 
-export type PracticeBlock = "solved" | "missed" | "current";
+type PracticeBlock = "solved" | "missed" | "current";
 
 export interface PracticeProgress {
 	/** One block per finished problem, in order, plus the active one last. */

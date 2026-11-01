@@ -27,15 +27,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { PROMPTS_OVERRIDE_DIR } from "../config.ts";
+import { PROMPTS_OVERRIDE_DIR, promptOverrideFile } from "../config.ts";
 import { isValidSegmentPath } from "../core/prompt-segments.ts";
 import type { PromptOverrideStore } from "../core/ports.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
-
-/** Absolute path for an override file (unchecked — validate first). */
-function overrideFileFor(segmentPath: string): string {
-	return path.join(PROMPTS_OVERRIDE_DIR, ...segmentPath.split("/"));
-}
 
 /** The store adapter (core/ports.ts). */
 export const promptOverrides: PromptOverrideStore = {
@@ -61,7 +56,7 @@ export const promptOverrides: PromptOverrideStore = {
 	readOverride(segmentPath: string): string | null {
 		if (!isValidSegmentPath(segmentPath)) return null;
 		try {
-			return fs.readFileSync(overrideFileFor(segmentPath), "utf-8");
+			return fs.readFileSync(promptOverrideFile(segmentPath), "utf-8");
 		} catch {
 			return null;
 		}
@@ -69,13 +64,13 @@ export const promptOverrides: PromptOverrideStore = {
 
 	writeOverride(segmentPath: string, text: string): void {
 		if (!isValidSegmentPath(segmentPath)) return;
-		writeFileAtomic(overrideFileFor(segmentPath), text);
+		writeFileAtomic(promptOverrideFile(segmentPath), text);
 	},
 
 	deleteOverride(segmentPath: string): void {
 		if (!isValidSegmentPath(segmentPath)) return;
 		try {
-			fs.unlinkSync(overrideFileFor(segmentPath));
+			fs.unlinkSync(promptOverrideFile(segmentPath));
 		} catch {
 			// absent already = done
 		}

@@ -29,7 +29,7 @@ export function dueAtMs(d: { date: string; time?: string }): number {
 	return new Date(y, m - 1, day, h, min).getTime();
 }
 
-export type CountdownMode = "days" | "clock" | "fine" | "overdue";
+type CountdownMode = "days" | "clock" | "fine" | "overdue";
 
 export interface Countdown {
 	mode: CountdownMode;

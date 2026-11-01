@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { escapeRegex } from "../../core/escape-regex.ts";
 
 /**
  * Shared plumbing for the learner-filesystem tools (ls / find / grep): the
@@ -95,7 +96,7 @@ export function globToRegex(glob: string): RegExp {
 		} else if (c === "?") {
 			re += "[^/]";
 		} else {
-			re += c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			re += escapeRegex(c);
 		}
 	}
 	return new RegExp(`^${re}$`);
