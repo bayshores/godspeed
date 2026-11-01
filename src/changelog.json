@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.11",
+		"date": "2026-11-01",
+		"changes": [
+			"You can now ask your teacher something while a question is waiting. Type in Ask the teacher something under Submit answer, and the question stays open until you answer it.",
+			"godspeed opens straight to the welcome screen, which now plays the startup sound. The separate loading screen is gone.",
+			"Answered questions show each option's full description, and hidden steps no longer leave empty rows in a reply.",
+			"Home, Overview and the activity list stay quicker as your classes grow.",
+			"Lots of small fixes in Settings, Edit class and lessons, like buttons that could be clicked twice and fields that stayed editable while saving."
+		]
+	},
+	{
 		"version": "0.5.10",
 		"date": "2026-10-31",
 		"changes": [
