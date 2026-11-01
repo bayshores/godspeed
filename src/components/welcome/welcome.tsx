@@ -2,9 +2,9 @@
 
 /**
  * THE WELCOME SCREEN: covers the app on the first page load of each
- * launch (src/server/welcome.ts). Over the onboarding sky, "godspeed"
- * fades in, a comet flies in and lands on its left, and the word slides
- * right to make room: the logo. Under it, one line (the agent, the next
+ * launch (src/server/welcome.ts) and plays the startup sound. Over the
+ * onboarding sky, "godspeed" fades in, a comet flies in and lands on its
+ * left, and the word slides right to make room: the logo. Under it, one line (the agent, the next
  * deadline) and "Let's go", which closes it; after an update the release
  * notes open next. A click during the animation skips to the end.
  * Server-rendered, so the window's first paint is this and not Home.
@@ -17,6 +17,7 @@ import { byDue } from "@/components/deadlines-model";
 import { Constellation, HEAD_R, TAIL, TAIL_ANGLE } from "@/components/onboarding/constellation";
 import { usePresence } from "@/components/presence";
 import { useOpenDeadlines } from "@/components/use-open-deadlines";
+import { useSound } from "@/components/sounds";
 import { openFolderNotice } from "@/components/agent-folder/folder-notice";
 import { openWhatsNew } from "@/components/whats-new";
 import { cn } from "@/lib/utils";
@@ -46,11 +47,13 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 	const [played, setPlayed] = useState(false);
 	const [skipped, setSkipped] = useState(false);
 	const ready = played || skipped;
+	const play = useSound();
 
 	useEffect(() => {
+		play("startup");
 		const timer = setTimeout(() => setPlayed(true), ANIMATION_MS);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [play]);
 
 	// Capture phase on window: runs before the app's own shortcuts and keeps
 	// them from firing under the screen.

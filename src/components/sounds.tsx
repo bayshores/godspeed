@@ -2,14 +2,13 @@
 
 /**
  * The app's sound effects (public/sounds), behind the Settings → General
- * "Sounds" switch. The startup sound is not here: it plays on the launch
- * splash, before this app exists (electron/main.cjs).
+ * "Sounds" switch.
  */
 
 import { createContext, useCallback, useContext, useRef } from "react";
 import { useSettingsSaved } from "@/components/settings-signal";
 
-type SoundName = "intro" | "connected" | "all-set" | "right" | "wrong";
+type SoundName = "startup" | "intro" | "connected" | "all-set" | "right" | "wrong";
 
 const PlayContext = createContext<(name: SoundName) => void>(() => {});
 
