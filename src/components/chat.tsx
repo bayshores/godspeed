@@ -325,9 +325,12 @@ export function Chat({
 
 	// A running turn never gates the box: Enter while busy STEERS it (text
 	// only, so waiting files hold the send). A waiting question or problem
-	// owns the panel; compaction gates sends.
+	// owns the panel; compaction gates sends. Under a waiting question the
+	// box asks a side question: text only, never while the teacher replies.
 	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: activeProblem !== null, compacting });
-	const canSend = (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
+	const canSend = pending
+		? text.trim().length > 0 && !busy && !compacting
+		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
 
 	/* THE PRACTICE PAUSE: between problems, once a problem
 	 * has ever been posed — Enter on an empty box (or anywhere) asks for the
@@ -361,10 +364,19 @@ export function Chat({
 
 	/* STEER VS SEND: a send while a turn runs (ours or
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
-	 * falls back to exactly that). */
+	 * falls back to exactly that). Under a waiting question it is a side
+	 * question. */
 	const onSend = () => {
-		if (pending || compacting) return;
+		if (compacting) return;
 		const t = textRef.current.trim();
+		if (pending) {
+			if (!t || busy) return;
+			editText("");
+			void send({ type: "side", text: t }).then((sent) => {
+				if (!sent) editText(restoreUnsent(t, textRef.current));
+			});
+			return;
+		}
 		const files = attachments.files.map((f) => f.attachment);
 		if (!t && files.length === 0) return;
 		if (busy) {
@@ -438,7 +450,7 @@ export function Chat({
 		if (!error) return;
 		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(nativeMessages) });
 		if (action.type === "send-box") onSend();
-		else if (action.type === "resend") void send({ type: "text", text: action.text });
+		else if (action.type === "resend") void send({ type: pending ? "side" : "text", text: action.text });
 		else if (action.type === "continue") void send({ type: "continue" });
 		else {
 			clearError();

@@ -30,6 +30,7 @@ export function CodeQuestion({
 	onSaveDraft,
 	onSkip,
 	compactionRunning = false,
+	busy = false,
 	footer,
 }: {
 	toolName: string;
@@ -41,6 +42,7 @@ export function CodeQuestion({
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
 	onSkip?: () => void;
 	compactionRunning?: boolean;
+	busy?: boolean;
 	footer?: React.ReactNode;
 }) {
 	const language = codeLanguage(input.language);
@@ -59,7 +61,7 @@ export function CodeQuestion({
 	}, [code, dontKnow, thinking, starter]);
 
 	const submit = () => {
-		if (!canSubmit || compactionRunning) return;
+		if (!canSubmit || compactionRunning || busy) return;
 		onSubmit(buildCodeAnswer(input, { code, dontKnow, thinking }, toolName));
 	};
 	// Enter outside the editor and the fields submits, like every question.
@@ -129,7 +131,7 @@ export function CodeQuestion({
 				type="submit"
 				testId="question-submit"
 				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-				disabled={!canSubmit || compactionRunning}
+				disabled={!canSubmit || compactionRunning || busy}
 			/>
 		</form>
 	);

@@ -67,6 +67,8 @@ export interface QuestionDockProps {
 	/** Compaction is running for this chat: the answer would block on the
 	 *  server's compaction gate, so submit waits (the server is the real gate). */
 	compactionRunning?: boolean;
+	/** The teacher is replying to a side question: submit waits. */
+	busy?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
 	footer?: React.ReactNode;
 }
@@ -150,6 +152,7 @@ function QuestionDockForm({
 	onSaveDraft,
 	onSkip,
 	compactionRunning = false,
+	busy = false,
 	footer,
 }: Omit<QuestionDockProps, "input"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
 	const kind = toolQuestionKind(toolName);
@@ -227,7 +230,7 @@ function QuestionDockForm({
 			: sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
 
 	const submit = () => {
-		if (!canSubmit || compactionRunning) return;
+		if (!canSubmit || compactionRunning || busy) return;
 		const req: AnswerRequest = {
 			dontKnow: sel.dontKnow,
 			values: [...sel.selected].map((i) => qd.options[i]!.value),
@@ -532,7 +535,7 @@ function QuestionDockForm({
 				type="submit"
 				testId="question-submit"
 				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-				disabled={!canSubmit || compactionRunning}
+				disabled={!canSubmit || compactionRunning || busy}
 			/>
 		</form>
 	);

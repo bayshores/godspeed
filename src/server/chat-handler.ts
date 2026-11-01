@@ -237,7 +237,8 @@ export async function handleChatInput(
 	// one, a fresh note goes right before the learner's message. Appended
 	// only, so the outside agent still gets just the new tail. Learner
 	// messages only (text, thinking, next): an answer must stay next to its
-	// question call, and a wake or a continue carries no learner message.
+	// question call, only side questions and their replies may follow a
+	// waiting one, and a wake or a continue carries no learner message.
 	if (input.type === "text" || input.type === "thinking" || input.type === "next") {
 		const note = todayNoteFor(record);
 		if (note) appends = [...appends.slice(0, -1), note, ...appends.slice(-1)];
@@ -281,6 +282,8 @@ export async function handleChatInput(
 	// A continue (Try again) runs again from before a failed or stopped reply.
 	const context = input.type === "continue" ? retryContext(merged) : merged;
 	const persistBaseCount = context.length;
+	// A turn that runs while a question waits answers a side question.
+	const sideTurn = danglingQuestionOf(context) !== null;
 	try {
 		stores.chatStore.saveMessages(chatId, merged);
 	} catch (err) {
@@ -340,6 +343,7 @@ export async function handleChatInput(
 			// Read per turn, like the tool delta: a rule added mid-lesson applies
 			// on the next turn.
 			learnerRules: learnerRulesSection(effective.agent.rules, lessonClassRules(record.classId)),
+			sideTurn,
 		};
 		// PRACTICE BRANCH: a kind:"practice"
 		// session builds the practitioner from turn 1, with no prober→teacher
@@ -457,8 +461,12 @@ export async function handleChatInput(
 		// quiz rides THIS run's first LLM call. Settlement still cannot beat the
 		// flow below: it needs a streamed response, which never happens inside
 		// the constructor.
-		registerLiveAgent(chatId, constructed, input.type !== "steers" && input.type !== "continue",
-			input.type === "steers" ? new Set(appends.map((message) => message.id)) : undefined);
+		// A side turn takes no job results: anything but the side reply after
+		// the waiting question would close it. They wait for the answer turn.
+		if (!sideTurn) {
+			registerLiveAgent(chatId, constructed, input.type !== "steers" && input.type !== "continue",
+				input.type === "steers" ? new Set(appends.map((message) => message.id)) : undefined);
+		}
 		const handle = runPiTurn({
 			agent: constructed,
 			// The coalescing window seam (COMPACTION LAW): tests

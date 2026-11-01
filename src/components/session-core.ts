@@ -23,6 +23,7 @@ import {
 	newAnswerResult,
 	newNextMessage,
 	newProblemDismissedMarker,
+	newSideQuestion,
 	newThinkingMessage,
 	newUserMessage,
 	pdfNoteOf,
@@ -697,6 +698,7 @@ export class SessionModel {
 		const optimistic: LhMessage[] = [];
 		const files = "attachments" in input && input.attachments ? draftAttachmentParts(input.attachments) : [];
 		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text, files), id: localId() });
+		else if (input.type === "side") optimistic.push({ ...newSideQuestion(input.text), id: localId() });
 		else if (input.type === "thinking") {
 			// The practice submissions: the marker lands
 			// optimistically — the card renders from its details the

@@ -95,6 +95,9 @@ export interface AgentBuildOptions {
 	/** Native conversation identity: the existing persisted chat id, reused
 	 * across reconstructed prober, teacher, and practice Agents. */
 	chatId?: string;
+	/** The turn answers a side question: a question is already waiting, so
+	 *  the question tools are left out. */
+	sideTurn?: boolean;
 }
 
 /**
@@ -148,7 +151,7 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		initialState: {
 			systemPrompt,
 			model: engine.model,
-			tools,
+			tools: opts.sideTurn ? tools.filter((t) => !(QUESTION_TOOLS as readonly string[]).includes(t.name)) : tools,
 			messages: opts.messages ?? [],
 		},
 		streamFn: engine.streamFn,

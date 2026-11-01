@@ -4,7 +4,7 @@ import { PracticeDock } from "@/components/practice-dock";
 import { QuestionDock, type QuestionDockProps } from "@/components/question-dock";
 import { ReadingThinkingField } from "@/components/reading-thinking";
 import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/core";
-import { PanelComposer } from "./panel-composer";
+import { PanelComposer, SideQuestionBox } from "./panel-composer";
 import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
 import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
 
@@ -19,6 +19,8 @@ const PANEL_WIDTH = { initial: 440, min: 340, max: 720 };
  * - a teach-phase check waiting behind "Check your understanding" (the
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
+ * - under either of those, a side question box (the message box in
+ *   compact form);
  * - an active practice problem (PracticeDock);
  * - otherwise the message box (PanelComposer), under the last graded
  *   answer's result.
@@ -140,6 +142,7 @@ export function YourTurnPanel({
 				onSaveDraft={onSaveQuestionDraft}
 				onSkip={onSkipQuestion}
 				compactionRunning={compacting}
+				busy={composer.busy}
 				footer={footer}
 			/>
 		);
@@ -176,6 +179,8 @@ export function YourTurnPanel({
 			<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 				{body}
 			</div>
+			{/* Outside the keyed state, so opening the check keeps what's typed. */}
+			{pending && <SideQuestionBox busy={composer.busy} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} canSend={composer.canSend} />}
 		</aside>
 	);
 }

@@ -15,7 +15,9 @@
  * + toolResult messages, bounded by user/marker messages; toolResults attach
  * to the tool part of their call (searching backward — an answered quiz's
  * result lands on the part that asked it, even turns later); a group's id is
- * its FIRST assistant message's id.
+ * its FIRST assistant message's id. A question answered after side questions
+ * is the exception: its answered card moves to where the answer happened,
+ * right above the teacher's reaction.
  *
  * Plan blocks: a plan-block marker has no message of its own — its data part
  * splices into the preceding assistant group, IN FLOW right after the last
@@ -32,7 +34,7 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
+import { PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
 import { QUESTION_TOOLS } from "./pending.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
@@ -138,11 +140,16 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	// Output calls become text rather than tool parts, so read settled
 	// failures up front: a failed call must retain the normal error path.
 	const outputErrors = new Map<string, ToolResultMessage>();
+	const resultIds = new Set<string>();
 	for (const message of messages) {
-		if (message.role === "toolResult" && message.toolName === SEND_TO_USER_TOOL && message.isError) {
-			outputErrors.set(message.toolCallId, message);
-		}
+		if (message.role !== "toolResult") continue;
+		resultIds.add(message.toolCallId);
+		if (message.toolName === SEND_TO_USER_TOOL && message.isError) outputErrors.set(message.toolCallId, message);
 	}
+	// Answered questions that side questions were asked around: their parts
+	// wait here for their result's place.
+	const sideHeld = sideHeldQuestions(messages);
+	const movedParts = new Map<string, LhViewPart>();
 
 	const lastAssistant = (): LhViewMessage | undefined => {
 		const last = out[out.length - 1];
@@ -205,7 +212,16 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 
 		if (role === "toolResult") {
-			applyResultTo(findToolPart((m as ToolResultMessage).toolCallId), m as ToolResultMessage);
+			const result = m as ToolResultMessage;
+			const moved = movedParts.get(result.toolCallId);
+			if (moved) {
+				applyResultTo(moved, result);
+				const group = lastAssistant();
+				if (group) group.parts.push({ type: "step-start" }, moved);
+				else out.push({ id: m.id, role: "assistant", parts: [{ type: "step-start" }, moved] });
+				continue;
+			}
+			applyResultTo(findToolPart(result.toolCallId), result);
 			continue;
 		}
 
@@ -261,6 +277,10 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 						const input = problemInputForConclude(messages, block.id);
 						part.problemInput = input;
 						part.reveal = typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
+					}
+					if (sideHeld.has(block.id) && resultIds.has(block.id)) {
+						movedParts.set(block.id, part);
+						continue;
 					}
 					rest.push(part);
 				}

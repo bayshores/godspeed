@@ -196,6 +196,76 @@ describe("the Your-turn panel's states", () => {
 	});
 });
 
+describe("the side question box", () => {
+	const waiting = { pending: { tool: "quiz", toolCallId: "q1", input: quizInput } };
+	const box = /data-testid="side-question"/;
+
+	it("sits under a waiting question and under a check behind its reveal, never with the message box", () => {
+		const question = panel(waiting);
+		assert.match(question, /Submit answer[\s\S]*data-testid="side-question"/, "below Submit answer");
+		assert.match(panel({ ...waiting, requiresReveal: true }), /Check your understanding[\s\S]*data-testid="side-question"/);
+		assert.match(panel({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), box);
+		assert.ok(!box.test(panel()));
+		assert.ok(!box.test(panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 })));
+	});
+
+	it("names itself once, as its placeholder, with no em-dash or key hint", () => {
+		const html = panel(waiting);
+		assert.equal(html.split("Ask the teacher something").length - 1, 2, "the placeholder and its accessible name");
+		assert.match(html, /placeholder="Ask the teacher something"/);
+		const side = html.slice(html.indexOf('data-testid="side-question"'));
+		assert.ok(!side.includes("—") && !side.includes("Enter"));
+	});
+
+	it("while the teacher replies, the box and Submit answer wait", () => {
+		const picked: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "", other: "", text: "" };
+		const submit = /data-testid="question-submit"[^>]*disabled=""/;
+		assert.ok(!submit.test(panel({ ...waiting, initialQuestionDraft: picked })), "an answer is ready to submit");
+		const html = panel({ ...waiting, initialQuestionDraft: picked, composer: composer({ busy: true, value: "why?" }) });
+		assert.match(html, submit);
+		assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
+		assert.match(html, /data-testid="side-question-send"[^>]*disabled=""/);
+	});
+
+	it("Send asks the side question, and only when there is something to send", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		let sent = 0;
+		const render = (canSend: boolean) => (
+			<YourTurnPanel
+				pending={waiting.pending}
+				requiresReveal={false}
+				onSaveQuestionDraft={() => {}}
+				onSubmitAnswer={() => {}}
+				onSkipQuestion={() => {}}
+				readingThinking=""
+				onReadingThinking={() => {}}
+				practice={null}
+				practiceNumber={null}
+				onSavePracticeDraft={() => {}}
+				onSubmitThinking={async () => true}
+				onDiscardProblem={() => {}}
+				sessionBusy={false}
+				compacting={false}
+				composer={composer({ value: canSend ? "why?" : "", canSend, onSend: () => sent++ })}
+				stats={null}
+			/>
+		);
+		try {
+			await act(async () => root.render(render(false)));
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-send"]')!.click());
+			assert.equal(sent, 0);
+			await act(async () => root.render(render(true)));
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-send"]')!.click());
+			assert.equal(sent, 1);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+});
+
 describe("saved drafts in the panel", () => {
 	it("a practice problem starts from its saved thinking", () => {
 		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Find E[N]." }} onSubmit={async () => true} initialDraft="half done" />);

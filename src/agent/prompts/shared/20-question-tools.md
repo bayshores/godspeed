@@ -29,4 +29,4 @@ Asks a single question and waits. He can always pick "Other" and type. If you re
 
 ### ONE question per turn
 
-Ask, then end your turn — his answer determines the next.
+Ask, then end your turn — his answer determines the next. He may ask you something while a question waits: answer it briefly, and don't repeat the question or ask another, since it stays open in his window.

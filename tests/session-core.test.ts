@@ -330,6 +330,20 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(m.status, "error");
 	});
 
+	it("a side question shows at once as the learner's row, marked side", async () => {
+		const posts: string[] = [];
+		globalThis.fetch = (async (_url: unknown, init?: { body?: string }) => {
+			if (init?.body) posts.push(init.body);
+			return new Response("side input requires a waiting question", { status: 400 });
+		}) as typeof globalThis.fetch;
+		const m = model();
+		const sent = m.send({ type: "side", text: "why Mercury?" });
+		const row = m.getState().nativeMessages.at(-1) as { role?: string; content?: unknown; side?: boolean };
+		assert.deepEqual([row.role, row.content, row.side], ["user", "why Mercury?", true]);
+		assert.equal(await sent, false);
+		assert.deepEqual(JSON.parse(posts[0]!), { chatId: "chat_x", input: { type: "side", text: "why Mercury?" } });
+	});
+
 	it("a send refused after a Stop still resolves false and drops its card", async () => {
 		let refuse!: (res: Response) => void;
 		globalThis.fetch = (() => new Promise<Response>((resolve) => (refuse = resolve))) as typeof globalThis.fetch;

@@ -2,7 +2,7 @@ import { SquareIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
-import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, PanelHeaderButton } from "./panel-parts";
+import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, ToneButton, fieldKeys } from "./panel-parts";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
@@ -71,10 +71,10 @@ export function PanelComposer({
 					eyebrow={!busy ? "Your turn" : waitingForAgent ? "Waiting for your agent" : "Teacher is writing…"}
 					right={
 						busy && (
-							<PanelHeaderButton testId="stop-turn" onClick={onStop}>
+							<ToneButton testId="stop-turn" onClick={onStop}>
 								<SquareIcon aria-hidden className="size-3" />
 								Stop
-							</PanelHeaderButton>
+							</ToneButton>
 						)
 					}
 				/>
@@ -119,5 +119,43 @@ export function PanelComposer({
 				</div>
 			</div>
 		</form>
+	);
+}
+
+/**
+ * The message box in compact form, under a waiting question: the learner
+ * asks the teacher something on the side and the question stays. Text
+ * only, and it waits while the teacher replies.
+ */
+export function SideQuestionBox({
+	busy,
+	value,
+	onChange,
+	onSend,
+	canSend,
+}: Pick<React.ComponentProps<typeof PanelComposer>, "busy" | "value" | "onChange" | "onSend" | "canSend">) {
+	const send = () => {
+		if (canSend) onSend();
+	};
+	return (
+		<div data-testid="side-question" className="shrink-0 px-6 py-3">
+			<div className={cn("flex items-end bg-background", busy && "opacity-50")}>
+				<textarea
+					rows={1}
+					value={value}
+					disabled={busy}
+					onChange={(e) => onChange(e.target.value)}
+					onKeyDown={(e) => fieldKeys(e, send)}
+					placeholder="Ask the teacher something"
+					aria-label="Ask the teacher something"
+					className="lh-input field-sizing-content max-h-32 min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px]! leading-5! text-ink outline-none placeholder:text-ink-3"
+				/>
+				<div className="p-2">
+					<ToneButton testId="side-question-send" onClick={send} disabled={!canSend}>
+						Send
+					</ToneButton>
+				</div>
+			</div>
+		</div>
 	);
 }

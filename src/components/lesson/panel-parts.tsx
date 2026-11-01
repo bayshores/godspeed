@@ -25,14 +25,16 @@ export function PanelHeader({ eyebrow, right }: { eyebrow: React.ReactNode; righ
 	);
 }
 
-/** A small tone button in the header (Stop, Skip question, Discard problem). */
-export function PanelHeaderButton({ children, onClick, testId }: { children: React.ReactNode; onClick: () => void; testId: string }) {
+/** A small tone button (Stop, Skip question, Discard problem, a side
+ *  question's Send). */
+export function ToneButton({ children, onClick, testId, disabled }: { children: React.ReactNode; onClick: () => void; testId: string; disabled?: boolean }) {
 	return (
 		<button
 			type="button"
 			data-testid={testId}
 			onClick={onClick}
-			className="lh-press lh-fade flex shrink-0 items-center gap-1.5 bg-tone px-2 py-[3px] text-[12.5px] font-bold text-ink-2 hover:text-ink"
+			disabled={disabled}
+			className="lh-press lh-fade flex shrink-0 items-center gap-1.5 bg-tone px-2 py-[3px] text-[12.5px] font-bold text-ink-2 hover:text-ink disabled:cursor-default disabled:text-ink-3"
 		>
 			{children}
 		</button>
@@ -45,9 +47,9 @@ export function HeaderChip({ exit, children }: { exit?: { label: string; testId:
 	return (
 		<div className="flex shrink-0 items-center gap-2">
 			{exit && (
-				<PanelHeaderButton testId={exit.testId} onClick={exit.onClick}>
+				<ToneButton testId={exit.testId} onClick={exit.onClick}>
 					{exit.label}
-				</PanelHeaderButton>
+				</ToneButton>
 			)}
 			{children}
 		</div>
