@@ -75,9 +75,9 @@ export function comingUpGroups<T extends { date: string; time?: string; name: st
 ): ComingUpGroup<T>[] {
 	const today = localDay(nowMs);
 	const groups: ComingUpGroup<T>[] = [];
-	const find = (key: string, label: string, overdue = false) => {
+	const find = (key: string, label: string) => {
 		let g = groups.find((x) => x.key === key);
-		if (!g) groups.push((g = { key, label, overdue, items: [] }));
+		if (!g) groups.push((g = { key, label, overdue: false, items: [] }));
 		return g;
 	};
 	const overdue: T[] = [];

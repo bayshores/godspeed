@@ -20,7 +20,7 @@ import { prefersReducedMotion } from "@/components/presence";
 /** Matches --lh-dur in src/app/globals.css (the .lh-collapse transition). */
 const FOLD_MS = 160;
 
-export function useFold(open: boolean, ms: number = FOLD_MS): { mounted: boolean; state: "open" | "closed" } {
+export function useFold(open: boolean): { mounted: boolean; state: "open" | "closed" } {
 	const [mounted, setMounted] = useState(open);
 	const [shown, setShown] = useState(open);
 	useEffect(() => {
@@ -49,12 +49,12 @@ export function useFold(open: boolean, ms: number = FOLD_MS): { mounted: boolean
 			return;
 		}
 		if (!mounted) return;
-		if (prefersReducedMotion() || ms <= 0) {
+		if (prefersReducedMotion()) {
 			setMounted(false);
 			return;
 		}
-		const timer = setTimeout(() => setMounted(false), ms);
+		const timer = setTimeout(() => setMounted(false), FOLD_MS);
 		return () => clearTimeout(timer);
-	}, [open, mounted, shown, ms]);
+	}, [open, mounted, shown]);
 	return { mounted: open || mounted, state: open && shown ? "open" : "closed" };
 }

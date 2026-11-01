@@ -71,11 +71,12 @@ const FAILED_JOB_WINDOW_MS = 10 * 60_000;
 /** The dock's whole world in one payload: every running process, every view.
  *  Jobs are RUNNING-ONLY — finished jobs belong to their chat's transcript;
  *  the blob disappears when the process ends. */
-export function activityFeed(now = Date.now()): {
+export function activityFeed(): {
 	jobs: ActivityJob[];
 	extractions: ActivityExtraction[];
 	failed: ActivityFailedJob[];
 } {
+	const now = Date.now();
 	const chats = chatStore.listChats();
 	// Every job runs on the outside agent: one context window.
 	const agentWindow = agentModel().contextWindow;

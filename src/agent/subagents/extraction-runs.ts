@@ -75,13 +75,13 @@ export function extractionStatuses(): RunningExtraction[] {
  *  its abort button works (abortExtraction by `key`). One entry per key;
  *  a second start while one is registered returns the running controller.
  *  Call finishBackgroundGraphRun on every exit. */
-export function startBackgroundGraphRun(key: string, label: string, phase: ExtractionPhase = "grouping"): AbortController {
+export function startBackgroundGraphRun(key: string, label: string): AbortController {
 	const R = runs();
 	const prev = R.running.get(key);
 	if (prev) return prev.controller;
 	R.lastStartedAt = Math.max(Date.now(), R.lastStartedAt + 1);
 	const controller = new AbortController();
-	R.running.set(key, { chatId: key, kind: "topics", label, phase, startedAt: R.lastStartedAt, usage: {}, controller });
+	R.running.set(key, { chatId: key, kind: "topics", label, phase: "grouping", startedAt: R.lastStartedAt, usage: {}, controller });
 	emit("activity-changed", {});
 	return controller;
 }
