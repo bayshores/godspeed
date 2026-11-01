@@ -680,7 +680,7 @@ export function ChainTableOverlay({
 				onDeleted={(deadIds, graphRevision) => {
 					// Close the dialog; prune the dead ids from the
 					// selection (the rest of a big selection survives);
-					// announce the revision so GraphView refetches the
+					// announce the revision so the graph screen refetches the
 					// snapshot — fresh nodes/edges flow back in as props.
 					setDeleteOpen(false);
 					const dead = new Set(deadIds);

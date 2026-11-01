@@ -61,7 +61,7 @@ export const INITIAL_DEMO_BRIDGE_STATE: DemoBridgeState = { height: null, error:
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 2400;
 
-/** Pure reducer over incoming postMessage data (contracts.ts DemoBridgeMessage). */
+/** Pure reducer over incoming postMessage data (the messages DEMO_BRIDGE_SCRIPT posts). */
 export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): DemoBridgeState {
 	if (typeof data !== "object" || data === null) return state;
 	const message = data as { type?: unknown; height?: unknown; message?: unknown };
