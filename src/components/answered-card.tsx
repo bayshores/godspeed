@@ -187,11 +187,18 @@ export function AnsweredCard({
 							)}
 							{isAsk && descByIndex.size > 0 && (
 								<div className="flex flex-col gap-0.5 text-sm">
+									{/* The wrappers keep each text block's height auto: inside the
+									    fold's grid, the renderer's full height would otherwise fill
+									    the row and push the description under the next option. */}
 									{answer.options?.map((opt) => (
-										<div key={opt.index} className={cn("bg-tone px-3 py-2", !selectedIdx.has(opt.index) && "text-ink-2")}>
-											<ToolContentResponse>{opt.label}</ToolContentResponse>
+										<div key={opt.index} className="bg-tone px-3 py-2">
+											<div style={proseVars(14, 20, selectedIdx.has(opt.index) ? "var(--foreground)" : "var(--muted-foreground)")}>
+												<ToolContentResponse>{opt.label}</ToolContentResponse>
+											</div>
 											{descByIndex.get(opt.index) && (
-												<ToolContentResponse className="block text-xs text-ink-3">{descByIndex.get(opt.index)}</ToolContentResponse>
+												<div className="mt-0.5" style={proseVars(13, 18, "var(--lh-ink-3)")}>
+													<ToolContentResponse>{descByIndex.get(opt.index)}</ToolContentResponse>
+												</div>
 											)}
 										</div>
 									))}

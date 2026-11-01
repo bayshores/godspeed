@@ -17,6 +17,7 @@ import {
 	firstSourceTextParts,
 	isAttachmentPart,
 	messageAnchorId,
+	QUESTION_TOOLS,
 	teachStepIndex,
 	textPartMessageId,
 	type ArtifactPartProps,
@@ -29,6 +30,7 @@ import { STEP_TOOLS } from "./agent-at-work-model";
 import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
+import { drawnSeparators } from "./message-row-model";
 
 // A plan diagram (and dagre, its layout engine) loads only for lessons
 // that have one; server rendering keeps it in the first paint.
@@ -112,6 +114,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	// A native message lives in exactly one view group, so the row can pick
 	// its anchors alone.
 	const anchors = new Set(firstSourceTextParts([m]).values());
+	const separators = drawnSeparators(m.parts, (part) => partShows(part, hideSteps));
 	return (
 		<Fragment>
 			{seamStep === -1 && <PhaseDivider phase="teach" />}
@@ -122,7 +125,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 						key={part.type === "text" ? part.id || pi : pi}
 						part={part}
 						slot={`${mi}:${pi}`}
-						first={pi === 0}
+						separator={separators.has(pi)}
 						teachBoundary={seamStep === pi}
 						anchor={part.type === "text" && part.id && anchors.has(part.id) ? part.id : undefined}
 						streaming={streamingLast && pi === m.parts.length - 1}
@@ -161,10 +164,21 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 	}
 }
 
+/** Whether AssistantPart draws anything for this part (kept in step with it). */
+function partShows(part: LhViewPart, hideSteps: boolean): boolean {
+	if (part.type === "text" || part.type === "reasoning" || part.type === "data-plan-block") return true;
+	if (!part.type.startsWith("tool-")) return false;
+	const tool = part.type.slice("tool-".length);
+	if (hideSteps && STEP_TOOLS.has(tool)) return false;
+	if (part.state === "output-error" && part.errorText !== "Operation aborted") return true;
+	if ((QUESTION_TOOLS as readonly string[]).includes(tool)) return part.state === "output-available";
+	return part.state === "input-streaming" || tool in artifactRenderers;
+}
+
 function AssistantPart({
 	part,
 	slot,
-	first,
+	separator,
 	teachBoundary,
 	anchor,
 	streaming,
@@ -174,7 +188,8 @@ function AssistantPart({
 }: {
 	part: LhViewPart;
 	slot: string;
-	first: boolean;
+	/** Draw this step-start's hairline (drawnSeparators). */
+	separator: boolean;
 	teachBoundary: boolean;
 	anchor?: string;
 	streaming: boolean;
@@ -219,7 +234,7 @@ function AssistantPart({
 						<PhaseDivider phase="teach" />
 					</div>
 				);
-			return first || hideSteps ? null : <Separator className="my-3" />;
+			return separator && !hideSteps ? <Separator className="my-3" /> : null;
 		case "data-plan-block":
 			// A frozen snapshot of the plan, rendered as carried.
 			return (
