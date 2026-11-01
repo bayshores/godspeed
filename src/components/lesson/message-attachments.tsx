@@ -63,6 +63,7 @@ function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) 
 		<div
 			data-testid="picture-overlay"
 			role="dialog"
+			aria-modal="true"
 			aria-label="Picture"
 			onClick={onClose}
 			className="lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"

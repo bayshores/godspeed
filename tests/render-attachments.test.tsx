@@ -127,6 +127,7 @@ describe("the learner's message with files", () => {
 			const thumb = () => host.querySelector<HTMLButtonElement>('[aria-label="Show picture full size"]')!;
 			await act(async () => thumb().click());
 			assert.ok(overlay(), "opens");
+			assert.equal(overlay()!.getAttribute("aria-modal"), "true", "Tab stays out of the lesson behind it");
 			const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
 			Object.defineProperty(esc, "key", { value: "Escape" });
 			await act(async () => void document.dispatchEvent(esc));
