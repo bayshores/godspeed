@@ -16,6 +16,9 @@ import { WherePanel } from "../src/components/graph/where-panel.tsx";
 import { TopicPanel } from "../src/components/graph/topic-panel.tsx";
 import { TopicMap } from "../src/components/graph/topic-map.tsx";
 import { GraphTopBar } from "../src/components/graph/graph-top-bar.tsx";
+import { GraphScreen } from "../src/components/graph/graph-screen.tsx";
+import { ServerEventsProvider } from "../src/components/server-events.tsx";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime.js";
 import { fixture } from "./graph-fixture.ts";
 
 const noop = () => {};
@@ -171,7 +174,17 @@ Object.assign(globalThis, {
 	SVGElement: dom.window.SVGElement,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	// The menu shell measures and places on a frame.
+	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
+	cancelAnimationFrame: (id: number) => clearTimeout(id),
+	getComputedStyle: () => ({ getPropertyValue: () => "" }),
+	ResizeObserver: class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	},
 });
+Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 
 let root: Root | undefined;
 let host: HTMLDivElement | undefined;
@@ -224,5 +237,70 @@ describe("keyboard access to topics", () => {
 		await act(async () => fire(mini, "focusout"));
 		assert.equal(host.querySelector('[data-testid="topic-answer-strip"]'), null, "blur hides the strip");
 		assert.equal(faded(), 0, "and brings every topic back");
+	});
+});
+
+describe("the deadline picker's menu", () => {
+	it("is the class switcher's width; a long name truncates and shows in full on hover", async () => {
+		const data = fixture();
+		const long = { ...data.deadlines[0]!, id: "ex-2", name: "Final exam covering every lecture from week one through week ten" };
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		await act(async () =>
+			root!.render(
+				<WherePanel
+					data={{ ...data, deadlines: [data.deadlines[0]!, long] }}
+					deadlineId="ex-1"
+					onDeadlineChange={noop}
+					onSelectTopic={noop}
+					onPractice={noop}
+					practicing={false}
+					practiceError={null}
+				/>,
+			),
+		);
+		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
+		const menu = document.querySelector('[data-testid="deadline-picker-menu"]')!;
+		assert.match(menu.getAttribute("class")!, /w-\[236px\]/);
+		const item = [...menu.querySelectorAll('[role="menuitemradio"]')].find((el) => el.getAttribute("title") === long.name);
+		assert.ok(item, "the full name is the item's title");
+		assert.match(item.querySelector("span")!.getAttribute("class")!, /min-w-0 flex-1 truncate/);
+	});
+});
+
+describe("the graph screen", () => {
+	it("a graph that can't be read says so, and Try again reads it again", async () => {
+		const original = globalThis.fetch;
+		const urls: string[] = [];
+		globalThis.fetch = (async (url: string) => {
+			urls.push(url);
+			return Response.json({ error: "boom" }, { status: 500 });
+		}) as typeof fetch;
+		const router = { push: noop } as unknown as React.ContextType<typeof AppRouterContext>;
+		const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+		try {
+			host = document.createElement("div");
+			document.body.append(host);
+			root = createRoot(host);
+			await act(async () =>
+				root!.render(
+					<AppRouterContext.Provider value={router}>
+						<ServerEventsProvider connect={quietEvents as never}>
+							<GraphScreen />
+						</ServerEventsProvider>
+					</AppRouterContext.Provider>,
+				),
+			);
+			assert.match(host.querySelector('[data-testid="load-failed"]')!.textContent!, /Couldn't load the graph\./);
+			const before = urls.filter((u) => u.startsWith("/api/progress")).length;
+			await act(async () => {
+				host!.querySelector<HTMLButtonElement>('[data-testid="load-failed-retry"]')!.click();
+				await new Promise((resolve) => setTimeout(resolve, 450)); // the refresh debounce
+			});
+			assert.equal(urls.filter((u) => u.startsWith("/api/progress")).length, before + 1);
+		} finally {
+			globalThis.fetch = original;
+		}
 	});
 });

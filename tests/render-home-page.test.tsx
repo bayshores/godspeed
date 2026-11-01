@@ -262,7 +262,7 @@ describe("Coming up", () => {
 		const row = section(comingUp(), "coming-up-row-quiz", "</li>");
 		assert.match(row, /data-testid="done-box"[^>]*style="width:16px;height:16px"/);
 		assert.match(row, /text-\[15\.5px\][^>]*font-bold[^>]*>Reading quiz<\/span><span[^>]*text-ink-2[^>]*>quiz</);
-		assert.match(row, /data-testid="coming-up-class"[^>]*bg-tone-2[^>]*>CSE 21</);
+		assert.match(row, /data-testid="coming-up-class" title="CSE 21"[^>]*min-w-0 max-w-\[160px\] truncate bg-tone-2[^>]*>CSE 21</);
 		assert.match(row, /data-mode="fine"[^>]*font-mono font-bold tabular-nums text-\[16px\][^>]*>48:00\.00</);
 		assert.match(row, /text-ink-3[^>]*>5:00 PM</);
 		assert.match(row, /w-\[110px\]/);

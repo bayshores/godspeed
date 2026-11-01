@@ -482,6 +482,7 @@ function QuestionDockForm({
 										}
 									}}
 									placeholder="Type your own answer…"
+									aria-label="Your own answer"
 									className={cn(
 										"lh-input min-w-0 flex-1 bg-transparent text-[15px]! outline-none",
 										sel.otherSelected ? "placeholder:text-background/50" : "placeholder:text-ink-3",

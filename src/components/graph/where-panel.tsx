@@ -12,7 +12,7 @@ import { MenuShell } from "@/components/menu-shell";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { Tip } from "@/components/ui/tooltip";
 import { countdownText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
-import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
+import { MENU_ITEM_CLASS } from "./menu.tsx";
 
 /** "Work on next" shows this many (the design's "Practice these 4"). */
 const WORK_ON_NEXT_LIMIT = 4;
@@ -84,6 +84,9 @@ export function WherePanel({
 	);
 }
 
+// The class switcher's fixed width, so a long deadline name truncates.
+const PICKER_MENU_CLASS = "lh-glass flex w-[236px] flex-col gap-0.5 p-1.5 text-[13.5px]";
+
 function DeadlinePicker({
 	deadlines,
 	deadline,
@@ -112,7 +115,7 @@ function DeadlinePicker({
 				<span className="min-w-0 flex-1 truncate">{deadline.name}</span>
 				<ChevronDownIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="deadline-picker-menu" preferredSide="down" align="left" menuClass={MENU_CLASS}>
+			<MenuShell open={open} anchorRef={anchorRef} testid="deadline-picker-menu" preferredSide="down" align="left" menuClass={PICKER_MENU_CLASS}>
 				{deadlines.map((d) => (
 					<button
 						key={d.id}
@@ -123,9 +126,10 @@ function DeadlinePicker({
 							onChange(d.id);
 							setOpen(false);
 						}}
+						title={d.name}
 						className={`${MENU_ITEM_CLASS} ${d.id === deadline.id ? "font-bold text-ink" : ""}`}
 					>
-						{d.name}
+						<span className="min-w-0 flex-1 truncate">{d.name}</span>
 					</button>
 				))}
 			</MenuShell>

@@ -143,7 +143,12 @@ function ComingUpRow({
 					</div>
 				)}
 			</div>
-			<span data-testid="coming-up-class" className="shrink-0 bg-tone-2 px-2 py-0.5 text-[12.5px] leading-[18px] font-bold text-ink">
+			{/* Capped and the one that shrinks, so the deadline name keeps the room. */}
+			<span
+				data-testid="coming-up-class"
+				title={d.className}
+				className="min-w-0 max-w-[160px] truncate bg-tone-2 px-2 py-0.5 text-[12.5px] leading-[18px] font-bold text-ink"
+			>
 				{d.className}
 			</span>
 			<div className="flex w-[110px] shrink-0 flex-col items-end gap-0.5 text-right">
