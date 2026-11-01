@@ -365,25 +365,6 @@ body {
 	background: var(--color-muted-foreground);
 }
 
-/* Dock variant swap — quick fade/rise on content change; the shell's HEIGHT
-   morph is separate (WAAPI in DockOverlay). Re-applied via class toggling, no
-   remount, so collapsed-question state survives. */
-@keyframes dock-variant-in {
-	from {
-		opacity: 0;
-		transform: translateY(6px);
-	}
-
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.dock-variant {
-	animation: dock-variant-in 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
 /* ============================================================
  * Presentation fixes
  * ============================================================ */
@@ -527,30 +508,6 @@ body {
 	}
 }
 
-/* Settings dialog pop: a short fade +
-   2% settle-scale — understated by design, the app's motion taste
-   (200ms sidebar, 150ms here); honors reduced-motion by appearing. */
-@keyframes settings-pop {
-	from {
-		opacity: 0;
-		scale: 0.98;
-	}
-	to {
-		opacity: 1;
-		scale: 1;
-	}
-}
-
-.settings-dialog-pop {
-	animation: settings-pop 150ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.settings-dialog-pop {
-		animation: none;
-	}
-}
-
 /* ─────────────────────────────────────────────────────────────────────────
    Electron merged chrome. The system title bar is
    hidden (macOS hiddenInset; Windows/Linux hidden + native controls
@@ -618,42 +575,12 @@ body {
 .lh-electron .lh-wco-gutter {
 	padding-right: calc(0.75rem + var(--lh-wco-right, 0px));
 }
-.lh-electron .lh-wco-floating {
-	right: calc(0.5rem + var(--lh-wco-right, 0px));
-	max-width: max(0px, calc(100% - 5.5rem - var(--lh-wco-right, 0px)));
-}
 
 /* --font-title deliberately NOT @theme inline (see comment above): the
    session-name-serif toggle overrides this var at runtime, so the
    .font-title utility must read it through var(), not carry a baked copy. */
 @theme {
 	--font-title: "lh-cmu", serif;
-}
-
-/* Card enter: the transcript cards' one-shot
-   mount — a subtle fade + 4px rise, the app's motion register (150ms,
-   dock-variant/settings-pop taste). Nothing on update, nothing on
-   unmount. Applied by the unified ThinkingBlock and the practice
-   cards; honors reduced-motion by appearing. */
-@keyframes lh-card-enter {
-	from {
-		opacity: 0;
-		transform: translateY(4px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.lh-card-enter {
-	animation: lh-card-enter 120ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.lh-card-enter {
-		animation: none;
-	}
 }
 
 /* Source-message arrival: a brief, static theme-colored spotlight. */
@@ -667,7 +594,7 @@ body {
 
 /* ─────────────────────────────────────────────────────────────────────────
    THE MOTION SYSTEM ("quick and subtle").
-   One register for the whole app, extending settings-pop / lh-card-enter:
+   One register for the whole app:
    short fades, a 4px travel, a 2% settle-scale, a press-down on buttons.
    Nothing bounces, nothing overshoots.
 
