@@ -36,7 +36,7 @@ import {
 	type QuestionAnswerData,
 } from "../core";
 
-export type SessionStatus = "ready" | "submitted" | "streaming" | "error";
+type SessionStatus = "ready" | "submitted" | "streaming" | "error";
 
 /** How often to poll turnInFlight while a racing turn runs (409 retry). */
 const TURN_POLL_MS = 500;
@@ -215,7 +215,7 @@ export interface SessionState {
 }
 
 /** One queued composer steer: the client-minted id (the upsert key) + text. */
-export interface SteerQueueItem {
+interface SteerQueueItem {
 	id: string;
 	text: string;
 }

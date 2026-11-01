@@ -20,7 +20,7 @@ export interface FolderView {
 }
 
 /** One step of a launch: running, done, or failed with a message. */
-export type StepState = "wait" | "done" | { error: string };
+type StepState = "wait" | "done" | { error: string };
 
 /** A click on the button: the folder being made, then the terminal
  *  opening ("manual" outside the desktop app: the learner runs the command). */

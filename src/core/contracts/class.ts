@@ -23,7 +23,7 @@ export type ClassFileKind = "study" | "info";
 /** Where a class file lives: "copied" = the app's own copy under
  *  data/classes/<id>/files; "linked" = inside the class's linked folder
  *  (the learner's own folder, never written to). */
-export type ClassFileOrigin = "copied" | "linked";
+type ClassFileOrigin = "copied" | "linked";
 
 /** A file's pipeline state, shown as a badge.
  *  - pending: waiting for its turn (or a course-info file: nothing to do)

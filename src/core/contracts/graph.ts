@@ -197,7 +197,7 @@ export interface CoverageEntry {
 // ─── Extraction findings (extractor output → merger input) ───────────────────
 
 /** One proposed proposition — a node candidate (or a re-encounter of one). */
-export interface ExtractedProposition {
+interface ExtractedProposition {
 	/** Extractor-local id ("p1", …) referenced by chains. */
 	id: string;
 	/** A very short label — a few words, a compact handle like a glossary

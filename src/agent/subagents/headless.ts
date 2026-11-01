@@ -32,7 +32,7 @@ export interface DemoRunResult {
 	ok: boolean;
 }
 
-export interface RunDemoOptions {
+interface RunDemoOptions {
 	/** How long to let the page settle (animations, async CDN loads) — default 2s. */
 	settleMs?: number;
 	/** Optional JS expression evaluated in the page after settling; its value
@@ -40,18 +40,18 @@ export interface RunDemoOptions {
 	probe?: string;
 }
 
-export interface RenderSvgOptions {
+interface RenderSvgOptions {
 	/** Viewport size — defaults to the SVG's width/height attrs, else 900×700. */
 	width?: number;
 	height?: number;
 }
 
-export interface RenderPdfOptions {
+interface RenderPdfOptions {
 	/** Render DPI — 72 is 100% zoom; the skill's guidance is 100/150/200. */
 	dpi?: number;
 }
 
-export interface RenderedPdfPage {
+interface RenderedPdfPage {
 	page: number;
 	png: Buffer;
 }

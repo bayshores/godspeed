@@ -9,7 +9,7 @@ import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAtta
  * them above the box, and the send carries them.
  */
 
-export interface DraftFile {
+interface DraftFile {
 	id: string;
 	attachment: ChatAttachment;
 }

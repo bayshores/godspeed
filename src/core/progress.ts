@@ -204,7 +204,7 @@ const byTime = (a: { answeredAt: string }, b: { answeredAt: string }) => a.answe
 
 // ─── tallies ────────────────────────────────────────────────────────────────
 
-export interface Tally {
+interface Tally {
 	answered: number;
 	right: number;
 	wrong: number;
@@ -516,7 +516,7 @@ export interface DeadlineProgress {
 }
 
 /** The class-wide view (no deadline picked, or none exists). */
-export interface OverallProgress {
+interface OverallProgress {
 	topicIds: string[];
 	counts: StatusCounts;
 	workOnNext: WorkOnNextItem[];

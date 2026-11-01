@@ -17,7 +17,7 @@ import type { CallUsage, EmissionStats, ExtractionRunUsage, ExtractionStageUsage
 import { sumSteps, isSubscriptionModel, subscriptionLabels } from "./prices.ts";
 
 /** One pipeline stage's cumulative cost across every run. */
-export interface StageCost {
+interface StageCost {
 	/** Subscription stage-runs, excluded from unpriced counts. */
 	subscriptionRuns?: number;
 	subscriptionProviders?: string[];
@@ -30,7 +30,7 @@ export interface StageCost {
 }
 
 /** One run in the recent-runs list. */
-export interface RecentRun {
+interface RecentRun {
 	subscriptionRuns?: number;
 	subscriptionProviders?: string[];
 	/** Stages on a model with no plan; absent when none. */

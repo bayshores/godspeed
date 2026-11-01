@@ -49,7 +49,7 @@ import { DeleteNodeDialog } from "@/components/delete-node-dialog";
 import { LatexGlyph } from "@/components/latex-glyph";
 
 /** The sortable columns. */
-export type ChainSortCol = "name" | "props" | "created";
+type ChainSortCol = "name" | "props" | "created";
 export interface ChainSort {
 	col: ChainSortCol;
 	/** 1 = ascending (A→Z, oldest-first, smallest-first), -1 = descending. */

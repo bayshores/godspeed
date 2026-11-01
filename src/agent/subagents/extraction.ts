@@ -577,7 +577,7 @@ interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
 /** How many related ideas each stretch's prompt carries. */
 const RELATED_FACTS = 25;
 
-export interface NotesImportInput {
+interface NotesImportInput {
 	/** The source's file path — its identity (deterministic src id) AND its
 	 *  provenance label in the detail card. */
 	filePath: string;

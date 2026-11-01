@@ -97,7 +97,7 @@ export interface AgentSettings {
 }
 
 /** Markdown-rendering knobs — the bare-bones set. */
-export interface MdRenderingSettings {
+interface MdRenderingSettings {
 	/** Heading font weight (100–900, default 900). CSS resolves the nearest
 	 *  available weight of the chosen font — no font introspection needed. */
 	headingWeight?: number;

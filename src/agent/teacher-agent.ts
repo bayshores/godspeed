@@ -71,7 +71,7 @@ export function composeInstructions(kind: AgentKind): string {
 
 // The chat-handler passes a per-turn collector; every model call's token
 // usage lands in the chat record's turns log (ChatStore.appendTurnUsage).
-export type StepUsageCollector = (usage: Usage) => void;
+type StepUsageCollector = (usage: Usage) => void;
 
 /** Per-request construction options (the handler wires all of these). */
 export interface AgentBuildOptions {
@@ -266,8 +266,8 @@ export function createPracticeAgent(ctx: PracticeToolContext, opts: AgentBuildOp
 	return baseAgentOptions("practice", opts, Object.values(tools));
 }
 
-export type ProberAgent = ReturnType<typeof createProberAgent>;
-export type TeacherAgent = ReturnType<typeof createTeacherAgent>;
-export type PracticeAgent = ReturnType<typeof createPracticeAgent>;
+type ProberAgent = ReturnType<typeof createProberAgent>;
+type TeacherAgent = ReturnType<typeof createTeacherAgent>;
+type PracticeAgent = ReturnType<typeof createPracticeAgent>;
 export type TeachingAgent = ProberAgent | TeacherAgent | PracticeAgent;
 
