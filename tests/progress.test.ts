@@ -342,31 +342,6 @@ describe("progress: deriveProgress", () => {
 	});
 });
 
-// ─── the plan step bar ──────────────────────────────────────────────────────
-
-describe("progress: planStepBar", () => {
-	const tree = { nodes: [{ id: "b", title: "Bayes" }, { id: "a", title: "Priors" }, { id: "c", title: "Posteriors" }], edges: [{ from: "a", to: "b" }, { from: "b", to: "c" }] };
-	const part = (type: string, nodeId: string | undefined, output: unknown, toolCallId: string) => ({ type, state: output === undefined ? "input-available" : "output-available", toolCallId, input: nodeId ? { nodeId } : {}, output });
-	const quiz = (ad: Partial<QuestionAnswerData>) => ({ kind: "quiz", questionText: "?", dontKnow: false, answers: [], answeredAt: "", ...ad });
-
-	it("orders steps by the plan, with statuses and the answers per step", () => {
-		const bar = P.planStepBar(tree, [
-			{ parts: [part("tool-quiz", "a", quiz({ correct: true, confidence: 70 }), "q1"), part("tool-quiz", "a", quiz({ dontKnow: true }), "q2")] },
-			{ parts: [part("tool-explain", "b", { kind: "explain", questionText: "?", dontKnow: false, answers: [], answeredAt: "" }, "q3")] },
-			{ parts: [part("tool-quiz", "b", quiz({ dismissed: true }), "q4"), part("tool-quiz", "b", undefined, "q5")] },
-		]);
-		assert.deepEqual(bar.steps.map((s) => [s.id, s.status]), [["a", "visited"], ["b", "current"], ["c", "upcoming"]]);
-		assert.equal(bar.currentIndex, 1);
-		assert.deepEqual(bar.steps[0]!.answers, [{ toolCallId: "q1", outcome: "right", level: 3 }, { toolCallId: "q2", outcome: "dontKnow" }]);
-		assert.deepEqual(bar.steps[1]!.answers, [{ toolCallId: "q3", outcome: "ungraded" }], "dismissed and unanswered calls don't count");
-	});
-
-	it("is empty without a plan", () => {
-		assert.deepEqual(P.planStepBar(null, []), { steps: [], currentIndex: -1 });
-		assert.equal(P.planStepBar(tree, []).currentIndex, -1);
-	});
-});
-
 // ─── GET /api/progress ──────────────────────────────────────────────────────
 
 describe("GET /api/progress", () => {

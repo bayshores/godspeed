@@ -73,6 +73,7 @@ export * from "./keyboard.ts";
 // numbers — pure, browser-safe.
 export * from "./topics.ts";
 export * from "./progress.ts";
+export * from "./plan-step-bar.ts";
 // session-markdown.ts: session to markdown, used by the markdown export
 // and the MCP read_lesson tool. Pure, browser-safe.
 export * from "./session-markdown.ts";
