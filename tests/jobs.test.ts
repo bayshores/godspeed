@@ -273,6 +273,19 @@ describe("job store", () => {
 		assert.equal(jobStore.findJobByToolCallId("chat_storetest", "call-missing"), null);
 	});
 
+	it("parses a job file again only after it changes", () => {
+		const job = jobStore.createJob({ kind: "research", chatId: "chat_storecache", toolCallId: "call-cache" });
+		trackJob(job.id);
+		const first = jobStore.getJob(job.id)!;
+		assert.equal(jobStore.getJob(job.id), first, "an unchanged file is not parsed again");
+		assert.ok(jobStore.listAllJobs().includes(first), "listing shares the parsed record");
+		jobStore.updateJob(job.id, { activity: "reading page 1" });
+		jobStore.updateJob(job.id, { activity: "reading page 2" }); // same size, maybe the same clock tick
+		assert.equal(jobStore.getJob(job.id)!.activity, "reading page 2");
+		jobStore.deleteJobsForChat("chat_storecache");
+		assert.equal(jobStore.getJob(job.id), null);
+	});
+
 	// ── push-architecture S4: every WRITE announces on the
 	// events channel (notify-after-write); reads stay silent ──
 	it("every mutation emits jobs-changed {chatId}; reads emit nothing", () => {

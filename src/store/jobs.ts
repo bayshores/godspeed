@@ -48,16 +48,37 @@ function createJob(init: CreateJobInit): JobRecord {
 	return record;
 }
 
+/** Parsed job records kept while their file's modified time and size are
+ *  unchanged: the activity feed and every turn start list every job of
+ *  every lesson, and a record holds its whole result. Records are SHARED —
+ *  callers must never mutate them (frozen under tests). */
+const jobCache = new Map<string, { version: string; job: JobRecord | null }>();
+
 function getJob(id: string): JobRecord | null {
+	let file: string;
+	let version: string;
+	try {
+		file = jobFile(id);
+		const st = fs.statSync(file);
+		version = `${st.mtimeMs}:${st.size}`;
+	} catch {
+		jobCache.delete(id);
+		return null;
+	}
+	const hit = jobCache.get(id);
+	if (hit?.version === version) return hit.job;
 	let parsed: unknown;
 	try {
-		parsed = JSON.parse(fs.readFileSync(jobFile(id), "utf-8"));
+		parsed = JSON.parse(fs.readFileSync(file, "utf-8"));
 	} catch {
 		return null;
 	}
-	return isRecord(parsed) && isString(parsed.id) && isString(parsed.chatId) && isString(parsed.updatedAt) && isString(parsed.status)
+	const job = isRecord(parsed) && isString(parsed.id) && isString(parsed.chatId) && isString(parsed.updatedAt) && isString(parsed.status)
 		? (parsed as unknown as JobRecord)
 		: null;
+	if (job && process.env.NODE_ENV === "test") Object.freeze(job);
+	jobCache.set(id, { version, job });
+	return job;
 }
 
 /** Merge a partial patch into the record (identity fields are immutable).
@@ -68,6 +89,7 @@ function updateJob(id: string, patch: JobPatch): JobRecord | null {
 	if (!record) return null;
 	const next: JobRecord = { ...record, ...patch, updatedAt: patch.updatedAt ?? new Date().toISOString() };
 	writeFileAtomic(jobFile(id), JSON.stringify(next, null, "\t"));
+	jobCache.delete(id); // a same-size write within the clock's tick keeps the version
 	// EVERY write, not just status flips: progress-line updates must reach
 	// the dispatch cards (the view debounces the fetch bursts). A missing id
 	// wrote nothing and stays silent.
@@ -79,10 +101,14 @@ function updateJob(id: string, patch: JobPatch): JobRecord | null {
 function listAllJobs(): JobRecord[] {
 	try {
 		fs.mkdirSync(JOBS_DIR, { recursive: true });
-		return fs
+		const ids = fs
 			.readdirSync(JOBS_DIR)
 			.filter((f) => f.endsWith(".json"))
-			.map((f) => getJob(f.slice(0, -5)))
+			.map((f) => f.slice(0, -5));
+		const present = new Set(ids);
+		for (const cached of jobCache.keys()) if (!present.has(cached)) jobCache.delete(cached);
+		return ids
+			.map((id) => getJob(id))
 			.filter((j): j is JobRecord => j !== null)
 			.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 	} catch {
@@ -109,6 +135,7 @@ function deleteJobsForChat(chatId: string): number {
 	for (const job of listJobs(chatId)) {
 		try {
 			fs.unlinkSync(jobFile(job.id));
+			jobCache.delete(job.id);
 			removed++;
 		} catch {
 			/* already gone — the count is best-effort truth */
