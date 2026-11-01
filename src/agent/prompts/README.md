@@ -14,6 +14,11 @@ System prompts are composed per agent when the agent is built (`composeInstructi
 
 **The teaching method** (Principle i / Principle ii, the click, the arc, the hedge) lives in `teacher/05-method.md`, teacher-only since the prober never teaches.
 
+**After the fragments**, every agent's system prompt gets two optional parts, in this order (`baseAgentOptions` in `teacher-agent.ts`):
+
+1. One note naming the tools the learner switched off in Settings (`switchedOffToolsNote` in `src/core/tool-switches.ts`), so the model doesn't plan around a tool the fragments still mention. Each agent's note covers only the switchable tools it carries (`AGENT_SWITCHES`): the teacher can lose `research`, `demo`, `visual` and `pdf`; the prober and practice can lose `research` and `pdf`. No tool off, no note.
+2. The learner's teaching rules (`learnerRulesSection` in `src/core/teaching-areas.ts`).
+
 Only numeric-prefix files load (`\d+-*.md`), so other files like this README never enter the model's prompt.
 
 **Learner overrides** mirror this layout under `PROMPTS_OVERRIDE_DIR` (`system-prompt.md` at the root, then `shared/<file>`, `teacher/<file>`, `prober/<file>`, `practice/<file>`). A saved file is used in place of the source.
