@@ -11,8 +11,7 @@ import { emit } from "../../core/events.ts";
  *  "grouping": a topic-grouping run (startBackgroundGraphRun). */
 export type ExtractionPhase = "waiting" | "extracting" | "merging" | "grouping";
 
-/** One in-flight pipeline run. Module-level: one process, one registry.
- *  Exported for the status payload's consumer typing (the dock). */
+/** One in-flight run: an extraction job or a topic-grouping run. */
 export interface RunningExtraction {
 	/** The SOURCE id (chat id / notes src id) — the payload's identity and
 	 *  the abort key. The registry KEY adds "#i" for chunk jobs (a
