@@ -28,15 +28,20 @@ function savedLabel(note: NoteView): string {
 export function RememberedNotes() {
 	const [notes, setNotes] = useState<NoteView[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	// Delete waits for the request: a second click would 404 and show an error.
+	const [busy, setBusy] = useState(false);
 
 	const load = useCallback((query?: string, init?: RequestInit) => {
-		request(query, init).then(
-			(n) => {
-				setNotes(n);
-				setError(null);
-			},
-			(e: Error) => setError(e.message),
-		);
+		setBusy(true);
+		request(query, init)
+			.then(
+				(n) => {
+					setNotes(n);
+					setError(null);
+				},
+				(e: Error) => setError(e.message),
+			)
+			.finally(() => setBusy(false));
 	}, []);
 	useEffect(() => load(), [load]);
 
@@ -53,6 +58,7 @@ export function RememberedNotes() {
 							type="button"
 							aria-label={`Delete note: ${note.text}`}
 							className={OUTLINE_BUTTON}
+							disabled={busy}
 							onClick={() => load(`?id=${encodeURIComponent(note.id)}`, { method: "DELETE" })}
 						>
 							Delete
