@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { savedDay } from "@/components/rule-chips";
 import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
 
 interface NoteView {
@@ -20,7 +21,7 @@ async function request(query = "", init?: RequestInit): Promise<NoteView[]> {
 }
 
 function savedLabel(note: NoteView): string {
-	const day = new Date(note.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+	const day = savedDay(note.createdAt);
 	return note.className ? `${note.className}, saved ${day}` : `Saved ${day}`;
 }
 

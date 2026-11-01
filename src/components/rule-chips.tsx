@@ -93,6 +93,6 @@ export function RuleChips({
 }
 
 /** "Oct 30". */
-function savedDay(iso: string): string {
+export function savedDay(iso: string): string {
 	return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
