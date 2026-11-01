@@ -297,6 +297,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 									type="text"
 									data-testid="class-name"
 									value={name}
+									disabled={busy}
 									onChange={(e) => setName(e.target.value)}
 									placeholder="e.g. MATH 20C – Calculus III"
 									className={`h-10 ${FIELD}`}
@@ -308,6 +309,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								<textarea
 									data-testid="class-description"
 									value={description}
+									disabled={busy}
 									onChange={(e) => setDescription(e.target.value)}
 									rows={2}
 									placeholder="Level, textbook, the professor's notation, what exams look like… The teacher reads this."

@@ -129,6 +129,7 @@ const DeadlineRow = memo(function DeadlineRow({
 					data-testid="class-deadline-name"
 					aria-label="Deadline name"
 					value={draft.name}
+					disabled={disabled}
 					placeholder="Homework 5"
 					autoFocus={draft.id === undefined}
 					onChange={(e) => onChange(draft.key, { name: e.target.value })}
@@ -139,6 +140,7 @@ const DeadlineRow = memo(function DeadlineRow({
 					data-testid="class-deadline-date"
 					aria-label="Deadline date"
 					value={draft.date}
+					disabled={disabled}
 					onChange={(e) => onChange(draft.key, { date: e.target.value })}
 					className="shrink-0 bg-transparent font-mono text-[12.5px] text-ink-2 outline-none [color-scheme:dark] focus-visible:text-ink"
 				/>
@@ -148,6 +150,7 @@ const DeadlineRow = memo(function DeadlineRow({
 						data-testid="class-deadline-time"
 						aria-label="Deadline time (optional)"
 						value={draft.time}
+						disabled={disabled}
 						onChange={(e) => onChange(draft.key, { time: e.target.value })}
 						className="bg-transparent font-mono text-[12.5px] text-ink-2 outline-none [color-scheme:dark] focus-visible:text-ink"
 					/>
@@ -156,6 +159,7 @@ const DeadlineRow = memo(function DeadlineRow({
 							type="button"
 							data-testid="class-deadline-time-clear"
 							aria-label="Clear time"
+							disabled={disabled}
 							onClick={() => onChange(draft.key, { time: "" })}
 							className="lh-press text-ink-3 hover:text-ink"
 						>
