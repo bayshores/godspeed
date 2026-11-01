@@ -239,6 +239,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 	const [open, setOpen] = useState(false);
 	const [fonts, setFonts] = useState<string[] | null | undefined>(undefined);
 	const anchorRef = useRef<HTMLSpanElement>(null);
+	const triggerRef = useRef<HTMLButtonElement>(null);
 
 	const toggle = () => {
 		if (!open && fonts === undefined) {
@@ -253,6 +254,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 	};
 
 	// Any click outside the open menu, or Escape, closes it (not the dialog).
+	// Escape returns focus to the trigger, as every menu does (useMenuDismiss).
 	useEffect(() => {
 		if (!open) return;
 		const onPointerDown = (e: PointerEvent) => {
@@ -265,6 +267,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 			if (e.key !== "Escape") return;
 			e.stopPropagation();
 			setOpen(false);
+			triggerRef.current?.focus();
 		};
 		document.addEventListener("pointerdown", onPointerDown);
 		document.addEventListener("keydown", onKeyDown, true);
@@ -277,6 +280,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 	return (
 		<span ref={anchorRef} className="relative block">
 			<button
+				ref={triggerRef}
 				type="button"
 				aria-label="Reading font"
 				aria-expanded={open}
