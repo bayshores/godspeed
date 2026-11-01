@@ -9,10 +9,12 @@ import type { ChatListItem } from "@/core";
  * refetches at once. Two same-tab instants patch the snapshot without a
  * round trip: lh:chat-renamed (a header rename) and lh:turn-state (the
  * open lesson's turn starting or settling). Rows that arrive after the
- * first snapshot are marked fresh so they rise in once.
+ * first snapshot are marked fresh so they rise in once. `failed` is set
+ * while no snapshot could be read yet.
  */
 export function useLessonList(open: boolean, pathname: string) {
 	const [chats, setChats] = useState<ChatListItem[] | null>(null);
+	const [failed, setFailed] = useState(false);
 	const [freshIds, setFreshIds] = useState<ReadonlySet<string>>(() => new Set());
 	const knownIdsRef = useRef<Set<string> | null>(null);
 
@@ -28,6 +30,7 @@ export function useLessonList(open: boolean, pathname: string) {
 		refreshInFlightRef.current = true;
 		try {
 			const res = await fetch("/api/chats", { cache: "no-store" });
+			if (!res.ok) throw new Error(String(res.status));
 			const d = (await res.json()) as { chats: ChatListItem[] };
 			const known = knownIdsRef.current;
 			if (known) {
@@ -36,9 +39,10 @@ export function useLessonList(open: boolean, pathname: string) {
 			}
 			knownIdsRef.current = new Set(d.chats.map((c) => c.id));
 			setChats(d.chats);
+			setFailed(false);
 		} catch {
 			// a transient failure keeps the last snapshot
-			setChats((prev) => prev ?? []);
+			setFailed(true);
 		} finally {
 			refreshInFlightRef.current = false;
 			if (refreshQueuedRef.current) {
@@ -105,5 +109,5 @@ export function useLessonList(open: boolean, pathname: string) {
 		void refresh();
 	}, [open, pathname, refresh]);
 
-	return { chats, setChats, freshIds };
+	return { chats, setChats, freshIds, failed, refresh };
 }

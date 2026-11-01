@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { savedTimes, TEACHING_AREAS, TOOL_SWITCH_LABELS, type AgentSettings, type AreaId, type GraphSettings, type PromptSegmentInfo, type TeachingArea, type ToggleableTool } from "@/core";
 import { HalleyFace } from "@/components/halley/halley-face";
+import { LoadFailed } from "@/components/load-failed";
 import { RuleChips } from "@/components/rule-chips";
 import { useSavedRules } from "@/components/use-saved-rules";
 import { cn } from "@/lib/utils";
@@ -54,13 +55,17 @@ export function TeachingSection({
 	onSectionChange: (next: AgentSettings) => void;
 }) {
 	const [segments, setSegments] = useState<PromptSegmentInfo[] | null>(null);
+	const [segmentsFailed, setSegmentsFailed] = useState(false);
 	const [openArea, setOpenArea] = useState<TeachingArea | null>(null);
 	const savedRules = useSavedRules(agent?.rules);
 	const readSegments = useCallback(() => {
 		fetch("/api/settings/prompts")
-			.then((r) => r.json())
-			.then((body: { segments: PromptSegmentInfo[] }) => setSegments(body.segments))
-			.catch(() => {});
+			.then((r) => {
+				if (!r.ok) throw new Error(String(r.status));
+				return r.json() as Promise<{ segments: PromptSegmentInfo[] }>;
+			})
+			.then((body) => setSegments(body.segments))
+			.catch(() => setSegmentsFailed(true));
 	}, []);
 	useEffect(readSegments, [readSegments]);
 
@@ -99,6 +104,7 @@ export function TeachingSection({
 				<HalleyFace mood="idle" still className="size-[22px] shrink-0" />
 				How {teacherName} teaches you. Change a switch, add a rule, or rewrite the instructions.
 			</p>
+			{segments === null && segmentsFailed && <LoadFailed message="Couldn't load the instructions." onRetry={readSegments} className="pb-1.5" />}
 			<div className="flex flex-col gap-3">
 				{TEACHING_AREAS.map((area) => {
 					const AreaIcon = AREA_ICONS[area.id];

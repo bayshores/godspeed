@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import { DeleteSessionDialog } from "@/components/delete-session-dialog";
 import { MoveLessonDialog } from "@/components/class-dialog";
 import { Hint } from "@/components/ui/hint";
+import { LoadFailed } from "@/components/load-failed";
 import { cn } from "@/lib/utils";
 import { fuzzyScore, type ChatDeleteMode, type ChatListItem } from "@/core";
 import { useRiseOnChange } from "@/components/sidebar/motion";
@@ -31,7 +32,7 @@ export function LessonsSection({
 	activeClassId: string | null;
 }) {
 	const router = useRouter();
-	const { chats, setChats, freshIds } = useLessonList(open, pathname);
+	const { chats, setChats, freshIds, failed, refresh } = useLessonList(open, pathname);
 	const [query, setQuery] = useState("");
 	const [searchOpen, setSearchOpen] = useState(false);
 	const focusSearchRef = useRef(false);
@@ -95,6 +96,7 @@ export function LessonsSection({
 	const [ctxMenuId, setCtxMenuId] = useState<string | null>(null);
 	const ctxAnchorRef = useRef<HTMLElement | null>(null);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
+	const [renameFailedId, setRenameFailedId] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<ChatListItem | null>(null);
 	const [moving, setMoving] = useState<ChatListItem | null>(null);
 
@@ -110,7 +112,8 @@ export function LessonsSection({
 	useMenuDismiss(ctxChatId !== null, closeCtx, ctxAnchorRef);
 
 	// Inline rename: PUT the title, then lh:chat-renamed patches every
-	// listener (this list and an open lesson header). Empty = discard.
+	// listener (this list and an open lesson header). Empty = discard; a
+	// failure keeps the old title and says so under the row.
 	const commitRename = useCallback(async (id: string, next: string) => {
 		setRenamingId(null);
 		const t = next.trim();
@@ -123,8 +126,8 @@ export function LessonsSection({
 			});
 			if (!res.ok) throw new Error(`rename failed: ${res.status}`);
 			window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title: t } }));
-		} catch (err) {
-			console.error("rename failed:", err); // keep the old title
+		} catch {
+			setRenameFailedId(id);
 		}
 	}, []);
 
@@ -213,7 +216,11 @@ export function LessonsSection({
 
 			<div ref={listRef} className="mt-3.5 flex w-full min-h-0 flex-1 flex-col gap-px overflow-y-auto">
 				{shown === null ? (
-					<div className="px-2.5 py-3 text-[12.5px] text-ink-2">Loading…</div>
+					failed ? (
+						<LoadFailed message="Couldn't load your lessons." onRetry={() => void refresh()} className="px-2.5 py-3" />
+					) : (
+						<div className="px-2.5 py-3 text-[12.5px] text-ink-2">Loading…</div>
+					)
 				) : shown.length === 0 ? (
 					<div className="px-2.5 py-3 text-[12.5px] text-ink-2">
 						{query.trim() ? "No lessons match." : "No lessons yet."}
@@ -228,16 +235,22 @@ export function LessonsSection({
 								onCancel={() => setRenamingId(null)}
 							/>
 						) : (
-							<SessionRow
-								key={c.id}
-								chat={c}
-								active={pathname === `/chat/${c.id}`}
-								kbdSelected={i === kbdIndex}
-								fresh={freshIds.has(c.id)}
-								onOpen={onOpen}
-								onMenu={onMenu}
-								menuOpen={ctxChatId === c.id}
-							/>
+							<Fragment key={c.id}>
+								<SessionRow
+									chat={c}
+									active={pathname === `/chat/${c.id}`}
+									kbdSelected={i === kbdIndex}
+									fresh={freshIds.has(c.id)}
+									onOpen={onOpen}
+									onMenu={onMenu}
+									menuOpen={ctxChatId === c.id}
+								/>
+								{renameFailedId === c.id && (
+									<p role="alert" data-testid="session-rename-failed" className="px-2.5 pb-1 text-[12px] text-ans-wrong">
+										Couldn&apos;t rename the lesson.
+									</p>
+								)}
+							</Fragment>
 						),
 					)
 				)}
@@ -251,6 +264,7 @@ export function LessonsSection({
 					anchorRef={ctxAnchorRef}
 					onClose={closeCtx}
 					onRename={() => {
+						setRenameFailedId(null);
 						setRenamingId(ctxChatId);
 						setCtxChatId(null);
 					}}

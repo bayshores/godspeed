@@ -175,6 +175,7 @@ describe("render smoke tests", () => {
 		// radio circle + an inline input; picking it never displaces thinking.
 		assert.ok(html.includes('data-testid="other-option"'), "Other is an option row");
 		assert.match(html, /Type your own answer/, "type directly into the option");
+		assert.match(html, /placeholder="Type your own answer…" aria-label="Your own answer"/, "the field has a name, like its siblings");
 		assert.ok(html.includes('role="radio"'), "Other row keeps the option role");
 		assert.match(html, /aria-checked="false"/, "circle starts unfilled");
 		assert.ok(html.includes('data-testid="thinking-field"'), "thinking field coexists with Other");
