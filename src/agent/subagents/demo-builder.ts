@@ -34,8 +34,6 @@ interface DemoBuilderOptions {
 	/** Test seam: scripted engine; production runs on the outside agent. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
-	/** Max agent steps (each write/run/fix is one step). Default 24 ≈ 6 cycles. */
-	maxSteps?: number;
 	/** Live activity-line callback (updates the job record). */
 	onActivity?: (line: string) => void;
 	/** Kills the run mid-model-call. */
@@ -206,7 +204,7 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 			engine: opts.engine,
 			systemPrompt: INSTRUCTIONS,
 			prompt,
-			maxTurns: opts.maxSteps ?? 24,
+			maxTurns: 24, // each write/run/fix is one step: ≈ 6 cycles
 			abortSignal: opts.abortSignal,
 			onUsage: (usage) => opts.onUsage?.(usage),
 			onToolStart: (toolName) => opts.onActivity?.(toolName),

@@ -33,8 +33,6 @@ export interface DemoRunResult {
 }
 
 interface RunDemoOptions {
-	/** How long to let the page settle (animations, async CDN loads) — default 2s. */
-	settleMs?: number;
 	/** Optional JS expression evaluated in the page after settling; its value
 	 * is returned to the builder so it can assert on internal state. */
 	probe?: string;
@@ -348,8 +346,10 @@ function tempDir(prefix: string): string {
 
 // ─── Demo execution ──────────────────────────────────────────────────────────
 
+/** How long to let the page settle (animations, async CDN loads). */
+const DEMO_SETTLE_MS = 2000;
+
 async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRunResult> {
-	const settleMs = opts.settleMs ?? 2000;
 	const dir = tempDir("lh-demo-");
 	const file = path.join(dir, "demo.html");
 	fs.writeFileSync(file, html, "utf-8");
@@ -377,7 +377,7 @@ async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRun
 
 		try {
 			await page.goto(pathToFileURL(file).href, { waitUntil: "load", timeout: 30_000 });
-			await new Promise((resolve) => setTimeout(resolve, settleMs));
+			await new Promise((resolve) => setTimeout(resolve, DEMO_SETTLE_MS));
 			if (opts.probe) {
 				try {
 					probeResult = await page.evaluate(opts.probe);
