@@ -46,8 +46,8 @@ import type { GraphStore } from "../core/ports.ts";
  *   returns an error result the model retries on), then returns the synthetic
  *   "question posed" placeholder (questionResult: terminate: true — the
  *   turn ends; the call streams to the browser in `input-available`
- *   state; the learner answers in the dock; the client grades and sends
- *   the verdict with addToolOutput). Input schemas live in
+ *   state; the learner answers in the dock and the answer POST writes
+ *   its result). Input schemas live in
  *   core/question-core. Question tools opt into SEQUENTIAL execution so
  *   parallel calls resolve in the model's call order (the dock's subject
  *   can never flip mid-turn).

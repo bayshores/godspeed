@@ -9,8 +9,8 @@
  * teaching sessions already have their own observability, so in-flight
  * teacher turns are deliberately NOT in the feed. /api/jobs stays
  * chat-scoped: it is the transcript
- * machinery's poll and carries turnInFlight for the re-attach seam
- * (chat-transport); the dock is a different consumer with a different
+ * machinery's poll and carries turnInFlight for the re-attach seam; the
+ * dock is a different consumer with a different
  * shape, served here. Single sources of truth are unchanged: the job
  * store and the pipeline registry — this file only composes them.
  *
