@@ -24,7 +24,6 @@ node scripts/fetch-model.mjs   # once: the class-search model into models/ (the 
 npm run dev          # http://localhost:3000
 npm run dev:fresh    # a fresh instance with empty data at http://localhost:3005 (tests onboarding)
 npm run build        # production build (standalone output)
-npm start            # serve the production build
 
 npm run check        # THE done gate: typecheck + tests + lint + deadcode. CI runs the same
 npm test             # the full suite (node:test via tsx; deterministic, no LLM, no network)
