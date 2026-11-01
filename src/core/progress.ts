@@ -57,7 +57,7 @@ export function topicStatus(rate: number | null): TopicStatus {
 export type AnswerOutcome = "right" | "wrong" | "dontKnow";
 
 /** One graded quiz/probe answer from a lesson. */
-interface AnsweredQuestion {
+export interface AnsweredQuestion {
 	chatId: string;
 	/** The assistant message that asked (holds the quiz tool call). */
 	messageId: string;
@@ -411,7 +411,8 @@ interface ProgressLessonInput {
 	title: string;
 	kind?: "teach" | "practice";
 	updatedAt: string;
-	messages: readonly LhMessage[];
+	/** The lesson's graded answers (collectAnswers). */
+	answers: readonly AnsweredQuestion[];
 }
 
 export interface LessonProgress {
@@ -637,7 +638,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 
 	// Answers, per lesson and for the whole class.
 	const titles = new Map(input.lessons.map((l) => [l.id, l.title]));
-	const answersByLesson = new Map(input.lessons.map((l) => [l.id, collectAnswers(l.id, l.messages)]));
+	const answersByLesson = new Map(input.lessons.map((l) => [l.id, l.answers]));
 	const allAnswers = [...answersByLesson.values()].flat().sort(byTime);
 
 	// Answer → facts → topics.

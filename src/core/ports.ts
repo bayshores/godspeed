@@ -43,6 +43,9 @@ export interface ChatStore {
 	createChat(title: string, kind?: "practice", classId?: string): ChatRecord;
 	/** The full record, or null if unknown id / corrupt file. */
 	getChat(id: string): ChatRecord | null;
+	/** The record file's version, read without parsing it: it changes on
+	 *  every write. null when there is no record. */
+	chatVersion(id: string): string | null;
 	/** All sessions, newest activity first (the sidebar's list view). */
 	listChats(): ChatSummary[];
 	/** Persist the full native message list (the record IS the agent

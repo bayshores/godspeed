@@ -89,11 +89,22 @@ function getChat(id: string): ChatRecord | null {
 	return parsed as unknown as ChatRecord;
 }
 
+/** The record file's version (its modified time and size), read without
+ *  parsing it: what a cache of something derived from a record keys on. */
+function chatVersion(id: string): string | null {
+	try {
+		const st = fs.statSync(chatFile(id));
+		return `${st.mtimeMs}:${st.size}`;
+	} catch {
+		return null;
+	}
+}
+
 /** Lesson summaries kept in memory, so a sidebar refresh does not re-parse
- *  every lesson file. A summary is reused while its file's size and modified-time are
+ *  every lesson file. A summary is reused while its file's version is
  *  unchanged; writeChat/deleteChat also drop it. Summaries are SHARED —
  *  callers must never mutate them (frozen under tests). */
-const summaryCache = new Map<string, { mtimeMs: number; size: number; summary: ChatSummary | null }>();
+const summaryCache = new Map<string, { version: string; summary: ChatSummary | null }>();
 
 function listChats(): ChatSummary[] {
 	try {
@@ -105,18 +116,14 @@ function listChats(): ChatSummary[] {
 		for (const cached of summaryCache.keys()) if (!ids.includes(cached)) summaryCache.delete(cached);
 		return ids
 			.map((id) => {
-				let st: fs.Stats;
-				try {
-					st = fs.statSync(chatFile(id));
-				} catch {
-					return null;
-				}
+				const version = chatVersion(id);
+				if (version === null) return null;
 				const hit = summaryCache.get(id);
-				if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.summary;
+				if (hit?.version === version) return hit.summary;
 				const record = getChat(id);
 				const summary = record === null ? null : summarize(record);
 				if (summary && process.env.NODE_ENV === "test") Object.freeze(summary);
-				summaryCache.set(id, { mtimeMs: st.mtimeMs, size: st.size, summary });
+				summaryCache.set(id, { version, summary });
 				return summary;
 			})
 			.filter((s): s is ChatSummary => s !== null)
@@ -256,6 +263,7 @@ function saveTree(id: string, tree: PlanTree): void {
 export const chatStore: ChatStore = {
 	createChat,
 	getChat,
+	chatVersion,
 	listChats,
 	saveMessages,
 	saveTree,

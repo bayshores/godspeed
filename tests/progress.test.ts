@@ -121,8 +121,8 @@ const payload = () =>
 			{ id: "exm_mid", kind: "exam", name: "Midterm", date: "2026-11-05", fileIds: ["fB"], done: false },
 		],
 		lessons: [
-			{ id: "c1", title: "Counting", updatedAt: "2026-10-20T05:00:00.000Z", messages: C1 },
-			{ id: "c2", title: "Practice", kind: "practice", updatedAt: "2026-10-21T05:00:00.000Z", messages: C2 },
+			{ id: "c1", title: "Counting", updatedAt: "2026-10-20T05:00:00.000Z", answers: P.collectAnswers("c1", C1) },
+			{ id: "c2", title: "Practice", kind: "practice", updatedAt: "2026-10-21T05:00:00.000Z", answers: P.collectAnswers("c2", C2) },
 		],
 	});
 
@@ -403,5 +403,31 @@ describe("GET /api/progress", () => {
 		assert.equal((await none.json()).classId, null);
 		assert.equal((await progressRoute.GET(new Request("http://localhost/api/progress?class=cls_missing_1"))).status, 404);
 		assert.equal((await progressRoute.GET(new Request(`http://localhost/api/progress?class=${cls.id}&today=soon`))).status, 400);
+	});
+
+	it("parses a lesson again only after it changes", async () => {
+		const cls = classStore.createClass({ name: "Cached" });
+		const chat = chatStore.createChat("Counting", undefined, cls.id);
+		chatStore.saveMessages(chat.id, [ask("m1", "q1", "quiz", {}), answer("q1", "quiz", { correct: true })]);
+		const read = chatStore.getChat;
+		let reads = 0;
+		chatStore.getChat = (id) => {
+			if (id === chat.id) reads++;
+			return read(id);
+		};
+		try {
+			const answered = async () => {
+				const res = await progressRoute.GET(new Request(`http://localhost/api/progress?class=${cls.id}`));
+				return ((await res.json()) as import("../src/core/progress.ts").ProgressPayload).totals.answered;
+			};
+			assert.equal(await answered(), 1);
+			assert.equal(await answered(), 1);
+			assert.equal(reads, 1, "an unchanged lesson is not parsed again");
+			chatStore.saveMessages(chat.id, [...read(chat.id)!.messages, ask("m2", "q2", "quiz", {}), answer("q2", "quiz", { correct: false })]);
+			assert.equal(await answered(), 2, "a saved change is picked up");
+			assert.equal(reads, 2);
+		} finally {
+			chatStore.getChat = read;
+		}
 	});
 });
