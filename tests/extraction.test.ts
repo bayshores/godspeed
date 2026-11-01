@@ -3,7 +3,7 @@
  * the extractor alone sees the source and does identity itself (existing
  * ids in chains, `reteaches`); the merger is deterministic.
  *
- *   transcriptView  — the markdown rendering the extractor sees (pure)
+ *   proseView       — the markdown rendering the extractor sees (pure)
  *   pipeline        — a scripted faux extractor: findings out, deterministic
  *                     merge applied; failure paths checkpoint nothing;
  *                     single-flight per chat; one job at a time (graph lock)
@@ -40,7 +40,7 @@ import { abortExtraction, extractionStatuses } from "../src/agent/subagents/extr
 import {
 	createExtractionPipeline,
 	NotesImportError,
-	transcriptView,
+	proseView,
 	graphContext,
 	EXTRACTION_CORE,
 	SESSION_PREAMBLE,
@@ -321,12 +321,12 @@ function silentModel(): PiEngine {
 	return fauxEngine([fauxAssistantMessage("I refuse to use tools"), fauxAssistantMessage("…")]);
 }
 
-// ─── transcriptView (pure) ───────────────────────────────────────────────────
+// ─── proseView (pure) ────────────────────────────────────────────────────────
 
-describe("transcriptView (pure — teacher prose only)", () => {
+describe("proseView (pure — teacher prose only)", () => {
 	it("renders ONLY the teacher's prose — no learner, no checks, no tool notes", () => {
 		const { record } = fixtureChat();
-		const view = transcriptView(record);
+		const view = proseView(record.messages, record.title);
 
 		// The document header is the session title; the body is the
 		// teacher's text blocks as labeled passages.
@@ -372,7 +372,8 @@ describe("transcriptView (pure — teacher prose only)", () => {
 				{ type: "text", text: "Prose survives." },
 			]),
 		].flat());
-		const view = transcriptView(chatStore.getChat(chat.id)!);
+		const stored = chatStore.getChat(chat.id)!;
+		const view = proseView(stored.messages, stored.title);
 		assert.match(view, /^TEACHER \[a1\] Prose survives\.$/m, "the surviving passage is labeled with its real id");
 		assert.doesNotMatch(view, /research/);
 		assert.doesNotMatch(view, /long brief/);

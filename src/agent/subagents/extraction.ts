@@ -4,12 +4,7 @@ import { Type, type Static } from "typebox";
 import type { ModelRole } from "../../config.ts";
 import { FACTORY_SETTINGS } from "../../core/settings.ts";
 import type { PiEngine } from "../models.ts";
-import type {
-	CallUsage,
-	ChatRecord,
-	ExtractionRunUsage,
-	SessionFindings,
-} from "../../core/contracts.ts";
+import type { CallUsage, ExtractionRunUsage, SessionFindings } from "../../core/contracts.ts";
 import { getGraph, mergeFindings, type DerivedGraph, type EmissionStats, type GraphDeps } from "../../core/graph.ts";
 import type { GraphStore } from "../../core/ports.ts";
 import { emit } from "../../core/events.ts";
@@ -52,14 +47,6 @@ import { runs, type ExtractionPhase } from "./extraction-runs.ts";
 
 // ─── the source view (what the extractor sees) ──────────────────────────────
 
-/** The whole-record view (used by callers that render a full session;
- *  the pipeline itself batches): teacher prose only, passages labeled
- *  with their message ids.
- */
-export function transcriptView(record: ChatRecord): string {
-	return proseView(record.messages, record.title);
-}
-
 /** The extraction view: ONLY learner-facing teacher prose (text or
  *  send_to_user) — no learner messages, thinking, other tool
  *  calls/results, or quiz blocks — labeled with its ACTUAL message id.
@@ -68,7 +55,7 @@ export function transcriptView(record: ChatRecord): string {
  *  lines the coverage fingerprints hash, so the extractor can anchor
  *  every proposition to the passage it came from (the session submit's
  *  required messageId). */
-function proseView(
+export function proseView(
 	messages: ReadonlyArray<LhMessage>,
 	title?: string,
 	failedOutputCalls: ReadonlySet<string> = failedOutputCallIds(messages),
