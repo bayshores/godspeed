@@ -292,7 +292,7 @@ describe("the graph screen", () => {
 					</AppRouterContext.Provider>,
 				),
 			);
-			assert.match(host.querySelector('[data-testid="load-failed"]')!.textContent!, /Couldn't load the graph\./);
+			assert.match(host.querySelector('[data-testid="load-failed"]')!.textContent!, /Couldn't load your graph\./);
 			const before = urls.filter((u) => u.startsWith("/api/progress")).length;
 			await act(async () => {
 				host!.querySelector<HTMLButtonElement>('[data-testid="load-failed-retry"]')!.click();

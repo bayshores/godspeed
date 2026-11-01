@@ -91,7 +91,7 @@ function GraphScreenBody() {
 						}}
 					/>
 				) : progress.error ? (
-					<LoadFailed message="Couldn't load the graph." onRetry={refresh} className="m-auto" />
+					<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="m-auto" />
 				) : (
 					<p className="m-auto text-sm text-ink-2">Loading…</p>
 				)}
