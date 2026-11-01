@@ -991,7 +991,19 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		// would deadlock the test (the pump defers until the gate opens).
 		const delivery = deliverJobResult(steer);
 
-		await delay(1200);
+		await delay(300); // the pump parks behind the question
+		const read = chatStore.getChat;
+		let reads = 0;
+		chatStore.getChat = (id) => {
+			if (id === chatId) reads++;
+			return read(id);
+		};
+		try {
+			await delay(1200);
+		} finally {
+			chatStore.getChat = read;
+		}
+		assert.equal(reads, 0, "an unchanged record is not parsed again while the question waits");
 		assert.equal(fired, 0, "no wake while the quiz is pending");
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "worker is finished while delivery waits");
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "pending");

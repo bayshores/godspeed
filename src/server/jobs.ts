@@ -635,23 +635,28 @@ function restorePendingDeliveries(chatId: string): void {
  * unanswered question call (the record's dangling question — the answer
  * arrives as its tool result, and no turn may run in the window). Poll;
  * the learner may take arbitrarily long to answer, and that is correct —
- * the steer fires right after their answer turn completes.
+ * the steer fires right after their answer turn completes. The record is
+ * parsed again only when its file changed, so a long wait stays cheap.
  */
 async function waitForIdle(chatId: string): Promise<void> {
+	let seen: { version: string; dangling: boolean } | undefined;
+	/** Whether a question waits; null when the chat is gone. */
+	const questionWaits = (): boolean | null => {
+		const version = stores.chatStore.chatVersion(chatId);
+		if (version === null) return null;
+		if (seen?.version !== version) {
+			const record = stores.chatStore.getChat(chatId);
+			if (!record) return null;
+			seen = { version, dangling: danglingQuestionOf(record.messages) !== null };
+		}
+		return seen.dangling;
+	};
 	for (;;) {
-		const record = stores.chatStore.getChat(chatId);
-		if (!record || !(state().queues.get(chatId) ?? []).some((entry) => !entry.waking && !entry.deferred && !entry.handedTo)) return;
-		const blocked = isTurnRunning(chatId) || danglingQuestionOf(record.messages) !== null;
-		if (!blocked) {
+		const question = questionWaits();
+		if (question === null || !(state().queues.get(chatId) ?? []).some((entry) => !entry.waking && !entry.deferred && !entry.handedTo)) return;
+		if (!isTurnRunning(chatId) && !question) {
 			await delay(GRACE_MS);
-			const recheck = stores.chatStore.getChat(chatId);
-			if (
-				!isTurnRunning(chatId) &&
-				recheck &&
-				danglingQuestionOf(recheck.messages) === null
-			) {
-				return;
-			}
+			if (!isTurnRunning(chatId) && questionWaits() === false) return;
 		}
 		await delay(POLL_MS);
 	}
