@@ -45,12 +45,9 @@
 	--foreground: #e6e6e6;
 	--card: #080808;
 	--card-foreground: #e6e6e6;
-	--popover: #080808;
-	--popover-foreground: #e6e6e6;
 	--primary: #e6e6e6;
 	--primary-foreground: #000000;
 	--secondary: #080808;
-	--secondary-foreground: #e6e6e6;
 	--muted: #080808;
 	--muted-foreground: #8d8d8d;
 	--accent: #161616;
@@ -93,12 +90,9 @@
 	--foreground: #e6e6e6;
 	--card: #080808;
 	--card-foreground: #e6e6e6;
-	--popover: #080808;
-	--popover-foreground: #e6e6e6;
 	--primary: #e6e6e6;
 	--primary-foreground: #000000;
 	--secondary: #080808;
-	--secondary-foreground: #e6e6e6;
 	--muted: #080808;
 	--muted-foreground: #8d8d8d;
 	--accent: #161616;
@@ -203,12 +197,9 @@
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
 	--color-card-foreground: var(--card-foreground);
-	--color-popover: var(--popover);
-	--color-popover-foreground: var(--popover-foreground);
 	--color-primary: var(--primary);
 	--color-primary-foreground: var(--primary-foreground);
 	--color-secondary: var(--secondary);
-	--color-secondary-foreground: var(--secondary-foreground);
 	--color-muted: var(--muted);
 	--color-muted-foreground: var(--muted-foreground);
 	--color-accent: var(--accent);
@@ -233,18 +224,13 @@
 	--color-ans-right: #10b981;
 	--color-ans-wrong: #ef4444;
 	--color-ans-dontknow: #5a5a5a;
-	/* … the confidence ramp (levels 1–5, Tailwind red → emerald) … */
+	/* … and the confidence ramp (levels 1–5, Tailwind red → emerald). The
+	   topic ramp is RAMP_COLORS in src/core/progress.ts. */
 	--color-conf-1: #ef4444;
 	--color-conf-2: #f97316;
 	--color-conf-3: #eab308;
 	--color-conf-4: #84cc16;
 	--color-conf-5: #10b981;
-	/* … and the topic ramp (weak → strong). */
-	--color-topic-1: #f2545b;
-	--color-topic-2: #f59e4c;
-	--color-topic-3: #e8c547;
-	--color-topic-4: #9bd35a;
-	--color-topic-5: #3dd68c;
 }
 
 * {
