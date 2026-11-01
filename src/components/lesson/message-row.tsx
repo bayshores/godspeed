@@ -216,7 +216,8 @@ function AssistantPart({
 					data-source-message-id={sourceId ?? undefined}
 					className="lh-source-passage"
 				>
-					<MessageResponse>{part.text}</MessageResponse>
+					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. */}
+					<MessageResponse isAnimating={streaming}>{part.text}</MessageResponse>
 				</div>
 			);
 		}
