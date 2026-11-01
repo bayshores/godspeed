@@ -49,7 +49,7 @@ describe("the composer's waiting files", () => {
 	it("previews each file above the box with an ✕, beside a picture button", () => {
 		const html = composer();
 		assert.match(html, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*src="data:image\/png;base64,iVBORw0KGgo="/);
-		assert.match(html, /data-testid="draft-pdf"[\s\S]*?Week 3 notes\.pdf/);
+		assert.match(html, /data-testid="draft-pdf"[\s\S]*?title="Week 3 notes\.pdf"[^>]*>Week 3 notes\.pdf/, "a long name shows in full on hover");
 		assert.match(html, /aria-label="Remove graph\.png"/);
 		assert.match(html, /aria-label="Remove Week 3 notes\.pdf"/);
 		assert.ok(html.indexOf("attachment-tray") < html.indexOf("<textarea"), "the tray sits above the box");
@@ -96,7 +96,7 @@ describe("the learner's message with files", () => {
 		assert.match(html, /data-testid="user-message"[\s\S]*see this[\s\S]*data-testid="message-attachments"/);
 		assert.match(html, /data-testid="message-image"[^>]*src="data:image\/jpeg;base64,QUJD"[^>]*class="[^"]*max-h-\[220px\]/);
 		assert.ok(!/rounded/.test(html), "square corners");
-		assert.match(html, /data-testid="message-pdf"[\s\S]*?Week 3 notes\.pdf/);
+		assert.match(html, /data-testid="message-pdf"[\s\S]*?title="Week 3 notes\.pdf"[^>]*>Week 3 notes\.pdf/, "a long name shows in full on hover");
 		assert.ok(!html.includes("[Attached PDF]"), "the note never shows as text");
 	});
 
@@ -127,6 +127,7 @@ describe("the learner's message with files", () => {
 			const thumb = () => host.querySelector<HTMLButtonElement>('[aria-label="Show picture full size"]')!;
 			await act(async () => thumb().click());
 			assert.ok(overlay(), "opens");
+			assert.equal(overlay()!.getAttribute("aria-modal"), "true", "Tab stays out of the lesson behind it");
 			const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
 			Object.defineProperty(esc, "key", { value: "Escape" });
 			await act(async () => void document.dispatchEvent(esc));

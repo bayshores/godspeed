@@ -76,6 +76,19 @@ describe("topics: the read rule", () => {
 		assert.equal(sameFactSet(null, ["n1"]), false);
 	});
 
+	it("the store reads the last valid snapshot line and reuses it while the file is unchanged", () => {
+		const cls = classStore.createClass({ name: "Ledger read" });
+		const store = graphStoreFor(cls.id);
+		assert.equal(store.readTopics(), null);
+		store.appendTopics({ at: "t1", topics: [{ id: "tpc_a", name: "First", members: ["n1"] }] });
+		store.appendTopics({ at: "t2", topics: [{ id: "tpc_a", name: "Second", members: ["n1"] }] });
+		const file = path.join(TMP_DATA, "classes", cls.id, "graph", "topics.jsonl");
+		fs.appendFileSync(file, `{"at":"torn"\n${JSON.stringify({ at: "t3", topics: "bad" })}\n`);
+		const snap = store.readTopics();
+		assert.equal(snap?.at, "t2");
+		assert.equal(store.readTopics(), snap, "an unchanged file is not parsed again");
+	});
+
 	it("names are 1–4 words", () => {
 		assert.equal(topicNameProblem("Expected value"), null);
 		assert.match(topicNameProblem("  ")!, /empty/);

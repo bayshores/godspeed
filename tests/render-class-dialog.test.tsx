@@ -490,10 +490,17 @@ describe("Esc on the class dialogs", () => {
 		}) as typeof fetch;
 		await mount({ kind: "edit", classId: "cls_a" });
 		await typeInto(q("class-name"), "CSE 21A");
+		await click(q("class-deadline-exm_1"));
 		await click(q("class-save"));
+		for (const id of ["class-deadline-name", "class-deadline-date", "class-deadline-time", "class-deadline-time-clear"]) {
+			assert.equal((q(id) as HTMLInputElement).disabled, true, `${id} waits like the rest of the row`);
+		}
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);
 		assert.equal((q("class-dialog-close") as HTMLButtonElement).disabled, true);
+		assert.equal((q("class-delete") as HTMLButtonElement).disabled, true, "Delete class waits like Archive");
+		assert.equal((q("class-name") as HTMLInputElement).disabled, true, "nothing typed mid-save is lost");
+		assert.equal((q("class-description") as HTMLTextAreaElement).disabled, true);
 		await act(async () => {
 			saving.resolve();
 			await new Promise((r) => setTimeout(r, 10));

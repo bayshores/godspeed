@@ -294,6 +294,27 @@ describe("settings restyle", () => {
 		assert.ok(el.querySelector('[aria-label="Delete note: CSE 29 exam is done."]'));
 	});
 
+	it("Remembered sends one Delete per click: the button waits for its request", async () => {
+		const notes = [{ id: "note_1", text: "Likes proofs.", className: null, createdAt: "2026-10-30T02:00:00Z" }];
+		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, notes);
+		let deletes = 0;
+		let finish: () => void = () => {};
+		globalThis.fetch = (async (url: string, init?: RequestInit) => {
+			if (init?.method !== "DELETE") return read(url, init);
+			deletes++;
+			await new Promise<void>((resolve) => (finish = resolve));
+			return Response.json({ notes: [] });
+		}) as unknown as typeof fetch;
+		const el = await mount(<ConnectionSection />);
+		const button = () => el.querySelector<HTMLButtonElement>('[aria-label="Delete note: Likes proofs."]');
+		await act(async () => button()!.click());
+		assert.equal(button()!.disabled, true);
+		await act(async () => button()!.click());
+		assert.equal(deletes, 1);
+		await act(async () => finish());
+		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
+	});
+
 	it("Remembered says there are no notes yet", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 });
 		await mount(<ConnectionSection />);

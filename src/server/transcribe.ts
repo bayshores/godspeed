@@ -81,13 +81,23 @@ function run(program: string, args: string[]): Promise<void> {
 	});
 }
 
-/** The speech model's path, downloading it once (tmp + rename, so a broken
- *  download never leaves a half model behind). */
-async function ensureWhisperModel(): Promise<string> {
-	const dir = path.join(PATHS.data, "models");
-	const file = path.join(dir, WHISPER_MODEL_NAME);
-	if (fs.existsSync(file)) return file;
-	fs.mkdirSync(dir, { recursive: true });
+// On globalThis so every route bundle shares one download.
+const g = globalThis as typeof globalThis & { __lhWhisperModelDownload?: Promise<string> };
+
+/** The speech model's path. Recordings transcribed at the same time share
+ *  one download; a failed one is forgotten so the next file retries. */
+export function ensureWhisperModel(): Promise<string> {
+	const file = path.join(PATHS.data, "models", WHISPER_MODEL_NAME);
+	if (fs.existsSync(file)) return Promise.resolve(file);
+	g.__lhWhisperModelDownload ??= downloadWhisperModel(file).finally(() => {
+		g.__lhWhisperModelDownload = undefined;
+	});
+	return g.__lhWhisperModelDownload;
+}
+
+/** tmp + rename, so a broken download never leaves a half model behind. */
+async function downloadWhisperModel(file: string): Promise<string> {
+	fs.mkdirSync(path.dirname(file), { recursive: true });
 	console.info(`[transcribe] downloading ${WHISPER_MODEL_NAME} (~150 MB, one time)`);
 	const response = await fetch(WHISPER_MODEL_URL);
 	if (!response.ok || !response.body) throw new Error(`Speech model download failed (HTTP ${response.status})`);

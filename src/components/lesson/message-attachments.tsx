@@ -37,7 +37,7 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 						className="lh-press flex h-10 max-w-64 items-center gap-2 border border-tone-2 bg-tone px-3 text-[13px] text-ink hover:bg-tone-2 disabled:cursor-default disabled:hover:bg-tone"
 					>
 						<FileTextIcon aria-hidden className="size-4 shrink-0 text-ink-2" />
-						<span className="truncate">{pdf.name}</span>
+						<span className="truncate" title={pdf.name}>{pdf.name}</span>
 					</button>
 				);
 			})}
@@ -63,6 +63,7 @@ function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) 
 		<div
 			data-testid="picture-overlay"
 			role="dialog"
+			aria-modal="true"
 			aria-label="Picture"
 			onClick={onClose}
 			className="lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"

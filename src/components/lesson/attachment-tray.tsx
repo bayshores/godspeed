@@ -147,7 +147,7 @@ function DraftPreview({ file, onRemove }: { file: ChatAttachment; onRemove: () =
 		return (
 			<div data-testid="draft-pdf" className="relative flex h-14 max-w-48 items-center gap-2 border border-tone-2 bg-tone pr-8 pl-3 text-[13px] text-ink">
 				<FileTextIcon aria-hidden className="size-4 shrink-0 text-ink-2" />
-				<span className="truncate">{file.name}</span>
+				<span className="truncate" title={file.name}>{file.name}</span>
 				{remove}
 			</div>
 		);

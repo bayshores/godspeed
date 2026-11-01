@@ -18,8 +18,14 @@ import { useEffect, useState } from "react";
 /** Matches --lh-dur-fast in src/app/globals.css. */
 const EXIT_MS = 110;
 
+// One live query for the app's lifetime: .matches follows the OS setting,
+// so hot callers (every fold, every countdown tick) skip a rebuild.
+let reducedMotionQuery: MediaQueryList | null = null;
+
 export function prefersReducedMotion(): boolean {
-	return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+	reducedMotionQuery ??= window.matchMedia("(prefers-reduced-motion: reduce)");
+	return reducedMotionQuery.matches;
 }
 
 export function usePresence(open: boolean, exitMs: number = EXIT_MS): { mounted: boolean; state: "open" | "closed" } {

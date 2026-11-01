@@ -112,7 +112,7 @@ function PageStage({ reading }: { reading: ReadingTarget }) {
 		// The file is not lesson text, and Find could never scroll into this stage.
 		<div data-session-find-exclude="" className="flex min-w-0 flex-1 flex-col gap-2">
 			<div className="flex items-baseline gap-3 text-[13px]">
-				<span className="truncate text-ink-2">{reading.name}</span>
+				<span className="truncate text-ink-2" title={reading.name}>{reading.name}</span>
 				<span className="shrink-0 font-mono text-[11.5px] text-ink-3">{whereLabel(reading, doc)}</span>
 			</div>
 			<div ref={stageRef} className="relative h-[340px] overflow-hidden">

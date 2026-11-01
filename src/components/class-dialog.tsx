@@ -297,6 +297,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 									type="text"
 									data-testid="class-name"
 									value={name}
+									disabled={busy}
 									onChange={(e) => setName(e.target.value)}
 									placeholder="e.g. MATH 20C – Calculus III"
 									className={`h-10 ${FIELD}`}
@@ -308,6 +309,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								<textarea
 									data-testid="class-description"
 									value={description}
+									disabled={busy}
 									onChange={(e) => setDescription(e.target.value)}
 									rows={2}
 									placeholder="Level, textbook, the professor's notation, what exams look like… The teacher reads this."
@@ -387,13 +389,18 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 					</div>
 				) : confirmDelete && record ? (
 					<div data-testid="class-delete-confirm" className="flex shrink-0 flex-col gap-2 border-t border-tone-2 px-5 py-3.5 text-[13px]">
-						<span className="text-sm font-bold text-ans-wrong">Delete {record.name}?</span>
+						<span className="break-words text-sm font-bold text-ans-wrong">Delete {record.name}?</span>
 						<span className="text-ink-2">
 							This permanently removes the class, all its lessons, its copied files, and its knowledge graph. A linked folder on
 							your computer is not touched. This cannot be undone.
 						</span>
 						<div className="flex justify-end gap-2">
-							<button type="button" onClick={() => setConfirmDelete(false)} className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink">
+							<button
+								type="button"
+								disabled={busy}
+								onClick={() => setConfirmDelete(false)}
+								className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink disabled:opacity-60"
+							>
 								Cancel
 							</button>
 							<button
@@ -439,8 +446,9 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 									<button
 										type="button"
 										data-testid="class-delete"
+										disabled={busy}
 										onClick={() => setConfirmDelete(true)}
-										className="lh-press text-[13.5px] font-bold text-ans-wrong hover:text-red-400"
+										className="lh-press text-[13.5px] font-bold text-ans-wrong hover:text-red-400 disabled:opacity-60"
 									>
 										Delete class
 									</button>
@@ -561,9 +569,13 @@ function MoveLessonInner({
 					Its facts leave the current class&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new
 					class&apos;s graph. Rebuilding is done by your agent.
 				</p>
-				{error && <div className=" border border-destructive/50 px-3 py-2 text-destructive">{error}</div>}
+				{error && (
+					<div role="alert" className="border border-destructive/50 px-3 py-2 text-destructive">
+						{error}
+					</div>
+				)}
 				<div className="flex justify-end gap-2">
-					<button type="button" onClick={onClose} className="lh-press px-3 py-1.5 hover:bg-accent">
+					<button type="button" disabled={busy} onClick={onClose} className="lh-press px-3 py-1.5 hover:bg-accent disabled:opacity-50">
 						Cancel
 					</button>
 					<button

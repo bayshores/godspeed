@@ -66,8 +66,9 @@ function appendLine<T>(files: GraphFiles, file: string, record: T): void {
  *  JSONL files. A cached parse is reused while the
  *  file's size and modified-time are unchanged; this module's own writes
  *  also drop it. Cached records are SHARED — callers must never mutate
- *  them (frozen under tests so a mutation fails loudly). */
-const ledgerCache = new Map<string, { mtimeMs: number; size: number; lines: readonly unknown[] }>();
+ *  them (frozen under tests so a mutation fails loudly). Each file keeps
+ *  only what its reader uses: all lines, or topics' last snapshot. */
+const ledgerCache = new Map<string, { mtimeMs: number; size: number; value: unknown }>();
 
 /** Drop a deleted graph's parsed ledgers: nothing reads them again. */
 export function forgetLedgers(files: GraphFiles): void {
@@ -82,20 +83,26 @@ function deepFreeze<T>(value: T): T {
 	return value;
 }
 
-function readRawLines(file: string): readonly unknown[] {
+/** `parse(file)`, reused while the file is unchanged; `empty` when there
+ *  is no file yet (nothing has ever been emitted). */
+function readCached<T>(file: string, parse: (file: string) => T, empty: T): T {
 	let st: fs.Stats;
 	try {
 		st = fs.statSync(file);
 	} catch {
 		ledgerCache.delete(file);
-		return []; // no ledger yet — nothing has ever been emitted
+		return empty;
 	}
 	const hit = ledgerCache.get(file);
-	if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.lines;
-	const lines = parseRawLines(file);
-	if (process.env.NODE_ENV === "test") deepFreeze(lines);
-	ledgerCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, lines });
-	return lines;
+	if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.value as T;
+	const value = parse(file);
+	if (process.env.NODE_ENV === "test") deepFreeze(value);
+	ledgerCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, value });
+	return value;
+}
+
+function readRawLines(file: string): readonly unknown[] {
+	return readCached<readonly unknown[]>(file, parseRawLines, []);
 }
 
 function parseRawLines(file: string): unknown[] {
@@ -208,8 +215,8 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 		},
 
 		readTopics(): TopicSnapshot | null {
-			const lines = readValid(files, files.topics, isTopicSnapshot);
-			return lines.at(-1) ?? null;
+			assertGraphFormat(files.format); // honest refusal on a newer-stamped data dir
+			return readCached(files.topics, (file) => parseRawLines(file).filter(isTopicSnapshot).at(-1) ?? null, null);
 		},
 		appendTopics(snapshot: TopicSnapshot): void {
 			appendLine(files, files.topics, snapshot);
