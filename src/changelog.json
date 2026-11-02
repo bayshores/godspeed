@@ -1,5 +1,20 @@
 [
 	{
+		"version": "0.5.18",
+		"date": "2026-11-02",
+		"changes": [
+			"The Follow chip shows what your agent is doing right now, like reading a file and how far along it is, and it moves you to the page it just changed. It hides when no agent is connected, and it's the only Follow switch now.",
+			"When no agent is connected, the Talk box, New lesson and Your turn each say so, with a button to open it.",
+			"Text and colors are easier to read on every theme, switches clearly show on and off, and marks that used color alone now have a shape too.",
+			"Better keyboard and screen reader support: dialogs keep and return focus, menus and tabs behave like menus and tabs, notices stay while you look at them, and each page has its own title.",
+			"The teacher panel makes room for the page instead of covering it, and the teacher moves out of the way of buttons.",
+			"The Graph fits its topics at a readable size, and the Where you're at panel can be hidden.",
+			"Edit class opens on the deadline you clicked, and a deadline's file list has a heading and a filter.",
+			"Fewer repeated labels: one name for topics you haven't been tested on, each deadline shows once on Home, plain words instead of technical ones in lessons and the fact list, and \"Add files\" everywhere.",
+			"Smaller windows get more room: the sidebar closes below 1000 pixels wide and long lists drop their progress bars first."
+		]
+	},
+	{
 		"version": "0.5.17",
 		"date": "2026-11-02",
 		"changes": [
