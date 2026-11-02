@@ -3,7 +3,8 @@ import { PlusIcon, SquareIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
-import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, ToneButton, fieldKeys, turnEyebrow } from "./panel-parts";
+import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, ToneButton, fieldKeys } from "./panel-parts";
+import { TurnEyebrow } from "./turn-eyebrow";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
@@ -69,10 +70,9 @@ export function PanelComposer({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={turnEyebrow(busy, waitingForAgent)}
+					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
 					right={busy && <StopButton onStop={onStop} />}
 				/>
-				{busy && <div className="pt-3 text-sm leading-5 text-ink-2">Sends when the teacher finishes.</div>}
 				{notice && <div className="pt-3">{notice}</div>}
 				{queuedSteers.length > 0 && (
 					<div className="pt-3">

@@ -21,7 +21,7 @@ import { useLessonStep } from "@/components/home/use-lesson-step";
  * NEW LESSON ("/new"): where new lessons start
  * (the sidebar's New lesson and Practice buttons and ⌘N open it), in the
  * active class. Teach / Practice, the topic box ("Start from facts" picks facts
- * from the chain table; Enter or "Start lesson" starts), then
+ * from the chain table; Enter or the start button starts), then
  * "Suggested for <class>": Continue the latest lesson, Next up (the
  * earliest unstudied file) and Work on next (weak or untested topics).
  * The top bar keeps the graph-cost control.
@@ -70,7 +70,7 @@ export function NewLesson() {
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
 			<TopBar>
-				<h1 className="text-[15px] font-bold text-ink">New lesson</h1>
+				<h1 className="text-[15px] font-bold text-ink">{mode === "practice" ? "Practice" : "New lesson"}</h1>
 				<div className="flex-1" />
 				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
 			</TopBar>
@@ -81,12 +81,15 @@ export function NewLesson() {
 					className="mx-auto flex w-full max-w-[712px] flex-col px-4 pb-16 pt-[92px]"
 					style={{ animationDuration: "var(--lh-dur-slow)" }}
 				>
-					<h2 className="font-title text-[34px] font-bold leading-tight text-ink">What do you want to learn?</h2>
+					<h2 className="font-title text-[34px] font-bold leading-tight text-ink">
+						{mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
+					</h2>
 					<div className="mt-5">
 						<ModeSwitch mode={mode} onMode={setMode} />
 					</div>
 					<div className="mt-2.5">
 						<TopicBox
+							mode={mode}
 							text={topic}
 							onText={(t) => {
 								topicRef.current = t;

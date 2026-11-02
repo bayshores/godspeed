@@ -27,6 +27,7 @@ import {
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
 import { TeachingSection } from "./teaching-section.tsx";
+import { RememberedNotes } from "./remembered-notes.tsx";
 import { GeneralSection } from "./general-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
@@ -340,6 +341,7 @@ export function SettingsDialogBody({
 										teacherName={record.general?.teacherName || DEFAULT_TEACHER_NAME}
 										onSectionChange={(next) => void write("agent", next)}
 									/>
+									<RememberedNotes />
 								</SettingsSection>
 							)}
 							{active === "appearance" && (

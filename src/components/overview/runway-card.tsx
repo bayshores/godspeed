@@ -1,6 +1,6 @@
 import { memo, type CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, PlusIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/core";
 import { deadlineDateLabel } from "@/components/class-deadlines-model";
 import { Tip } from "@/components/ui/tooltip";
@@ -15,7 +15,8 @@ import { CARD, CARD_TITLE } from "./styles";
  * their ready % (empty with "–" when nothing is covered). A 2px line joins
  * the stops through their centers, stopping 10px short of each, with the
  * days between them above it. Hover a ring: its topics, weakest first;
- * click: the deadline's page. Below: "Most needed" with Learn this.
+ * click: the deadline's page. Below: "Most needed" with Learn this. With
+ * no deadlines: one line and Add deadline.
  */
 
 /** Columns on the runway: Today plus RUNWAY_STOPS. */
@@ -29,22 +30,22 @@ export const RunwayCard = memo(function RunwayCard({
 	deadlines,
 	today,
 	nowMs,
-	facts,
 	busy,
 	startError,
 	onLearn,
+	onAddDeadline,
 }: {
 	deadlines: readonly DeadlineProgress[];
 	/** The learner's day, YYYY-MM-DD. */
 	today: string;
 	nowMs: number;
-	/** Facts studied / all facts in the class. */
-	facts: { studied: number; total: number };
 	/** A lesson is starting (Learn this). */
 	busy: boolean;
 	/** Why the last lesson didn't start. */
 	startError: string | null;
 	onLearn: (topicId: string) => void;
+	/** Opens Edit class with a new deadline row. */
+	onAddDeadline?: () => void;
 }) {
 	const upcoming = upcomingDeadlines(deadlines, nowMs);
 	const { stops, later } = runwayStops(upcoming);
@@ -54,13 +55,7 @@ export const RunwayCard = memo(function RunwayCard({
 	const dates = [today, ...stops.map((d) => d.date)];
 	return (
 		<section data-testid="overview-runway" className={CARD}>
-			<div className="flex w-full items-end justify-between gap-4">
-				<h2 className={CARD_TITLE}>Ready for what&apos;s due</h2>
-				<span data-testid="runway-facts" className="text-[13.5px] text-ink-2">
-					<span className="font-mono tabular-nums">{facts.studied}</span> of <span className="font-mono tabular-nums">{facts.total}</span> facts studied in
-					the whole class
-				</span>
-			</div>
+			<h2 className={CARD_TITLE}>Ready for what&apos;s due</h2>
 
 			<div className="w-full overflow-x-auto">
 				<div
@@ -96,10 +91,21 @@ export const RunwayCard = memo(function RunwayCard({
 						</div>
 					)}
 					{stops.length === 0 && (
-						<div className="flex items-center px-4" style={{ gridColumn: `2 / span ${COLUMNS - 1}`, height: RING }}>
+						<div className="flex items-center gap-4 px-4" style={{ gridColumn: `2 / span ${COLUMNS - 1}`, height: RING }}>
 							<p data-testid="runway-empty" className="text-[13.5px] text-ink-2">
-								No deadlines yet. Your agent can add them from the syllabus, or you can add them in Edit class.
+								No deadlines yet. Your agent can add them from the syllabus.
 							</p>
+							{onAddDeadline && (
+								<button
+									type="button"
+									data-testid="runway-add-deadline"
+									onClick={onAddDeadline}
+									className="lh-press flex shrink-0 items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2"
+								>
+									<PlusIcon className="size-3.5 shrink-0" aria-hidden />
+									Add deadline
+								</button>
+							)}
 						</div>
 					)}
 				</div>
@@ -188,7 +194,7 @@ function RingTipBody({ deadline: d }: { deadline: DeadlineProgress }) {
 						<span key={t.id} className="flex items-center gap-2">
 							<span className="size-2.5 shrink-0" style={{ background: rampColor(t.rate) }} aria-hidden />
 							<span className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
-							<span className="shrink-0 font-mono tabular-nums">{t.rate === null ? "untested" : `${percent(t.rate)}% right`}</span>
+							<span className="shrink-0 font-mono tabular-nums">{t.rate === null ? "not tested" : `${percent(t.rate)}% right`}</span>
 						</span>
 					))}
 				</span>

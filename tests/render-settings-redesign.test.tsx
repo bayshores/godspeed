@@ -34,6 +34,7 @@ Object.assign(globalThis, {
 const { createRoot } = await import("react-dom/client");
 const { SettingsDialogBody, sectionFor } = await import("../src/components/settings/settings-dialog.tsx");
 const { ConnectionSection } = await import("../src/components/settings/connection-section.tsx");
+const { RememberedNotes } = await import("../src/components/settings/remembered-notes.tsx");
 const { maskToken } = await import("../src/components/mcp-access.ts");
 const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -160,12 +161,12 @@ describe("settings restyle", () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
 		const el = await mount(<ConnectionSection />);
 		const text = el.textContent!;
-		for (const label of ["Access", "Connection", "Access token", "Your agent", "Open Claude Code", "Copy the command"]) {
+		for (const label of ["Access", "Status", "Access token", "Your agent", "Open Claude Code", "Copy the command"]) {
 			assert.ok(text.includes(label), label);
 		}
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
-		assert.equal(q("agent-status")!.textContent, "Your agent · 1 job");
+		assert.equal(q("agent-status")!.textContent, "Your agent", "waiting requests are not called jobs");
 		assert.equal(q("agent-folder-path")!.textContent, "Folder: ~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.equal(q("old-setup-warning"), null, "nothing old left: no warning");
@@ -287,7 +288,7 @@ describe("settings restyle", () => {
 		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, [
 			{ id: "note_1", text: "CSE 29 exam is done.", className: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },
 		]);
-		const el = await mount(<ConnectionSection />);
+		const el = await mount(<RememberedNotes />);
 		const list = q("remembered-notes")!;
 		assert.ok(list.textContent!.includes("CSE 29 exam is done."));
 		assert.ok(list.textContent!.includes("CSE 29, saved"));
@@ -305,7 +306,7 @@ describe("settings restyle", () => {
 			await new Promise<void>((resolve) => (finish = resolve));
 			return Response.json({ notes: [] });
 		}) as unknown as typeof fetch;
-		const el = await mount(<ConnectionSection />);
+		const el = await mount(<RememberedNotes />);
 		const button = () => el.querySelector<HTMLButtonElement>('[aria-label="Delete note: Likes proofs."]');
 		await act(async () => button()!.click());
 		assert.equal(button()!.disabled, true);
@@ -317,7 +318,7 @@ describe("settings restyle", () => {
 
 	it("Remembered says there are no notes yet", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 });
-		await mount(<ConnectionSection />);
+		await mount(<RememberedNotes />);
 		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
 	});
 

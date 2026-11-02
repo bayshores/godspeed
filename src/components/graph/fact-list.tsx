@@ -32,7 +32,9 @@ export function FactList({
 	const closeMenu = useCallback(() => setMenu(null), []);
 	useMenuDismiss(menu !== null, closeMenu, anchorRef);
 
-	const shown = showAll ? facts : facts.slice(0, FACTS_SHOWN);
+	// One hidden fact isn't worth a button: show it.
+	const folded = !showAll && facts.length > FACTS_SHOWN + 1;
+	const shown = folded ? facts.slice(0, FACTS_SHOWN) : facts;
 	const onToggle = useCallback((id: string) => setOpenId((cur) => (cur === id ? null : id)), []);
 	const onMenu = useCallback((fact: FactProgress, e: MouseEvent<HTMLElement>) => {
 		e.preventDefault();
@@ -53,7 +55,7 @@ export function FactList({
 					<FactRow key={f.id} fact={f} open={openId === f.id} onToggle={onToggle} onMenu={onMenu} />
 				))}
 			</ul>
-			{!showAll && facts.length > FACTS_SHOWN && (
+			{folded && (
 				<button
 					type="button"
 					data-testid="facts-show-all"
@@ -140,7 +142,7 @@ const MARKS: Record<AnswerOutcome, { Icon: typeof CheckIcon; className: string; 
 };
 
 function FactMark({ mark }: { mark: AnswerOutcome | null }) {
-	if (mark === null) return <span role="img" aria-label="Not asked yet" className="mx-0.5 size-2 shrink-0 outline outline-[1.5px] -outline-offset-[0.75px] outline-ink-3" />;
+	if (mark === null) return <span role="img" aria-label="Not tested" className="mx-0.5 size-2 shrink-0 outline outline-[1.5px] -outline-offset-[0.75px] outline-ink-3" />;
 	const { Icon, className, label } = MARKS[mark];
 	return <Icon role="img" aria-label={label} aria-hidden={false} strokeWidth={3} className={`size-3 shrink-0 ${className}`} />;
 }

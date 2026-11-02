@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LightbulbIcon } from "lucide-react";
+import { CheckIcon, LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter, ConfidenceSquares } from "@/components/confidence-meter";
-import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit, turnEyebrow } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "@/components/lesson/panel-parts";
+import { TurnEyebrow } from "@/components/lesson/turn-eyebrow";
 import { MathBox } from "@/components/math-box";
 import { InlineMath } from "@/components/overview/inline-math";
 import { PickedRow } from "@/components/lesson/picked-row";
@@ -97,7 +98,7 @@ export function QuestionDock(props: QuestionDockProps) {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>
-					<PanelHeader eyebrow={turnEyebrow(props.busy ?? false, props.waitingForAgent ?? false)} />
+					<PanelHeader eyebrow={<TurnEyebrow busy={props.busy ?? false} waitingForAgent={props.waitingForAgent ?? false} />} />
 					<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
 						This question came through broken. Skip it and the teacher will ask again.
 					</div>
@@ -129,20 +130,18 @@ function proseVars(size: number, leading: number, ink?: string): React.CSSProper
 
 const OPTION_ROW = "lh-press flex w-full items-start gap-3 px-3.5 py-3 text-left outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)";
 
-function KeyBox({ n, selected, outlined }: { n: React.ReactNode; selected: boolean; outlined?: boolean }) {
+/** An option row's box: empty, or checked when picked (no number-key
+ *  badge; the app is used with the mouse). */
+function OptionMark({ selected, outlined }: { selected: boolean; outlined?: boolean }) {
 	return (
 		<span
 			aria-hidden
 			className={cn(
-				"flex size-6 shrink-0 items-center justify-center font-mono text-[13px] tabular-nums",
-				selected
-					? "bg-background font-bold text-ink"
-					: outlined
-						? "outline outline-1 -outline-offset-1 outline-tone-2 text-ink-3"
-						: "bg-tone-2 font-bold text-ink-2",
+				"flex size-6 shrink-0 items-center justify-center",
+				selected ? "bg-background text-ink" : outlined ? "outline outline-1 -outline-offset-1 outline-tone-2" : "bg-tone-2",
 			)}
 		>
-			{n}
+			{selected && <CheckIcon className="size-3.5" strokeWidth={3} />}
 		</span>
 	);
 }
@@ -384,7 +383,7 @@ function QuestionDockForm({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={turnEyebrow(busy, waitingForAgent)}
+					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
 							<KindChip testId="question-kind">
@@ -406,14 +405,7 @@ function QuestionDockForm({
 
 				{showFolded && (
 					<PickedRow
-						marks={
-							<>
-								{[...sel.selected].map((i) => (
-									<KeyBox key={i} n={i + 1} selected />
-								))}
-								{(sel.dontKnow || sel.otherSelected) && <KeyBox n={sel.dontKnow ? 0 : ""} selected outlined />}
-							</>
-						}
+						marks={<OptionMark selected outlined={sel.dontKnow || sel.otherSelected} />}
 						label={
 							sel.dontKnow ? (
 								"I don't know"
@@ -454,7 +446,7 @@ function QuestionDockForm({
 									onClick={() => toggle(i)}
 									className={cn(OPTION_ROW, isSel ? "bg-ink font-bold" : "bg-tone hover:bg-tone-2/60", walked(i, isSel))}
 								>
-									<KeyBox n={i + 1} selected={isSel} />
+									<OptionMark selected={isSel} />
 									<span className="min-w-0 flex-1 pt-0.5" style={proseVars(15, 21, isSel ? PICKED_INK : "var(--foreground)")}>
 										<ToolContentResponse>{opt.label}</ToolContentResponse>
 										{kind !== "quiz" && opt.description && (
@@ -483,7 +475,7 @@ function QuestionDockForm({
 									walked(optionCount, sel.dontKnow),
 								)}
 							>
-								<KeyBox n={0} selected={sel.dontKnow} outlined />
+								<OptionMark selected={sel.dontKnow} outlined />
 								<span className="text-[15px]">I don't know</span>
 							</button>
 						)}
@@ -509,7 +501,7 @@ function QuestionDockForm({
 									aria-label="Use your own answer"
 									className="shrink-0"
 								>
-									<KeyBox n="" selected={sel.otherSelected} outlined />
+									<OptionMark selected={sel.otherSelected} outlined />
 								</button>
 								<input
 									ref={otherInputRef}

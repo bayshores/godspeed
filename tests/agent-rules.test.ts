@@ -98,14 +98,14 @@ describe("saving, undoing and editing", () => {
 	it("saves a rule for every lesson, marks it, and announces it only from the terminal", () => {
 		const seen = events();
 		const lesson = rules.saveRuleByAgent("  Use Python   for code examples. ", { area: "teaching" });
-		assert.deepEqual(lesson, { ok: true, rule: "Use Python for code examples.", for: "every lesson", where: "Every lesson, under Teaching" });
+		assert.deepEqual(lesson, { ok: true, rule: "Use Python for code examples.", for: "every lesson", where: "Every lesson, under Lesson flow" });
 		rules.saveRuleByAgent("Shorter answers.", { area: "teaching" }, "Claude Code");
 		seen.stop();
 		assert.deepEqual(areaRules("teaching"), ["Use Python for code examples.", "Shorter answers."]);
 		assert.deepEqual(rules.agentSavedRules().map((r) => r.text), ["Use Python for code examples.", "Shorter answers."]);
 		assert.deepEqual(seen.list, [
 			{ type: "rules-changed" },
-			{ type: "rules-changed", saved: { text: "Shorter answers.", where: { area: "teaching" }, label: "Every lesson, under Teaching", agent: "Claude Code" } },
+			{ type: "rules-changed", saved: { text: "Shorter answers.", where: { area: "teaching" }, label: "Every lesson, under Lesson flow", agent: "Claude Code" } },
 		]);
 	});
 

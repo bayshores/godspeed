@@ -51,7 +51,7 @@ export function ruleFor(where: RuleWhere, className?: string): string {
 	return "classId" in where ? (className ?? "this class") : "every lesson";
 }
 
-/** Where a rule lives, in words: "Every lesson, under Teaching" or "Lessons in CSE 21". */
+/** Where a rule lives, in words: "Every lesson, under Lesson flow" or "Lessons in CSE 21". */
 export function whereLabel(where: RuleWhere, className?: string): string {
 	if ("classId" in where) return `Lessons in ${className ?? "this class"}`;
 	return `Every lesson, under ${TEACHING_AREAS.find((a) => a.id === where.area)?.label ?? "Teaching"}`;

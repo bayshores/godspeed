@@ -289,7 +289,7 @@ describe("progress: deriveProgress", () => {
 		assert.deepEqual(fin.workOnNext.map((w) => [w.topicId, w.reason]), [
 			["tpc_2", "Induction builds on it, so fix it first"],
 			["tpc_3", "0% right"],
-			["tpc_4", "Due soon, never practiced"],
+			["tpc_4", ""],
 		]);
 	});
 
@@ -314,7 +314,7 @@ describe("progress: deriveProgress", () => {
 
 	it("falls back to a class-wide view without the Ungrouped bucket", () => {
 		assert.deepEqual(p.overall.topicIds, ["tpc_1", "tpc_2", "tpc_3", "tpc_4"]);
-		assert.deepEqual(p.overall.workOnNext.at(-1), { topicId: "tpc_4", name: "Graphs", status: "untested", reason: "Never practiced" });
+		assert.deepEqual(p.overall.workOnNext.at(-1), { topicId: "tpc_4", name: "Graphs", status: "untested", reason: "" });
 	});
 
 	it("orders work: prerequisites, then overconfident, then the rest, then untested", () => {
@@ -323,14 +323,13 @@ describe("progress: deriveProgress", () => {
 		const items = P.workOnNext(
 			[t("Strong", 0.9, { overconfident: true }), t("Shaky", 0.6, { column: 1 }), t("Weak", 0.2), t("Base", 0.5), t("New", null)],
 			[{ from: "Base", to: "Shaky", weight: 1 }, { from: "Shaky", to: "Strong", weight: 1 }],
-			"deadline",
 		);
 		assert.deepEqual(items.map((i) => [i.topicId, i.reason]), [
 			["Base", "Shaky builds on it, so fix it first"],
 			["Strong", "overconfident"],
 			["Weak", "20% right"],
 			["Shaky", "Needed for Strong"],
-			["New", "Due soon, never practiced"],
+			["New", ""],
 		]);
 	});
 

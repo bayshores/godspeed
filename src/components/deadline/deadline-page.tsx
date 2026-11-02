@@ -75,10 +75,6 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 					<Link href="/class" className="lh-press shrink-0 text-ink-2 hover:text-ink">
 						{activeClass?.name ?? "Class"}
 					</Link>
-					<span className="text-ink-3" aria-hidden>
-						/
-					</span>
-					<span className="min-w-0 truncate font-bold text-ink">{deadline?.name ?? ""}</span>
 				</nav>
 				<button
 					type="button"

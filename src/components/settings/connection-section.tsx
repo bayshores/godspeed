@@ -14,7 +14,6 @@ import { CopyButton } from "@/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/components/mcp-access";
 import { cn } from "@/lib/utils";
 import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
-import { RememberedNotes } from "./remembered-notes.tsx";
 
 interface AccessView {
 	token: string;
@@ -76,13 +75,12 @@ export function ConnectionSection() {
 		<>
 			<SettingsGroup label="Access">
 				<SettingsRow
-					label="Connection"
-					tip="Claude Code, Codex, or another MCP app on this computer teaches you and can read your lessons and graph."
+					label="Status"
 					hint={!agent.teaching && (agent.connected || agent.pendingWork > 0) ? <span data-testid="agent-teach-hint">{teachStep(agent.name)}</span> : undefined}
 				>
 					<span data-testid="agent-status" className="flex min-w-0 items-center gap-2 text-[13.5px] text-ink-2">
 						<span aria-hidden className={cn("size-[7px] shrink-0 rounded-full", access.agentConnected ? "bg-ans-right" : "bg-ink-3")} />
-						<span className="truncate">{footerLabel(agent, access.pendingWork)}</span>
+						<span className="truncate">{footerLabel(agent, 0)}</span>
 					</span>
 				</SettingsRow>
 				<SettingsRow label="Access token" tip="Anyone with this token can use godspeed as you. Make a new one if it leaks.">
@@ -129,8 +127,6 @@ export function ConnectionSection() {
 					<AgentLauncher />
 				</div>
 			</SettingsGroup>
-
-			<RememberedNotes />
 		</>
 	);
 }

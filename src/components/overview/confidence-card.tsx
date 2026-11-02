@@ -11,7 +11,7 @@ import { CARD, CARD_TITLE } from "./styles";
  * CAN YOU TRUST YOUR CONFIDENCE? (Class Overview): for each confidence
  * level 1–5, the share of answers that were right against the level's
  * target line (level × 20 %). A sure level (4–5) that falls short is red.
- * Under it: a one-line takeaway and the "sure but wrong" questions, each
+ * Under the bars: what the axis and the marks mean, then a one-line takeaway and the "sure but wrong" questions, each
  * opening the question in its lesson.
  */
 export const ConfidenceCard = memo(function ConfidenceCard({
@@ -29,6 +29,10 @@ export const ConfidenceCard = memo(function ConfidenceCard({
 				{calibration.levels.map((level) => (
 					<LevelBar key={level.level} level={level} />
 				))}
+			</div>
+			<div data-testid="calibration-legend" className="-mt-2 flex w-full flex-col gap-0.5 text-[12.5px] text-ink-3">
+				<span className="text-center">How sure you were, from 1 (guessing) to 5 (certain)</span>
+				<span>The fill is how often you were right. The line is how often you should be at that level.</span>
 			</div>
 			{takeaway && <p className="w-full text-[15px] font-bold text-ink">{takeaway}</p>}
 			{calibration.sureButWrong.length > 0 && (

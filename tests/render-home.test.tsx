@@ -92,6 +92,7 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 function box(props: Partial<React.ComponentProps<typeof TopicBox>> = {}) {
 	return renderToStaticMarkup(
 		<TopicBox
+			mode="teach"
 			text=""
 			onText={() => {}}
 			onStart={() => {}}
@@ -186,7 +187,7 @@ describe("Home: suggestions", () => {
 		const untested = row(html.slice(html.indexOf("Conditional probability")), "home-suggestion-work-on-next");
 		assert.ok(untested.includes("Linearity of expectation"));
 		assert.match(untested, /bg-ans-dontknow/);
-		assert.ok(untested.includes(">untested</span>"));
+		assert.ok(untested.includes(">not tested</span>"));
 	});
 });
 

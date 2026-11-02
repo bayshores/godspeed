@@ -62,7 +62,6 @@ describe("files-model", () => {
 		assert.deepEqual(fileState(file({ status: "ready" }), undefined, true), { kind: "none" }, "no coverage yet: nothing");
 		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4), true), { kind: "none" }, "course info shows no coverage");
 		const covered = file({ name: "CSE21_Lecture_01_2026-09-25.mp4", transcriptId: "f_t" });
-		assert.deepEqual(fileState(covered, undefined, true, "Lecture01_2026-09-25.srt"), { kind: "transcript", label: "Uses its transcript: Lecture01_2026-09-25.srt" });
 		assert.deepEqual(fileState(covered, undefined, true), { kind: "transcript", label: "Uses its transcript" });
 	});
 
@@ -121,9 +120,9 @@ describe("files-model", () => {
 		assert.equal(dropTitle("study", 0), "Add files as study material");
 	});
 
-	it("Retry and Remove follow the old dialog's rules", () => {
-		assert.equal(canRetry(file({ status: "failed" })), true);
-		assert.equal(canRetry(file({ status: "needs-whisper" })), true);
+	it("the menu's Retry is only for a stuck file (a failed row has its own); Remove only for copies", () => {
+		assert.equal(canRetry(file({ status: "failed" })), false);
+		assert.equal(canRetry(file({ status: "needs-whisper" })), false);
 		assert.equal(canRetry(file({ status: "pending" })), true);
 		assert.equal(canRetry(file({ status: "ready" })), false);
 		assert.equal(canRemove(file({ origin: "copied" })), true);

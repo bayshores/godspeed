@@ -52,9 +52,10 @@ export function sidebarWhenLabel(d: { date: string; time?: string }, today: stri
 }
 
 /** Under Home's countdown: "11:59 PM", or "was due Fri 11:59 PM" once
- *  overdue ("Fri" / "was due Fri" with no time). */
-export function dueUnderLabel(d: { date: string; time?: string }, overdue: boolean): string {
-	if (!overdue) return whenLabel(d);
+ *  overdue ("was due Fri" with no time). With no time, a row under a dated
+ *  heading shows nothing and a Later row shows its date ("Thu Nov 19"). */
+export function dueUnderLabel(d: { date: string; time?: string }, overdue: boolean, later: boolean): string {
+	if (!overdue) return d.time ? clockLabel(d.time) : later ? deadlineDateLabel(d.date) : "";
 	const day = weekdayLabel(d.date);
 	return d.time ? `was due ${day} ${clockLabel(d.time)}` : `was due ${day}`;
 }
@@ -100,24 +101,12 @@ export function comingUpGroups<T extends { date: string; time?: string; name: st
 	return out;
 }
 
-/** Coming up's head: "6 items · 1 overdue" ("1 item"; no overdue part at 0). */
-export function itemsSummary(list: readonly { date: string; time?: string; done: boolean }[], nowMs: number): string {
+/** Coming up's head: "6 deadlines · 1 overdue" ("1 deadline"; no overdue part at 0). */
+export function deadlinesSummary(list: readonly { date: string; time?: string; done: boolean }[], nowMs: number): string {
 	const open = list.filter((d) => !d.done);
 	const overdue = open.filter((d) => isOverdue(d, nowMs)).length;
-	const items = `${open.length} ${open.length === 1 ? "item" : "items"}`;
-	return overdue > 0 ? `${items} · ${overdue} overdue` : items;
-}
-
-/** A class block's "Next due": "Reading quiz, today 5:00 PM",
- *  "HW 5, tomorrow", "Midterm 2, Thu Nov 5, 7:00 PM". */
-export function nextDueText(d: { name: string; date: string; time?: string }, nowMs: number): string {
-	const days = daysBetween(localDay(nowMs), d.date);
-	const clock = d.time ? clockLabel(d.time) : "";
-	let when: string;
-	if (days === 0) when = clock ? `today ${clock}` : "today";
-	else if (days === 1) when = clock ? `tomorrow ${clock}` : "tomorrow";
-	else when = clock ? `${deadlineDateLabel(d.date)}, ${clock}` : deadlineDateLabel(d.date);
-	return `${d.name}, ${when}`;
+	const count = `${open.length} ${open.length === 1 ? "deadline" : "deadlines"}`;
+	return overdue > 0 ? `${count} · ${overdue} overdue` : count;
 }
 
 /** "Wednesday, October 28 · 4:12 PM" (Home's date line). */

@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { ActionBar, FieldLabel, HeaderChip, KindChip, PanelBody, PanelHeader, turnEyebrow } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, HeaderChip, KindChip, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
+import { TurnEyebrow } from "@/components/lesson/turn-eyebrow";
 import { MathBox } from "@/components/math-box";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
@@ -98,7 +99,7 @@ export function PracticeDock({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={turnEyebrow(busy, waitingForAgent)}
+					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={onDiscard && { label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
 							<KindChip testId="problem-number">

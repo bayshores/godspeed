@@ -19,7 +19,7 @@
  *
  * The consumer brings the title (font-title text-3xl tracking-tight) and
  * any right-side controls. THE TITLE LAW: the serif title ALWAYS names a
- * session — chrome-less creation surfaces (Home) and the chain table
+ * session — chrome-less creation surfaces (New lesson) and the chain table
  * render NO serif title.
  * `drag={false}` is the one escape hatch —
  * chat's rename mode (app-region:drag would eat the mousedown that

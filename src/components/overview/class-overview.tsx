@@ -27,13 +27,17 @@ import { OverviewBody } from "./overview-body";
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
 	const { data, error, refresh } = useProgress();
-	const [editing, setEditing] = useState(false);
+	// "deadline" opens Edit class with a new deadline row.
+	const [editing, setEditing] = useState<false | "class" | "deadline">(false);
 	const lesson = useLessonStart();
 	const nowMs = useMinute();
 
 	// The dialog compares its mode by identity: one object per open.
 	const editId = activeClass?.id ?? null;
-	const editMode = useMemo(() => (editing && editId ? { kind: "edit" as const, classId: editId } : null), [editing, editId]);
+	const editMode = useMemo(
+		() => (editing && editId ? { kind: "edit" as const, classId: editId, ...(editing === "deadline" && { deadline: "new" }) } : null),
+		[editing, editId],
+	);
 
 	// Progress for a class the window just left is never shown.
 	const current = data && data.classId === active ? data : null;
@@ -55,7 +59,7 @@ export function ClassOverview() {
 					<button
 						type="button"
 						data-testid="overview-edit-class"
-						onClick={() => setEditing(true)}
+						onClick={() => setEditing("class")}
 						className="lh-press flex items-center gap-[7px] bg-panel px-2.5 py-[7px] text-sm text-ink hover:bg-tone"
 					>
 						<PencilIcon className="size-3.5" aria-hidden />
@@ -77,7 +81,8 @@ export function ClassOverview() {
 					busy={lesson.busy}
 					startError={lesson.error}
 					onLearn={learn}
-					onAddSignature={() => setEditing(true)}
+					onAddSignature={() => setEditing("class")}
+					onAddDeadline={() => setEditing("deadline")}
 					pickClass={active ? undefined : <PickClass line="Pick a class to see how it's going." />}
 				/>
 				{!current && error && <LoadFailed message="Couldn't load this class's progress." onRetry={refresh} className="px-[52px]" />}

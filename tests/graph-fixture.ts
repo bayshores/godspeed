@@ -104,7 +104,7 @@ export function fixture(): ProgressPayload {
 				workOnNext: [
 					{ topicId: "t-var", name: "Variance", status: "shaky", reason: "Minibatch noise builds on it, so fix it first" },
 					{ topicId: "t-mini", name: "Minibatch noise", status: "weak", reason: "overconfident" },
-					{ topicId: "t-mom", name: "Momentum", status: "untested", reason: "Due soon, never practiced" },
+					{ topicId: "t-mom", name: "Momentum", status: "untested", reason: "" },
 				],
 				ready: 0.3,
 				topics: [

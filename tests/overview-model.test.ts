@@ -53,9 +53,11 @@ describe("overview-model", () => {
 		assert.deepEqual(answeredLessons([lesson("a", 0, 0), lesson("b", 1, 2), lesson("c", 3, 3)]).map((l) => l.chatId), ["b", "c"]);
 	});
 
-	it("mostMissesTakeaway: the most misses wins, first on a tie; nothing with < 2 lessons or no misses", () => {
-		assert.equal(mostMissesTakeaway([lesson("a", 9, 13), lesson("b", 5, 11), lesson("c", 4, 6)]), "Lesson b has the most misses.");
-		assert.equal(mostMissesTakeaway([lesson("a", 1, 3), lesson("b", 1, 3)]), "Lesson a has the most misses.");
+	it("mostMissesTakeaway: the most misses wins, ties are said; nothing with < 2 lessons or no misses", () => {
+		assert.equal(mostMissesTakeaway([lesson("a", 9, 13), lesson("b", 5, 11), lesson("c", 4, 6)]), "“Lesson b” has the most misses.");
+		assert.equal(mostMissesTakeaway([lesson("a", 1, 3), lesson("b", 1, 3)]), "Both lessons have 2 misses.");
+		assert.equal(mostMissesTakeaway([lesson("a", 1, 3), lesson("b", 1, 3), lesson("c", 2, 3)]), "“Lesson a” and “Lesson b” have the most misses, 2 misses each.");
+		assert.equal(mostMissesTakeaway([{ ...lesson("a", 0, 3), title: "ok lets prep." }, lesson("b", 1, 2)]), "“ok lets prep” has the most misses.");
 		assert.equal(mostMissesTakeaway([lesson("a", 1, 3)]), null);
 		assert.equal(mostMissesTakeaway([lesson("a", 3, 3), lesson("b", 2, 2)]), null);
 	});

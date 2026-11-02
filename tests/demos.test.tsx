@@ -1035,44 +1035,13 @@ describe("tool + renderer registry wiring", () => {
 		for (const t of ["read", "ls", "find", "grep"]) {
 			assert.equal(artifactRenderers[t], ToolCallCard, `${t} renders the tool-call card`);
 		}
-		// the prober's graph tools join the SAME discipline
+		// the prober's graph lookups render nothing (no raw tool rows)
 		for (const t of ["list_sessions", "list_propositions"]) {
-			assert.equal(artifactRenderers[t], ToolCallCard, `${t} renders the tool-call card`);
+			assert.equal(artifactRenderers[t], undefined, `${t} renders nothing`);
 		}
 	});
 
-	it("the tool-call card: the prober's graph tools — collapsed headline + their compact row output", () => {
-		// list_propositions: the session id is the call's subject
-		const propPart = {
-			type: "tool-list_propositions",
-			state: "output-available",
-			toolCallId: "g1",
-			input: { session: "chat_mtiudjao_776beada" },
-			output: "2 proposition(s) born in this session:\n- Kepler's laws — solid (as of 2026-09-20)\n- Tidal locking — shaky (as of 2026-09-21)",
-		};
-		const html = renderToStaticMarkup(<ToolCallCard part={propPart as never} />);
-		assert.match(html, /list_propositions/);
-		assert.match(html, /chat_mtiudjao_776beada/); // the collapsed headline
-		assert.match(html, /Kepler&#x27;s laws/); // the row output, verbatim (apostrophe HTML-escaped)
-		assert.ok(html.includes("<details"), "collapsed by default");
-
-		// list_sessions: no headline arg (empty input) — the tool name alone,
-		// exactly the ls-with-no-path discipline
-		const sessPart = {
-			type: "tool-list_sessions",
-			state: "output-available",
-			toolCallId: "g2",
-			input: {},
-			output: "3 session(s) in the knowledge graph, most recent first:\n1. Orbital mechanics (chat, 8 propositions, born 2026-09-18)",
-		};
-		const html2 = renderToStaticMarkup(<ToolCallCard part={sessPart as never} />);
-		assert.match(html2, /list_sessions/);
-		assert.match(html2, /Orbital mechanics/);
-		const headline = html2.split("<summary")[1]?.split("</summary>")[0] ?? "";
-		assert.doesNotMatch(headline, /Orbital/, "the collapsed line shows the tool name only — no noise");
-	});
-
-	it("the tool-call card: collapsed one-liner with the tool name + headline arg; expand shows input and output", () => {
+	it("the tool-call card: collapsed one-liner with a plain verb + headline arg; expand shows input and output", () => {
 		const part = {
 			type: "tool-read",
 			state: "output-available",
@@ -1081,8 +1050,8 @@ describe("tool + renderer registry wiring", () => {
 			output: "Calculus notes\nThe derivative measures force.",
 		};
 		const html = renderToStaticMarkup(<ToolCallCard part={part as never} />);
-		// collapsed headline: tool name + path as given
-		assert.match(html, /read/);
+		// collapsed headline: plain verb + path as given
+		assert.match(html, />Read</);
 		assert.match(html, /notes\/calculus\.md/);
 		// expandable payload: input JSON + output text
 		assert.match(html, /Input/);

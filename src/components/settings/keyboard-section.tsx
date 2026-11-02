@@ -1,7 +1,7 @@
 /**
  * The Keyboard section: view / rebind / reset over
  * core/keyboard.ts's registry. The overrides persist in localStorage
- * (lh:keymap, overrides-only, merged over DEFAULT_BINDINGS), so rebinding
+ * (overrides only, merged over DEFAULT_BINDINGS), so rebinding
  * is INSTANT — the dispatcher reads the map per keydown, no reload.
  *
  * Rebind flow: click Rebind → the row listens for the next keydown
@@ -17,20 +17,14 @@
 import { useEffect, useState } from "react";
 import {
 	KEYBOARD_ACTIONS,
+	KEY_SCOPES,
 	eventBinding,
 	formatBinding,
 	loadOverrides,
 	saveOverrides,
 	type KeyAction,
-	type KeyScope,
 } from "@/core";
 import { SettingsRow } from "./controls.tsx";
-
-const SCOPES: { scope: KeyScope; label: string }[] = [
-	{ scope: "global", label: "Global" },
-	{ scope: "chat", label: "Chat" },
-	{ scope: "graph", label: "Graph" },
-];
 
 /** The overrides map after ONE change (pure — exported for tests):
  *  binding null = reset the action to its default (key removed). */
@@ -94,7 +88,7 @@ export function KeyboardSection() {
 
 	return (
 		<>
-			{SCOPES.map(({ scope, label }) => {
+			{KEY_SCOPES.map(({ scope, label }) => {
 				const actions = KEYBOARD_ACTIONS.filter((a) => a.scope === scope);
 				if (!actions.length) return null;
 				return (
@@ -107,7 +101,6 @@ export function KeyboardSection() {
 									<SettingsRow
 										key={def.id}
 										label={def.label}
-										hint={def.displayOnly ? "Fixed, part of this screen" : undefined}
 										testid={`kbd-row-${def.id}`}
 									>
 										<span className="flex items-center gap-2">
@@ -149,11 +142,15 @@ export function KeyboardSection() {
 								);
 							})}
 						</div>
+						{actions.some((a) => a.displayOnly) && (
+							<p data-testid={`kbd-fixed-${scope}`} className="pt-2 text-xs text-ink-3">
+								The question keys can't be changed.
+							</p>
+						)}
 					</div>
 				);
 			})}
-			<div className="mt-4 flex items-center justify-between">
-				<span className="text-xs text-ink-3">Stored on this device (lh:keymap), overrides only.</span>
+			<div className="mt-4 flex justify-end">
 				<button
 					type="button"
 					onClick={resetAll}

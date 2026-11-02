@@ -41,13 +41,14 @@ const LEGEND: { key: keyof DeadlineProgress["counts"]; label: string; rate: numb
 	{ key: "strong", label: "strong", rate: 0.9 },
 	{ key: "shaky", label: "shaky", rate: 0.7 },
 	{ key: "weak", label: "weak", rate: 0.3 },
-	{ key: "untested", label: "not tried yet", rate: null },
+	{ key: "untested", label: "not tested", rate: null },
 ];
 
 export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps) {
 	const { deadline: d, nowMs } = props;
 	const past = !d.done && isOverdue(d, nowMs);
 	const tallies = new Map(props.topics.map((t) => [t.id, t]));
+	const ready = d.files.length > 0 ? d.ready : null;
 	return (
 		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-6 pb-8">
 			<header className="flex items-start justify-between gap-8 px-[52px] pt-6">
@@ -70,8 +71,8 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 					</p>
 				</div>
 				<div data-testid="deadline-ring" className="flex shrink-0 flex-col items-center gap-1.5">
-					<ReadyRing ready={d.files.length > 0 ? d.ready : null} size={88} />
-					<span className="text-[12.5px] text-ink-2">ready</span>
+					<ReadyRing ready={ready} size={88} />
+					<span className="text-[12.5px] text-ink-2">{ready === null ? "Not measured yet" : "ready"}</span>
 				</div>
 			</header>
 
@@ -119,7 +120,7 @@ function TopicStrip({ deadline: d, tallies }: { deadline: DeadlineProgress; tall
 	);
 }
 
-const tallyText = (t: TopicTally | undefined) => (t ? rightLabel(t) : "not tried yet");
+const tallyText = (t: TopicTally | undefined) => (t ? rightLabel(t) : "not tested");
 
 const BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2";
 
@@ -168,7 +169,9 @@ function MaterialCard({
 							{m.loose.map((f) => (
 								<li key={f.id} className="flex min-w-0 items-center gap-3">
 									<span className="min-w-0 flex-1 truncate text-ink">{f.name}</span>
-									<span className={cn("shrink-0 text-[12.5px]", f.state === "failed" ? "text-ans-wrong" : "text-ink-3")}>{LOOSE_STATE[f.state]}</span>
+									{f.state !== "ready" && (
+										<span className={cn("shrink-0 text-[12.5px]", f.state === "failed" ? "text-ans-wrong" : "text-ink-3")}>{LOOSE_STATE[f.state]}</span>
+									)}
 								</li>
 							))}
 						</ul>
@@ -201,8 +204,8 @@ function MaterialCard({
 	);
 }
 
-const LOOSE_STATE: Record<Exclude<Slot["state"], "missing">, string> = {
-	ready: "read",
+/** A loose file's state word; a read file shows none (most are read). */
+const LOOSE_STATE: Record<Exclude<Slot["state"], "missing" | "ready">, string> = {
 	reading: "being read",
 	failed: "couldn't be read",
 	info: "course info",
@@ -275,9 +278,11 @@ function PathCard({
 	return (
 		<section data-testid="deadline-path" className={cn(CARD, canStart && "pb-0")}>
 			<h2 className={CARD_TITLE}>{d.done || past ? "Path" : `Path to ${deadlineDateLabel(d.date)}`}</h2>
-			<p data-testid="deadline-path-note" className="text-[13.5px] leading-5 text-ink-2">
-				{pathNote(d, past, plan.length > 0, allStrong, material)}
-			</p>
+			{!d.done && !past && (
+				<p data-testid="deadline-path-note" className="text-[13.5px] leading-5 text-ink-2">
+					{pathNote(d, plan.length > 0, allStrong, material)}
+				</p>
+			)}
 			{plan.length > 0 && !d.done && !past && (
 				<ol className="flex w-full flex-col">
 					{plan.map((day, i) => (
@@ -317,12 +322,12 @@ function PathCard({
 	);
 }
 
-function pathNote(d: DeadlineProgress, past: boolean, hasPlan: boolean, allStrong: boolean, m: Material | null): string {
-	if (d.done) return "Marked done.";
-	if (past) return `This was due ${dueLabel(d.date, d.time)}.`;
+/** The Path card's note while the deadline is ahead (the header already
+ *  says done or past). */
+function pathNote(d: DeadlineProgress, hasPlan: boolean, allStrong: boolean, m: Material | null): string {
 	if (hasPlan) return d.daysUntil === 0 ? "Due today, so everything that needs work is on today." : "Topics that need work, weakest first.";
 	if (allStrong) return "Every topic is strong. Practice them to keep it that way.";
-	if (d.files.length === 0) return "Pick the files it covers in Edit class to get a plan.";
+	if (d.files.length === 0) return "A plan shows up once it names its files.";
 	if (m && m.reading > 0) return "Its files are still being read. The plan shows up once their facts are built.";
 	return "Its files have no facts yet, so there is nothing to plan. Course info files never make facts.";
 }

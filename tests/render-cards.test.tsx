@@ -151,11 +151,12 @@ describe("render smoke tests", () => {
 		assert.ok(!html.includes("optional"), "the field is never called optional");
 		assert.match(html, /Submit answer/, "send becomes Submit answer");
 		assert.ok(!html.includes("Enter"), "mouse-first: no key label on the submit bar");
-		// Numbered rows (keys 1–n) and 0 = I don't know.
-		assert.match(html, /data-testid="dont-know-option"[\s\S]*?>0</, "I don't know is key 0");
+		// Mouse-first: the rows carry no number-key badges.
+		assert.doesNotMatch(html, /data-testid="dont-know-option"[\s\S]*?>0</, "no key 0 badge on I don't know");
 		assert.ok(html.includes('data-testid="confidence-meter"'), "the 5-bar confidence meter");
 		assert.match(html, /data-testid="confidence-level-1"[^>]*tabindex="0"/, "Tab reaches the unrated meter at level 1");
 		assert.match(html, /data-testid="confidence-level-2"[^>]*tabindex="-1"/, "the other levels wait for the arrows");
+		assert.match(html, />Guessing<\/span><span>Certain</, "the meter's ends are named");
 		assert.ok(html.includes('data-testid="question-kind"'), "the kind chip");
 		// The v1 desync bug: options are buttons with ARIA roles, not native inputs.
 		assert.ok(!html.includes('type="radio"'), "no native radio inputs");
@@ -245,7 +246,7 @@ describe("render smoke tests", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Venus"] });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
 		assert.match(html, /data-testid="answer-result"[^>]*>.*Wrong/, "the verdict chip");
-		assert.match(html, /Check/, "the kind");
+		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz/, "the kind");
 		// The details sit behind the Why toggle — never center stage.
 		assert.match(html, /data-testid="answer-toggle"[^>]*>Why ▾/);
 		assert.ok(!html.includes("innermost"), "explanation hidden until opened");
@@ -318,7 +319,7 @@ describe("render smoke tests", () => {
 				<AnsweredCard answer={answer} input={{ ...quizInput, nodeId: "n2" }} />
 			</LessonStepsContext.Provider>,
 		);
-		assert.match(html, /data-testid="answer-kind"[^>]*>Check · step 10</);
+		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz · step 10</);
 		assert.match(html, />Right</);
 	});
 
@@ -575,7 +576,7 @@ describe("predict vs check rendering", () => {
 		assert.ok(html.includes("Prediction"), `eyebrow missing: ${html.slice(0, 200)}`);
 	});
 
-	it("a check quiz reads the 'Check' eyebrow — the type name IS the label", () => {
+	it("a check quiz reads 'Quiz' (the transcript export's word), never the reveal button's 'Check'", () => {
 		const html = renderToStaticMarkup(
 			<QuestionDock
 				{...{
@@ -586,8 +587,8 @@ describe("predict vs check rendering", () => {
 				onSubmit={() => {}}
 			/>,
 		);
-		assert.ok(html.includes("Check"), "the chip carries the question's type");
-		assert.ok(!html.includes(">Quiz<"), "the generic label is retired");
+		assert.match(html, /data-testid="question-kind"[^>]*>Quiz</);
+		assert.ok(!html.includes(">Check<"));
 	});
 
 	it("a prediction answer SHOWS the verdict but TUCKS the explanation behind a toggle", () => {

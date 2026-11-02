@@ -47,9 +47,9 @@ export function scoreText(t: Pick<TopicProgress, "right" | "answered">): string 
 }
 
 /** The Work-on-next status line: "4/7 right · overconfident" or
- *  "Not tested yet". */
+ *  "Not tested". */
 export function statusLine(t: Pick<TopicProgress, "right" | "answered" | "overconfident" | "status">): string {
-	if (t.status === "untested") return "Not tested yet";
+	if (t.status === "untested") return "Not tested";
 	return `${scoreText(t)} right${t.overconfident ? " · overconfident" : ""}`;
 }
 
@@ -68,7 +68,7 @@ function sureMisses(answers: readonly Pick<AnswerRef, "outcome" | "level">[]): n
 /** The topic panel's one-line takeaway: "3 of 7 right. On 4 of the misses
  *  you picked 4 or 5, so you felt sure." */
 export function takeaway(t: Pick<TopicProgress, "right" | "answered" | "answers">): string {
-	if (t.answered === 0) return "Not tested yet.";
+	if (t.answered === 0) return "Not tested.";
 	const base = `${t.right} of ${t.answered} right.`;
 	const sure = sureMisses(t.answers);
 	if (sure === 0) return base;

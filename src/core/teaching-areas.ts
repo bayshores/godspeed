@@ -20,7 +20,7 @@ export const TEACHING_AREAS: readonly TeachingArea[] = [
 	{ id: "voice", label: "Voice", about: "How {teacher} talks: plain, direct, no praise", parts: ["shared/10-voice.md"] },
 	{
 		id: "teaching",
-		label: "Teaching",
+		label: "Lesson flow",
 		about: "Planning the lesson, one step at a time, predict then check",
 		parts: [
 			"system-prompt.md",

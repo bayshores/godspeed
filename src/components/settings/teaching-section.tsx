@@ -145,7 +145,6 @@ export function TeachingSection({
 									<p className="text-xs font-bold text-ink-3">Your rules</p>
 									<RuleChips
 										rules={rules}
-										addLabel={rules.length || controls[area.id] ? "Add a rule" : "Add a rule for this area"}
 										onChange={(next) => onSectionChange(composeRules(agent, area.id, next))}
 										testid={`rules-${area.id}`}
 										saved={savedTimes(savedRules, { area: area.id })}

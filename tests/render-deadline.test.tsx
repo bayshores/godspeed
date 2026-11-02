@@ -86,12 +86,12 @@ describe("the deadline page", () => {
 	it("one strip segment per topic and counts for the statuses it has", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-topic"'), 4);
-		assert.match(html, /deadline-count-untested.*>1<\/span> not tried yet/);
+		assert.match(html, /deadline-count-untested.*>1<\/span> not tested/);
 	});
 	it("material: slots per number, the gap marked missing, the reading and course info lines", () => {
 		const html = render();
 		assert.deepEqual([...html.matchAll(/data-testid="deadline-slot" data-state="(\w+)"/g)].map((m) => m[1]), ["ready", "missing", "reading"]);
-		assert.match(html, /1 number looks missing in a series, 1 still being read\./);
+		assert.match(html, /\w+ \d+ looks missing, 1 still being read\./);
 		assert.match(html, /1 of 2 study files read, 12 facts so far\./);
 		assert.match(html, /1 course info file: the teacher can read it, but it makes no facts\./);
 		assert.match(html, /data-testid="deadline-add-files"[^>]*href="\/class\/files"|href="\/class\/files"[^>]*data-testid="deadline-add-files"/);
@@ -118,12 +118,14 @@ describe("the deadline page", () => {
 		}
 		assert.match(render(deadline({ done: true })), />Done</);
 		assert.match(render(deadline({ date: "2026-11-01", daysUntil: -1 })), /Was due/);
+		assert.ok(!render(deadline({ done: true })).includes("deadline-path-note"), "the header already says it");
 	});
 	it("no covered files: all study files with a pointer to Edit class, and no plan", () => {
 		const html = render(deadline({ files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } }));
 		assert.match(html, /data-testid="deadline-no-files"/);
-		assert.match(html, /Pick the files it covers in Edit class to get a plan\./);
-		assert.match(html, /data-testid="deadline-ring".*>–</);
+		assert.match(html, /A plan shows up once it names its files\./);
+		assert.equal(count(html, "Edit class"), 1, "one pointer to Edit class");
+		assert.match(html, /data-testid="deadline-ring".*>–<.*Not measured yet/);
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
 	});
 	it("every topic strong: practice them all", () => {

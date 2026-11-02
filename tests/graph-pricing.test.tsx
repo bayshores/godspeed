@@ -23,8 +23,8 @@ test("wholly unpriced historical graph costs render unknown, never a dollar figu
 test("plan runs read the plan's label, with or without unpriced history", () => {
 	const plan = run([usage()], "agent:outside-agent");
 	const historical = run([usage()], undefined, 2);
-	assert.match(headline([plan]), />Outside agent<\/button>/);
-	assert.match(headline([plan, historical]), />Outside agent<\/button>/);
+	assert.match(headline([plan]), />Your agent<\/button>/);
+	assert.match(headline([plan, historical]), />Your agent<\/button>/);
 	assert.equal(displayUnpricedRuns(summary([plan, historical])), 1);
 });
 

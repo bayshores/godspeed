@@ -39,7 +39,7 @@ describe("stats bar", () => {
 			<StatsBar turns={[turn(), turn()]} contextTokens={11_000} summarizeAt={40_000} pricing={sessionCost({ turns: [turn(), turn()] })} />,
 		);
 		assert.match(html, /data-testid="stats-context">11k \/ 40k<\/span><span>lesson</);
-		assert.ok(!html.includes("Outside agent"), "the plan label stays in the details");
+		assert.ok(!html.includes("Your agent"), "the plan label stays in the details");
 	});
 
 	it("shows – for cost when every turn is unpriceable, never a fake $0", () => {

@@ -18,7 +18,6 @@ export const FileGroupSection = memo(function FileGroupSection({
 	coverage,
 	disabled,
 	agentTeaching,
-	names,
 	actions,
 }: {
 	group: FileGroup;
@@ -27,8 +26,6 @@ export const FileGroupSection = memo(function FileGroupSection({
 	coverage: ReadonlyMap<string, FileCoverage>;
 	disabled?: boolean;
 	agentTeaching: boolean;
-	/** Every class file's name by id (a recording names its transcript). */
-	names: ReadonlyMap<string, string>;
 	actions: FileRowActions;
 }) {
 	const Chevron = collapsed ? ChevronRightIcon : ChevronDownIcon;
@@ -39,7 +36,6 @@ export const FileGroupSection = memo(function FileGroupSection({
 			coverage={coverage.get(file.id)}
 			disabled={disabled}
 			agentTeaching={agentTeaching}
-			transcriptName={file.transcriptId ? names.get(file.transcriptId) : undefined}
 			actions={actions}
 		/>
 	);

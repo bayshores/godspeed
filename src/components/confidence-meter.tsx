@@ -45,7 +45,7 @@ function useFocusFollowsPick<T extends HTMLElement>(level: ConfidenceLevel | nul
 
 /**
  * The 5-bar meter: "4 · Fairly sure" in the level's color over five
- * rising bars. Bars up to the pick wear its color (the ones below at 55%),
+ * rising bars, "Guessing" and "Certain" under its ends. Bars up to the pick wear its color (the ones below at 55%),
  * the rest stay dark. Click a bar or use ←/→ (the question panel owns the
  * keys). It starts unrated (all bars dark), and an unrated answer sends no
  * confidence. "I don't know" grays it out and sends none either.
@@ -107,6 +107,10 @@ export function ConfidenceMeter({
 						</button>
 					);
 				})}
+			</div>
+			<div aria-hidden className="flex justify-between text-[12px] text-ink-3">
+				<span>{CONFIDENCE_WORDS[0]}</span>
+				<span>{CONFIDENCE_WORDS[CONFIDENCE_WORDS.length - 1]}</span>
 			</div>
 		</div>
 	);

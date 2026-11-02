@@ -36,7 +36,14 @@ export type KeyAction =
 
 /** Where the cheat sheet groups an action (display only — dispatch is
  *  global; a seam that isn't mounted simply no-ops). */
-export type KeyScope = "global" | "chat" | "graph";
+type KeyScope = "global" | "chat" | "graph";
+
+/** Each scope's heading, in display order (Settings and the cheat sheet). */
+export const KEY_SCOPES: readonly { scope: KeyScope; label: string }[] = [
+	{ scope: "global", label: "Global" },
+	{ scope: "chat", label: "Lesson" },
+	{ scope: "graph", label: "Graph" },
+];
 
 interface KeyActionDef {
 	id: KeyAction;
@@ -54,7 +61,7 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "open-settings", label: "Open settings", scope: "global", binding: "mod+," },
 	{ id: "toggle-sidebar", label: "Toggle sidebar", scope: "global", binding: "mod+b" },
 	{ id: "sessions-search", label: "Search lessons", scope: "global", binding: "mod+shift+f" },
-	{ id: "jump-graph", label: "Graph view", scope: "global", binding: "mod+g" },
+	{ id: "jump-graph", label: "Go to Graph", scope: "global", binding: "mod+g" },
 	{ id: "new-session", label: "New lesson", scope: "global", binding: "mod+n" },
 	{ id: "rename-session", label: "Rename lesson", scope: "chat", binding: "f2" },
 	{ id: "toggle-user-thinking", label: "Toggle all your thinking", scope: "chat", binding: "mod+t" },

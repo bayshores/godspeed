@@ -820,10 +820,10 @@ describe("questionKindLabel", () => {
 		assert.equal(questionKindLabel("explain", undefined), "Explain");
 		assert.equal(questionKindLabel("write_code", undefined), "Code");
 	});
-	it("a predict quiz is a Prediction, any other quiz a Check", () => {
+	it("a predict quiz is a Prediction, any other quiz a Quiz", () => {
 		assert.equal(questionKindLabel("quiz", "predict"), "Prediction");
-		assert.equal(questionKindLabel("quiz", "check"), "Check");
-		assert.equal(questionKindLabel("quiz", undefined), "Check");
+		assert.equal(questionKindLabel("quiz", "check"), "Quiz");
+		assert.equal(questionKindLabel("quiz", undefined), "Quiz");
 	});
 	it("anything else is a Question", () => {
 		assert.equal(questionKindLabel("ask_user_question", undefined), "Question");

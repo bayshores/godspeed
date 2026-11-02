@@ -385,7 +385,7 @@ export function PlanPopup({
 		>
 			<div className="mb-2 flex items-center gap-2">
 				<span className="text-sm font-medium">The plan</span>
-				<span className="text-xs text-muted-foreground">live: statuses derive from your check outcomes</span>
+				<span className="text-xs text-muted-foreground">Updates as you answer</span>
 				<Hint label="Close" side="left">
 <button
 					type="button"

@@ -8,7 +8,7 @@ import { useClasses } from "@/components/class-context";
 import { ClassDialog, type ClassDialogMode } from "@/components/class-dialog";
 import { LoadFailed } from "@/components/load-failed";
 import { useMinute } from "@/components/countdown";
-import { byDue, longDateLine } from "@/components/deadlines-model";
+import { longDateLine } from "@/components/deadlines-model";
 import { MenuShell } from "@/components/menu-shell";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { lessonHref } from "@/components/overview/overview-model";
@@ -45,11 +45,6 @@ export function HomePage() {
 		for (const p of classesProgress.progress.values()) for (const d of p.deadlines) map.set(d.id, d);
 		return map;
 	}, [classesProgress]);
-	const nextDue = useMemo(() => {
-		const map = new Map<string, NonNullable<typeof deadlines>[number]>();
-		for (const d of byDue(deadlines ?? [])) if (!map.has(d.classId) && !leaving.has(d.id)) map.set(d.classId, d);
-		return map;
-	}, [deadlines, leaving]);
 
 	const go = useCallback(
 		(classId: string, href: string) => {
@@ -110,8 +105,6 @@ export function HomePage() {
 													key={c.id}
 													cls={c}
 													progress={p}
-													nextDue={nextDue.get(c.id) ?? null}
-													nowMs={nowMs}
 													onContinue={onContinue}
 													onNewLesson={onNewLesson}
 													onOpenClass={onOpenClass}

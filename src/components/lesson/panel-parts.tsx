@@ -13,12 +13,7 @@ export function PanelBody({ children, className }: { children: React.ReactNode; 
 	);
 }
 
-/** The header's eyebrow: whose turn it is. */
-export function turnEyebrow(busy: boolean, waitingForAgent: boolean): string {
-	return !busy ? "Your turn" : waitingForAgent ? "Waiting for your agent" : "Teacher is writing…";
-}
-
-/** "Your turn" (or "Teacher is writing…") with an optional chip right. */
+/** "Your turn" (or "<teacher> is writing…") with an optional chip right. */
 export function PanelHeader({ eyebrow, right }: { eyebrow: React.ReactNode; right?: React.ReactNode }) {
 	return (
 		<div className="flex shrink-0 items-center justify-between gap-3">
@@ -66,10 +61,11 @@ export function skipExit(onSkip: (() => void) | undefined) {
 	return onSkip && { label: "Skip question", testId: "skip-question", onClick: onSkip };
 }
 
-/** The small tone chip in the header (question kind, problem number). */
+/** The header's plain kind label (question kind, problem number): text,
+ *  not a box, so it never reads as a button beside Skip question. */
 export function KindChip({ children, testId }: { children: React.ReactNode; testId?: string }) {
 	return (
-		<span data-testid={testId} className="flex shrink-0 items-center gap-1.5 bg-tone px-2 py-[3px] text-[13px] font-extrabold text-ink">
+		<span data-testid={testId} className="flex shrink-0 items-center gap-1.5 text-[13px] font-bold text-ink-2">
 			{children}
 		</span>
 	);

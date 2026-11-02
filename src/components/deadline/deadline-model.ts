@@ -94,10 +94,20 @@ export function deadlineMaterial(files: readonly FileLike[], coveredIds: readonl
 export function materialSummary(m: Material): string {
 	if (m.series.length === 0 && m.loose.length === 0) return "No study files yet.";
 	const parts: string[] = [];
-	if (m.missing > 0) parts.push(`${m.missing} ${m.missing === 1 ? "number looks" : "numbers look"} missing in a series`);
+	if (m.missing > 0) parts.push(`${missingText(m.series)} ${m.missing === 1 ? "looks" : "look"} missing`);
 	if (m.failed > 0) parts.push(`${m.failed} ${m.failed === 1 ? "file" : "files"} couldn't be read`);
 	if (m.reading > 0) parts.push(`${m.reading} still being read`);
 	return parts.length > 0 ? `${parts.join(", ")}.` : "Nothing looks missing from the file names.";
+}
+
+/** "Lecture 3, 4 and HW 2", naming at most two series. */
+function missingText(series: readonly MaterialSeries[]): string {
+	const named = series
+		.map((s) => ({ label: s.label, numbers: s.slots.filter((slot) => slot.state === "missing").map((slot) => slot.number) }))
+		.filter((s) => s.numbers.length > 0)
+		.map((s) => `${s.label} ${s.numbers.join(", ")}`);
+	if (named.length <= 2) return named.join(" and ");
+	return `${named.slice(0, 2).join(", ")} and ${named.length - 2} more`;
 }
 
 /** The message "Check with the syllabus" sends to the teacher. */
@@ -105,7 +115,7 @@ export function syllabusCheckMessage(className: string, deadline: { name: string
 	return `Check my ${className} files for ${deadline.name} (${deadline.when}). Compare the syllabus and course info with the class's files and tell me which lectures, transcripts, discussions or readings it covers that are missing. Don't add anything yet.`;
 }
 
-/** "2 of 5 right", or "not tried yet". */
+/** "2 of 5 right", or "not tested". */
 export function rightLabel(t: { right: number; answered: number }): string {
-	return t.answered === 0 ? "not tried yet" : `${t.right} of ${t.answered} right`;
+	return t.answered === 0 ? "not tested" : `${t.right} of ${t.answered} right`;
 }

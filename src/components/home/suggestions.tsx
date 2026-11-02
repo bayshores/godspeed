@@ -117,7 +117,7 @@ const SuggestionRow = memo(function SuggestionRow({
 					{s.topic.right} / {s.topic.answered}
 				</Num>
 			) : (
-				"untested"
+				"not tested"
 			);
 		action = (
 			<button

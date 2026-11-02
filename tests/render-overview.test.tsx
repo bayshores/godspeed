@@ -236,9 +236,8 @@ describe("Ready for what's due", () => {
 		assert.match(section(html, "runway-today", "</div></div></div>"), /Today<\/span><span[^>]*>Tue Oct 27</);
 	});
 
-	it("the head counts facts studied in the whole class", () => {
-		const head = section(renderRunway(), "runway-facts", "</span></h2>");
-		assert.match(head, />2<\/span> of <span[^>]*>5<\/span> facts studied in/);
+	it("the head is just the title (the cover already says how much is studied)", () => {
+		assert.ok(!renderRunway().includes("runway-facts"));
 	});
 
 	it("rings show the ready % in mono; a deadline with no files shows an empty ring with –", () => {
@@ -297,7 +296,8 @@ describe("Ready for what's due", () => {
 		assert.ok(html.includes('data-testid="runway-today"'));
 		assert.ok(!html.includes("runway-stop-"));
 		assert.ok(!html.includes("runway-line"));
-		assert.match(section(html, "runway-empty", "</p>"), /No deadlines yet\. Your agent can add them from the syllabus, or you can add them in Edit class\./);
+		assert.match(section(html, "runway-empty", "</p>"), /No deadlines yet\. Your agent can add them from the syllabus\./);
+		assert.ok(renderRunway([], { onAddDeadline: () => {} }).includes('data-testid="runway-add-deadline"'), "with Add deadline beside it");
 		assert.ok(!html.includes("runway-most-needed"));
 	});
 
@@ -343,7 +343,7 @@ describe("How lessons went", () => {
 	});
 
 	it("the takeaway names the lesson with the most misses", () => {
-		assert.ok(render().includes("Bayesian knowledge tracing has the most misses."));
+		assert.ok(render().includes("“Bayesian knowledge tracing” has the most misses."));
 	});
 });
 

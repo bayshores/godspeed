@@ -1,14 +1,13 @@
 /**
  * The Graph page's top bar: "Graph", then search (topics and facts),
- * Chains (the chain table) and Add notes, which opens the class's Files
- * page (No class has no Files page, so there it is Import notes). Search
- * and Chains only show once the class has facts.
+ * All facts (the chain table) and Add files, which opens the class's Files
+ * page (No class has no Files page, so there it picks notes files right
+ * here). Search and All facts only show once the class has facts.
  */
 import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
 import { ListIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
-import { Hint } from "@/components/ui/hint";
 
 const CHROME_BUTTON = "lh-press flex shrink-0 items-center gap-[7px] bg-panel px-2.5 py-2 text-sm text-ink hover:bg-tone disabled:opacity-50";
 
@@ -23,7 +22,7 @@ export function GraphTopBar({
 	query: string;
 	onQuery: (q: string) => void;
 	onOpenChains: () => void;
-	/** No class's Import notes; null in a class (Add notes opens Files). */
+	/** No class's own file picker; null in a class (Add files opens Files). */
 	importNotes: { importing: boolean; onImportFiles: (files: FileList | null) => void } | null;
 }) {
 	const searchRef = useRef<HTMLInputElement>(null);
@@ -39,22 +38,18 @@ export function GraphTopBar({
 			<div className="flex-1" />
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
 			{hasFacts && (
-				<Hint label="Every reasoning chain" side="bottom">
-					<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={CHROME_BUTTON}>
-						<ListIcon className="size-3.5" aria-hidden />
-						Chains
-					</button>
-				</Hint>
+				<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={CHROME_BUTTON}>
+					<ListIcon className="size-3.5" aria-hidden />
+					All facts
+				</button>
 			)}
 			{importNotes ? (
 				<ImportNotes {...importNotes} />
 			) : (
-				<Hint label="Add notes on the Files page" side="bottom">
-					<Link href="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
-						<UploadIcon className="size-3.5" aria-hidden />
-						Add notes
-					</Link>
-				</Hint>
+				<Link href="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
+					<UploadIcon className="size-3.5" aria-hidden />
+					Add files
+				</Link>
 			)}
 		</TopBar>
 	);
@@ -75,12 +70,10 @@ function ImportNotes({ importing, onImportFiles }: { importing: boolean; onImpor
 					e.target.value = ""; // the same file can be picked again
 				}}
 			/>
-			<Hint label="Import notes into the graph" side="bottom">
-				<button type="button" data-testid="import-notes" disabled={importing} onClick={() => fileRef.current?.click()} className={CHROME_BUTTON}>
-					<UploadIcon className="size-3.5" aria-hidden />
-					{importing ? "Importing…" : "Import notes"}
-				</button>
-			</Hint>
+			<button type="button" data-testid="import-notes" disabled={importing} onClick={() => fileRef.current?.click()} className={CHROME_BUTTON}>
+				<UploadIcon className="size-3.5" aria-hidden />
+				{importing ? "Adding…" : "Add files"}
+			</button>
 		</>
 	);
 }

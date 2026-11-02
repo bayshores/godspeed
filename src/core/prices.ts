@@ -14,7 +14,7 @@ export interface SessionPricing {
  *  only appear in records from before the built-in sign-ins were removed
  *  and keep their historical labels. */
 const PLAN_LABELS: readonly (readonly [prefix: string, label: string])[] = [
-	["agent:", "Outside agent"],
+	["agent:", "Your agent"],
 	["chatgpt:", "ChatGPT"],
 	["github-copilot-subscription:", "GitHub Copilot"],
 	["xai-subscription:", "Grok"],
