@@ -1,5 +1,19 @@
 [
 	{
+		"version": "0.5.17",
+		"date": "2026-11-02",
+		"changes": [
+			"Classes can now hold Word and PowerPoint files, code files like .c, .py and .java, and plain text files with no extension. Everything is read on your computer.",
+			"While your agent reads a new file from a linked folder, it also sorts out course logistics like announcements, emails and schedules. Those become course info, so they never turn into quiz questions, but your teacher can still read them. A kind you pick yourself always stays.",
+			"Your teacher's daily note lists new course info apart from new study files, so it knows about things like a moved exam.",
+			"A lecture video whose transcript is already in the class isn't transcribed again. It uses the transcript.",
+			"A linked folder names the files it can't read, and tells you Google Docs need saving as PDF or Word first.",
+			"If Google Drive is paused or offline, the Files page says it isn't responding, and nothing is removed.",
+			"Files in a linked folder's subfolders that aren't part of a numbered series are grouped by their folder, and file names with dates like 20260924 are read as dates.",
+			"Textbook chapters no longer get paired with lecture transcripts just because their numbers match."
+		]
+	},
+	{
 		"version": "0.5.16",
 		"date": "2026-11-02",
 		"changes": [
