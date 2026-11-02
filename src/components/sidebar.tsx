@@ -43,7 +43,7 @@ const STORAGE_KEY = "lh:sidebar-open";
  * and auto-RESTORES when the window widens again (no manual re-open). The
  * number is fixed, not derived from the sidebar's width (SIDEBAR_WIDTH:
  * 256px to start, dragged between 200 and 360); at the starting width it
- * leaves the page 672px, above the 640px window floor. The whole behavior
+ * leaves the page 744px, above the 640px window floor. The whole behavior
  * is one expression: rendered = pref && !narrow, where pref is the
  * persisted user choice.
  * Manual closes persist and stay closed; auto-close does not touch the
@@ -56,7 +56,7 @@ const STORAGE_KEY = "lh:sidebar-open";
  * Mirrors SIDEBAR_AUTOCLOSE in electron/main.cjs — keep in sync.
  */
 import type { UpdateState } from "@/components/settings/update-settings.tsx";
-const SIDEBAR_AUTOCLOSE = 928;
+const SIDEBAR_AUTOCLOSE = 1000;
 
 // Module scope, guarded for SSR (the server has no navigator).
 const IS_ELECTRON = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
@@ -334,7 +334,8 @@ export function AppShell({
 			<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 			<HalleyProvider initialName={teacherName}>
 			<SessionsSidebar />
-			<main className="min-w-0 flex-1">
+			{/* The teacher's open panel pushes the page left (halley-panel.tsx sets the var). */}
+			<main className="min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
 				<ViewSwap>{children}</ViewSwap>
 			</main>
 			</HalleyProvider>

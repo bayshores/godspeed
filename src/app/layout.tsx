@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ClassSummary } from "@/core";
 import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -38,6 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	// The active class renders server-side so the
 	// first paint already shows the right class's lessons and graph.
 	let initialActive: string | null = null;
+	// The class list too, so the first paint shows the class (not "No class").
+	let initialClasses: ClassSummary[] | undefined;
 	// Halley's name (Settings → General), so the first paint has it.
 	let teacherName: string | undefined;
 	let soundsOn = true;
@@ -77,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		const raw = general?.activeClass;
 		// A class deleted behind the app's back falls back to No class.
 		initialActive = raw && raw !== "none" && classStore.getClass(raw) ? raw : null;
+		initialClasses = classStore.listClasses();
 		teacherName = general?.teacherName;
 		soundsOn = general?.sounds !== false;
 	} catch {
@@ -89,7 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				 and pages all subscribe. */}
 			<ServerEventsProvider>
 				<AgentStatusProvider>
-				<ClassProvider initialActive={initialActive}>
+				<ClassProvider initialActive={initialActive} initialClasses={initialClasses}>
 				<AppearanceProvider>
 					<SidebarProvider>
 						<ActivityProvider>

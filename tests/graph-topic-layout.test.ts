@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import {
 	COLUMN_GAP,
 	FIT_MIN_SCALE,
+	NAME_PX,
 	fitTransform,
 	layoutKey,
 	layoutTopics,
@@ -128,7 +129,8 @@ describe("layoutTopics", () => {
 	it("fitTransform keeps a big map readable and starts at the foundations", () => {
 		const big = fitTransform({ x: -80, y: -40, w: 4000, h: 200 }, { w: 800, h: 600 });
 		assert.equal(big.k, FIT_MIN_SCALE);
-		assert.equal(big.x, 32 + 80 * FIT_MIN_SCALE, "the left edge sits at the padding");
+		assert.equal(big.x, Math.round((32 + 80 * FIT_MIN_SCALE) * 100) / 100, "the left edge sits at the padding");
+		assert.ok(NAME_PX * big.k >= 11, "names stay at least 11px");
 	});
 });
 

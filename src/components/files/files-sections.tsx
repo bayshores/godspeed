@@ -44,7 +44,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 		/>
 	);
 	return (
-		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className="flex w-full flex-col bg-panel px-1.5 pt-1.5 pb-1.5">
+		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className="@container flex w-full flex-col bg-panel px-1.5 pt-1.5 pb-1.5">
 			<button
 				type="button"
 				aria-expanded={!collapsed}
@@ -65,7 +65,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 							row(item.files[0]!)
 						) : (
 							<li key={item.key} data-testid={`files-item-${item.key}`} className="flex items-start border-t border-tone first:border-t-0">
-								<div className="flex w-[124px] shrink-0 flex-col gap-0.5 py-2 pl-2.5">
+								<div className="flex w-[96px] shrink-0 flex-col gap-0.5 py-2 pl-2.5 @3xl:w-[124px]">
 									<span className="truncate text-[13.5px] font-bold text-ink">{item.label}</span>
 									{item.date && <span className="text-[12.5px] text-ink-3">{shortDate(item.date)}</span>}
 								</div>

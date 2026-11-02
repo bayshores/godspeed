@@ -27,7 +27,7 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 describe("Where you're at (nothing selected)", () => {
 	const data = fixture();
 	const html = renderToStaticMarkup(
-		<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />,
+		<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} onHide={noop} slideIn={false} practicing={false} practiceError={null} />,
 	);
 
 	it("shows the deadline picker, the countdown, its date and files", () => {
@@ -55,7 +55,7 @@ describe("Where you're at (nothing selected)", () => {
 
 	it("with no deadlines: the class-wide view (no picker)", () => {
 		const none = renderToStaticMarkup(
-			<WherePanel data={{ ...data, deadlines: [] }} deadlineId={null} onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />,
+			<WherePanel data={{ ...data, deadlines: [] }} deadlineId={null} onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} onHide={noop} slideIn={false} practicing={false} practiceError={null} />,
 		);
 		assert.ok(!none.includes('data-testid="deadline-picker"'));
 		assert.ok(none.includes("Where you&#x27;re at"));
@@ -115,7 +115,7 @@ describe("GraphBody picks the panel", () => {
 		const [d] = data.deadlines;
 		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
 			const html = renderToStaticMarkup(
-				<WherePanel data={{ ...data, deadlines }} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />,
+				<WherePanel data={{ ...data, deadlines }} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} onHide={noop} slideIn={false} practicing={false} practiceError={null} />,
 			);
 			assert.ok(!html.includes('data-testid="deadline-picker"'));
 			assert.equal(count(html, 'data-testid="work-on-next-row"'), 1);
@@ -155,11 +155,11 @@ describe("adding notes and start errors", () => {
 
 	it("a practice that didn't start says so under the panel button", () => {
 		const html = renderToStaticMarkup(
-			<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError="Couldn't start practice. Try again." />,
+			<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} onHide={noop} slideIn={false} practicing={false} practiceError="Couldn't start practice. Try again." />,
 		);
 		const after = html.slice(html.indexOf('data-testid="practice-these"'));
 		assert.match(after, /data-testid="practice-start-error"[^>]*>Couldn&#x27;t start practice\. Try again\.</);
-		assert.ok(!renderToStaticMarkup(<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} practicing={false} practiceError={null} />).includes("practice-start-error"));
+		assert.ok(!renderToStaticMarkup(<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onPractice={noop} onHide={noop} slideIn={false} practicing={false} practiceError={null} />).includes("practice-start-error"));
 	});
 });
 
@@ -240,6 +240,23 @@ describe("keyboard access to topics", () => {
 	});
 });
 
+describe("hiding Where you're at", () => {
+	it("folds the panel to a strip that opens it again (sliding in)", async () => {
+		const data = fixture();
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		await act(async () => root!.render(<GraphBody data={data} query="" practicing={false} practiceError={null} onPractice={noop} />));
+		const q = (id: string) => host!.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+		assert.doesNotMatch(q("where-panel")!.getAttribute("class")!, /lh-slide-in/, "no slide on the first paint");
+		await act(async () => q("where-panel-hide")!.click());
+		assert.equal(q("where-panel"), null);
+		await act(async () => q("where-panel-show")!.click());
+		assert.match(q("where-panel")!.getAttribute("class")!, /lh-slide-in/);
+		assert.equal(q("where-panel-show"), null);
+	});
+});
+
 describe("the deadline picker's menu", () => {
 	it("is the class switcher's width; a long name truncates and shows in full on hover", async () => {
 		const data = fixture();
@@ -255,6 +272,8 @@ describe("the deadline picker's menu", () => {
 					onDeadlineChange={noop}
 					onSelectTopic={noop}
 					onPractice={noop}
+					onHide={noop}
+					slideIn={false}
 					practicing={false}
 					practiceError={null}
 				/>,

@@ -29,6 +29,8 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
+// An opened deadline row scrolls into view.
+(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { createRoot } = await import("react-dom/client");
 const { ClassDialog, MoveLessonDialog } = await import("../src/components/class-dialog.tsx");
@@ -77,7 +79,7 @@ function fakeFetch() {
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
-async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean }) {
+async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string; deadline?: string }) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -421,7 +423,7 @@ describe("Esc on the class dialogs", () => {
 
 	it("a deadline edit counts as a change; an untouched new deadline row doesn't", async () => {
 		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a", newDeadline: true });
+		await mount({ kind: "edit", classId: "cls_a", deadline: "new" });
 		assert.ok(q("class-deadline-name"), "Home's Add deadline opens a blank row");
 		await pressEscape();
 		assert.equal(closed, 1, "nothing typed: closes at once");
@@ -436,9 +438,33 @@ describe("Esc on the class dialogs", () => {
 		assert.ok(q("class-discard-confirm"));
 	});
 
+	it("opens with the asked-for deadline open, its files under Files this covers and Done set apart", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a", deadline: "exm_2" });
+		assert.equal((q("class-deadline-name") as HTMLInputElement).value, "Final");
+		const row = q("class-deadline-exm_2")!;
+		assert.match(row.textContent ?? "", /Files this covers/);
+		assert.equal(q("class-deadline-file-filter"), null, "a short list has no filter");
+		assert.match(q("class-deadline-done")!.closest("div")!.getAttribute("class")!, /border-t/);
+	});
+
+	it("Edit class shows Loading, not empty fields, until the class arrives", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/classes/cls_a" && (init?.method ?? "GET") === "GET") return new Promise<Response>(() => {});
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", classId: "cls_a" });
+		assert.ok(q("class-dialog-loading"));
+		assert.equal(q("class-name"), null);
+		assert.equal((q("class-save") as HTMLButtonElement).disabled, true);
+		assert.match(q("class-dialog")!.getAttribute("class")!, /h-\[85vh\]/, "one height from the first frame");
+	});
+
 	it("Save drops an untouched blank new deadline row instead of asking for its name", async () => {
 		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a", newDeadline: true });
+		await mount({ kind: "edit", classId: "cls_a", deadline: "new" });
 		await typeInto(q("class-name"), "CSE 21A");
 		await click(q("class-save"));
 		await act(async () => {

@@ -4,7 +4,7 @@ import { DEFAULT_TEACHER_NAME, type ClassNote, type ClassSignature } from "@/cor
 import { HalleyFace } from "@/components/halley/halley-face";
 import { useHalley } from "@/components/halley/halley-provider";
 import { cn } from "@/lib/utils";
-import { SIGNATURE_LEFT, fitScale, firstSentence, labelHangsLeft, noteWhen, studiedShare } from "./class-cover-model";
+import { firstSentence, labelHangsLeft, noteWhen, signaturePlace, studiedShare } from "./class-cover-model";
 
 /**
  * THE CLASS COVER (top of a class's Overview): the
@@ -83,37 +83,54 @@ export const ClassCover = memo(function ClassCover({
 	const pct = Math.round(share * 100);
 	const about = firstSentence(description);
 	const when = note && nowMs !== null ? noteWhen(note.at, nowMs) : "";
-	// A tall formula or a long line shrinks to fit the cover instead of
-	// being cut off at its edges.
+	// The signature sits in the free space beside the text, shrunk to fit
+	// (a tall formula or a long line is never cut off at the edges).
 	const coverRef = useRef<HTMLElement>(null);
 	const signatureRef = useRef<HTMLDivElement>(null);
-	const [scale, setScale] = useState(1);
+	const textRef = useRef<HTMLDivElement>(null);
+	const noteRef = useRef<HTMLDivElement>(null);
+	const [place, setPlace] = useState<{ left: number; scale: number } | null>(null);
 	useLayoutEffect(() => {
 		const cover = coverRef.current;
 		const sig = signatureRef.current;
-		if (!cover || !sig) return;
-		const fit = () =>
-			setScale(
-				fitScale(
+		const text = textRef.current;
+		if (!cover || !sig || !text) return;
+		const fit = () => {
+			const origin = cover.getBoundingClientRect().left;
+			const textRight = text.getBoundingClientRect().right - origin;
+			const noteBox = noteRef.current?.getBoundingClientRect();
+			// Only a note in the same row as the text (wide covers) bounds the space.
+			const noteLeft = noteBox && noteBox.left - origin > textRight ? noteBox.left - origin : null;
+			const padRight = parseFloat(getComputedStyle(cover).paddingRight) || 0;
+			setPlace(
+				signaturePlace(
 					{ width: sig.offsetWidth, height: sig.offsetHeight },
-					{ width: cover.clientWidth * (1 - SIGNATURE_LEFT), height: cover.clientHeight },
+					{ width: cover.clientWidth, height: cover.clientHeight, padRight },
+					textRight,
+					noteLeft,
 				),
 			);
+		};
 		fit();
 		const observer = new ResizeObserver(fit);
 		observer.observe(cover);
 		observer.observe(sig);
+		observer.observe(text);
 		return () => observer.disconnect();
-	}, [signature]);
+	}, [signature, note]);
 	return (
 		<header ref={coverRef} data-testid="class-cover" data-halley-target={`class:${classId}`} className="@container relative overflow-hidden px-[52px] pt-10 pb-7">
 			{signature && (
-				<div ref={signatureRef} className="absolute top-1/2 -translate-y-1/2 origin-left" style={{ left: `${SIGNATURE_LEFT * 100}%`, scale: String(scale) }}>
+				<div
+					ref={signatureRef}
+					className={cn("absolute top-1/2 -translate-y-1/2 origin-left", !place && "invisible")}
+					style={{ left: place?.left ?? 0, scale: String(place?.scale ?? 1) }}
+				>
 					<InkedSignature signature={signature} share={share} className={signature.kind === "math" ? "text-[110px]" : "text-[180px]"} />
 				</div>
 			)}
 			<div className="relative flex flex-col gap-6 @4xl:flex-row @4xl:items-end @4xl:justify-between">
-				<div className="flex min-w-0 flex-col gap-2">
+				<div ref={textRef} className="flex min-w-0 flex-col gap-2">
 					<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">
 						{name}
 					</h1>
@@ -125,7 +142,7 @@ export const ClassCover = memo(function ClassCover({
 					)}
 				</div>
 				{note && (
-					<div data-testid="class-cover-note" className="flex shrink-0 items-center gap-3 bg-panel/90 px-3.5 py-3 @4xl:w-[440px]">
+					<div ref={noteRef} data-testid="class-cover-note" className="flex shrink-0 items-center gap-3 bg-panel/90 px-3.5 py-3 @4xl:w-[440px]">
 						<span className="size-[22px] shrink-0">
 							<HalleyFace mood="idle" still />
 						</span>

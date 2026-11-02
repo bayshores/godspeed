@@ -4,10 +4,15 @@
  * sentence, and when Halley's note was written.
  */
 
-/** Where the signature starts, as a share of the cover's width. */
-export const SIGNATURE_LEFT = 0.28;
+/** Where the signature starts when it has to sit behind the text, as a
+ *  share of the cover's width. */
+const SIGNATURE_LEFT = 0.28;
 /** Space kept clear between the signature and the cover's edges. */
 const SIGNATURE_MARGIN = 12;
+/** The gap between the text (or the note) and a signature beside it. */
+const SIGNATURE_GAP = 32;
+/** A signature shrunk below this to fit beside the text goes behind it instead. */
+const MIN_BESIDE_SCALE = 0.5;
 
 /** How much to shrink the signature so it fits the cover (1 = as is). */
 export function fitScale(natural: { width: number; height: number }, room: { width: number; height: number }): number {
@@ -15,6 +20,24 @@ export function fitScale(natural: { width: number; height: number }, room: { wid
 	const w = Math.max(0, room.width - SIGNATURE_MARGIN) / natural.width;
 	const h = Math.max(0, room.height - 2 * SIGNATURE_MARGIN) / natural.height;
 	return Math.min(1, w, h);
+}
+
+/** Where the signature sits (its left edge, in cover pixels) and its
+ *  scale: in the free space right of the text and left of the note (or
+ *  the cover's padding), so it never sits under words; behind the text
+ *  only when that space is too small. */
+export function signaturePlace(
+	natural: { width: number; height: number },
+	cover: { width: number; height: number; padRight: number },
+	textRight: number,
+	noteLeft: number | null,
+): { left: number; scale: number } {
+	const start = textRight + SIGNATURE_GAP;
+	const end = noteLeft !== null ? noteLeft - SIGNATURE_GAP : cover.width - cover.padRight;
+	const beside = fitScale(natural, { width: end - start, height: cover.height });
+	if (end > start && beside >= MIN_BESIDE_SCALE) return { left: start, scale: beside };
+	const left = cover.width * SIGNATURE_LEFT;
+	return { left, scale: fitScale(natural, { width: cover.width - left, height: cover.height }) };
 }
 
 /** Share of the class's facts studied, 0–1 (0 with no facts). */

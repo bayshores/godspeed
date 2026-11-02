@@ -244,7 +244,7 @@ function LitLinks({ links, id, tone }: { links: readonly PlacedLink[]; id: strin
 
 function MapLegend() {
 	return (
-		<div className="pointer-events-none absolute bottom-6 left-6 flex items-center gap-5 text-xs text-ink-3">
+		<div className="pointer-events-none absolute bottom-6 left-6 flex items-center gap-5 whitespace-nowrap text-xs text-ink-3">
 			<span className="flex items-center gap-[5px]">
 				{RAMP_COLORS.map((c) => (
 					<span key={c} className="h-1 w-3.5" style={{ background: c }} />

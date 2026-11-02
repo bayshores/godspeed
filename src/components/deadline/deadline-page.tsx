@@ -41,7 +41,8 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 	const { record } = useClassRecord(classId);
 	const nowMs = useMinute();
 	const lesson = useLessonStart();
-	const [editing, setEditing] = useState(false);
+	// "class": Edit class as it opens anywhere; "deadline": with this deadline's row open.
+	const [editing, setEditing] = useState<"class" | "deadline" | null>(null);
 
 	const current = data && data.classId === classId ? data : null;
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
@@ -62,7 +63,10 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		if (deadline) askTeacher(syllabusCheckMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
 	}, [deadline, activeClass?.name]);
 
-	const editMode = useMemo(() => (editing ? { kind: "edit" as const, classId } : null), [editing, classId]);
+	const editMode = useMemo(
+		() => (editing ? { kind: "edit" as const, classId, deadline: editing === "deadline" ? deadlineId : undefined } : null),
+		[editing, classId, deadlineId],
+	);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -79,7 +83,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				<button
 					type="button"
 					data-testid="deadline-edit-class"
-					onClick={() => setEditing(true)}
+					onClick={() => setEditing("class")}
 					className="lh-press flex items-center gap-[7px] bg-panel px-2.5 py-[7px] text-sm text-ink hover:bg-tone"
 				>
 					<PencilIcon className="size-3.5" aria-hidden />
@@ -104,7 +108,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						busy={lesson.busy}
 						startError={lesson.error}
 						onStart={onStart}
-						onEditClass={() => setEditing(true)}
+						onEditClass={() => setEditing("deadline")}
 						onCheckSyllabus={onCheckSyllabus}
 					/>
 				) : error ? (
@@ -117,7 +121,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 					</div>
 				)}
 			</div>
-			<ClassDialog mode={editMode} onClose={() => setEditing(false)} />
+			<ClassDialog mode={editMode} onClose={() => setEditing(null)} />
 		</div>
 	);
 }

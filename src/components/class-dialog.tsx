@@ -27,8 +27,9 @@ import { ClassIconField } from "@/components/class-icon-field";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 import { LoadFailed } from "@/components/load-failed";
 
-/** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
-export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
+/** `deadline`: open with that deadline's row open and in view, or "new"
+ *  for a new row ready to fill (Home's Add deadline). */
+export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; deadline?: string };
 type Mode = ClassDialogMode;
 
 /** Exit motion: the dialog stays mounted
@@ -61,6 +62,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const { record, failed: recordFailed, reload } = useClassRecord(classId);
 	// Edit class with nothing to edit: say so instead of showing empty fields.
 	const loadFailed = mode.kind === "edit" && !record && recordFailed;
+	// Edit class waits for the class before showing its fields.
+	const loading = mode.kind === "edit" && !record && !recordFailed;
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [signature, setSignature] = useState<{ kind: SignatureKind; value: string }>({ kind: "math", value: "" });
@@ -91,11 +94,12 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			setIcon(record.icon);
 			setRules(record.rules ?? []);
 			const drafts = draftsFrom(record.deadlines);
-			if (mode.kind === "edit" && mode.newDeadline) {
+			const focus = mode.kind === "edit" ? mode.deadline : undefined;
+			if (focus === "new") {
 				const key = `new-${++newCount.current}`;
 				drafts.push({ key, kind: "homework", name: "", date: "", time: "", fileIds: [], done: false });
 				setOpenDeadline(key);
-			}
+			} else if (focus && drafts.some((d) => d.key === focus)) setOpenDeadline(focus);
 			setDrafts(drafts);
 		}
 	}, [record, mode]);
@@ -270,7 +274,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				data-testid="class-dialog"
 				data-state={state}
 				onClick={(e) => e.stopPropagation()}
-				className="lh-dialog flex max-h-[85vh] w-[560px] max-w-[calc(100vw-2rem)] flex-col bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2"
+				// Edit class keeps one height from the first frame (no jump when the class arrives).
+				className={`lh-dialog flex w-[560px] max-w-[calc(100vw-2rem)] flex-col bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2 ${mode.kind === "edit" ? "h-[85vh]" : "max-h-[85vh]"}`}
 			>
 				<div className="flex shrink-0 items-center justify-between px-5 py-[18px]">
 					<h2 className="text-base font-bold text-ink">{title}</h2>
@@ -289,6 +294,10 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				<div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-5 pb-5">
 					{loadFailed ? (
 						<LoadFailed message="Couldn't load this class." onRetry={() => void reload()} />
+					) : loading ? (
+						<p data-testid="class-dialog-loading" className="m-auto text-sm text-ink-2">
+							Loading…
+						</p>
 					) : (
 						<>
 							<label className="flex flex-col gap-1.5">
@@ -458,7 +467,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						<button
 							type="button"
 							data-testid="class-save"
-							disabled={busy || loadFailed}
+							disabled={busy || loadFailed || loading}
 							onClick={() => void save()}
 							className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 						>

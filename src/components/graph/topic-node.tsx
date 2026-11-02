@@ -9,7 +9,7 @@
  */
 import { memo, type KeyboardEvent } from "react";
 import { RAMP_COLORS, type TopicProgress } from "@/core";
-import type { PlacedTopic } from "./layout.ts";
+import { NAME_PX, type PlacedTopic } from "./layout.ts";
 import { OVERCONFIDENT_COLOR, STRIP_ANSWER_CLASS, scoreText } from "./derive.ts";
 
 /** Faded topics (not on the picked deadline / not matching the search). */
@@ -107,7 +107,8 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 			<foreignObject x={-80} y={d / 2 + 8} width={160} height={54}>
 				<div className="flex flex-col items-center gap-0.5 text-center">
 					<div
-						className={`line-clamp-2 w-full text-[13px] leading-4 ${selected ? "font-extrabold text-ink-max" : "font-semibold text-ink"}`}
+						style={{ fontSize: NAME_PX }}
+						className={`line-clamp-2 w-full leading-4 ${selected ? "font-extrabold text-ink-max" : "font-semibold text-ink"}`}
 					>
 						{topic.name}
 					</div>

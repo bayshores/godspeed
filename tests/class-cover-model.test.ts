@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { fitScale, firstSentence, labelHangsLeft, noteWhen, studiedShare } from "../src/components/overview/class-cover-model.ts";
+import { fitScale, firstSentence, labelHangsLeft, noteWhen, signaturePlace, studiedShare } from "../src/components/overview/class-cover-model.ts";
 
 describe("class cover", () => {
 	it("inks the share of facts studied, 0 with no facts, never past 1", () => {
@@ -49,5 +49,23 @@ describe("fitScale", () => {
 	});
 	it("leaves an unmeasured signature alone", () => {
 		assert.equal(fitScale({ width: 0, height: 0 }, { width: 600, height: 200 }), 1);
+	});
+});
+
+describe("signaturePlace", () => {
+	const cover = { width: 1084, height: 240, padRight: 52 };
+	it("sits in the free space right of the text, never under it", () => {
+		const place = signaturePlace({ width: 200, height: 170 }, cover, 600, null);
+		assert.deepEqual(place, { left: 632, scale: 1 });
+	});
+	it("stops before a note in the same row", () => {
+		const place = signaturePlace({ width: 200, height: 170 }, cover, 400, 600);
+		assert.equal(place.left, 432);
+		assert.equal(place.scale, (600 - 32 - 432 - 12) / 200);
+	});
+	it("goes behind the text when the space beside it is too small", () => {
+		const place = signaturePlace({ width: 600, height: 170 }, cover, 900, null);
+		assert.equal(place.left, 1084 * 0.28);
+		assert.ok(place.scale > 0 && place.scale <= 1);
 	});
 });

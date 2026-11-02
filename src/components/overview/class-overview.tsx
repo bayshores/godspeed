@@ -10,6 +10,7 @@ import { practicePicks } from "@/components/graph/practice";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
+import { PickClass } from "@/components/pick-class";
 import { OverviewBody } from "./overview-body";
 
 /**
@@ -77,6 +78,7 @@ export function ClassOverview() {
 					startError={lesson.error}
 					onLearn={learn}
 					onAddSignature={() => setEditing(true)}
+					pickClass={active ? undefined : <PickClass line="Pick a class to see how it's going." />}
 				/>
 				{!current && error && <LoadFailed message="Couldn't load this class's progress." onRetry={refresh} className="px-[52px]" />}
 			</div>

@@ -16,6 +16,7 @@ import {
 	dropRemoved,
 	dueLabel,
 	filesLabel,
+	filterFiles,
 	hasUnsavedChanges,
 	kindLabel,
 	toggleFile,
@@ -164,6 +165,13 @@ describe("class-deadlines-model", () => {
 		assert.equal(kindLabel("homework"), "Homework");
 		assert.equal(filesLabel(1), "1 file");
 		assert.equal(filesLabel(3), "3 files");
+	});
+
+	it("filterFiles keeps names with every word of the filter, any case", () => {
+		const files = [{ name: "Lecture01_2026-09-25.srt" }, { name: "06_Counting.pdf" }, { name: "HW3 counting.pdf" }];
+		assert.deepEqual(filterFiles(files, "counting").map((f) => f.name), ["06_Counting.pdf", "HW3 counting.pdf"]);
+		assert.deepEqual(filterFiles(files, "hw3 COUNT").map((f) => f.name), ["HW3 counting.pdf"]);
+		assert.equal(filterFiles(files, "  ").length, 3);
 	});
 
 	it("toggleFile keeps class order and leaves unknown ids alone", () => {

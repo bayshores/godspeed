@@ -129,7 +129,15 @@ export const SessionRow = memo(function SessionRow({
 						kbdSelected && !active && "bg-tone/60 ring-1 ring-tone-2 ring-inset",
 					)}
 				>
-					<span className={cn("block w-full truncate text-[14.5px] text-ink", active && "font-bold")}>
+					{/* Room for the ⋯ button while it shows, so the title ends before it. */}
+					<span
+						className={cn(
+							"block w-full truncate text-[14.5px] text-ink",
+							active && "font-bold",
+							onMenu && "group-focus-within:pr-7 group-hover:pr-7",
+							menuOpen && "pr-7",
+						)}
+					>
 						{chat.title}
 					</span>
 					<MetaLine chat={chat} />
@@ -143,7 +151,6 @@ export const SessionRow = memo(function SessionRow({
 					aria-expanded={menuOpen}
 					data-testid="session-row-menu"
 					onClick={(e) => onMenu(e.currentTarget, chat)}
-					// On the row's hover tone, so it covers the end of a long title.
 					className={cn(
 						"lh-press absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center bg-tone hover:text-ink focus-visible:opacity-100 group-hover:opacity-100",
 						menuOpen ? "text-ink opacity-100" : "text-ink-2 opacity-0",

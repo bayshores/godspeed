@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import type { ClassNote, ClassSignature, ProgressPayload } from "@/core";
 import { ClassCover } from "./class-cover";
 import { ConfidenceCard } from "./confidence-card";
@@ -26,6 +26,7 @@ export const OverviewBody = memo(function OverviewBody({
 	startError,
 	onLearn,
 	onAddSignature,
+	pickClass,
 }: {
 	name: string;
 	description: string;
@@ -44,6 +45,8 @@ export const OverviewBody = memo(function OverviewBody({
 	onLearn: (topicId: string) => void;
 	/** The cover's "Add a signature" (opens Edit class). */
 	onAddSignature?: () => void;
+	/** Under the No class title: the classes to switch to. */
+	pickClass?: ReactNode;
 }) {
 	const lessons = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
 	const facts = useMemo(() => studiedFacts(data?.facts ?? []), [data?.facts]);
@@ -58,6 +61,7 @@ export const OverviewBody = memo(function OverviewBody({
 					<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">
 						{name}
 					</h1>
+					{pickClass}
 				</header>
 			)}
 			<div className="flex flex-col gap-4 px-[52px]">

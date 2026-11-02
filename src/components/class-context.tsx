@@ -43,9 +43,19 @@ export function className(classes: readonly ClassSummary[], id: string | null | 
 	return classes.find((c) => c.id === id)?.name ?? "Unknown class";
 }
 
-export function ClassProvider({ children, initialActive }: { children: ReactNode; initialActive: string | null }) {
-	const [classes, setClasses] = useState<ClassSummary[]>([]);
-	const [loaded, setLoaded] = useState(false);
+export function ClassProvider({
+	children,
+	initialActive,
+	initialClasses,
+}: {
+	children: ReactNode;
+	initialActive: string | null;
+	/** The class list read while the page rendered, so the first paint has
+	 *  the class's name and nav (undefined: read it after mount). */
+	initialClasses?: ClassSummary[];
+}) {
+	const [classes, setClasses] = useState<ClassSummary[]>(initialClasses ?? []);
+	const [loaded, setLoaded] = useState(initialClasses !== undefined);
 	const [active, setActiveState] = useState<string | null>(initialActive);
 	// Follow the server's value when it changes on a refresh (e.g. onboarding
 	// finishing with a new class), without overriding client switches.

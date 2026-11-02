@@ -36,6 +36,7 @@ import { useSettingsSaved } from "@/components/settings-signal";
 import { cn } from "@/lib/utils";
 import { HalleyFace } from "./halley-face";
 import { HalleyPanel, currentDockWidth } from "./halley-panel";
+import { HALLEY_AVOID_EVENT } from "./avoid";
 import { useAskTeacher } from "./ask-teacher";
 import type { TalkAsk } from "./talk-view";
 import { HalleyEngine, type Home } from "./engine";
@@ -603,9 +604,11 @@ function HalleyStage({
 	const home = useCallback((): Home => {
 		// The open panel docks on the right, so the teacher rests left of it.
 		const a = panelOpenRef.current ? clearOfDock(area(), window.innerWidth - currentDockWidth()) : area();
-		const banner = document.querySelector<HTMLElement>("[data-testid='update-banner']");
-		const obstacle = banner ? boxOf(banner.getBoundingClientRect()) : null;
-		const at = (risen: boolean) => clearOf(cornerSpot(cornerRef.current, a, SIZE, risen), SIZE, obstacle);
+		// The update banner and the pages' bottom action bars (data-halley-avoid).
+		const obstacles = [...document.querySelectorAll<HTMLElement>("[data-testid='update-banner'], [data-halley-avoid]")]
+			.map((el) => boxOf(el.getBoundingClientRect()))
+			.filter((b) => b.width > 0 && b.height > 0);
+		const at = (risen: boolean) => clearOf(cornerSpot(cornerRef.current, a, SIZE, risen), SIZE, obstacles);
 		return { spot: at(false), up: at(true), size: SIZE, edge: a.top + a.height };
 	}, [area]);
 
@@ -642,6 +645,7 @@ function HalleyStage({
 		onResize();
 		window.addEventListener("resize", onResize);
 		window.addEventListener("scroll", refresh, { capture: true, passive: true });
+		window.addEventListener(HALLEY_AVOID_EVENT, refresh);
 		const main = document.querySelector("main");
 		const ro = new ResizeObserver(refresh);
 		if (main) ro.observe(main);
@@ -651,6 +655,7 @@ function HalleyStage({
 		return () => {
 			window.removeEventListener("resize", onResize);
 			window.removeEventListener("scroll", refresh, { capture: true });
+			window.removeEventListener(HALLEY_AVOID_EVENT, refresh);
 			ro.disconnect();
 			mo.disconnect();
 			engine.destroy();
