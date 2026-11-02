@@ -7,7 +7,7 @@ import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
-import { fileToText, transcriptToText, walkLinkedFolder, RecordingNeedsTranscriptError } from "../src/server/class-files.ts";
+import { fileToText, isReadableClassFile, looksLikeText, transcriptToText, walkLinkedFolder, RecordingNeedsTranscriptError } from "../src/server/class-files.ts";
 import { findProgram } from "../src/server/transcribe.ts";
 import { MAX_LINKED_FILES, safeName } from "../src/core/contracts.ts";
 
@@ -35,10 +35,47 @@ describe("fileToText and the folder walk", () => {
 			assert.equal(await fileToText(path.join(dir, "a.md")), "# Notes");
 			assert.equal(await fileToText(path.join(dir, "sub", "b.srt")), "Hi");
 			await assert.rejects(fileToText(path.join(dir, "talk.m4a")), RecordingNeedsTranscriptError);
-			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md", "sub/b.srt", "talk.m4a"], capped: false, unreadable: [] });
+			assert.deepEqual(walkLinkedFolder(dir), {
+				files: ["a.md", "sub/b.srt", "talk.m4a"],
+				capped: false,
+				unreadable: [],
+				skipped: { count: 1, examples: ["img.png"], google: 0 },
+			});
 		} finally {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
+	});
+
+	it("reads code and extension-less text, and counts what it can't read", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-class-files-types-"));
+		try {
+			fs.writeFileSync(path.join(dir, "malloc.c"), "int main(void) { return 0; }\n");
+			fs.writeFileSync(path.join(dir, "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)"), "Test 2 moved to Friday.\n");
+			fs.writeFileSync(path.join(dir, "blob"), Buffer.from([0x50, 0x4b, 0x00, 0x01]));
+			fs.writeFileSync(path.join(dir, "empty"), "");
+			fs.writeFileSync(path.join(dir, "Plan.gdoc"), '{"doc_id":"x"}');
+			fs.writeFileSync(path.join(dir, "~$Draft.docx"), "lock");
+			assert.equal(await fileToText(path.join(dir, "malloc.c")), "int main(void) { return 0; }\n");
+			assert.equal(await fileToText(path.join(dir, "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)")), "Test 2 moved to Friday.\n");
+			assert.deepEqual(walkLinkedFolder(dir), {
+				files: ["malloc.c", "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)"],
+				capped: false,
+				unreadable: [],
+				skipped: { count: 3, examples: ["blob", "empty", "Plan.gdoc"], google: 1 },
+			});
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("looksLikeText: UTF-8 without NUL bytes, a character cut at the end allowed", () => {
+		assert.equal(looksLikeText(new TextEncoder().encode("café ∑ notes")), true);
+		assert.equal(looksLikeText(new TextEncoder().encode("é").subarray(0, 1)), true);
+		assert.equal(looksLikeText(Buffer.from([0x68, 0x00, 0x69])), false);
+		assert.equal(looksLikeText(Buffer.from([0xff, 0xfe, 0x41])), false);
+		assert.equal(looksLikeText(new Uint8Array()), false);
+		assert.equal(isReadableClassFile("notes", () => new TextEncoder().encode("hi")), true);
+		assert.equal(isReadableClassFile("photo.heic", () => new TextEncoder().encode("hi")), false);
 	});
 
 	it("stops at the file limit and says so", () => {
@@ -78,7 +115,7 @@ describe("walkLinkedFolder on an unreadable folder", () => {
 			fs.mkdirSync(sub);
 			fs.writeFileSync(path.join(sub, "b.md"), "");
 			fs.chmodSync(sub, 0o000);
-			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md"], capped: false, unreadable: ["week 2"] });
+			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md"], capped: false, unreadable: ["week 2"], skipped: { count: 0, examples: [], google: 0 } });
 		} finally {
 			fs.chmodSync(sub, 0o755);
 			fs.rmSync(dir, { recursive: true, force: true });

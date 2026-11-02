@@ -29,8 +29,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { NotesImportError } from "../agent/subagents/extraction.ts";
 import { extractionStatuses, abortExtraction } from "../agent/subagents/extraction-runs.ts";
-import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem, FolderStatus } from "../core/contracts.ts";
-import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, isSupportedClassFile, parseClassScope, safeName, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem, FolderStatus, SkippedFiles } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, parseClassScope, safeName, SUPPORTED_CLASS_FILE_EXTENSIONS, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { emit } from "../core/events.ts";
@@ -39,7 +39,7 @@ import { kindsForNewFiles } from "../core/new-files.ts";
 import { recordFolderFiles } from "./agent-actions.ts";
 import { extraction } from "./extraction.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
-import { fileToText, fingerprintFile, walkLinkedFolder } from "./class-files.ts";
+import { fileToText, fingerprintFile, isReadableClassFile, walkLinkedFolder } from "./class-files.ts";
 import { dropClassFile, forgetClassSearch, indexClassFile, isFileIndexed } from "./search-index.ts";
 import { discardChatDeliveries } from "./jobs.ts";
 import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./stores.ts";
@@ -279,8 +279,12 @@ const newFileId = () => `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}
 export function addCopiedFile(classId: string, name: string, bytes: Uint8Array, kind: ClassFileKind): ClassOutcome<ClassFile> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
 	const clean = safeName(name);
-	if (!isSupportedClassFile(clean)) {
-		return fail(400, "unsupported_type", `${clean}: unsupported file type. Supported: .md .txt .pdf .vtt .srt .mp3 .m4a .wav .mp4 .mov`);
+	if (!isReadableClassFile(clean, () => bytes)) {
+		return fail(
+			400,
+			"unsupported_type",
+			`${clean}: unsupported file type. Supported: ${SUPPORTED_CLASS_FILE_EXTENSIONS.join(" ")}, and plain text with no extension. Google Docs need saving as PDF or Word first.`,
+		);
 	}
 	const id = newFileId();
 	const rel = `${id}/${clean}`;
@@ -429,14 +433,23 @@ export function folderStatusOf(classId: string): FolderStatus {
 	return folderScans.get(classId) ?? { problem: null, checkedAt: null, settling: 0 };
 }
 
-/** Record a scan's finding. `settling` is given when the scan read the
- *  folder through (it counts as checked). The Files page re-reads when the
- *  problem or the count still settling changes. */
-function setFolderStatus(classId: string, problem: FolderProblem | null, settling?: number): void {
+/** Record a scan's finding. `settling` and `skipped` are given when the
+ *  scan read the folder through (it counts as checked); otherwise the last
+ *  skipped files are kept. The Files page re-reads when what it shows
+ *  changes. */
+function setFolderStatus(classId: string, problem: FolderProblem | null, settling?: number, skipped?: SkippedFiles): void {
 	const prev = folderStatusOf(classId);
-	const next: FolderStatus = { problem, checkedAt: settling === undefined ? prev.checkedAt : new Date().toISOString(), settling: settling ?? 0 };
+	const read = settling !== undefined;
+	const kept = read ? skipped : prev.skipped;
+	const next: FolderStatus = {
+		problem,
+		checkedAt: read ? new Date().toISOString() : prev.checkedAt,
+		settling: settling ?? 0,
+		...(kept && kept.count > 0 ? { skipped: kept } : {}),
+	};
 	folderScans.set(classId, next);
-	if (prev.problem !== next.problem || prev.settling !== next.settling) emit("classes-changed", {});
+	const changed = prev.problem !== next.problem || prev.settling !== next.settling || JSON.stringify(prev.skipped) !== JSON.stringify(next.skipped);
+	if (changed) emit("classes-changed", {});
 }
 
 /** How long a folder change must hold still before a scan acts on it: a
@@ -464,9 +477,10 @@ export function scanLinkedFolder(classId: string, { linking = false }: { linking
 	let present: string[];
 	let unreadable: string[];
 	let capped: boolean;
+	let skipped: SkippedFiles;
 	try {
 		if (!fs.statSync(root).isDirectory()) throw new Error("not a folder");
-		({ files: present, unreadable, capped } = walkLinkedFolder(root));
+		({ files: present, unreadable, capped, skipped } = walkLinkedFolder(root));
 	} catch {
 		// Folder gone (moved, renamed, drive unplugged): its files and facts
 		// stay, and the Files page says so.
@@ -536,7 +550,7 @@ export function scanLinkedFolder(classId: string, { linking = false }: { linking
 		});
 	}
 	seenFiles.set(classId, seen);
-	setFolderStatus(classId, capped ? "too-many-files" : null, settling);
+	setFolderStatus(classId, capped ? "too-many-files" : null, settling, skipped);
 	for (const id of toProcess) enqueueFile(classId, id);
 	if (added.length === 0) {
 		for (const file of gone) dropFile(stores.classStore.getClass(classId)!, file);

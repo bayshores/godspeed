@@ -273,6 +273,14 @@ describe("the class file pipeline", () => {
 		assert.equal(stores.classStore.getClass(id)!.files.length, 0);
 	});
 
+	it("text with no extension can be added; a binary file with none can't", async () => {
+		const id = await makeClass("CSE 29");
+		const res = await (await upload(id, "info", [["SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)", "Test 2 moved"], ["blob", "a\u0000b"]])).json();
+		assert.deepEqual(res.results.map((r: { ok: boolean }) => r.ok), [true, false]);
+		await classIdle(id);
+		assert.deepEqual(stores.classStore.getClass(id)!.files.map((f) => [f.name, f.status]), [["SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)", "ready"]]);
+	});
+
 	it("a linked folder: new files auto-add as study material, edits rebuild, deletions remove facts", async () => {
 		const id = await makeClass("CSE 100");
 		fs.writeFileSync(path.join(LINKED, "week1.md"), "Binary trees");

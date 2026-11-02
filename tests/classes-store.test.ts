@@ -397,8 +397,13 @@ describe("class contract helpers", () => {
 	it("knows the supported file types", () => {
 		assert.equal(extensionOf("Lecture 3.PDF"), ".pdf");
 		assert.equal(extensionOf("dir.v2/README"), "");
+		assert.equal(extensionOf("SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)"), "", "a dot inside a name is no extension");
 		assert.equal(isSupportedClassFile("week1.vtt"), true);
 		assert.equal(isSupportedClassFile("talk.m4a"), true);
+		assert.equal(isSupportedClassFile("shell.c"), true);
+		assert.equal(isSupportedClassFile("Week 3.DOCX"), true);
+		assert.equal(isSupportedClassFile("Lecture 9.pptx"), true);
 		assert.equal(isSupportedClassFile("photo.png"), false);
+		assert.equal(isSupportedClassFile("Plan.gdoc"), false);
 	});
 });

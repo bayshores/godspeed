@@ -30,7 +30,7 @@ godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharne
 | **Who teaches** | Models from 30+ providers, through your API keys or a ChatGPT sign-in | An agent you already use: Claude Code, Codex, or any MCP app |
 | **API keys and sign-ins** | An API key, or sign in with ChatGPT. Agents that can't be signed into, like Claude Code, are left out | Neither. godspeed is an MCP server, so there is no key to paste and no account to sign in to |
 | **Organization** | One graph for everything | Classes, each with its own lessons, knowledge graph, files and deadlines |
-| **Course files** | Import notes | Add PDFs, notes, transcripts and recordings (transcribed locally with whisper.cpp), or link a folder that's rescanned every minute |
+| **Course files** | Import notes | Add PDFs, Word and PowerPoint files, notes, code, transcripts and recordings (transcribed locally with whisper.cpp), or link a folder that's rescanned every minute |
 | **Graph** | A canvas of individual facts | A topic map. The AI groups facts into topics, colors each by how often you get it right, and draws arrows for "learn this first" |
 | **Progress** | None | A class Overview: coverage per file, how each lesson went, and whether your confidence matches your results |
 | **Deadlines** | None | Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's coming up, and the Graph shows days left and what to work on next |

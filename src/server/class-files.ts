@@ -16,14 +16,16 @@ import * as path from "node:path";
 import { Worker } from "node:worker_threads";
 import { pdfExtract, standardFontsDir } from "../agent/subagents/pdf-ops.ts";
 import {
-	DOCUMENT_EXTENSIONS,
 	MAX_LINKED_FILES,
-	TEXT_EXTENSIONS,
+	OFFICE_EXTENSIONS,
+	PLAIN_TEXT_EXTENSIONS,
 	TRANSCRIPT_EXTENSIONS,
 	extensionOf,
 	isRecordingFile,
 	isSupportedClassFile,
+	type SkippedFiles,
 } from "../core/contracts.ts";
+import { officeText } from "./office-text.ts";
 
 /** sha256 of the file's bytes, 16 hex chars — the change detector.
  *  Streamed: a whole-file sync read of a big PDF would block every other
@@ -103,16 +105,77 @@ export class RecordingNeedsTranscriptError extends Error {
  *  through the transcriber first). */
 export async function fileToText(absPath: string): Promise<string> {
 	const ext = extensionOf(absPath);
-	if ((TEXT_EXTENSIONS as readonly string[]).includes(ext)) return fs.readFileSync(absPath, "utf-8");
+	// No extension: only ever added after looksLikeText said it is text.
+	if (ext === "" || PLAIN_TEXT_EXTENSIONS.includes(ext)) return fs.readFileSync(absPath, "utf-8");
 	if ((TRANSCRIPT_EXTENSIONS as readonly string[]).includes(ext)) return transcriptToText(fs.readFileSync(absPath, "utf-8"));
-	if ((DOCUMENT_EXTENSIONS as readonly string[]).includes(ext)) {
-		// pdfjs text, page-headed ("--- Page N ---") — the headings keep the
-		// extractor oriented in long readings.
-		return pdfTextOffThread(absPath);
-	}
+	// pdfjs text, page-headed ("--- Page N ---"): the headings keep the
+	// extractor oriented in long readings.
+	if (ext === ".pdf") return pdfTextOffThread(absPath);
+	if ((OFFICE_EXTENSIONS as readonly string[]).includes(ext)) return officeText(absPath);
 	if (isRecordingFile(absPath)) throw new RecordingNeedsTranscriptError();
-	throw new Error(`Unsupported file type: ${ext || "(none)"}`);
+	throw new Error(`Unsupported file type: ${ext}`);
 }
+
+/** How much of a file with no extension is checked for being text. */
+const TEXT_SNIFF_BYTES = 8192;
+
+/** True when these bytes (a file's start) read as UTF-8 text: no NUL
+ *  byte and nothing that isn't UTF-8 (a character cut off at the end is
+ *  fine). Empty is not text: an empty file has nothing to learn from. */
+export function looksLikeText(bytes: Uint8Array): boolean {
+	const head = bytes.subarray(0, TEXT_SNIFF_BYTES);
+	if (head.length === 0 || head.includes(0)) return false;
+	try {
+		new TextDecoder("utf-8", { fatal: true }).decode(head, { stream: true });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** The start of a file on disk, for looksLikeText. */
+function fileHead(absPath: string): Uint8Array {
+	const fd = fs.openSync(absPath, "r");
+	try {
+		const buf = Buffer.alloc(TEXT_SNIFF_BYTES);
+		return buf.subarray(0, fs.readSync(fd, buf, 0, TEXT_SNIFF_BYTES, 0));
+	} finally {
+		fs.closeSync(fd);
+	}
+}
+
+/** looksLikeText per file on disk, kept while its size and time stay the
+ *  same: the folder scan runs every minute, and opening a synced Drive
+ *  file can download it. */
+const textChecks = new Map<string, { sig: string; text: boolean }>();
+
+function fileLooksLikeText(absPath: string): boolean {
+	try {
+		const st = fs.statSync(absPath);
+		const sig = `${st.mtimeMs}:${st.size}`;
+		const known = textChecks.get(absPath);
+		if (known?.sig === sig) return known.text;
+		const text = looksLikeText(fileHead(absPath));
+		textChecks.set(absPath, { sig, text });
+		return text;
+	} catch {
+		return false;
+	}
+}
+
+/** Can this file become class material? By its extension, or, with none,
+ *  by its bytes being text. */
+export function isReadableClassFile(name: string, bytes: () => Uint8Array): boolean {
+	if (isSupportedClassFile(name)) return true;
+	return extensionOf(name) === "" && looksLikeText(bytes());
+}
+
+/** Google Docs, Sheets, Slides and the like on a synced Drive: small link
+ *  files whose contents live online. */
+const GOOGLE_STUB_EXTENSIONS = [".gdoc", ".gsheet", ".gslides", ".gdraw", ".gform", ".gsite", ".gmap", ".gjam"];
+
+/** Names kept for files a folder holds that can't be read. */
+const SKIPPED_EXAMPLES = 3;
 
 /** Folders never walked inside a linked class folder (fs-shared.ts's noise
  *  set plus hidden folders). */
@@ -120,12 +183,14 @@ const SKIPPED_DIRS = new Set(["node_modules", ".git", "Library", ".Trash"]);
 
 /** Every supported file under `root`, as POSIX-style relative paths,
  *  sorted, and whether the walk stopped at MAX_LINKED_FILES with more
- *  left. Hidden files, lock files and noise folders are skipped. An unreadable
+ *  left. Hidden files, lock files and noise folders are passed over; other
+ *  files that can't be read are counted in `skipped`. An unreadable
  *  folder is not an empty one: the walk throws when the root can't be
  *  read, and lists unreadable subfolders in `unreadable`. */
-export function walkLinkedFolder(root: string): { files: string[]; capped: boolean; unreadable: string[] } {
+export function walkLinkedFolder(root: string): { files: string[]; capped: boolean; unreadable: string[]; skipped: SkippedFiles } {
 	const out: string[] = [];
 	const unreadable: string[] = [];
+	const skipped: SkippedFiles = { count: 0, examples: [], google: 0 };
 	let capped = false;
 	const visit = (dir: string, rel: string) => {
 		let entries: fs.Dirent[];
@@ -143,12 +208,17 @@ export function walkLinkedFolder(root: string): { files: string[]; capped: boole
 			const childRel = rel ? `${rel}/${entry.name}` : entry.name;
 			if (entry.isDirectory()) {
 				if (!SKIPPED_DIRS.has(entry.name)) visit(path.join(dir, entry.name), childRel);
-			} else if (entry.isFile() && isSupportedClassFile(entry.name)) {
-				if (out.length === MAX_LINKED_FILES) capped = true;
+			} else if (entry.isFile()) {
+				const name = entry.name;
+				if (!isSupportedClassFile(name) && !(extensionOf(name) === "" && fileLooksLikeText(path.join(dir, name)))) {
+					skipped.count++;
+					if (GOOGLE_STUB_EXTENSIONS.includes(extensionOf(name))) skipped.google++;
+					if (skipped.examples.length < SKIPPED_EXAMPLES) skipped.examples.push(name);
+				} else if (out.length === MAX_LINKED_FILES) capped = true;
 				else out.push(childRel);
 			}
 		}
 	};
 	visit(root, "");
-	return { files: out, capped, unreadable };
+	return { files: out, capped, unreadable, skipped };
 }

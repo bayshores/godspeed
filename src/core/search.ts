@@ -9,7 +9,8 @@ import MiniSearch from "minisearch";
 import { extensionOf, TRANSCRIPT_EXTENSIONS } from "./contracts.ts";
 
 /** One piece of a class file, before it gets an id and a hash. `from`/`to`
- *  locate it: pages (PDFs), seconds (captions) or lines (text). */
+ *  locate it: pages (PDFs), slides (PowerPoint), seconds (captions) or
+ *  lines (text). */
 export interface PassageChunk {
 	range: string;
 	from: number;
@@ -32,27 +33,30 @@ const CAPTION_WINDOW_MIN_S = 60;
 const CAPTION_WINDOW_MAX_S = 90;
 
 /** Cut a class file's text into passages. PDFs (text with "--- Page N ---"
- *  heads) by page, .srt/.vtt (the raw caption file) by time, everything
- *  else by paragraph windows with line ranges. */
+ *  heads) by page, PowerPoint ("--- Slide N ---") by slide, .srt/.vtt (the
+ *  raw caption file) by time, everything else by paragraph windows with
+ *  line ranges. */
 export function chunkFile(name: string, text: string): ChunkedFile {
 	const ext = extensionOf(name);
-	if (ext === ".pdf") return chunkPdf(text);
+	if (ext === ".pdf") return chunkHeaded(text, "Page", "p.", "page");
+	if (ext === ".pptx") return chunkHeaded(text, "Slide", "slide", "slide");
 	if ((TRANSCRIPT_EXTENSIONS as readonly string[]).includes(ext)) return chunkCaptions(text);
 	return chunkText(text);
 }
 
-function chunkPdf(text: string): ChunkedFile {
+/** Text under "--- <Head> N ---" lines, one passage set per numbered part. */
+function chunkHeaded(text: string, head: string, label: string, unit: string): ChunkedFile {
 	const chunks: PassageChunk[] = [];
-	const parts = text.split(/^--- Page (\d+) ---$/m);
-	let pages = 0;
+	const parts = text.split(new RegExp(`^--- ${head} (\\d+) ---$`, "m"));
+	let count = 0;
 	for (let i = 1; i < parts.length; i += 2) {
-		const page = Number(parts[i]);
-		pages = Math.max(pages, page);
+		const n = Number(parts[i]);
+		count = Math.max(count, n);
 		for (const piece of splitLong(parts[i + 1]!.trim(), MAX_PASSAGE_CHARS)) {
-			chunks.push({ range: `p. ${page}`, from: page, to: page, text: piece });
+			chunks.push({ range: `${label} ${n}`, from: n, to: n, text: piece });
 		}
 	}
-	return { chunks, extent: `${pages} ${pages === 1 ? "page" : "pages"}` };
+	return { chunks, extent: `${count} ${count === 1 ? unit : `${unit}s`}` };
 }
 
 /** Split text longer than `max` at line ends (or, for one huge line, at

@@ -3,10 +3,10 @@
  * record (src/core/contracts/class.ts) and the progress payload's file
  * coverage (src/core/progress.ts).
  */
-import { SPEECH_TOOL_INSTALL, type ClassFile, type FileCoverage, type FileGroup } from "@/core";
+import { SPEECH_TOOL_INSTALL, SUPPORTED_CLASS_FILE_EXTENSIONS, type ClassFile, type FileCoverage, type FileGroup } from "@/core";
 
-/** Accepted by "Add files" (mirrors SUPPORTED_CLASS_FILE_EXTENSIONS). */
-export const CLASS_FILE_ACCEPT = ".md,.markdown,.txt,.pdf,.vtt,.srt,.mp3,.m4a,.wav,.mp4,.mov";
+/** Accepted by "Add files" (files with no extension can still be dropped). */
+export const CLASS_FILE_ACCEPT = SUPPORTED_CLASS_FILE_EXTENSIONS.join(",");
 
 /** The computer's file browser by name, for "Show in …" labels. */
 export function fileBrowserName(platform: string | undefined): string {
