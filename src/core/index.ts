@@ -62,6 +62,7 @@ export * from "./settings.ts";
 export type { ChatDeleteMode } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
 export * from "./math-typing.ts";
+export * from "./file-series.ts";
 export type { ClassChange } from "./class-tools.ts";
 export * from "./teaching-areas.ts";
 export * from "./agent-rules.ts";
