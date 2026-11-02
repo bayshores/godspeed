@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.13",
+		"date": "2026-11-02",
+		"changes": [
+			"Your thinking turns math into real math as you type. Write 1/2, x^2 or x_1 and it formats when you add a space, and >= becomes ≥.",
+			"Type a word like sqrt, choose or pi and a small list pops up. Click one to put it in, and click any math to change it.",
+			"Once you pick an answer and start writing, the answer list folds into one row so the thinking box gets more room. Click Change to open it again.",
+			"Your saved thinking shows its math properly too.",
+			"The lesson meter now shows how big the lesson is next to the point where it gets summarized, which you can change in Settings.",
+			"Follow your agent is on by default, and godspeed remembers when you turn it off."
+		]
+	},
+	{
 		"version": "0.5.12",
 		"date": "2026-11-01",
 		"changes": [
