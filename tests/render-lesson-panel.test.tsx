@@ -8,6 +8,7 @@ import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
+import { mathBoxView, stubCodeMirrorDom } from "./math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurnPanel } from "../src/components/lesson/your-turn-panel.tsx";
@@ -27,6 +28,7 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
+stubCodeMirrorDom(dom);
 // linkedom has no layout: the walked row's scrollIntoView is a no-op here.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
@@ -310,7 +312,7 @@ describe("the side question box", () => {
 describe("saved drafts in the panel", () => {
 	it("a practice problem starts from its saved thinking", () => {
 		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Find E[N]." }} onSubmit={async () => true} initialDraft="half done" />);
-		assert.match(html, /<textarea[^>]*>half done<\/textarea>/);
+		assert.match(html, /data-testid="math-box"[^]*>half done</);
 	});
 
 	it("a practice send clears the saved draft, and a refused one puts it back", async () => {
@@ -338,7 +340,7 @@ describe("saved drafts in the panel", () => {
 		const draft: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "because", other: "", text: "" };
 		assert.match(
 			renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={() => {}} initialDraft={draft} />),
-			/<textarea[^>]*>because<\/textarea>/,
+			/data-testid="math-box"[^]*>because</,
 		);
 		const host = document.createElement("div");
 		document.body.append(host);
@@ -511,6 +513,50 @@ describe("the question panel's keys", () => {
 			await act(async () => root.unmount());
 			host.remove();
 		}
+	});
+});
+
+describe("writing folds the answer list", () => {
+	async function dock(run: (host: HTMLElement) => Promise<void>) {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="fold1" input={quizInput} onSubmit={() => {}} />));
+			await run(host);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	}
+	const focusThinking = async (host: HTMLElement) => {
+		const content = (await mathBoxView(host, "Your thinking")).contentDOM;
+		await act(async () => content.dispatchEvent(new dom.window.Event("focusin", { bubbles: true })));
+	};
+
+	it("clicking into the box with an answer picked folds the list and Sure meter into one row; Change opens them", async () => {
+		await dock(async (host) => {
+			const mercury = [...host.querySelectorAll<HTMLButtonElement>('[data-testid="question-option"]')].find((b) => b.textContent?.includes("Mercury"))!;
+			await act(async () => mercury.click());
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="confidence-level-4"]')!.click());
+			await focusThinking(host);
+			const row = host.querySelector<HTMLButtonElement>('[data-testid="picked-row"]')!;
+			assert.match(row.textContent ?? "", /Mercury/);
+			assert.match(row.textContent ?? "", /Sure 4/);
+			assert.equal(host.querySelectorAll('[data-testid="question-option"]').length, 0, "the list is folded");
+			assert.equal(host.querySelector('[data-testid="confidence-level-4"]'), null, "the Sure meter is folded");
+			await act(async () => row.click());
+			assert.equal(host.querySelector('[data-testid="picked-row"]'), null);
+			assert.equal(host.querySelectorAll('[data-testid="question-option"]').length, 3);
+		});
+	});
+
+	it("with nothing picked the list stays open", async () => {
+		await dock(async (host) => {
+			await focusThinking(host);
+			assert.equal(host.querySelector('[data-testid="picked-row"]'), null);
+			assert.equal(host.querySelectorAll('[data-testid="question-option"]').length, 3);
+		});
 	});
 });
 

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
+import { mathBoxView, stubCodeMirrorDom } from "./math-box-dom.ts";
 import { QuestionDock } from "../src/components/question-dock.tsx";
 import { AnsweredCard } from "../src/components/answered-card.tsx";
 import { newAnswerResult, type QuestionAnswerData } from "../src/core/index.ts";
@@ -11,6 +12,7 @@ import { newAnswerResult, type QuestionAnswerData } from "../src/core/index.ts";
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element,
 	HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
+stubCodeMirrorDom(dom);
 
 test("actual select → submit → saved result → historical Why uses source data and presentation-only recovery", async () => {
 	const question = String.raw`Find $\\nabla f$ for $\begin{pmatrix}a&b\\c&d\end{pmatrix}$.`;
@@ -88,10 +90,7 @@ test("Tab from a quiz row goes to the thinking field; Tab from the thinking fiel
 	try {
 		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="tab_loop" input={input} onSubmit={() => {}} />));
 		assert.equal(tab(host.querySelector('[data-kbdrow="0"]')!), true, "the dock moves focus from the rows to the thinking field");
-		const thinking = host.querySelector<HTMLTextAreaElement>('[data-testid="thinking-field"] textarea')!;
-		// React's old-browser input tracking (what linkedom looks like to it) needs these.
-		Object.assign(thinking, { attachEvent() {}, detachEvent() {} });
-		thinking.dispatchEvent(new window.Event("focusin", { bubbles: true }));
+		const thinking = (await mathBoxView(host, "Your thinking")).contentDOM;
 		assert.equal(tab(thinking), false, "the browser's own Tab moves on toward Submit");
 	} finally { await act(async () => root.unmount()); host.remove(); }
 });

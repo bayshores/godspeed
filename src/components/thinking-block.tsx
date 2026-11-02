@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronDownIcon } from "lucide-react";
 import { blurAfterPointerClick } from "@/components/focus-hygiene";
 import { useFold } from "@/components/use-fold";
+import { InlineMath } from "@/components/overview/inline-math";
 import { cn } from "@/lib/utils";
 
 /** The unified user-thinking row: ONE visual language for every surface
@@ -109,7 +110,9 @@ export function ThinkingBlock({
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 					<div>
-						<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-foreground/50">{text}</span>
+						<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-foreground/50">
+							<InlineMath text={text} />
+						</span>
 					</div>
 				</div>
 			)}

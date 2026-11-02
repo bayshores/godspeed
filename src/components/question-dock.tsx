@@ -3,7 +3,10 @@ import { LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter } from "@/components/confidence-meter";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit, turnEyebrow } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit, turnEyebrow } from "@/components/lesson/panel-parts";
+import { MathBox } from "@/components/math-box";
+import { InlineMath } from "@/components/overview/inline-math";
+import { PickedRow } from "@/components/lesson/picked-row";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/components/sounds";
 import {
@@ -232,6 +235,13 @@ function QuestionDockForm({
 			? text.trim().length > 0
 			: sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
 
+	// Writing with an answer picked folds the list into one row (Change opens it).
+	const [folded, setFolded] = useState(false);
+	const showFolded = folded && canSubmit && qd.mode !== "text";
+	const foldOnWrite = () => {
+		if (canSubmit) setFolded(true);
+	};
+
 	const submit = () => {
 		if (!canSubmit || compactionRunning || busy) return;
 		const req: AnswerRequest = {
@@ -263,7 +273,7 @@ function QuestionDockForm({
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
 	const rootRef = useRef<HTMLFormElement>(null);
 	const otherInputRef = useRef<HTMLInputElement>(null);
-	const thinkingRef = useRef<HTMLTextAreaElement>(null);
+	const thinkingRef = useRef<{ focus(): void }>(null);
 	// One row past the options: quiz → don't-know, ask → Other.
 	const optionCount = qd.mode === "text" ? 0 : qd.options.length;
 	const rowCount = qd.mode === "text" ? 0 : optionCount + 1;
@@ -392,9 +402,39 @@ function QuestionDockForm({
 						<ToolContentResponse>{qd.context}</ToolContentResponse>
 					</div>
 				)}
-				{qd.mode === "multi-select" && <div className="mt-2 shrink-0 text-[13px] text-ink-2">Select all that apply</div>}
+				{qd.mode === "multi-select" && !showFolded && <div className="mt-2 shrink-0 text-[13px] text-ink-2">Select all that apply</div>}
 
-				{qd.mode !== "text" && (
+				{showFolded && (
+					<PickedRow
+						marks={
+							<>
+								{[...sel.selected].map((i) => (
+									<KeyBox key={i} n={i + 1} selected />
+								))}
+								{(sel.dontKnow || sel.otherSelected) && <KeyBox n={sel.dontKnow ? 0 : ""} selected outlined />}
+							</>
+						}
+						label={
+							sel.dontKnow ? (
+								"I don't know"
+							) : (
+								<>
+									{[...sel.selected].map((i, n) => (
+										<span key={i}>
+											{n > 0 && ", "}
+											<InlineMath text={qd.options[i]!.label} />
+										</span>
+									))}
+									{sel.otherSelected && `${sel.selected.size > 0 ? ", " : ""}“${other}”`}
+								</>
+							)
+						}
+						sure={kind === "quiz" && !sel.dontKnow && confIdx !== undefined ? confIdx + 1 : null}
+						onOpen={() => setFolded(false)}
+					/>
+				)}
+
+				{qd.mode !== "text" && !showFolded && (
 					<div className="mt-4 flex shrink-0 flex-col gap-0.5" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
 						{qd.options.map((opt, i) => {
 							const isSel = sel.selected.has(i);
@@ -494,7 +534,7 @@ function QuestionDockForm({
 					</div>
 				)}
 
-				{kind === "quiz" && (
+				{kind === "quiz" && !showFolded && (
 					<div className="mt-[18px] shrink-0">
 						<ConfidenceMeter
 							level={confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel)}
@@ -507,29 +547,28 @@ function QuestionDockForm({
 				<div className="mt-[18px] flex min-h-0 flex-1 flex-col" data-testid={qd.mode === "text" ? "answer-field" : "thinking-field"}>
 					<FieldLabel>{qd.mode === "text" ? "Your answer" : "Your thinking"}</FieldLabel>
 					{qd.mode === "text" ? (
-						<textarea
+						<MathBox
 							value={text}
-							onChange={(e) => {
-								answerTextRef.current = e.target.value;
-								setText(e.target.value);
+							onChange={(v) => {
+								answerTextRef.current = v;
+								setText(v);
 							}}
-							onKeyDown={(e) => fieldKeys(e, submit)}
+							onEnter={submit}
 							placeholder="Type your answer…"
-							aria-label="Your answer"
-							className={PANEL_FIELD}
+							ariaLabel="Your answer"
 						/>
 					) : (
-						<textarea
+						<MathBox
 							ref={thinkingRef}
 							value={thinking}
-							onChange={(e) => {
-								thinkingTextRef.current = e.target.value;
-								setThinking(e.target.value);
+							onChange={(v) => {
+								thinkingTextRef.current = v;
+								setThinking(v);
 							}}
-							onKeyDown={(e) => fieldKeys(e, submit)}
+							onEnter={submit}
+							onFocus={foldOnWrite}
 							placeholder="Why this answer? Whatever comes to mind."
-							aria-label="Your thinking"
-							className={PANEL_FIELD}
+							ariaLabel="Your thinking"
 						/>
 					)}
 				</div>

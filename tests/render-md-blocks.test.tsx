@@ -245,6 +245,12 @@ describe("md-blocks — the restored plain blockquote", () => {
 });
 
 describe("ThinkingBlock — the document band + ⌘T sync", () => {
+	it("the learner's $...$ math shows as math", () => {
+		const html = renderToStaticMarkup(<ThinkingBlock text="so $\\frac{1}{2}$ each" defaultOpen />);
+		assert.match(html, /class="katex"/);
+		assert.match(html, /so /);
+	});
+
 	it("the row is the document band", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="banded" defaultOpen />);
 		assert.ok(html.includes("bg-card"), "the card-color band");

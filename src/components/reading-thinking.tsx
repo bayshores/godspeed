@@ -1,4 +1,5 @@
-import { FieldLabel, PANEL_FIELD } from "@/components/lesson/panel-parts";
+import { FieldLabel } from "@/components/lesson/panel-parts";
+import { MathBox } from "@/components/math-box";
 
 /**
  * The reading-thinking field: thinking WHILE READING the teaching, the same transfer
@@ -14,40 +15,19 @@ export function ReadingThinkingField({
 }: {
 	value: string;
 	onChange: (v: string) => void;
-	/** The check waits closed — Enter opens it. Absent = the check is
+	/** The check waits closed: Enter opens it. Absent = the check is
 	 *  open: Enter is a newline. */
 	onOpen?: () => void;
 }) {
 	return (
 		<div data-testid="reading-thinking-field" className="flex min-h-0 flex-1 flex-col">
 			<FieldLabel>Thinking while reading</FieldLabel>
-			<textarea
+			<MathBox
 				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				onKeyDown={(e) => {
-					// Esc stays in the field so the window chain doesn't abort.
-					if (e.key === "Escape") {
-						e.preventDefault();
-						e.stopPropagation();
-						return;
-					}
-					// While the check waits closed, Enter (and ⌘/Ctrl+Enter) opens
-					// it; Shift+Enter stays a newline.
-					if (e.key === "Enter" && onOpen !== undefined && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
-						e.preventDefault();
-						e.stopPropagation();
-						onOpen();
-						return;
-					}
-					// No submit of its own: ⌘↵ just blurs.
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-						e.preventDefault();
-						e.currentTarget.blur();
-					}
-				}}
+				onChange={onChange}
+				onEnter={onOpen}
 				placeholder="Whatever comes to mind as you read."
-				aria-label="Thinking while reading"
-				className={PANEL_FIELD}
+				ariaLabel="Thinking while reading"
 			/>
 		</div>
 	);

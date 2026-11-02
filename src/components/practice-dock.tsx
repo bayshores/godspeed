@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { ActionBar, FieldLabel, HeaderChip, KindChip, PANEL_FIELD, PanelBody, PanelHeader, turnEyebrow } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, HeaderChip, KindChip, PanelBody, PanelHeader, turnEyebrow } from "@/components/lesson/panel-parts";
+import { MathBox } from "@/components/math-box";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import type { ChatAttachment } from "@/core";
@@ -117,28 +118,16 @@ export function PracticeDock({
 				<div data-testid="practice-thinking-field" className="mt-5 flex min-h-0 flex-1 flex-col">
 					<FieldLabel>Your thinking</FieldLabel>
 					<AttachmentTray draft={attachments} />
-					<textarea
+					<MathBox
 						value={thinking}
-						onChange={(e) => {
-							thinkingRef.current = e.target.value;
-							setThinking(e.target.value);
-							onSaveDraft?.(e.target.value);
+						onChange={(v) => {
+							thinkingRef.current = v;
+							setThinking(v);
+							onSaveDraft?.(v);
 						}}
-						onKeyDown={(e) => {
-							// Esc stays in the field so the window chain doesn't fire.
-							if (e.key === "Escape") {
-								e.preventDefault();
-								e.stopPropagation();
-								return;
-							}
-							if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
-								e.preventDefault();
-								submit();
-							}
-						}}
+						onEnter={submit}
 						placeholder="Work here, think out loud."
-						aria-label="Your thinking"
-						className={PANEL_FIELD}
+						ariaLabel="Your thinking"
 					/>
 				</div>
 				{footer}

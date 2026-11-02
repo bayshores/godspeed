@@ -9,9 +9,7 @@ describe("the reading-thinking field (redesign: fills the Your-turn panel)", () 
 	it("labels the field and lets it fill the panel column", () => {
 		const html = renderToStaticMarkup(<ReadingThinkingField value="" onChange={() => {}} />);
 		assert.match(html, /Thinking while reading/);
-		assert.match(html, /<textarea[^>]*class="[^"]*flex-1/, "the field grows into the free height");
-		// Vertical padding absorbs Source Sans 3's 1px overhang (the old
-		// permanent-scrollbar bug).
-		assert.match(html, /<textarea[^>]*class="[^"]*py-3/);
+		assert.match(html, /data-testid="math-box" class="[^"]*flex-1/, "the field grows into the free height");
+		assert.match(html, /Whatever comes to mind as you read\./);
 	});
 });

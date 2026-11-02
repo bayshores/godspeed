@@ -50,7 +50,7 @@ export const KEEP_RECENT_TOKENS = 20_000;
 
 /** The reserve subtracted from the model's contextWindow when the window
  * (not the user's threshold) is the binding constraint (pi's default). */
-export const COMPACTION_RESERVE_TOKENS = 16_384;
+const COMPACTION_RESERVE_TOKENS = 16_384;
 
 /** The point a lesson gets summarized: min(setting, window − reserve).
  *  Unknown window → the setting alone. */

@@ -7,6 +7,7 @@ import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
+import { stubCodeMirrorDom } from "./math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { QuestionDock } from "../src/components/question-dock.tsx";
@@ -22,21 +23,7 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
-// linkedom has no layout or selection: CodeMirror mounts here but never
-// measures.
-Object.assign(dom.document, { getSelection: () => null, hasFocus: () => false });
-Object.assign(dom.window, {
-	requestAnimationFrame: () => 0,
-	cancelAnimationFrame: () => {},
-	getSelection: () => null,
-	MutationObserver: class {
-		observe() {}
-		disconnect() {}
-		takeRecords() {
-			return [];
-		}
-	},
-});
+stubCodeMirrorDom(dom);
 
 const task = { question: "Write **`int max(int a, int b)`**.", starter: "int max(int a, int b) {\n}" };
 
@@ -63,7 +50,7 @@ describe("the code question panel", () => {
 		assert.match(html, /role="switch" aria-checked="false" aria-label="Vim"/);
 		assert.ok(!html.includes('data-testid="vim-mode"'), "no mode label while Vim is off");
 		assert.match(html, /data-testid="dont-know-option" aria-pressed="false"/);
-		assert.match(html, /aria-label="Your thinking"/);
+		assert.match(html, /data-testid="thinking-field"[^]*Why this answer\? Whatever comes to mind\./);
 		assert.doesNotMatch(html, /data-testid="question-submit"[^>]*disabled=""/, "starter code can be submitted");
 	});
 

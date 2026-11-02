@@ -26,6 +26,7 @@
 		"desktop:dist": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && next build && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"
 	},
 	"dependencies": {
+		"@codemirror/autocomplete": "6.20.3",
 		"@codemirror/commands": "^6.11.1",
 		"@codemirror/lang-cpp": "^6.0.3",
 		"@codemirror/language": "^6.13.1",
@@ -56,6 +57,7 @@
 		"katex": "0.18.2",
 		"linkedom": "^0.18.13",
 		"lucide-react": "^1.33.0",
+		"mathlive": "0.111.1",
 		"mdast-util-from-markdown": "2.0.3",
 		"mdast-util-math": "3.0.0",
 		"mermaid": "^11.17.0",

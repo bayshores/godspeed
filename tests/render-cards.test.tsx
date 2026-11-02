@@ -223,7 +223,7 @@ describe("render smoke tests", () => {
 	it("the thinking field fills the panel column", () => {
 		const html = renderDock({ toolName: "quiz", toolCallId: "q1", input: quizInput as never });
 		const field = html.slice(html.indexOf('data-testid="thinking-field"'));
-		assert.match(field.slice(0, 900), /<textarea[^>]*class="[^"]*flex-1/, "the field grows into the free height");
+		assert.match(field.slice(0, 900), /data-testid="math-box" class="[^"]*flex-1/, "the field grows into the free height");
 	});
 
 	it("text-mode asks keep Enter-to-submit and the answer label", () => {

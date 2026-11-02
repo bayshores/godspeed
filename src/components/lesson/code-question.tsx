@@ -4,7 +4,8 @@ import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
 import { buildCodeAnswer, codeLanguage, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
 import { CodeEditor } from "./code-editor";
-import { ActionBar, FieldLabel, KindChip, PANEL_FIELD, PanelBody, PanelHeader, HeaderChip, fieldKeys, skipExit, turnEyebrow } from "./panel-parts";
+import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit, turnEyebrow } from "./panel-parts";
+import { MathBox } from "@/components/math-box";
 
 /** The task in lesson prose, 18px in the full text color (the question
  *  panel's size). */
@@ -118,13 +119,12 @@ export function CodeQuestion({
 				</button>
 				<div className="mt-[18px] flex min-h-0 flex-1 flex-col" data-testid="thinking-field">
 					<FieldLabel>Your thinking</FieldLabel>
-					<textarea
+					<MathBox
 						value={thinking}
-						onChange={(e) => setThinking(e.target.value)}
-						onKeyDown={(e) => fieldKeys(e, submit)}
+						onChange={setThinking}
+						onEnter={submit}
 						placeholder="Why this answer? Whatever comes to mind."
-						aria-label="Your thinking"
-						className={PANEL_FIELD}
+						ariaLabel="Your thinking"
 					/>
 				</div>
 				{footer}
