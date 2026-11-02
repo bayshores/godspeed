@@ -2,7 +2,8 @@
  * The deadline countdown's text and color.
  * Pure and unit-tested; src/components/countdown.tsx ticks it.
  *
- *  - more than 24h left: "in N days" (whole days, rounded down), muted;
+ *  - more than 24h left: "in N days" (calendar days, so Friday is "in 5 days"
+ *    all of Sunday, like the runway), muted;
  *  - the last 24h: "HH:MM:SS", fading from grey to red;
  *  - the last hour: "MM:SS.hh" (hundredths), or "MM:SS" with reduced motion;
  *  - past due: "Overdue", red.
@@ -46,7 +47,7 @@ export function countdown(dueMs: number, nowMs: number, opts: { hundredths?: boo
 	const left = dueMs - nowMs;
 	if (left <= 0) return { mode: "overdue", text: "Overdue", color: COUNTDOWN_RED };
 	if (left >= DAY) {
-		const days = Math.floor(left / DAY);
+		const days = calendarDays(nowMs, dueMs);
 		return { mode: "days", text: `in ${days} ${days === 1 ? "day" : "days"}`, color: COUNTDOWN_GREY };
 	}
 	const color = countdownColor(left);
@@ -58,6 +59,24 @@ export function countdown(dueMs: number, nowMs: number, opts: { hundredths?: boo
 	const base = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 	if (opts.hundredths === false) return { mode: "fine", text: base, color };
 	return { mode: "fine", text: `${base}.${pad(Math.floor((left % SECOND) / 10))}`, color };
+}
+
+/** Local midnight of the day `ms` falls on. */
+function startOfDay(ms: number): number {
+	const d = new Date(ms);
+	return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** The local midnight after `ms`. */
+function nextMidnight(ms: number): number {
+	const d = new Date(ms);
+	return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+}
+
+/** Calendar days from `fromMs`'s day to `toMs`'s day (rounded, so a
+ *  daylight-saving day still counts as one). */
+function calendarDays(fromMs: number, toMs: number): number {
+	return Math.round((startOfDay(toMs) - startOfDay(fromMs)) / DAY);
 }
 
 /** The fade over the last 24h: t = 1 − hoursLeft/24, each channel linear
@@ -84,15 +103,14 @@ export function tickRate(dues: Iterable<number>, nowMs: number, reducedMotion: b
 }
 
 /** When an idle clock must wake next: the soonest moment a "days" text
- *  changes (a whole day passes, or the last 24h starts) or a due moment
+ *  changes (the next midnight, or the last 24h starts) or a due moment
  *  arrives, and the next minute when `minutes` is set. null = never. */
 export function nextWake(dues: Iterable<number>, nowMs: number, minutes: boolean): number | null {
 	let wake: number | null = minutes ? Math.floor(nowMs / MINUTE) * MINUTE + MINUTE : null;
 	for (const due of dues) {
 		const left = due - nowMs;
 		if (left <= 0) continue;
-		// At exactly N days left the text changes a moment later.
-		const at = Math.max(nowMs + 1, left >= DAY ? due - Math.floor(left / DAY) * DAY : due);
+		const at = Math.max(nowMs + 1, left >= DAY ? Math.min(nextMidnight(nowMs), due - DAY) : due);
 		if (wake === null || at < wake) wake = at;
 	}
 	return wake;

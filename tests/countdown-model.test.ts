@@ -32,10 +32,12 @@ describe("dueAtMs", () => {
 });
 
 describe("countdown", () => {
-	it("more than 24h: whole days, rounded down, muted", () => {
-		assert.deepEqual(countdown(due, due - 3 * DAY - 5 * HOUR), { mode: "days", text: "in 3 days", color: COUNTDOWN_GREY });
-		assert.equal(countdown(due, due - 2 * DAY + SECOND).text, "in 1 day");
-		assert.equal(countdown(due, due - DAY).text, "in 1 day", "exactly 24h left is still a day");
+	it("more than 24h: calendar days, muted", () => {
+		const fri7pm = new Date(2026, 10, 6, 19, 0).getTime();
+		assert.deepEqual(countdown(fri7pm, new Date(2026, 10, 1, 23, 6).getTime()), { mode: "days", text: "in 5 days", color: COUNTDOWN_GREY }, "Sunday night to Friday is 5 days, like the runway");
+		assert.equal(countdown(fri7pm, new Date(2026, 10, 1, 0, 30).getTime()).text, "in 5 days", "all of Sunday says the same");
+		assert.equal(countdown(fri7pm, new Date(2026, 10, 5, 18, 0).getTime()).text, "in 1 day");
+		assert.equal(countdown(fri7pm, fri7pm - DAY).text, "in 1 day", "exactly 24h left is still a day");
 	});
 
 	it("under 24h: HH:MM:SS", () => {
@@ -95,15 +97,12 @@ describe("tickRate", () => {
 });
 
 describe("nextWake", () => {
-	const now = due - 3 * DAY - 5 * HOUR;
-	it("wakes when the day count drops", () => {
-		assert.equal(nextWake([due], now, false), due - 3 * DAY);
+	it("wakes at the next midnight, when the day count drops", () => {
+		const t = new Date(2026, 10, 1, 23, 6).getTime();
+		assert.equal(nextWake([new Date(2026, 10, 6, 19, 0).getTime()], t, false), new Date(2026, 10, 2).getTime());
 	});
 	it("wakes when the last 24h starts", () => {
 		assert.equal(nextWake([due], due - DAY - HOUR, false), due - DAY);
-	});
-	it("exactly N days left: a moment later", () => {
-		assert.equal(nextWake([due], due - 2 * DAY, false), due - 2 * DAY + 1);
 	});
 	it("the next minute for a minute clock; nothing to wait for = null", () => {
 		const t = new Date(2026, 9, 28, 16, 12, 30).getTime();
