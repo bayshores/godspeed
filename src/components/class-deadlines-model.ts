@@ -199,6 +199,20 @@ export function filesLabel(n: number): string {
 	return `${n} ${n === 1 ? "file" : "files"}`;
 }
 
+/** The deadline's file list shows a filter box from this many files. */
+export const FILE_FILTER_FROM = 8;
+
+/** The files whose name has every word of the filter in it (any case);
+ *  a blank filter keeps them all. */
+export function filterFiles<F extends { name: string }>(files: readonly F[], filter: string): readonly F[] {
+	const words = filter.toLowerCase().split(/\s+/).filter(Boolean);
+	if (words.length === 0) return files;
+	return files.filter((f) => {
+		const name = f.name.toLowerCase();
+		return words.every((w) => name.includes(w));
+	});
+}
+
 /** Toggle one file in a deadline's list, keeping class file order. */
 export function toggleFile(fileIds: readonly string[], fileId: string, classOrder: readonly string[]): string[] {
 	const set = new Set(fileIds);

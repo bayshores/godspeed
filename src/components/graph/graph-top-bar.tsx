@@ -87,7 +87,7 @@ function ImportNotes({ importing, onImportFiles }: { importing: boolean; onImpor
 
 function SearchBox({ inputRef, query, onQuery }: { inputRef: RefObject<HTMLInputElement | null>; query: string; onQuery: (q: string) => void }) {
 	return (
-		<label className="flex w-[280px] min-w-0 shrink items-center gap-2 border border-edge bg-panel px-2.5 py-2 focus-within:border-ink">
+		<label className="flex w-[280px] min-w-[240px] shrink items-center gap-2 border border-edge bg-panel px-2.5 py-2 focus-within:border-ink">
 			<SearchIcon className="size-3.5 shrink-0 text-ink-3" aria-hidden />
 			<input
 				ref={inputRef}

@@ -150,18 +150,18 @@
 	border: 1px solid var(--border);
 }
 
-/* The teacher's panel slides in from the right edge. */
-@keyframes lh-dock-in {
+/* A right-edge panel slides in (the teacher's panel, the graph's panel). */
+@keyframes lh-slide-in {
 	from {
 		opacity: 0;
 		transform: translateX(16px);
 	}
 }
-.lh-dock {
-	animation: lh-dock-in var(--lh-dur) var(--lh-ease-out) both;
+.lh-slide-in {
+	animation: lh-slide-in var(--lh-dur) var(--lh-ease-out) both;
 }
 @media (prefers-reduced-motion: reduce) {
-	.lh-dock {
+	.lh-slide-in {
 		animation: none;
 	}
 }
@@ -446,12 +446,11 @@ body {
    no edge doubles. (md-blocks supplies the wrapper + the copy corner.) */
 [data-streamdown="table"] {
 	border: 1px solid var(--border);
-	/* Tables HUG their contents: no full-width stretch with dead space.
-	   max-content sizes to the cells
-	   (width:auto would still stretch — the classic table trap). No
-	   max-width cap: a max-width would squish-wrap wide tables instead of
-	   letting the md-blocks overflow-x scroller carry them. */
-	width: max-content;
+	/* Tables HUG their contents: no full-width stretch with dead space
+	   (width:auto would still stretch). fit-content also wraps a table
+	   that is a little too wide to fit, down to its longest words; only a
+	   table wider than that scrolls in the md-blocks scroller. */
+	width: fit-content;
 	/* Tables run at the SESSION prose size (streamdown's 12.5px text-sm
 	   visibly lags the 16px chat text).
 	   Unlayered CSS beats the cells' own utility-layer text-sm, and the

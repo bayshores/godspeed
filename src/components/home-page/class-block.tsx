@@ -41,16 +41,19 @@ export const ClassBlock = memo(function ClassBlock({
 	const latest = progress.lessons[0] ?? null;
 	return (
 		<section data-testid={`class-block-${cls.id}`} className={cn(CARD, "relative overflow-hidden")}>
-			{cls.signature && (
-				<InkedSignature
-					signature={cls.signature}
-					share={studiedShare(facts)}
-					className={cn("absolute top-3 right-4", cls.signature.kind === "math" ? "text-[30px]" : "text-[44px]")}
-				/>
-			)}
-			<div className="relative flex w-full min-w-0 flex-col gap-1">
-				<h2 className="truncate font-title text-[22px] leading-7 font-bold text-ink">{cls.name}</h2>
-				{firstLine && <p className="truncate text-[13.5px] leading-5 text-ink-2">{firstLine}</p>}
+			{/* The signature sits beside the name, so the text ends before it. */}
+			<div className="flex w-full min-w-0 items-start gap-3">
+				<div className="flex min-w-0 flex-1 flex-col gap-1">
+					<h2 className="truncate font-title text-[22px] leading-7 font-bold text-ink">{cls.name}</h2>
+					{firstLine && <p className="truncate text-[13.5px] leading-5 text-ink-2">{firstLine}</p>}
+				</div>
+				{cls.signature && (
+					<InkedSignature
+						signature={cls.signature}
+						share={studiedShare(facts)}
+						className={cn("-mt-1 max-w-[40%] shrink-0 overflow-hidden", cls.signature.kind === "math" ? "text-[30px]" : "text-[44px]")}
+					/>
+				)}
 			</div>
 			{progress.files.length === 0 ? (
 				<button

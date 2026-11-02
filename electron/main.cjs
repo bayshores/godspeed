@@ -35,7 +35,7 @@ const path = require("node:path");
 
 // Mirrors SIDEBAR_AUTOCLOSE in src/components/sidebar.tsx — keep in sync (the
 // renderer owns the number; this is the IPC widen target).
-const SIDEBAR_AUTOCLOSE = 928;
+const SIDEBAR_AUTOCLOSE = 1000;
 
 const PRODUCT_NAME = "godspeed";
 
@@ -426,7 +426,7 @@ function createWindow(url, serverUp = null) {
 		// Narrow-window behavior: 640px is the floor —
 		// below it even a wrapped chrome row gets cramped and the chat header
 		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
-		// auto-closes below SIDEBAR_AUTOCLOSE (a fixed 928) in the renderer
+		// auto-closes below SIDEBAR_AUTOCLOSE (a fixed 1000) in the renderer
 		// (src/components/sidebar.tsx); its "lh:expand-window"
 		// IPC widens the window back to that threshold.
 		minWidth: 640,

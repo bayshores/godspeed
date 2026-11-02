@@ -2,8 +2,9 @@
 
 /**
  * The teacher's panel: click the teacher or the sidebar's agent line.
- * Docked to the window's right edge at full height, over the page (in a
- * lesson it covers the Your turn panel until closed). The head (name, the
+ * Docked to the window's right edge at full height. It pushes the page
+ * left to make room (in a lesson it covers the Your turn panel until
+ * closed, and pushes only by what's left over). The head (name, the
  * agent's state, close), then two tabs: Talk (a chat outside lessons,
  * talk-view.tsx) and Activity (what the agent is doing now, its last
  * changes, click one to go there, and background jobs; each part shows
@@ -21,12 +22,10 @@ import { safePage } from "./follow";
 import type { AgentDoing } from "./follow-status";
 import { pastLabel } from "./tour";
 import { TalkView, type TalkAsk } from "./talk-view";
+import { DOCK_WIDTH, dockPush, dockWidth } from "./dock-model";
 
 /** Recent rows the panel shows (the server keeps more). */
 const RECENT_ROWS = 8;
-const DOCK_WIDTH = 400;
-/** Below this the panel takes the whole width. */
-const DOCK_FULL_BELOW = 640;
 
 const TABS = ["talk", "activity"] as const;
 type Tab = (typeof TABS)[number];
@@ -47,19 +46,17 @@ function actionTime(at: string): string {
 	return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-/** How wide the docked panel is: the whole window when it is narrow,
- *  otherwise 400, or the lesson's Your turn panel's width when that is
- *  wider, so the panel covers it. */
-export function dockWidth(viewportWidth: number, yourTurnWidth: number | null): number {
-	if (viewportWidth < DOCK_FULL_BELOW) return viewportWidth;
-	return Math.min(viewportWidth, Math.max(DOCK_WIDTH, yourTurnWidth ?? 0));
+function yourTurnWidth(): number | null {
+	return document.querySelector("[data-testid='your-turn-panel']")?.getBoundingClientRect().width || null;
 }
 
 /** The dock's width for this window, kept current on resize. */
 export function currentDockWidth(): number {
-	const turn = document.querySelector("[data-testid='your-turn-panel']")?.getBoundingClientRect().width;
-	return dockWidth(window.innerWidth, turn || null);
+	return dockWidth(window.innerWidth, yourTurnWidth());
 }
+
+/** The page's push while the panel is open (main's padding reads it). */
+const PUSH_VAR = "--lh-dock-push";
 
 export function HalleyPanel({
 	name,
@@ -91,10 +88,19 @@ export function HalleyPanel({
 	const tabsId = useId();
 	const [width, setWidth] = useState(DOCK_WIDTH);
 	useEffect(() => {
-		const measure = () => setWidth(currentDockWidth());
+		const root = document.documentElement;
+		const measure = () => {
+			const turn = yourTurnWidth();
+			setWidth(dockWidth(window.innerWidth, turn));
+			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
+			root.style.setProperty(PUSH_VAR, `${dockPush(window.innerWidth, page, turn)}px`);
+		};
 		measure();
 		window.addEventListener("resize", measure);
-		return () => window.removeEventListener("resize", measure);
+		return () => {
+			window.removeEventListener("resize", measure);
+			root.style.removeProperty(PUSH_VAR);
+		};
 	}, []);
 	useEffect(() => {
 		if (ask) setTab("talk");
@@ -106,7 +112,7 @@ export function HalleyPanel({
 			data-testid="halley-panel"
 			aria-label={name}
 			style={{ width }}
-			className="lh-dock fixed top-0 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
+			className="lh-slide-in fixed top-0 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-start gap-3 px-6 pt-5 pb-4">
 				<span className="mt-1 size-7 shrink-0">

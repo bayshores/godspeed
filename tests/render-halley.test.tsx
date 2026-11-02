@@ -35,7 +35,8 @@ Object.assign(globalThis, {
 
 const { HalleyFace } = await import("../src/components/halley/halley-face.tsx");
 const { HALLEY_MOODS } = await import("../src/components/halley/mood.ts");
-const { HalleyPanel, agentLine, dockWidth } = await import("../src/components/halley/halley-panel.tsx");
+const { HalleyPanel, agentLine } = await import("../src/components/halley/halley-panel.tsx");
+const { dockPush, dockWidth } = await import("../src/components/halley/dock-model.ts");
 const { clearOfDock } = await import("../src/components/halley/geometry.ts");
 const { startsTurn } = await import("../src/components/halley/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../src/components/halley/ask-teacher.ts");
@@ -236,7 +237,15 @@ describe("the panel", () => {
 		assert.equal(dockWidth(1440, 520), 520);
 		assert.equal(dockWidth(1440, 340), 400);
 		assert.equal(dockWidth(600, null), 600);
-		assert.equal(dockWidth(700, 900), 700);
+		assert.equal(dockWidth(1000, 1000), 400, "a stacked Your turn panel (narrow window) isn't covered");
+	});
+	it("pushes the page left by the part not over the Your turn panel", () => {
+		assert.equal(dockPush(1440, 1184, null), 400);
+		assert.equal(dockPush(1440, 1184, 520), 0, "a wider Your turn panel is covered, no push");
+		assert.equal(dockPush(1440, 1184, 340), 60);
+		assert.equal(dockPush(600, 600, null), 0, "the whole window: no push");
+		assert.equal(dockPush(1000, 1000, null), 400);
+		assert.equal(dockPush(800, 544, null), 0, "a page too narrow to push is covered instead");
 	});
 	it("the teacher rests left of the open panel", () => {
 		const area = { left: 256, top: 0, width: 1184, height: 900 };

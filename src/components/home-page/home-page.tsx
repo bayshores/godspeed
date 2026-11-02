@@ -68,7 +68,7 @@ export function HomePage() {
 		<div data-testid="home-page" className="flex h-full min-h-0 flex-col">
 			<TopBar>
 				<div className="flex-1" />
-				{shown.length > 0 && <AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, newDeadline: true })} />}
+				{shown.length > 0 && <AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />}
 			</TopBar>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="@container flex w-full flex-col pb-8">

@@ -1,9 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
+import { PanelRightOpenIcon } from "lucide-react";
 import type { ProgressPayload } from "@/core";
+import { Hint } from "@/components/ui/hint";
 import { defaultDeadlineId, pickableDeadlines, searchMatches } from "./derive.ts";
 import { TopicMap } from "./topic-map.tsx";
 import { TopicPanel } from "./topic-panel.tsx";
 import { WherePanel } from "./where-panel.tsx";
+
+/** The folded Where you're at panel: a strip with the button that opens it. */
+function ShowPanelRail({ onShow }: { onShow: () => void }) {
+	return (
+		<div className="flex h-full w-11 shrink-0 justify-center border-l border-tone-2 bg-panel pt-[18px]">
+			<Hint label="Show Where you're at" side="left">
+				<button
+					type="button"
+					data-testid="where-panel-show"
+					aria-label="Show Where you're at"
+					onClick={onShow}
+					className="lh-press flex size-7 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink"
+				>
+					<PanelRightOpenIcon className="size-4" aria-hidden />
+				</button>
+			</Hint>
+		</div>
+	);
+}
 
 /** The map and the right panel over one progress payload (loaded lazily
  *  by graph-screen.tsx). */
@@ -24,9 +45,14 @@ export function GraphBody({
 }) {
 	const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
 	const [deadlinePick, setDeadlinePick] = useState<string | null>(null);
+	// The Where you're at panel folds to a strip; a picked topic still opens its panel.
+	const [panelHidden, setPanelHidden] = useState(false);
+	const [slideIn, setSlideIn] = useState(false);
 	const pickable = useMemo(() => pickableDeadlines(data.deadlines), [data.deadlines]);
 	const deadlineId = pickable.some((d) => d.id === deadlinePick) ? deadlinePick : defaultDeadlineId(pickable);
 	const selected = selectedId ? data.topics.find((t) => t.id === selectedId) : undefined;
+	// Only a Show slides the panel in, not closing a topic afterwards.
+	if (selected && slideIn) setSlideIn(false);
 
 	// Escape closes the topic (menus, dialogs and the search claim theirs first).
 	useEffect(() => {
@@ -51,7 +77,14 @@ export function GraphBody({
 	return (
 		<>
 			<TopicMap topics={data.topics} links={data.topicLinks} inClass={data.classId !== null} focus={focus} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
-			{selected ? (
+			{panelHidden && !selected ? (
+				<ShowPanelRail
+					onShow={() => {
+						setPanelHidden(false);
+						setSlideIn(true);
+					}}
+				/>
+			) : selected ? (
 				<TopicPanel
 					topic={selected}
 					topics={data.topics}
@@ -66,6 +99,8 @@ export function GraphBody({
 			) : (
 				<WherePanel
 					data={data}
+					onHide={() => setPanelHidden(true)}
+					slideIn={slideIn}
 					deadlineId={deadlineId}
 					onDeadlineChange={setDeadlinePick}
 					onSelectTopic={setSelectedId}

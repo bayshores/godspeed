@@ -6,7 +6,9 @@
  * shows the class-wide view.
  */
 import { memo, useCallback, useRef, useState } from "react";
-import { CalendarIcon, ChevronDownIcon, DumbbellIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon, DumbbellIcon, PanelRightCloseIcon } from "lucide-react";
+import { Hint } from "@/components/ui/hint";
+import { useHalleyAvoid } from "@/components/halley/avoid";
 import { dayLabel, type DeadlineProgress, type ProgressPayload, type StatusCounts, type TopicProgress, type WorkOnNextItem } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
@@ -19,18 +21,28 @@ const WORK_ON_NEXT_LIMIT = 4;
 
 const HEAD = "text-[13px] font-bold text-ink-3";
 
+/** The map's right panel (this one and the topic's): up to 400 wide,
+ *  narrower in a narrow window so the map keeps room. */
+export const SIDE_PANEL = "flex h-full w-[clamp(300px,30vw,400px)] shrink-0 flex-col border-l border-tone-2 bg-panel";
+
 export function WherePanel({
 	data,
 	deadlineId,
 	onDeadlineChange,
 	onSelectTopic,
 	onPractice,
+	onHide,
+	slideIn,
 	practicing,
 	practiceError,
 }: {
 	data: Pick<ProgressPayload, "deadlines" | "overall" | "topics">;
 	deadlineId: string | null;
 	onDeadlineChange: (id: string) => void;
+	/** Folds the panel to a thin strip, so the map gets the room. */
+	onHide: () => void;
+	/** Slides in (shown again after hiding). */
+	slideIn: boolean;
 	onSelectTopic: (id: string) => void;
 	onPractice: (topicIds: string[]) => void;
 	practicing: boolean;
@@ -44,16 +56,26 @@ export function WherePanel({
 	const scoped = scope.topicIds.map((id) => byId.get(id)).filter((t): t is TopicProgress => !!t);
 	const next = scope.workOnNext.slice(0, WORK_ON_NEXT_LIMIT);
 	return (
-		<aside data-testid="where-panel" className="flex h-full w-[400px] shrink-0 flex-col border-l border-tone-2 bg-panel">
+		<aside data-testid="where-panel" className={slideIn ? `${SIDE_PANEL} lh-slide-in` : SIDE_PANEL}>
 			<div className="min-h-0 flex-1 overflow-y-auto px-6 py-[22px]">
+				{/* The first row ends in the hide button. */}
+				<div className="flex items-center gap-2">
+					<div className="min-w-0 flex-1">
+						{deadline ? (
+							<DeadlinePicker deadlines={pickable} deadline={deadline} onChange={onDeadlineChange} />
+						) : (
+							<h2 className={HEAD}>Where you&apos;re at</h2>
+						)}
+					</div>
+					<HidePanelButton onHide={onHide} />
+				</div>
 				{deadline && (
 					<>
-						<DeadlinePicker deadlines={pickable} deadline={deadline} onChange={onDeadlineChange} />
 						<Countdown deadline={deadline} />
 						<div className="h-[18px]" />
+						<h2 className={HEAD}>Where you&apos;re at</h2>
 					</>
 				)}
-				<h2 className={HEAD}>Where you&apos;re at</h2>
 				<div className="h-2" />
 				<Readiness topics={scoped} />
 				<div className="h-2.5" />
@@ -81,6 +103,22 @@ export function WherePanel({
 				/>
 			)}
 		</aside>
+	);
+}
+
+function HidePanelButton({ onHide }: { onHide: () => void }) {
+	return (
+		<Hint label="Hide this panel" side="left">
+			<button
+				type="button"
+				data-testid="where-panel-hide"
+				aria-label="Hide this panel"
+				onClick={onHide}
+				className="lh-press -mr-1.5 flex size-7 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink"
+			>
+				<PanelRightCloseIcon className="size-4" aria-hidden />
+			</button>
+		</Hint>
 	);
 }
 
@@ -263,11 +301,13 @@ export function PracticeBar({
 	error: string | null;
 	testid: string;
 }) {
+	useHalleyAvoid();
 	return (
 		<>
 			<button
 				type="button"
 				data-testid={testid}
+				data-halley-avoid=""
 				disabled={busy}
 				onClick={onClick}
 				className="lh-press flex h-14 w-full shrink-0 items-center gap-2 bg-primary px-5 text-[15px] font-extrabold text-primary-foreground hover:opacity-90 disabled:opacity-60"

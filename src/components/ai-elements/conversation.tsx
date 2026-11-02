@@ -83,21 +83,30 @@ export const ConversationScrollButton = ({
 
   return (
     presence.mounted && (
-      <Button
-        aria-label="Scroll to the bottom"
-        className={cn(
-          "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] dark:bg-background dark:hover:bg-muted",
-          className
-        )}
-        data-state={presence.state}
-        onClick={handleScrollToBottom}
-        size="icon"
-        type="button"
-        variant="outline"
-        {...props}
-      >
-        <ArrowDownIcon className="size-4" />
-      </Button>
+      <>
+        {/* The text fades out under the button, so it never sits on words
+            you are reading (right-3 leaves the scrollbar clear). */}
+        <div
+          aria-hidden
+          className="lh-fade pointer-events-none absolute left-0 right-3 bottom-0 h-24 bg-gradient-to-t from-background from-35% to-transparent"
+          data-state={presence.state}
+        />
+        <Button
+          aria-label="Scroll to the bottom"
+          className={cn(
+            "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] dark:bg-background dark:hover:bg-muted",
+            className
+          )}
+          data-state={presence.state}
+          onClick={handleScrollToBottom}
+          size="icon"
+          type="button"
+          variant="outline"
+          {...props}
+        >
+          <ArrowDownIcon className="size-4" />
+        </Button>
+      </>
     )
   );
 };

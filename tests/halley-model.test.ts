@@ -200,9 +200,17 @@ describe("corners", () => {
 	it("sits above the update banner when it would cover it", () => {
 		const spot = cornerSpot("br", area, SIZE, true);
 		const banner = { left: 1100, top: 830, width: 324, height: 54 };
-		assert.deepEqual(clearOf(spot, SIZE, banner), { x: spot.x, y: 830 - 12 - SIZE });
-		assert.deepEqual(clearOf(spot, SIZE, { left: 300, top: 830, width: 100, height: 54 }), spot);
-		assert.deepEqual(clearOf(spot, SIZE, null), spot);
+		assert.deepEqual(clearOf(spot, SIZE, [banner]), { x: spot.x, y: 830 - 12 - SIZE });
+		assert.deepEqual(clearOf(spot, SIZE, [{ left: 300, top: 830, width: 100, height: 54 }]), spot);
+		assert.deepEqual(clearOf(spot, SIZE, []), spot);
+	});
+	it("rises above a bottom action bar, then above anything the lift lands on", () => {
+		const spot = cornerSpot("br", area, SIZE, false);
+		const bar = { left: 1040, top: area.top + area.height - 56, width: 400, height: 56 };
+		const above = clearOf(spot, SIZE, [bar]);
+		assert.equal(above.y, bar.top - 12 - SIZE);
+		const banner = { left: 1100, top: above.y - 10, width: 324, height: 54 };
+		assert.equal(clearOf(spot, SIZE, [bar, banner]).y, banner.top - 12 - SIZE);
 	});
 });
 

@@ -28,6 +28,7 @@ import { FileGroupSection, FinderDropTargets } from "./files-sections";
 import { confirmCopy, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { newSince } from "./folder-status-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
+import { PickClass } from "@/components/pick-class";
 
 /**
  * THE FILES PAGE: the active class's files in groups found from their
@@ -239,7 +240,11 @@ function FilesPageBody() {
 				)}
 			</TopBar>
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-				{!active && <p className="m-auto text-sm text-ink-2">Pick a class to see its files.</p>}
+				{!active && (
+					<div className="m-auto px-[52px]">
+						<PickClass line="Pick a class to see its files." />
+					</div>
+				)}
 				{active && !record && !failed && <p className="m-auto text-sm text-ink-2">Loading…</p>}
 				{active && !record && failed && <LoadFailed message="Couldn't load this class's files." onRetry={() => void reload()} className="m-auto" />}
 				{record && actions && (

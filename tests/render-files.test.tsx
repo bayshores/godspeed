@@ -182,6 +182,13 @@ describe("FilesPage", () => {
 		const page = await mount(null);
 		assert.match(page.textContent!, /Pick a class to see its files\./);
 		assert.equal(q("files-summary"), null);
+		assert.ok(q("pick-class-cls_a"), "the classes are right on the page");
+		assert.ok(q("pick-class-new"));
+		await act(async () => q("pick-class-cls_a")!.click());
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.ok(q("files-summary"), "picking one opens its files");
 	});
 
 	it("a class record that fails to load says so, and Try again reads it again", async () => {

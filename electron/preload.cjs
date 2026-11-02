@@ -8,7 +8,7 @@
  *   gutters (darwin: left traffic lights; win32/linux: right overlay).
  *
  *   window.lh.expandWindow() — widen the window to the sidebar auto-close
- *   threshold (928px) when the sidebar is opened below it. The main
+ *   threshold (1000px) when the sidebar is opened below it. The main
  *   process clamps: no-op if the window is already wide enough.
  *
  *   window.lh.onZoom(cb) / window.lh.getZoom() — the zoom truth:

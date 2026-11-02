@@ -25,7 +25,7 @@ export const PEEK = 24;
 export const RISE_GAP = 16;
 /** Narrower than this, the window counts as narrow (the sidebar's own
  *  auto-close width). */
-export const NARROW_WIDTH = 928;
+export const NARROW_WIDTH = 1000;
 
 // ─── corners ────────────────────────────────────────────────────────────────
 
@@ -58,12 +58,17 @@ function overlaps(a: Box, b: Box): boolean {
 	return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
 }
 
-/** Move a resting spot above something it would cover (the update
- *  banner), keeping `gap` between them. */
-export function clearOf(spot: Point, size: number, obstacle: Box | null, gap = 12): Point {
-	if (!obstacle) return spot;
-	if (!overlaps({ left: spot.x, top: spot.y, width: size, height: size }, obstacle)) return spot;
-	return { x: spot.x, y: obstacle.top - gap - size };
+/** Move a resting spot above everything it would cover (the update
+ *  banner, a bottom action bar), keeping `gap` between them. */
+export function clearOf(spot: Point, size: number, obstacles: readonly Box[], gap = 12): Point {
+	let at = spot;
+	// Each lift can land on another obstacle, so check again; one pass per obstacle at most.
+	for (let i = 0; i < obstacles.length; i++) {
+		const hit = obstacles.find((o) => overlaps({ left: at.x, top: at.y, width: size, height: size }, o));
+		if (!hit) break;
+		at = { x: at.x, y: hit.top - gap - size };
+	}
+	return at;
 }
 
 /** The area cut at the docked panel's left edge, so a corner spot lands

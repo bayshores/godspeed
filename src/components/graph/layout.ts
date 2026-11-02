@@ -219,11 +219,15 @@ export function layoutTopics(topics: readonly LayoutTopic[], links: readonly Lay
 
 export const MIN_SCALE = 0.3;
 export const MAX_SCALE = 2.5;
-export const FIT_MIN_SCALE = 0.6;
+/** A topic name's font size at 1×. */
+export const NAME_PX = 13;
+/** The fit never shrinks a name below this many pixels on screen. */
+const MIN_NAME_PX = 11;
+export const FIT_MIN_SCALE = MIN_NAME_PX / NAME_PX;
 const FIT_PAD = { x: 32, top: 56, bottom: 56 };
 
 /** The camera that fits the map into a viewport: never zooms in past 1×
- *  and never out past FIT_MIN_SCALE (labels stay readable). A map still
+ *  and never out past FIT_MIN_SCALE (names stay at least 11px). A map still
  *  too big at that scale starts at its left/top edge — the foundations
  *  first — and the learner pans to the rest. */
 export function fitTransform(bounds: TopicLayout["bounds"], viewport: { w: number; h: number }): { k: number; x: number; y: number } {

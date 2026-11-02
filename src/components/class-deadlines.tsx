@@ -1,8 +1,8 @@
-import { memo, useMemo } from "react";
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon, XIcon } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
 import type { ClassFile, DeadlineKind } from "@/core";
 import { cn } from "@/lib/utils";
-import { dueLabel, filesLabel, KIND_OPTIONS, kindLabel, toggleFile, type DeadlineDraft } from "./class-deadlines-model";
+import { dueLabel, FILE_FILTER_FROM, filesLabel, filterFiles, KIND_OPTIONS, kindLabel, toggleFile, type DeadlineDraft } from "./class-deadlines-model";
 
 type DraftPatch = Partial<Pick<DeadlineDraft, "kind" | "name" | "date" | "time" | "fileIds" | "done">>;
 
@@ -10,8 +10,9 @@ type DraftPatch = Partial<Pick<DeadlineDraft, "kind" | "name" | "date" | "time" 
  * DEADLINES (Edit class dialog): the class's
  * deadlines as rows ("Homework 5 · Homework · Fri Oct 30, 11:59 PM · 3
  * files"). One opens at a time: its kind, name, date and time become
- * fields, then a checkbox per study file, Done and "Remove deadline". Edits
- * stay drafts until the dialog's Save.
+ * fields, then "Files this covers" (a checkbox per study file, with a
+ * filter for a long list), Done and "Remove deadline". An opened row
+ * scrolls into view. Edits stay drafts until the dialog's Save.
  */
 export function DeadlinesEditor({
 	drafts,
@@ -86,6 +87,11 @@ const DeadlineRow = memo(function DeadlineRow({
 	onRemove: (key: string) => void;
 }) {
 	const count = <span className="shrink-0 text-[13px] text-ink-3">{filesLabel(draft.fileIds.length)}</span>;
+	const openRef = useRef<HTMLDivElement>(null);
+	const [filter, setFilter] = useState("");
+	useEffect(() => {
+		if (open) openRef.current?.scrollIntoView({ block: "nearest" });
+	}, [open]);
 	if (!open) {
 		return (
 			<button
@@ -107,8 +113,9 @@ const DeadlineRow = memo(function DeadlineRow({
 	}
 	// The deadline's own study files, plus any other file it already lists.
 	const shown = files.filter((f) => f.kind === "study" || draft.fileIds.includes(f.id));
+	const listed = filterFiles(shown, filter);
 	return (
-		<div data-testid={`class-deadline-${draft.key}`} className="flex w-full flex-col gap-2.5 bg-tone px-3 py-2.5">
+		<div ref={openRef} data-testid={`class-deadline-${draft.key}`} className="flex w-full scroll-my-3 flex-col gap-2.5 bg-tone px-3 py-2.5">
 			<div className="flex items-center gap-3">
 				<select
 					data-testid="class-deadline-kind"
@@ -173,20 +180,44 @@ const DeadlineRow = memo(function DeadlineRow({
 				</button>
 			</div>
 			{shown.length > 0 && (
-				<div className="flex flex-col gap-0.5" role="group" aria-label={`Files ${draft.name || "the deadline"} covers`}>
-					{shown.map((f) => (
-						<Check
-							key={f.id}
-							testid={`class-deadline-file-${f.id}`}
-							label={f.name}
-							checked={draft.fileIds.includes(f.id)}
-							disabled={disabled}
-							onToggle={() => onChange(draft.key, { fileIds: toggleFile(draft.fileIds, f.id, order) })}
-						/>
-					))}
+				<div className="flex flex-col gap-1.5 border-t border-tone-2 pt-2.5">
+					<div className="flex items-center gap-3">
+						<span className="flex-1 text-[13px] font-bold text-ink-2">Files this covers</span>
+						{shown.length >= FILE_FILTER_FROM && (
+							<label className="flex w-[180px] items-center gap-1.5 border border-tone-2 bg-background px-2 py-1 focus-within:border-ink-3">
+								<SearchIcon className="size-3 shrink-0 text-ink-3" aria-hidden />
+								<input
+									type="text"
+									data-testid="class-deadline-file-filter"
+									aria-label="Filter files"
+									value={filter}
+									onChange={(e) => setFilter(e.target.value)}
+									placeholder="Filter"
+									spellCheck={false}
+									className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-3"
+								/>
+							</label>
+						)}
+					</div>
+					<div className="flex flex-col gap-0.5" role="group" aria-label={`Files ${draft.name || "the deadline"} covers`}>
+						{listed.map((f) => (
+							<Check
+								key={f.id}
+								testid={`class-deadline-file-${f.id}`}
+								label={f.name}
+								checked={draft.fileIds.includes(f.id)}
+								disabled={disabled}
+								onToggle={() => onChange(draft.key, { fileIds: toggleFile(draft.fileIds, f.id, order) })}
+							/>
+						))}
+						{listed.length === 0 && <p className="px-0.5 py-[5px] text-[13px] text-ink-3">No file matches.</p>}
+					</div>
 				</div>
 			)}
-			<Check testid="class-deadline-done" label="Done" checked={draft.done} disabled={disabled} onToggle={() => onChange(draft.key, { done: !draft.done })} />
+			{/* Set apart from the files: Done is about the deadline itself. */}
+			<div className="border-t border-tone-2 pt-1.5">
+				<Check testid="class-deadline-done" label="Done" checked={draft.done} disabled={disabled} onToggle={() => onChange(draft.key, { done: !draft.done })} />
+			</div>
 			<button
 				type="button"
 				data-testid="class-deadline-remove"

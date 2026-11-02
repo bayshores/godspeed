@@ -9,7 +9,7 @@ import type { FactProgress, TopicLink, TopicProgress } from "@/core";
 import { Hint } from "@/components/ui/hint";
 import { neighbors, PANEL_ANSWER_COLOR, takeaway, topicFacts } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
-import { PracticeBar, StatusMark } from "./where-panel.tsx";
+import { PracticeBar, SIDE_PANEL, StatusMark } from "./where-panel.tsx";
 
 /** At most this many answer blocks (the newest). */
 const MAX_BLOCKS = 40;
@@ -43,7 +43,7 @@ export function TopicPanel({
 	const list = useMemo(() => topicFacts(facts, topic), [facts, topic]);
 	const blocks = topic.answers.slice(-MAX_BLOCKS);
 	return (
-		<aside data-testid="topic-panel" className="flex h-full w-[400px] shrink-0 flex-col border-l border-tone-2 bg-panel">
+		<aside data-testid="topic-panel" className={SIDE_PANEL}>
 			<div className="min-h-0 flex-1 overflow-y-auto px-6 py-[22px]">
 				<Hint label="Close" side="bottom">
 					<button

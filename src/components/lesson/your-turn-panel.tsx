@@ -177,7 +177,7 @@ export function YourTurnPanel({
 		<aside
 			data-testid="your-turn-panel"
 			data-mode={mode.split(":")[0]}
-			className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel max-[1099px]:max-h-[55dvh] max-[1099px]:min-h-[280px] min-[1100px]:w-(--lh-turn-w) min-[1100px]:border-t-0 min-[1100px]:border-l"
+			className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel max-[1099px]:max-h-[42dvh] max-[1099px]:min-h-[240px] min-[1100px]:w-(--lh-turn-w) min-[1100px]:border-t-0 min-[1100px]:border-l"
 			style={{ "--lh-turn-w": `${width}px` } as React.CSSProperties}
 		>
 			{/* Side by side only: stacked below 1100px, the panel is full width. */}
