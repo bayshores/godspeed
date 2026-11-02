@@ -12,7 +12,7 @@
  *    made. Halley flies to the changed element (data-halley-target), the
  *    element glows, and the bubble says what happened (tour.ts paces it).
  *  - Follow: when on, it also takes the window to the change's page
- *    (follow.ts), and stops when you go somewhere yourself.
+ *    (follow.ts). On by default; only the switch turns it off.
  *  - The panel (click Halley, or the sidebar's agent line): Now, Recent,
  *    Background jobs, and the Follow switch.
  *
@@ -39,7 +39,7 @@ import { HalleyPanel } from "./halley-panel";
 import { HalleyEngine, type Home } from "./engine";
 import { REACTION_MS, crossedUnderHour, eyesStill, pickMood, type HalleyMood, type HalleyReaction } from "./mood";
 import { BURST_MS, FLY_MS, STEP_MS, bubbleText, nextStep, summarize } from "./tour";
-import { FOLLOW_KEY, FOLLOW_OFF, GO_OFFER_MS, NOTICE_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
+import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import {
 	CORNER_KEY,
 	NARROW_WIDTH,
@@ -92,8 +92,6 @@ interface HalleyApi {
 	mood: HalleyMood;
 	follow: boolean;
 	setFollow: (on: boolean) => void;
-	/** "Stopped following", briefly. */
-	notice: string | null;
 	panelOpen: boolean;
 	setPanelOpen: (open: boolean) => void;
 	/** Newest first. */
@@ -175,15 +173,15 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	});
 
 	// ── Follow ──
-	const followRef = useRef<FollowState>(FOLLOW_OFF);
-	const [followView, setFollowView] = useState<{ on: boolean; notice: string | null }>({ on: false, notice: null });
+	const followRef = useRef<FollowState>(FOLLOW_DEFAULT);
+	const [followOn, setFollowOn] = useState(FOLLOW_DEFAULT.on);
 	const dispatchFollow = useCallback((e: FollowEvent) => {
 		const next = followReducer(followRef.current, e);
 		followRef.current = next;
-		setFollowView((v) => (v.on === next.on && v.notice === next.notice ? v : { on: next.on, notice: next.notice }));
+		setFollowOn(next.on);
 	}, []);
 	useEffect(() => {
-		if (parseFollow(readStored(FOLLOW_KEY))) dispatchFollow({ type: "toggle", on: true });
+		if (!parseFollow(readStored(FOLLOW_KEY))) dispatchFollow({ type: "toggle", on: false });
 	}, [dispatchFollow]);
 	const setFollow = useCallback(
 		(on: boolean) => {
@@ -192,23 +190,9 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		},
 		[dispatchFollow],
 	);
-	// Going somewhere yourself stops Follow (its own navigations are expected).
-	const prevPath = useRef(pathname);
-	useEffect(() => {
-		if (prevPath.current === pathname) return;
-		prevPath.current = pathname;
-		const wasOn = followRef.current.on;
-		dispatchFollow({ type: "route", path: pathname });
-		if (wasOn && !followRef.current.on) writeStored(FOLLOW_KEY, "0");
-	}, [pathname, dispatchFollow]);
-	useEffect(() => {
-		if (!followView.notice) return;
-		const t = setTimeout(() => dispatchFollow({ type: "clear-notice" }), NOTICE_MS);
-		return () => clearTimeout(t);
-	}, [followView.notice, dispatchFollow]);
 	// While Follow is on, note when the learner types or has a dialog open.
 	useEffect(() => {
-		if (!followView.on) return;
+		if (!followOn) return;
 		const busy = () => dispatchFollow({ type: "busy", at: Date.now() });
 		document.addEventListener("input", busy, true);
 		const t = setInterval(() => {
@@ -218,7 +202,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 			document.removeEventListener("input", busy, true);
 			clearInterval(t);
 		};
-	}, [followView.on, dispatchFollow]);
+	}, [followOn, dispatchFollow]);
 
 	// ── reactions (brief moods) ──
 	const [reaction, setReaction] = useState<HalleyReaction | null>(null);
@@ -295,12 +279,12 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const [offer, setOffer] = useState<AgentAction | null>(null);
 	useEffect(() => {
 		const latest = recent[0];
-		const next = goOffer(latest, { follow: followView.on, path: pathname, now: Date.now() });
+		const next = goOffer(latest, { follow: followOn, path: pathname, now: Date.now() });
 		setOffer(next);
 		if (!next) return;
 		const t = setTimeout(() => setOffer(null), GO_OFFER_MS - (Date.now() - Date.parse(next.at)));
 		return () => clearTimeout(t);
-	}, [recent, followView.on, pathname]);
+	}, [recent, followOn, pathname]);
 
 	// ── the mood ──
 	const jobs = feed.jobs.length + feed.extractions.length;
@@ -330,13 +314,12 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		const moves = followMoves({ page, classId: action.classId }, { path, activeClass: cls.active, lessonDraft: !asked && !!lessonRef.current?.draft });
 		if (moves.switchClass) cls.setActive(moves.switchClass.to);
 		if (moves.go) {
-			dispatchFollow({ type: "navigating", path: moves.go });
 			r.push(moves.go);
 			const end = Date.now() + 4000;
 			while (live.current.pathname !== moves.go && Date.now() < end && alive.current) await sleep(60);
 			await sleep(200);
 		}
-	}, [dispatchFollow]);
+	}, []);
 
 	const waitUntilFollowReady = useCallback(async () => {
 		while (alive.current && !followReady(followRef.current, dialogOpen(), Date.now())) {
@@ -499,8 +482,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	);
 
 	const api = useMemo<HalleyApi>(
-		() => ({ name, mood, follow: followView.on, setFollow, notice: followView.notice, panelOpen, setPanelOpen, recent, nowText, react, setLesson, go, offer }),
-		[name, mood, followView.on, followView.notice, setFollow, panelOpen, recent, nowText, react, setLesson, go, offer],
+		() => ({ name, mood, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, nowText, react, setLesson, go, offer }),
+		[name, mood, followOn, setFollow, panelOpen, recent, nowText, react, setLesson, go, offer],
 	);
 
 	const inLesson = pathname.startsWith("/chat/") && lesson !== null;
@@ -521,7 +504,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 				panelOpen={panelOpen}
 				setPanelOpen={setPanelOpen}
 				agent={agent}
-				follow={followView.on}
+				follow={followOn}
 				setFollow={setFollow}
 				recent={recent}
 				nowText={nowText}

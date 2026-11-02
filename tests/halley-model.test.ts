@@ -10,10 +10,9 @@ import { HOUR } from "../src/components/countdown-model.ts";
 import { crossedUnderHour, eyesStill, pickMood, REACTION_MS } from "../src/components/halley/mood.ts";
 import { BURST_LIMIT, FLY_MS, STEP_MS, bubbleText, nextStep, pastLabel, summarize, targetKey, verbOf } from "../src/components/halley/tour.ts";
 import {
-	FOLLOW_OFF,
+	FOLLOW_DEFAULT,
 	GO_OFFER_MS,
 	RESUME_MS,
-	STOPPED_NOTICE,
 	followMoves,
 	followReady,
 	followReducer,
@@ -125,32 +124,21 @@ describe("visits", () => {
 });
 
 describe("follow", () => {
-	const on: FollowState = followReducer(FOLLOW_OFF, { type: "toggle", on: true });
-	it("is off by default and remembered as '1'", () => {
-		assert.equal(FOLLOW_OFF.on, false);
-		assert.equal(parseFollow(null), false);
+	const on: FollowState = FOLLOW_DEFAULT;
+	it("is on by default and remembers only an explicit off", () => {
+		assert.equal(FOLLOW_DEFAULT.on, true);
+		assert.equal(parseFollow(null), true);
 		assert.equal(parseFollow("1"), true);
 		assert.equal(parseFollow("0"), false);
 	});
-	it("its own navigation keeps it on", () => {
-		const going = followReducer(on, { type: "navigating", path: "/class" });
-		const arrived = followReducer(going, { type: "route", path: "/class" });
-		assert.equal(arrived.on, true);
-		assert.equal(arrived.expected, null);
-		assert.equal(arrived.notice, null);
-	});
-	it("going somewhere yourself stops it, with a notice", () => {
-		const stopped = followReducer(on, { type: "route", path: "/graph" });
-		assert.equal(stopped.on, false);
-		assert.equal(stopped.notice, STOPPED_NOTICE);
-		assert.equal(followReducer(stopped, { type: "clear-notice" }).notice, null);
-		// Off: navigating changes nothing.
-		assert.deepEqual(followReducer(FOLLOW_OFF, { type: "route", path: "/graph" }), FOLLOW_OFF);
-		assert.deepEqual(followReducer(FOLLOW_OFF, { type: "navigating", path: "/graph" }), FOLLOW_OFF);
+	it("only the switch turns it off and on", () => {
+		const off = followReducer(on, { type: "toggle", on: false });
+		assert.equal(off.on, false);
+		assert.equal(followReducer(off, { type: "toggle", on: true }).on, true);
 	});
 	it("waits while you type or a dialog is open, and catches up 3 s after", () => {
 		const t = 1_000_000;
-		assert.equal(followReady(FOLLOW_OFF, true, t), true, "off never waits");
+		assert.equal(followReady(followReducer(on, { type: "toggle", on: false }), true, t), true, "off never waits");
 		assert.equal(followReady(on, false, t), true);
 		assert.equal(followReady(on, true, t), false);
 		const typed = followReducer(on, { type: "busy", at: t });

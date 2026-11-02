@@ -1,55 +1,38 @@
 /**
  * Follow mode. Pure.
  *
- * With Follow on, Halley takes you to the page of each change. Going to a
- * page yourself turns it off ("Stopped following"). While you type or a
- * dialog is open it waits, and catches up RESUME_MS after you stop. It
- * never leaves a lesson where you have unsent text. With
- * Follow off, a fresh change on another page offers a "Go to" button.
+ * With Follow on (the default), Halley takes you to the page of each
+ * change. Only the switch (or the chip's Stop) turns it off. While you
+ * type or a dialog is open it waits, and catches up RESUME_MS after you
+ * stop. It never leaves a lesson where you have unsent text. With Follow
+ * off, a fresh change on another page offers a "Go to" button.
  */
 
 export const RESUME_MS = 3000;
-export const STOPPED_NOTICE = "Stopped following";
-/** How long "Stopped following" shows. */
-export const NOTICE_MS = 2200;
-/** localStorage key (Follow is remembered across restarts). */
-export const FOLLOW_KEY = "lh:halley-follow";
+/** localStorage key (the switch's choice, remembered across restarts). A
+ *  new key: the old one also stored the automatic stop, so it isn't the
+ *  learner's choice. */
+export const FOLLOW_KEY = "lh:follow";
 
 export interface FollowState {
 	on: boolean;
-	/** The path Follow itself is navigating to (its own route change). */
-	expected: string | null;
 	/** Last time the learner was typing or had a dialog open. */
 	lastBusyAt: number | null;
-	notice: string | null;
 }
 
 export type FollowEvent =
 	| { type: "toggle"; on: boolean }
-	/** Follow is about to go to this path. */
-	| { type: "navigating"; path: string }
-	/** The route changed to this path. */
-	| { type: "route"; path: string }
 	/** The learner is typing or a dialog is open, right now. */
-	| { type: "busy"; at: number }
-	| { type: "clear-notice" };
+	| { type: "busy"; at: number };
 
-export const FOLLOW_OFF: FollowState = { on: false, expected: null, lastBusyAt: null, notice: null };
+export const FOLLOW_DEFAULT: FollowState = { on: true, lastBusyAt: null };
 
 export function followReducer(s: FollowState, e: FollowEvent): FollowState {
 	switch (e.type) {
 		case "toggle":
-			return { ...s, on: e.on, expected: null, notice: null };
-		case "navigating":
-			return s.on ? { ...s, expected: e.path } : s;
-		case "route":
-			if (!s.on) return s.expected ? { ...s, expected: null } : s;
-			if (s.expected === e.path) return { ...s, expected: null };
-			return { ...s, on: false, expected: null, notice: STOPPED_NOTICE };
+			return { ...s, on: e.on };
 		case "busy":
 			return { ...s, lastBusyAt: e.at };
-		case "clear-notice":
-			return s.notice ? { ...s, notice: null } : s;
 	}
 }
 
@@ -95,9 +78,9 @@ export function pageName(page: string): string {
 	return ({ "/": "Home", "/class": "Overview", "/class/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
 }
 
-/** The stored Follow choice ("1" = on). Off by default. */
+/** The stored Follow choice ("0" = off). On by default. */
 export function parseFollow(raw: string | null): boolean {
-	return raw === "1";
+	return raw !== "0";
 }
 
 /** Only the app's own pages are ever navigated to (never a raw URL from
