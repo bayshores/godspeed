@@ -184,7 +184,7 @@ const DeadlineRow = memo(function DeadlineRow({
 					<div className="flex items-center gap-3">
 						<span className="flex-1 text-[13px] font-bold text-ink-2">Files this covers</span>
 						{shown.length >= FILE_FILTER_FROM && (
-							<label className="flex w-[180px] items-center gap-1.5 border border-tone-2 bg-background px-2 py-1 focus-within:border-ink-3">
+							<label className="flex w-[180px] items-center gap-1.5 border border-edge bg-background px-2 py-1 focus-within:border-ink">
 								<SearchIcon className="size-3 shrink-0 text-ink-3" aria-hidden />
 								<input
 									type="text"
