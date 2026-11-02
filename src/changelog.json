@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.16",
+		"date": "2026-11-02",
+		"changes": [
+			"Your godspeed folder has a classes folder with shortcuts to every class file, grouped like the Files page, so you and your agent can find them. Show in Finder on the Files page opens it.",
+			"Link a class to its Google Drive folder and new course files show up on their own. Files you already added aren't added twice and keep what you studied.",
+			"A new file joins its series, so a new homework sheet is course info like the others and a new lecture is study material.",
+			"The Files page says which folder it's watching and when it last checked, marks new files as New for 3 days, and shows how many came in since you last looked. The sidebar's Files row gets a dot until you open it.",
+			"When new files come in you get a notice, a row in Activity, and your teacher hears about them. If no agent is connected they wait and get read when it connects.",
+			"If Google Drive is offline or still starting, nothing is deleted. Files still downloading wait until they finish, and renaming a file keeps its facts."
+		]
+	},
+	{
 		"version": "0.5.15",
 		"date": "2026-11-02",
 		"changes": [
