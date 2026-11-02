@@ -4,8 +4,8 @@ import { ArrowRightIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/core";
 import { deadlineDateLabel } from "@/components/class-deadlines-model";
 import { Tip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { gapLabel, joinAnd, mostNeeded, percent, ringMeta, ringTitle, runwayStops, stopMeta, upcomingDeadlines, type MostNeeded } from "./runway-model";
+import { ReadyRing } from "./ready-ring";
+import { deadlineHref, gapLabel, joinAnd, mostNeeded, percent, ringMeta, ringTitle, runwayStops, stopMeta, upcomingDeadlines, type MostNeeded } from "./runway-model";
 import { CARD, CARD_TITLE } from "./styles";
 
 /**
@@ -15,14 +15,12 @@ import { CARD, CARD_TITLE } from "./styles";
  * their ready % (empty with "–" when nothing is covered). A 2px line joins
  * the stops through their centers, stopping 10px short of each, with the
  * days between them above it. Hover a ring: its topics, weakest first;
- * click: practice them. Below: "Most needed" with Learn this.
+ * click: the deadline's page. Below: "Most needed" with Learn this.
  */
 
 /** Columns on the runway: Today plus RUNWAY_STOPS. */
 const COLUMNS = 6;
 const RING = 88;
-/** Inner radius / outer radius. */
-const INNER = 0.86;
 const DOT = 12;
 /** The line stops this far from each ring or dot. */
 const LINE_GAP = 10;
@@ -34,7 +32,6 @@ export const RunwayCard = memo(function RunwayCard({
 	facts,
 	busy,
 	startError,
-	onPractice,
 	onLearn,
 }: {
 	deadlines: readonly DeadlineProgress[];
@@ -43,10 +40,10 @@ export const RunwayCard = memo(function RunwayCard({
 	nowMs: number;
 	/** Facts studied / all facts in the class. */
 	facts: { studied: number; total: number };
+	/** A lesson is starting (Learn this). */
 	busy: boolean;
-	/** Why the last practice or lesson didn't start. */
+	/** Why the last lesson didn't start. */
 	startError: string | null;
-	onPractice: (deadline: DeadlineProgress) => void;
 	onLearn: (topicId: string) => void;
 }) {
 	const upcoming = upcomingDeadlines(deadlines, nowMs);
@@ -83,7 +80,7 @@ export const RunwayCard = memo(function RunwayCard({
 							key={d.id}
 							testid={`runway-stop-${d.id}`}
 							halleyTarget={`deadline:${d.id}`}
-							mark={<Ring deadline={d} busy={busy} onPractice={onPractice} />}
+							mark={<Ring deadline={d} />}
 							name={d.name}
 							meta={stopMeta(d)}
 							segment={i + 1 < stops.length ? { from: radii[i + 1]!, to: radii[i + 2]!, label: gapLabel(dates[i + 1]!, dates[i + 2]!) } : null}
@@ -166,52 +163,17 @@ function Segment({ from, to, label }: { from: number; to: number; label: string 
 	);
 }
 
-function Ring({ deadline: d, busy, onPractice }: { deadline: DeadlineProgress; busy: boolean; onPractice: (d: DeadlineProgress) => void }) {
-	const outer = RING / 2;
-	const width = outer * (1 - INNER);
-	const r = outer - width / 2;
-	const length = 2 * Math.PI * r;
-	const ready = d.ready;
-	const covered = d.files.length > 0 && ready !== null;
-	const canPractice = covered && d.topics.length > 0;
-	const ring = (
-		<button
-			type="button"
-			data-testid={`runway-ring-${d.id}`}
-			disabled={!canPractice || busy}
-			onClick={() => onPractice(d)}
-			aria-label={ringTitle(d)}
-			className="group relative flex items-center justify-center outline-none disabled:cursor-default"
-			style={{ width: RING, height: RING }}
-		>
-			<svg width={RING} height={RING} viewBox={`0 0 ${RING} ${RING}`} className="absolute inset-0 -rotate-90" aria-hidden>
-				<circle
-					cx={outer}
-					cy={outer}
-					r={r}
-					fill="none"
-					strokeWidth={width}
-					className={cn("stroke-tone-2", canPractice && "group-hover:stroke-[#5A5A5A] group-focus-visible:stroke-[#5A5A5A]")}
-				/>
-				{covered && ready > 0 && (
-					<circle
-						data-testid="runway-arc"
-						cx={outer}
-						cy={outer}
-						r={r}
-						fill="none"
-						strokeWidth={width}
-						stroke={rampColor(ready)}
-						strokeDasharray={`${length * Math.min(1, ready)} ${length}`}
-					/>
-				)}
-			</svg>
-			<span className="relative font-mono text-[18px] font-bold tabular-nums text-ink">{covered ? `${percent(ready)}%` : "–"}</span>
-		</button>
-	);
+function Ring({ deadline: d }: { deadline: DeadlineProgress }) {
 	return (
 		<Tip side="bottom" title={ringTitle(d)} body={<RingTipBody deadline={d} />}>
-			{ring}
+			<Link
+				href={deadlineHref(d.id)}
+				data-testid={`runway-ring-${d.id}`}
+				aria-label={ringTitle(d)}
+				className="group flex items-center justify-center outline-none"
+			>
+				<ReadyRing ready={d.files.length > 0 ? d.ready : null} size={RING} hover />
+			</Link>
 		</Tip>
 	);
 }

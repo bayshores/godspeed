@@ -39,6 +39,11 @@ export function stopMeta(d: Pick<DeadlineProgress, "kind" | "date">): string {
 	return d.kind === "exam" ? `Exam · ${day}` : day;
 }
 
+/** The deadline's own page. */
+export function deadlineHref(id: string): string {
+	return `/class/deadline/${encodeURIComponent(id)}`;
+}
+
 /** 0.38 → 38. */
 export function percent(rate: number): number {
 	return Math.round(rate * 100);

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/core";
 import { kindLabel } from "@/components/class-deadlines-model";
@@ -7,7 +8,7 @@ import { comingUpGroups, dueUnderLabel, itemsSummary, type OpenDeadline } from "
 import { DoneBox } from "@/components/done-box";
 import { deadlineFilesText } from "@/components/graph/derive";
 import { displayName } from "@/components/overview/overview-model";
-import { percent } from "@/components/overview/runway-model";
+import { deadlineHref, percent } from "@/components/overview/runway-model";
 import { CARD, CARD_TITLE } from "@/components/overview/styles";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,8 @@ import { cn } from "@/lib/utils";
  * from every class, grouped Overdue / Today / Tomorrow / each date / Later.
  * A row: the done box, the name and its kind, what it covers with a ready
  * bar (deadlines with files), the class, and the live countdown with the
- * due time under it. With no classes yet it offers New class.
+ * due time under it. Click a row for the deadline's page. With no classes
+ * yet it offers New class.
  */
 export const ComingUp = memo(function ComingUp({
 	deadlines,
@@ -117,11 +119,15 @@ function ComingUpRow({
 			data-halley-target={`deadline:${d.id}`}
 			data-leaving={leaving || undefined}
 			className={cn(
-				"flex w-full items-center gap-3.5 bg-tone px-3.5 py-[11px] transition-opacity duration-[var(--lh-dur)] ease-[var(--lh-ease-in)]",
+				"relative flex w-full items-center gap-3.5 bg-tone px-3.5 py-[11px] transition-[opacity,background-color] duration-[var(--lh-dur)] ease-[var(--lh-ease-in)] hover:bg-[#1f1f1f]",
 				leaving && "pointer-events-none opacity-0",
 			)}
 		>
-			<DoneBox size={16} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
+			{/* The whole row opens the page; the done box sits above the link. */}
+			<Link href={deadlineHref(d.id)} data-testid="coming-up-open" aria-label={`Open ${d.name}`} className="absolute inset-0" />
+			<span className="relative z-10 flex">
+				<DoneBox size={16} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
+			</span>
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				<div className="flex min-w-0 items-baseline gap-2">
 					<span className="truncate text-[15.5px] leading-[22px] font-bold text-ink">{d.name}</span>

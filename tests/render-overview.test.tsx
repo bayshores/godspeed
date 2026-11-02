@@ -98,7 +98,6 @@ function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) 
 			nowMs={NOW}
 			busy={false}
 			startError={null}
-			onPractice={() => {}}
 			onLearn={() => {}}
 			{...props}
 		/>,
@@ -244,18 +243,17 @@ describe("Ready for what's due", () => {
 
 	it("rings show the ready % in mono; a deadline with no files shows an empty ring with –", () => {
 		const html = renderRunway();
-		assert.match(section(html, "runway-ring-d1", "</button>"), /font-mono[^>]*>38%</);
-		assert.match(section(html, "runway-ring-d2", "</button>"), />72%</);
-		const empty = section(html, "runway-ring-d3", "</button>");
+		assert.match(section(html, "runway-ring-d1", "</a>"), /font-mono[^>]*>38%</);
+		assert.match(section(html, "runway-ring-d2", "</a>"), />72%</);
+		const empty = section(html, "runway-ring-d3", "</a>");
 		assert.match(empty, />–</);
 		assert.doesNotMatch(empty, /runway-arc/);
-		assert.match(tag(html, "runway-ring-d3"), /disabled=""/);
 	});
 
 	it("every ring is 88px; the arc uses the ramp color", () => {
 		const html = renderRunway();
-		for (const id of ["d1", "d2", "d3"]) assert.match(tag(html, `runway-ring-${id}`), /width:88px;height:88px/);
-		assert.match(section(html, "runway-ring-d2", "</button>"), /data-testid="runway-arc"[^>]*stroke="#9BD35A"/);
+		for (const id of ["d1", "d2", "d3"]) assert.match(section(html, `runway-ring-${id}`, "</a>"), /width:88px;height:88px/);
+		assert.match(section(html, "runway-ring-d2", "</a>"), /data-testid="runway-arc"[^>]*stroke="#9BD35A"/);
 	});
 
 	it("names and meta: exams read 'Exam · Thu Nov 5', others the date", () => {
@@ -430,7 +428,7 @@ afterEach(async () => {
 });
 
 describe("runway clicks", () => {
-	async function mount(onPractice: (d: DeadlineProgress) => void, onLearn: (id: string) => void) {
+	async function mount(onLearn: (id: string) => void) {
 		host = document.createElement("div");
 		document.body.appendChild(host);
 		root = createRoot(host);
@@ -444,7 +442,6 @@ describe("runway clicks", () => {
 					nowMs={NOW}
 					busy={false}
 					startError={null}
-					onPractice={onPractice}
 					onLearn={onLearn}
 				/>,
 			);
@@ -452,16 +449,15 @@ describe("runway clicks", () => {
 		return host;
 	}
 
-	it("a ring practices that deadline's topics", async () => {
-		const practiced: string[] = [];
-		const el = await mount((d) => practiced.push(d.id), () => {});
-		await act(async () => (el.querySelector('[data-testid="runway-ring-d2"]') as HTMLButtonElement).click());
-		assert.deepEqual(practiced, ["d2"]);
+	it("every ring opens its deadline's page, covered or not", () => {
+		const html = renderRunway();
+		assert.match(tag(html, "runway-ring-d2"), /href="\/class\/deadline\/d2"/);
+		assert.match(tag(html, "runway-ring-d3"), /href="\/class\/deadline\/d3"/);
 	});
 
 	it("Learn this starts a lesson on the Most needed topic", async () => {
 		const learned: string[] = [];
-		const el = await mount(() => {}, (id) => learned.push(id));
+		const el = await mount((id) => learned.push(id));
 		await act(async () => (el.querySelector('[data-testid="runway-learn-this"]') as HTMLButtonElement).click());
 		assert.deepEqual(learned, ["t1"]);
 	});
@@ -473,9 +469,9 @@ describe("runway clicks", () => {
 		assert.ok(!renderRunway(DEADLINES).includes("runway-start-error"));
 	});
 
-	it("rings and Learn this are disabled while a lesson is starting", () => {
+	it("Learn this is disabled while a lesson is starting; the rings still open their pages", () => {
 		const html = renderRunway(DEADLINES, { busy: true });
 		assert.match(tag(html, "runway-learn-this"), /disabled=""/);
-		assert.match(tag(html, "runway-ring-d1"), /disabled=""/);
+		assert.doesNotMatch(tag(html, "runway-ring-d1"), /disabled/);
 	});
 });
