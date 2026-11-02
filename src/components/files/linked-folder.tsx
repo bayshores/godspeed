@@ -1,39 +1,44 @@
 import { useCallback, useRef, useState } from "react";
 import { FolderIcon, FolderOpenIcon, FolderSyncIcon, TriangleAlertIcon, UnlinkIcon } from "lucide-react";
-import { MAX_LINKED_FILES, type FolderProblem } from "@/core";
+import { MAX_LINKED_FILES, type FolderProblem, type FolderStatus } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { shortenHome } from "./files-model";
+import { folderStatusLine } from "./folder-status-model";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 
 /** What the box says about each folder problem. */
 const PROBLEM_LINE: Record<FolderProblem, string> = {
 	missing: "Can't find this folder. It may have been moved, renamed or on a drive that isn't plugged in. Its files and facts are kept.",
+	empty: "This folder shows no files right now, so nothing is removed. If you emptied it on purpose, unlink it.",
 	"too-many-files": `Only the first ${MAX_LINKED_FILES} files were added. Link a smaller folder to choose which ones.`,
 };
 
 const BOX_BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-2.5 py-1.5 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-50";
 
 /**
- * THE LINKED FOLDER (Files page, in the Study material header): a chip
- * with the folder's short path, or "Can't find this folder" when it is
- * gone. Clicking it opens a small box with the full path, what the folder
- * does (or what is wrong with it), and its buttons: Pick folder again
+ * THE LINKED FOLDER (Files page, top bar): a live line, "Watching CSE 21
+ * on Google Drive · checked just now", or a plain warning when the folder
+ * is gone, looks empty or still has files downloading. Clicking it opens
+ * a small box with the full path, what the folder does (or what is wrong
+ * with it), and its buttons: Pick folder again
  * (the safe way to switch folders), Open in Finder (desktop app) and Unlink,
  * which asks first.
  * (Tooltips here can't hold buttons, so the box opens on click.)
  */
 export function LinkedFolderChip({
 	path,
-	problem,
+	status,
+	now,
 	disabled,
 	open: openFolder,
 	onPickAgain,
 	onUnlink,
 }: {
 	path: string;
-	problem: FolderProblem | null;
+	status: FolderStatus;
+	/** The current minute, for "checked 4 minutes ago" (null before the first render). */
+	now: number | null;
 	disabled?: boolean;
 	/** "Open in Finder" (desktop app only): its label and action. */
 	open?: { label: string; run: () => void };
@@ -48,7 +53,9 @@ export function LinkedFolderChip({
 		setOpen(false);
 		act();
 	};
+	const { problem } = status;
 	const missing = problem === "missing";
+	const line = folderStatusLine(path, status, now);
 	return (
 		<>
 			<Tip title="Linked folder" side="bottom" align="end">
@@ -67,8 +74,8 @@ export function LinkedFolderChip({
 					) : (
 						<FolderSyncIcon className="size-[13px] shrink-0 text-ink-3" aria-hidden />
 					)}
-					<span data-testid="class-folder-path" className={cn("min-w-0 truncate text-[13px]", missing ? "font-bold text-ans-wrong" : "text-ink-2")}>
-						{missing ? "Can't find this folder" : shortenHome(path)}
+					<span data-testid="class-folder-status" className={cn("min-w-0 truncate text-[13px]", line.warn ? "font-bold text-ans-wrong" : "text-ink-2")}>
+						{line.text}
 					</span>
 				</button>
 			</Tip>

@@ -11,9 +11,10 @@ import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClassNav, HomeRow, activeNavHref } from "../src/components/sidebar/class-nav.tsx";
 import { footerLabel } from "../src/components/agent-status.tsx";
+import { hasUnseenFiles } from "../src/components/sidebar/files-seen.ts";
 
-function nav(pathname: string, hasClass = true, fileCount = 33) {
-	return renderToStaticMarkup(<ClassNav pathname={pathname} hasClass={hasClass} fileCount={fileCount} />);
+function nav(pathname: string, hasClass = true, fileCount = 33, unseenFiles = false) {
+	return renderToStaticMarkup(<ClassNav pathname={pathname} hasClass={hasClass} fileCount={fileCount} unseenFiles={unseenFiles} />);
 }
 
 /** The opening tag of the element carrying `testid`. */
@@ -77,6 +78,17 @@ describe("ClassNav — Overview / Graph / Files", () => {
 	it("Files shows the class's file count in mono on the right", () => {
 		const html = nav("/", true, 33);
 		assert.match(html, /<span data-testid="nav-files-count" class="[^"]*font-mono[^"]*tabular-nums[^"]*">33<\/span>/);
+		assert.ok(!html.includes("nav-files-new"));
+	});
+
+	it("Files shows a dot while a scan found files the learner hasn't seen", () => {
+		assert.ok(nav("/", true, 33, true).includes('data-testid="nav-files-new"'));
+		const now = Date.parse("2026-11-01T12:00:00Z");
+		assert.equal(hasUnseenFiles("2026-11-01T10:00:00.000Z", null, now), true, "nothing seen yet");
+		assert.equal(hasUnseenFiles("2026-11-01T10:00:00.000Z", "2026-10-31T10:00:00.000Z", now), true, "arrived after the last look");
+		assert.equal(hasUnseenFiles("2026-11-01T10:00:00.000Z", "2026-11-01T10:00:00.000Z", now), false, "seen");
+		assert.equal(hasUnseenFiles("2026-10-25T10:00:00.000Z", null, now), false, "no longer new");
+		assert.equal(hasUnseenFiles(undefined, null, now), false);
 	});
 
 	it("No class: Overview and Graph stay, Files (and its count) are hidden", () => {

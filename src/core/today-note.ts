@@ -11,6 +11,7 @@
 import { compareDeadlines, deadlineDueAt, type ClassDeadline } from "./contracts/class.ts";
 import { daysBetween } from "./progress.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
+import { isRecent, NEW_FILE_DAYS } from "./new-files.ts";
 import { newTodayContextMessage, type LhMarkerMessage, type LhMessage } from "./native-messages.ts";
 
 /** What the note needs to know about the lesson's class (null = no class). */
@@ -21,8 +22,7 @@ export interface TodayNoteClass {
 
 /** Most file names on a Covers line before "and N more". */
 const MAX_COVERS = 4;
-/** Files added this recently are listed as new, at most this many by name. */
-const NEW_FILE_DAYS = 3;
+/** Most new files listed by name. */
 const MAX_NEW_FILES = 5;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -140,9 +140,8 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 
 /** "New files (last 3 days): a, b, and 4 more", newest first; null when none. */
 function newFilesLine(files: TodayNoteClass["files"], now: Date): string | null {
-	const since = now.getTime() - NEW_FILE_DAYS * 86_400_000;
 	const fresh = files
-		.filter((f) => f.addedAt && Date.parse(f.addedAt) >= since)
+		.filter((f) => isRecent(f.addedAt, now.getTime()))
 		.sort((a, b) => Date.parse(b.addedAt!) - Date.parse(a.addedAt!))
 		.map((f) => f.name);
 	if (fresh.length === 0) return null;

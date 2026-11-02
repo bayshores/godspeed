@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { groupFileSeries, seriesGaps } from "../src/core/file-series.ts";
-import { kindsForNewFiles } from "../src/core/new-file-kind.ts";
+import { kindsForNewFiles } from "../src/core/new-files.ts";
 
 const named = (names: string[]) => names.map((name, i) => ({ id: `f${i}`, name }));
 

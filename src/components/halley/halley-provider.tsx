@@ -24,7 +24,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import type { AgentAction } from "@/core";
-import { DEFAULT_TEACHER_NAME } from "@/core";
+import { APP_SOURCE, DEFAULT_TEACHER_NAME } from "@/core";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 import { useAgentStatus } from "@/components/agent-status";
 import { useActivity } from "@/components/activity-dock";
@@ -471,6 +471,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
 		setRecent((list) => [action, ...list.filter((a) => a.id !== action.id)].slice(0, RECENT_LIMIT));
+		// The app's own entries (a folder's new files) are listed, never visited.
+		if (action.agent === APP_SOURCE) return;
 		// Keep a copy of the item now, in case the page drops it before the
 		// visit (removed, or done and gone from the list).
 		if (action.target) {

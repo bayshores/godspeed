@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 import type { FileCoverage } from "@/core";
 import { useAgentStatus } from "@/components/agent-status";
 import { useClasses } from "@/components/class-context";
+import { useMinute } from "@/components/countdown";
 import { LoadFailed } from "@/components/load-failed";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
@@ -24,6 +25,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileGroupSection, FinderDropTargets } from "./files-sections";
 import { confirmCopy, fileBrowserName, fileGroups, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { newSince } from "./folder-status-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
 
 /**
@@ -35,7 +37,8 @@ import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-fo
  * Move to Course info ask first, saying how many facts go.
  *
  * Coverage per file comes from the shared progress payload; the record
- * re-reads on classes-changed, so statuses update as files are built.
+ * re-reads on classes-changed, so statuses update as files are built, and
+ * each minute while a folder is linked, so its "checked" time stays true.
  */
 export function FilesPage() {
 	const { active } = useClasses();
@@ -75,7 +78,16 @@ function useCollapsed(classId: string | null) {
 
 function FilesPageBody() {
 	const { active } = useClasses();
-	const { record, folderProblem, failed, reload } = useClassRecord(active);
+	const { record, folder, failed, reload } = useClassRecord(active);
+	const minute = useMinute();
+	const linked = !!record?.linkedFolder;
+	// A new minute (not the first one) re-reads the folder's status.
+	const shownMinute = useRef(minute);
+	useEffect(() => {
+		const prev = shownMinute.current;
+		shownMinute.current = minute;
+		if (linked && prev !== null && minute !== prev) void reload();
+	}, [linked, minute, reload]);
 	const { data } = useProgress();
 	const agentTeaching = useAgentStatus()?.teaching ?? true;
 	const [confirm, setConfirm] = useState<FileConfirm | null>(null);
@@ -95,6 +107,7 @@ function FilesPageBody() {
 	const groups = useMemo(() => fileGroups(record?.files ?? []), [record]);
 	const shown = useMemo(() => filterGroups(groups, query), [groups, query]);
 	const searching = query.trim() !== "";
+	const arrived = useMemo(() => (record && minute !== null ? newSince(record.files, minute) : null), [record, minute]);
 
 	/** Run one write: busy while in flight, its error shown. */
 	const run = useCallback(async (write: () => Promise<WriteResult>) => {
@@ -196,7 +209,8 @@ function FilesPageBody() {
 						{record.linkedFolder ? (
 							<LinkedFolderChip
 								path={record.linkedFolder}
-								problem={folderProblem}
+								status={folder ?? { problem: null, checkedAt: null, settling: 0 }}
+								now={minute}
 								disabled={disabled}
 								open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
 								onPickAgain={onLinkFolder}
@@ -220,6 +234,7 @@ function FilesPageBody() {
 								<h1 className="font-title text-[40px] leading-[48px] tracking-tight text-ink">Files</h1>
 								<p data-testid="files-summary" className="text-base leading-6 text-ink-2">
 									{filesSummary(record.files)}
+									{arrived && ` · ${arrived}`}
 								</p>
 							</div>
 							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}

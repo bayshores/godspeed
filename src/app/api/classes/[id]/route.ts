@@ -1,14 +1,15 @@
 /**
  * /api/classes/[id]
- *  GET    — { class, folderProblem }: the full record and what is wrong with
- *           its linked folder (null: nothing); ?scan=1 rescans the folder first
- *           (the switcher asks when you switch to the class)
+ *  GET    — { class, folder }: the full record and its linked folder as the
+ *           last scan saw it (problem, checked time, files still settling);
+ *           ?scan=1 rescans the folder first (the switcher asks when you
+ *           switch to the class)
  *  PUT    — { name?, description?, archived?, signature?, icon?, rules? } (signature null clears it)
  *  DELETE — the class with its lessons, copied files and graph (a linked
  *           folder on your computer is never touched); { lessonIds } names the
  *           removed lessons so the window can drop their saved drafts
  */
-import { deleteClass, folderProblemOf, getClass, scanLinkedFolder, updateClass } from "@/server";
+import { deleteClass, folderStatusOf, getClass, scanLinkedFolder, updateClass } from "@/server";
 import { cleanSignature, isClassIcon, isClassId, SIGNATURE_MAX } from "@/core";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function GET(req: Request, { params }: Ctx) {
 	if (new URL(req.url).searchParams.get("scan") === "1") scanLinkedFolder(id);
 	const record = getClass(id);
 	if (!record) return Response.json({ error: "No such class" }, { status: 404 });
-	return Response.json({ class: record, folderProblem: folderProblemOf(id) });
+	return Response.json({ class: record, folder: folderStatusOf(id) });
 }
 
 export async function PUT(req: Request, { params }: Ctx) {

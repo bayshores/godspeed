@@ -154,6 +154,20 @@ describe("the recent list", () => {
 		assert.equal(actions.recentAgentActions().length, 2);
 	});
 
+	it("a folder's new files are the app's own entry; scans a few minutes apart add up", () => {
+		const t0 = Date.parse("2026-11-01T16:00:00Z");
+		actions.recordFolderFiles("cls_a", 3, "Google Drive", t0);
+		actions.recordFolderFiles("cls_a", 1, "Google Drive", t0 + 60_000);
+		actions.recordFolderFiles("cls_b", 1, "CSE 30", t0 + 90_000);
+		actions.recordFolderFiles("cls_b", 2, "CSE 30", t0 + 90_000 + actions.COALESCE_MS + 1);
+		const list = actions.recentAgentActions();
+		assert.deepEqual(list.map((a) => [a.agent, a.classId, a.label, a.page, a.target]), [
+			["godspeed", "cls_b", "Added 2 files from CSE 30", "/class/files", null],
+			["godspeed", "cls_b", "Added 1 file from CSE 30", "/class/files", null],
+			["godspeed", "cls_a", "Added 4 files from Google Drive", "/class/files", null],
+		]);
+	});
+
 	it("labels are one short line, and an unnamed agent is 'Your agent'", () => {
 		const a = actions.recordAgentAction({ label: `Reading  ${"x".repeat(200)}\nmore`, classId: null, target: null, page: "/graph" });
 		assert.ok(a.label.length <= 80);

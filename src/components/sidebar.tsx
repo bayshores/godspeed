@@ -8,6 +8,7 @@ import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { SettingsDialogProvider } from "@/components/settings/settings-dialog-provider.tsx";
 import { RuleNotice } from "@/components/rule-notice";
 import { FilesNotice } from "@/components/files-notice";
+import { useUnseenFiles } from "@/components/sidebar/files-seen";
 import { Hint } from "@/components/ui/hint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -237,6 +238,7 @@ function SessionsSidebar() {
 	const pathname = usePathname();
 	const { active: activeClassId, activeClass } = useClasses();
 	const due = useOpenDeadlines();
+	const unseenFiles = useUnseenFiles(activeClassId, activeClass?.lastFoundAt, pathname === "/class/files");
 	const [width, setWidth] = usePaneWidth("sidebar", SIDEBAR_WIDTH);
 
 	return (
@@ -268,7 +270,7 @@ function SessionsSidebar() {
 
 				<ClassSwitcher />
 
-				<ClassNav pathname={pathname} hasClass={activeClass !== null} fileCount={activeClass?.fileCount ?? 0} />
+				<ClassNav pathname={pathname} hasClass={activeClass !== null} fileCount={activeClass?.fileCount ?? 0} unseenFiles={unseenFiles} />
 
 				{/* New lessons start on the New lesson screen ("/new"), in Teach or Practice mode. */}
 				<div className="flex w-full gap-0.5">

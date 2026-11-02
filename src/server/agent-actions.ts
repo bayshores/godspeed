@@ -9,7 +9,7 @@
  * module instances, and they must all share one list.
  */
 import { randomUUID } from "node:crypto";
-import { emit, type AgentAction } from "../core/events.ts";
+import { APP_SOURCE, emit, type AgentAction } from "../core/events.ts";
 
 export const RECENT_LIMIT = 20;
 /** The same label on the same target within this window updates the last
@@ -66,6 +66,24 @@ export function recordAgentAction(input: AgentActionInput, now = Date.now()): Ag
 	if (list.length > RECENT_LIMIT) list.splice(0, list.length - RECENT_LIMIT);
 	emit("agent-action", action);
 	return action;
+}
+
+const FOLDER_LABEL = /^Added (\d+) files? from (.+)$/;
+
+/** A linked folder's new files, as the app's own entry: "Added 3 files from
+ *  Google Drive". Scans a few minutes apart add to the newest such entry. */
+export function recordFolderFiles(classId: string, count: number, from: string, now = Date.now()): void {
+	const last = state().list.at(-1);
+	const match = last?.agent === APP_SOURCE && last.classId === classId && now - Date.parse(last.at) < COALESCE_MS ? FOLDER_LABEL.exec(last.label) : null;
+	const merged = match && match[2] === from ? Number(match[1]) + count : null;
+	const label = (n: number) => `Added ${n} ${n === 1 ? "file" : "files"} from ${from}`;
+	if (last && merged !== null) {
+		last.label = label(merged);
+		last.at = new Date(now).toISOString();
+		emit("agent-action", last);
+		return;
+	}
+	recordAgentAction({ agent: APP_SOURCE, label: label(count), classId, target: null, page: "/class/files" }, now);
 }
 
 /** The recent actions, newest first. */

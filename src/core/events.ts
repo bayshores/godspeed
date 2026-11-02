@@ -40,6 +40,10 @@ export interface AgentAction {
 	removed?: true;
 }
 
+/** The `agent` of the app's own entries in that list (a linked folder's
+ *  new files): not an agent, so the teacher never flies to them. */
+export const APP_SOURCE = "godspeed";
+
 /** The full event vocabulary. */
 export interface ServerEvents {
 	/** A teach turn began server-side (beginTurn) — client-initiated sends,

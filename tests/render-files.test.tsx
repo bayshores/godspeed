@@ -59,7 +59,7 @@ const RECORD: ClassRecord = {
 	linkedFolder: "/Users/me/School/CSE 21",
 	files: [
 		file("f1", "Lecture 1 — Counting.pdf"),
-		file("f2", "Rosen 6.2 — Probability theory.pdf", { origin: "linked", path: "Readings/Rosen 6.2 — Probability theory.pdf" }),
+		file("f2", "Rosen 6.2 — Probability theory.pdf", { origin: "linked", path: "Readings/Rosen 6.2 — Probability theory.pdf", foundByScan: true, addedAt: new Date().toISOString() }),
 		file("f3", "Rosen 7.1 — Discrete probability.pdf", { status: "extracting" }),
 		file("f4", "Week 4 Discussion.srt", { status: "failed", error: "no audio" }),
 		file("f5", "Syllabus.pdf", { kind: "info" }),
@@ -87,7 +87,7 @@ function fakeFetch() {
 		if (url === "/api/mcp-access") return Response.json({ agentConnected: true, agentTeaching, pendingWork: 0 });
 		if (url.startsWith("/api/classes/cls_a") && method === "GET") {
 			recordReads++;
-			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ class: RECORD, folderProblem });
+			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ class: RECORD, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
 		}
 		if (url.startsWith("/api/progress")) return Response.json({ classId: "cls_a", files: COVERAGE });
 		return Response.json({ ok: true });
@@ -147,8 +147,11 @@ describe("FilesPage", () => {
 		await mount();
 		assert.equal(q("class-pick-folder"), null, "a linked class shows its folder, not Link folder");
 		assert.ok(q("class-add-files"));
-		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
-		assert.equal(q("files-summary")!.textContent, "7 files · 6 study material · 1 course info");
+		assert.equal(q("class-folder-status")!.textContent, "Watching CSE 21");
+		const today = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
+		assert.equal(q("files-summary")!.textContent, `7 files · 6 study material · 1 course info · 1 new since ${today}`);
+		assert.ok(q("class-file-new-f2"), "a file a scan just found is marked New");
+		assert.equal(q("class-file-new-f1"), null);
 		assert.deepEqual(
 			[...document.querySelectorAll('[data-testid^="files-group-toggle-"]')].map((b) => b.textContent),
 			["Lecture3", "Rosen · Probability2", "Other2"],
@@ -238,7 +241,7 @@ describe("FilesPage", () => {
 		folderProblem = "missing";
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-folder-path")!.textContent, "Can't find this folder");
+		assert.equal(q("class-folder-status")!.textContent, "Can't find this folder");
 		await act(async () => q("class-folder")!.click());
 		assert.match(q("class-folder-problem")!.textContent!, /Its files and facts are kept/);
 		assert.ok(q("class-folder-pick-again"));
@@ -249,7 +252,7 @@ describe("FilesPage", () => {
 		folderProblem = "too-many-files";
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
+		assert.equal(q("class-folder-status")!.textContent, "Watching CSE 21");
 		await act(async () => q("class-folder")!.click());
 		assert.match(q("class-folder-problem")!.textContent!, /Only the first 500 files were added/);
 		assert.ok(q("class-folder-pick-again"), "Pick folder again is always there: the safe way to switch folders");
