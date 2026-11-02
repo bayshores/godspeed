@@ -5,6 +5,7 @@
  */
 
 export * from "./chat-handler.ts";
+export { extraction } from "./extraction.ts";
 export * from "./events-stream.ts";
 export * from "./chats.ts";
 export * from "./classes.ts";
@@ -46,3 +47,4 @@ export { removeOldSetup } from "./old-setup.ts";
 export { handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";
 export { agentSavedRules, editRule, removeRule } from "./agent-rules.ts";
+export { clearTalk, openTalk } from "./talk.ts";

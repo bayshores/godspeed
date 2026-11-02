@@ -13,7 +13,8 @@ export default async function ChatPage({
 }) {
 	const [{ id }, { prompt }] = await Promise.all([params, searchParams]);
 	const chat = getChat(id);
-	if (!chat) notFound();
+	// The Talk chat lives in the teacher's panel, never on a lesson page.
+	if (!chat || chat.kind === "talk") notFound();
 	return (
 		<Chat
 			key={chat.id}

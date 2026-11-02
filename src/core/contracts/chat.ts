@@ -12,12 +12,16 @@ import type { EmissionStats } from "./graph.ts";
 /** The session's kind: "teach" is
  *  the default and ABSENT on pre-practice records (no migration — absence
  *  reads as teach); "practice" marks an adaptive-practice session — the
- *  practice agent, its two tools, no extraction, no graph writes. */
-type ChatKind = "teach" | "practice";
+ *  practice agent, its two tools, no extraction, no graph writes; "talk" is
+ *  the one Talk chat in the teacher's panel (TALK_CHAT_ID), never a lesson. */
+type ChatKind = "teach" | "practice" | "talk";
 
 /** Every lesson id starts with this (store/chats.ts makes them). The
  *  outside-agent bridge uses it to tell lesson work from background jobs. */
 export const CHAT_ID_PREFIX = "chat_";
+
+/** The Talk chat's id: one ongoing chat, so it is always the same file. */
+export const TALK_CHAT_ID = `${CHAT_ID_PREFIX}talk`;
 
 /** One persisted session: data/chats/<id>.json. The stored messages are
  *  pi-NATIVE history (LhMessage), so the record IS the agent state and
@@ -215,8 +219,9 @@ export interface ChatSummary {
 	title: string;
 	createdAt: string;
 	updatedAt: string;
-	/** Normalized kind (absent record field reads as teach). */
-	kind: ChatKind;
+	/** Normalized kind (absent record field reads as teach). The Talk chat
+	 *  is never listed. */
+	kind: Exclude<ChatKind, "talk">;
 	/** The lesson's class — absent = "No class". */
 	classId?: string;
 	messageCount: number;

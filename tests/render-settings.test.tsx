@@ -124,7 +124,7 @@ describe("GeneralSection (SSR)", () => {
 
 	it("teacher name, the two sliders at their factory values, and the graph switch", () => {
 		const html = render({ version: 1 });
-		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Halley"'));
+		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Teacher"'));
 		assert.ok(tagOf(html, "slider-compaction").includes('value="40000"'));
 		assert.ok(html.includes("about 80 pages"), "lesson length in pages, not tokens");
 		assert.ok(!html.includes("k tokens"));

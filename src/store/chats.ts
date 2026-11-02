@@ -13,7 +13,7 @@ import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import type { ChatStore } from "../core/ports.ts";
 import type { ChatRecord, ChatSummary, ExtractionRunUsage, PlanTree, TurnUsage } from "../core/contracts.ts";
-import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION } from "../core/contracts.ts";
+import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION, TALK_CHAT_ID } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
 import { danglingQuestionOf } from "../core/native-messages.ts";
 import { phaseAt3Lh } from "../core/phases.ts";
@@ -39,17 +39,17 @@ function chatDir(id: string): string {
  *  phase, busy, pendingQuestion) is already announced by turn-started /
  *  turn-settled, which the sidebar refetches on. Silence here is law,
  *  not oversight. */
-function createChat(title: string, kind?: "practice", classId?: string): ChatRecord {
+function createChat(title: string, kind?: "practice" | "talk", classId?: string): ChatRecord {
 	const now = new Date().toISOString();
 	const record: ChatRecord = {
-		id: `${CHAT_ID_PREFIX}${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
+		id: kind === "talk" ? TALK_CHAT_ID : `${CHAT_ID_PREFIX}${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
 		title: title.trim() || "Untitled session",
 		createdAt: now,
 		updatedAt: now,
 		messages: [],
 		// Practice sessions carry the marker; teach stays ABSENT (absence
 		// reads as teach — pre-practice records never migrate).
-		...(kind === "practice" ? { kind: "practice" as const } : {}),
+		...(kind ? { kind } : {}),
 		// The lesson's class; ABSENT = "No class".
 		...(classId ? { classId } : {}),
 	};
@@ -135,6 +135,8 @@ function listChats(): ChatSummary[] {
 
 /** One record → its list summary (null when its messages can't be read). */
 function summarize(record: ChatRecord): ChatSummary | null {
+	// The Talk chat is not a lesson: no list ever shows it.
+	if (record.kind === "talk") return null;
 	const { messages, tree: _tree, turns: _turns, extractions: _extractions, ...summary } = record;
 	// Per-record isolation: a record whose messages fail the projection
 	// must not blank the whole sidebar — same isolation getChat's per-file

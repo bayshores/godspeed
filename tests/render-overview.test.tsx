@@ -161,8 +161,8 @@ describe("Overview header", () => {
 		const note = section(html, "class-cover-note", "</p>");
 		assert.ok(note.includes("halley-face"));
 		assert.ok(note.includes("Gradient steps are clicking. Momentum is next."));
-		assert.match(section(html, "class-cover-note", "</div></div>"), /Halley · after /);
-		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Halley · /, "no clock yet, no when");
+		assert.match(section(html, "class-cover-note", "</div></div>"), /Teacher · after /);
+		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Teacher · /, "no clock yet, no when");
 	});
 
 	it("loading: no progress line yet", () => {

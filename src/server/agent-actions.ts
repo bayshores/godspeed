@@ -77,3 +77,13 @@ export function recentAgentActions(): AgentAction[] {
 export function clearAgentActions(): void {
 	state().list.length = 0;
 }
+
+/** Record what an agent changed, for the teacher's panel. Never fails the
+ *  tool that made the change. */
+export function noteAgentAction(caller: string | undefined, input: AgentActionInput): void {
+	try {
+		recordAgentAction({ ...input, agent: caller });
+	} catch (err) {
+		console.error("[agent-action] recording failed:", err);
+	}
+}

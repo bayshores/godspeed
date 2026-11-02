@@ -43,33 +43,21 @@ import {
 import { getGraph } from "../core/graph.ts";
 import { pageBlocks, splitPages } from "../core/work-pages.ts";
 import { sessionMarkdown } from "../core/session-markdown.ts";
-import { CLASS_ICONS, cleanSignature, parseClassScope, safeName, SIGNATURE_MAX, type ClassDeadline, type ClassFileStatus, type ClassIcon, type ClassScope } from "../core/contracts.ts";
+import { CLASS_ICONS, parseClassScope, safeName, SIGNATURE_MAX, type ClassIcon, type ClassScope } from "../core/contracts.ts";
+import { CLASS_ARG_TEXT, CLASS_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, type ToolOutcome } from "../core/class-tools.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
-import { extraction, handleChatInput } from "./chat-handler.ts";
+import { handleChatInput } from "./chat-handler.ts";
+import { extraction } from "./extraction.ts";
 import { graphStoreFor, stores } from "./stores.ts";
-import {
-	addClassDeadline,
-	addCopiedFile,
-	addFileFromPath,
-	AGENT_FILE_READING_REFUSAL,
-	createClass,
-	linkFolder,
-	removeClassDeadline,
-	replaceCopiedFile,
-	setFileKind,
-	unlinkFolder,
-	updateClass,
-	updateClassDeadline,
-} from "./classes.ts";
-import { classFilePath, classTopics } from "./class-card.ts";
-import { fileExtents, readPassage, searchClassFiles, searchFacts } from "./search-index.ts";
+import { addCopiedFile, AGENT_FILE_READING_REFUSAL, replaceCopiedFile, unlinkFolder } from "./classes.ts";
+import { classActions, folderName, READING_NOTE } from "./class-actions.ts";
+import { searchFacts } from "./search-index.ts";
 import { createLesson } from "./lessons.ts";
-import { recordAgentAction, type AgentActionInput } from "./agent-actions.ts";
+import { noteAgentAction } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 import { currentAgentBriefing } from "./agent-memory.ts";
 import { addAgentNote, removeAgentNote } from "../store/agent-notes.ts";
 import { NOTE_MAX_CHARS } from "../core/agent-notes.ts";
-import { localDay } from "../core/today-note.ts";
 import { RULE_MAX_CHARS, TEACHING_AREAS, type AreaId } from "../core/teaching-areas.ts";
 import { saveRuleByAgent } from "./agent-rules.ts";
 import packageMetadata from "../../package.json" with { type: "json" };
@@ -92,8 +80,6 @@ const ADDS = { destructiveHint: false, idempotentHint: false, openWorldHint: fal
 const SETS = { destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const REMOVES = { destructiveHint: true, idempotentHint: true, openWorldHint: false };
 
-/** Study files are read by the agent itself, as background work items. */
-const READING_NOTE = "The reading work comes to you through wait_for_work; it does not progress until you run the loop.";
 
 /** Claude Code cuts a server's instructions after this many characters,
  *  so the loop comes first and the briefing is sized for memory to end
@@ -135,17 +121,9 @@ const SIGNATURE_ARG = z
 		value: z.string().min(1).max(SIGNATURE_MAX),
 	})
 	.optional()
-	.describe(
-		`The class's signature: ONE line that sums up the subject, shown huge on the class's cover. kind "math" = LaTeX without $ (math, physics, chemistry, economics), "code" = a line of code (programming classes), "text" = anything else (a line from a primary source, a sequence, a date). At most ${SIGNATURE_MAX} characters. Pick something iconic for the course; ask the learner when unsure.`,
-	);
+	.describe(CLASS_ARG_TEXT.signature);
 
-const ICON_ARG = z
-	.enum(Object.keys(CLASS_ICONS) as [ClassIcon, ...ClassIcon[]])
-	.describe(
-		`The class's subject icon in the class switcher: ${Object.entries(CLASS_ICONS)
-			.map(([icon, subject]) => `"${icon}" ${subject}`)
-			.join(", ")}. Pick the closest subject.`,
-	);
+const ICON_ARG = z.enum(Object.keys(CLASS_ICONS) as [ClassIcon, ...ClassIcon[]]).describe(CLASS_ARG_TEXT.icon);
 
 const CLASS_ID_ARG = z
 	.string()
@@ -198,23 +176,6 @@ function refuse(req: Request): Response | null {
 }
 
 // ─── Tool helpers ───────────────────────────────────────────────────────────
-
-/** Tell the window what the calling agent just changed (Halley). Never fails a tool. */
-function act(caller: string | undefined, input: AgentActionInput): void {
-	try {
-		recordAgentAction({ ...input, agent: caller });
-	} catch (err) {
-		console.error("[mcp] agent-action failed:", err);
-	}
-}
-
-function deadlineName(classId: string, deadlineId: string): string {
-	return stores.classStore.getClass(classId)?.deadlines?.find((d) => d.id === deadlineId)?.name ?? "a deadline";
-}
-
-function folderName(path: string | undefined): string {
-	return path?.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "a folder";
-}
 
 /** Compact JSON: indentation costs the agent tokens and tells it nothing. */
 function result(value: unknown) {
@@ -377,7 +338,8 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
 			if (!answered.ok) return failure(answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
-			if (lesson) act(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
+			// The Talk chat has no page to go to; its replies show in the panel.
+			if (lesson && lesson.kind !== "talk") noteAgentAction(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
 			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
@@ -540,10 +502,10 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 				const existing = stores.classStore.getClass(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
 				const saved = existing ? replaceCopiedFile(scope, existing.id, bytes, "study") : addCopiedFile(scope, fileName, bytes, "study");
 				if (!saved.ok) return failure(saved.error);
-				act(caller, { label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
+				noteAgentAction(caller, { label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
 				return result({ status: "started", fileId: saved.value.id, note: `Import started. ${READING_NOTE}` });
 			}
-			act(caller, { label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
+			noteAgentAction(caller, { label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
 				console.error(`[mcp] import of ${name} failed:`, err);
 			});
@@ -577,7 +539,7 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			});
 			if (!created.ok) return failure(created.error);
 			const chat = created.chat;
-			act(caller, { label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });
+			noteAgentAction(caller, { label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });
 			const started = await handleChatInput(chat.id, { type: "text", text: topic });
 			if (!started.ok) {
 				const body = await started.text();
@@ -648,369 +610,72 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 	return server;
 }
 
-/** This computer's date and time, "YYYY-MM-DD HH:MM" (deadlines are in
- *  the same local wall clock). */
-function localNow(): string {
-	const now = new Date();
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${localDay(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+const FILE_KIND = z.enum(FILE_KINDS).describe(CLASS_ARG_TEXT.fileKind);
+const DEADLINE_KIND = z.enum(DEADLINE_KINDS).describe(CLASS_ARG_TEXT.deadlineKind);
+
+/** A class action's outcome as an MCP tool result. */
+function reply(outcome: ToolOutcome) {
+	return outcome.ok ? result(outcome.value) : failure(outcome.error);
 }
-
-/** A class as agents see it: summary, file counts by status (and the
- *  files that could not be read, or every file with `withFiles`), the
- *  graph's topics, deadlines, lessons. A linked folder can hold 500 files,
- *  so the full list comes only on request. */
-function classView(classId: string, withFiles = false) {
-	const record = stores.classStore.getClass(classId);
-	if (!record) return null;
-	const sizes = withFiles ? fileExtents(record.id) : {};
-	const fileCounts: Partial<Record<ClassFileStatus, number>> = {};
-	for (const f of record.files) fileCounts[f.status] = (fileCounts[f.status] ?? 0) + 1;
-	return {
-		id: record.id,
-		name: record.name,
-		description: record.description,
-		signature: record.signature ?? null,
-		icon: record.icon ?? null,
-		archived: record.archived,
-		linkedFolder: record.linkedFolder ?? null,
-		fileCounts,
-		...(withFiles
-			? {
-					files: record.files.map((f) => ({
-						id: f.id,
-						name: f.name,
-						kind: f.kind,
-						origin: f.origin,
-						status: f.status,
-						...(f.error ? { error: f.error } : {}),
-						...(sizes[f.id] ? { size: sizes[f.id] } : {}),
-						path: classFilePath(record, f),
-					})),
-				}
-			: {
-					failedFiles: record.files
-						.filter((f) => f.status === "failed" || f.status === "needs-whisper")
-						.map((f) => ({ id: f.id, name: f.name, status: f.status, ...(f.error ? { error: f.error } : {}) })),
-				}),
-		topics: classTopics(record.id),
-		today: localNow(),
-		deadlines: (record.deadlines ?? []).map((d) => ({
-			id: d.id,
-			kind: d.kind,
-			name: d.name,
-			date: d.date,
-			...(d.time !== undefined ? { time: d.time } : {}),
-			done: d.done,
-			files: d.fileIds.map((id) => ({ id, name: record.files.find((f) => f.id === id)?.name ?? id })),
-		})),
-		lessons: stores.chatStore
-			.listChats()
-			.filter((c) => c.classId === record.id)
-			.map((c) => ({ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt })),
-	};
-}
-
-const FILE_KIND = z
-	.enum(["study", "info"])
-	.describe('"study" = study material turned into graph facts (notes, readings, transcripts, recordings); "info" = course info the teacher can read but that never becomes facts (syllabus, assignments, logistics).');
-
-const DEADLINE_KIND = z.enum(["exam", "homework", "quiz", "project"]).describe("What the deadline is.");
 
 function registerClassTools(server: McpServer, caller: string | undefined): void {
-	server.registerTool(
-		"list_classes",
-		{
-			title: "List classes",
-			description: "List the learner's classes (university courses), archived ones included, with file and lesson counts.",
-			inputSchema: z.object({}),
-			annotations: READ_ONLY,
-		},
-		async () => {
-			const lessons = stores.chatStore.listChats();
-			const classes = stores.classStore.listClasses().map((c) => ({
-				id: c.id,
-				name: c.name,
-				description: c.description,
-				icon: c.icon ?? null,
-				archived: c.archived,
-				linkedFolder: c.linkedFolder ?? null,
-				files: c.fileCount,
-				lessons: lessons.filter((l) => l.classId === c.id).length,
-			}));
-			return result({ classes, noClassLessons: lessons.filter((l) => !l.classId).length });
-		},
-	);
+	const actions = classActions(caller);
 
-	server.registerTool(
-		"read_class",
-		{
-			title: "Read a class",
-			description: "Read one class: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_class_files.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				files: z.boolean().optional().describe("List every file with its id (needed for file_ids). Default false."),
-			}),
-			annotations: READ_ONLY,
-		},
-		async ({ class_id, files }) => {
-			const view = classView(class_id, files);
-			return view ? result(view) : failure(`No class "${class_id}". Use list_classes.`);
-		},
-	);
-
-	server.registerTool(
-		"search_class_files",
-		{
-			title: "Search a class's files",
-			description: "Search all of a class's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				query: z.string().min(1).describe("What to look for, in plain words."),
-				limit: z.number().int().min(1).max(20).optional().describe("Most passages to return (default 8)."),
-			}),
-			annotations: READ_ONLY,
-		},
-		async ({ class_id, query, limit }) => {
-			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
-			try {
-				return result(await searchClassFiles(class_id, query, limit ?? 8));
-			} catch (err) {
-				return failure(err instanceof Error ? err.message : String(err));
-			}
-		},
-	);
-
-	server.registerTool(
-		"read_passage",
-		{
-			title: "Read a passage of a class file",
-			description: "Read one passage of a class file by its id from search_class_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				passage_id: z.string().optional().describe("A passage id from search_class_files (or a previous/next id)."),
-				file_id: z.string().optional().describe("Instead of passage_id: a file id from read_class, with range."),
-				range: z.string().optional().describe('With file_id: the place, e.g. "p. 12", "12:30" or "lines 40".'),
-			}),
-			annotations: READ_ONLY,
-		},
-		async ({ class_id, passage_id, file_id, range }) => {
-			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
-			if (passage_id) return result(readPassage(class_id, { passageId: passage_id }));
-			if (file_id && range) return result(readPassage(class_id, { fileId: file_id, range }));
-			return failure("Give passage_id, or file_id with range.");
-		},
-	);
-
-	server.registerTool(
-		"create_class",
-		{
-			title: "Create a class",
-			description: "Create a class for a course the learner is taking. The description is shown to the teacher in every lesson of the class: level, textbook, the professor's notation, what exams and assignments look like. Add the class's deadlines with add_class_deadline.",
-			inputSchema: z.object({
-				name: z.string().min(1).describe('The course, e.g. "MATH 20C – Calculus III".'),
-				description: z.string().optional().describe("What the teacher should know about the course, in the learner's terms."),
-				signature: SIGNATURE_ARG,
-				icon: ICON_ARG,
-			}),
-			annotations: ADDS,
-		},
-		async ({ name, description, signature, icon }) => {
-			const sig = signature ? cleanSignature(signature) : undefined;
-			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
-			const created = createClass({ name, description, icon, ...(sig ? { signature: sig } : {}) });
-			act(caller, { label: `Creating ${created.name}`, classId: created.id, target: { kind: "class", id: created.id }, page: "/class" });
-			return result({ class: classView(created.id) });
-		},
-	);
-
-	server.registerTool(
-		"update_class",
-		{
-			title: "Update a class",
-			description: "Rename a class, change its description, signature or icon, or archive / unarchive it (archiving hides it from the class switcher but keeps everything; an archived class takes no new lessons).",
-			inputSchema: z.object({
-				class_id: z.string(),
-				name: z.string().min(1).optional(),
-				description: z.string().optional(),
-				signature: SIGNATURE_ARG,
-				icon: ICON_ARG.optional(),
-				archived: z.boolean().optional(),
-			}),
-			annotations: SETS,
-		},
-		async ({ class_id, name, description, signature, icon, archived }) => {
-			const sig = signature ? cleanSignature(signature) : undefined;
-			if (sig === null) return failure(`A signature is one line of at most ${SIGNATURE_MAX} characters.`);
-			const outcome = updateClass(class_id, { name, description, archived, ...(icon ? { icon } : {}), ...(sig ? { signature: sig } : {}) });
-			if (!outcome.ok) return failure(outcome.error);
-			const cls = outcome.value;
-			const verb = archived === true ? "Archiving" : archived === false ? "Unarchiving" : "Updating";
-			act(caller, { label: `${verb} ${cls.name}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class" });
-			const given = { name, description, signature: sig, icon, archived };
-			const changed = (Object.keys(given) as (keyof typeof given)[]).filter((key) => given[key] !== undefined);
-			return result({ classId: class_id, changed: Object.fromEntries(changed.map((key) => [key, cls[key]])) });
-		},
-	);
-
-	server.registerTool(
-		"add_class_file",
-		{
-			title: "Add a file to a class",
-			description: "Copy a file from this computer into a class. Supported: .md .txt .pdf .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Study files are turned into facts by you, through wait_for_work.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				path: z.string().describe("The file's absolute path."),
-				kind: FILE_KIND,
-			}),
-			annotations: ADDS,
-		},
-		async ({ class_id, path, kind }) => {
-			const outcome = addFileFromPath(class_id, path, kind);
-			if (!outcome.ok) return failure(outcome.error);
-			act(caller, { label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "file", id: outcome.value.id }, page: "/class/files" });
-			return result({ file: outcome.value, note: kind === "study" ? `Added. ${READING_NOTE}` : "Added." });
-		},
-	);
-
-	server.registerTool(
-		"set_class_file_kind",
-		{
-			title: "Set class files' kind",
-			description: "Switch one or more class files between study material and course info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				file_ids: z.array(z.string()).min(1).describe("The files to switch (ids from read_class with files: true)."),
-				kind: FILE_KIND,
-			}),
-			annotations: REMOVES,
-		},
-		async ({ class_id, file_ids, kind }) => {
-			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
-			const files: { id: string; name: string; kind: string; status: string }[] = [];
-			const refused: { fileId: string; error: string }[] = [];
-			for (const fileId of file_ids) {
-				const outcome = setFileKind(class_id, fileId, kind);
-				if (!outcome.ok) {
-					refused.push({ fileId, error: outcome.error });
-					continue;
-				}
-				const { id, name, status } = outcome.value;
-				files.push({ id, name, kind, status });
-				act(caller, { label: `Marking ${name} as ${kind === "study" ? "study material" : "course info"}`, classId: class_id, target: { kind: "file", id }, page: "/class/files" });
-			}
-			if (files.length === 0) return failure(refused.map((r) => `${r.fileId}: ${r.error}`).join("\n"));
-			return result({ files, ...(refused.length ? { refused } : {}) });
-		},
-	);
-
-	server.registerTool(
-		"add_class_deadline",
-		{
-			title: "Add deadlines to a class",
-			description:
-				"Add one or more deadlines to a class (send all of a syllabus's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times, and the covered lectures from the syllabus or course info; file ids come from read_class with files: true. If a date, a time or the covered files aren't clear, ask the learner instead of guessing. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				deadlines: z
-					.array(
-						z.object({
-							kind: DEADLINE_KIND,
-							name: z.string().min(1).describe('e.g. "Midterm 1", "Homework 5".'),
-							date: z.string().describe("The due day as YYYY-MM-DD."),
-							time: z.string().optional().describe('The due time as 24-hour "HH:MM" on this computer\'s clock. Leave it out when there is none (it then counts as due at the end of the day).'),
-							file_ids: z.array(z.string()).optional().describe("Ids of the class files it covers."),
-						}),
-					)
-					.min(1),
-			}),
-			annotations: ADDS,
-		},
-		async ({ class_id, deadlines }) => {
-			if (!stores.classStore.getClass(class_id)) return failure(`No class "${class_id}". Use list_classes.`);
-			const added: ClassDeadline[] = [];
-			const refused: { name: string; error: string }[] = [];
-			for (const { kind, name, date, time, file_ids } of deadlines) {
-				const outcome = addClassDeadline(class_id, { kind, name, date, ...(time !== undefined ? { time } : {}), ...(file_ids ? { fileIds: file_ids } : {}) });
-				if (!outcome.ok) {
-					refused.push({ name, error: outcome.error });
-					continue;
-				}
-				added.push(outcome.value);
-				act(caller, { label: `Adding ${outcome.value.name}`, classId: class_id, target: { kind: "deadline", id: outcome.value.id }, page: "/" });
-			}
-			if (added.length === 0) return failure(refused.map((r) => `${r.name}: ${r.error}`).join("\n"));
-			return result({ deadlines: added, ...(refused.length ? { refused } : {}) });
-		},
-	);
-
-	server.registerTool(
-		"update_class_deadline",
-		{
-			title: "Update a class deadline",
-			description:
-				"Change a deadline's kind, name, date, time or covered files, or tick it done (done: true) or not done (done: false). file_ids replaces the whole list; time: null removes the time. Ask the learner instead of guessing when a change isn't clear.",
-			inputSchema: z.object({
-				class_id: z.string(),
-				deadline_id: z.string(),
-				kind: DEADLINE_KIND.optional(),
-				name: z.string().min(1).optional(),
-				date: z.string().optional().describe("YYYY-MM-DD."),
-				time: z.string().nullable().optional().describe('24-hour "HH:MM", or null to remove the time.'),
-				file_ids: z.array(z.string()).optional(),
-				done: z.boolean().optional(),
-			}),
-			annotations: SETS,
-		},
-		async ({ class_id, deadline_id, kind, name, date, time, file_ids, done }) => {
-			const outcome = updateClassDeadline(class_id, deadline_id, {
-				...(kind !== undefined ? { kind } : {}),
-				...(name !== undefined ? { name } : {}),
-				...(date !== undefined ? { date } : {}),
-				...(time !== undefined ? { time } : {}),
-				...(file_ids !== undefined ? { fileIds: file_ids } : {}),
-				...(done !== undefined ? { done } : {}),
-			});
-			if (!outcome.ok) return failure(outcome.error);
-			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && done === undefined;
-			const label = done === true ? `Marking ${outcome.value.name} done` : done === false ? `Marking ${outcome.value.name} not done` : `${moved ? "Moving" : "Changing"} ${outcome.value.name}`;
-			act(caller, { label, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/" });
-			return result({ deadline: outcome.value });
-		},
-	);
-
-	server.registerTool(
-		"remove_class_deadline",
-		{
-			title: "Remove a class deadline",
-			description: "Remove one deadline from a class (its files and facts are not touched).",
-			inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }),
-			annotations: REMOVES,
-		},
-		async ({ class_id, deadline_id }) => {
-			const removedName = deadlineName(class_id, deadline_id);
-			const outcome = removeClassDeadline(class_id, deadline_id);
-			if (!outcome.ok) return failure(outcome.error);
-			act(caller, { label: `Removing ${removedName}`, classId: class_id, target: { kind: "deadline", id: deadline_id }, page: "/", removed: true });
-			return result({ removed: deadline_id });
-		},
-	);
-
-	server.registerTool(
-		"link_class_folder",
-		{
-			title: "Link a folder to a class",
-			description: "Link a folder on this computer to a class. Its supported files are added as study material, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed never changes the folder. Use set_class_file_kind afterwards for course-info files (their ids come from read_class with files: true).",
-			inputSchema: z.object({ class_id: z.string(), path: z.string().describe("The folder's absolute path.") }),
-			annotations: SETS,
-		},
-		async ({ class_id, path }) => {
-			const outcome = linkFolder(class_id, path);
-			if (!outcome.ok) return failure(outcome.error);
-			act(caller, { label: `Linking ${folderName(path)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
-			return result({ class: classView(class_id), note: `Linked. ${READING_NOTE}` });
-		},
-	);
+	server.registerTool("list_classes", { title: "List classes", description: CLASS_TOOL_TEXT.list_classes, inputSchema: z.object({}), annotations: READ_ONLY }, async () => reply(actions.list_classes()));
+	server.registerTool("read_class", { title: "Read a class", description: CLASS_TOOL_TEXT.read_class, inputSchema: z.object({ class_id: z.string(), files: z.boolean().optional().describe(CLASS_ARG_TEXT.files) }), annotations: READ_ONLY }, async (args) => reply(await actions.read_class(args)));
+	server.registerTool("search_class_files", { title: "Search a class's files", description: CLASS_TOOL_TEXT.search_class_files, inputSchema: z.object({
+			class_id: z.string(),
+			query: z.string().min(1).describe(CLASS_ARG_TEXT.query),
+			limit: z.number().int().min(1).max(20).optional().describe(CLASS_ARG_TEXT.limit),
+		}), annotations: READ_ONLY }, async (args) => reply(await actions.search_class_files(args)));
+	server.registerTool("read_passage", { title: "Read a passage of a class file", description: CLASS_TOOL_TEXT.read_passage, inputSchema: z.object({
+			class_id: z.string(),
+			passage_id: z.string().optional().describe(CLASS_ARG_TEXT.passageId),
+			file_id: z.string().optional().describe(CLASS_ARG_TEXT.fileId),
+			range: z.string().optional().describe(CLASS_ARG_TEXT.range),
+		}), annotations: READ_ONLY }, async (args) => reply(await actions.read_passage(args)));
+	server.registerTool("create_class", { title: "Create a class", description: CLASS_TOOL_TEXT.create_class, inputSchema: z.object({
+			name: z.string().min(1).describe(CLASS_ARG_TEXT.name),
+			description: z.string().optional().describe(CLASS_ARG_TEXT.description),
+			signature: SIGNATURE_ARG,
+			icon: ICON_ARG,
+		}), annotations: ADDS }, async (args) => reply(await actions.create_class(args)));
+	server.registerTool("update_class", { title: "Update a class", description: CLASS_TOOL_TEXT.update_class, inputSchema: z.object({
+			class_id: z.string(),
+			name: z.string().min(1).optional(),
+			description: z.string().optional(),
+			signature: SIGNATURE_ARG,
+			icon: ICON_ARG.optional(),
+			archived: z.boolean().optional(),
+		}), annotations: SETS }, async (args) => reply(await actions.update_class(args)));
+	server.registerTool("add_class_file", { title: "Add a file to a class", description: CLASS_TOOL_TEXT.add_class_file, inputSchema: z.object({ class_id: z.string(), path: z.string().describe(CLASS_ARG_TEXT.filePath), kind: FILE_KIND }), annotations: ADDS }, async (args) => reply(await actions.add_class_file(args)));
+	server.registerTool("set_class_file_kind", { title: "Set class files' kind", description: CLASS_TOOL_TEXT.set_class_file_kind, inputSchema: z.object({ class_id: z.string(), file_ids: z.array(z.string()).min(1).describe(CLASS_ARG_TEXT.fileIds), kind: FILE_KIND }), annotations: REMOVES }, async (args) => reply(await actions.set_class_file_kind(args)));
+	server.registerTool("add_class_deadline", { title: "Add deadlines to a class", description: CLASS_TOOL_TEXT.add_class_deadline, inputSchema: z.object({
+			class_id: z.string(),
+			deadlines: z
+				.array(
+					z.object({
+						kind: DEADLINE_KIND,
+						name: z.string().min(1).describe(CLASS_ARG_TEXT.deadlineName),
+						date: z.string().describe(CLASS_ARG_TEXT.date),
+						time: z.string().optional().describe(CLASS_ARG_TEXT.time),
+						file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
+					}),
+				)
+				.min(1),
+		}), annotations: ADDS }, async (args) => reply(await actions.add_class_deadline(args)));
+	server.registerTool("update_class_deadline", { title: "Update a class deadline", description: CLASS_TOOL_TEXT.update_class_deadline, inputSchema: z.object({
+			class_id: z.string(),
+			deadline_id: z.string(),
+			kind: DEADLINE_KIND.optional(),
+			name: z.string().min(1).optional(),
+			date: z.string().optional().describe("YYYY-MM-DD."),
+			time: z.string().nullable().optional().describe(CLASS_ARG_TEXT.newTime),
+			file_ids: z.array(z.string()).optional(),
+			done: z.boolean().optional(),
+		}), annotations: SETS }, async (args) => reply(await actions.update_class_deadline(args)));
+	server.registerTool("remove_class_deadline", { title: "Remove a class deadline", description: CLASS_TOOL_TEXT.remove_class_deadline, inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_class_deadline(args)));
+	server.registerTool("link_class_folder", { title: "Link a folder to a class", description: CLASS_TOOL_TEXT.link_class_folder, inputSchema: z.object({ class_id: z.string(), path: z.string().describe(CLASS_ARG_TEXT.folderPath) }), annotations: SETS }, async (args) => reply(await actions.link_class_folder(args)));
 
 	server.registerTool(
 		"unlink_class_folder",
@@ -1024,7 +689,7 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 			const before = stores.classStore.getClass(class_id);
 			const outcome = unlinkFolder(class_id);
 			if (!outcome.ok) return failure(outcome.code === "extraction_running" ? AGENT_FILE_READING_REFUSAL : outcome.error);
-			act(caller, { label: `Unlinking ${folderName(before?.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			noteAgentAction(caller, { label: `Unlinking ${folderName(before?.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
 			return result({ classId: class_id, unlinked: before?.linkedFolder, filesRemoved: before?.files.filter((f) => f.origin === "linked").length ?? 0 });
 		},
 	);

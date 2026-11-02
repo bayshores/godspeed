@@ -2,6 +2,7 @@ import type { Usage } from "@earendil-works/pi-ai";
 import {
 	createPracticeAgent,
 	createProberAgent,
+	createTalkAgent,
 	createTeacherAgent,
 	type AgentBuildOptions,
 	type TeachingAgent,
@@ -9,7 +10,7 @@ import {
 import { agentEngine } from "../agent/models.ts";
 import { loadAgentCore } from "../agent/engine-load.ts";
 import { createJobRunner } from "../agent/subagents/runner.ts";
-import { createExtractionPipeline } from "../agent/subagents/extraction.ts";
+import { extraction } from "./extraction.ts";
 import {
 	deliverJobResult,
 	noteSteersDurable,
@@ -22,14 +23,15 @@ import {
 } from "./jobs.ts";
 import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
-import { allGraphScopes, effectiveSettings, graphStoreFor, graphStoreForChat, scopeOfGraphStore, stores } from "./stores.ts";
-import { scheduleTopicGrouping } from "./topics.ts";
+import { allGraphScopes, effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 import { classCardFor } from "./class-card.ts";
 import type { ClassSearch } from "../agent/tools/class.ts";
-import { readPassage, relatedFacts, searchClassFiles } from "./search-index.ts";
+import { readPassage, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { graphToolsEnabled } from "../core/settings-resolution.ts";
 import { effectiveThresholdTokens } from "../core/compaction.ts";
+import { classActions } from "./class-actions.ts";
+import { agentName } from "../agent/agent-bridge.ts";
 import { learnerRulesSection } from "../core/teaching-areas.ts";
 import { beginTurn, endTurn, isTurnRunning } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
@@ -83,25 +85,6 @@ const jobRunner = createJobRunner({
 	// Every job runs on the outside agent.
 	engineFor: () => agentEngine(),
 });
-/** The app's ONE extraction pipeline instance — both front doors share it:
- *  quiz-triggered session runs (turn-service) and notes imports
- *  (/api/graph/import) hit the same single-flight registry. */
-export const extraction = createExtractionPipeline({
-	...stores,
-	// A lesson's facts land in ITS class's graph.
-	graphStoreForChat,
-	// Topics: a run that wrote a CLASS graph queues a
-	// debounced topic-grouping run for that class ("No class" has none).
-	onGraphWritten: (store) => {
-		const scope = scopeOfGraphStore(store);
-		if (typeof scope === "string") scheduleTopicGrouping(scope);
-	},
-	// Every stage runs on the outside agent.
-	engineFor: () => agentEngine(),
-	// The existing ideas each stretch's prompt carries, by local search.
-	relatedFacts,
-});
-
 
 // Wake-pipeline wiring (contracts.ts "THE ASYNC PROTOCOL" §4): the pipeline
 // delivers its steers through THIS composition root (one event: the steer
@@ -120,8 +103,8 @@ function lessonClassRules(classId: string | undefined): { name: string; rules: s
  *  the settle kick. The prompt estimate uses the agent the next turn builds. */
 function compactionDeps(record: ChatRecord): CompactionDeps {
 	const engine = agentEngine();
-	const kind = record.kind === "practice" ? "practice" : hasProbeDone(record.messages) ? "teach" : "probe";
-	const agentKind = kind === "practice" ? "practice" : kind === "teach" ? "teacher" : "prober";
+	const kind = record.kind === "practice" || record.kind === "talk" ? record.kind : hasProbeDone(record.messages) ? "teach" : "probe";
+	const agentKind = kind === "practice" || kind === "talk" ? kind : kind === "teach" ? "teacher" : "prober";
 	return {
 		chatStore: stores.chatStore,
 		engine,
@@ -388,6 +371,9 @@ export async function handleChatInput(
 		};
 		const constructed: TeachingAgent = buildAgent
 			? buildAgent({ ...agentOpts, teaching })
+			: record.kind === "talk"
+				? // TALK: the class actions, named for the agent that runs them; no lesson rules.
+					createTalkAgent(classActions(agentName()), { ...agentOpts, learnerRules: undefined })
 			: record.kind === "practice"
 				? createPracticeAgent(
 						{
@@ -529,7 +515,7 @@ export async function handleChatInput(
 				// PRACTICE: practice sessions write nothing —
 				// no extraction, no graph, no coverage (the session itself
 				// is the deliverable).
-				if (record.kind !== "practice" && effective.graph.enabled) {
+				if (record.kind !== "practice" && record.kind !== "talk" && effective.graph.enabled) {
 					// Fresh per-turn read of the graph section's chunk budget: the
 					// trigger compares against it and the pipeline's batches share it.
 					triggerExtraction(

@@ -12,6 +12,8 @@ import {
 	type TeacherToolContext,
 } from "./tools.ts";
 import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
+import { talkTools } from "./tools/talk.ts";
+import type { ClassActions } from "../core/class-tools.ts";
 import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../core/question-core.ts";
 import { isQuestionTool } from "../core/pending.ts";
@@ -19,7 +21,8 @@ import { switchedOffToolsNote, TOGGLEABLE_TOOLS, type EnabledTools, type Togglea
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
- * The three agents: the PROBER, the TEACHER and PRACTICE. A lesson's
+ * The four agents: the PROBER, the TEACHER, PRACTICE and TALK (the
+ * teacher's panel, outside lessons). A lesson's
  * prober and teacher share one transcript with different prompts and tool
  * sets; the chat-handler constructs ONE per request off the transcript's
  * seam (probe_done = teacher), and a practice session builds PRACTICE from
@@ -47,7 +50,7 @@ import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts
 
 /** Which agent's prompt directory to compose. Practice composes its own
  *  directory plus a curated shared set (see prompt-segments.ts). */
-type AgentKind = "prober" | "teacher" | "practice";
+type AgentKind = "prober" | "teacher" | "practice" | "talk";
 
 /** The switchable tools each agent's factory carries (tools.ts,
  *  tools/practice.ts): demos and figures are teacher-only. */
@@ -55,6 +58,7 @@ const AGENT_SWITCHES: Record<AgentKind, readonly ToggleableTool[]> = {
 	prober: ["research", "pdf"],
 	teacher: TOGGLEABLE_TOOLS,
 	practice: ["research", "pdf"],
+	talk: [],
 };
 
 /** Exported for tests: assert what composes into the model's prompt.
@@ -266,8 +270,18 @@ export function createPracticeAgent(ctx: PracticeToolContext, opts: AgentBuildOp
 	return baseAgentOptions("practice", opts, Object.values(tools));
 }
 
+/**
+ * TALK (the teacher's panel): one ongoing chat outside any lesson, for
+ * setting up classes, files and deadlines and quick questions. Its tools
+ * are the class actions (tools/talk.ts); no question or teaching tools.
+ */
+export function createTalkAgent(actions: ClassActions, opts: AgentBuildOptions = {}) {
+	return baseAgentOptions("talk", opts, Object.values(opts.tools ?? talkTools(actions)));
+}
+
 type ProberAgent = ReturnType<typeof createProberAgent>;
 type TeacherAgent = ReturnType<typeof createTeacherAgent>;
 type PracticeAgent = ReturnType<typeof createPracticeAgent>;
-export type TeachingAgent = ProberAgent | TeacherAgent | PracticeAgent;
+type TalkAgent = ReturnType<typeof createTalkAgent>;
+export type TeachingAgent = ProberAgent | TeacherAgent | PracticeAgent | TalkAgent;
 

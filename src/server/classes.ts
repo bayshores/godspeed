@@ -33,7 +33,7 @@ import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf,
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { emit } from "../core/events.ts";
-import { extraction } from "./chat-handler.ts";
+import { extraction } from "./extraction.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
 import { fileToText, fingerprintFile, walkLinkedFolder } from "./class-files.ts";
 import { dropClassFile, forgetClassSearch, indexClassFile, isFileIndexed } from "./search-index.ts";

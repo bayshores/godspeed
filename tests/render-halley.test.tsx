@@ -1,7 +1,7 @@
 /**
- * Halley's screens: the face (one svg, every
- * mood, plain black eyes), the panel (head, Follow switch, Now, Recent,
- * Background jobs), the Follow chip, the teacher name setting, and the
+ * The teacher's screens: the face (one svg, every
+ * mood, plain black eyes), the panel (head, Follow switch, the Talk and
+ * Activity tabs: Now, Recent, Background jobs), the Follow chip, the teacher name setting, and the
  * sidebar footer opening the panel instead of the old popup.
  */
 import React, { act } from "react";
@@ -87,6 +87,28 @@ describe("the panel", () => {
 		/>
 	);
 
+	// The Talk tab opens the chat on mount; these tests don't need it to answer.
+	const talkCalls: string[] = [];
+	globalThis.fetch = ((url: string, init?: RequestInit) => {
+		talkCalls.push(`${init?.method ?? "GET"} ${url}`);
+		return new Promise(() => {});
+	}) as typeof fetch;
+	const onActivity = (over: Parameters<typeof panel>[0] = {}) => {
+		const el = mount(panel(over));
+		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
+		return el;
+	};
+
+	it("opens on Talk, which opens the chat; Activity is the other tab", () => {
+		talkCalls.length = 0;
+		const el = mount(panel());
+		assert.equal(el.querySelector("[data-testid='halley-tab-talk']")?.getAttribute("aria-selected"), "true");
+		assert.deepEqual(talkCalls, ["POST /api/talk"]);
+		assert.equal(el.querySelector("[data-testid='halley-recent']"), null);
+		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
+		assert.equal(el.querySelector("[data-testid='halley-tab-activity']")?.getAttribute("aria-selected"), "true");
+		assert.ok(el.querySelector("[data-testid='halley-recent']"));
+	});
 	it("head: the name, the agent, and the Follow switch", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);
@@ -102,14 +124,15 @@ describe("the panel", () => {
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
 	it("Now shows what it is doing, and hides when nothing is happening", () => {
-		assert.match(renderToStaticMarkup(panel()), /Reading syllabus\.pdf for CSE 29/);
-		assert.doesNotMatch(renderToStaticMarkup(panel({ nowText: null })), /halley-now/);
+		assert.match(onActivity().textContent ?? "", /Reading syllabus\.pdf for CSE 29/);
+		act(() => root?.unmount());
+		assert.equal(onActivity({ nowText: null }).querySelector("[data-testid='halley-now']"), null);
 	});
 	it("Recent hides when there is nothing yet", () => {
-		assert.doesNotMatch(renderToStaticMarkup(panel({ recent: [] })), /halley-recent/);
+		assert.equal(onActivity({ recent: [] }).querySelector("[data-testid='halley-recent']"), null);
 	});
 	it("Recent: time, label, class, and an arrow only where it can go", () => {
-		const el = mount(panel());
+		const el = onActivity();
 		const rows = [...el.querySelectorAll("[data-testid='halley-recent-row']")];
 		assert.equal(rows.length, 2);
 		assert.match(rows[0]!.textContent ?? "", /Added Lab 4CSE 29/);
@@ -119,20 +142,20 @@ describe("the panel", () => {
 	});
 	it("Recent shows at most 8 rows", () => {
 		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
-		const el = mount(panel({ recent: many }));
+		const el = onActivity({ recent: many });
 		assert.equal(el.querySelectorAll("[data-testid='halley-recent-row']").length, 8);
 	});
 	it("clicking a Recent row goes there; the switch turns Follow on", () => {
 		const picked: string[] = [];
 		const follows: boolean[] = [];
-		const el = mount(panel({ onPick: (a) => picked.push(a.id), onFollow: (on) => follows.push(on) }));
+		const el = onActivity({ onPick: (a) => picked.push(a.id), onFollow: (on) => follows.push(on) });
 		act(() => (el.querySelector("[data-testid='halley-recent-row']") as HTMLElement).click());
 		act(() => (el.querySelector("[data-testid='halley-follow']") as HTMLElement).click());
 		assert.deepEqual(picked, ["a2"]);
 		assert.deepEqual(follows, [true]);
 	});
 	it("Background jobs live in the panel", () => {
-		assert.match(renderToStaticMarkup(panel()), /jobs-slot/);
+		assert.ok(onActivity().querySelector("[data-testid='jobs-slot']"));
 		const jobs = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [], failed: [{ id: "j1", kind: "pdf", chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }] }} />);
 		assert.match(jobs, /Background jobs/);
 		assert.match(jobs, /data-testid="activity-failed"/);
@@ -169,8 +192,8 @@ describe("the Follow chip", () => {
 });
 
 describe("the teacher name setting", () => {
-	it("defaults to Halley", () => {
-		assert.equal(DEFAULT_TEACHER_NAME, "Halley");
+	it("defaults to Teacher", () => {
+		assert.equal(DEFAULT_TEACHER_NAME, "Teacher");
 	});
 	it("is one clean line, at most 40 characters", () => {
 		assert.equal(sanitizeTeacherName("  Comet\n\tthe\u0000 Great  "), "Comet the Great");

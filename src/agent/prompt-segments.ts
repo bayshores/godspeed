@@ -35,6 +35,8 @@ const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");
  *  question/confidence/file mechanics stay out (practice has no such
  *  tools). */
 const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "12-class-context.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
+/** Talk is a small side panel: the voice only (its own base sets short replies). */
+const TALK_SHARED_FRAGMENTS = ["10-voice.md"];
 
 /** Read one override file, or null when absent/invalid — the composition
  *  side's reader (the store's readOverride is the same mirror layout,
@@ -51,9 +53,9 @@ function readPromptOverride(segmentPath: string): string | null {
 /** List the SOURCE segments for one agent, in composition order: the
  *  agent's job and method lead, the shared mechanics are an appendix. */
 function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: boolean; file: string }> {
-	// Practice skips the teaching base (its doctrine contradicts it;
-	// 00-base.md plays that role) and takes only a curated shared appendix.
-	const segments: Array<{ path: string; shared: boolean; file: string }> = agent === "practice" ? [] : [
+	// Practice and Talk skip the teaching base (their 00-base.md plays that
+	// role) and take only a curated shared appendix.
+	const segments: Array<{ path: string; shared: boolean; file: string }> = agent === "practice" || agent === "talk" ? [] : [
 		{ path: "system-prompt.md", shared: true, file: PATHS.teacherPrompt },
 	];
 	const dir = path.join(PROMPTS_DIR, agent);
@@ -65,7 +67,7 @@ function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: b
 	}
 	const sharedDir = path.join(PROMPTS_DIR, "shared");
 	if (fs.existsSync(sharedDir)) {
-		const allow = agent === "practice" ? PRACTICE_SHARED_FRAGMENTS : null;
+		const allow = agent === "practice" ? PRACTICE_SHARED_FRAGMENTS : agent === "talk" ? TALK_SHARED_FRAGMENTS : null;
 		const sharedFragments = fs
 			.readdirSync(sharedDir)
 			.filter((f) => FRAGMENT_RE.test(f) && (allow === null || allow.includes(f)))

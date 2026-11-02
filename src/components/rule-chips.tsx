@@ -2,7 +2,7 @@
  * The learner's rules as chips: each rule with a remove ✕, then "Add a
  * rule", which turns into a one-line input. Used by Settings → Teaching
  * (per area) and Edit class (per class). A rule the agent saved says
- * "Saved by Halley", with the date on hover.
+ * "Saved by" and the teacher's name, with the date on hover.
  */
 
 import { useState } from "react";

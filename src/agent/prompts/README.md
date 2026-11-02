@@ -10,6 +10,8 @@ System prompts are composed per agent when the agent is built (`composeInstructi
 
 **The practice agent** has no base. Its prompt is `practice/*.md` (`00-base.md` plays the base's role), followed only by the shared files listed in `PRACTICE_SHARED_FRAGMENTS` (`prompt-segments.ts`). A new shared fragment reaches practice only if it is added to that list.
 
+**The Talk agent** (the teacher's panel chat outside lessons) has no base either: `talk/*.md`, then only the shared files in `TALK_SHARED_FRAGMENTS` (the voice).
+
 **The shared files** hold the doctrine every agent shares: the voice (`10-voice.md`), accuracy (`15-accuracy.md`), the mental model and class context, plus tool, file and format mechanics. See the folder for the full list.
 
 **The teaching method** (Principle i / Principle ii, the click, the arc, the hedge) lives in `teacher/05-method.md`, teacher-only since the prober never teaches.
@@ -21,7 +23,7 @@ System prompts are composed per agent when the agent is built (`composeInstructi
 
 Only numeric-prefix files load (`\d+-*.md`), so other files like this README never enter the model's prompt.
 
-**Learner overrides** mirror this layout under `PROMPTS_OVERRIDE_DIR` (`system-prompt.md` at the root, then `shared/<file>`, `teacher/<file>`, `prober/<file>`, `practice/<file>`). A saved file is used in place of the source.
+**Learner overrides** mirror this layout under `PROMPTS_OVERRIDE_DIR` (`system-prompt.md` at the root, then `shared/<file>`, `teacher/<file>`, `prober/<file>`, `practice/<file>`, `talk/<file>`). A saved file is used in place of the source.
 
 Rules for adding a fragment:
 

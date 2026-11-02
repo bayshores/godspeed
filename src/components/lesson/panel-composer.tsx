@@ -116,7 +116,7 @@ export function PanelComposer({
 }
 
 /** Stops the running turn (Esc does too). */
-function StopButton({ onStop }: { onStop: () => void }) {
+export function StopButton({ onStop }: { onStop: () => void }) {
 	return (
 		<ToneButton testId="stop-turn" onClick={onStop}>
 			<SquareIcon aria-hidden className="size-3" />

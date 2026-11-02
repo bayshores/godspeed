@@ -99,7 +99,7 @@ export function deleteGraphNode(nodeId: string, scope: ClassScope = null): NodeD
 			ok: false,
 			status: 409,
 			code: "extraction_running",
-			error: "Godspeed is still adding to your graph. Try again when Background jobs in Halley's panel is empty.",
+			error: "Godspeed is still adding to your graph. Try again when Background jobs in the teacher's panel is empty.",
 		};
 	}
 	// THE SYNC BLOCK — no awaits below (the doc above): the gate and the

@@ -70,7 +70,7 @@ export interface GeneralSettings {
 }
 
 /** The teacher's name when none is set. */
-export const DEFAULT_TEACHER_NAME = "Halley";
+export const DEFAULT_TEACHER_NAME = "Teacher";
 /** The longest teacher name kept. */
 export const TEACHER_NAME_MAX = 40;
 

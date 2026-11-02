@@ -1,7 +1,8 @@
 import { memo, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import katex from "katex";
-import type { ClassNote, ClassSignature } from "@/core";
+import { DEFAULT_TEACHER_NAME, type ClassNote, type ClassSignature } from "@/core";
 import { HalleyFace } from "@/components/halley/halley-face";
+import { useHalley } from "@/components/halley/halley-provider";
 import { cn } from "@/lib/utils";
 import { SIGNATURE_LEFT, fitScale, firstSentence, labelHangsLeft, noteWhen, studiedShare } from "./class-cover-model";
 
@@ -77,6 +78,7 @@ export const ClassCover = memo(function ClassCover({
 	/** Shown as "Add a signature" while the class has none. */
 	onAddSignature?: () => void;
 }) {
+	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const share = facts ? studiedShare(facts) : 0;
 	const pct = Math.round(share * 100);
 	const about = firstSentence(description);
@@ -129,7 +131,7 @@ export const ClassCover = memo(function ClassCover({
 						</span>
 						<div className="flex min-w-0 flex-col gap-1">
 							<p className="text-sm leading-snug text-ink">{note.text}</p>
-							{when && <p className="text-xs text-ink-3">Halley · {when}</p>}
+							{when && <p className="text-xs text-ink-3">{teacherName} · {when}</p>}
 						</div>
 					</div>
 				)}
