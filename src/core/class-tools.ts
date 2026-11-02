@@ -75,7 +75,7 @@ export const CLASS_TOOL_TEXT: Record<ClassToolName, string> = {
 		"Change a deadline's kind, name, date, time or covered files, or tick it done (done: true) or not done (done: false). file_ids replaces the whole list; time: null removes the time. Ask the learner instead of guessing when a change isn't clear.",
 	remove_class_deadline: "Remove one deadline from a class (its files and facts are not touched).",
 	link_class_folder:
-		"Link a folder on this computer to a class. Its supported files are added as study material, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed never changes the folder. Use set_class_file_kind afterwards for course-info files (their ids come from read_class with files: true).",
+		"Link a folder on this computer to a class. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and course info itself while reading them, and never changes the folder. Use set_class_file_kind only to correct a kind.",
 };
 
 /** The argument descriptions both schemas share. */

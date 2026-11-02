@@ -1,7 +1,8 @@
 /**
  * THE [Today] NOTE: a hidden lesson message that
  * tells the agent today's date, time and time zone, then the class's open
- * deadlines and the files added in the last few days. It is appended (never rewritten) right before the learner's
+ * deadlines and the files added in the last few days (course info apart, so
+ * the teacher knows it can read it). It is appended (never rewritten) right before the learner's
  * message when the lesson has none yet, the day changed, the deadline or
  * new-files part changed, or a compaction cut the last one out of the model's view.
  *
@@ -17,7 +18,7 @@ import { newTodayContextMessage, type LhMarkerMessage, type LhMessage } from "./
 /** What the note needs to know about the lesson's class (null = no class). */
 export interface TodayNoteClass {
 	deadlines: readonly ClassDeadline[];
-	files: readonly { id: string; name: string; addedAt?: string }[];
+	files: readonly { id: string; name: string; addedAt?: string; kind?: "study" | "info" }[];
 }
 
 /** Most file names on a Covers line before "and N more". */
@@ -109,7 +110,7 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 	const [year] = clock.day.split("-");
 	const head = `[Today] ${dayLabel(clock.day)} ${year}, ${clockLabel(clock.time)} (${timeZoneLabel(now, timeZone)})`;
 	const open = (cls?.deadlines ?? []).filter((d) => !d.done).slice().sort(compareDeadlines);
-	const fresh = newFilesLine(cls?.files ?? [], now);
+	const fresh = newFilesPart(cls?.files ?? [], now);
 	if (open.length === 0) return fresh ? [head, "", fresh].join("\n") : head;
 
 	const nowStamp = `${clock.day}T${clock.time}`;
@@ -138,17 +139,19 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 	return lines.join("\n");
 }
 
-/** "New files (last 3 days): a, b, and 4 more", newest first; null when none. */
-function newFilesLine(files: TodayNoteClass["files"], now: Date): string | null {
-	const fresh = files
-		.filter((f) => isRecent(f.addedAt, now.getTime()))
-		.sort((a, b) => Date.parse(b.addedAt!) - Date.parse(a.addedAt!))
-		.map((f) => f.name);
-	if (fresh.length === 0) return null;
-	const head = `New files (last ${NEW_FILE_DAYS} days): `;
-	if (fresh.length <= MAX_NEW_FILES) return head + fresh.join(", ");
-	const shown = fresh.slice(0, MAX_NEW_FILES);
-	return `${head}${shown.join(", ")}, and ${fresh.length - shown.length} more`;
+/** The new files, newest first: "New files (last 3 days): a, b, and 4 more"
+ *  for study files, then a course-info line the teacher may read; null when
+ *  none. */
+function newFilesPart(files: TodayNoteClass["files"], now: Date): string | null {
+	const fresh = files.filter((f) => isRecent(f.addedAt, now.getTime())).sort((a, b) => Date.parse(b.addedAt!) - Date.parse(a.addedAt!));
+	const list = (names: string[]) =>
+		names.length <= MAX_NEW_FILES ? names.join(", ") : `${names.slice(0, MAX_NEW_FILES).join(", ")}, and ${names.length - MAX_NEW_FILES} more`;
+	const study = fresh.filter((f) => f.kind !== "info").map((f) => f.name);
+	const info = fresh.filter((f) => f.kind === "info").map((f) => f.name);
+	const lines: string[] = [];
+	if (study.length > 0) lines.push(`New files (last ${NEW_FILE_DAYS} days): ${list(study)}`);
+	if (info.length > 0) lines.push(`New course info (last ${NEW_FILE_DAYS} days): ${list(info)}. Read it when it might matter, like an exam change or an announcement.`);
+	return lines.length > 0 ? lines.join("\n") : null;
 }
 
 /** Everything after the [Today] line: deadlines and new files ("" when neither). */

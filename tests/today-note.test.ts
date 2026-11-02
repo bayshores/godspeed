@@ -152,6 +152,21 @@ describe("[Today] note text", () => {
 		assert.match(withDeadline, /- Q1 \(quiz\), due Fri Oct 30, in 2 days\.\n\nNew files \(last 3 days\): Day1\.pdf$/);
 	});
 
+	it("lists new course info apart, telling the teacher it can read it", () => {
+		const head = "[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)";
+		const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000).toISOString();
+		const files = [
+			{ id: "d", name: "Day4.pdf", addedAt: hoursAgo(1), kind: "study" as const },
+			{ id: "p", name: "Piazza digest.pdf", addedAt: hoursAgo(2), kind: "info" as const },
+		];
+		const courseInfo = "New course info (last 3 days): Piazza digest.pdf. Read it when it might matter, like an exam change or an announcement.";
+		assert.equal(
+			todayNoteText({ now: NOW, timeZone: TZ, cls: { files, deadlines: [] } }),
+			[head, "", "New files (last 3 days): Day4.pdf", courseInfo].join("\n"),
+		);
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(1), deadlines: [] } }), [head, "", courseInfo].join("\n"));
+	});
+
 	it("uses the machine's time zone wall clock and a readable zone name, falling back to the IANA name", () => {
 		assert.match(todayNoteText({ now: NOW, timeZone: "Europe/Berlin", cls: null }), /^\[Today\] Thu Oct 29 2026, 12:12 AM \(Central European Time\)$/);
 		assert.equal(timeZoneLabel(NOW, "Not/AZone"), "Not/AZone");

@@ -82,6 +82,13 @@ export interface ClassFile {
 	/** Found by a later scan of its linked folder (not linked with the
 	 *  folder, nor added by hand): shown as new for a few days. */
 	foundByScan?: true;
+	/** Its kind was picked by hand (the kind menu, or the agent's
+	 *  set_class_file_kind): godspeed never sorts it by itself. Files added
+	 *  by hand pick their kind when added, so only linked files are sorted. */
+	kindChosen?: true;
+	/** The agent's read found course logistics, so godspeed switched this
+	 *  linked file to course info by itself. */
+	sortedAsInfo?: true;
 }
 
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";

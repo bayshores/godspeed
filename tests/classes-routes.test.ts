@@ -43,13 +43,15 @@ const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { extraction, stores, graphStoreFor, classIdle } = server;
 
 // The importNotes stub: one node per import, born under the given source.
-const imports: { filePath: string; text: string; sourceId?: string }[] = [];
+// Text starting "Announcement" reads as course info when sorting is allowed.
+const imports: { filePath: string; text: string; sourceId?: string; mayBeCourseInfo?: boolean }[] = [];
 const original = extraction.importNotes;
 extraction.importNotes = async (input) => {
-	imports.push({ filePath: input.filePath, text: input.text, sourceId: input.sourceId });
+	imports.push({ filePath: input.filePath, text: input.text, sourceId: input.sourceId, mayBeCourseInfo: input.mayBeCourseInfo });
 	const store = input.graphStore ?? stores.graphStore;
 	const id = input.sourceId!;
 	store.upsertSource({ id, filePath: input.filePath, importedAt: new Date().toISOString() });
+	if (input.mayBeCourseInfo && input.text.startsWith("Announcement")) return { nodes: 0, chains: 0, courseInfo: true };
 	store.appendNode({
 		id: `n_${id.slice(4)}${imports.length}`,
 		name: input.text.trim(),
@@ -670,6 +672,34 @@ describe("a linked folder over time (a synced Drive folder)", () => {
 		assert.equal(imports.length, importsBefore, "nothing is read again");
 		assert.deepEqual(getNames(id).sort(), ["Graphs", "Trees"]);
 		assert.deepEqual(events, [], "a moved file is not new");
+	});
+
+	it("the read sorts linked logistics into course info; kinds picked by hand are never sorted again", async (t) => {
+		const id = await makeClass("CSE 153");
+		const dir = folder(t);
+		await upload(id, "study", [["copied.md", "Announcement: copied by hand"]]);
+		await classIdle(id);
+		fs.writeFileSync(path.join(dir, "digest.md"), "Announcement: office hours moved");
+		fs.writeFileSync(path.join(dir, "lecture.md"), "Recursion");
+		const importsBefore = imports.length;
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		const byName = () => Object.fromEntries(stores.classStore.getClass(id)!.files.map((f) => [f.name, f]));
+		let files = byName();
+		assert.deepEqual([files["digest.md"]!.kind, files["digest.md"]!.sortedAsInfo, files["digest.md"]!.status], ["info", true, "ready"]);
+		assert.equal(files["digest.md"]!.sourceId, undefined);
+		assert.deepEqual([files["lecture.md"]!.kind, files["lecture.md"]!.sortedAsInfo], ["study", undefined]);
+		assert.deepEqual(getNames(id), ["Announcement: copied by hand", "Recursion"], "the digest left no facts; a file added by hand is never sorted");
+		assert.deepEqual(imports.slice(importsBefore).map((i) => i.mayBeCourseInfo), [true, true]);
+		assert.equal(files["copied.md"]!.kind, "study");
+
+		const back = await fileRoute.PUT(json("/x", "PUT", { kind: "study" }), ctx({ id, fileId: files["digest.md"]!.id }));
+		assert.equal(back.status, 200);
+		await classIdle(id);
+		files = byName();
+		assert.deepEqual([files["digest.md"]!.kind, files["digest.md"]!.kindChosen, files["digest.md"]!.sortedAsInfo], ["study", true, undefined]);
+		assert.equal(imports.at(-1)!.mayBeCourseInfo, false, "picked by hand: read as study material");
+		assert.ok(getNames(id).includes("Announcement: office hours moved"));
 	});
 
 	it("a folder that turns up empty (Drive starting or signed out) keeps its files and facts", async (t) => {

@@ -156,11 +156,24 @@ const sessionFindingsSchema = Type.Object({
 	reteaches: reteachesSchema,
 });
 
+// THE COURSE-INFO EXTENSION: a class file godspeed may sort by itself
+// adds one optional verdict, so the read that would extract it also says
+// when it is course logistics (no extra agent call).
+const courseInfoFindingsSchema = Type.Object({
+	...findingsSchema.properties,
+	courseInfo: Type.Optional(
+		Type.Boolean({
+			description: "true when this file is course logistics, not material to learn from; then propositions, chains and reteaches stay empty.",
+		}),
+	),
+});
+
 /** What the extractor SUBMITS — propositions + chains.
  *  validateFindingsChains checks the chain laws; asSessionFindings fills
  *  the aliases and lifts it straight into SessionFindings (chains are
  *  stored AS-IS, no edge translation at any seam). */
 type FindingsSubmit = Static<typeof findingsSchema>;
+type CourseInfoFindingsSubmit = Static<typeof courseInfoFindingsSchema>;
 
 /** The SESSION wire — the notes shape plus the REQUIRED messageId anchor
  *  on every proposition. */
@@ -177,7 +190,7 @@ type SessionFindingsSubmit = Static<typeof sessionFindingsSchema>;
 /** The notes door's boundary: a stray messageId (the notes schema has
  *  none; extra properties pass schema validation) is stripped so notes
  *  provenance stays chat-level (the file is the anchor). */
-function fillNotesFindings(raw: FindingsSubmit): FindingsSubmit {
+function fillNotesFindings<T extends FindingsSubmit>(raw: T): T {
 	return {
 		...raw,
 		propositions: raw.propositions.map((p) => {
@@ -318,6 +331,12 @@ re-teaches nothing. The tool's field descriptions carry the details.`;
 export const EXTRACTOR_INSTRUCTIONS = `${SESSION_PREAMBLE}\n\n${EXTRACTION_CORE}\n\n${SESSION_MESSAGE_ID_RULE}`;
 export const NOTES_EXTRACTOR_INSTRUCTIONS = `${NOTES_PREAMBLE}\n\n${EXTRACTION_CORE}`;
 
+/** Added for class files godspeed may sort by itself. */
+const COURSE_INFO_RULE =
+	"This file is from a class folder. If it is course logistics rather than material to learn from " +
+	"(announcements, emails, grade or submission notices, schedules, forum digests), submit courseInfo: true " +
+	"with empty propositions, chains and reteaches.";
+
 // ── the prompt's graph context ──
 //
 // THE GRAPH SO FAR: everything this source already yielded (its ideas +
@@ -387,29 +406,31 @@ function runExtractor(
 /** The extractor over ONE source of raw personal notes (the format-agnostic
  *  front door): same single-submit shape, notes-mode prompt + schema —
  *  the BASE wire (no messageId: notes have no passages, and a stray one
- *  is stripped at the fill seam). */
+ *  is stripped at the fill seam). `mayBeCourseInfo` adds the course-info
+ *  verdict (a class file godspeed may sort by itself). */
 function runNotesExtractor(
 	engine: PiEngine | undefined,
 	taskLabel: string,
 	prompt: string,
 	existingIds: ReadonlySet<string>,
+	mayBeCourseInfo: boolean,
 	signal: AbortSignal | undefined,
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void,
-): Promise<SessionFindings> {
-	return runSubmitAgent<FindingsSubmit>({
+): Promise<{ findings: SessionFindings; courseInfo: boolean }> {
+	return runSubmitAgent<CourseInfoFindingsSubmit>({
 		taskLabel,
 		toolName: "submit_findings",
 		toolDescription: "Submit the notes findings.",
-		parameters: findingsSchema,
+		parameters: mayBeCourseInfo ? courseInfoFindingsSchema : findingsSchema,
 		fill: fillNotesFindings,
 		validate: (value) => validateFindingsChains(value, existingIds),
-		systemPrompt: NOTES_EXTRACTOR_INSTRUCTIONS,
+		systemPrompt: mayBeCourseInfo ? `${NOTES_EXTRACTOR_INSTRUCTIONS}\n\n${COURSE_INFO_RULE}` : NOTES_EXTRACTOR_INSTRUCTIONS,
 		prompt,
 		engine,
 		signal,
 		onStep,
 		neverSubmitted: "the extractor never submitted findings",
-	}).then(asSessionFindings);
+	}).then((raw) => ({ findings: asSessionFindings(raw), courseInfo: mayBeCourseInfo && raw.courseInfo === true }));
 }
 
 /** The graph lock: a FIFO promise chain — extract + merge run one job
@@ -477,7 +498,14 @@ interface NotesImportInput {
 	 *  so the same filename in two classes never collides). Absent = the
 	 *  path-hash id. */
 	sourceId?: string;
+	/** A class file godspeed may sort by itself: the first stretch's read
+	 *  also says whether the file is course logistics (courseInfo). */
+	mayBeCourseInfo?: boolean;
 }
+
+/** A finished notes import. `courseInfo`: the read found course logistics,
+ *  so nothing was extracted. */
+type NotesImportResult = EmissionStats & { courseInfo?: true };
 
 /** A notes import did not finish. Earlier graph writes and logged usage are
  * retained; partialStats describe known merges, not an all-or-nothing result. */
@@ -501,7 +529,7 @@ export interface ExtractionPipeline {
 	 *  over ONE raw notes file. The source id is deterministic per file
 	 *  path, so re-importing the same file re-runs extraction against the
 	 *  same source identity (mappings dedupe by it). */
-	importNotes(input: NotesImportInput): Promise<EmissionStats>;
+	importNotes(input: NotesImportInput): Promise<NotesImportResult>;
 }
 
 /** pi's per-step usage, flattened to the persisted CallUsage fields
@@ -932,8 +960,8 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 
 	async function notesExtract(
 		jobKey: string,
-		input: { id: string; filePath: string; text: string; part?: { i: number; n: number } },
-	): Promise<SessionFindings> {
+		input: { id: string; filePath: string; text: string; part?: { i: number; n: number }; mayBeCourseInfo: boolean },
+	): Promise<{ findings: SessionFindings; courseInfo: boolean }> {
 		// jobKey: the registry key ("src#i" for chunk jobs) so the abort
 		// signal reaches the call; input.id stays the SOURCE id.
 		const signal = runningExtractions.get(jobKey)?.controller.signal;
@@ -946,11 +974,12 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 				`${context === "" ? "" : `, context ${context.split("\n").length} lines`})`,
 		);
 		const t0 = performance.now();
-		const findings = await runNotesExtractor(
+		const result = await runNotesExtractor(
 			stageEngine("extractor", deps.extractor),
 			extractionTaskLabel(jobKey),
 			prompt,
 			new Set(graph.nodes.map((n) => n.id)),
+			input.mayBeCourseInfo,
 			signal,
 			(usage, model, step, finishReason, tools) => {
 				recordStep(jobKey, callUsage(usage), model);
@@ -958,10 +987,16 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			},
 		);
 		console.info(`[extraction ${jobKey}] notes extractor done in ${Math.round(performance.now() - t0)}ms`);
-		return findings;
+		return result;
 	}
 
-	async function runNotesExtraction(input: { id: string; filePath: string; text: string; importedAt: string }): Promise<EmissionStats> {
+	async function runNotesExtraction(input: {
+		id: string;
+		filePath: string;
+		text: string;
+		importedAt: string;
+		mayBeCourseInfo: boolean;
+	}): Promise<NotesImportResult> {
 		const { id } = input;
 		// importNotes owns the source exclusion, including metadata and cleanup.
 		const t0 = performance.now();
@@ -981,6 +1016,8 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			// part rides the registry entry (feed suffix "· i/N") only when
 			// the file actually chunked.
 			const settled: PromiseSettledResult<EmissionStats>[] = [];
+			// Only the first stretch decides course info; then nothing is extracted.
+			let courseInfo = false;
 			for (const [chunkIndex, chunk] of chunks.entries()) {
 				const part = chunks.length > 1 ? { i: chunkIndex + 1, n: chunks.length } : undefined;
 				try {
@@ -989,11 +1026,20 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 						value: await runJob({ id, kind: "notes", label: input.filePath, part }, async (jobKey) => {
 							return withGraphLock(jobKey, "notes", input.filePath, part, async () => {
 								setPhase(jobKey, "extracting", "notes", input.filePath, part);
-								const findings = await notesExtract(jobKey, { ...input, text: chunk, part });
+								const read = await notesExtract(jobKey, {
+									...input,
+									text: chunk,
+									part,
+									mayBeCourseInfo: input.mayBeCourseInfo && chunkIndex === 0,
+								});
+								if (read.courseInfo) {
+									courseInfo = true;
+									return { nodes: 0, chains: 0 };
+								}
 								setPhase(jobKey, "merging", "notes", input.filePath, part);
 								const merged = mergeFindings(
 									id,
-									findings,
+									read.findings,
 									{ chatStore, graphStore: storeFor(id) },
 									{ foldedAt: input.importedAt },
 								);
@@ -1012,6 +1058,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 					// Same source-wide-abort law as the chat door: stop the
 					// run; isolated failures keep going.
 					if (err instanceof Error && err.name === "AbortError") break;
+				}
+				if (courseInfo) {
+					console.info(`[extraction ${id}] course info, nothing extracted (${input.filePath})`);
+					return { nodes: 0, chains: 0, courseInfo: true };
 				}
 			}
 			const stats = aggregateJobs(id, settled);
@@ -1041,7 +1091,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 
 	/** Every explicit import processes the whole file. Identity, graph context
 	 * and usage history remain source-scoped; this is not exactly-once. */
-	async function importNotes(input: NotesImportInput): Promise<EmissionStats> {
+	async function importNotes(input: NotesImportInput): Promise<NotesImportResult> {
 		const id = input.sourceId ?? `src_${crypto.createHash("sha256").update(input.filePath).digest("hex").slice(0, 12)}`;
 		// Acquire BEFORE source upsert: overlapping contents must not alter metadata.
 		if (inFlight.has(id)) throw new NotesImportError("busy", { nodes: 0, chains: 0 }, "This file is already being imported. Try again when it finishes.");
@@ -1051,7 +1101,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		try {
 			const importedAt = new Date().toISOString();
 			target.upsertSource({ id, filePath: input.filePath, importedAt });
-			return await runNotesExtraction({ id, filePath: input.filePath, text: input.text, importedAt });
+			return await runNotesExtraction({ id, filePath: input.filePath, text: input.text, importedAt, mayBeCourseInfo: input.mayBeCourseInfo === true });
 		} catch (err) {
 			if (err instanceof NotesImportError || err instanceof NoEngineError) throw err;
 			throw new NotesImportError("failed", { nodes: 0, chains: 0 }, err instanceof Error ? err.message : String(err), { cause: err });

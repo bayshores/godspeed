@@ -328,14 +328,16 @@ export function addFileFromPath(classId: string, absPath: string, kind: ClassFil
 	return addCopiedFile(classId, path.basename(absPath), fs.readFileSync(absPath), kind);
 }
 
-/** Switch a file between study material and course info. Study → info
- *  removes its facts; info → study builds them. */
+/** Switch a file between study material and course info, by hand: godspeed
+ *  never sorts it by itself again. Study → info removes its facts; info →
+ *  study builds them. */
 export function setFileKind(classId: string, fileId: string, kind: ClassFileKind): ClassOutcome<ClassFile> {
 	const record = stores.classStore.getClass(classId);
 	const file = record?.files.find((f) => f.id === fileId);
 	if (!record || !file) return fail(404, "not_found", "No such class file");
-	if (file.kind === kind) return { ok: true, value: file };
-	const patched = patchFile(classId, fileId, { kind, status: "pending", contentFp: "", error: undefined });
+	const chosen = { kindChosen: true as const, sortedAsInfo: undefined };
+	if (file.kind === kind) return { ok: true, value: patchFile(classId, fileId, chosen) ?? file };
+	const patched = patchFile(classId, fileId, { ...chosen, kind, status: "pending", contentFp: "", error: undefined });
 	enqueueFile(classId, fileId);
 	return { ok: true, value: patched ?? file };
 }
@@ -583,7 +585,14 @@ function triageNewFiles(classId: string, addedIds: string[], gone: ClassFile[], 
 			}
 			unmatched.delete(match.id);
 			mutateFiles(classId, (files) =>
-				files.filter((f) => f.id !== id).map((f) => (f.id === match.id ? { ...f, origin: "linked" as const, name: file.name, path: file.path, statSig } : f)),
+				// A copy's kind was picked when it was added, so it stays picked.
+				files
+					.filter((f) => f.id !== id)
+					.map((f) =>
+						f.id === match.id
+							? { ...f, origin: "linked" as const, name: file.name, path: file.path, statSig, ...(match.origin === "copied" ? { kindChosen: true as const } : {}) }
+							: f,
+					),
 			);
 			if (match.origin === "copied") removeCopyDir(classId, match.id);
 		}
@@ -744,8 +753,15 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		if (!stillThere()) return;
 		deleteSourceTraces(store, sourceId);
 		try {
-			await extraction.importNotes({ filePath: file.name, text, graphStore: store, sourceId });
-			patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
+			const mayBeCourseInfo = file.origin === "linked" && !file.kindChosen;
+			const result = await extraction.importNotes({ filePath: file.name, text, graphStore: store, sourceId, mayBeCourseInfo });
+			if (result.courseInfo) {
+				// Course logistics: course info, which the teacher reads but never quizzes.
+				deleteSourceTraces(store, sourceId);
+				patchFile(classId, fileId, { kind: "info", sortedAsInfo: true, status: "ready", contentFp: fp, sourceId: undefined, error: undefined });
+			} else {
+				patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
+			}
 		} catch (err) {
 			const message =
 				err instanceof NotesImportError

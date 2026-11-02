@@ -34,6 +34,10 @@ export interface FileRowActions {
 const KIND_HELP = {
 	study: { title: "Study material", body: "Turned into facts for the graph." },
 	info: { title: "Course info", body: "Syllabus, assignments and other class details. The teacher reads it, but it never becomes facts." },
+	sorted: {
+		title: "Course info",
+		body: "Sorted as course info by your agent while reading it. If it's study material, pick Move to Study material in the ⋯ menu.",
+	},
 } as const;
 
 export const FileRow = memo(function FileRow({
@@ -53,7 +57,7 @@ export const FileRow = memo(function FileRow({
 	const state = fileState(file, coverage, agentTeaching);
 	const install = state.kind === "failed" ? state.install : undefined;
 	const Icon = isRecording(file.name) ? CaptionsIcon : FileTextIcon;
-	const help = KIND_HELP[file.kind];
+	const help = KIND_HELP[file.sortedAsInfo && file.kind === "info" ? "sorted" : file.kind];
 	const minute = useMinute();
 	return (
 		<li data-testid={`class-file-${file.id}`} data-halley-target={`file:${file.id}`} className="group flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2 pr-3 pl-2 hover:bg-tone">
