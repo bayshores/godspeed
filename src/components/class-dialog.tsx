@@ -53,7 +53,7 @@ type ClassFields = { name: string; description: string; signature: ClassSignatur
 
 const LABEL = "text-[13px] font-bold text-ink-2";
 const FIELD =
-	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-tone-2 placeholder:text-ink-3 focus:border-ink-3";
+	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-edge placeholder:text-ink-3 focus:border-ink";
 
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { active, setActive } = useClasses();
@@ -381,7 +381,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								type="button"
 								data-testid="class-discard-confirm-button"
 								onClick={onClose}
-								className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-white hover:bg-red-600"
+								className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-background hover:bg-ans-wrong-hover"
 							>
 								Discard
 							</button>
@@ -416,7 +416,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										}
 									})
 								}
-								className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-white hover:bg-red-600 disabled:opacity-60"
+								className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-background hover:bg-ans-wrong-hover disabled:opacity-60"
 							>
 								Delete class
 							</button>
@@ -448,7 +448,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										data-testid="class-delete"
 										disabled={busy}
 										onClick={() => setConfirmDelete(true)}
-										className="lh-press text-[13.5px] font-bold text-ans-wrong hover:text-red-400 disabled:opacity-60"
+										className="lh-press text-[13.5px] font-bold text-ans-wrong hover:text-ans-wrong-hover disabled:opacity-60"
 									>
 										Delete class
 									</button>

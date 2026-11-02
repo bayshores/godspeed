@@ -122,8 +122,9 @@ export function Toggle({
 				// lh-press eases the track colors and dips on press; the disc
 				// below slides on the same clock.
 				"lh-press relative h-[18px] w-[34px] shrink-0",
-				// On is a white track with a black knob; off is the tone-2 track.
-				checked ? "bg-ink" : "bg-tone-2",
+				// On is a filled track with the knob at the right; off is an
+				// empty track (a 3:1 edge) with the knob at the left.
+				checked ? "bg-ink" : "shadow-[inset_0_0_0_1px_var(--lh-edge)] enabled:hover:shadow-[inset_0_0_0_1px_var(--lh-ink-3)]",
 				disabled && "cursor-not-allowed",
 			)}
 		>
@@ -133,7 +134,7 @@ export function Toggle({
 				<span
 					className={cn(
 						"absolute left-0 top-0.5 flex size-3.5 items-center justify-center transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-						checked ? "translate-x-[18px] text-background" : "translate-x-0.5 text-ink-3",
+						checked ? "translate-x-[18px] text-background" : "translate-x-0.5 text-ink-2",
 					)}
 				>
 					{discIcon}
@@ -143,7 +144,7 @@ export function Toggle({
 					className={cn(
 						"absolute left-0 top-0.5 size-3.5 transition-[translate,transform,color,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
 						// 2px inset from each inner edge, both states.
-						checked ? "translate-x-[18px] bg-background" : "translate-x-0.5 bg-ink-3",
+						checked ? "translate-x-[18px] bg-background" : "translate-x-0.5 bg-ink-2",
 					)}
 				/>
 			)}
@@ -265,7 +266,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-7 w-40 bg-background px-2 font-ui text-[13px] text-ink border border-tone-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-ink-3 focus-visible:border-ink-3"
+			className="h-7 w-40 bg-background px-2 font-ui text-[13px] text-ink border border-edge transition-colors duration-(--lh-dur) ease-(--lh-ease-out) placeholder:text-ink-3 focus-visible:border-ink"
 		/>
 	);
 }

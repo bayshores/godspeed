@@ -116,7 +116,7 @@ describe("Due soon", () => {
 	it("overdue: a red box and 'Overdue' in red", () => {
 		const row = section(dueSoon(), "due-soon-row-late", "</li>");
 		assert.match(row, /data-testid="done-box"[^>]*data-overdue="true"[^>]*class="[^"]*outline-ans-wrong/);
-		assert.match(row, /data-mode="overdue" style="color:#EF4444"[^>]*>Overdue</);
+		assert.match(row, /data-mode="overdue" style="color:var\(--lh-ans-wrong\)"[^>]*>Overdue</);
 		assert.doesNotMatch(section(dueSoon(), "due-soon-row-mid", "</li>"), /data-overdue/);
 	});
 
@@ -276,8 +276,8 @@ describe("Coming up", () => {
 		const covers = section(comingUp(), "coming-up-row-hw5", "</li>");
 		assert.match(covers, />covers Lecture 4</);
 		assert.match(covers, /w-\[120px\]/);
-		assert.match(covers, /width:58%;background:#E8C547/);
-		assert.match(covers, /style="color:#E8C547"[^>]*>58% ready</);
+		assert.match(covers, /width:58%;background:var\(--lh-ramp-3\)/);
+		assert.match(covers, /style="color:var\(--lh-ramp-3\)"[^>]*>58% ready</);
 	});
 
 	it("files but nothing to be ready on yet: covers only; no files: no second line", () => {

@@ -5,9 +5,9 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { contrast, inkFor, readableAccent, shiftHex, wantsDarkText, type InkLevel } from "../src/core/ink.ts";
+import { contrast, inkFor, inkReaches, readableAccent, shiftHex, wantsDarkText, type InkLevel } from "../src/core/ink.ts";
 
-const MINIMUM: Record<InkLevel, number> = { text: 7, body: 6, muted: 4.5, faint: 3 };
+const MINIMUM: Record<InkLevel, number> = { text: 7, body: 6, muted: 4.5, faint: 4.5, edge: 3 };
 const LEVELS = Object.keys(MINIMUM) as InkLevel[];
 
 function rgb(hex: string): number[] {
@@ -37,8 +37,8 @@ describe("shiftHex", () => {
 
 describe("inkFor", () => {
 	it("keeps the default grays on black and white", () => {
-		assert.deepEqual(LEVELS.map((l) => inkFor("#000000", l)), ["#e6e6e6", "#cfcfcf", "#8d8d8d", "#6e6e6e"]);
-		assert.deepEqual(LEVELS.map((l) => inkFor("#ffffff", l)), ["#1a1a1a", "#2b2b2b", "#5f5f5f", "#7b7b7b"]);
+		assert.deepEqual(LEVELS.map((l) => inkFor("#000000", l)), ["#e6e6e6", "#cfcfcf", "#8d8d8d", "#7a7a7a", "#5a5a5a"]);
+		assert.deepEqual(LEVELS.map((l) => inkFor("#ffffff", l)), ["#1a1a1a", "#2b2b2b", "#5f5f5f", "#6b6b6b", "#8f8f8f"]);
 	});
 
 	it("meets every level's minimum on the background and its panels, where any color can", () => {
@@ -67,6 +67,13 @@ describe("inkFor", () => {
 	});
 });
 
+describe("inkReaches", () => {
+	it("says whether a level can meet its minimum at all", () => {
+		assert.equal(inkReaches("#000000", "text", ["#161616"]), true);
+		assert.equal(inkReaches("#777777", "muted", ["#616161"]), false, "mid gray: neither black nor white reaches 4.5 on its tone");
+	});
+});
+
 describe("readableAccent", () => {
 	it("leaves a readable color alone", () => {
 		assert.equal(readableAccent("#f2c14e", "#000000"), "#f2c14e");
@@ -79,5 +86,10 @@ describe("readableAccent", () => {
 		assert.ok(b! > r!, "still blue");
 		const onOrange = readableAccent("#2f5fb3", "#e07020");
 		assert.ok(contrast(onOrange, "#e07020") >= 4.5);
+	});
+
+	it("reads on the panels too", () => {
+		const red = readableAccent("#ef4444", "#ffffff", ["#f7f7f7", "#e9e9e9"]);
+		for (const s of ["#ffffff", "#f7f7f7", "#e9e9e9"]) assert.ok(contrast(red, s) >= 4.5, `${red} on ${s}`);
 	});
 });

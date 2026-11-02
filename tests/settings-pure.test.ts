@@ -5,13 +5,17 @@
  */
 
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { describe, it } from "node:test";
 import {
 	appearanceVars,
+	BACKGROUND_PRESETS,
 	derivedPalette,
+	readableBackground,
 	resolveAppearance,
 	staleVarNames,
 } from "../src/components/settings/appearance-model.ts";
+import { contrast } from "../src/core/ink.ts";
 import {
 	areaParts,
 	composeGraphTools,
@@ -86,6 +90,54 @@ describe("derivedPalette — every surface and text color follows the background
 
 	it("3-digit hex expands", () => {
 		assert.equal(derivedPalette("#123")["--card"], "#192a3b"); // 11 22 33 each +8
+	});
+
+	it("black's palette is the stylesheet's default", () => {
+		const css = fs.readFileSync("src/app/globals.css", "utf-8");
+		const root = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
+		const declared = new Map([...root.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()]));
+		// The shadcn aliases the stylesheet leaves out fall back on their own; every lh token is declared.
+		const palette = Object.entries(derivedPalette("#000000")).filter(([name]) => name.startsWith("--lh-") || declared.has(name));
+		for (const [name, value] of palette) assert.equal(declared.get(name), value, name);
+	});
+
+	it("on every preset, text reads at 4.5, the status colors read as text and edges show at 3", () => {
+		for (const { name, color } of BACKGROUND_PRESETS) {
+			const p = derivedPalette(color ?? "#000000");
+			const surfaces = [p["--background"]!, p["--card"]!, p["--accent"]!];
+			const min = (ink: string, on: readonly string[]) => Math.min(...on.map((s) => contrast(ink, s)));
+			for (const level of ["--foreground", "--lh-ink-body", "--muted-foreground"]) {
+				assert.ok(min(p[level]!, [...surfaces, p["--lh-tip-hover"]!]) >= 4.5, `${name} ${level}`);
+			}
+			assert.ok(min(p["--lh-ink-3"]!, surfaces) >= 4.5, `${name} ink-3`);
+			for (const status of Object.keys(p).filter((k) => /^--(lh-(ans|conf|ramp)-|destructive)/.test(k))) {
+				assert.ok(min(p[status]!, surfaces) >= 4.5, `${name} ${status}`);
+				assert.ok(contrast(p["--background"]!, p[status]!) >= 4.5, `${name} text-background on a ${status} fill`);
+			}
+			assert.ok(min(p["--lh-edge"]!, [p["--background"]!, p["--card"]!]) >= 3, `${name} edge`);
+		}
+	});
+});
+
+describe("readableBackground — a picked color text can't read on is moved until it can", () => {
+	it("leaves every preset alone", () => {
+		for (const { color } of BACKGROUND_PRESETS) if (color) assert.equal(readableBackground(color), color);
+	});
+
+	it("moves a mid color toward its text's opposite until secondary text reads on its tone", () => {
+		for (const picked of ["#777777", "#3366cc", "#ff0000"]) {
+			const bg = readableBackground(picked);
+			assert.notEqual(bg, picked, picked);
+			const p = derivedPalette(bg);
+			assert.ok(contrast(p["--muted-foreground"]!, p["--accent"]!) >= 4.5, `${picked} → ${bg}`);
+		}
+		assert.ok(contrast("#000000", readableBackground("#777777")) > contrast("#000000", "#777777"), "gray (dark text) gets lighter");
+		assert.ok(contrast("#ffffff", readableBackground("#3366cc")) > contrast("#ffffff", "#3366cc"), "blue (light text) gets darker");
+	});
+
+	it("is what appearanceVars paints (the saved choice stays as picked)", () => {
+		const vars = appearanceVars(resolveAppearance({ background: "#777777" }));
+		assert.equal(vars["--background"], readableBackground("#777777"));
 	});
 });
 

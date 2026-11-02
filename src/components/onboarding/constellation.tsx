@@ -12,11 +12,11 @@
 
 /** The confidence ramp, red → green (the app's only color). */
 const RAMP = [
-	"var(--color-ans-wrong)",
-	"var(--color-conf-2)",
-	"var(--color-conf-3)",
-	"var(--color-conf-4)",
-	"var(--color-ans-right)",
+	"var(--lh-ans-wrong)",
+	"var(--lh-conf-2)",
+	"var(--lh-conf-3)",
+	"var(--lh-conf-4)",
+	"var(--lh-ans-right)",
 ] as const;
 
 /** Topic dots: center x, y, radius, ramp step (from the design). */

@@ -32,7 +32,7 @@ function topic(id: string, status: TopicProgress["status"]): TopicProgress {
 		dontKnow: 0,
 		rate: null,
 		status,
-		color: "#6E6E6E",
+		color: "var(--lh-ink-3)",
 		overconfident: false,
 		answers: [],
 		column: 0,

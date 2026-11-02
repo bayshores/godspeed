@@ -119,7 +119,7 @@ function ComingUpRow({
 			data-halley-target={`deadline:${d.id}`}
 			data-leaving={leaving || undefined}
 			className={cn(
-				"relative flex w-full items-center gap-3.5 bg-tone px-3.5 py-[11px] transition-[opacity,background-color] duration-[var(--lh-dur)] ease-[var(--lh-ease-in)] hover:bg-[#1f1f1f]",
+				"relative flex w-full items-center gap-3.5 bg-tone px-3.5 py-[11px] transition-[opacity,background-color] duration-[var(--lh-dur)] ease-[var(--lh-ease-in)] hover:bg-[color-mix(in_srgb,var(--accent),var(--lh-ink-max)_4%)]",
 				leaving && "pointer-events-none opacity-0",
 			)}
 		>

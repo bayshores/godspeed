@@ -110,7 +110,7 @@ export function ThinkingBlock({
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 					<div>
-						<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-foreground/50">
+						<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-ink-3">
 							<InlineMath text={text} />
 						</span>
 					</div>

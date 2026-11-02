@@ -8,14 +8,14 @@ import { type ConfidenceLevel } from "@/core";
  * show at their nearest level (confidenceLevel).
  */
 
-/** The confidence ramp from the conf-1…5 tokens in globals.css, indexed by
- *  level − 1. Names written out in full so Tailwind emits every token. */
+/** The confidence ramp (--lh-conf-1…5, globals.css), indexed by
+ *  level − 1. */
 const CONFIDENCE_COLORS = [
-	"var(--color-conf-1)",
-	"var(--color-conf-2)",
-	"var(--color-conf-3)",
-	"var(--color-conf-4)",
-	"var(--color-conf-5)",
+	"var(--lh-conf-1)",
+	"var(--lh-conf-2)",
+	"var(--lh-conf-3)",
+	"var(--lh-conf-4)",
+	"var(--lh-conf-5)",
 ] as const;
 
 /** What each level means, in the learner's words. */
@@ -71,7 +71,7 @@ export function ConfidenceMeter({
 								aria-hidden
 								className={cn(
 									"block w-full transition-[background-color,opacity] duration-(--lh-dur) ease-(--lh-ease-out)",
-									!on && "bg-tone-2 group-hover:group-enabled:bg-ink-3",
+									!on && "bg-edge group-hover:group-enabled:bg-ink-3",
 								)}
 								style={{ height: h, ...(on ? { backgroundColor: color, opacity: n === level ? 1 : 0.55 } : {}) }}
 							/>
@@ -116,7 +116,7 @@ export function ConfidenceSquares({ level, onChange }: { level: ConfidenceLevel 
 							data-testid={`confidence-square-${n}`}
 							tabIndex={-1}
 							onClick={() => onChange(n)}
-							className={cn("block size-3 cursor-pointer outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", !on && "bg-tone-2 hover:bg-ink-3")}
+							className={cn("block size-3 cursor-pointer outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", !on && "bg-edge hover:bg-ink-3")}
 							style={on ? { backgroundColor: CONFIDENCE_COLORS[level - 1] } : undefined}
 						/>
 					);

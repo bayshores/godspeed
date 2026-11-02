@@ -25,10 +25,11 @@ import { resolveTopics } from "./topics.ts";
 
 // ─── the color ramp + statuses ──────────────────────────────────────────────
 
-/** The right/confidence ramp, red → green (the design's only colors). */
-export const RAMP_COLORS = ["#F2545B", "#F59E4C", "#E8C547", "#9BD35A", "#3DD68C"] as const;
-/** Untested (no answers yet). */
-export const UNTESTED_COLOR = "#6E6E6E";
+/** The topic ramp, red → green: CSS colors (globals.css --lh-ramp-1…5),
+ *  so each background keeps them readable. */
+export const RAMP_COLORS = ["var(--lh-ramp-1)", "var(--lh-ramp-2)", "var(--lh-ramp-3)", "var(--lh-ramp-4)", "var(--lh-ramp-5)"] as const;
+/** Untested (no answers yet): the quietest ink. */
+export const UNTESTED_COLOR = "var(--lh-ink-3)";
 
 /** The ramp color for a right rate (0–1); gray when untested (null). */
 export function rampColor(rate: number | null): string {

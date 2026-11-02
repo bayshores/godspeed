@@ -322,7 +322,7 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 				value={name}
 				onChange={(e) => setName(e.target.value)}
 				placeholder="e.g. CSE 21: Discrete Math"
-				className="mt-2 border border-tone-2 bg-panel px-4 py-3 text-[15px] text-ink outline-none placeholder:text-ink-3 focus:border-ink-2"
+				className="mt-2 border border-edge bg-panel px-4 py-3 text-[15px] text-ink outline-none placeholder:text-ink-3 focus:border-ink"
 			/>
 			<span className="mt-7 text-[13px] font-bold text-ink-2">Notes and slides (optional)</span>
 			<input

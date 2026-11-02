@@ -209,7 +209,7 @@ export function LessonsSection({
 						placeholder="Search lessons…"
 						aria-label="Search lessons"
 						spellCheck={false}
-						className="mt-2 h-8 w-full border border-tone-2 bg-panel px-2.5 text-[13px] text-ink outline-none placeholder:text-ink-3 focus:border-ink-3"
+						className="mt-2 h-8 w-full border border-edge bg-panel px-2.5 text-[13px] text-ink outline-none placeholder:text-ink-3 focus:border-ink"
 					/>
 				</div>
 			</div>

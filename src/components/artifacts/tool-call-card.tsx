@@ -70,7 +70,7 @@ export function ToolCallCard({ part }: ArtifactPartProps) {
 			className="group my-1 w-full max-w-2xl select-none"
 		>
 			<summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
-				<span className={`font-semibold ${failed ? "text-red-500" : ""}`}>
+				<span className={`font-semibold ${failed ? "text-ans-wrong" : ""}`}>
 					{tool}
 				</span>
 				{arg && <span className="truncate">{arg}</span>}
@@ -92,7 +92,7 @@ export function ToolCallCard({ part }: ArtifactPartProps) {
 						<div className="mb-1 font-semibold text-muted-foreground">
 							Error
 						</div>
-						<pre className="whitespace-pre-wrap break-all font-mono text-[11px] text-red-500">
+						<pre className="whitespace-pre-wrap break-all font-mono text-[11px] text-ans-wrong">
 							{p.errorText}
 						</pre>
 					</div>

@@ -39,7 +39,7 @@ function PlanList({ plan, steps }: { plan: NonNullable<AgentWork["plan"]>; steps
 								{state === "next" && <span className="size-1 bg-tone-2" />}
 							</span>
 							<div className="flex min-w-0 flex-col gap-2">
-								<span className={cn("text-[14.5px] leading-5", state === "now" ? "text-ink" : state === "done" ? "text-ink-3" : "text-ink-3/60")}>{item}</span>
+								<span className={cn("text-[14.5px] leading-5", state === "now" ? "text-ink" : state === "done" ? "text-ink-3" : "text-ink-3")}>{item}</span>
 								{state === "now" && <Steps steps={steps} />}
 							</div>
 						</li>

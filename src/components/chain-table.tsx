@@ -252,7 +252,7 @@ export function ChainTableBody({
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{/* The TOP rule: the table is framed (a line under the header, a
 			    line under the last group, lines between groups). */}
-				<div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border/60 bg-background/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground/70 backdrop-blur">
+				<div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border/60 bg-background/80 px-3 py-1.5 text-xs font-semibold text-ink-3 backdrop-blur">
 					<button
 						type="button"
 						data-testid="sort-name"
@@ -327,8 +327,8 @@ export function ChainTableBody({
 									{open ? <FolderOpenIcon className="size-3.5" /> : <FolderIcon className="size-3.5" />}
 								</span>
 								<span className="min-w-0 flex-1 truncate text-sm font-medium">
-									{group.label ?? <span className="text-muted-foreground/60">unlabeled</span>}
-									{group.kind === "notes" && <span className="ml-2 text-xs font-semibold text-muted-foreground/60">Notes</span>}
+									{group.label ?? <span className="text-ink-3">unlabeled</span>}
+									{group.kind === "notes" && <span className="ml-2 text-xs font-semibold text-ink-3">Notes</span>}
 								</span>
 								<span className="w-14 shrink-0 text-right text-xs font-mono tabular-nums text-muted-foreground">
 									{group.nodeIds.length}
@@ -516,7 +516,7 @@ function Expander({ open, onClick, testid, label }: { open: boolean; onClick: ()
 			onClick={onClick}
 			aria-label={label}
 			aria-expanded={open}
-			className="lh-press flex h-5 w-3.5 shrink-0 items-center justify-center text-muted-foreground/70 hover:bg-accent hover:text-foreground"
+			className="lh-press flex h-5 w-3.5 shrink-0 items-center justify-center text-ink-3 hover:bg-accent hover:text-foreground"
 		>
 			<ChevronRightIcon className={`size-3.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) ${open ? "rotate-90" : ""}`} />
 		</button>

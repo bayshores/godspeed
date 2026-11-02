@@ -113,7 +113,7 @@ export function DemoOutputCard({
 			<div className=" border bg-card p-4 text-card-foreground" data-testid="demo-card-failed">
 				<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 					Interactive demo
-					<span className=" bg-red-500/15 px-1.5 py-0.5 text-red-500">failed</span>
+					<span className="bg-tone px-1.5 py-0.5 text-ans-wrong">failed</span>
 				</div>
 				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? "The demo could not be built."}</p>
 			</div>
@@ -234,7 +234,7 @@ export function DemoErrorChip({
 }) {
 	return (
 		<div
-			className="mt-2 flex flex-wrap items-center gap-2 bg-red-500/10 px-3 py-2 text-sm text-red-500"
+			className="mt-2 flex flex-wrap items-center gap-2 bg-tone px-3 py-2 text-sm text-ans-wrong"
 			data-testid="demo-error-chip"
 		>
 			<span className="font-medium">This demo threw an error</span>
@@ -247,7 +247,7 @@ export function DemoErrorChip({
 					onClick={onSend}
 					disabled={blocked !== null}
 					title={blocked ?? undefined}
-					className=" border border-red-500/40 px-2 py-1 text-xs font-medium hover:bg-red-500/15 disabled:opacity-50"
+					className="border border-ans-wrong px-2 py-1 text-xs font-medium hover:bg-background disabled:opacity-50"
 					data-testid="demo-error-send"
 				>
 					Send to teacher

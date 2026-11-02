@@ -22,10 +22,10 @@ const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "
 /** The verdict chip: Right / Wrong / Didn't know (quiz answers only). */
 function ResultChip({ answer }: { answer: QuestionAnswerData }) {
 	const [cls, icon, word] = answer.dontKnow
-		? ["bg-ans-dontknow text-ink", null, "Didn't know"]
+		? ["bg-ans-dontknow text-white", null, "Didn't know"]
 		: answer.correct
-			? ["bg-ans-right text-black", <CheckIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Right"]
-			: ["bg-ans-wrong text-black", <XIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Wrong"];
+			? ["bg-ans-right text-background", <CheckIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Right"]
+			: ["bg-ans-wrong text-background", <XIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Wrong"];
 	return (
 		<span data-testid="answer-result" className={cn("flex shrink-0 items-center gap-1.5 px-2 py-[3px] text-[13px] font-extrabold", cls)}>
 			{icon}

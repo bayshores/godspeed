@@ -73,7 +73,7 @@ export function RuleChips({
 							setAdding(false);
 						}
 					}}
-					className="h-[30px] min-w-60 flex-1 border border-tone-2 bg-background px-2.5 text-[13px] text-ink placeholder:text-ink-3 focus-visible:border-ink-3"
+					className="h-[30px] min-w-60 flex-1 border border-edge bg-background px-2.5 text-[13px] text-ink placeholder:text-ink-3 focus-visible:border-ink"
 				/>
 			) : (
 				rules.length < RULES_MAX && (

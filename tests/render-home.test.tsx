@@ -59,7 +59,7 @@ function topic(id: string, name: string, status: TopicProgress["status"], right:
 		dontKnow: 0,
 		rate: answered ? right / answered : null,
 		status,
-		color: "#F2545B",
+		color: "var(--lh-ramp-1)",
 		overconfident: false,
 		answers: [],
 		column: 0,
@@ -181,7 +181,7 @@ describe("Home: suggestions", () => {
 	it("Work on next: the status color dot, right / answered, or untested on the gray dot", () => {
 		const html = list();
 		const weak = html.slice(html.indexOf("Conditional probability") - 600, html.indexOf("Linearity of expectation"));
-		assert.match(weak, /background:#F2545B/);
+		assert.match(weak, /background:var\(--lh-ramp-1\)/);
 		assert.match(weak, /<span class="font-mono tabular-nums">2 \/ 6<\/span>/);
 		const untested = row(html.slice(html.indexOf("Conditional probability")), "home-suggestion-work-on-next");
 		assert.ok(untested.includes("Linearity of expectation"));

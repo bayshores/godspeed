@@ -31,7 +31,7 @@ export const OVERCONFIDENT_COLOR = RAMP_COLORS[1];
 export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	right: RAMP_COLORS[4],
 	wrong: RAMP_COLORS[0],
-	dontKnow: "#5A5A5A",
+	dontKnow: "var(--color-ans-dontknow)",
 };
 
 /** The hovered topic's answer strip on the map uses the right/wrong tokens. */

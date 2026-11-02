@@ -92,8 +92,8 @@ function PdfCompleteBadge({ result }: { result: PdfResult }) {
 						· read {readPages.length} page{readPages.length === 1 ? "" : "s"}
 					</span>
 				)}
-				<span className="ml-1 text-xs text-muted-foreground/70 group-open:hidden">view brief</span>
-				<span className="ml-1 hidden text-xs text-muted-foreground/70 group-open:inline">hide brief</span>
+				<span className="ml-1 text-xs text-ink-3 group-open:hidden">view brief</span>
+				<span className="ml-1 hidden text-xs text-ink-3 group-open:inline">hide brief</span>
 			</summary>
 			<div className="mt-2">
 				<PdfBriefCard output={result} />
@@ -115,8 +115,8 @@ function ResearchCompleteBadge({ result }: { result: ResearchResult }) {
 				<span className="font-semibold">Research</span>
 				<span>complete</span>
 				{result.sources.length > 0 && <span>· {result.sources.length} sources</span>}
-				<span className="ml-1 text-xs text-muted-foreground/70 group-open:hidden">view brief</span>
-				<span className="ml-1 hidden text-xs text-muted-foreground/70 group-open:inline">hide brief</span>
+				<span className="ml-1 text-xs text-ink-3 group-open:hidden">view brief</span>
+				<span className="ml-1 hidden text-xs text-ink-3 group-open:inline">hide brief</span>
 			</summary>
 			<div className="mt-2">
 				<ResearchBriefCard output={result} />

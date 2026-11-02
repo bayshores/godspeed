@@ -34,10 +34,12 @@
 
 /* Palette: the OLED-black default — background
    #000000, panel #080808, tone #161616, tone-2 #2F2F2F. These are exactly
-   derivedPalette("#000000") in src/components/settings/appearance.tsx (+8 /
-   +22 / +47), so a background picked in Settings → Appearance moves every
-   surface with it. Text: ink #E6E6E6, ink-2 #8D8D8D, ink-3 #6E6E6E.
-   Prose = Source Sans 3; titles = CMU Serif; mono only for numbers. */
+   derivedPalette("#000000") in src/components/settings/appearance-model.ts
+   (a test holds them equal), so a background picked in Settings →
+   Appearance moves every surface, text level and status color with it.
+   Text: ink #E6E6E6, ink-2 #8D8D8D, ink-3 #808080 (every text level is at
+   least 4.5:1). Prose = Source Sans 3; titles = CMU Serif; mono only for
+   numbers. */
 :root {
 	color-scheme: dark;
 	--radius: 0px;
@@ -52,12 +54,31 @@
 	--muted-foreground: #8d8d8d;
 	--accent: #161616;
 	--accent-foreground: #e6e6e6;
-	--destructive: oklch(0.704 0.191 22.216);
+	--destructive: #ff6467;
 	--border: #2f2f2f;
 	--input: #2f2f2f;
 	--ring: #8d8d8d;
+	/* Field borders and empty bars: the quietest line that still shows (3:1). */
+	--lh-edge: #5d5d5d;
 	/* The tooltip box: background +20 on the dark curve. */
 	--lh-tip: #141414;
+	/* A hovered row in a pop-up: background +39. */
+	--lh-tip-hover: #272727;
+	/* The app's only colors: right / wrong, the confidence ramp (levels
+	   1–5) and the topic ramp (wrong → right). Light backgrounds darken
+	   them, so each reads as text and carries text-background as a fill. */
+	--lh-ans-right: #10b981;
+	--lh-ans-wrong: #ef4444;
+	--lh-conf-1: #ef4444;
+	--lh-conf-2: #f97316;
+	--lh-conf-3: #eab308;
+	--lh-conf-4: #84cc16;
+	--lh-conf-5: #10b981;
+	--lh-ramp-1: #f2545b;
+	--lh-ramp-2: #f59e4c;
+	--lh-ramp-3: #e8c547;
+	--lh-ramp-4: #9bd35a;
+	--lh-ramp-5: #3dd68c;
 	/* Emphasis inks default to the REGULAR TEXT COLOR. Explicit overrides
 	   land via the appearance settings vars. */
 	--lh-ink-strong: var(--foreground);
@@ -76,7 +97,7 @@
 	/* Markdown heading weight (appearance settings; 900 = the Black cut). */
 	--lh-heading-weight: 900;
 	/* The quietest text (labels, finished lessons, hints). */
-	--lh-ink-3: #6e6e6e;
+	--lh-ink-3: #808080;
 	/* The strongest ink: hover brightening, focus edges, graph strokes.
 	   White on dark backgrounds; the appearance settings flip it to black
 	   on light ones. */
@@ -97,7 +118,7 @@
 	--muted-foreground: #8d8d8d;
 	--accent: #161616;
 	--accent-foreground: #e6e6e6;
-	--destructive: oklch(0.704 0.191 22.216);
+	--destructive: #ff6467;
 	--border: #2f2f2f;
 	--input: #2f2f2f;
 	--ring: #8d8d8d;
@@ -122,7 +143,7 @@
    1px rule, like the rest of the app: no blur, no shadow. Rows that hover
    with bg-tone get a tone that still shows on the box. */
 .lh-popup {
-	--accent: color-mix(in srgb, var(--foreground) 9%, var(--lh-tip));
+	--accent: var(--lh-tip-hover);
 	background-color: var(--lh-tip);
 	border: 1px solid var(--border);
 }
@@ -233,17 +254,15 @@
 	--color-ink-2: var(--muted-foreground);
 	--color-ink-3: var(--lh-ink-3);
 	--color-ink-max: var(--lh-ink-max);
-	/* The only colors in the app: right / wrong / didn't know … */
-	--color-ans-right: #10b981;
-	--color-ans-wrong: #ef4444;
+	--color-edge: var(--lh-edge);
+	/* Right / wrong / didn't know. The confidence and topic ramps are read
+	   as var(--lh-conf-N) and var(--lh-ramp-N). */
+	--color-ans-right: var(--lh-ans-right);
+	--color-ans-wrong: var(--lh-ans-wrong);
 	--color-ans-dontknow: #5a5a5a;
-	/* … and the confidence ramp (levels 1–5, Tailwind red → emerald). The
-	   topic ramp is RAMP_COLORS in src/core/progress.ts. */
-	--color-conf-1: #ef4444;
-	--color-conf-2: #f97316;
-	--color-conf-3: #eab308;
-	--color-conf-4: #84cc16;
-	--color-conf-5: #10b981;
+	/* A hovered red button or link: a step toward the strongest ink, so it
+	   gains contrast on dark and light backgrounds alike. */
+	--color-ans-wrong-hover: color-mix(in oklab, var(--lh-ans-wrong) 80%, var(--lh-ink-max));
 }
 
 * {
@@ -954,6 +973,10 @@ body {
 	.ob-root {
 		animation: none !important;
 		transition: none !important;
+	}
+	/* The dot also shows outside onboarding (Settings, Connection). */
+	.ob-pulse {
+		animation: none;
 	}
 }
 

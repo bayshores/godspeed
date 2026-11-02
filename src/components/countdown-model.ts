@@ -18,9 +18,10 @@ export const MINUTE = 60 * SECOND;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
 
-/** Grey at 24h left, red at 0. */
-export const COUNTDOWN_GREY = "#8D8D8D";
-export const COUNTDOWN_RED = "#EF4444";
+/** Grey (the muted ink) at 24h left, red (wrong) at 0: theme colors, so
+ *  the fade reads on every background. */
+export const COUNTDOWN_GREY = "var(--muted-foreground)";
+export const COUNTDOWN_RED = "var(--lh-ans-wrong)";
 
 /** The local moment a deadline is due (ms since epoch). */
 export function dueAtMs(d: { date: string; time?: string }): number {
@@ -35,7 +36,7 @@ type CountdownMode = "days" | "clock" | "fine" | "overdue";
 export interface Countdown {
 	mode: CountdownMode;
 	text: string;
-	/** #RRGGBB. */
+	/** A CSS color. */
 	color: string;
 }
 
@@ -79,13 +80,14 @@ function calendarDays(fromMs: number, toMs: number): number {
 	return Math.round((startOfDay(toMs) - startOfDay(fromMs)) / DAY);
 }
 
-/** The fade over the last 24h: t = 1 − hoursLeft/24, each channel linear
- *  from (141,141,141) to (239,68,68). */
+/** The fade over the last 24h: red takes 1 − hoursLeft/24 of the mix,
+ *  in whole percents. Mixed in OKLab, so lightness moves evenly and every
+ *  step reads as well as its two ends. */
 export function countdownColor(leftMs: number): string {
-	const t = Math.min(1, Math.max(0, 1 - leftMs / DAY));
-	const mix = (a: number, b: number) => Math.round(a + (b - a) * t);
-	const hex = (n: number) => n.toString(16).padStart(2, "0").toUpperCase();
-	return `#${hex(mix(141, 239))}${hex(mix(141, 68))}${hex(mix(141, 68))}`;
+	const red = Math.round(Math.min(1, Math.max(0, 1 - leftMs / DAY)) * 100);
+	if (red === 0) return COUNTDOWN_GREY;
+	if (red === 100) return COUNTDOWN_RED;
+	return `color-mix(in oklab, ${COUNTDOWN_RED} ${red}%, ${COUNTDOWN_GREY})`;
 }
 
 /** How fast the clock must tick for a set of due moments on screen:

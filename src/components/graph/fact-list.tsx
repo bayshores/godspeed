@@ -1,19 +1,19 @@
 /**
- * A topic's facts in the topic panel: a square for the latest answer
- * (empty when never asked), the fact's name, and a chevron that opens its
+ * A topic's facts in the topic panel: a mark for the latest answer (a
+ * check, a cross or a dash; an empty square when never asked), the fact's name, and a chevron that opens its
  * statement. The first FACTS_SHOWN show until "Show all N". Right-click
  * (or the keyboard's context-menu key) opens a menu whose one action,
  * Delete, opens the shared DeleteNodeDialog; a delete announces
  * lh:graph-revision (the page refreshes on it, as for the chain table).
  */
 import { memo, useCallback, useRef, useState, type MouseEvent } from "react";
-import { ChevronRightIcon } from "lucide-react";
-import type { FactProgress } from "@/core";
+import { CheckIcon, ChevronRightIcon, MinusIcon, XIcon } from "lucide-react";
+import type { AnswerOutcome, FactProgress } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { DeleteNodeDialog } from "@/components/delete-node-dialog";
 import { InlineMath } from "@/components/overview/inline-math";
-import { factMark, PANEL_ANSWER_COLOR } from "./derive.ts";
+import { factMark } from "./derive.ts";
 import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 const FACTS_SHOWN = 4;
@@ -112,11 +112,7 @@ const FactRow = memo(function FactRow({
 				onContextMenu={(e) => onMenu(fact, e)}
 				className="lh-press flex w-full items-center gap-2 py-[9px] text-left text-sm text-ink hover:text-ink-max"
 			>
-				<span
-					aria-label={mark === null ? "Not asked yet" : mark === "right" ? "Last answer right" : mark === "wrong" ? "Last answer wrong" : "Last answer: I don't know"}
-					className={`size-2 shrink-0 ${mark === null ? "outline outline-[1.5px] -outline-offset-[0.75px] outline-ink-3" : ""}`}
-					style={mark ? { background: PANEL_ANSWER_COLOR[mark] } : undefined}
-				/>
+				<FactMark mark={mark} />
 				<span className="min-w-0 flex-1 truncate">
 					<InlineMath text={fact.name} />
 				</span>
@@ -134,3 +130,16 @@ const FactRow = memo(function FactRow({
 		</li>
 	);
 });
+
+/** The latest answer as a shape, not only a color: check, cross, dash. */
+const MARKS: Record<AnswerOutcome, { Icon: typeof CheckIcon; className: string; label: string }> = {
+	right: { Icon: CheckIcon, className: "text-ans-right", label: "Last answer right" },
+	wrong: { Icon: XIcon, className: "text-ans-wrong", label: "Last answer wrong" },
+	dontKnow: { Icon: MinusIcon, className: "text-ink-3", label: "Last answer: I don't know" },
+};
+
+function FactMark({ mark }: { mark: AnswerOutcome | null }) {
+	if (mark === null) return <span role="img" aria-label="Not asked yet" className="mx-0.5 size-2 shrink-0 outline outline-[1.5px] -outline-offset-[0.75px] outline-ink-3" />;
+	const { Icon, className, label } = MARKS[mark];
+	return <Icon role="img" aria-label={label} aria-hidden={false} strokeWidth={3} className={`size-3 shrink-0 ${className}`} />;
+}

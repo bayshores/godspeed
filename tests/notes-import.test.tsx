@@ -106,7 +106,7 @@ for (const outcome of ["completed", "failed", "partial", "aborted", "busy"] as c
 		assert.match(html, /&lt;script&gt;notes.md: &lt;img&gt;synthetic failure/);
 		assert.match(html, /provider_not_connected · openai · OPENAI_API_KEY · cheap, strong/);
 		assert.match(html, /role="alert"/);
-		assert.match(html, /text-xs text-red-400/);
+		assert.match(html, /text-xs text-ans-wrong/);
 		assert.match(html, /whitespace-pre-wrap break-words/);
 		assert.doesNotMatch(html, /<script>|<img>/);
 	}

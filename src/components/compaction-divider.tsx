@@ -19,7 +19,7 @@ export interface CompactionDividerData {
 export function CompactionMomentDivider({ data: _data }: { data: CompactionDividerData }) {
 	return (
 		<div className="flex w-full items-center justify-center py-1">
-			<span data-testid="compaction-divider" className="px-1.5 text-xs text-muted-foreground/70">
+			<span data-testid="compaction-divider" className="px-1.5 text-xs text-ink-3">
 				Lesson summarized
 			</span>
 		</div>

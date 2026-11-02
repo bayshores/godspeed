@@ -1,19 +1,22 @@
 /**
- * Text colors that read well on any background. Light or dark text is
- * picked by which has more contrast; each text level starts from the
- * default gray, takes a hint of the background's hue (in OKLCH, so the
- * tint looks even across colors), then moves lighter or darker until it
- * meets its contrast minimum. Browser-safe, pure.
+ * Text and edge colors that read well on any background. Light or dark ink
+ * is picked by which has more contrast; each level starts from the default
+ * gray, takes a hint of the background's hue (in OKLCH, so the tint looks
+ * even across colors), then moves lighter or darker until it meets its
+ * contrast minimum. Browser-safe, pure.
  */
 
-export type InkLevel = "text" | "body" | "muted" | "faint";
+export type InkLevel = "text" | "body" | "muted" | "faint" | "edge";
 
-/** Each level's contrast minimum (WCAG ratio) and its default grays, on dark and on light backgrounds. */
+/** Each level's contrast minimum (WCAG ratio) and its default grays, on
+ *  dark and on light backgrounds. Every text level is at least 4.5 (small
+ *  text); an edge (field borders, empty bars) needs 3. */
 const LEVELS: Record<InkLevel, { min: number; onDark: string; onLight: string }> = {
 	text: { min: 7, onDark: "#e6e6e6", onLight: "#1a1a1a" },
 	body: { min: 6, onDark: "#cfcfcf", onLight: "#2b2b2b" },
 	muted: { min: 4.5, onDark: "#8d8d8d", onLight: "#5f5f5f" },
-	faint: { min: 3, onDark: "#6e6e6e", onLight: "#7b7b7b" },
+	faint: { min: 4.5, onDark: "#7a7a7a", onLight: "#6b6b6b" },
+	edge: { min: 3, onDark: "#5a5a5a", onLight: "#8f8f8f" },
 };
 
 /** How much of the background's hue text takes (OKLCH chroma). */
@@ -98,7 +101,7 @@ function reach(color: string, surfaces: readonly string[], min: number, darker: 
 	return out;
 }
 
-/** One text level for a background, readable on it and on the given panels. */
+/** One ink level for a background, readable on it and on the given panels. */
 export function inkFor(background: string, level: InkLevel, panels: readonly string[] = []): string {
 	const dark = wantsDarkText(background);
 	const spec = LEVELS[level];
@@ -107,8 +110,15 @@ export function inkFor(background: string, level: InkLevel, panels: readonly str
 	return reach(tinted, [background, ...panels], spec.min, dark);
 }
 
-/** A chosen accent color (bold, italic) made readable on the background:
- *  unchanged when it already is, else lighter or darker with the same hue. */
-export function readableAccent(color: string, background: string): string {
-	return reach(color, [background], LEVELS.muted.min, wantsDarkText(background));
+/** True when this level can meet its minimum on the background and every panel. */
+export function inkReaches(background: string, level: InkLevel, panels: readonly string[] = []): boolean {
+	const ink = inkFor(background, level, panels);
+	return [background, ...panels].every((s) => contrast(ink, s) >= LEVELS[level].min);
+}
+
+/** A color used as text or a mark (bold, italic, right, wrong, the ramps)
+ *  made readable on the background and its panels: unchanged when it
+ *  already is, else lighter or darker with the same hue. */
+export function readableAccent(color: string, background: string, panels: readonly string[] = []): string {
+	return reach(color, [background, ...panels], LEVELS.muted.min, wantsDarkText(background));
 }

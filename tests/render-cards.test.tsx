@@ -126,7 +126,7 @@ describe("DispatchCard — failed jobs", () => {
 		const html = renderToStaticMarkup(inJobs([job({ error: "FAILED: headless crashed" })]));
 		assert.ok(html.includes('data-testid="dispatch-settled"'));
 		assert.ok(html.includes("failed"));
-		assert.ok(html.includes("text-red-500"));
+		assert.ok(html.includes("text-ans-wrong"));
 		assert.ok(!html.includes("dispatch-refused"));
 	});
 

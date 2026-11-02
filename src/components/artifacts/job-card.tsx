@@ -51,7 +51,7 @@ export function PdfBriefCard({ output }: { output: unknown }) {
 		<div className=" border bg-card p-4 text-card-foreground" data-testid="pdf-brief-card">
 			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				PDF brief
-				{failed && <span className=" bg-red-500/15 px-1.5 py-0.5 text-red-500">failed</span>}
+				{failed && <span className="bg-tone px-1.5 py-0.5 text-ans-wrong">failed</span>}
 			</div>
 			<div className="text-sm [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
 				<MessageResponse>{result.brief}</MessageResponse>
@@ -88,7 +88,7 @@ export function ResearchBriefCard({ output }: { output: unknown }) {
 		<div className=" border bg-card p-4 text-card-foreground" data-testid="research-brief-card">
 			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 				Research brief
-				{failed && <span className=" bg-red-500/15 px-1.5 py-0.5 text-red-500">failed</span>}
+				{failed && <span className="bg-tone px-1.5 py-0.5 text-ans-wrong">failed</span>}
 			</div>
 			<div className="text-sm [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
 				<MessageResponse>{result.brief}</MessageResponse>
