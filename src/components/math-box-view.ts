@@ -7,7 +7,7 @@
  * to edit it, and leaving the field writes its LaTeX back.
  */
 import { Annotation, EditorState, Prec, StateEffect, StateField, type Range } from "@codemirror/state";
-import { Decoration, EditorView, WidgetType, keymap, placeholder, type DecorationSet } from "@codemirror/view";
+import { Decoration, EditorView, WidgetType, keymap, placeholder, tooltips, type DecorationSet } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, insertNewline } from "@codemirror/commands";
 import { autocompletion, closeCompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
 import katex from "katex";
@@ -213,15 +213,18 @@ const theme = EditorView.theme(
 	{
 		"&": { height: "100%", backgroundColor: "var(--background)", color: "var(--foreground)" },
 		"&.cm-focused": { outline: "none" },
-		".cm-scroller": { fontFamily: "var(--font-prose)", fontSize: "15px", lineHeight: "22px", overflow: "auto" },
-		".cm-content": { padding: "12px 14px", caretColor: "var(--lh-ink-max)" },
+		".cm-scroller": { fontFamily: "var(--font-prose)", fontSize: "16px", lineHeight: "24px", overflow: "auto" },
+		".cm-content": { padding: "18px 20px", caretColor: "var(--lh-ink-max)" },
 		".cm-line": { padding: "0" },
 		".cm-placeholder": { color: "var(--lh-ink-3)" },
 		".cm-cursor": { borderLeftColor: "var(--lh-ink-max)" },
 		".cm-math": { cursor: "pointer", padding: "0 1px" },
+		// KaTeX's own 1.21em makes inline math taller than the 24px line;
+		// at 1.1em a plain formula sits inside the line like a word.
+		".cm-math .katex": { fontSize: "1.1em" },
 		".cm-math:hover": { backgroundColor: "var(--accent)" },
-		".cm-math-editing": { cursor: "text", outline: "1px solid var(--lh-ink-3)", outlineOffset: "2px" },
-		"& math-field": { display: "inline-block", minWidth: "24px", padding: "0", border: "none", background: "transparent", color: "inherit", fontSize: "17px", "--caret-color": "var(--lh-ink-max)", "--selection-background-color": "var(--border)", "--contains-highlight-background-color": "transparent", "--placeholder-color": "var(--lh-ink-3)" },
+		".cm-math-editing": { cursor: "text", outline: "1px solid var(--lh-ink-3)", outlineOffset: "1px" },
+		"& math-field": { display: "inline-block", minWidth: "24px", padding: "0", border: "none", background: "transparent", color: "inherit", fontSize: "17.6px", lineHeight: "24px", "--caret-color": "var(--lh-ink-max)", "--selection-background-color": "var(--border)", "--contains-highlight-background-color": "transparent", "--placeholder-color": "var(--lh-ink-3)" },
 		"& math-field::part(menu-toggle), & math-field::part(virtual-keyboard-toggle)": { display: "none" },
 		"& math-field::part(content)": { padding: "0" },
 		".cm-tooltip.cm-tooltip-autocomplete": { backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "0" },
@@ -281,6 +284,9 @@ export function mountMathBox(
 					drop: (e) => (e.dataTransfer?.files.length ?? 0) > 0,
 				}),
 				autocompletion({ override: [suggestions], icons: false, defaultKeymap: false }),
+				// In the box the list would be clipped (the panel's rise animation
+				// is a transform, which makes CodeMirror position it inside us).
+				tooltips({ parent: parent.ownerDocument.body }),
 				EditorView.lineWrapping,
 				placeholder(opts.placeholder),
 				theme,

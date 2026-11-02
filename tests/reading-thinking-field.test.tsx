@@ -12,4 +12,9 @@ describe("the reading-thinking field (redesign: fills the Your-turn panel)", () 
 		assert.match(html, /data-testid="math-box" class="[^"]*flex-1/, "the field grows into the free height");
 		assert.match(html, /Whatever comes to mind as you read\./);
 	});
+	it("reads as a page: a visible edge, 16px text and room around it", () => {
+		const html = renderToStaticMarkup(<ReadingThinkingField value="" onChange={() => {}} />);
+		assert.match(html, /data-testid="math-box" class="[^"]*border border-tone-2[^"]*text-\[16px\]!/);
+		assert.match(html, /class="px-5 py-\[18px\] text-ink-3"/, "the placeholder before the editor loads has the same padding");
+	});
 });

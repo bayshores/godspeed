@@ -1,5 +1,6 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { MathBoxHandle } from "@/components/math-box-view";
+import { FIELD_EDGE } from "@/components/lesson/panel-parts";
 
 /** Keys typed in the box stay in it: Esc must not stop the turn, digits
  *  must not pick an option, Enter is the box's own. Modifier shortcuts
@@ -78,10 +79,10 @@ export function MathBox({
 			data-testid="math-box"
 			onKeyDown={keepKeysInBox}
 			onFocus={onFocus}
-			className="lh-input relative flex min-h-28 w-full min-w-0 flex-1 flex-col overflow-hidden bg-background text-[15px]! leading-[22px]! text-ink"
+			className={`lh-input relative flex min-h-28 w-full min-w-0 flex-1 flex-col overflow-hidden ${FIELD_EDGE}`}
 		>
 			{!ready && (
-				<div aria-hidden className={value ? "whitespace-pre-wrap px-3.5 py-3" : "px-3.5 py-3 text-ink-3"}>
+				<div aria-hidden className={value ? "whitespace-pre-wrap px-5 py-[18px]" : "px-5 py-[18px] text-ink-3"}>
 					{value || placeholder}
 				</div>
 			)}
