@@ -54,6 +54,16 @@ export interface FolderStatus {
 	checkedAt: string | null;
 	/** New files not added yet because they are still changing (downloading). */
 	settling: number;
+	/** Files in the folder that can't be read (absent when none). */
+	skipped?: SkippedFiles;
+}
+
+/** A linked folder's files that can't be read: how many, a few names, and
+ *  how many are Google Docs/Sheets/Slides links (their text is online). */
+export interface SkippedFiles {
+	count: number;
+	examples: string[];
+	google: number;
 }
 
 export interface ClassFile {
@@ -297,24 +307,40 @@ export function parseClassScope(raw: string | null | undefined): ClassScope | un
 	return isClassId(raw) ? raw : undefined;
 }
 
-/** File types the pipeline can turn into text. */
-export const TEXT_EXTENSIONS = [".md", ".markdown", ".txt"] as const;
-export const DOCUMENT_EXTENSIONS = [".pdf"] as const;
+/** File types the pipeline can turn into text. Plain text and code are
+ *  read as they are; documents (PDF, Word, PowerPoint) have their text
+ *  pulled out and saved. A file with no extension is read as plain text
+ *  when its bytes are text (the server checks). */
+const TEXT_EXTENSIONS = [".md", ".markdown", ".txt"] as const;
+const CODE_EXTENSIONS = [
+	".c", ".h", ".cpp", ".cc", ".hpp", ".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs",
+	".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
+] as const;
+export const OFFICE_EXTENSIONS = [".docx", ".pptx"] as const;
+export const DOCUMENT_EXTENSIONS = [".pdf", ...OFFICE_EXTENSIONS] as const;
 export const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;
 const RECORDING_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"] as const;
 
-const SUPPORTED_CLASS_FILE_EXTENSIONS: readonly string[] = [
-	...TEXT_EXTENSIONS,
+/** Read as UTF-8 text, as they are. */
+export const PLAIN_TEXT_EXTENSIONS: readonly string[] = [...TEXT_EXTENSIONS, ...CODE_EXTENSIONS];
+
+/** Every supported extension, for lists people and agents read. */
+export const SUPPORTED_CLASS_FILE_EXTENSIONS: readonly string[] = [
+	...PLAIN_TEXT_EXTENSIONS,
 	...DOCUMENT_EXTENSIONS,
 	...TRANSCRIPT_EXTENSIONS,
 	...RECORDING_EXTENSIONS,
 ];
 
-/** Lower-cased extension including the dot ("" when none). */
+/** Lower-cased extension including the dot ("" when none). A dot followed
+ *  by words and spaces ("cse29.site, Piazza feed (captured …)") is part of
+ *  the name, not an extension. */
 export function extensionOf(name: string): string {
 	const dot = name.lastIndexOf(".");
 	const slash = Math.max(name.lastIndexOf("/"), name.lastIndexOf("\\"));
-	return dot > slash ? name.slice(dot).toLowerCase() : "";
+	if (dot <= slash) return "";
+	const ext = name.slice(dot).toLowerCase();
+	return /^\.[a-z0-9]{1,10}$/.test(ext) ? ext : "";
 }
 
 /** A filename safe to store (no folders, no control chars). */
@@ -325,6 +351,10 @@ export function safeName(name: string): string {
 
 export function isSupportedClassFile(name: string): boolean {
 	return SUPPORTED_CLASS_FILE_EXTENSIONS.includes(extensionOf(name));
+}
+
+export function isCodeFile(name: string): boolean {
+	return (CODE_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
 
 export function isRecordingFile(name: string): boolean {

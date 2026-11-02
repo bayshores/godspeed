@@ -1,6 +1,19 @@
 import { memo, useCallback, useRef, useState } from "react";
-import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
-import { isNewFolderFile, isRecording, type ClassFile, type FileCoverage } from "@/core";
+import {
+	ArrowRightLeftIcon,
+	CaptionsIcon,
+	CircleXIcon,
+	EllipsisIcon,
+	FileCodeIcon,
+	FileTextIcon,
+	FolderIcon,
+	FolderSearchIcon,
+	LoaderIcon,
+	PresentationIcon,
+	RotateCwIcon,
+	Trash2Icon,
+} from "lucide-react";
+import { extensionOf, isCodeFile, isNewFolderFile, isRecording, type ClassFile, type FileCoverage } from "@/core";
 import { CopyButton } from "@/components/copy-button";
 import { useMinute } from "@/components/countdown";
 import { MenuShell } from "@/components/menu-shell";
@@ -30,6 +43,13 @@ export interface FileRowActions {
 	show?: { label: string; run: (fileId: string) => void };
 }
 
+/** The row's icon by file type. */
+function fileIcon(name: string) {
+	if (isRecording(name)) return CaptionsIcon;
+	if (isCodeFile(name)) return FileCodeIcon;
+	return extensionOf(name) === ".pptx" ? PresentationIcon : FileTextIcon;
+}
+
 /** The kind label's hover text. */
 const KIND_HELP = {
 	study: { title: "Study material", body: "Turned into facts for the graph." },
@@ -56,7 +76,7 @@ export const FileRow = memo(function FileRow({
 }) {
 	const state = fileState(file, coverage, agentTeaching);
 	const install = state.kind === "failed" ? state.install : undefined;
-	const Icon = isRecording(file.name) ? CaptionsIcon : FileTextIcon;
+	const Icon = fileIcon(file.name);
 	const help = KIND_HELP[file.sortedAsInfo && file.kind === "info" ? "sorted" : file.kind];
 	const minute = useMinute();
 	return (

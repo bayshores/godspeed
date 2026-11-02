@@ -18,6 +18,13 @@ describe("passages", () => {
 		assert.equal(chunks.slice(1).map((c) => c.text).join("\n"), long);
 	});
 
+	it("a PowerPoint is cut by slide", () => {
+		const { chunks, extent } = chunkFile("Lecture 9.pptx", "--- Slide 1 ---\nRecursion\n\n--- Slide 2 ---\nBase case\nNotes:\nStress the base case");
+		assert.equal(extent, "2 slides");
+		assert.deepEqual(chunks.map((c) => [c.range, c.text]), [["slide 1", "Recursion"], ["slide 2", "Base case\nNotes:\nStress the base case"]]);
+		assert.equal(rangePoint("slide 2"), 2);
+	});
+
 	it("captions are cut into windows of 60–90 s with their times", () => {
 		const cue = (n: number, start: number, text: string) =>
 			`${n}\n00:${String(Math.floor(start / 60)).padStart(2, "0")}:${String(start % 60).padStart(2, "0")},000 --> 00:${String(Math.floor((start + 4) / 60)).padStart(2, "0")}:${String((start + 4) % 60).padStart(2, "0")},000\n${text}\n`;

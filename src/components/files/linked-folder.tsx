@@ -4,7 +4,7 @@ import { MAX_LINKED_FILES, type FolderProblem, type FolderStatus } from "@/core"
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { folderStatusLine } from "./folder-status-model";
+import { folderStatusLine, skippedLines } from "./folder-status-model";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 
 /** What the box says about each folder problem. */
@@ -18,10 +18,11 @@ const BOX_BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-2.5 py-1.5 tex
 
 /**
  * THE LINKED FOLDER (Files page, top bar): a live line, "Watching CSE 21
- * on Google Drive · checked just now", or a plain warning when the folder
- * is gone, looks empty or still has files downloading. Clicking it opens
- * a small box with the full path, what the folder does (or what is wrong
- * with it), and its buttons: Pick folder again
+ * on Google Drive · 2 can't be read · checked just now", or a plain
+ * warning when the folder is gone, looks empty or still has files
+ * downloading. Clicking it opens a small box with the full path, what the
+ * folder does (or what is wrong with it), which files it can't read, and
+ * its buttons: Pick folder again
  * (the safe way to switch folders), Open in Finder (desktop app) and Unlink,
  * which asks first.
  * (Tooltips here can't hold buttons, so the box opens on click.)
@@ -56,6 +57,7 @@ export function LinkedFolderChip({
 	const { problem } = status;
 	const missing = problem === "missing";
 	const line = folderStatusLine(path, status, now);
+	const skipped = skippedLines(status.skipped);
 	return (
 		<>
 			<Tip title="Linked folder" side="bottom" align="end">
@@ -93,7 +95,16 @@ export function LinkedFolderChip({
 						{PROBLEM_LINE[problem]}
 					</div>
 				) : (
-					<div className="text-[12.5px] text-ink-2">New files in it are added as study material.</div>
+					<div className="text-[12.5px] text-ink-2">New files in it are added and sorted into study material or course info as your agent reads them.</div>
+				)}
+				{skipped.length > 0 && (
+					<div data-testid="class-folder-skipped" className="flex flex-col gap-1 text-[12.5px] text-ink-2">
+						{skipped.map((text) => (
+							<p key={text} className="break-words">
+								{text}
+							</p>
+						))}
+					</div>
 				)}
 				<div className="flex flex-wrap gap-2 pt-1">
 					<button type="button" data-testid="class-folder-pick-again" disabled={disabled} onClick={pick(onPickAgain)} className={BOX_BUTTON}>

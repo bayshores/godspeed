@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClassFile, FolderStatus } from "../src/core/contracts.ts";
 import { folderName, folderSource, isGoogleDriveFolder } from "../src/core/linked-folder.ts";
-import { folderStatusLine, newSince } from "../src/components/files/folder-status-model.ts";
+import { folderStatusLine, newSince, skippedLines } from "../src/components/files/folder-status-model.ts";
 
 const DRIVE = "/Users/me/Library/CloudStorage/GoogleDrive-me@gmail.com/My Drive/CSE 21";
 const LOCAL = "/Users/me/School/CSE 21/";
@@ -30,6 +30,17 @@ describe("the folder line", () => {
 		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: new Date(NOW - 61 * 60_000).toISOString() }), NOW).text, "Watching CSE 21 · checked 1 hour ago");
 		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: null }), NOW).text, "Watching CSE 21");
 		assert.equal(folderStatusLine(LOCAL, ok(), null).text, "Watching CSE 21");
+	});
+
+	it("counts files it can't read, and its box names them", () => {
+		const skipped = { count: 5, examples: ["notes.key", "Plan.gdoc", "photo.png"], google: 1 };
+		assert.equal(folderStatusLine(DRIVE, ok({ skipped }), NOW).text, "Watching CSE 21 on Google Drive · 5 can't be read · checked just now");
+		assert.deepEqual(skippedLines(skipped), [
+			"5 files here can't be read: notes.key, Plan.gdoc, photo.png and 2 more.",
+			"Google Docs need saving as PDF or Word to be read.",
+		]);
+		assert.deepEqual(skippedLines({ count: 1, examples: ["notes.key"], google: 0 }), ["1 file here can't be read: notes.key."]);
+		assert.deepEqual(skippedLines(undefined), []);
 	});
 
 	it("gives plain warnings instead when the folder is gone, looks empty or is still downloading", () => {

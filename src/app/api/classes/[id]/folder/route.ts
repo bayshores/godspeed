@@ -1,7 +1,7 @@
 /**
  * /api/classes/[id]/folder
  *  PUT    — { path } link (or re-link) a folder on this computer; its
- *           supported files are added as study material
+ *           supported files are added (sorted into study or info as they are read)
  *  DELETE — unlink: the folder's files leave the class with their facts
  *           (the folder itself is never touched)
  */

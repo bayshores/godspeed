@@ -1,9 +1,9 @@
 /**
  * The Files page's linked-folder line ("Watching CSE 21 on Google Drive ·
- * checked just now", or a plain warning instead) and the summary's
- * "3 new since Tue".
+ * checked just now", or a plain warning instead), what its box says about
+ * files it can't read, and the summary's "3 new since Tue".
  */
-import { folderName, isGoogleDriveFolder, isNewFolderFile, type ClassFile, type FolderStatus } from "@/core";
+import { folderName, isGoogleDriveFolder, isNewFolderFile, type ClassFile, type FolderStatus, type SkippedFiles } from "@/core";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -14,8 +14,24 @@ export function folderStatusLine(folder: string, status: FolderStatus, now: numb
 	if (status.problem === "empty") return { text: drive ? "Google Drive is starting, waiting to check" : "This folder looks empty, waiting to check", warn: true };
 	const n = status.settling;
 	if (n > 0) return { text: `${n} ${n === 1 ? "file" : "files"} still ${drive ? "downloading" : "being saved"}`, warn: false };
-	const watching = `Watching ${folderName(folder)}${drive ? " on Google Drive" : ""}`;
-	return { text: status.checkedAt && now !== null ? `${watching} · checked ${checkedAgo(status.checkedAt, now)}` : watching, warn: false };
+	const parts = [`Watching ${folderName(folder)}${drive ? " on Google Drive" : ""}`];
+	const skipped = status.skipped?.count ?? 0;
+	if (skipped > 0) parts.push(`${skipped} can't be read`);
+	if (status.checkedAt && now !== null) parts.push(`checked ${checkedAgo(status.checkedAt, now)}`);
+	return { text: parts.join(" · "), warn: false };
+}
+
+/** The linked-folder box's lines about files it can't read ("2 files here
+ *  can't be read: notes.key, plan.gdoc"), and what to do about Google
+ *  Docs; empty when every file can be read. */
+export function skippedLines(skipped: SkippedFiles | undefined): string[] {
+	if (!skipped || skipped.count === 0) return [];
+	const { count, examples, google } = skipped;
+	const more = count - examples.length;
+	const names = more > 0 ? `${examples.join(", ")} and ${more} more` : examples.join(", ");
+	const lines = [`${count} ${count === 1 ? "file here can't" : "files here can't"} be read: ${names}.`];
+	if (google > 0) lines.push("Google Docs need saving as PDF or Word to be read.");
+	return lines;
 }
 
 /** "just now", "4 minutes ago", "2 hours ago". */
