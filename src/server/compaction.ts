@@ -31,10 +31,8 @@ import {
 	activeCompactionOf,
 	buildCompactionPrompt,
 	compactionCutIndex,
-	COMPACTION_RESERVE_TOKENS,
 	estimateContextTokens,
 	estimateTokens,
-	FACTORY_SETTINGS,
 	newCompactionMarker,
 	planTreeToText,
 	serializeForSummary,
@@ -122,16 +120,6 @@ export function compactionInFlight(chatId: string): boolean {
 export async function awaitCompaction(chatId: string): Promise<void> {
 	const running = state().inFlight.get(chatId);
 	if (running) await running;
-}
-
-// ─── the effective threshold: min(setting, window − reserve) ───────────────
-
-/** Resolve the effective trigger. Unknown window → the setting alone
- *  (honest: no fake window — the catalog-index precedent). */
-export function effectiveThresholdTokens(settingTokens: number | undefined, contextWindowTokens: number | undefined): number {
-	const setting = settingTokens ?? FACTORY_SETTINGS.compaction.thresholdTokens;
-	if (contextWindowTokens === undefined) return setting;
-	return Math.min(setting, Math.max(contextWindowTokens - COMPACTION_RESERVE_TOKENS, 1));
 }
 
 // ─── the estimate over the ACTIVE projection ────────────────────────────────

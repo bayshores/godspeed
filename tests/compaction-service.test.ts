@@ -27,12 +27,11 @@ const {
 	ensureCompacted,
 	kickCompaction,
 	awaitCompaction,
-	effectiveThresholdTokens,
 	projectedContextTokens,
 } = await import("../src/server/compaction.ts");
 import type { CompactionDeps } from "../src/server/compaction.ts";
 const { subscribe } = await import("../src/core/events.ts");
-const { activeCompactionOf, newUserMessage, measuredContextTokens, COMPACTED_HISTORY_HEADER } = await import("../src/core/index.ts");
+const { activeCompactionOf, effectiveThresholdTokens, newUserMessage, measuredContextTokens, COMPACTED_HISTORY_HEADER } = await import("../src/core/index.ts");
 import type { LhMessage } from "../src/core/index.ts";
 
 after(() => {

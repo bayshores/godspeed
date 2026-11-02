@@ -37,6 +37,7 @@ import { COMPACTED_HISTORY_HEADER } from "./contracts/chat.ts";
 import type { LhMessage, LhMarkerMessage } from "./native-messages.ts";
 import { newMessageId } from "./message-id.ts";
 import { contentText } from "./attachments.ts";
+import { FACTORY_SETTINGS } from "./settings.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage, SystemMessage, UserMessage } from "@earendil-works/pi-ai";
 
@@ -50,6 +51,14 @@ export const KEEP_RECENT_TOKENS = 20_000;
 /** The reserve subtracted from the model's contextWindow when the window
  * (not the user's threshold) is the binding constraint (pi's default). */
 export const COMPACTION_RESERVE_TOKENS = 16_384;
+
+/** The point a lesson gets summarized: min(setting, window − reserve).
+ *  Unknown window → the setting alone. */
+export function effectiveThresholdTokens(settingTokens: number | undefined, contextWindowTokens: number | undefined): number {
+	const setting = settingTokens ?? FACTORY_SETTINGS.compaction.thresholdTokens;
+	if (contextWindowTokens === undefined) return setting;
+	return Math.min(setting, Math.max(contextWindowTokens - COMPACTION_RESERVE_TOKENS, 1));
+}
 
 /** Tool-result truncation when serializing the span for the summarizer
  * (pi's mirror: long job/research results don't need verbatim inclusion

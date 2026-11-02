@@ -29,6 +29,7 @@ import type { ClassSearch } from "../agent/tools/class.ts";
 import { readPassage, relatedFacts, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { graphToolsEnabled } from "../core/settings-resolution.ts";
+import { effectiveThresholdTokens } from "../core/compaction.ts";
 import { learnerRulesSection } from "../core/teaching-areas.ts";
 import { beginTurn, endTurn, isTurnRunning } from "./turn-liveness.ts";
 import { applyParkedDismissal } from "./dismissal-park.ts";
@@ -36,7 +37,7 @@ import { registerTurn, rememberTurnFailure, unregisterTurn } from "./turn-runs.t
 import { persistTurn, triggerExtraction, TurnPersistenceError } from "./turn-service.ts";
 import { hasProbeDone, danglingQuestionOf, isSideTurn, retryContext } from "../core/native-messages.ts";
 import { composeInstructions } from "../agent/teacher-agent.ts";
-import { ensureCompacted, kickCompaction, effectiveThresholdTokens, type CompactionDeps } from "./compaction.ts";
+import { ensureCompacted, kickCompaction, type CompactionDeps } from "./compaction.ts";
 import { emit } from "../core/events.ts";
 import { asAgentMessages } from "../core/native-messages.ts";
 import {

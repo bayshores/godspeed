@@ -12,6 +12,7 @@ import { useEnterSubmits } from "@/components/enter-submits";
 import { JobsContext } from "@/components/jobs-context";
 import { ChatActionsContext } from "@/components/chat-actions-context";
 import { StatsBar } from "@/components/stats-bar";
+import { useSummarizePoint } from "@/components/use-summarize-point";
 import { agentWaiting, useAgentStatus } from "@/components/agent-status";
 import { latestTree } from "@/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/components/session-overlay";
@@ -83,6 +84,7 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, status, error, stop, clearError, resumeStream } = session;
+	const summarizeAt = useSummarizePoint();
 	const { turnInFlight, localStreamRef, jobs, turns, pricing, compacting } = useLessonServer({
 		chatId,
 		session,
@@ -524,7 +526,7 @@ export function Chat({
 												</p>
 											) : undefined,
 									}}
-									stats={<StatsBar turns={turns} contextTokens={contextTokens} pricing={pricing} />}
+									stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
 								/>
 
 								{/* The session-scoped focuses: absolute over the lesson area, below
