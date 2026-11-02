@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ClassFile, FileCoverage } from "@/core";
+import { useCallback, useMemo, useState } from "react";
+import { SearchIcon, XIcon } from "lucide-react";
+import type { FileCoverage } from "@/core";
 import { useAgentStatus } from "@/components/agent-status";
 import { useClasses } from "@/components/class-context";
 import { LoadFailed } from "@/components/load-failed";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
+import { AddFilesButton } from "./add-files";
 import {
 	classFilePathOf,
 	linkClassFolder,
@@ -20,31 +22,55 @@ import {
 } from "./class-files-api";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
-import { FileSection, type SectionDrag } from "./files-sections";
-import { confirmCopy, fileAnchorId, fileBrowserName, fileIdFromHash, splitByKind, type FileConfirm } from "./files-model";
+import { FileGroupSection, FinderDropTargets } from "./files-sections";
+import { confirmCopy, fileBrowserName, fileGroups, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
 
-/** How long a row a "#file-<id>" link landed on stays outlined. */
-const FLASH_MS = 1600;
-
 /**
- * THE FILES PAGE: the
- * active class's files in two stacked panels, "Study material" and
- * "Course info" (files-sections.tsx). Each panel has its own Add and is a
- * drop zone for files from Finder; dragging a row into the other panel
- * (or its ⋯ menu's "Move to …") switches its kind. The linked folder (or
- * Link folder) sits in the Study material header. Unlink, Remove and the
- * menu's "Move to Course info" ask first, saying how many facts go.
+ * THE FILES PAGE: the active class's files in groups found from their
+ * names (a lecture's notes and transcript together, with the date when a
+ * name has one), a search box, Add files (pick the kind first) and the
+ * linked folder. Dragging files from Finder over the page shows two
+ * places to drop them: Study material or Course info. Unlink, Remove and
+ * Move to Course info ask first, saying how many facts go.
  *
  * Coverage per file comes from the shared progress payload; the record
  * re-reads on classes-changed, so statuses update as files are built.
- * A "#file-<id>" hash (the Overview's coverage blocks) scrolls to that row
- * and outlines it briefly.
  */
 export function FilesPage() {
 	const { active } = useClasses();
 	// Keyed by class, so a class switch starts clean.
 	return <FilesPageBody key={active ?? "none"} />;
+}
+
+const collapsedKey = (classId: string) => `lh:files-collapsed:${classId}`;
+
+/** Folded groups, remembered per class in this browser only. */
+function useCollapsed(classId: string | null) {
+	const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => {
+		if (!classId) return new Set();
+		try {
+			const saved: unknown = JSON.parse(window.localStorage.getItem(collapsedKey(classId)) ?? "[]");
+			return new Set(Array.isArray(saved) ? saved.filter((k): k is string => typeof k === "string") : []);
+		} catch {
+			return new Set();
+		}
+	});
+	const toggle = useCallback(
+		(key: string) =>
+			setCollapsed((prev) => {
+				const next = new Set(prev);
+				if (!next.delete(key)) next.add(key);
+				try {
+					if (classId) window.localStorage.setItem(collapsedKey(classId), JSON.stringify([...next]));
+				} catch {
+					// Only a convenience: the page works without it.
+				}
+				return next;
+			}),
+		[classId],
+	);
+	return { collapsed, toggle };
 }
 
 function FilesPageBody() {
@@ -56,6 +82,9 @@ function FilesPageBody() {
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(0);
 	const [linking, setLinking] = useState(false);
+	const [query, setQuery] = useState("");
+	const [finderDrag, setFinderDrag] = useState<number | null>(null);
+	const { collapsed, toggle } = useCollapsed(active);
 	const classId = record?.id ?? null;
 
 	const coverage = useMemo(() => {
@@ -63,7 +92,9 @@ function FilesPageBody() {
 		if (data && data.classId === active) for (const f of data.files) map.set(f.fileId, f);
 		return map;
 	}, [data, active]);
-	const sections = useMemo(() => splitByKind(record?.files ?? []), [record]);
+	const groups = useMemo(() => fileGroups(record?.files ?? []), [record]);
+	const shown = useMemo(() => filterGroups(groups, query), [groups, query]);
+	const searching = query.trim() !== "";
 
 	/** Run one write: busy while in flight, its error shown. */
 	const run = useCallback(async (write: () => Promise<WriteResult>) => {
@@ -120,38 +151,13 @@ function FilesPageBody() {
 		});
 	}, [link]);
 
-	const flashId = useHashFlash(record !== null);
 	const disabled = busy > 0;
-
-	// Drag and drop: a row being moved, and what is over which panel.
-	const [rowDrag, setRowDrag] = useState<ClassFile | null>(null);
-	const [over, setOver] = useState<{ kind: "study" | "info"; drag: SectionDrag } | null>(null);
-	const onDrag = useCallback((file: ClassFile | null) => {
-		setRowDrag(file);
-		if (!file) setOver(null);
-	}, []);
-	const rowActions = useMemo(() => (actions ? { ...actions, onDrag } : null), [actions, onDrag]);
-	const onDragOverSection = useCallback(
-		(kind: "study" | "info", drag: { type: "finder"; count: number } | { type: "row" }): boolean => {
-			if (drag.type === "row") {
-				if (!rowDrag || rowDrag.kind === kind) return false;
-				setOver((prev) => (prev?.kind === kind && prev.drag.type === "row" ? prev : { kind, drag: { type: "row", file: rowDrag } }));
-				return true;
-			}
-			setOver((prev) => (prev?.kind === kind && prev.drag.type === "finder" && prev.drag.count === drag.count ? prev : { kind, drag }));
-			return true;
+	const add = useCallback(
+		(kind: "study" | "info", files: File[]) => {
+			setFinderDrag(null);
+			if (classId) void run(() => uploadClassFiles(classId, files, kind));
 		},
-		[rowDrag],
-	);
-	const onDragLeaveSection = useCallback((kind: "study" | "info") => setOver((prev) => (prev?.kind === kind ? null : prev)), []);
-	// The drag already showed what the move does, so it moves at once.
-	const onMoveHere = useCallback(
-		(kind: "study" | "info") => {
-			if (classId && rowDrag && rowDrag.kind !== kind) void run(() => setClassFileKind(classId, rowDrag.id, kind));
-			setRowDrag(null);
-			setOver(null);
-		},
-		[classId, rowDrag, run],
+		[classId, run],
 	);
 	const confirmText = useMemo(() => (confirm && record ? confirmCopy(confirm, record.name, record.files, coverage) : null), [confirm, record, coverage]);
 	const closeConfirm = useCallback(() => setConfirm(null), []);
@@ -162,97 +168,92 @@ function FilesPageBody() {
 		else if (confirm.kind === "remove") void run(() => removeClassFile(classId, confirm.file.id));
 		else void run(() => setClassFileKind(classId, confirm.file.id, "info"));
 	};
-	const addStudy = useCallback(
-		(files: File[]) => {
-			if (classId) void run(() => uploadClassFiles(classId, files, "study"));
-		},
-		[classId, run],
-	);
-	const addInfo = useCallback(
-		(files: File[]) => {
-			if (classId) void run(() => uploadClassFiles(classId, files, "info"));
-		},
-		[classId, run],
-	);
-	const overFor = (kind: "study" | "info") => (over?.kind === kind ? over.drag : null);
-	const finderOver = over?.drag.type === "finder" ? over.kind : null;
 
 	return (
 		<div
 			className="flex h-full flex-col"
 			data-testid="files-page"
-			// Files dropped outside the two panels do nothing.
 			onDragOver={(e) => {
 				if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+				// Only the two drop targets take files.
 				e.preventDefault();
 				e.dataTransfer.dropEffect = "none";
+				if (record && !disabled) setFinderDrag(e.dataTransfer.items.length);
+			}}
+			onDragLeave={(e) => {
+				if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
+				setFinderDrag(null);
 			}}
 			onDrop={(e) => {
 				e.preventDefault();
-				setOver(null);
+				setFinderDrag(null);
 			}}
 		>
 			<TopBar>
-				<h1 className="pl-4 text-[15px] font-bold text-ink">Files</h1>
+				<div className="flex-1" />
+				{record && (
+					<>
+						{record.linkedFolder ? (
+							<LinkedFolderChip
+								path={record.linkedFolder}
+								problem={folderProblem}
+								disabled={disabled}
+								open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
+								onPickAgain={onLinkFolder}
+								onUnlink={() => setConfirm({ kind: "unlink" })}
+							/>
+						) : (
+							!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
+						)}
+						<AddFilesButton disabled={disabled} onAdd={add} />
+					</>
+				)}
 			</TopBar>
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{!active && <p className="m-auto text-sm text-ink-2">Pick a class to see its files.</p>}
 				{active && !record && !failed && <p className="m-auto text-sm text-ink-2">Loading…</p>}
 				{active && !record && failed && <LoadFailed message="Couldn't load this class's files." onRetry={() => void reload()} className="m-auto" />}
-				{record && rowActions && (
-					<div className="flex w-full flex-col gap-6 px-7 pt-2 pb-7">
+				{record && actions && (
+					<div className="flex w-full flex-col gap-4 px-[52px] pb-8">
+						<header className="flex flex-wrap items-end gap-x-6 gap-y-3 py-6">
+							<div className="flex min-w-0 flex-1 flex-col gap-2">
+								<h1 className="font-title text-[40px] leading-[48px] tracking-tight text-ink">Files</h1>
+								<p data-testid="files-summary" className="text-base leading-6 text-ink-2">
+									{filesSummary(record.files)}
+								</p>
+							</div>
+							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}
+						</header>
+						{linking && <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} />}
 						{error && (
 							<div role="alert" data-testid="class-files-error" className="whitespace-pre-wrap border border-ans-wrong/50 px-3 py-2 text-[13px] text-ans-wrong">
 								{error}
 							</div>
 						)}
-						<FileSection
-							kind="study"
-							files={sections.study}
-							coverage={coverage}
-							disabled={disabled}
-							flashId={flashId}
-							agentTeaching={agentTeaching}
-							actions={rowActions}
-							headerExtra={
-								record.linkedFolder ? (
-									<LinkedFolderChip
-										path={record.linkedFolder}
-										problem={folderProblem}
-										disabled={disabled}
-										open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
-										onPickAgain={onLinkFolder}
-										onUnlink={() => setConfirm({ kind: "unlink" })}
-									/>
-								) : (
-									!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
-								)
-							}
-							beforeRows={linking ? <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} /> : null}
-							draggingId={rowDrag?.id ?? null}
-							over={overFor("study")}
-							dim={finderOver === "info"}
-							onAddFiles={addStudy}
-							onDragOverSection={onDragOverSection}
-							onDragLeaveSection={onDragLeaveSection}
-							onMoveHere={onMoveHere}
-						/>
-						<FileSection
-							kind="info"
-							files={sections.info}
-							coverage={coverage}
-							disabled={disabled}
-							flashId={flashId}
-							agentTeaching={agentTeaching}
-							actions={rowActions}
-							draggingId={rowDrag?.id ?? null}
-							over={overFor("info")}
-							dim={finderOver === "study"}
-							onAddFiles={addInfo}
-							onDragOverSection={onDragOverSection}
-							onDragLeaveSection={onDragLeaveSection}
-							onMoveHere={onMoveHere}
-						/>
+						{finderDrag !== null && <FinderDropTargets count={finderDrag} onDrop={add} />}
+						{record.files.length === 0 && finderDrag === null && (
+							<div data-testid="files-empty" className="flex h-[200px] flex-col items-center justify-center gap-2 bg-panel p-4 text-center">
+								<span className="text-[14.5px] text-ink-2">Add lecture notes, readings, recordings or the syllabus, or drop them here.</span>
+								<span className="text-[12.5px] text-ink-3">PDF · Markdown · text · VTT/SRT · audio · video</span>
+							</div>
+						)}
+						{searching && shown.length === 0 && (
+							<p data-testid="files-no-match" className="py-6 text-sm text-ink-2">
+								No file names have “{query.trim()}”.
+							</p>
+						)}
+						{shown.map((group) => (
+							<FileGroupSection
+								key={group.key}
+								group={group}
+								collapsed={!searching && collapsed.has(group.key)}
+								onToggle={toggle}
+								coverage={coverage}
+								disabled={disabled}
+								agentTeaching={agentTeaching}
+								actions={actions}
+							/>
+						))}
 					</div>
 				)}
 			</div>
@@ -261,32 +262,24 @@ function FilesPageBody() {
 	);
 }
 
-/** The row a "#file-<id>" hash points at: scrolled into view once the
- *  rows exist, outlined for FLASH_MS, then null. */
-function useHashFlash(ready: boolean): string | null {
-	const [flashId, setFlashId] = useState<string | null>(null);
-	const [target, setTarget] = useState<string | null>(null);
-	useEffect(() => {
-		const read = () => setTarget(fileIdFromHash(window.location.hash));
-		read();
-		window.addEventListener("hashchange", read);
-		return () => window.removeEventListener("hashchange", read);
-	}, []);
-	useEffect(() => {
-		if (!ready || !target) return;
-		const el = document.getElementById(fileAnchorId(target));
-		if (!el) return;
-		const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-		el.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
-		const start = setTimeout(() => setFlashId(target), 0);
-		const end = setTimeout(() => {
-			setFlashId(null);
-			setTarget(null);
-		}, FLASH_MS);
-		return () => {
-			clearTimeout(start);
-			clearTimeout(end);
-		};
-	}, [ready, target]);
-	return flashId;
+function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+	return (
+		<label className="flex h-9 w-[260px] items-center gap-2 bg-panel px-3 text-ink-3 focus-within:outline focus-within:outline-1 focus-within:outline-tone-2">
+			<SearchIcon className="size-3.5 shrink-0" aria-hidden />
+			<input
+				type="search"
+				data-testid="files-search"
+				aria-label="Find a file"
+				placeholder="Find a file"
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
+			/>
+			{value && (
+				<button type="button" aria-label="Clear" data-testid="files-search-clear" onClick={() => onChange("")} className="lh-press shrink-0 hover:text-ink">
+					<XIcon className="size-3.5" aria-hidden />
+				</button>
+			)}
+		</label>
+	);
 }

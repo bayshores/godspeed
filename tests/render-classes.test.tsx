@@ -24,14 +24,14 @@ describe("class surfaces", () => {
 		assert.ok(!html.includes("class-context-body"), "collapsed by default");
 	});
 
-	it("a file row is draggable, shows Failed + Retry and its studied facts, and always has the ⋯ menu", () => {
+	it("a file row says Study or Info, shows Failed + Retry and its studied facts, and always has the ⋯ menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
 		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} agentTeaching actions={actions} />);
 		assert.ok(copied.includes("Failed"));
 		assert.ok(copied.includes('data-testid="class-file-retry-f_1"'));
-		assert.ok(copied.includes('draggable="true"'));
-		assert.ok(!copied.includes("class-file-kind-"), "no Study/Info toggle on the row");
+		assert.match(copied, /data-testid="class-file-kind-f_1"[^>]*>Study</);
+		assert.ok(!copied.includes("draggable"), "rows are not dragged between kinds any more");
 		const linked = renderToStaticMarkup(
 			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} agentTeaching actions={actions} />,
 		);

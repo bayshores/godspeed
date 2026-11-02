@@ -44,7 +44,8 @@ const words = (text: string) =>
 	text
 		.split(/[\s_\-.()]+/)
 		.map((w) => w.trim())
-		.filter((w) => w && !/^\d+$/.test(w));
+		// Words only: no bare numbers or dashes.
+		.filter((w) => /\p{L}/u.test(w));
 
 interface Candidate {
 	key: string;

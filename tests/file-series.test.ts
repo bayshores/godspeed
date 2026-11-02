@@ -61,6 +61,10 @@ describe("file series", () => {
 		assert.deepEqual(seriesGaps({ items: [{ number: 0, files: [], date: null }, { number: 2, files: [], date: null }] }), [1]);
 		assert.deepEqual(seriesGaps({ items: [{ number: 3, files: [], date: null }, { number: 4, files: [], date: null }] }), [1, 2]);
 	});
+	it("labels use words only, never a dash or a number", () => {
+		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));
+		assert.deepEqual(s.map((x) => x.label), ["Rosen · Probability"]);
+	});
 	it("a lone numbered file or one repeated number is not a series", () => {
 		const { series: s, other: o } = groupFileSeries(named(["Notes 1.pdf", "Exam 2025.pdf", "Exam 2025 answers.pdf"]));
 		assert.deepEqual(s, []);

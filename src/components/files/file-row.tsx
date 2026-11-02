@@ -1,46 +1,44 @@
-import { memo, useCallback, useRef, useState, type DragEvent } from "react";
-import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, GripVerticalIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
+import { memo, useCallback, useRef, useState } from "react";
+import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
 import type { ClassFile, FileCoverage } from "@/core";
 import { CopyButton } from "@/components/copy-button";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
-import { canRemove, canRetry, FILE_DRAG_TYPE, fileAnchorId, fileState, kindTitle, studiedFill, type FileState } from "./files-model";
+import { canRemove, canRetry, fileState, isRecording, kindTitle, studiedFill, type FileState } from "./files-model";
 
 /**
- * ONE FILE ROW (Files page):
- * drag grip (on hover), icon, name (a folder mark when it comes from the
- * linked folder), the row's state ("12/31 facts studied"
- * with its bar, "Building facts…", "Waiting", "Failed · Retry") and the ⋯
- * menu (Move to the other section, Retry, Show in Finder, Remove). A
- * recording that needs the speech tool gets a second line with the install
- * command and Copy. The row has no box of
- * its own; the one under the mouse lights up. Drag it into the other
- * section to switch its kind. Memoized: a row redraws only when its own
- * file, coverage, flash or drag state changes.
+ * ONE FILE ROW (Files page): icon, name (a folder mark when it comes from
+ * the linked folder), Study or Info, the row's state ("12/31 facts
+ * studied" with its bar, "Building facts…", "Waiting", "Failed · Retry")
+ * and the ⋯ menu (Move to the other kind, Retry, Show in Finder, Remove).
+ * A recording that needs the speech tool gets a second line with the
+ * install command and Copy. The row has no box of its own; the one under
+ * the mouse lights up. Memoized: a row redraws only when its own file or
+ * coverage changes.
  */
 
 export interface FileRowActions {
-	/** The menu's Move to the other section (to Course info asks first). */
+	/** The menu's Move to the other kind (to Course info asks first). */
 	onKind: (file: ClassFile, kind: "study" | "info") => void;
 	onRetry: (fileId: string) => void;
 	/** Asks first. */
 	onRemove: (file: ClassFile) => void;
 	/** "Show in Finder" (desktop app only): its label and action. */
 	show?: { label: string; run: (fileId: string) => void };
-	/** A row drag started (null: it ended). */
-	onDrag?: (file: ClassFile | null) => void;
 }
 
-const RECORDING = /\.(vtt|srt|mp3|m4a|wav|mp4|mov)$/i;
+/** The kind label's hover text. */
+const KIND_HELP = {
+	study: { title: "Study material", body: "Turned into facts for the graph." },
+	info: { title: "Course info", body: "Syllabus, assignments and other class details. The teacher reads it, but it never becomes facts." },
+} as const;
 
 export const FileRow = memo(function FileRow({
 	file,
 	coverage,
 	disabled,
-	flash,
-	dragging,
 	agentTeaching,
 	actions,
 }: {
@@ -49,43 +47,19 @@ export const FileRow = memo(function FileRow({
 	disabled?: boolean;
 	/** An agent is running the work loop (a waiting file says who it waits for). */
 	agentTeaching: boolean;
-	/** Briefly outlined: the row a "#file-<id>" link landed on. */
-	flash?: boolean;
-	/** This row is being dragged: it fades in place. */
-	dragging?: boolean;
 	actions: FileRowActions;
 }) {
 	const state = fileState(file, coverage, agentTeaching);
 	const install = state.kind === "failed" ? state.install : undefined;
-	const Icon = RECORDING.test(file.name) ? CaptionsIcon : FileTextIcon;
-	const { onDrag } = actions;
-	const onDragStart = useCallback(
-		(e: DragEvent<HTMLLIElement>) => {
-			e.dataTransfer.setData(FILE_DRAG_TYPE, file.id);
-			e.dataTransfer.effectAllowed = "move";
-			onDrag?.(file);
-		},
-		[file, onDrag],
-	);
+	const Icon = isRecording(file.name) ? CaptionsIcon : FileTextIcon;
+	const help = KIND_HELP[file.kind];
 	return (
-		<li
-			id={fileAnchorId(file.id)}
-			data-testid={`class-file-${file.id}`}
-			data-halley-target={`file:${file.id}`}
-			data-flash={flash || undefined}
-			draggable={!disabled}
-			onDragStart={onDragStart}
-			onDragEnd={() => onDrag?.(null)}
-			className={cn(
-				"group flex scroll-m-6 flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2.5 pr-3 pl-2 outline-offset-[-1px] transition-[outline-color,opacity] duration-(--lh-dur-slow) hover:bg-tone",
-				flash ? "outline outline-1 outline-ink" : "outline outline-1 outline-transparent",
-				dragging && "opacity-30",
-			)}
-		>
-			<GripVerticalIcon className="size-3.5 shrink-0 cursor-grab text-ink-3 opacity-0 group-hover:opacity-100" aria-hidden />
+		<li data-testid={`class-file-${file.id}`} data-halley-target={`file:${file.id}`} className="group flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2 pr-3 pl-2 hover:bg-tone">
 			<Icon className="size-[15px] shrink-0 text-ink-2" aria-hidden />
 			<span className="flex min-w-0 flex-1 items-center gap-1.5">
-				<span className="min-w-0 truncate text-[14.5px] text-ink">{file.name}</span>
+				<span title={file.name} className="min-w-0 truncate text-[14.5px] text-ink">
+					{file.name}
+				</span>
 				{file.origin === "linked" && (
 					<Tip title="From your linked folder" body={<span className="break-all">{file.path}</span>} side="bottom" align="start">
 						<span tabIndex={0} data-testid={`class-file-linked-${file.id}`} className="shrink-0 text-ink-3 outline-none">
@@ -94,6 +68,11 @@ export const FileRow = memo(function FileRow({
 					</Tip>
 				)}
 			</span>
+			<Tip title={help.title} body={<span className="text-xs text-ink-2">{help.body}</span>} side="bottom" className="w-[240px]">
+				<span tabIndex={0} data-testid={`class-file-kind-${file.id}`} className="w-9 shrink-0 text-[12.5px] text-ink-3 outline-none">
+					{file.kind === "study" ? "Study" : "Info"}
+				</span>
+			</Tip>
 			<RowState fileId={file.id} state={state} disabled={disabled} onRetry={actions.onRetry} />
 			<RowMenu file={file} disabled={disabled} actions={actions} />
 			{install && <InstallLine fileId={file.id} command={install} />}
@@ -157,14 +136,15 @@ function RowState({
 			);
 		}
 		case "none":
-			return null;
+			// Keeps the menus in one column.
+			return <span className="w-[216px] shrink-0" aria-hidden />;
 	}
 }
 
 /** The speech tool's install step, under a recording that needs it. */
 function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 	return (
-		<span data-testid={`class-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1 pl-[49px] text-[12.5px] text-ink-2">
+		<span data-testid={`class-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1 pl-[25px] text-[12.5px] text-ink-2">
 			To turn recordings into text, run this in Terminal, then click Retry.
 			<span className="flex items-center gap-2">
 				<code className="bg-tone px-1.5 py-0.5 font-mono text-[12.5px] text-ink">{command}</code>
@@ -199,7 +179,7 @@ function CoverageCell({ fileId, state }: { fileId: string; state: Extract<FileSt
 
 const MENU_ITEM = "lh-press flex items-center gap-[9px] px-2.5 py-[7px] text-left hover:bg-tone";
 
-/** The ⋯ menu: Move to the other section, Retry (stuck or failed), Show
+/** The ⋯ menu: Move to the other kind, Retry (stuck or failed), Show
  *  in Finder (desktop app) and Remove (the app's own copies). */
 function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: boolean; actions: FileRowActions }) {
 	const [open, setOpen] = useState(false);
