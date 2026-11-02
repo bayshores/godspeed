@@ -28,7 +28,8 @@ export interface FileSeries<F extends NamedFile = NamedFile> {
 	items: SeriesItem<F>[];
 }
 
-const DATE = /(\d{4})-(\d{2})-(\d{2})/;
+/** "2026-09-24", or "20260924" as a whole number (a real month and day). */
+const DATE = /(\d{4})-(\d{2})-(\d{2})|(?<!\d)(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?!\d)/;
 
 function stem(name: string): string {
 	return name.replace(/\.[a-z0-9]{1,5}$/i, "");
@@ -42,7 +43,9 @@ export function dateInName(name: string): string | null {
 /** The name with its date cut out, and the date. */
 function splitDate(name: string): { rest: string; date: string | null } {
 	const m = DATE.exec(name);
-	return m ? { rest: name.replace(DATE, " "), date: `${m[1]}-${m[2]}-${m[3]}` } : { rest: name, date: null };
+	if (!m) return { rest: name, date: null };
+	const [y, mo, d] = m[1] ? [m[1], m[2], m[3]] : [m[4], m[5], m[6]];
+	return { rest: name.replace(DATE, " "), date: `${y}-${mo}-${d}` };
 }
 
 const words = (text: string) =>
@@ -75,13 +78,15 @@ function candidates(name: string): Candidate[] {
 	return out;
 }
 
-function labelFor(key: string, members: Candidate[]): string {
-	const head = words(members[0]!.prefix).join(" ");
+function labelFor(members: Candidate[]): string {
+	// A prefix of name codes only ("29-fa26-l") makes no label.
+	const headWords = words(members[0]!.prefix);
+	const head = headWords.some((w) => !/\d/.test(w) && w.length > 1) ? headWords.join(" ") : "";
 	// Words every member's remainder shares, e.g. "Discussion".
 	const sets = members.map((c) => new Set(words(c.remainder).map((w) => w.toLowerCase())));
 	const shared = words(members[0]!.remainder).filter((w) => sets.every((s) => s.has(w.toLowerCase())));
 	const tail = shared.filter((w, i) => shared.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i).join(" ");
-	if (!key) return tail || "Numbered";
+	if (!head) return tail || "Numbered";
 	return tail ? `${head} · ${tail}` : head;
 }
 
@@ -140,7 +145,7 @@ export function groupFileSeries<F extends NamedFile>(files: readonly F[]): { ser
 		}
 		series.push({
 			key,
-			label: labelFor(key, members.map((m) => m.c)),
+			label: labelFor(members.map((m) => m.c)),
 			items: [...items.values()].sort((a, b) => a.number - b.number),
 		});
 	}

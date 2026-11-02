@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { groupFileSeries, seriesGaps } from "../src/core/file-series.ts";
+import { dateInName, groupFileSeries, seriesGaps } from "../src/core/file-series.ts";
 import { kindsForNewFiles } from "../src/core/new-files.ts";
 
 const named = (names: string[]) => names.map((name, i) => ({ id: `f${i}`, name }));
@@ -65,6 +65,13 @@ describe("file series", () => {
 	it("labels use words only, never a dash or a number", () => {
 		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));
 		assert.deepEqual(s.map((x) => x.label), ["Rosen · Probability"]);
+	});
+	it("an 8-digit date is a date, not a series number", () => {
+		const { series: s, other } = groupFileSeries(named(["29-fa26-l0.pdf", "29-fa26-l1.pdf", "29-fa26-l2.pdf", "20260924-rq-answers.pdf", "20260928-rq-answers.pdf"]));
+		assert.deepEqual(s.map((x) => [x.label, x.items.map((i) => i.number)]), [["Numbered", [0, 1, 2]]]);
+		assert.deepEqual(other.map((f) => f.name), ["20260924-rq-answers.pdf", "20260928-rq-answers.pdf"]);
+		assert.equal(dateInName("20261014-rq-answers.pdf"), "2026-10-14");
+		assert.equal(dateInName("12345678.pdf"), null);
 	});
 	it("a date in front of the name doesn't split a series", () => {
 		const { series: s } = groupFileSeries(named(["2026-09-30 Week 1 Discussion.pdf", "Week 2 Morning Discussion_annotated.pdf"]));
