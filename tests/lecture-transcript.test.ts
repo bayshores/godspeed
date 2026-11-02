@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { FILE_NOT_FOUND } from "../src/core/contracts.ts";
 import { recordingsToRecheck, transcriptFor } from "../src/core/lecture-transcript.ts";
 
 type Kind = "study" | "info";
@@ -29,6 +30,12 @@ describe("a recording's transcript", () => {
 		assert.equal(transcriptFor(REC, files), null);
 	});
 
+	it("a same-day transcript of another lecture number, or office hours, isn't it", () => {
+		assert.equal(transcriptFor(REC, [REC, f("t", "Lecture02_2026-09-25.srt")]), null);
+		assert.equal(transcriptFor(REC, [REC, f("t", "2026-09-25 office hours transcript.pdf")])?.id, "t", "no number to disagree");
+		assert.equal(transcriptFor(f("r", "20260925 Lecture 1.mp4"), [f("t", "Lecture01_2026-09-25.srt")])?.id, "t", "an 8-digit date is a date");
+	});
+
 	it("matches by lecture number when a name has no date", () => {
 		const rec = f("rec", "Lecture 3.mp4");
 		assert.equal(transcriptFor(rec, [rec, f("t", "lecture_03 transcript.txt")])?.id, "t");
@@ -44,6 +51,7 @@ describe("a recording's transcript", () => {
 		assert.deepEqual(recordingsToRecheck([covered, { ...srt, kind: "info" as const }]), ["rec"], "its transcript became course info");
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "ready" as const }, srt]), ["rec"], "transcribed before its transcript came");
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "failed" as const }, srt]), ["rec"]);
+		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "failed" as const, error: FILE_NOT_FOUND }, srt]), [], "a gone recording waits for the scan");
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "pending" as const }, srt]), [], "a waiting one sees it on its turn");
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "extracting" as const }, srt]), []);
 	});

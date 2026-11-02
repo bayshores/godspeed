@@ -321,9 +321,9 @@ const CODE_EXTENSIONS = [
 	".c", ".h", ".cpp", ".cc", ".hpp", ".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs",
 	".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
 ] as const;
-export const OFFICE_EXTENSIONS = [".docx", ".pptx"] as const;
+const OFFICE_EXTENSIONS = [".docx", ".pptx"] as const;
 export const DOCUMENT_EXTENSIONS = [".pdf", ...OFFICE_EXTENSIONS] as const;
-export const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;
+const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;
 const RECORDING_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"] as const;
 
 /** Read as UTF-8 text, as they are. */
@@ -365,3 +365,20 @@ export function isCodeFile(name: string): boolean {
 export function isRecordingFile(name: string): boolean {
 	return (RECORDING_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
+
+/** Captions (.srt / .vtt), read with their times. */
+export function isTranscriptFile(name: string): boolean {
+	return (TRANSCRIPT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
+}
+
+export function isOfficeFile(name: string): boolean {
+	return (OFFICE_EXTENSIONS as readonly string[]).includes(extensionOf(name));
+}
+
+/** The lecture-audio side of a lecture: captions or a recording. */
+export function isRecordingOrCaptions(name: string): boolean {
+	return isRecordingFile(name) || isTranscriptFile(name);
+}
+
+/** The error of a file that is gone from its place. */
+export const FILE_NOT_FOUND = "The file could not be found";

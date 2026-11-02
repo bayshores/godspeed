@@ -17,12 +17,12 @@ import { Worker } from "node:worker_threads";
 import { pdfExtract, standardFontsDir } from "../agent/subagents/pdf-ops.ts";
 import {
 	MAX_LINKED_FILES,
-	OFFICE_EXTENSIONS,
 	PLAIN_TEXT_EXTENSIONS,
-	TRANSCRIPT_EXTENSIONS,
 	extensionOf,
+	isOfficeFile,
 	isRecordingFile,
 	isSupportedClassFile,
+	isTranscriptFile,
 	type SkippedFiles,
 } from "../core/contracts.ts";
 import { officeText } from "./office-text.ts";
@@ -107,11 +107,11 @@ export async function fileToText(absPath: string): Promise<string> {
 	const ext = extensionOf(absPath);
 	// No extension: only ever added after looksLikeText said it is text.
 	if (ext === "" || PLAIN_TEXT_EXTENSIONS.includes(ext)) return fs.readFileSync(absPath, "utf-8");
-	if ((TRANSCRIPT_EXTENSIONS as readonly string[]).includes(ext)) return transcriptToText(fs.readFileSync(absPath, "utf-8"));
+	if (isTranscriptFile(absPath)) return transcriptToText(fs.readFileSync(absPath, "utf-8"));
 	// pdfjs text, page-headed ("--- Page N ---"): the headings keep the
 	// extractor oriented in long readings.
 	if (ext === ".pdf") return pdfTextOffThread(absPath);
-	if ((OFFICE_EXTENSIONS as readonly string[]).includes(ext)) return officeText(absPath);
+	if (isOfficeFile(absPath)) return officeText(absPath);
 	if (isRecordingFile(absPath)) throw new RecordingNeedsTranscriptError();
 	throw new Error(`Unsupported file type: ${ext}`);
 }
@@ -146,10 +146,11 @@ function fileHead(absPath: string): Uint8Array {
 
 /** looksLikeText per file on disk, kept while its size and time stay the
  *  same: the folder scan runs every minute, and opening a synced Drive
- *  file can download it. */
+ *  file can download it. Null when the file couldn't be checked (a read
+ *  error, Drive offline): that says nothing about it being text. */
 const textChecks = new Map<string, { sig: string; text: boolean }>();
 
-function fileLooksLikeText(absPath: string): boolean {
+function fileLooksLikeText(absPath: string): boolean | null {
 	try {
 		const st = fs.statSync(absPath);
 		const sig = `${st.mtimeMs}:${st.size}`;
@@ -159,15 +160,15 @@ function fileLooksLikeText(absPath: string): boolean {
 		textChecks.set(absPath, { sig, text });
 		return text;
 	} catch {
-		return false;
+		return null;
 	}
 }
 
 /** Can this file become class material? By its extension, or, with none,
- *  by its bytes being text. */
-export function isReadableClassFile(name: string, bytes: () => Uint8Array): boolean {
+ *  by its bytes being text (`isText`; null when they couldn't be read). */
+export function isReadableClassFile(name: string, isText: () => boolean | null): boolean | null {
 	if (isSupportedClassFile(name)) return true;
-	return extensionOf(name) === "" && looksLikeText(bytes());
+	return extensionOf(name) === "" ? isText() : false;
 }
 
 /** Google Docs, Sheets, Slides and the like on a synced Drive: small link
@@ -183,10 +184,11 @@ const SKIPPED_DIRS = new Set(["node_modules", ".git", "Library", ".Trash"]);
 
 /** Every supported file under `root`, as POSIX-style relative paths,
  *  sorted, and whether the walk stopped at MAX_LINKED_FILES with more
- *  left. Hidden files, lock files and noise folders are passed over; other
- *  files that can't be read are counted in `skipped`. An unreadable
- *  folder is not an empty one: the walk throws when the root can't be
- *  read, and lists unreadable subfolders in `unreadable`. */
+ *  left. Hidden files, lock files, editor backups ("notes.md~") and noise
+ *  folders are passed over; other files that can't be read are counted in
+ *  `skipped`. An unreadable folder is not an empty one: the walk throws
+ *  when the root can't be read, and lists unreadable subfolders (and files
+ *  it couldn't check) in `unreadable`. */
 export function walkLinkedFolder(root: string): { files: string[]; capped: boolean; unreadable: string[]; skipped: SkippedFiles } {
 	const out: string[] = [];
 	const unreadable: string[] = [];
@@ -203,14 +205,16 @@ export function walkLinkedFolder(root: string): { files: string[]; capped: boole
 		}
 		for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
 			if (capped) return;
-			// Hidden files (where Drive and editors keep temporary ones) and Office lock files.
-			if (entry.name.startsWith(".") || entry.name.startsWith("~$")) continue;
+			// Hidden files (where Drive and editors keep temporary ones), Office lock files and editor backups.
+			if (entry.name.startsWith(".") || entry.name.startsWith("~$") || entry.name.endsWith("~")) continue;
 			const childRel = rel ? `${rel}/${entry.name}` : entry.name;
 			if (entry.isDirectory()) {
 				if (!SKIPPED_DIRS.has(entry.name)) visit(path.join(dir, entry.name), childRel);
 			} else if (entry.isFile()) {
 				const name = entry.name;
-				if (!isSupportedClassFile(name) && !(extensionOf(name) === "" && fileLooksLikeText(path.join(dir, name)))) {
+				const readable = isReadableClassFile(name, () => fileLooksLikeText(path.join(dir, name)));
+				if (readable === null) unreadable.push(childRel);
+				else if (!readable) {
 					skipped.count++;
 					if (GOOGLE_STUB_EXTENSIONS.includes(extensionOf(name))) skipped.google++;
 					if (skipped.examples.length < SKIPPED_EXAMPLES) skipped.examples.push(name);

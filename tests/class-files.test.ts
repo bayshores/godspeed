@@ -55,6 +55,7 @@ describe("fileToText and the folder walk", () => {
 			fs.writeFileSync(path.join(dir, "empty"), "");
 			fs.writeFileSync(path.join(dir, "Plan.gdoc"), '{"doc_id":"x"}');
 			fs.writeFileSync(path.join(dir, "~$Draft.docx"), "lock");
+			fs.writeFileSync(path.join(dir, "notes.md~"), "an editor's backup");
 			assert.equal(await fileToText(path.join(dir, "malloc.c")), "int main(void) { return 0; }\n");
 			assert.equal(await fileToText(path.join(dir, "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)")), "Test 2 moved to Friday.\n");
 			assert.deepEqual(walkLinkedFolder(dir), {
@@ -74,8 +75,9 @@ describe("fileToText and the folder walk", () => {
 		assert.equal(looksLikeText(Buffer.from([0x68, 0x00, 0x69])), false);
 		assert.equal(looksLikeText(Buffer.from([0xff, 0xfe, 0x41])), false);
 		assert.equal(looksLikeText(new Uint8Array()), false);
-		assert.equal(isReadableClassFile("notes", () => new TextEncoder().encode("hi")), true);
-		assert.equal(isReadableClassFile("photo.heic", () => new TextEncoder().encode("hi")), false);
+		assert.equal(isReadableClassFile("notes", () => true), true);
+		assert.equal(isReadableClassFile("photo.heic", () => true), false);
+		assert.equal(isReadableClassFile("notes", () => null), null, "couldn't be checked");
 	});
 
 	it("stops at the file limit and says so", () => {
@@ -118,6 +120,18 @@ describe("walkLinkedFolder on an unreadable folder", () => {
 			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md"], capped: false, unreadable: ["week 2"], skipped: { count: 0, examples: [], google: 0 } });
 		} finally {
 			fs.chmodSync(sub, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+	it("lists a no-extension file it couldn't open as unreadable, never as not text", { skip }, () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-class-files-locked-file-"));
+		const note = path.join(dir, "SUMMARY (captured 2026-10-31)");
+		try {
+			fs.writeFileSync(note, "Test 2 moved to Friday.\n");
+			fs.chmodSync(note, 0o000);
+			assert.deepEqual(walkLinkedFolder(dir), { files: [], capped: false, unreadable: ["SUMMARY (captured 2026-10-31)"], skipped: { count: 0, examples: [], google: 0 } });
+		} finally {
+			fs.chmodSync(note, 0o644);
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	});

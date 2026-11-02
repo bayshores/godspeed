@@ -5,6 +5,8 @@
  * Purely from names: nothing here knows what the course actually has.
  */
 
+import { extensionOf } from "./contracts.ts";
+
 export interface NamedFile {
 	id: string;
 	name: string;
@@ -32,7 +34,8 @@ export interface FileSeries<F extends NamedFile = NamedFile> {
 const DATE = /(\d{4})-(\d{2})-(\d{2})|(?<!\d)(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?!\d)/;
 
 function stem(name: string): string {
-	return name.replace(/\.[a-z0-9]{1,5}$/i, "");
+	const ext = extensionOf(name);
+	return ext ? name.slice(0, -ext.length) : name;
 }
 
 /** "YYYY-MM-DD" when the name carries a date. */

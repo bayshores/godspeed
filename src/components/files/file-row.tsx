@@ -13,7 +13,7 @@ import {
 	RotateCwIcon,
 	Trash2Icon,
 } from "lucide-react";
-import { extensionOf, isCodeFile, isNewFolderFile, isRecording, type ClassFile, type FileCoverage } from "@/core";
+import { extensionOf, isCodeFile, isNewFolderFile, isRecordingOrCaptions, type ClassFile, type FileCoverage } from "@/core";
 import { CopyButton } from "@/components/copy-button";
 import { useMinute } from "@/components/countdown";
 import { MenuShell } from "@/components/menu-shell";
@@ -45,7 +45,7 @@ export interface FileRowActions {
 
 /** The row's icon by file type. */
 function fileIcon(name: string) {
-	if (isRecording(name)) return CaptionsIcon;
+	if (isRecordingOrCaptions(name)) return CaptionsIcon;
 	if (isCodeFile(name)) return FileCodeIcon;
 	return extensionOf(name) === ".pptx" ? PresentationIcon : FileTextIcon;
 }

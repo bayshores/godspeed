@@ -10,6 +10,9 @@ import * as path from "node:path";
 import { inflateRawSync } from "node:zlib";
 
 const NOT_OFFICE = "This file can't be opened as a Word or PowerPoint file. Save it again as .docx, .pptx or PDF.";
+/** Most one part may unpack to: a real document's XML is far smaller, and
+ *  a tiny file that unpacks to gigabytes would stall the server. */
+const MAX_PART_BYTES = 64 * 1024 * 1024;
 const LOCKED = "This file is password-protected. Save a copy without a password, or as PDF.";
 
 /** A zip archive's files by name, read lazily. */
@@ -42,8 +45,12 @@ function readZip(buf: Buffer): Map<string, () => Buffer> {
 			const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
 			const data = buf.subarray(start, start + size);
 			if (method === 0) return data;
-			if (method === 8) return inflateRawSync(data);
-			throw new Error(NOT_OFFICE);
+			if (method !== 8) throw new Error(NOT_OFFICE);
+			try {
+				return inflateRawSync(data, { maxOutputLength: MAX_PART_BYTES });
+			} catch {
+				throw new Error(NOT_OFFICE);
+			}
 		});
 	}
 	return files;
@@ -60,7 +67,7 @@ function decodeXml(text: string): string {
 	return text.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (whole, code: string) => {
 		if (code[0] === "#") {
 			const n = code[1] === "x" || code[1] === "X" ? parseInt(code.slice(2), 16) : Number(code.slice(1));
-			return Number.isFinite(n) ? String.fromCodePoint(n) : whole;
+			return Number.isInteger(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : whole;
 		}
 		return ENTITIES[code] ?? whole;
 	});
@@ -71,8 +78,8 @@ function decodeXml(text: string): string {
 function xmlText(xml: string, ns: "w" | "a"): string {
 	const pattern =
 		ns === "w"
-			? /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>|<w:tab\/>|<w:(?:br|cr)(?:\s[^>]*)?\/>|<\/w:p>/g
-			: /<a:t(?:\s[^>]*)?>([^<]*)<\/a:t>|<a:br(?:\s[^>]*)?\/>|<\/a:p>/g;
+			? /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>|<w:tab\/>|<w:(?:br|cr)\b[^>]*>|<\/w:p>/g
+			: /<a:t(?:\s[^>]*)?>([^<]*)<\/a:t>|<a:br\b[^>]*>|<\/a:p>/g;
 	let out = "";
 	for (const m of xml.matchAll(pattern)) {
 		if (m[1] !== undefined) out += decodeXml(m[1]);

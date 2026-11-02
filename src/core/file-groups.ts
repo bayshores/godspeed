@@ -5,15 +5,8 @@
  * per linked subfolder for files in no series (Drive folders of dated
  * slides), then "Other". Study material and course info sit together.
  */
-import type { ClassFile } from "./contracts.ts";
+import { isRecordingOrCaptions, type ClassFile } from "./contracts.ts";
 import { dateInName, groupFileSeries, type FileSeries } from "./file-series.ts";
-
-/** Transcripts and recordings (the lecture-audio side of a pair). */
-const RECORDING = /\.(vtt|srt|mp3|m4a|wav|mp4|mov)$/i;
-
-export function isRecording(name: string): boolean {
-	return RECORDING.test(name);
-}
 
 /** One entry of a group: a number of a series ("Lecture 3", with every
  *  file that carries it, notes and transcript together) or one other file. */
@@ -60,8 +53,8 @@ function likeness(a: FileSeries<ClassFile>, b: FileSeries<ClassFile>): number {
  */
 export function pairSeries(series: readonly FileSeries<ClassFile>[]): Map<FileSeries<ClassFile>, FileSeries<ClassFile>> {
 	const all = (s: FileSeries<ClassFile>, test: (f: ClassFile) => boolean) => s.items.every((i) => i.files.every(test));
-	const transcripts = series.filter((s) => all(s, (f) => isRecording(f.name)));
-	const notes = series.filter((s) => s.key !== "" && all(s, (f) => !isRecording(f.name)));
+	const transcripts = series.filter((s) => all(s, (f) => isRecordingOrCaptions(f.name)));
+	const notes = series.filter((s) => s.key !== "" && all(s, (f) => !isRecordingOrCaptions(f.name)));
 	const best = new Map<FileSeries<ClassFile>, { notes: FileSeries<ClassFile>; score: number }>();
 	for (const t of transcripts) {
 		const scored = notes.map((n) => ({ notes: n, score: likeness(t, n) })).filter((c) => c.score >= 0.5).sort((a, b) => b.score - a.score);

@@ -6,7 +6,7 @@
  * The model and the stored index live in src/server/search-index.ts.
  */
 import MiniSearch from "minisearch";
-import { extensionOf, TRANSCRIPT_EXTENSIONS } from "./contracts.ts";
+import { extensionOf, isTranscriptFile } from "./contracts.ts";
 
 /** One piece of a class file, before it gets an id and a hash. `from`/`to`
  *  locate it: pages (PDFs), slides (PowerPoint), seconds (captions) or
@@ -40,7 +40,7 @@ export function chunkFile(name: string, text: string): ChunkedFile {
 	const ext = extensionOf(name);
 	if (ext === ".pdf") return chunkHeaded(text, "Page", "p.", "page");
 	if (ext === ".pptx") return chunkHeaded(text, "Slide", "slide", "slide");
-	if ((TRANSCRIPT_EXTENSIONS as readonly string[]).includes(ext)) return chunkCaptions(text);
+	if (isTranscriptFile(name)) return chunkCaptions(text);
 	return chunkText(text);
 }
 

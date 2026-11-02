@@ -18,7 +18,7 @@ import { syncBuiltinESMExports } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it, mock } from "node:test";
-import { MAX_LINKED_FILES } from "../src/core/contracts.ts";
+import { FILE_NOT_FOUND, MAX_LINKED_FILES } from "../src/core/contracts.ts";
 import { subscribe } from "../src/core/events.ts";
 
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-routes-"));
@@ -45,10 +45,15 @@ const { extraction, stores, graphStoreFor, classIdle } = server;
 
 // The importNotes stub: one node per import, born under the given source.
 // Text starting "Announcement" reads as course info when sorting is allowed.
+// `duringRead` runs once inside the next read (the learner acting meanwhile).
 const imports: { filePath: string; text: string; sourceId?: string; mayBeCourseInfo?: boolean }[] = [];
+let duringRead: (() => Promise<unknown>) | undefined;
 const original = extraction.importNotes;
 extraction.importNotes = async (input) => {
 	imports.push({ filePath: input.filePath, text: input.text, sourceId: input.sourceId, mayBeCourseInfo: input.mayBeCourseInfo });
+	const meanwhile = duringRead;
+	duringRead = undefined;
+	await meanwhile?.();
 	const store = input.graphStore ?? stores.graphStore;
 	const id = input.sourceId!;
 	store.upsertSource({ id, filePath: input.filePath, importedAt: new Date().toISOString() });
@@ -717,6 +722,79 @@ describe("a linked folder over time (a synced Drive folder)", () => {
 		assert.deepEqual([files["digest.md"]!.kind, files["digest.md"]!.kindChosen, files["digest.md"]!.sortedAsInfo], ["study", true, undefined]);
 		assert.equal(imports.at(-1)!.mayBeCourseInfo, false, "picked by hand: read as study material");
 		assert.ok(getNames(id).includes("Announcement: office hours moved"));
+	});
+
+	it("a kind picked during the read wins over the sort, and only a first read of notes is sorted", async (t) => {
+		const id = await makeClass("CSE 155");
+		const dir = folder(t);
+		fs.writeFileSync(path.join(dir, "digest.md"), "Announcement: quiz moved");
+		fs.writeFileSync(path.join(dir, "Lecture01_2026-09-25.srt"), "1\n00:00:00,000 --> 00:00:02,000\nAnnouncement: no class Friday\n");
+		fs.writeFileSync(path.join(dir, "lecture.md"), "Recursion");
+		const fileId = (name: string) => stores.classStore.getClass(id)!.files.find((f) => f.name === name)!.id;
+		const before = imports.length;
+		let picked = false;
+		duringRead = async () => {
+			// The first read is digest.md (name order): the learner keeps it as study material meanwhile.
+			await fileRoute.PUT(json("/x", "PUT", { kind: "study" }), ctx({ id, fileId: fileId("digest.md") }));
+			picked = true;
+		};
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		assert.ok(picked);
+		const byName = () => Object.fromEntries(stores.classStore.getClass(id)!.files.map((f) => [f.name, f]));
+		let files = byName();
+		assert.deepEqual([files["digest.md"]!.kind, files["digest.md"]!.kindChosen, files["digest.md"]!.sortedAsInfo, files["digest.md"]!.status], ["study", true, undefined, "ready"]);
+		assert.ok(getNames(id).includes("Announcement: quiz moved"), "read again as study material");
+		const reads = imports.slice(before).map((i) => [i.filePath, i.mayBeCourseInfo]);
+		assert.deepEqual(reads.filter(([name]) => name === "digest.md"), [["digest.md", true], ["digest.md", false]]);
+		assert.deepEqual(reads.find(([name]) => name === "Lecture01_2026-09-25.srt"), ["Lecture01_2026-09-25.srt", false], "a transcript is never sorted");
+		assert.equal(files["Lecture01_2026-09-25.srt"]!.kind, "study");
+
+		// A changed file is read again, never sorted again.
+		fs.writeFileSync(path.join(dir, "lecture.md"), "Announcement: lecture notes rewritten");
+		await scanSettled(id);
+		files = byName();
+		assert.equal(imports.at(-1)!.mayBeCourseInfo, false);
+		assert.equal(files["lecture.md"]!.kind, "study");
+	});
+
+	it("a recording that is gone never loops, with or without its transcript", async () => {
+		const id = await makeClass("CSE 21 gone video");
+		// Added as course info, so nothing transcribes it before it goes.
+		const up = await (await upload(id, "info", [["CSE21_Lecture_02_2026-09-28.mp4", "video bytes"]])).json();
+		await classIdle(id);
+		const video = up.results[0].file.id as string;
+		const videoFile = () => stores.classStore.getClass(id)!.files.find((f) => f.id === video)!;
+		fs.rmSync(path.join(stores.classStore.filesDir(id), video), { recursive: true, force: true });
+		server.setFileKind(id, video, "study");
+		await classIdle(id);
+		assert.deepEqual([videoFile().status, videoFile().error], ["failed", FILE_NOT_FOUND]);
+		// A transcript arriving doesn't queue a gone recording (the scan or the learner settles it).
+		await upload(id, "study", [["Lecture02_2026-09-28.srt", "1\n00:00:00,000 --> 00:00:02,000\nPermutations\n"]]);
+		await classIdle(id);
+		assert.deepEqual([videoFile().status, videoFile().error], ["failed", FILE_NOT_FOUND]);
+		// Retried, the covered recording needs no file at all.
+		server.retryFile(id, video);
+		await classIdle(id);
+		assert.equal(videoFile().status, "ready");
+		assert.ok(videoFile().transcriptId);
+	});
+
+	it("a covered recording moved to course info no longer says it uses a transcript", async () => {
+		const id = await makeClass("CSE 21 info video");
+		const up = await (
+			await upload(id, "study", [
+				["Lecture03_2026-09-30.srt", "1\n00:00:00,000 --> 00:00:02,000\nCombinations\n"],
+				["CSE21_Lecture_03_2026-09-30.mp4", "video bytes"],
+			])
+		).json();
+		await classIdle(id);
+		const video = up.results[1].file.id as string;
+		assert.ok(stores.classStore.getClass(id)!.files.find((f) => f.id === video)!.transcriptId);
+		await fileRoute.PUT(json("/x", "PUT", { kind: "info" }), ctx({ id, fileId: video }));
+		await classIdle(id);
+		const after = stores.classStore.getClass(id)!.files.find((f) => f.id === video)!;
+		assert.deepEqual([after.kind, after.transcriptId], ["info", undefined]);
 	});
 
 	it("a folder that turns up empty (Drive starting or signed out) keeps its files and facts", async (t) => {

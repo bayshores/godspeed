@@ -30,7 +30,7 @@ import * as path from "node:path";
 import { NotesImportError } from "../agent/subagents/extraction.ts";
 import { extractionStatuses, abortExtraction } from "../agent/subagents/extraction-runs.ts";
 import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem, FolderStatus, SkippedFiles } from "../core/contracts.ts";
-import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, isRecordingFile, parseClassScope, safeName, SUPPORTED_CLASS_FILE_EXTENSIONS, TRANSCRIPT_EXTENSIONS } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, FILE_NOT_FOUND, isRecordingFile, isTranscriptFile, parseClassScope, safeName, SUPPORTED_CLASS_FILE_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { emit } from "../core/events.ts";
@@ -40,7 +40,7 @@ import { recordingsToRecheck, transcriptFor } from "../core/lecture-transcript.t
 import { recordFolderFiles } from "./agent-actions.ts";
 import { extraction } from "./extraction.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
-import { fileToText, fingerprintFile, isReadableClassFile, walkLinkedFolder } from "./class-files.ts";
+import { fileToText, fingerprintFile, isReadableClassFile, looksLikeText, walkLinkedFolder } from "./class-files.ts";
 import { dropClassFile, forgetClassSearch, indexClassFile, isFileIndexed } from "./search-index.ts";
 import { discardChatDeliveries } from "./jobs.ts";
 import { effectiveSettings, forgetGraphStore, graphStoreFor, stores } from "./stores.ts";
@@ -84,12 +84,14 @@ export function getClass(id: string): ClassRecord | null {
 	return stores.classStore.getClass(id);
 }
 
-/** Saved PDF text and recording transcripts: the text of one version of a
- *  file, named by its content fingerprint, so processing an unchanged file
- *  again skips re-reading the PDF or re-transcribing the recording. */
+/** PDF, Word and PowerPoint files: their text is pulled out (and saved). */
 function isDocumentFile(name: string): boolean {
 	return (DOCUMENT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
+/** Saved document text and recording transcripts: the text of one version
+ *  of a file, named by its content fingerprint, so processing an unchanged
+ *  file again skips re-reading the document or re-transcribing the
+ *  recording. */
 function textCacheDir(classId: string): string {
 	return path.join(stores.classStore.filesDir(classId), "texts");
 }
@@ -291,7 +293,7 @@ const newFileId = () => `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}
 export function addCopiedFile(classId: string, name: string, bytes: Uint8Array, kind: ClassFileKind): ClassOutcome<ClassFile> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
 	const clean = safeName(name);
-	if (!isReadableClassFile(clean, () => bytes)) {
+	if (!isReadableClassFile(clean, () => looksLikeText(bytes))) {
 		return fail(
 			400,
 			"unsupported_type",
@@ -353,7 +355,7 @@ export function setFileKind(classId: string, fileId: string, kind: ClassFileKind
 	if (!record || !file) return fail(404, "not_found", "No such class file");
 	const chosen = { kindChosen: true as const, sortedAsInfo: undefined };
 	if (file.kind === kind) return { ok: true, value: patchFile(classId, fileId, chosen) ?? file };
-	const patched = patchFile(classId, fileId, { ...chosen, kind, status: "pending", contentFp: "", error: undefined });
+	const patched = patchFile(classId, fileId, { ...chosen, kind, status: "pending", contentFp: "", transcriptId: undefined, error: undefined });
 	enqueueFile(classId, fileId);
 	return { ok: true, value: patched ?? file };
 }
@@ -530,9 +532,9 @@ export function scanLinkedFolder(classId: string, { linking = false }: { linking
 	const presentSet = new Set(present);
 	const known = new Map(linked.map((f) => [f.path, f]));
 	// Gone from the folder → facts go. Files in a subfolder that can't be
-	// read, or past the file cap where the walk stopped, are not known to be
-	// gone, so they stay.
-	const inUnreadable = (rel: string) => unreadable.some((dir) => rel.startsWith(`${dir}/`));
+	// read, files that couldn't be checked, or past the file cap where the
+	// walk stopped, are not known to be gone, so they stay.
+	const inUnreadable = (rel: string) => unreadable.some((dir) => rel === dir || rel.startsWith(`${dir}/`));
 	const gone: ClassFile[] = [];
 	for (const [rel, file] of known) {
 		if (presentSet.has(rel) || inUnreadable(rel) || importRunning(classId, file)) continue;
@@ -741,19 +743,20 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 	const record = stores.classStore.getClass(classId);
 	const file = record?.files.find((f) => f.id === fileId);
 	if (!record || !file) return;
-	const abs = classFilePath(record, file);
-	if (!abs || !fs.existsSync(abs)) {
-		// Forget the signature so the folder scan picks the file up again once it is back (drive re-plugged).
-		patchFile(classId, fileId, { status: "failed", error: "The file could not be found", statSig: undefined });
-		return;
-	}
-	const stillThere = () => stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId) === true;
-	// Before the fingerprint: hashing a video on Google Drive would download it.
+	// First, before the file is even looked for: hashing a video on Google
+	// Drive would download it, and a covered recording needs no file at all.
 	const transcript = transcriptFor(file, record.files);
 	if (transcript) {
 		useTranscript(record, file, transcript.id);
 		return;
 	}
+	const abs = classFilePath(record, file);
+	if (!abs || !fs.existsSync(abs)) {
+		// Forget the signature so the folder scan picks the file up again once it is back (drive re-plugged).
+		patchFile(classId, fileId, { status: "failed", error: FILE_NOT_FOUND, statSig: undefined });
+		return;
+	}
+	const stillThere = () => stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId) === true;
 	// Saved on failure too, so the folder scan stops re-queuing an unreadable file until it changes.
 	let statSig: string | undefined;
 	try {
@@ -764,7 +767,7 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 
 		if (file.kind === "info") {
 			if (file.sourceId) deleteSourceTraces(store, file.sourceId);
-			patchFile(classId, fileId, { status: "ready", contentFp: fp, statSig, sourceId: undefined, error: undefined });
+			patchFile(classId, fileId, { status: "ready", contentFp: fp, statSig, sourceId: undefined, transcriptId: undefined, error: undefined });
 			await indexForSearch(classId, file, abs, fp);
 			return;
 		}
@@ -803,12 +806,23 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		if (!stillThere()) return;
 		deleteSourceTraces(store, sourceId);
 		try {
-			const mayBeCourseInfo = file.origin === "linked" && !file.kindChosen;
+			// Only a linked file's first read sorts it, and never a lecture's
+			// transcript or recording (whose sort would undo other files' work).
+			const mayBeCourseInfo =
+				file.origin === "linked" && !file.kindChosen && !file.contentFp && !isTranscriptFile(file.name) && !isRecordingFile(file.name);
 			const result = await extraction.importNotes({ filePath: file.name, text, graphStore: store, sourceId, mayBeCourseInfo });
 			if (result.courseInfo) {
-				// Course logistics: course info, which the teacher reads but never quizzes.
 				deleteSourceTraces(store, sourceId);
-				patchFile(classId, fileId, { kind: "info", sortedAsInfo: true, status: "ready", contentFp: fp, sourceId: undefined, error: undefined });
+				const now = stores.classStore.getClass(classId)?.files.find((f) => f.id === fileId);
+				if (now?.kind === "study" && !now.kindChosen) {
+					// Course logistics: course info, which the teacher reads but never quizzes.
+					patchFile(classId, fileId, { kind: "info", sortedAsInfo: true, status: "ready", contentFp: fp, sourceId: undefined, error: undefined });
+				} else if (now?.kind === "study") {
+					// Picked as study material by hand during the read: read it again as that.
+					patchFile(classId, fileId, { status: "pending", error: undefined });
+					enqueueFile(classId, fileId);
+				}
+				// Switched to course info meanwhile: its own queued run settles it.
 			} else {
 				patchFile(classId, fileId, { status: "ready", contentFp: fp, sourceId, error: undefined });
 			}
@@ -873,7 +887,7 @@ async function indexForSearch(classId: string, file: ClassFile, abs: string, fp:
 	if (process.env.NODE_ENV === "test" || isFileIndexed(classId, file.id, fp)) return;
 	try {
 		let source = text;
-		if ((TRANSCRIPT_EXTENSIONS as readonly string[]).includes(extensionOf(file.name))) {
+		if (isTranscriptFile(file.name)) {
 			source = fs.readFileSync(abs, "utf-8");
 		} else if (source === undefined && isRecordingFile(file.name)) {
 			const transcript = transcriptPathOf(classId, file.id);

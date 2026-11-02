@@ -90,6 +90,26 @@ describe("officeText", () => {
 		});
 	});
 
+	it("keeps line breaks written as open and close tags, and leaves impossible entities alone", () => {
+		const slide =
+			'<p:sld><p:txBody><a:p><a:r><a:t>Intro to</a:t></a:r><a:br><a:rPr lang="en-US" dirty="0"/></a:br><a:r><a:t>Recursion</a:t></a:r></a:p></p:txBody></p:sld>';
+		withFile("breaks.pptx", zip({ "ppt/presentation.xml": "<p:presentation/>", "ppt/slides/slide1.xml": slide }), (abs) => {
+			assert.equal(officeText(abs), "--- Slide 1 ---\nIntro to\nRecursion");
+		});
+		const doc = '<w:document><w:body><w:p><w:r><w:t>a</w:t><w:br w:type="page"></w:br><w:t>b &#99999999; c</w:t></w:r></w:p></w:body></w:document>';
+		withFile("breaks.docx", zip({ "word/document.xml": doc }), (abs) => assert.equal(officeText(abs), "a\nb &#99999999; c"));
+	});
+
+	it("refuses a part that unpacks too big or won't unpack, with the plain message", () => {
+		const bomb = zip({ "word/document.xml": "<w:t>" + "x".repeat(65 * 1024 * 1024) + "</w:t>" });
+		withFile("bomb.docx", bomb, (abs) => assert.throws(() => officeText(abs), /can't be opened as a Word or PowerPoint file/));
+		// A stored entry marked as deflated: its bytes are not a deflate stream.
+		const broken = zip({ "word/document.xml": "\u00ff\u00ff not deflate" }, true);
+		broken.writeUInt16LE(8, 8);
+		broken.writeUInt16LE(8, broken.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 10);
+		withFile("broken.docx", broken, (abs) => assert.throws(() => officeText(abs), /can't be opened as a Word or PowerPoint file/));
+	});
+
 	it("fails with a plain message on files that aren't Word or PowerPoint, or have a password", () => {
 		withFile("fake.docx", Buffer.from("not a zip at all"), (abs) => assert.throws(() => officeText(abs), /can't be opened as a Word or PowerPoint file/));
 		withFile("locked.docx", Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0, 0, 0, 0]), (abs) => assert.throws(() => officeText(abs), /password-protected/));
