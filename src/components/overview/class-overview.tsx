@@ -2,12 +2,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { PencilIcon } from "lucide-react";
-import type { DeadlineProgress, TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
 import { LoadFailed } from "@/components/load-failed";
 import { useMinute } from "@/components/countdown";
-import { practicePicks, practiceTitle } from "@/components/graph/practice";
+import { practicePicks } from "@/components/graph/practice";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
@@ -18,8 +17,7 @@ import { OverviewBody } from "./overview-body";
  * Overview row. The top bar holds "Edit class" (the existing class
  * dialog); the body reads the active class's progress (useProgress).
  *
- * The runway's rings start practice on a deadline's topics (the lesson
- * the Graph page's "Practice these N" starts); "Most needed" → Learn this
+ * The runway's rings open each deadline's page; "Most needed" → Learn this
  * starts a lesson on that topic the way the New lesson screen starts
  * lessons (useLessonStart: the topic name is the lesson's title and first
  * message, in the active class, and the topic's facts are its opening
@@ -29,8 +27,6 @@ export function ClassOverview() {
 	const { active, activeClass } = useClasses();
 	const { data, error, refresh } = useProgress();
 	const [editing, setEditing] = useState(false);
-	// One start for Learn this and the rings, so the card shows the error
-	// of whichever start ran last.
 	const lesson = useLessonStart();
 	const nowMs = useMinute();
 
@@ -46,14 +42,6 @@ export function ClassOverview() {
 		(topicId: string) => {
 			const topic = current?.topics.find((t) => t.id === topicId);
 			if (topic) void start({ title: topic.name, picks: practicePicks([topic], current?.facts ?? []) });
-		},
-		[current, start],
-	);
-	const practiceDeadline = useCallback(
-		(d: DeadlineProgress) => {
-			if (!current) return;
-			const topics = d.topics.map((t) => current.topics.find((x) => x.id === t.id)).filter((t): t is TopicProgress => !!t);
-			if (topics.length > 0) void start({ title: practiceTitle(topics), kind: "practice", picks: practicePicks(topics, current.facts) });
 		},
 		[current, start],
 	);
@@ -87,7 +75,6 @@ export function ClassOverview() {
 					nowMs={nowMs}
 					busy={lesson.busy}
 					startError={lesson.error}
-					onPractice={practiceDeadline}
 					onLearn={learn}
 					onAddSignature={() => setEditing(true)}
 				/>

@@ -291,6 +291,12 @@ describe("Coming up", () => {
 		assert.match(tag(comingUp(), "coming-up-row-mid"), /data-halley-target="deadline:mid"/);
 	});
 
+	it("a row opens its deadline's page; the done box sits above that link", () => {
+		const row = section(comingUp(), "coming-up-row-mid", "</li>");
+		assert.match(row, /data-testid="coming-up-open"[^>]*href="\/class\/deadline\/mid"|href="\/class\/deadline\/mid"[^>]*data-testid="coming-up-open"/);
+		assert.match(row, /class="relative z-10 flex"><button[^>]*data-testid="done-box"/);
+	});
+
 	it("empty: how to add deadlines, or a class first with a New class button", async () => {
 		assert.match(comingUp([]), /No deadlines coming up\. Your agent can add them from the syllabus, or you can use Add deadline\./);
 		assert.ok(!comingUp([]).includes("coming-up-new-class"), "with classes: no New class button");

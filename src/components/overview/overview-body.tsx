@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import type { ClassNote, ClassSignature, DeadlineProgress, ProgressPayload } from "@/core";
+import type { ClassNote, ClassSignature, ProgressPayload } from "@/core";
 import { ClassCover } from "./class-cover";
 import { ConfidenceCard } from "./confidence-card";
 import { LessonsCard } from "./lessons-card";
@@ -24,7 +24,6 @@ export const OverviewBody = memo(function OverviewBody({
 	nowMs,
 	busy,
 	startError,
-	onPractice,
 	onLearn,
 	onAddSignature,
 }: {
@@ -39,10 +38,8 @@ export const OverviewBody = memo(function OverviewBody({
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
 	busy: boolean;
-	/** Why the last practice or lesson didn't start (shown in the runway). */
+	/** Why the last lesson didn't start (shown in the runway). */
 	startError: string | null;
-	/** A runway ring: practice that deadline's topics. */
-	onPractice: (deadline: DeadlineProgress) => void;
 	/** "Most needed" → Learn this. */
 	onLearn: (topicId: string) => void;
 	/** The cover's "Add a signature" (opens Edit class). */
@@ -72,7 +69,6 @@ export const OverviewBody = memo(function OverviewBody({
 						facts={facts}
 						busy={busy}
 						startError={startError}
-						onPractice={onPractice}
 						onLearn={onLearn}
 					/>
 				)}
