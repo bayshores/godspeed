@@ -5,28 +5,31 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClassRecord, FolderProblem } from "@/core";
+import type { ClassRecord, FolderStatus } from "@/core";
 import { useServerEvent } from "@/components/server-events";
 
-/** The full record of one class (files and deadlines included) and what
- *  is wrong with its linked folder; null until loaded, and for "No class".
+/** The full record of one class (files and deadlines included) and its
+ *  linked folder as the last scan saw it; null until loaded, and for "No class".
+ *  shortcuts: the class's folder of shortcuts in the godspeed folder, or null.
  *  failed: the last read failed. A stale response for another class is
  *  dropped. */
 export function useClassRecord(classId: string | null): {
 	record: ClassRecord | null;
-	folderProblem: FolderProblem | null;
+	folder: FolderStatus | null;
+	shortcuts: string | null;
 	failed: boolean;
 	reload: () => Promise<void>;
 } {
 	const [record, setRecord] = useState<ClassRecord | null>(null);
-	const [folderProblem, setFolderProblem] = useState<FolderProblem | null>(null);
+	const [folder, setFolder] = useState<FolderStatus | null>(null);
+	const [shortcuts, setShortcuts] = useState<string | null>(null);
 	const [failed, setFailed] = useState(false);
 	const request = useRef(0);
 	const reload = useCallback(async () => {
 		const id = ++request.current;
 		if (!classId) {
 			setRecord(null);
-			setFolderProblem(null);
+			setFolder(null);
 			setFailed(false);
 			return;
 		}
@@ -37,10 +40,11 @@ export function useClassRecord(classId: string | null): {
 				setFailed(true);
 				return;
 			}
-			const body = (await res.json()) as { class: ClassRecord; folderProblem: FolderProblem | null };
+			const body = (await res.json()) as { class: ClassRecord; folder: FolderStatus; shortcuts?: string | null };
 			if (id !== request.current) return;
 			setRecord(body.class);
-			setFolderProblem(body.folderProblem);
+			setFolder(body.folder);
+			setShortcuts(body.shortcuts ?? null);
 			setFailed(false);
 		} catch {
 			// Offline: keep what we have.
@@ -49,12 +53,13 @@ export function useClassRecord(classId: string | null): {
 	}, [classId]);
 	useEffect(() => {
 		setRecord(null);
-		setFolderProblem(null);
+		setFolder(null);
+		setShortcuts(null);
 		setFailed(false);
 		void reload();
 	}, [reload]);
 	useServerEvent("classes-changed", () => void reload());
-	return { record, folderProblem, failed, reload };
+	return { record, folder, shortcuts, failed, reload };
 }
 
 /** A failed write's message, or null on success. */

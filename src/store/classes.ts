@@ -140,6 +140,7 @@ function getClass(id: string): ClassRecord | null {
 }
 
 function summarize(record: ClassRecord): ClassSummary {
+	const lastFoundAt = record.files.reduce<string | undefined>((at, f) => (f.foundByScan && (!at || f.addedAt > at) ? f.addedAt : at), undefined);
 	return {
 		id: record.id,
 		name: record.name,
@@ -149,6 +150,7 @@ function summarize(record: ClassRecord): ClassSummary {
 		archived: record.archived,
 		...(record.linkedFolder ? { linkedFolder: record.linkedFolder } : {}),
 		fileCount: record.files.length,
+		...(lastFoundAt ? { lastFoundAt } : {}),
 		...(record.signature ? { signature: record.signature } : {}),
 		...(record.icon ? { icon: record.icon } : {}),
 		...(record.note ? { note: record.note } : {}),

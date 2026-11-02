@@ -18,7 +18,6 @@ import {
 	fileState,
 	filterGroups,
 	shortDate,
-	shortenHome,
 	fileBrowserName,
 	studiedFill,
 } from "../src/components/files/files-model.ts";
@@ -193,11 +192,6 @@ describe("files-model", () => {
 		assert.equal(filesSummary([]), "0 files");
 	});
 
-	it("shortenHome", () => {
-		assert.equal(shortenHome("/Users/me/School/CSE 21"), "~/School/CSE 21");
-		assert.equal(shortenHome("/home/me/x"), "~/x");
-		assert.equal(shortenHome("/Volumes/USB/x"), "/Volumes/USB/x");
-	});
 
 	it("fileBrowserName", () => {
 		assert.equal(fileBrowserName("darwin"), "Finder");

@@ -1,7 +1,8 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
-import { isRecording, type ClassFile, type FileCoverage } from "@/core";
+import { isNewFolderFile, isRecording, type ClassFile, type FileCoverage } from "@/core";
 import { CopyButton } from "@/components/copy-button";
+import { useMinute } from "@/components/countdown";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,7 @@ import { canRemove, canRetry, fileState, kindTitle, studiedFill, type FileState 
 
 /**
  * ONE FILE ROW (Files page): icon, name (a folder mark when it comes from
- * the linked folder), Study or Info, the row's state ("12/31 facts
+ * the linked folder, and New for a few days after a scan found it), Study or Info, the row's state ("12/31 facts
  * studied" with its bar, "Building facts…", "Waiting", "Failed · Retry")
  * and the ⋯ menu (Move to the other kind, Retry, Show in Finder, Remove).
  * A recording that needs the speech tool gets a second line with the
@@ -53,6 +54,7 @@ export const FileRow = memo(function FileRow({
 	const install = state.kind === "failed" ? state.install : undefined;
 	const Icon = isRecording(file.name) ? CaptionsIcon : FileTextIcon;
 	const help = KIND_HELP[file.kind];
+	const minute = useMinute();
 	return (
 		<li data-testid={`class-file-${file.id}`} data-halley-target={`file:${file.id}`} className="group flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2 pr-3 pl-2 hover:bg-tone">
 			<Icon className="size-[15px] shrink-0 text-ink-2" aria-hidden />
@@ -66,6 +68,11 @@ export const FileRow = memo(function FileRow({
 							<FolderIcon className="size-3" aria-label="From your linked folder" />
 						</span>
 					</Tip>
+				)}
+				{minute !== null && isNewFolderFile(file, minute) && (
+					<span data-testid={`class-file-new-${file.id}`} className="shrink-0 bg-tone px-1.5 text-[11.5px] font-bold text-ink">
+						New
+					</span>
 				)}
 			</span>
 			<Tip title={help.title} body={<span className="text-xs text-ink-2">{help.body}</span>} side="bottom" className="w-[240px]">

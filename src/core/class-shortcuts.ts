@@ -35,6 +35,7 @@ export function uniqueName(name: string, taken: Set<string>): string {
 }
 
 export interface ShortcutClass {
+	id: string;
 	name: string;
 	archived: boolean;
 	files: ClassFile[];
@@ -46,14 +47,24 @@ interface Shortcut {
 	fileId: string;
 }
 
-/** Every shortcut classes/ should hold, in Files page order. */
-export function shortcutLayout(classes: readonly ShortcutClass[]): Shortcut[] {
-	const out: Shortcut[] = [];
+/** Each class's folder under classes/ (path segments), by class id. */
+export function classDirs(classes: readonly Pick<ShortcutClass, "id" | "name" | "archived">[]): Map<string, string[]> {
+	const out = new Map<string, string[]>();
 	const top = new Set([ARCHIVED_DIR.toLowerCase(), README_NAME.toLowerCase()]);
 	const archived = new Set<string>();
 	for (const cls of classes) {
 		const dir = uniqueName(safeEntryName(cls.name), cls.archived ? archived : top);
-		const base = cls.archived ? [ARCHIVED_DIR, dir] : [dir];
+		out.set(cls.id, cls.archived ? [ARCHIVED_DIR, dir] : [dir]);
+	}
+	return out;
+}
+
+/** Every shortcut classes/ should hold, in Files page order. */
+export function shortcutLayout(classes: readonly ShortcutClass[]): Shortcut[] {
+	const out: Shortcut[] = [];
+	const dirs = classDirs(classes);
+	for (const cls of classes) {
+		const base = dirs.get(cls.id)!;
 		const groups = new Set<string>();
 		for (const group of fileGroups(cls.files)) {
 			const groupDir = uniqueName(safeEntryName(group.label), groups);

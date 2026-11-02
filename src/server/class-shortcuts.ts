@@ -98,7 +98,7 @@ function currentClasses(): { classes: ShortcutClass[]; targets: Map<string, { pa
 			targets.set(f.id, { path: p, copied: f.origin === "copied" });
 			return true;
 		});
-		classes.push({ name: record.name, archived: record.archived, files });
+		classes.push({ id: record.id, name: record.name, archived: record.archived, files });
 	}
 	return { classes, targets };
 }

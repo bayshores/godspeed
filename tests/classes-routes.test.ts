@@ -16,8 +16,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, describe, it } from "node:test";
+import { after, describe, it, mock } from "node:test";
 import { MAX_LINKED_FILES } from "../src/core/contracts.ts";
+import { subscribe } from "../src/core/events.ts";
 
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-routes-"));
 const LINKED = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-linked-"));
@@ -289,14 +290,19 @@ describe("the class file pipeline", () => {
 		fs.utimesSync(path.join(LINKED, "week1.md"), future, future);
 		server.scanLinkedFolder(id);
 		await classIdle(id);
+		assert.deepEqual(getNames(id), ["Binary trees"], "an edit waits until it holds still");
+		await scanSettled(id);
+		await classIdle(id);
 		assert.deepEqual(getNames(id), ["AVL trees"], "the edit rebuilt the file's facts");
 
 		fs.rmSync(path.join(LINKED, "week1.md"));
-		server.scanLinkedFolder(id);
+		fs.writeFileSync(path.join(LINKED, "keep.md"), "Heaps");
+		await scanSettled(id);
 		await classIdle(id);
+		fs.rmSync(path.join(LINKED, "keep.md"));
 		record = stores.classStore.getClass(id)!;
-		assert.equal(record.files.length, 0);
-		assert.deepEqual(getNames(id), []);
+		assert.deepEqual(record.files.map((f) => f.name), ["keep.md"]);
+		assert.deepEqual(getNames(id), ["Heaps"]);
 
 		const unlinked = await folderRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
 		assert.equal((await unlinked.json()).class.linkedFolder, undefined);
@@ -343,7 +349,7 @@ describe("the class file pipeline", () => {
 			assert.ok(stores.classStore.getClass(id)!.files.some((f) => f.path === last), "the file past the cap stays");
 			assert.ok(getNames(id).includes(`Topic ${MAX_LINKED_FILES}`), "and so do its facts");
 			fs.rmSync(path.join(dir, last));
-			server.scanLinkedFolder(id);
+			await scanSettled(id);
 			await classIdle(id);
 			assert.ok(!getNames(id).includes(`Topic ${MAX_LINKED_FILES}`), "a file really deleted still loses its facts");
 		} finally {
@@ -406,7 +412,7 @@ describe("the class file pipeline", () => {
 			await folderRoute.PUT(json("/x", "PUT", { path: oldDir }), ctx({ id }));
 			await classIdle(id);
 			assert.deepEqual(getNames(id).sort(), ["Graphs", "Trees"]);
-			const problemOf = async () => (await (await classRoute.GET(json(`/api/classes/${id}?scan=1`, "GET"), ctx({ id }))).json()).folderProblem;
+			const problemOf = async () => (await (await classRoute.GET(json(`/api/classes/${id}?scan=1`, "GET"), ctx({ id }))).json()).folder.problem;
 			assert.equal(await problemOf(), null);
 
 			fs.renameSync(oldDir, newDir);
@@ -500,7 +506,7 @@ describe("the class file pipeline", () => {
 			const fileId = stores.classStore.getClass(id)!.files[0]!.id;
 			fs.chmodSync(dir, 0o000);
 			const res = await classRoute.GET(json(`/api/classes/${id}?scan=1`, "GET"), ctx({ id }));
-			assert.equal((await res.json()).folderProblem, "missing");
+			assert.equal((await res.json()).folder.problem, "missing");
 			await classIdle(id);
 			assert.deepEqual(stores.classStore.getClass(id)!.files.map((f) => f.id), [fileId], "the file and its id stay");
 			assert.deepEqual(getNames(id), ["Heaps"], "and so do its facts");
@@ -554,9 +560,135 @@ describe("the class file pipeline", () => {
 	});
 });
 
+let skew = 0;
+/** Two scans a minute apart (on a test clock), each waited out: a folder
+ *  change counts once it holds still. */
+async function scanSettled(classId: string): Promise<void> {
+	for (let i = 0; i < 2; i++) {
+		skew += 60_000;
+		mock.timers.enable({ apis: ["Date"], now: Date.now() + skew });
+		try {
+			server.scanLinkedFolder(classId);
+		} finally {
+			mock.timers.reset();
+		}
+		await classIdle(classId);
+	}
+}
+
 function getNames(classId: string): string[] {
 	return graphStoreFor(classId).readNodes().map((n) => n.name);
 }
+
+describe("a linked folder over time (a synced Drive folder)", () => {
+	/** A fresh folder for one test, removed after it. */
+	const folder = (t: { after: (fn: () => void) => void }) => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-drive-"));
+		t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+		return dir;
+	};
+	const announced = (t: { after: (fn: () => void) => void }) => {
+		const events: { classId: string; files: { name: string; kind: string }[] }[] = [];
+		t.after(subscribe((e) => {
+			if (e.type === "files-added") events.push({ classId: e.classId, files: e.files.map((f) => ({ name: f.name, kind: f.kind })) });
+		}));
+		return events;
+	};
+
+	it("a folder file with a copied file's contents takes its place: id, facts and deadlines kept, the copy deleted", async (t) => {
+		const id = await makeClass("CSE 150");
+		const dir = folder(t);
+		const up = await (await upload(id, "study", [["notes.md", "Stacks"]])).json();
+		await classIdle(id);
+		const fileId = up.results[0].file.id as string;
+		const copied = stores.classStore.getClass(id)!.files[0]!;
+		await deadlinesRoute.POST(json("/x", "POST", { kind: "exam", name: "Midterm 1", date: "2026-11-10", fileIds: [fileId] }), ctx({ id }));
+		const copyDir = path.join(stores.classStore.filesDir(id), fileId);
+		for (const name of fs.readdirSync(copyDir)) fs.chmodSync(path.join(copyDir, name), 0o444);
+		fs.mkdirSync(path.join(dir, "week1"));
+		fs.writeFileSync(path.join(dir, "week1", "notes final.md"), "Stacks");
+		fs.writeFileSync(path.join(dir, "notes again.md"), "Stacks");
+		const importsBefore = imports.length;
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		const record = stores.classStore.getClass(id)!;
+		const kept = record.files.find((f) => f.id === fileId)!;
+		assert.deepEqual([kept.origin, kept.kind, kept.sourceId, kept.contentFp], ["linked", "study", copied.sourceId, copied.contentFp]);
+		assert.equal(kept.path, "notes again.md", "the first folder file with its contents");
+		assert.ok(!fs.existsSync(copyDir), "the read-only copy is deleted");
+		assert.deepEqual(record.deadlines?.[0]?.fileIds, [fileId]);
+		assert.equal(record.files.length, 2, "one copy takes the place of one folder file; the other is its own file");
+		assert.equal(imports.length, importsBefore + 1, "only the other one is read");
+		assert.equal(record.files.find((f) => f.id !== fileId)!.path, "week1/notes final.md");
+	});
+
+	it("new files wait until they hold still, take their series' kind and come in one notice; lock and hidden files are skipped", async (t) => {
+		const id = await makeClass("CSE 151");
+		const dir = folder(t);
+		await upload(id, "info", [["HW1.md", "Homework one"], ["HW2.md", "Homework two"]]);
+		fs.writeFileSync(path.join(dir, "Lecture1.md"), "Sets");
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		const events = announced(t);
+		for (const name of ["HW3.md", "Lecture2.md", "Lecture3.md", "~$HW3.md", ".HW4.md"]) fs.writeFileSync(path.join(dir, name), name);
+
+		server.scanLinkedFolder(id);
+		await classIdle(id);
+		assert.equal(stores.classStore.getClass(id)!.files.length, 3, "a file still being written is not added yet");
+		assert.equal(server.folderStatusOf(id).settling, 3, "and is counted as still downloading");
+		await scanSettled(id);
+		await scanSettled(id);
+		const kinds = Object.fromEntries(stores.classStore.getClass(id)!.files.map((f) => [f.name, f.kind]));
+		assert.deepEqual(kinds, { "HW1.md": "info", "HW2.md": "info", "Lecture1.md": "study", "HW3.md": "info", "Lecture2.md": "study", "Lecture3.md": "study" });
+		assert.deepEqual(events, [{ classId: id, files: [{ name: "HW3.md", kind: "info" }, { name: "Lecture2.md", kind: "study" }, { name: "Lecture3.md", kind: "study" }] }], "one notice, nothing for the first link");
+		const record = stores.classStore.getClass(id)!;
+		assert.deepEqual(record.files.filter((f) => f.foundByScan).map((f) => f.name), ["HW3.md", "Lecture2.md", "Lecture3.md"], "only files a later scan found count as new");
+		assert.equal(stores.classStore.listClasses().find((c) => c.id === id)!.lastFoundAt, record.files.find((f) => f.name === "HW3.md")!.addedAt);
+		const status = server.folderStatusOf(id);
+		assert.deepEqual([status.problem, status.settling, typeof status.checkedAt], [null, 0, "string"]);
+		const activity = (await import("../src/server/agent-actions.ts")).recentAgentActions().find((a) => a.classId === id)!;
+		assert.deepEqual([activity.agent, activity.label, activity.page, activity.target], ["godspeed", `Added 3 files from ${path.basename(dir)}`, "/class/files", null]);
+	});
+
+	it("a file renamed or moved to another subfolder keeps its id and facts", async (t) => {
+		const id = await makeClass("CSE 152");
+		const dir = folder(t);
+		fs.mkdirSync(path.join(dir, "week1"));
+		fs.mkdirSync(path.join(dir, "week2"));
+		fs.writeFileSync(path.join(dir, "week1", "a.md"), "Graphs");
+		fs.writeFileSync(path.join(dir, "b.md"), "Trees");
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		const before = stores.classStore.getClass(id)!.files.find((f) => f.name === "a.md")!;
+		const events = announced(t);
+		const importsBefore = imports.length;
+		fs.renameSync(path.join(dir, "week1", "a.md"), path.join(dir, "week2", "graphs.md"));
+		await scanSettled(id);
+		const after = stores.classStore.getClass(id)!.files.find((f) => f.id === before.id)!;
+		assert.deepEqual([after.path, after.name, after.sourceId], ["week2/graphs.md", "graphs.md", before.sourceId]);
+		assert.equal(stores.classStore.getClass(id)!.files.length, 2);
+		assert.equal(imports.length, importsBefore, "nothing is read again");
+		assert.deepEqual(getNames(id).sort(), ["Graphs", "Trees"]);
+		assert.deepEqual(events, [], "a moved file is not new");
+	});
+
+	it("a folder that turns up empty (Drive starting or signed out) keeps its files and facts", async (t) => {
+		const id = await makeClass("CSE 153");
+		const dir = folder(t);
+		fs.writeFileSync(path.join(dir, "a.md"), "Logic");
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		fs.renameSync(path.join(dir, "a.md"), path.join(dir, ".a.md"));
+		await scanSettled(id);
+		assert.equal(stores.classStore.getClass(id)!.files.length, 1);
+		assert.deepEqual(getNames(id), ["Logic"]);
+		assert.equal(server.folderStatusOf(id).problem, "empty");
+		fs.renameSync(path.join(dir, ".a.md"), path.join(dir, "a.md"));
+		await scanSettled(id);
+		assert.equal(server.folderStatusOf(id).problem, null);
+		assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+	});
+});
 
 describe("lessons in classes", () => {
 	it("a lesson created in a class opens with the class card; ?class= narrows the list", async () => {

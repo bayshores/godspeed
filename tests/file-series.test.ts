@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { groupFileSeries, seriesGaps } from "../src/core/file-series.ts";
+import { kindsForNewFiles } from "../src/core/new-files.ts";
 
 const named = (names: string[]) => names.map((name, i) => ({ id: `f${i}`, name }));
 
@@ -70,5 +71,26 @@ describe("file series", () => {
 		assert.deepEqual(s, []);
 		assert.equal(o.length, 3);
 		assert.deepEqual(groupFileSeries([]), { series: [], other: [] });
+	});
+});
+
+describe("the kind a new file gets", () => {
+	it("joins its series' kind when the series agrees, else study material", () => {
+		const existing = [
+			{ id: "h1", name: "HW1_F26.pdf", kind: "info" as const },
+			{ id: "h2", name: "HW2_F26.pdf", kind: "info" as const },
+			{ id: "d1", name: "Day1 intro.pdf", kind: "study" as const },
+			{ id: "d2", name: "Day2 sums.pdf", kind: "study" as const },
+			{ id: "w1", name: "Week 1 Discussion.pdf", kind: "study" as const },
+			{ id: "w2", name: "Week 2 Discussion.pdf", kind: "info" as const },
+		];
+		const kinds = kindsForNewFiles(existing, [
+			{ id: "h5", name: "HW5_F26.pdf" },
+			{ id: "d11", name: "Day11 graphs.pdf" },
+			{ id: "w3", name: "Week 3 Discussion.pdf" },
+			{ id: "s", name: "syllabus.txt" },
+		]);
+		assert.deepEqual(Object.fromEntries(kinds), { h5: "info", d11: "study", w3: "study", s: "study" });
+		assert.equal(kindsForNewFiles(existing, []).size, 0);
 	});
 });

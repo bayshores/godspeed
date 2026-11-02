@@ -8,12 +8,6 @@ import { SPEECH_TOOL_INSTALL, type ClassFile, type FileCoverage, type FileGroup 
 /** Accepted by "Add files" (mirrors SUPPORTED_CLASS_FILE_EXTENSIONS). */
 export const CLASS_FILE_ACCEPT = ".md,.markdown,.txt,.pdf,.vtt,.srt,.mp3,.m4a,.wav,.mp4,.mov";
 
-/** "/Users/me/School/CSE 21" → "~/School/CSE 21" (macOS and Linux home
- *  folders); any other path is shown as is. */
-export function shortenHome(path: string): string {
-	return path.replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
-}
-
 /** The computer's file browser by name, for "Show in …" labels. */
 export function fileBrowserName(platform: string | undefined): string {
 	return platform === "win32" ? "File Explorer" : platform === "darwin" ? "Finder" : "Files";

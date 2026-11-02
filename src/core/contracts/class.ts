@@ -42,8 +42,19 @@ export const MAX_LINKED_FILES = 500;
 
 /** What is wrong with a class's linked folder at its last scan:
  *  "missing" = not found (moved, renamed, drive unplugged);
+ *  "empty" = there but showing no files (a synced folder starting up),
+ *  so nothing is taken as deleted;
  *  "too-many-files" = only the first MAX_LINKED_FILES were added. */
-export type FolderProblem = "missing" | "too-many-files";
+export type FolderProblem = "missing" | "empty" | "too-many-files";
+
+/** A class's linked folder as its last scan saw it. */
+export interface FolderStatus {
+	problem: FolderProblem | null;
+	/** When a scan last read the folder through (null: not since launch). */
+	checkedAt: string | null;
+	/** New files not added yet because they are still changing (downloading). */
+	settling: number;
+}
 
 export interface ClassFile {
 	/** Stable id: "f_" + 12 hex. */
@@ -68,6 +79,9 @@ export interface ClassFile {
 	status: ClassFileStatus;
 	error?: string;
 	addedAt: string;
+	/** Found by a later scan of its linked folder (not linked with the
+	 *  folder, nor added by hand): shown as new for a few days. */
+	foundByScan?: true;
 }
 
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
@@ -248,6 +262,8 @@ export interface ClassSummary {
 	archived: boolean;
 	linkedFolder?: string;
 	fileCount: number;
+	/** When the newest file a folder scan found arrived. */
+	lastFoundAt?: string;
 	signature?: ClassSignature;
 	icon?: ClassIcon;
 	note?: ClassNote;

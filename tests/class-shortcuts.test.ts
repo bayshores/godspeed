@@ -60,14 +60,22 @@ describe("where shortcuts go", () => {
 	});
 	it("classes, then Files page groups; archived classes in Archived; reserved names avoided", () => {
 		const layout = core.shortcutLayout([
-			{ name: "CSE 21", archived: false, files: [file("a", "Day1.pdf"), file("b", "Day2.pdf"), file("c", "syllabus.txt", "info")] },
-			{ name: "Archived", archived: false, files: [file("d", "x.pdf")] },
-			{ name: "CSE 21", archived: true, files: [file("e", "old.pdf")] },
+			{ id: "c1", name: "CSE 21", archived: false, files: [file("a", "Day1.pdf"), file("b", "Day2.pdf"), file("c", "syllabus.txt", "info")] },
+			{ id: "c2", name: "Archived", archived: false, files: [file("d", "x.pdf")] },
+			{ id: "c3", name: "CSE 21", archived: true, files: [file("e", "old.pdf")] },
 		]);
 		assert.deepEqual(
 			layout.map((s) => s.at.join("/")),
 			["CSE 21/Day/Day1.pdf", "CSE 21/Day/Day2.pdf", "CSE 21/Other/syllabus.txt", "Archived (2)/Other/x.pdf", "Archived/CSE 21/Other/old.pdf"],
 		);
+	});
+	it("each class's folder by id, the same names the layout uses", () => {
+		const dirs = core.classDirs([
+			{ id: "c1", name: "CSE 21", archived: false },
+			{ id: "c2", name: "CSE 21", archived: false },
+			{ id: "c3", name: "CSE: 29", archived: true },
+		]);
+		assert.deepEqual([...dirs.values()], [["CSE 21"], ["CSE 21 (2)"], ["Archived", "CSE- 29"]]);
 	});
 	it("the note lists files that couldn't get a shortcut", () => {
 		assert.doesNotMatch(core.readmeText([]), /couldn't/);

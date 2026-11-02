@@ -130,6 +130,28 @@ describe("[Today] note text", () => {
 		assert.equal(deadlinePartOf(head), "");
 	});
 
+	it("lists files added in the last 3 days, newest first, at most 5 names", () => {
+		const head = "[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)";
+		const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000).toISOString();
+		const files = [
+			{ id: "o", name: "Old.pdf", addedAt: hoursAgo(80) },
+			{ id: "u", name: "Undated.pdf" },
+			...[1, 2, 3, 4, 5, 6, 7].map((n) => ({ id: `n${n}`, name: `Day${n}.pdf`, addedAt: hoursAgo(n) })),
+		];
+		assert.equal(
+			todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(0, 4), deadlines: [] } }),
+			[head, "", "New files (last 3 days): Day1.pdf, Day2.pdf"].join("\n"),
+			"shown with no deadlines; older and undated files left out",
+		);
+		assert.equal(
+			todayNoteText({ now: NOW, timeZone: TZ, cls: { files, deadlines: [] } }),
+			[head, "", "New files (last 3 days): Day1.pdf, Day2.pdf, Day3.pdf, Day4.pdf, Day5.pdf, and 2 more"].join("\n"),
+		);
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(0, 2), deadlines: [] } }), head);
+		const withDeadline = todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(0, 3), deadlines: [dl({ id: "a", kind: "quiz", name: "Q1", date: "2026-10-30" })] } });
+		assert.match(withDeadline, /- Q1 \(quiz\), due Fri Oct 30, in 2 days\.\n\nNew files \(last 3 days\): Day1\.pdf$/);
+	});
+
 	it("uses the machine's time zone wall clock and a readable zone name, falling back to the IANA name", () => {
 		assert.match(todayNoteText({ now: NOW, timeZone: "Europe/Berlin", cls: null }), /^\[Today\] Thu Oct 29 2026, 12:12 AM \(Central European Time\)$/);
 		assert.equal(timeZoneLabel(NOW, "Not/AZone"), "Not/AZone");

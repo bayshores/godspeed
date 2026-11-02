@@ -64,6 +64,8 @@ export * from "./settings-resolution.ts";
 export * from "./math-typing.ts";
 export * from "./file-series.ts";
 export * from "./file-groups.ts";
+export * from "./new-files.ts";
+export * from "./linked-folder.ts";
 export * from "./deadline-plan.ts";
 export type { ClassChange } from "./class-tools.ts";
 export * from "./teaching-areas.ts";

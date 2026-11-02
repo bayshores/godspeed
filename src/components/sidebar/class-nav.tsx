@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * THE CLASS NAV: Overview / Graph / Files for the
- * active class. Files shows the class's file count and is hidden under
+ * active class. Files shows the class's file count (and a dot while a
+ * folder scan found files the learner hasn't seen) and is hidden under
  * "No class" (there are no class files then); Overview and Graph still
  * apply to the lessons without a class.
  */
@@ -57,10 +58,12 @@ export const ClassNav = memo(function ClassNav({
 	pathname,
 	hasClass,
 	fileCount,
+	unseenFiles,
 }: {
 	pathname: string;
 	hasClass: boolean;
 	fileCount: number;
+	unseenFiles: boolean;
 }) {
 	const activeHref = activeNavHref(pathname);
 	return (
@@ -80,6 +83,7 @@ export const ClassNav = memo(function ClassNav({
 					>
 						<Icon className="size-4 shrink-0" aria-hidden />
 						<span className="min-w-0 flex-1 truncate">{item.label}</span>
+						{item.href === "/class/files" && unseenFiles && <span data-testid="nav-files-new" aria-label="New files" className="size-1.5 shrink-0 bg-ink-max" />}
 						{item.href === "/class/files" && (
 							<span data-testid="nav-files-count" className="px-1.5 font-mono text-xs font-bold tabular-nums text-ink-3">
 								{fileCount}

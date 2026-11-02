@@ -26,6 +26,8 @@ import {
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 import { oldSetup, removeOldSetup } from "./old-setup.ts";
 import { syncShortcutsSafely, watchShortcuts } from "./class-shortcuts.ts";
+import { classDirs } from "../core/class-shortcuts.ts";
+import { stores } from "./stores.ts";
 
 const STATE_FILE = path.join(PATHS.data, "agent-folder.json");
 const TEMPLATE = path.join(process.cwd(), "src", "server", "agent-folder-files");
@@ -49,6 +51,15 @@ interface AgentFolderView {
 	/** The old setup still left once the folder is set up (the first-time
 	 *  notice covers people without a folder). */
 	oldSetup: OldSetup;
+}
+
+/** The class's folder of shortcuts in the godspeed folder, when it's there. */
+export function classShortcutDir(classId: string): string | null {
+	const view = agentFolderView();
+	if (!view.exists) return null;
+	const at = classDirs(stores.classStore.listClasses()).get(classId);
+	const dir = at && path.join(view.folder, "classes", ...at);
+	return dir && fs.existsSync(dir) ? dir : null;
 }
 
 /** A folder that can't be used, in words for the learner. */

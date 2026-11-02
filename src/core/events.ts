@@ -40,6 +40,10 @@ export interface AgentAction {
 	removed?: true;
 }
 
+/** The `agent` of the app's own entries in that list (a linked folder's
+ *  new files): not an agent, so the teacher never flies to them. */
+export const APP_SOURCE = "godspeed";
+
 /** The full event vocabulary. */
 export interface ServerEvents {
 	/** A teach turn began server-side (beginTurn) — client-initiated sends,
@@ -77,6 +81,8 @@ export interface ServerEvents {
 	/** A teaching rule was saved, undone or edited. `saved` when an outside
 	 *  agent saved one from the terminal (the window shows a notice). */
 	"rules-changed": { saved?: { text: string; where: { area: string } | { classId: string }; label: string; agent: string } };
+	/** A class's linked folder brought new files (the window shows a notice). */
+	"files-added": { classId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -96,6 +102,7 @@ export const SERVER_EVENT_TYPES = [
 	"compaction-changed",
 	"agent-action",
 	"rules-changed",
+	"files-added",
 ] as const satisfies readonly ServerEventType[];
 
 /** One notification: the type discriminates the payload (a real union,
