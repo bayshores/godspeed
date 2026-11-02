@@ -9,13 +9,14 @@
  * last changes, click one to go there, and background jobs; each part
  * shows only when it has something in it).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ArrowRightIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentAction } from "@/core";
 import { ActivitySection } from "@/components/activity-dock";
 import { agentWaiting, footerLabel, waitingNotice, type AgentStatus } from "@/components/agent-status";
 import { SmallSwitch } from "@/components/ui/small-switch";
+import { tabListKeys } from "@/components/ui/tab-list";
 import { HalleyFace } from "./halley-face";
 import { safePage } from "./follow";
 import { pastLabel } from "./tour";
@@ -27,7 +28,8 @@ const DOCK_WIDTH = 400;
 /** Below this the panel takes the whole width. */
 const DOCK_FULL_BELOW = 640;
 
-type Tab = "talk" | "activity";
+const TABS = ["talk", "activity"] as const;
+type Tab = (typeof TABS)[number];
 
 /** The agent line under the name: the footer's line, or the waiting notice while work waits. */
 export function agentLine(agent: AgentStatus | null): string {
@@ -84,6 +86,7 @@ export function HalleyPanel({
 	jobs?: React.ReactNode;
 }) {
 	const [tab, setTab] = useState<Tab>("talk");
+	const tabsId = useId();
 	const [width, setWidth] = useState(DOCK_WIDTH);
 	useEffect(() => {
 		const measure = () => setWidth(currentDockWidth());
@@ -130,13 +133,21 @@ export function HalleyPanel({
 				</button>
 			</div>
 
-			<div role="tablist" aria-label={name} className="flex shrink-0 gap-6 border-b border-tone-2 px-6">
-				{(["talk", "activity"] as const).map((t) => (
+			<div
+				role="tablist"
+				aria-label={name}
+				onKeyDown={tabListKeys(TABS.indexOf(tab), TABS.length, (i) => setTab(TABS[i]!))}
+				className="flex shrink-0 gap-6 border-b border-tone-2 px-6"
+			>
+				{TABS.map((t) => (
 					<button
 						key={t}
 						type="button"
 						role="tab"
+						id={`${tabsId}-${t}`}
 						aria-selected={tab === t}
+						aria-controls={`${tabsId}-panel`}
+						tabIndex={tab === t ? 0 : -1}
 						data-testid={`halley-tab-${t}`}
 						onClick={() => setTab(t)}
 						className={cn(
@@ -150,9 +161,11 @@ export function HalleyPanel({
 			</div>
 
 			{tab === "talk" ? (
-				<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} />
+				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-talk`} className="flex min-h-0 flex-1 flex-col">
+					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} />
+				</div>
 			) : (
-				<div data-testid="halley-activity" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-activity`} data-testid="halley-activity" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
 					{nowText && (
 						<p data-testid="halley-now" className="text-[15px] font-bold text-ink-max">
 							{nowText}

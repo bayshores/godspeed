@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { draggedWidth, storedWidth, type PaneBounds } from "./pane-width-model";
+import { draggedWidth, keyedWidth, storedWidth, type PaneBounds } from "./pane-width-model";
 
 const storageKey = (key: string) => `lh:pane-width:${key}`;
 
@@ -31,7 +31,8 @@ function saveWidth(key: string, width: number | null) {
 /**
  * The drag strip over a pane's border line. Dragging sets the width, the
  * width is saved when the drag ends, and a double-click puts back the
- * default. While dragging, `data-lh-resizing` on the page turns off the
+ * default. From the keyboard the arrows, Home and End move it
+ * (keyedWidth). While dragging, `data-lh-resizing` on the page turns off the
  * sidebar's slide so the pane follows the pointer.
  */
 export function ResizeHandle({
@@ -67,6 +68,18 @@ export function ResizeHandle({
 			role="separator"
 			aria-orientation="vertical"
 			aria-label={label}
+			aria-valuenow={width}
+			aria-valuemin={bounds.min}
+			aria-valuemax={bounds.max}
+			tabIndex={0}
+			onKeyDown={(e) => {
+				const next = keyedWidth(width, e.key, edge, bounds);
+				if (next === null) return;
+				e.preventDefault();
+				e.stopPropagation();
+				onWidth(next);
+				saveWidth(paneKey, next);
+			}}
 			data-testid={`resize-${paneKey}`}
 			data-dragging={dragging || undefined}
 			onPointerDown={(e) => {
@@ -97,7 +110,7 @@ export function ResizeHandle({
 			<span
 				aria-hidden
 				className={cn(
-					"absolute inset-y-0 w-px transition-colors duration-(--lh-dur) group-hover:bg-ink-3 group-data-[dragging]:bg-ink-2",
+					"absolute inset-y-0 w-px transition-colors duration-(--lh-dur) group-hover:bg-ink-3 group-focus-visible:bg-ink-2 group-data-[dragging]:bg-ink-2",
 					edge === "right" ? "right-0" : "left-0",
 				)}
 			/>

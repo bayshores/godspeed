@@ -80,6 +80,7 @@ until correct and clean. Never finish without having looked at a render of your 
 
 SVG requirements:
 - A complete <svg> with explicit width/height AND a matching viewBox.
+- A <title> first inside it, naming what the figure shows (screen readers read it).
 - White background (<rect> or style), dark strokes, sans-serif labels at generous sizes.
 - One idea, fewest elements — sparse and large beats busy and tiny.
 - Draw only what the brief specifies; never invent data, values, or shapes to fill space.

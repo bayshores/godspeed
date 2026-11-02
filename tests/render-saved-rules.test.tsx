@@ -8,7 +8,7 @@ import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -112,6 +112,23 @@ describe("the terminal notice", () => {
 		await click(q("rule-notice-undo"));
 		assert.deepEqual(posts, [{ action: "remove", where: { area: "voice" }, text: "Shorter answers." }]);
 		assert.match(q("rule-notice")!.textContent!, /Rule removed/);
+	});
+
+	it("waits while focus is inside it, then hides", async () => {
+		mock.timers.enable({ apis: ["setTimeout"] });
+		try {
+			await mount(<RuleNotice />);
+			const saved = { text: "Shorter answers.", where: { area: "voice" }, label: "Every lesson, under Voice", agent: "Claude Code" };
+			await act(async () => events.get("rules-changed")!(JSON.stringify({ saved })));
+			await act(async () => q("rule-notice-undo")!.dispatchEvent(new window.Event("focusin", { bubbles: true })));
+			await act(async () => mock.timers.tick(20_000));
+			assert.ok(q("rule-notice"), "a keyboard user's focus keeps it open");
+			await act(async () => q("rule-notice-undo")!.dispatchEvent(new window.Event("focusout", { bubbles: true })));
+			await act(async () => mock.timers.tick(20_000));
+			assert.equal(q("rule-notice"), null);
+		} finally {
+			mock.timers.reset();
+		}
 	});
 
 	it("stays hidden for changes made in the window", async () => {

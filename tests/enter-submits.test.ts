@@ -109,7 +109,7 @@ describe("showFocusRingAfterTab (the keyboard focus ring)", () => {
 		document.dispatchEvent(e);
 	};
 	const on = () => document.documentElement.hasAttribute("data-tab-focus");
-	it("Tab turns the ring on; other keys don't; a pointer press turns it off", () => {
+	it("Tab turns the ring on; an arrow that moves no focus doesn't; a pointer press turns it off", () => {
 		const stop = showFocusRingAfterTab(document);
 		press("keydown", "ArrowRight");
 		assert.equal(on(), false, "a clicked control doesn't light up at the arrow keys");
@@ -122,6 +122,22 @@ describe("showFocusRingAfterTab (the keyboard focus ring)", () => {
 		assert.equal(on(), false, "the cleanup removes it");
 		press("keydown", "Tab");
 		assert.equal(on(), false, "and stops listening");
+	});
+	it("an arrow key that moves focus (through a clicked-open menu) turns it on", () => {
+		const stop = showFocusRingAfterTab(document);
+		press("keydown", "ArrowDown");
+		press("focusin");
+		assert.equal(on(), true);
+		press("pointerdown");
+		stop();
+	});
+	it("focus moved later, not by the key, leaves it off", async () => {
+		const stop = showFocusRingAfterTab(document);
+		press("keydown", "ArrowDown");
+		await new Promise((r) => setTimeout(r, 0));
+		press("focusin");
+		assert.equal(on(), false);
+		stop();
 	});
 });
 

@@ -38,29 +38,36 @@ async function copyText(text: string): Promise<boolean> {
 	}
 }
 
-/** Copies `text` and says "Copied" for a moment (an icon-only button flips to a check). */
+/** Copies `text` and says "Copied" for a moment (an icon-only button flips
+ *  to a check). A hidden live line beside it says "Copied" to screen
+ *  readers, which don't read a changed button name. */
 export function CopyButton({ text, children = "Copy", icon = false, onClick, ...button }: CopyButtonProps) {
 	const [copied, setCopied] = useState(false);
 	const timer = useRef<number | undefined>(undefined);
 	useEffect(() => () => window.clearTimeout(timer.current), []);
 	const Icon = copied ? CheckIcon : CopyIcon;
 	return (
-		<button
-			{...button}
-			type="button"
-			onClick={(e) => {
-				onClick?.(e);
-				void copyText(typeof text === "function" ? text() : text).then((ok) => {
-					if (!ok) return;
-					setCopied(true);
-					window.clearTimeout(timer.current);
-					timer.current = window.setTimeout(() => setCopied(false), 1500);
-				});
-			}}
-		>
-			{/* With no "Copied" word, the check settles in so the flip reads. */}
-			{icon && <Icon className={cn("size-3.5", copied && icon === "only" && "motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]")} aria-hidden />}
-			{icon !== "only" && (copied ? "Copied" : children)}
-		</button>
+		<>
+			<button
+				{...button}
+				type="button"
+				onClick={(e) => {
+					onClick?.(e);
+					void copyText(typeof text === "function" ? text() : text).then((ok) => {
+						if (!ok) return;
+						setCopied(true);
+						window.clearTimeout(timer.current);
+						timer.current = window.setTimeout(() => setCopied(false), 1500);
+					});
+				}}
+			>
+				{/* With no "Copied" word, the check settles in so the flip reads. */}
+				{icon && <Icon className={cn("size-3.5", copied && icon === "only" && "motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]")} aria-hidden />}
+				{icon !== "only" && (copied ? "Copied" : children)}
+			</button>
+			<span className="sr-only" aria-live="polite">
+				{copied ? "Copied" : ""}
+			</span>
+		</>
 	);
 }

@@ -176,6 +176,7 @@ function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; on
 				>
 					{classes.map((c) => (
 						<button
+							role="menuitem"
 							key={c.id}
 							type="button"
 							data-testid={`home-add-deadline-${c.id}`}

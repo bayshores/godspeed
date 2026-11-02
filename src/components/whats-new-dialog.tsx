@@ -9,6 +9,7 @@ import { XIcon } from "lucide-react";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { Hint } from "@/components/ui/hint";
 import type { ChangelogEntry } from "@/core";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /** "2026-10-27" → "Oct 27, 2026" (fixed locale and zone: no hydration drift). */
 export function formatChangelogDate(date: string): string {
@@ -27,6 +28,7 @@ export function WhatsNewDialog({
 	onClose: () => void;
 }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	useEffect(() => {
 		if (state === "closed") return;
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -46,6 +48,8 @@ export function WhatsNewDialog({
 	return (
 		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/70" {...backdropDismiss}>
 			<div
+				ref={dialogRef}
+				tabIndex={-1}
 				role="dialog"
 				aria-modal="true"
 				aria-label={title}
@@ -87,7 +91,7 @@ export function WhatsNewDialog({
 				<div className="flex shrink-0 justify-end border-t border-tone-2 px-5 py-3.5">
 					<button
 						type="button"
-						autoFocus
+						data-autofocus
 						data-testid="whats-new-done"
 						onClick={onClose}
 						className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max"

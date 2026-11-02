@@ -25,3 +25,19 @@ export function draggedWidth(startWidth: number, startX: number, x: number, edge
 	const delta = edge === "right" ? x - startX : startX - x;
 	return clampWidth(startWidth + delta, bounds);
 }
+
+/** How far one arrow press moves a pane's border (px). */
+const KEY_STEP = 16;
+
+/**
+ * The width after a key on the handle, or null when the key isn't one of
+ * its keys. The arrows move the border the way they point; Home and End
+ * jump to the narrowest and widest.
+ */
+export function keyedWidth(width: number, key: string, edge: "left" | "right", bounds: PaneBounds): number | null {
+	if (key === "Home") return bounds.min;
+	if (key === "End") return bounds.max;
+	if (key !== "ArrowLeft" && key !== "ArrowRight") return null;
+	const outward = (key === "ArrowRight") === (edge === "right");
+	return clampWidth(width + (outward ? KEY_STEP : -KEY_STEP), bounds);
+}

@@ -163,7 +163,7 @@ export function SideQuestionBox({
 		);
 	return (
 		<div data-testid="side-question" className="shrink-0 px-6 py-3">
-			<div className="flex items-end bg-background">
+			<div className="flex items-end bg-background has-[textarea:focus]:inset-ring has-[textarea:focus]:inset-ring-ink-2">
 				<textarea
 					rows={1}
 					value={value}

@@ -35,6 +35,10 @@ import { usePresence } from "@/components/presence";
  * `open` and render the shell unconditionally, so it stays mounted ~110ms
  * through its exit; while closing it is inert — no focus, no keys, no
  * clicks. Without `open` the shell is open while mounted (enter only).
+ *
+ * Roles: a menu by default (its option buttons say role="menuitem"); a
+ * popup of other content (a search list, an info box) passes
+ * role="dialog" and a label.
  */
 
 const GAP = 4; // anchor edge → menu (the bespoke shells' settled 4px)
@@ -117,6 +121,9 @@ interface MenuBodyProps {
 	anchorTestid?: string;
 	/** The menu body's own testid (sites assert it). */
 	testid: string;
+	/** "dialog" for a popup that isn't a list of actions; it then needs `label`. */
+	role?: "menu" | "dialog";
+	label?: string;
 	/** Which way the menu opens from the anchor when both sides fit. */
 	preferredSide: MenuSide;
 	/** Which anchor edge the menu's horizontal position keys off. */
@@ -131,6 +138,8 @@ function MenuShellBody({
 	anchorRef,
 	anchorTestid,
 	testid,
+	role = "menu",
+	label,
 	preferredSide,
 	align = "right",
 	menuClass,
@@ -272,6 +281,8 @@ function MenuShellBody({
 			ref={menuRef}
 			data-testid={testid}
 			data-lh-menu=""
+			role={role}
+			aria-label={label}
 			tabIndex={-1}
 			onKeyDown={onBodyKeyDown}
 			data-side={placed.side}

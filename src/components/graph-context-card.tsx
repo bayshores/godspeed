@@ -29,6 +29,7 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 			<button
 				type="button"
 				data-testid="graph-context-toggle"
+				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
 				className="flex w-full cursor-pointer items-center gap-2 border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
 			>
@@ -89,6 +90,7 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 			<button
 				type="button"
 				data-testid="class-context-toggle"
+				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
 				className="flex w-full cursor-pointer items-center gap-2 border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
 			>

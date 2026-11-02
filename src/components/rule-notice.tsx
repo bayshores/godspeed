@@ -3,8 +3,8 @@
 /**
  * The corner notice when an outside agent saves a rule from the terminal:
  * "Claude Code saved a rule", the rule, where it applies, Undo and Edit.
- * It hides after a while, but not while the pointer is on it or the rule
- * is being edited.
+ * It hides after a while, but not while the pointer is on it, focus is
+ * in it or the rule is being edited.
  */
 
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ import { parseWhere, type RuleWhere } from "@/core";
 import { NOTICE_STACK_ID } from "@/components/notice-stack";
 import { RuleEditBox, useSavedRule } from "@/components/saved-rule";
 import { useServerEvent } from "@/components/server-events";
+import { useHeld } from "@/components/use-held";
 
 const SHOW_MS = 12_000;
 const AFTER_UNDO_MS = 3_000;
@@ -38,20 +39,19 @@ export function RuleNotice() {
 
 function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 	const api = useSavedRule(saved.where, saved.text);
-	const [hover, setHover] = useState(false);
+	const { held, handlers } = useHeld();
 	const { mode } = api;
 	useEffect(() => {
-		if (hover || mode.kind === "editing") return;
+		if (held || mode.kind === "editing") return;
 		const id = window.setTimeout(onDone, mode.kind === "removed" ? AFTER_UNDO_MS : SHOW_MS);
 		return () => window.clearTimeout(id);
-	}, [hover, mode.kind, onDone]);
+	}, [held, mode.kind, onDone]);
 
 	return (
 		<div
 			data-testid="rule-notice"
 			role="status"
-			onPointerEnter={() => setHover(true)}
-			onPointerLeave={() => setHover(false)}
+			{...handlers}
 			className="lh-rise lh-popup flex w-[340px] max-w-full flex-col gap-2 px-4 py-3 font-ui text-[13.5px] text-ink"
 		>
 			<p className="flex items-center gap-2 font-bold">

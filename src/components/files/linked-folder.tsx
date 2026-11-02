@@ -87,6 +87,8 @@ export function LinkedFolderChip({
 				open={open}
 				anchorRef={anchorRef}
 				testid="class-folder-box"
+				role="dialog"
+				label="Linked folder"
 				preferredSide="down"
 				menuClass="lh-popup flex w-[300px] flex-col gap-2 px-[13px] py-[11px]"
 			>

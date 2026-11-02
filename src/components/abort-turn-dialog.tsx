@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /**
  * The stop guard: the global Esc → abort chain and the Skip question and
@@ -62,10 +63,13 @@ export function AbortTurnBody({
 	/** "closed" while the exit plays — inert. */
 	state?: "open" | "closed";
 }) {
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	const backdropDismiss = useBackdropDismiss(onClose);
 	const copy = COPY[mode];
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal="true"
 			aria-label={copy.title}

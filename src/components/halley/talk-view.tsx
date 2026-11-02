@@ -231,7 +231,7 @@ function TalkThread({
 					onKeyDown={(e) => fieldKeys(e, send)}
 					placeholder={`Tell ${name} what to set up, or ask about your classes`}
 					aria-label={`Message ${name}`}
-					className="lh-input block max-h-40 min-h-[76px] w-full resize-none bg-transparent px-6 py-4 text-[14px]! leading-5! text-ink outline-none field-sizing-content placeholder:text-ink-3"
+					className="lh-input block max-h-40 min-h-[76px] w-full resize-none bg-transparent px-6 py-4 text-[14px]! leading-5! text-ink outline-none field-sizing-content placeholder:text-ink-3 focus:inset-ring focus:inset-ring-ink-2"
 				/>
 				<div className="flex items-stretch">
 					<div className="min-w-0 flex-1">

@@ -489,10 +489,9 @@ function QuestionDockForm({
 						)}
 
 						{kind === "ask" && (
+							// The row is only a click target; its radio is the box, so the
+							// field isn't nested inside another control.
 							<div
-								role={qd.mode === "multi-select" ? "checkbox" : "radio"}
-								aria-checked={sel.otherSelected}
-								data-testid="other-option"
 								data-kbdrow={optionCount}
 								onClick={selectOther}
 								className={cn(
@@ -502,7 +501,16 @@ function QuestionDockForm({
 									walked(optionCount, sel.otherSelected),
 								)}
 							>
-								<KeyBox n="" selected={sel.otherSelected} outlined />
+								<button
+									type="button"
+									role={qd.mode === "multi-select" ? "checkbox" : "radio"}
+									aria-checked={sel.otherSelected}
+									data-testid="other-option"
+									aria-label="Use your own answer"
+									className="shrink-0"
+								>
+									<KeyBox n="" selected={sel.otherSelected} outlined />
+								</button>
 								<input
 									ref={otherInputRef}
 									value={other}

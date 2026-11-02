@@ -95,7 +95,15 @@ function TopicStrip({ deadline: d, tallies }: { deadline: DeadlineProgress; tall
 			<div data-testid="deadline-topics" className="flex h-2.5 w-full gap-[3px]">
 				{d.topics.map((t) => (
 					<Tip key={t.id} title={t.name} body={<span className="text-xs text-ink-2">{tallyText(tallies.get(t.id))}</span>}>
-						<span data-testid="deadline-topic" className="h-full min-w-1 flex-1" style={{ background: rampColor(t.rate) }} />
+						{/* Focusable and named, so the tip isn't for the mouse only. */}
+						<span
+							data-testid="deadline-topic"
+							role="img"
+							tabIndex={0}
+							aria-label={`${t.name}: ${tallyText(tallies.get(t.id))}`}
+							className="h-full min-w-1 flex-1"
+							style={{ background: rampColor(t.rate) }}
+						/>
 					</Tip>
 				))}
 			</div>
@@ -217,7 +225,14 @@ function SeriesRow({ series: s }: { series: MaterialSeries }) {
 			<div className="flex min-w-0 flex-1 flex-wrap gap-[3px]">
 				{s.slots.map((slot) => (
 					<Tip key={slot.number} title={slotTitle(s, slot)} body={<span className="text-xs text-ink-2">{slotBody(slot)}</span>}>
-						<span data-testid="deadline-slot" data-state={slot.state} className={cn("size-3.5 shrink-0", SLOT_CLASS[slot.state])} />
+						<span
+							data-testid="deadline-slot"
+							data-state={slot.state}
+							role="img"
+							tabIndex={0}
+							aria-label={`${slotTitle(s, slot)}: ${slotBody(slot)}`}
+							className={cn("size-3.5 shrink-0", SLOT_CLASS[slot.state])}
+						/>
 					</Tip>
 				))}
 			</div>

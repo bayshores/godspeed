@@ -66,6 +66,7 @@ export function FactList({
 			{menu && <div ref={anchorRef} className="pointer-events-none fixed size-0" style={{ left: menu.x, top: menu.y }} />}
 			<MenuShell open={menu !== null} anchorRef={anchorRef} testid="fact-context-menu" preferredSide="down" align="left" menuClass={MENU_CLASS}>
 				<button
+					role="menuitem"
 					type="button"
 					data-testid="ctx-fact-delete"
 					onClick={() => {

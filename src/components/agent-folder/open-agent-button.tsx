@@ -56,6 +56,7 @@ export function OpenAgentButton({
 			<MenuShell open={menu} anchorRef={anchorRef} testid="open-agent-choices" preferredSide="down" align="right" menuClass="lh-popup flex w-[220px] flex-col gap-0.5 p-1.5">
 				{CHOICES.map((c) => (
 					<button
+						role="menuitem"
 						key={c.id}
 						type="button"
 						data-testid={`open-agent-${c.id}`}

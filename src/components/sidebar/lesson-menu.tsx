@@ -36,10 +36,11 @@ export function LessonMenu({
 			preferredSide="down"
 			menuClass="lh-popup flex w-52 flex-col gap-0.5 p-1.5 text-[13px]"
 		>
-			<button type="button" data-testid="ctx-rename" onClick={onRename} className={`${ITEM} text-ink`}>
+			<button role="menuitem" type="button" data-testid="ctx-rename" onClick={onRename} className={`${ITEM} text-ink`}>
 				Rename
 			</button>
 			<button
+				role="menuitem"
 				type="button"
 				data-testid="ctx-export-md"
 				onClick={() => {
@@ -56,10 +57,10 @@ export function LessonMenu({
 			>
 				Export as Markdown…
 			</button>
-			<button type="button" data-testid="ctx-move-class" onClick={onMove} className={`${ITEM} text-ink`}>
+			<button role="menuitem" type="button" data-testid="ctx-move-class" onClick={onMove} className={`${ITEM} text-ink`}>
 				Move to class…
 			</button>
-			<button type="button" data-testid="ctx-delete" onClick={onDelete} className={`${ITEM} text-ink-2 hover:text-ink`}>
+			<button role="menuitem" type="button" data-testid="ctx-delete" onClick={onDelete} className={`${ITEM} text-ink-2 hover:text-ink`}>
 				Delete…
 			</button>
 			<div className="my-0.5 border-t border-tone-2" aria-hidden="true" />

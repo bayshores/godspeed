@@ -18,15 +18,17 @@
 /* One focus ring, for keyboard focus only. The browser's own outline never
    shows: a keypress lights :focus-visible on a clicked control too (a
    clicked sidebar lesson lit up at the quiz's arrow keys), so the ring
-   waits for Tab (data-tab-focus, focus-hygiene.ts) and goes at the next
-   click. Text fields keep their own focus edge. A color picker is invisible
-   over its tile (Settings, Appearance), so the tile wears its ring.
-   Unlayered on purpose, so it wins over any outline-none utility. */
+   waits for Tab or an arrow that moves focus (data-tab-focus,
+   focus-hygiene.ts) and goes at the next click. Text fields keep their
+   own focus edge, and a dialog box that takes focus on open
+   (useDialogFocus) wears none. A color picker is invisible over its tile
+   (Settings, Appearance), so the tile wears its ring. Unlayered on
+   purpose, so it wins over any outline-none utility. */
 *:focus,
 *:focus-visible {
 	outline: none;
 }
-:root[data-tab-focus] :focus-visible:not(textarea, [contenteditable="true"], input:not([type="checkbox"], [type="radio"], [type="range"])),
+:root[data-tab-focus] :focus-visible:not(textarea, [contenteditable="true"], [role="dialog"], input:not([type="checkbox"], [type="radio"], [type="range"])),
 :root[data-tab-focus] :has(> input[type="color"]:focus-visible) {
 	outline: 2px solid var(--ring);
 	outline-offset: 2px;

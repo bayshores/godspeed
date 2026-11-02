@@ -133,7 +133,7 @@ const DeadlineRow = memo(function DeadlineRow({
 					placeholder="Homework 5"
 					autoFocus={draft.id === undefined}
 					onChange={(e) => onChange(draft.key, { name: e.target.value })}
-					className="min-w-0 flex-1 bg-transparent text-[14.5px] font-bold text-ink outline-none placeholder:font-normal placeholder:text-ink-3 focus-visible:underline focus-visible:decoration-tone-2 focus-visible:underline-offset-4"
+					className="min-w-0 flex-1 bg-transparent text-[14.5px] font-bold text-ink outline-none placeholder:font-normal placeholder:text-ink-3 focus-visible:underline focus-visible:decoration-ink-2 focus-visible:underline-offset-4"
 				/>
 				<input
 					type="date"
