@@ -90,14 +90,14 @@ const OUTCOME_LABEL: Record<string, string> = {
 
 /* The outcome chips: the EXACT register of the
  * quiz cards' correct/incorrect bubbles. Colors per outcome — solved reads
- * green (the "correct" twin), solved-with-hints amber (succeeded with
+ * green (the "correct" twin), solved-with-hints yellow (succeeded with
  * cost), surrendered red (the problem beat the learner), moved on muted
  * (the agent's call, not a verdict against him). */
 const OUTCOME_CHIP: Record<string, string> = {
-	solved: "bg-green-500/15 text-green-500",
-	solvedWithHints: "bg-amber-500/15 text-amber-500",
+	solved: "bg-tone text-ans-right",
+	solvedWithHints: "bg-tone text-(--lh-ramp-3)",
 	movedOn: "bg-muted text-muted-foreground",
-	surrendered: "bg-red-500/15 text-red-500",
+	surrendered: "bg-tone text-ans-wrong",
 	dismissed: "bg-muted text-muted-foreground",
 };
 
@@ -116,7 +116,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	// learner clicked; the record needs only the fact).
 	if (outcome === "dismissed") {
 		return (
-			<div data-testid="conclude-card" className="my-1 px-1 text-sm text-muted-foreground/70">
+			<div data-testid="conclude-card" className="my-1 px-1 text-sm text-ink-3">
 				Problem dismissed.
 			</div>
 		);
@@ -137,7 +137,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 			{/* The verdict: plain prose under the heading, no 'Verdict:' label,
 			    in the same quiet 50% register as quiz explanations. */}
 			{verdict.length > 0 && (
-				<div className="text-sm text-foreground/50">
+				<div className="text-sm text-ink-3">
 					<ToolContentResponse>{verdict}</ToolContentResponse>
 				</div>
 			)}

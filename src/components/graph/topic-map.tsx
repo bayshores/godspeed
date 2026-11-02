@@ -181,8 +181,8 @@ function MapDefs({ dotsRef }: { dotsRef: React.RefObject<SVGPatternElement | nul
 			</radialGradient>
 			{RAMP_COLORS.map((c, i) => (
 				<radialGradient key={c} id={`topic-halo-${i}`}>
-					<stop offset={0} stopColor={c} stopOpacity={0.19} />
-					<stop offset={1} stopColor={c} stopOpacity={0} />
+					<stop offset={0} style={{ stopColor: c }} stopOpacity={0.19} />
+					<stop offset={1} style={{ stopColor: c }} stopOpacity={0} />
 				</radialGradient>
 			))}
 			<filter id="topic-link-glow" x="-10%" y="-10%" width="120%" height="120%">

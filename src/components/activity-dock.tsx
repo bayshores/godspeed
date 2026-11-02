@@ -456,7 +456,7 @@ function ActivityBlobRow({
 				disabled={abortState === "pending"}
 				title={abortState === "failed" ? "Abort failed. Try again." : "End this background process"}
 				aria-label={`End ${label} in ${blob.title}`}
-				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+				className="lh-press absolute right-1 top-1/2 -translate-y-1/2 p-1 text-ink-3 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
 			>
 				<SquareIcon className="size-3" />
 			</button>
@@ -512,7 +512,7 @@ function ActivityBlobRow({
 							</a>
 						)}
 					</div>
-					<div className="mt-2 text-muted-foreground/80">
+					<div className="mt-2 text-ink-3">
 					{abortState === "failed" && "Abort failed. Try again."}
 					{abortState === "pending" && "Stopping…"}
 				</div>

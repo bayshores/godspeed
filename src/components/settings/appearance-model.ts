@@ -6,7 +6,7 @@
  * any color works.
  */
 
-import { inkFor, readableAccent, resolveSettings, shiftHex, wantsDarkText, type AppearanceSettings, type EffectiveAppearance } from "@/core";
+import { inkFor, inkReaches, readableAccent, resolveSettings, shiftHex, wantsDarkText, type AppearanceSettings, type EffectiveAppearance } from "@/core";
 
 /** The resolved appearance (delta over factory), through the core resolver. */
 export function resolveAppearance(delta: AppearanceSettings | undefined): EffectiveAppearance {
@@ -32,22 +32,47 @@ export const INK_PRESETS = {
 	light: ["#b4541e", "#2f5fb3", "#2e7d4f", "#b3261e"],
 } as const;
 
-/** The palette a background implies. Light text: surfaces step up (+8
- *  panel, +22 tone, +47 edge), matching the hand-picked default; dark text:
- *  they step down. Text must read on the background and on its panels. */
+/** The app's only colors (right, wrong, delete, the confidence and topic
+ *  ramps) as drawn on black. Every palette keeps each one readable as text
+ *  on its background and panels, so a fill of one carries text-background. */
+const STATUS_COLORS: Record<string, string> = {
+	"--lh-ans-right": "#10b981",
+	"--lh-ans-wrong": "#ef4444",
+	"--destructive": "#ff6467",
+	"--lh-conf-1": "#ef4444",
+	"--lh-conf-2": "#f97316",
+	"--lh-conf-3": "#eab308",
+	"--lh-conf-4": "#84cc16",
+	"--lh-conf-5": "#10b981",
+	"--lh-ramp-1": "#f2545b",
+	"--lh-ramp-2": "#f59e4c",
+	"--lh-ramp-3": "#e8c547",
+	"--lh-ramp-4": "#9bd35a",
+	"--lh-ramp-5": "#3dd68c",
+};
+
+/** The surfaces a background implies. Light text: they step up (+8 panel,
+ *  +20 tooltip, +22 tone, +39 a hovered row in a pop-up, +47 edge),
+ *  matching the hand-picked default; dark text: they step down. */
+function surfacesOf(background: string) {
+	const step = wantsDarkText(background) ? -1 : 1;
+	const at = (n: number) => shiftHex(background, n * step);
+	return { card: at(8), tip: at(20), accent: at(22), tipHover: at(39), border: at(47) };
+}
+
+/** The palette a background implies. Text must read on the background and
+ *  on every surface it sits on. */
 export function derivedPalette(background: string): Record<string, string> {
 	const light = wantsDarkText(background);
-	const step = light ? -1 : 1;
-	const card = shiftHex(background, 8 * step);
-	const accent = shiftHex(background, 22 * step);
-	const border = shiftHex(background, 47 * step);
-	const panels = [card, accent];
+	const { card, tip, accent, tipHover, border } = surfacesOf(background);
+	const panels = [card, accent, tipHover];
 	const text = {
 		fg: inkFor(background, "text", panels),
 		body: inkFor(background, "body", panels),
 		muted: inkFor(background, "muted", panels),
-		quiet: inkFor(background, "faint", panels),
+		quiet: inkFor(background, "faint", [card, accent]),
 	};
+	const status = Object.entries(STATUS_COLORS).map(([name, color]) => [name, readableAccent(color, background, [card, accent])]);
 	return {
 		"color-scheme": light ? "light" : "dark",
 		"--background": background,
@@ -56,9 +81,11 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--secondary": card,
 		"--muted": card,
 		"--accent": accent,
-		"--lh-tip": shiftHex(background, 20 * step),
+		"--lh-tip": tip,
+		"--lh-tip-hover": tipHover,
 		"--border": border,
 		"--input": border,
+		"--lh-edge": inkFor(background, "edge", [card]),
 		"--foreground": text.fg,
 		"--card-foreground": text.fg,
 		"--popover-foreground": text.fg,
@@ -71,14 +98,30 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--lh-ink-3": text.quiet,
 		"--lh-ink-body": text.body,
 		"--lh-ink-max": light ? "#000000" : "#ffffff",
+		...Object.fromEntries(status),
 	};
+}
+
+/** A picked background moved lighter (or darker, under light text) in
+ *  small steps until secondary text reads on every surface it implies.
+ *  A mid color (#777777, #3366cc) can't otherwise hold readable text. */
+export function readableBackground(color: string): string {
+	const lighter = wantsDarkText(color);
+	let background = color;
+	for (;;) {
+		const { card, accent, tipHover } = surfacesOf(background);
+		if (inkReaches(background, "muted", [card, accent, tipHover])) return background;
+		background = shiftHex(background, lighter ? 4 : -4);
+	}
 }
 
 /** Resolved appearance → the CSS variables to set on <html>. Absent
  *  entries leave the stylesheet value in place. */
 export function appearanceVars(a: EffectiveAppearance): Record<string, string> {
 	const vars: Record<string, string> = {};
-	if (a.background !== null) Object.assign(vars, derivedPalette(a.background));
+	// The palette follows a background text can read on (the saved choice stays as picked).
+	const background = a.background === null ? DEFAULT_BACKGROUND : readableBackground(a.background);
+	if (a.background !== null) Object.assign(vars, derivedPalette(background));
 	if (a.fontFamily !== null) {
 		vars["--font-prose"] = `"${a.fontFamily}", var(--font-sans3), ui-sans-serif, system-ui, sans-serif`;
 	}
@@ -88,7 +131,6 @@ export function appearanceVars(a: EffectiveAppearance): Record<string, string> {
 	if (!a.sessionNameSerif) vars["--font-title"] = "var(--font-prose)";
 	vars["--lh-heading-weight"] = String(a.mdRendering.headingWeight);
 	// A bold or italic color is kept readable on the background (the saved choice stays as picked).
-	const background = a.background ?? DEFAULT_BACKGROUND;
 	if (a.mdRendering.boldColor !== null) vars["--lh-ink-strong"] = readableAccent(a.mdRendering.boldColor, background);
 	if (a.mdRendering.italicColor !== null) vars["--lh-ink-italic"] = readableAccent(a.mdRendering.italicColor, background);
 	return vars;

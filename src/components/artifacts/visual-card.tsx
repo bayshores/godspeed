@@ -66,7 +66,7 @@ export function VisualOutputCard({
 			<div className=" border bg-card p-4 text-card-foreground" data-testid="visual-card-failed">
 				<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
 					Figure
-					<span className=" bg-red-500/15 px-1.5 py-0.5 text-red-500">failed</span>
+					<span className="bg-tone px-1.5 py-0.5 text-ans-wrong">failed</span>
 				</div>
 				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? "The figure could not be drawn."}</p>
 			</div>

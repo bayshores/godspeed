@@ -50,7 +50,7 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 						type="button"
 						data-testid="files-confirm-button"
 						onClick={onConfirm}
-						className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-white hover:bg-red-600"
+						className="lh-press bg-ans-wrong px-3 py-1.5 font-bold text-background hover:bg-ans-wrong-hover"
 					>
 						{shown.action}
 					</button>

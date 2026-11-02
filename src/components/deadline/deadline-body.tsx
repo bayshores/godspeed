@@ -200,12 +200,15 @@ const LOOSE_STATE: Record<Exclude<Slot["state"], "missing">, string> = {
 	info: "course info",
 };
 
+/** Each state is its own shape, not only its own color: read is full,
+ *  being read is half full, failed is a red diamond, course info is an
+ *  empty box, missing is a dashed red box. */
 const SLOT_CLASS: Record<Slot["state"], string> = {
 	ready: "bg-ink",
-	reading: "bg-ink-3",
-	failed: "bg-ans-wrong",
-	info: "bg-tone-2",
-	missing: "outline outline-1 -outline-offset-1 outline-ans-wrong",
+	reading: "bg-[linear-gradient(to_top,var(--lh-ink-3)_50%,transparent_50%)] shadow-[inset_0_0_0_1px_var(--lh-ink-3)]",
+	failed: "rotate-45 scale-[0.78] bg-ans-wrong",
+	info: "shadow-[inset_0_0_0_1px_var(--lh-ink-3)]",
+	missing: "border border-dashed border-ans-wrong",
 };
 
 function SeriesRow({ series: s }: { series: MaterialSeries }) {

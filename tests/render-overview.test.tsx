@@ -253,7 +253,7 @@ describe("Ready for what's due", () => {
 	it("every ring is 88px; the arc uses the ramp color", () => {
 		const html = renderRunway();
 		for (const id of ["d1", "d2", "d3"]) assert.match(section(html, `runway-ring-${id}`, "</a>"), /width:88px;height:88px/);
-		assert.match(section(html, "runway-ring-d2", "</a>"), /data-testid="runway-arc"[^>]*stroke="#9BD35A"/);
+		assert.match(section(html, "runway-ring-d2", "</a>"), /data-testid="runway-arc"[^>]*style="stroke:var\(--lh-ramp-4\)"/);
 	});
 
 	it("names and meta: exams read 'Exam · Thu Nov 5', others the date", () => {

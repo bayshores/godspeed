@@ -21,7 +21,7 @@ export function SmallSwitch({
 			aria-label={label}
 			data-testid={testId}
 			onClick={() => onChange(!on)}
-			className={cn("lh-press relative h-4 w-7 shrink-0", on ? "bg-ink" : "bg-tone-2")}
+			className={cn("lh-press relative h-4 w-7 shrink-0", on ? "bg-ink" : "shadow-[inset_0_0_0_1px_var(--lh-edge)] hover:shadow-[inset_0_0_0_1px_var(--lh-ink-3)]")}
 		>
 			<span
 				className={cn(

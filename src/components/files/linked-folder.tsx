@@ -183,7 +183,7 @@ export function LinkFolderField({
 				}}
 				placeholder="/Users/you/School/MATH20C"
 				autoFocus
-				className="min-w-0 flex-1 border border-tone-2 bg-background px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-3 focus:border-ink-3"
+				className="min-w-0 flex-1 border border-edge bg-background px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-3 focus:border-ink"
 			/>
 			<button type="button" onClick={onCancel} className="lh-press shrink-0 text-[13.5px] font-bold text-ink-2 hover:text-ink">
 				Cancel

@@ -118,7 +118,7 @@ export function KeyboardSection() {
 												<button
 													type="button"
 													onClick={() => setRebinding(null)}
-													className="lh-press text-xs text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+													className="lh-press text-xs text-ink-3 underline-offset-2 hover:text-foreground hover:underline"
 												>
 													Cancel
 												</button>
@@ -137,7 +137,7 @@ export function KeyboardSection() {
 															type="button"
 															onClick={() => resetOne(def.id)}
 															data-testid={`kbd-reset-${def.id}`}
-															className="lh-press text-xs text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+															className="lh-press text-xs text-ink-3 underline-offset-2 hover:text-foreground hover:underline"
 														>
 															Reset
 														</button>
@@ -153,7 +153,7 @@ export function KeyboardSection() {
 				);
 			})}
 			<div className="mt-4 flex items-center justify-between">
-				<span className="text-xs text-muted-foreground/70">Stored on this device (lh:keymap), overrides only.</span>
+				<span className="text-xs text-ink-3">Stored on this device (lh:keymap), overrides only.</span>
 				<button
 					type="button"
 					onClick={resetAll}

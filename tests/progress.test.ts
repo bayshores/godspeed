@@ -132,7 +132,7 @@ describe("progress: ramp and statuses", () => {
 	it("colors by right rate on the design ramp; gray when untested", () => {
 		assert.equal(P.rampColor(null), P.UNTESTED_COLOR);
 		assert.deepEqual([0, 0.39, 0.4, 0.54, 0.55, 0.69, 0.7, 0.84, 0.85, 1].map(P.rampColor), [
-			"#F2545B", "#F2545B", "#F59E4C", "#F59E4C", "#E8C547", "#E8C547", "#9BD35A", "#9BD35A", "#3DD68C", "#3DD68C",
+			"var(--lh-ramp-1)", "var(--lh-ramp-1)", "var(--lh-ramp-2)", "var(--lh-ramp-2)", "var(--lh-ramp-3)", "var(--lh-ramp-3)", "var(--lh-ramp-4)", "var(--lh-ramp-4)", "var(--lh-ramp-5)", "var(--lh-ramp-5)",
 		]);
 	});
 
@@ -213,7 +213,7 @@ describe("progress: deriveProgress", () => {
 		assert.deepEqual(topic("tpc_2").members, ["f4", "f5"], "a dead member is dropped");
 		assert.deepEqual(topic("ungrouped").members, ["f6"]);
 		const c = topic("tpc_1");
-		assert.deepEqual([c.answered, c.right, c.rate, c.status, c.color, c.overconfident], [1, 1, 1, "strong", "#3DD68C", false]);
+		assert.deepEqual([c.answered, c.right, c.rate, c.status, c.color, c.overconfident], [1, 1, 1, "strong", "var(--lh-ramp-5)", false]);
 		const pr = topic("tpc_2");
 		assert.deepEqual([pr.answered, pr.wrong, pr.status, pr.overconfident], [2, 2, "weak", true]);
 		assert.deepEqual(pr.answers.map((a) => a.toolCallId), ["q2", "q3"]);

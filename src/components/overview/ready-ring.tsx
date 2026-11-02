@@ -25,7 +25,7 @@ export function ReadyRing({ ready, size, hover = false }: { ready: number | null
 					r={r}
 					fill="none"
 					strokeWidth={width}
-					className={cn("stroke-tone-2", hover && "group-hover:stroke-[#5A5A5A] group-focus-visible:stroke-[#5A5A5A]")}
+					className={cn("stroke-tone-2", hover && "group-hover:stroke-edge group-focus-visible:stroke-edge")}
 				/>
 				{ready !== null && ready > 0 && (
 					<circle
@@ -35,7 +35,7 @@ export function ReadyRing({ ready, size, hover = false }: { ready: number | null
 						r={r}
 						fill="none"
 						strokeWidth={width}
-						stroke={rampColor(ready)}
+						style={{ stroke: rampColor(ready) }}
 						strokeDasharray={`${length * Math.min(1, ready)} ${length}`}
 					/>
 				)}

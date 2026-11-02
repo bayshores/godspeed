@@ -85,12 +85,11 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 					data-testid="topic-arc"
 					r={mid}
 					fill="none"
-					stroke={topic.color}
 					strokeWidth={thick}
 					pathLength={100}
 					strokeDasharray={`${Math.round((topic.rate ?? 0) * 1000) / 10} 100`}
 					transform="rotate(-90)"
-					style={{ filter: `drop-shadow(0 0 5px ${topic.color}80)` }}
+					style={{ stroke: topic.color, filter: `drop-shadow(0 0 5px color-mix(in srgb, ${topic.color} 50%, transparent))` }}
 				/>
 			)}
 			{selected && <circle r={d / 2 + 9} fill="none" style={{ stroke: inkAlpha(50) }} strokeWidth={1} />}

@@ -157,7 +157,7 @@ function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 					if (actions.length === 0) return null;
 					return (
 						<div key={scope} className="mb-4">
-							<div className="mb-1.5 text-xs font-semibold text-muted-foreground/70">
+							<div className="mb-1.5 text-xs font-semibold text-ink-3">
 								{scopeLabels[scope]}
 							</div>
 							<div className="flex flex-col gap-1">

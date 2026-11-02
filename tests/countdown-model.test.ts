@@ -69,15 +69,15 @@ describe("countdown", () => {
 });
 
 describe("countdownColor", () => {
-	it("grey at 24h left, red at 0, linear between", () => {
+	it("grey at 24h left, red at 0, an even OKLab mix between", () => {
 		assert.equal(countdownColor(DAY), COUNTDOWN_GREY);
 		assert.equal(countdownColor(2 * DAY), COUNTDOWN_GREY, "clamped above 24h");
 		assert.equal(countdownColor(0), COUNTDOWN_RED);
-		// Halfway: (190, 105, 105).
-		assert.equal(countdownColor(12 * HOUR), "#BE6969");
+		assert.equal(countdownColor(12 * HOUR), "color-mix(in oklab, var(--lh-ans-wrong) 50%, var(--muted-foreground))");
+		assert.equal(countdownColor(6 * HOUR), "color-mix(in oklab, var(--lh-ans-wrong) 75%, var(--muted-foreground))");
 	});
 	it("the clock carries the fade", () => {
-		assert.equal(countdown(due, due - 12 * HOUR).color, "#BE6969");
+		assert.equal(countdown(due, due - 12 * HOUR).color, "color-mix(in oklab, var(--lh-ans-wrong) 50%, var(--muted-foreground))");
 	});
 });
 

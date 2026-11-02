@@ -192,7 +192,7 @@ const DeadlineRow = memo(function DeadlineRow({
 				data-testid="class-deadline-remove"
 				disabled={disabled}
 				onClick={() => onRemove(draft.key)}
-				className="lh-press self-start text-[13px] font-bold text-ans-wrong hover:text-red-400 disabled:opacity-50"
+				className="lh-press self-start text-[13px] font-bold text-ans-wrong hover:text-ans-wrong-hover disabled:opacity-50"
 			>
 				Remove deadline
 			</button>
