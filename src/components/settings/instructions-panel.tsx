@@ -5,10 +5,11 @@
  * turn); Reset deletes it.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { XIcon } from "lucide-react";
 import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/core";
 import { Hint } from "@/components/ui/hint";
+import { tabListKeys } from "@/components/ui/tab-list";
 import { cn } from "@/lib/utils";
 import { OUTLINE_BUTTON } from "./controls.tsx";
 
@@ -29,6 +30,7 @@ export function InstructionsPanel({
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const part = parts.find((p) => p.path === activePath) ?? parts[0];
+	const tabsId = useId();
 
 	// Escape closes the panel only, not the dialog behind it.
 	useEffect(() => {
@@ -103,15 +105,23 @@ export function InstructionsPanel({
 					</Hint>
 				</header>
 				{parts.length > 1 && (
-					<div role="tablist" aria-label="Parts" className="flex flex-wrap gap-1 px-6">
-						{parts.map((p) => {
+					<div
+						role="tablist"
+						aria-label="Parts"
+						onKeyDown={tabListKeys(parts.indexOf(part), parts.length, (i) => setActivePath(parts[i]!.path))}
+						className="flex flex-wrap gap-1 px-6"
+					>
+						{parts.map((p, i) => {
 							const on = p.path === part.path;
 							return (
 								<button
 									key={p.path}
 									type="button"
 									role="tab"
+									id={`${tabsId}-${i}`}
 									aria-selected={on}
+									aria-controls={`${tabsId}-panel`}
+									tabIndex={on ? 0 : -1}
 									onClick={() => setActivePath(p.path)}
 									className={cn(
 										"lh-press flex items-center gap-1.5 px-2.5 py-1.5 text-[12.5px]",
@@ -130,7 +140,12 @@ export function InstructionsPanel({
 						})}
 					</div>
 				)}
-				<div className="flex min-h-0 flex-1 flex-col px-6 py-[18px]">
+				<div
+					role={parts.length > 1 ? "tabpanel" : undefined}
+					id={`${tabsId}-panel`}
+					aria-labelledby={parts.length > 1 ? `${tabsId}-${parts.indexOf(part)}` : undefined}
+					className="flex min-h-0 flex-1 flex-col px-6 py-[18px]"
+				>
 					<textarea
 						value={text}
 						aria-label={`${PART_NAMES[part.path] ?? part.path} instructions`}

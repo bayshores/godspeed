@@ -298,6 +298,8 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 				preferredSide="down"
 				anchorTestid="font-trigger"
 				testid="font-menu"
+				role="dialog"
+				label="Reading font"
 				menuClass="lh-popup flex w-[18rem] flex-col gap-0.5 p-2 text-xs"
 			>
 				<FontMenuList

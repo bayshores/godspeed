@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { type ConfidenceLevel } from "@/core";
 
@@ -24,6 +25,24 @@ const CONFIDENCE_WORDS: readonly string[] = ["Guessing", "Unsure", "Somewhat sur
 /** Bar heights (px), rising with the level. */
 const BAR_HEIGHTS = [14, 21, 28, 35, 42];
 
+/** Roving tabindex: Tab lands on the picked level (the first when
+ *  unrated). */
+function rovingTabIndex(n: ConfidenceLevel, level: ConfidenceLevel | null): 0 | -1 {
+	return n === (level ?? 1) ? 0 : -1;
+}
+
+/** When ←/→ change the level (the question panel owns the keys), focus
+ *  inside the group follows the pick. */
+function useFocusFollowsPick<T extends HTMLElement>(level: ConfidenceLevel | null) {
+	const ref = useRef<T>(null);
+	useEffect(() => {
+		const group = ref.current;
+		if (!group || !group.contains(document.activeElement)) return;
+		group.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
+	}, [level]);
+	return ref;
+}
+
 /**
  * The 5-bar meter: "4 · Fairly sure" in the level's color over five
  * rising bars. Bars up to the pick wear its color (the ones below at 55%),
@@ -41,6 +60,7 @@ export function ConfidenceMeter({
 	disabled?: boolean;
 }) {
 	const color = level === null ? "var(--color-ink-3)" : CONFIDENCE_COLORS[level - 1]!;
+	const groupRef = useFocusFollowsPick<HTMLDivElement>(level);
 	return (
 		<div data-testid="confidence-meter" className={cn("flex flex-col gap-2", disabled && "opacity-40")}>
 			<div
@@ -50,7 +70,7 @@ export function ConfidenceMeter({
 			>
 				{level === null ? "How sure are you?" : `${level} · ${CONFIDENCE_WORDS[level - 1]}`}
 			</div>
-			<div className="flex items-end gap-[3px]" role="radiogroup" aria-label="Confidence">
+			<div ref={groupRef} className="flex items-end gap-[3px]" role="radiogroup" aria-label="Confidence">
 				{BAR_HEIGHTS.map((h, i) => {
 					const n = (i + 1) as ConfidenceLevel;
 					const on = !disabled && level !== null && n <= level;
@@ -63,7 +83,7 @@ export function ConfidenceMeter({
 							aria-label={`${n} · ${CONFIDENCE_WORDS[i]}`}
 							data-testid={`confidence-level-${n}`}
 							disabled={disabled}
-							tabIndex={-1}
+							tabIndex={rovingTabIndex(n, level)}
 							onClick={() => onChange(n)}
 							className="group flex flex-1 cursor-pointer flex-col items-center gap-[5px] outline-none disabled:cursor-default"
 						>
@@ -95,13 +115,15 @@ export function ConfidenceMeter({
 /**
  * The folded form of the meter, for the picked row: "Sure" and five small
  * squares, filled in the level's color up to the pick. Click a square to
- * set the level; unrated, every square is dark.
+ * set the level; unrated, every square is dark. Each square sits in a
+ * 24px target (WCAG 2.5.8).
  */
 export function ConfidenceSquares({ level, onChange }: { level: ConfidenceLevel | null; onChange: (level: ConfidenceLevel) => void }) {
+	const groupRef = useFocusFollowsPick<HTMLSpanElement>(level);
 	return (
 		<span data-testid="confidence-squares" className="flex shrink-0 items-center gap-2">
 			<span className="text-[13px] text-ink-2">Sure</span>
-			<span className="flex gap-[3px]" role="radiogroup" aria-label="Confidence">
+			<span ref={groupRef} className="-mx-[5px] flex" role="radiogroup" aria-label="Confidence">
 				{CONFIDENCE_WORDS.map((word, i) => {
 					const n = (i + 1) as ConfidenceLevel;
 					const on = level !== null && n <= level;
@@ -114,11 +136,16 @@ export function ConfidenceSquares({ level, onChange }: { level: ConfidenceLevel 
 							aria-label={`${n} · ${word}`}
 							title={`${n} · ${word}`}
 							data-testid={`confidence-square-${n}`}
-							tabIndex={-1}
+							tabIndex={rovingTabIndex(n, level)}
 							onClick={() => onChange(n)}
-							className={cn("block size-3 cursor-pointer outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", !on && "bg-edge hover:bg-ink-3")}
-							style={on ? { backgroundColor: CONFIDENCE_COLORS[level - 1] } : undefined}
-						/>
+							className="group flex size-6 cursor-pointer items-center justify-center"
+						>
+							<span
+								aria-hidden
+								className={cn("block size-3.5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", !on && "bg-edge group-hover:bg-ink-3")}
+								style={on ? { backgroundColor: CONFIDENCE_COLORS[level - 1] } : undefined}
+							/>
+						</button>
 					);
 				})}
 			</span>

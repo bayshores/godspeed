@@ -26,6 +26,7 @@ import { ClassSignatureField } from "@/components/class-signature-field";
 import { ClassIconField } from "@/components/class-icon-field";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 import { LoadFailed } from "@/components/load-failed";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
 export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
@@ -57,6 +58,7 @@ const FIELD =
 
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { active, setActive } = useClasses();
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	const classId = mode.kind === "edit" ? mode.classId : null;
 	const { record, failed: recordFailed, reload } = useClassRecord(classId);
 	// Edit class with nothing to edit: say so instead of showing empty fields.
@@ -264,6 +266,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	return (
 		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/70" {...backdropDismiss}>
 			<div
+				ref={dialogRef}
+				tabIndex={-1}
 				role="dialog"
 				aria-modal="true"
 				aria-label={title}
@@ -301,7 +305,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 									onChange={(e) => setName(e.target.value)}
 									placeholder="e.g. MATH 20C – Calculus III"
 									className={`h-10 ${FIELD}`}
-									autoFocus
+									data-autofocus
 								/>
 							</label>
 							<label className="mt-2.5 flex flex-col gap-1.5">
@@ -499,6 +503,7 @@ function MoveLessonInner({
 	state: MotionState;
 }) {
 	const { classes } = useClasses();
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	const from = lesson.classId ?? null;
 	const [target, setTarget] = useState<string | null>(from);
 	const [busy, setBusy] = useState(false);
@@ -546,6 +551,8 @@ function MoveLessonInner({
 	return (
 		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80" {...backdropDismiss}>
 			<div
+				ref={dialogRef}
+				tabIndex={-1}
 				role="dialog"
 				aria-modal="true"
 				aria-label="Move lesson"

@@ -6,6 +6,7 @@ import { renderMermaid } from "@/components/mermaid-render";
 import { MermaidError } from "@/components/mermaid-error";
 import { Hint } from "@/components/ui/hint";
 import { SvgImage } from "@/components/artifacts/svg-image";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /**
  * SESSION-SCOPED OVERLAYS: the "fullscreen" expansions (the plan focus,
@@ -120,10 +121,13 @@ export function MermaidOverlay({
 	}, [onClose]);
 
 	const box = useMemo(() => (svg ? chartSize(svg) : { w: 0, h: 0 }), [svg]);
+	const dialogRef = useDialogFocus<HTMLDivElement>();
 	const { viewportRef, view, atFloor, settled, panning, startDrag, moveDrag, endDrag, stepZoom, fitView } = usePanZoomViewport(box, !!svg);
 
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			data-testid="mermaid-overlay"
 			// SESSION-SCOPED (not fixed): mounts absolute inside the chat
 			// page's session-area div — below the drag bar, right of the

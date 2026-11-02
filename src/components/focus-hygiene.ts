@@ -1,7 +1,7 @@
 /**
  * FOCUS HYGIENE — transient transcript controls don't keep focus, the
- * focus ring shows only after Tab (showFocusRingAfterTab), and Tab stays
- * inside an open modal dialog (trapTabInDialog, below).
+ * focus ring shows only after keyboard moves (showFocusRingAfterTab), and
+ * Tab stays inside an open modal dialog (trapTabInDialog, below).
  *
  * Transient controls: a
  * pointer click on a thinking toggle, a copy button or a plan chip would
@@ -30,20 +30,35 @@ export function blurAfterPointerClick(e: {
 	if (el && typeof el.blur === "function") (el.blur as () => void).call(el);
 }
 
-/** Turns the keyboard focus ring on at Tab and off at the next pointer
- *  press (globals.css draws it under html[data-tab-focus]). :focus-visible
- *  alone isn't enough: Chromium also lights it on a clicked control once
- *  any key is pressed. Returns the cleanup. */
+/** Keys that move focus inside menus, radio groups and tabs. */
+const NAV_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"]);
+
+/** Turns the keyboard focus ring on at Tab, or when one of NAV_KEYS moves
+ *  focus (an arrow through a clicked-open menu), and off at the next
+ *  pointer press (globals.css draws it under html[data-tab-focus]). An
+ *  arrow that moves no focus leaves it off: Chromium's :focus-visible
+ *  alone would light a clicked control at the quiz's arrow keys. Returns
+ *  the cleanup. */
 export function showFocusRingAfterTab(doc: Document): () => void {
 	const root = doc.documentElement;
+	let navKeyDown = false;
 	const onKey = (e: KeyboardEvent) => {
 		if (e.key === "Tab") root.setAttribute("data-tab-focus", "");
+		else if (NAV_KEYS.has(e.key)) {
+			navKeyDown = true;
+			setTimeout(() => (navKeyDown = false), 0);
+		}
+	};
+	const onFocus = () => {
+		if (navKeyDown) root.setAttribute("data-tab-focus", "");
 	};
 	const onPointer = () => root.removeAttribute("data-tab-focus");
 	doc.addEventListener("keydown", onKey, true);
+	doc.addEventListener("focusin", onFocus, true);
 	doc.addEventListener("pointerdown", onPointer, true);
 	return () => {
 		doc.removeEventListener("keydown", onKey, true);
+		doc.removeEventListener("focusin", onFocus, true);
 		doc.removeEventListener("pointerdown", onPointer, true);
 		root.removeAttribute("data-tab-focus");
 	};
@@ -77,7 +92,8 @@ export function trapTabInDialog(e: KeyboardEvent): void {
 	// A control with no box (display: none) can't take focus.
 	const controls = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.closest("[inert]") && el.getClientRects().length > 0);
 	const active = document.activeElement as HTMLElement | null;
-	const inside = !!active && dialog.contains(active);
+	// Focus on the dialog box itself (useDialogFocus) counts as its edge.
+	const inside = !!active && active !== dialog && dialog.contains(active);
 	const target = controls.length === 0 ? dialog : dialogTabTarget(controls, active, inside, e.shiftKey);
 	if (!target) return;
 	e.preventDefault();

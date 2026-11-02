@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /**
  * Node deletion: the confirm surface, portaled z-50 like the
@@ -36,8 +37,11 @@ export function DeleteNodeBody({
 	/** "closed" while the exit plays. */
 	state?: "open" | "closed";
 }) {
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal="true"
 			aria-label="Delete node"

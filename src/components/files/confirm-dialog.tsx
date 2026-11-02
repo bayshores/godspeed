@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import type { ConfirmCopy } from "./files-model";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /**
  * The Files page's confirm box before Unlink, Remove and the menu's
@@ -16,6 +17,7 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 	if (copy !== null && copy !== last) setLast(copy);
 	const shown = copy ?? last;
 	const backdropDismiss = useBackdropDismiss(onClose);
+	const dialogRef = useDialogFocus<HTMLDivElement>(copy !== null);
 	useEffect(() => {
 		if (copy === null) return;
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -31,6 +33,8 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 	return createPortal(
 		<div data-state={presence.state} inert={copy === null} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/70" {...backdropDismiss}>
 			<div
+				ref={dialogRef}
+				tabIndex={-1}
 				role="dialog"
 				aria-modal="true"
 				aria-label={shown.title}

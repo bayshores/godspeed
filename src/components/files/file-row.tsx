@@ -258,18 +258,18 @@ function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: bool
 				preferredSide="down"
 				menuClass="lh-popup flex w-[196px] flex-col gap-0.5 p-1.5 text-[13.5px]"
 			>
-				<button type="button" data-testid={`class-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={`${MENU_ITEM} text-ink`}>
+				<button role="menuitem" type="button" data-testid={`class-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={`${MENU_ITEM} text-ink`}>
 					<ArrowRightLeftIcon className="size-3.5 shrink-0" aria-hidden />
 					Move to {kindTitle(other)}
 				</button>
 				{retry && (
-					<button type="button" data-testid={`class-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={`${MENU_ITEM} text-ink`}>
+					<button role="menuitem" type="button" data-testid={`class-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={`${MENU_ITEM} text-ink`}>
 						<RotateCwIcon className="size-3.5 shrink-0" aria-hidden />
 						Retry
 					</button>
 				)}
 				{show && (
-					<button type="button" data-testid={`class-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={`${MENU_ITEM} text-ink`}>
+					<button role="menuitem" type="button" data-testid={`class-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={`${MENU_ITEM} text-ink`}>
 						<FolderSearchIcon className="size-3.5 shrink-0" aria-hidden />
 						{show.label}
 					</button>
@@ -278,6 +278,7 @@ function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: bool
 					<>
 						<span className="my-0.5 h-px bg-tone-2" aria-hidden />
 						<button
+							role="menuitem"
 							type="button"
 							data-testid={`class-file-remove-${file.id}`}
 							aria-label={`Remove ${file.name}`}

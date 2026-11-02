@@ -33,8 +33,9 @@ export const InlineMath = memo(function InlineMath({ text }: { text: string }) {
 				p.math ? (
 					<span
 						key={i}
-						// KaTeX output from the learner's own lesson text (throwOnError off).
-						dangerouslySetInnerHTML={{ __html: katex.renderToString(p.tex, { throwOnError: false, output: "html" }) }}
+						// KaTeX output from the learner's own lesson text (throwOnError off),
+						// with its MathML so screen readers can read the math.
+						dangerouslySetInnerHTML={{ __html: katex.renderToString(p.tex, { throwOnError: false }) }}
 					/>
 				) : (
 					<span key={i}>{p.text}</span>

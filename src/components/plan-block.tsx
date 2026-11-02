@@ -7,6 +7,7 @@ import { derivedNodeStatus, derivePlanStatuses } from "@/core";
 import { Hint } from "@/components/ui/hint";
 import { latestTree, type PopupMessage } from "@/components/plan-latest";
 import { ARROW_HEAD, blockLayout, edgePathD, HEAD_H, HEAD_W, LINE_H, NODE_H, NODE_W_MIN, STROKE_W, wrapTitle, type LayoutNode } from "@/components/plan-block-model";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /**
  * PLAN BLOCKS: persisted `data-plan-block` parts render as DAG blocks in
@@ -363,9 +364,12 @@ export function PlanPopup({
 	const { viewportRef, view, atFloor, settled, panning, startDrag, moveDrag, endDrag, stepZoom, fitView } = usePanZoomViewport(box, true);
 
 	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			data-testid="plan-popup"
 			// SESSION-SCOPED (absolute, not fixed): the chat page mounts this
 			// INSIDE the session-area div — below the drag bar, right of the

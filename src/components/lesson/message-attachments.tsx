@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FileTextIcon } from "lucide-react";
 import { isAttachmentPart, type LhViewPart } from "@/core";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /**
  * The learner's files under their message: pictures as thumbnails (a click
@@ -48,6 +49,7 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 
 /** One picture full size over the whole window; a click or Esc closes it. */
 function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) {
+	const dialogRef = useDialogFocus<HTMLDivElement>();
 	// Claimed at the document level so Esc never reaches the lesson's stop chain.
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -61,6 +63,8 @@ function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) 
 	}, [onClose]);
 	return createPortal(
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			data-testid="picture-overlay"
 			role="dialog"
 			aria-modal="true"
@@ -69,7 +73,7 @@ function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) 
 			className="lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
 		>
 			{/* eslint-disable-next-line @next/next/no-img-element -- the learner's picture, stored in the lesson */}
-			<img src={src} alt="" className="max-h-full max-w-full object-contain" />
+			<img src={src} alt="Your picture" className="max-h-full max-w-full object-contain" />
 		</div>,
 		document.body,
 	);

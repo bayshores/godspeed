@@ -69,13 +69,13 @@ export function ClassSwitcher() {
 				menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5"
 			>
 				{current.map((c) => (
-					<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
+					<button role="menuitem" key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
 						<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-2" />
 						<span className="min-w-0 flex-1 truncate">{c.name}</span>
 						{active === c.id && <CheckIcon className="size-3.5" />}
 					</button>
 				))}
-				<button type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-ink-2")}>
+				<button role="menuitem" type="button" data-testid="class-option-none" onClick={() => pick(null)} className={cn(row, "text-ink-2")}>
 					<CircleDashedIcon className="size-4 shrink-0 text-ink-3" aria-hidden />
 					<span className="min-w-0 flex-1 truncate">No class</span>
 					{active === null && <CheckIcon className="size-3.5" />}
@@ -83,8 +83,10 @@ export function ClassSwitcher() {
 				{archived.length > 0 && (
 					<>
 						<button
+							role="menuitem"
 							type="button"
 							data-testid="class-show-archived"
+							aria-expanded={showArchived}
 							onClick={() => setShowArchived((v) => !v)}
 							className={cn(row, "text-ink-2")}
 						>
@@ -95,7 +97,7 @@ export function ClassSwitcher() {
 						<div className="lh-collapse" data-state={showArchived ? "open" : "closed"} data-testid="class-archived-fold">
 							<div className="flex flex-col gap-0.5" inert={!showArchived}>
 								{archived.map((c) => (
-									<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-ink-2")}>
+									<button role="menuitem" key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-ink-2")}>
 										<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-3" />
 										<span className="min-w-0 flex-1 truncate">{c.name}</span>
 										{active === c.id && <CheckIcon className="size-3.5" />}
@@ -108,6 +110,7 @@ export function ClassSwitcher() {
 				<div className="my-0.5 border-t border-tone-2" aria-hidden="true" />
 				{activeClass && (
 					<button
+						role="menuitem"
 						type="button"
 						data-testid="class-edit"
 						onClick={() => {
@@ -121,6 +124,7 @@ export function ClassSwitcher() {
 					</button>
 				)}
 				<button
+					role="menuitem"
 					type="button"
 					data-testid="class-new"
 					onClick={() => {

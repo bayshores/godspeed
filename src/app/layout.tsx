@@ -30,7 +30,8 @@ const prose = Source_Sans_3({ subsets: ["latin"], variable: "--font-sans3" });
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-	title: "godspeed",
+	// Each page names itself ("Graph · godspeed"); Home keeps the plain name.
+	title: { template: "%s · godspeed", default: "godspeed" },
 	description: "A teacher agent with a memory: lessons, quizzes, and a knowledge graph of what you know.",
 };
 

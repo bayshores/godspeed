@@ -32,6 +32,7 @@ import {
 } from "@/core";
 import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
 import { showFocusRingAfterTab, trapTabInDialog } from "@/components/focus-hygiene";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 // Re-exported for the contract pin (tests/keyboard-toggle-sidebar.test.ts):
 // the dispatcher composes event names through the ONE helper — a second
@@ -128,6 +129,7 @@ export function KeyboardShortcuts() {
  *  so shortcuts stay discoverable. */
 function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
+	const dialogRef = useDialogFocus<HTMLDivElement>(open);
 	if (!open) return null;
 	const scopes = ["global", "chat", "graph"] as const;
 	const scopeLabels: Record<(typeof scopes)[number], string> = {
@@ -137,6 +139,8 @@ function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 	};
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal="true"
 			aria-label="Keyboard shortcuts"

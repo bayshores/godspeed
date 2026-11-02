@@ -104,6 +104,7 @@ export function FontMenuList({
 					}
 				}}
 				placeholder="Search fonts…"
+				aria-label="Search fonts"
 				className="lh-input mb-1.5 w-full border bg-background px-2 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
 			/>
 			{!families && <div className="px-2 py-3 text-center text-muted-foreground">Loading fonts…</div>}

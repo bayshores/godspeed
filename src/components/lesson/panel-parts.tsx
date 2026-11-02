@@ -81,8 +81,9 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 /** A writing field's look: black with a visible edge, so it reads as a
- *  page rather than another row of the panel. */
-export const FIELD_EDGE = "border border-tone-2 bg-background text-[16px]! leading-6! text-ink";
+ *  page rather than another row of the panel. The edge brightens while
+ *  the field has focus. */
+export const FIELD_EDGE = "border border-tone-2 focus-within:border-ink-2 bg-background text-[16px]! leading-6! text-ink";
 
 /** The black writing field that fills the rest of the column. */
 export const PANEL_FIELD = `lh-input min-h-28 w-full flex-1 resize-none px-5 py-[18px] outline-none placeholder:text-ink-3 ${FIELD_EDGE}`;

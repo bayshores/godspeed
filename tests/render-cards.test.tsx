@@ -89,6 +89,7 @@ describe("question submission draft restoration", () => {
 		assert.ok(html.includes("preserved reasoning"));
 		assert.ok(html.includes("5 · Certain"), "index 4 = level 5");
 		assert.match(html, /aria-checked="true" aria-label="5 · Certain"/, "the meter shows level 5");
+		assert.match(html, /data-testid="confidence-level-5"[^>]*tabindex="0"/, "Tab lands on the picked level");
 	});
 
 	it("restores an ask's custom answer and a free-text answer", () => {
@@ -153,6 +154,8 @@ describe("render smoke tests", () => {
 		// Numbered rows (keys 1–n) and 0 = I don't know.
 		assert.match(html, /data-testid="dont-know-option"[\s\S]*?>0</, "I don't know is key 0");
 		assert.ok(html.includes('data-testid="confidence-meter"'), "the 5-bar confidence meter");
+		assert.match(html, /data-testid="confidence-level-1"[^>]*tabindex="0"/, "Tab reaches the unrated meter at level 1");
+		assert.match(html, /data-testid="confidence-level-2"[^>]*tabindex="-1"/, "the other levels wait for the arrows");
 		assert.ok(html.includes('data-testid="question-kind"'), "the kind chip");
 		// The v1 desync bug: options are buttons with ARIA roles, not native inputs.
 		assert.ok(!html.includes('type="radio"'), "no native radio inputs");

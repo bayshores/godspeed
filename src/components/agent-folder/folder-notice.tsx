@@ -14,6 +14,7 @@ import type { FolderAgent } from "@/core";
 import { usePresence } from "@/components/presence";
 import { AGENT_LABEL } from "./agent-folder-model";
 import { useAgentFolder } from "./use-agent-folder";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 const OPEN_EVENT = "lh:folder-notice";
 
@@ -24,6 +25,7 @@ export function openFolderNotice(): void {
 export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afterWelcome: boolean }) {
 	const [open, setOpen] = useState(false);
 	const presence = usePresence(open);
+	const dialogRef = useDialogFocus<HTMLDivElement>(open);
 	const { view, launch, open: openAgent } = useAgentFolder();
 	useEffect(() => {
 		if (!afterWelcome) setOpen(true);
@@ -57,6 +59,8 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 	if (!presence.mounted || typeof document === "undefined") return null;
 	return createPortal(
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal="true"
 			aria-label="godspeed has its own folder now"

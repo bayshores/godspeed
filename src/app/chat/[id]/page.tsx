@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Chat } from "@/components/chat";
 import { compactionInFlight, getChat, isTurnRunning, turnFailure } from "@/server";
 
 export const dynamic = "force-dynamic";
+
+/** One read of the record per request: the title and the page share it. */
+const chatFor = cache(getChat);
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+	const { id } = await params;
+	return { title: chatFor(id)?.title || "Lesson" };
+}
 
 export default async function ChatPage({
 	params,
@@ -12,7 +22,7 @@ export default async function ChatPage({
 	searchParams: Promise<{ prompt?: string }>;
 }) {
 	const [{ id }, { prompt }] = await Promise.all([params, searchParams]);
-	const chat = getChat(id);
+	const chat = chatFor(id);
 	// The Talk chat lives in the teacher's panel, never on a lesson page.
 	if (!chat || chat.kind === "talk") notFound();
 	return (

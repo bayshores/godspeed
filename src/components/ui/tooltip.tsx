@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
  *   src/components/ui/hint.tsx).
  *
  * Opens after a 150ms hover and at once on keyboard focus (Radix opens on
- * focus, never on a click's focus); Escape closes it. The box is not
- * hoverable — it goes the moment the pointer leaves the trigger.
+ * focus, never on a click's focus); Escape closes it. The pointer can
+ * move onto the box to read it (WCAG 1.4.13); it goes once it leaves both.
  * Motion: it fades in and out (.lh-fade reads Radix's data-state).
  */
 
@@ -32,17 +32,8 @@ function TooltipProvider({
   )
 }
 
-function Tooltip({
-  disableHoverableContent = true,
-  ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-  return (
-    <TooltipPrimitive.Root
-      data-slot="tooltip"
-      disableHoverableContent={disableHoverableContent}
-      {...props}
-    />
-  )
+function Tooltip(props: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 
 function TooltipTrigger({

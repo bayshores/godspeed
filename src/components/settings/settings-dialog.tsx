@@ -37,6 +37,7 @@ import { GraduationCapIcon, InfoIcon, KeyboardIcon, PaletteIcon, PlugIcon, Setti
 import { AppearanceSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
 import { CONNECTION_SECTION_HINT, ConnectionSection } from "./connection-section.tsx";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /** The left nav.
  *  A section's hint shows as a tooltip on the info icon by its title. */
@@ -103,6 +104,7 @@ export function SettingsDialogBody({
 	state?: "open" | "closed";
 }) {
 	const { onAppearanceChange } = useAppearance();
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	const [record, setRecord] = useState<UserSettings | null | undefined>(
 		undefined,
 	);
@@ -234,6 +236,8 @@ export function SettingsDialogBody({
 
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal="true"
 			aria-label="Settings"

@@ -4,6 +4,7 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { usePresence } from "@/components/presence";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 import type { ChatDeleteMode, ChatListItem } from "@/core";
+import { useDialogFocus } from "@/components/use-dialog-focus";
 
 /** The graph-traces checkbox copy: the graph-touching consequence says
  *  so, shared-topic survival included. Exported pure for render pins: the
@@ -165,8 +166,11 @@ export function DeleteSessionBody({
 	/** "closed" while the exit plays. */
 	state?: "open" | "closed";
 }) {
+	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	return (
 		<div
+			ref={dialogRef}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal="true"
 			aria-label="Delete lesson"

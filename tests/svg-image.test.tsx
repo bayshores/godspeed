@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { VisualOutputCard } from "../src/components/artifacts/visual-card.tsx";
-import { svgImageSource } from "../src/components/artifacts/svg-image.tsx";
+import { svgAltText, svgImageSource } from "../src/components/artifacts/svg-image.tsx";
 import { MermaidOverlay, SessionMermaidContext } from "../src/components/session-overlay.tsx";
 
 // Structure-only checks: linkedom does not load images or implement CSS cascade.
@@ -204,4 +204,14 @@ it("the fullscreen button opens the same SVG image and inversion; download keeps
 			}
 		}
 	}
+});
+
+describe("svgAltText (the figure's name for screen readers)", () => {
+	it("reads the figure's own title", () => {
+		assert.equal(svgAltText('<svg><title>Pascal&apos;s triangle, rows 0 &amp; 1</title><path/></svg>'), "Pascal's triangle, rows 0 & 1");
+	});
+	it("says Figure when there is no title", () => {
+		assert.equal(svgAltText(FIGURE), "Figure");
+		assert.equal(svgAltText("<svg><title>  </title></svg>"), "Figure");
+	});
 });

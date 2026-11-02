@@ -17,8 +17,6 @@ import { DoneNotice, type DoneNoticeState } from "@/components/done-notice";
 
 /** How long a ticked row fades before it leaves (just over --lh-dur). */
 const LEAVE_MS = 200;
-/** How long the notice after a tick stays. */
-const NOTICE_MS = 6000;
 
 /** Save a deadline's done; throws when the save fails. */
 async function saveDone(d: { classId: string; id: string }, done: boolean): Promise<void> {
@@ -69,11 +67,7 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	useServerResync(() => void load());
 
 	const [notice, setNotice] = useState<DoneNoticeState | null>(null);
-	useEffect(() => {
-		if (!notice) return;
-		const timer = setTimeout(() => setNotice(null), NOTICE_MS);
-		return () => clearTimeout(timer);
-	}, [notice]);
+	const clearNotice = useCallback(() => setNotice(null), []);
 	const undo = useCallback(
 		async (d: { classId: string; id: string }) => {
 			setNotice(null);
@@ -91,7 +85,7 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	return (
 		<OpenDeadlinesContext.Provider value={value}>
 			{children}
-			{notice && <DoneNotice notice={notice} onUndo={() => notice.undo && void undo(notice.undo)} />}
+			{notice && <DoneNotice notice={notice} onUndo={() => notice.undo && void undo(notice.undo)} onExpire={clearNotice} />}
 		</OpenDeadlinesContext.Provider>
 	);
 }
