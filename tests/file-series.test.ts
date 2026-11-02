@@ -66,6 +66,10 @@ describe("file series", () => {
 		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));
 		assert.deepEqual(s.map((x) => x.label), ["Rosen · Probability"]);
 	});
+	it("a word shared in two cases shows once in the label", () => {
+		const { series: s } = groupFileSeries(named(["2026-09-30 Week 1 Discussion (evening discussion).pdf", "2026-10-07 Week 2 Discussion (evening discussion).pdf"]));
+		assert.deepEqual(s.map((x) => x.label), ["Week · Discussion evening"]);
+	});
 	it("a lone numbered file or one repeated number is not a series", () => {
 		const { series: s, other: o } = groupFileSeries(named(["Notes 1.pdf", "Exam 2025.pdf", "Exam 2025 answers.pdf"]));
 		assert.deepEqual(s, []);

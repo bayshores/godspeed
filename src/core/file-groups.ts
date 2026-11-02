@@ -1,11 +1,12 @@
 /**
  * A class's files in groups, as the Files page and the godspeed folder's
  * classes/ show them: one group per numbered series in the file names
- * (core/file-series.ts), a lecture's notes and its transcript joined, then
- * "Other". Study material and course info sit together.
+ * (core/file-series.ts), a lecture's notes and its transcript joined, one
+ * per linked subfolder for files in no series (Drive folders of dated
+ * slides), then "Other". Study material and course info sit together.
  */
 import type { ClassFile } from "./contracts.ts";
-import { groupFileSeries, type FileSeries } from "./file-series.ts";
+import { dateInName, groupFileSeries, type FileSeries } from "./file-series.ts";
 
 /** Transcripts and recordings (the lecture-audio side of a pair). */
 const RECORDING = /\.(vtt|srt|mp3|m4a|wav|mp4|mov)$/i;
@@ -39,26 +40,28 @@ function headOf(series: FileSeries<ClassFile>): string | null {
 	return series.key ? series.label.split(" · ")[0]! : null;
 }
 
-const numbersOf = (series: FileSeries<ClassFile>) => new Set(series.items.map((i) => i.number));
-
-/** How alike two series' numbers are: shared over all (1 = the same numbers). */
+/** How alike two series' numbers are: shared over all (1 = the same
+ *  numbers). A number whose items both carry a date shares only when the
+ *  dates agree (Week 1's discussion is not Lecture 1). */
 function likeness(a: FileSeries<ClassFile>, b: FileSeries<ClassFile>): number {
-	const x = numbersOf(a);
-	const y = numbersOf(b);
-	const shared = [...x].filter((n) => y.has(n)).length;
-	return shared < 2 ? 0 : shared / new Set([...x, ...y]).size;
+	const dates = new Map(b.items.map((i) => [i.number, i.date]));
+	const shared = a.items.filter((i) => dates.has(i.number) && (!i.date || !dates.get(i.number) || i.date === dates.get(i.number))).length;
+	const all = new Set([...a.items, ...b.items].map((i) => i.number)).size;
+	return shared < 2 ? 0 : shared / all;
 }
 
 /**
  * Which notes series each transcript series pairs with: a series made only
  * of transcripts or recordings pairs with the one series that has none and
  * shares the most of its numbers (at least two, and at least half of all
- * their numbers). A tie pairs nothing, and a notes series pairs once.
+ * their numbers). Names that start with their number ("01_Logic") are
+ * chapters or readings, not lecture notes, so they never pair. A tie pairs
+ * nothing, and a notes series pairs once.
  */
 export function pairSeries(series: readonly FileSeries<ClassFile>[]): Map<FileSeries<ClassFile>, FileSeries<ClassFile>> {
 	const all = (s: FileSeries<ClassFile>, test: (f: ClassFile) => boolean) => s.items.every((i) => i.files.every(test));
 	const transcripts = series.filter((s) => all(s, (f) => isRecording(f.name)));
-	const notes = series.filter((s) => all(s, (f) => !isRecording(f.name)));
+	const notes = series.filter((s) => s.key !== "" && all(s, (f) => !isRecording(f.name)));
 	const best = new Map<FileSeries<ClassFile>, { notes: FileSeries<ClassFile>; score: number }>();
 	for (const t of transcripts) {
 		const scored = notes.map((n) => ({ notes: n, score: likeness(t, n) })).filter((c) => c.score >= 0.5).sort((a, b) => b.score - a.score);
@@ -97,17 +100,42 @@ function seriesGroup(series: FileSeries<ClassFile>, partner?: FileSeries<ClassFi
 	};
 }
 
+/** Files in no series that share a linked subfolder (two or more): one
+ *  group per folder, named after it, by date in the names. */
+function folderGroups(other: readonly ClassFile[]): { groups: FileGroup[]; rest: ClassFile[] } {
+	const byDir = new Map<string, ClassFile[]>();
+	for (const f of other) {
+		const dir = f.origin === "linked" && f.path.includes("/") ? f.path.slice(0, f.path.lastIndexOf("/")) : "";
+		byDir.set(dir, [...(byDir.get(dir) ?? []), f]);
+	}
+	const groups: FileGroup[] = [];
+	const rest: ClassFile[] = [];
+	for (const [dir, files] of byDir) {
+		if (!dir || files.length < 2) {
+			rest.push(...files);
+			continue;
+		}
+		const items = files
+			.map((f) => ({ key: f.id, label: null, date: dateInName(f.name), files: [f] }))
+			.sort((a, b) => (a.date ?? "9").localeCompare(b.date ?? "9") || a.files[0]!.name.localeCompare(b.files[0]!.name, undefined, { numeric: true }));
+		groups.push({ key: `folder:${dir}`, label: dir.split("/").pop()!, count: files.length, items });
+	}
+	return { groups, rest };
+}
+
 /** The groups: one per numbered series, a lecture's notes and transcript
- *  joined (pairSeries), study groups first, then "Other". */
+ *  joined (pairSeries), one per linked subfolder of the rest, study groups
+ *  first, then "Other". */
 export function fileGroups(files: readonly ClassFile[]): FileGroup[] {
 	const { series, other } = groupFileSeries(files);
 	const pairs = pairSeries(series);
 	const paired = new Set(pairs.values());
-	const groups = series.filter((s) => !paired.has(s)).map((s) => seriesGroup(s, pairs.get(s)));
+	const folders = folderGroups(other);
+	const groups = [...series.filter((s) => !paired.has(s)).map((s) => seriesGroup(s, pairs.get(s))), ...folders.groups];
 	// Groups with study material (lectures, readings) come before course info.
 	const hasStudy = (g: FileGroup) => g.items.some((i) => i.files.some((f) => f.kind === "study"));
 	groups.sort((a, b) => Number(hasStudy(b)) - Number(hasStudy(a)));
-	if (other.length > 0)
-		groups.push({ key: "other", label: "Other", count: other.length, items: other.map((f) => ({ key: f.id, label: null, date: null, files: [f] })) });
+	const rest = folders.rest.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+	if (rest.length > 0) groups.push({ key: "other", label: "Other", count: rest.length, items: rest.map((f) => ({ key: f.id, label: null, date: null, files: [f] })) });
 	return groups;
 }

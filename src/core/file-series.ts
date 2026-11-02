@@ -34,6 +34,11 @@ function stem(name: string): string {
 	return name.replace(/\.[a-z0-9]{1,5}$/i, "");
 }
 
+/** "YYYY-MM-DD" when the name carries a date. */
+export function dateInName(name: string): string | null {
+	return splitDate(name).date;
+}
+
 /** The name with its date cut out, and the date. */
 function splitDate(name: string): { rest: string; date: string | null } {
 	const m = DATE.exec(name);
@@ -75,7 +80,7 @@ function labelFor(key: string, members: Candidate[]): string {
 	// Words every member's remainder shares, e.g. "Discussion".
 	const sets = members.map((c) => new Set(words(c.remainder).map((w) => w.toLowerCase())));
 	const shared = words(members[0]!.remainder).filter((w) => sets.every((s) => s.has(w.toLowerCase())));
-	const tail = [...new Set(shared)].join(" ");
+	const tail = shared.filter((w, i) => shared.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i).join(" ");
 	if (!key) return tail || "Numbered";
 	return tail ? `${head} · ${tail}` : head;
 }

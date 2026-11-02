@@ -172,6 +172,30 @@ describe("files-model", () => {
 		assert.equal(pairSeries(mixed.series).size, 0);
 	});
 
+	it("chapters named by their number, or numbers on other dates, never pair with lecture transcripts", () => {
+		const { series } = groupFileSeries(named(["01_Logic.pdf", "02_Sets.pdf", "03_Algorithms.pdf", "Lecture01.srt", "Lecture02.srt", "Lecture03.srt"]));
+		assert.equal(pairSeries(series).size, 0);
+		const weeks = groupFileSeries(named(["2026-09-30 Week 1.pdf", "2026-10-07 Week 2.pdf", "Lecture01_2026-09-25.srt", "Lecture02_2026-09-28.srt"]));
+		assert.equal(pairSeries(weeks.series).size, 0);
+	});
+
+	it("linked files in no series are grouped by their subfolder, by date; lone and root files stay in Other", () => {
+		const linked = (id: string, path: string) => file({ id, origin: "linked", path, name: path.split("/").pop()! });
+		const groups = fileGroups([
+			linked("b", "Lecture slides/2026-09-28 Permutations (lecture slides).pdf"),
+			linked("a", "Lecture slides/2026-09-25 Intro and Counting (lecture slides).pdf"),
+			linked("c", "Midterm practice/practice exam.pdf"),
+			linked("d", "syllabus.txt"),
+		]);
+		assert.deepEqual(
+			groups.map((g) => [g.label, g.items.map((i) => [i.date, i.files[0]!.id])]),
+			[
+				["Lecture slides", [["2026-09-25", "a"], ["2026-09-28", "b"]]],
+				["Other", [[null, "c"], [null, "d"]]],
+			],
+		);
+	});
+
 	it("filterGroups keeps entries with a matching file name, any case, and drops empty groups", () => {
 		const groups = fileGroups(CSE21);
 		assert.deepEqual(
