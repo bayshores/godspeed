@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.15",
+		"date": "2026-11-02",
+		"changes": [
+			"Each deadline has its own page. Click its ring on the Overview or its row in Coming up to see if its lectures, transcripts and discussions are all there, a day by day plan up to it with your weakest topics first, and how ready you are.",
+			"Check with the syllabus asks your teacher to compare the syllabus with your files and tell you what's missing.",
+			"The Files page groups your files by name, like lectures, discussions and homework. A lecture's notes and transcript share one row with its date, and you can search.",
+			"The teacher's panel opens along the right edge as a solid panel, and menus and pop-ups are solid boxes instead of see-through glass.",
+			"Once you pick an answer and start writing, your answer and how sure you are fold into one row so the thinking box gets the room. The side question waits behind Ask a side question.",
+			"The countdown counts calendar days, so it matches the rest of the app."
+		]
+	},
+	{
 		"version": "0.5.14",
 		"date": "2026-11-02",
 		"changes": [
