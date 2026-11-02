@@ -1,9 +1,9 @@
 /**
- * The Files page,
- * mounted over linkedom with a fake fetch: the two sections and counts,
- * the linked folder, each row's state (coverage bar, Building facts…,
- * Failed + Retry), the Study/Info toggle and Unlink writing through the
- * class routes, and a "#file-<id>" link outlining its row.
+ * The Files page, mounted over linkedom with a fake fetch: groups from the
+ * file names with counts, the linked folder, each row's kind and state
+ * (coverage bar, Building facts…, Failed + Retry), Move and Unlink writing
+ * through the class routes, Add files and the Finder drop targets, search
+ * and folded groups.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -27,12 +27,12 @@ Object.assign(globalThis, {
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),
 });
-// linkedom has no location: a plain one carries the hash.
-Object.defineProperty(dom.window, "location", { value: { hash: "", pathname: "/class/files", href: "http://localhost/class/files" }, configurable: true });
-const scrolled: string[] = [];
-(dom.window.HTMLElement.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = function (this: HTMLElement) {
-	scrolled.push(this.id);
-};
+// linkedom has no localStorage: a plain one remembers folded groups.
+const stored = new Map<string, string>();
+Object.defineProperty(dom.window, "localStorage", {
+	configurable: true,
+	value: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v), clear: () => stored.clear() },
+});
 
 // react-dom reads the DOM globals when it loads: import it after them.
 // linkedom's document has no "oninput"; without it React would fall back
@@ -133,25 +133,33 @@ afterEach(async () => {
 	root = undefined;
 	host = undefined;
 	calls.length = 0;
-	scrolled.length = 0;
 	folderProblem = null;
 	recordFails = false;
 	agentTeaching = true;
 	recordReads = 0;
 	globalThis.fetch = originalFetch;
-	window.location.hash = "";
+	stored.clear();
 });
 
 describe("FilesPage", () => {
-	it("shows the linked folder, both panels with counts and Add, and each row's state", async () => {
+	it("shows the linked folder, the summary, groups from the names with counts, and each row's kind and state", async () => {
 		fakeFetch();
 		await mount();
 		assert.equal(q("class-pick-folder"), null, "a linked class shows its folder, not Link folder");
-		assert.ok(q("class-add-study"), "Study material's Add");
-		assert.ok(q("class-add-info"), "Course info's Add");
+		assert.ok(q("class-add-files"));
 		assert.equal(q("class-folder-path")!.textContent, "~/School/CSE 21");
-		assert.equal(q("files-count-study")!.textContent, "6");
-		assert.equal(q("files-count-info")!.textContent, "1");
+		assert.equal(q("files-summary")!.textContent, "7 files · 6 study material · 1 course info");
+		assert.deepEqual(
+			[...document.querySelectorAll('[data-testid^="files-group-toggle-"]')].map((b) => b.textContent),
+			["Lecture3", "Rosen · Probability2", "Other2"],
+		);
+		assert.deepEqual(
+			[...q("files-group-lecture")!.querySelectorAll('[data-testid^="files-item-"]')].map((i) => i.textContent!.slice(0, 9)),
+			["Lecture 1", "Lecture 5", "Lecture 6"],
+			"in number order",
+		);
+		assert.equal(q("class-file-kind-f5")!.textContent, "Info");
+		assert.equal(q("class-file-kind-f1")!.textContent, "Study");
 		// "studied/facts" with the bar: a fill only when some came up.
 		assert.match(q("class-file-status-f1")!.textContent!, /31\/31\s*facts studied/);
 		assert.ok(q("class-file-f1")!.querySelector('[data-testid="file-coverage-fill"]'));
@@ -161,7 +169,6 @@ describe("FilesPage", () => {
 		assert.equal(q("class-file-status-f4")!.textContent, "Failed");
 		assert.ok(q("class-file-retry-f4"));
 		assert.equal(q("class-file-status-f5"), null, "course info shows no state");
-		assert.equal(document.querySelector('[data-testid^="class-file-kind-"]'), null, "no Study/Info toggle");
 		assert.ok(q("class-file-linked-f2"), "a file from the linked folder is marked");
 		assert.equal(q("class-file-linked-f1"), null, "a copied file is not");
 		assert.equal(q("class-folder")!.getAttribute("data-problem"), null);
@@ -171,7 +178,7 @@ describe("FilesPage", () => {
 		fakeFetch();
 		const page = await mount(null);
 		assert.match(page.textContent!, /Pick a class to see its files\./);
-		assert.equal(q("files-section-study"), null);
+		assert.equal(q("files-summary"), null);
 	});
 
 	it("a class record that fails to load says so, and Try again reads it again", async () => {
@@ -179,7 +186,7 @@ describe("FilesPage", () => {
 		fakeFetch();
 		const page = await mount();
 		assert.match(page.textContent!, /Couldn't load this class's files\./);
-		assert.equal(q("files-section-study"), null);
+		assert.equal(q("files-summary"), null);
 		const reads = recordReads;
 		recordFails = false;
 		await act(async () => q("load-failed-retry")!.click());
@@ -187,7 +194,7 @@ describe("FilesPage", () => {
 			await new Promise((r) => setTimeout(r, 20));
 		});
 		assert.equal(recordReads, reads + 1);
-		assert.ok(q("files-section-study"), "the files show once the read works");
+		assert.ok(q("files-summary"), "the files show once the read works");
 		assert.equal(q("load-failed"), null);
 	});
 
@@ -298,19 +305,10 @@ describe("FilesPage", () => {
 		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/classes/cls_a/files/f1", body: undefined }]);
 	});
 
-	it("dragging a row into the other panel warns, then moves it; files dropped from Finder are added to that panel", async () => {
+	it("files dragged from Finder show two places to drop them, and each adds as its kind", async () => {
 		fakeFetch();
 		await mount();
-		const data = new Map<string, string>();
-		const transfer = (types: string[], files: File[] = []) => ({
-			types,
-			files,
-			items: { length: files.length || 2 },
-			dropEffect: "none",
-			effectAllowed: "all",
-			setData: (t: string, v: string) => data.set(t, v),
-			getData: (t: string) => data.get(t) ?? "",
-		});
+		const transfer = (types: string[], files: File[] = []) => ({ types, files, items: { length: files.length }, dropEffect: "none" });
 		const fire = async (el: Element, type: string, dataTransfer: unknown) => {
 			await act(async () => {
 				const e = new window.Event(type, { bubbles: true, cancelable: true });
@@ -318,27 +316,75 @@ describe("FilesPage", () => {
 				el.dispatchEvent(e);
 			});
 		};
-		const ROW = "application/x-godspeed-class-file";
-		await fire(q("class-file-f1")!, "dragstart", transfer([]));
-		assert.equal(q("class-file-f1")!.className.includes("opacity-30"), true, "the dragged row fades");
-		await fire(q("files-section-info")!, "dragover", transfer([ROW]));
-		assert.match(q("files-drop-target")!.textContent!, /Move to Course info.*Its 31 facts leave the graph/);
-		await fire(q("files-section-info")!, "drop", transfer([ROW]));
-		assert.deepEqual(calls.at(-1), { method: "PUT", url: "/api/classes/cls_a/files/f1", body: { kind: "info" } });
-		assert.equal(q("files-drop-target"), null);
-
-		// Its own panel is not a drop target.
-		await fire(q("class-file-f2")!, "dragstart", transfer([]));
-		await fire(q("files-section-study")!, "dragover", transfer([ROW]));
-		assert.equal(q("files-drop-target"), null);
-		await fire(q("class-file-f2")!, "dragend", transfer([]));
-
-		const pdf = new File(["x"], "Lecture 4.pdf");
-		await fire(q("files-section-study")!, "dragover", transfer(["Files"], [pdf]));
-		assert.equal(q("files-drop-target")!.textContent, "Drop to add 1 file as study material");
-		await fire(q("files-section-study")!, "drop", transfer(["Files"], [pdf]));
+		const pdf = new File(["x"], "Syllabus v2.pdf");
+		assert.equal(q("files-drop-targets"), null, "nothing to drop on until files are dragged in");
+		await fire(q("files-page")!, "dragover", transfer(["Files"], [pdf]));
+		assert.equal(q("files-drop-study")!.textContent, "Add 1 file as study material");
+		assert.equal(q("files-drop-info")!.textContent, "Add 1 file as course info");
+		await fire(q("files-drop-info")!, "dragover", transfer(["Files"], [pdf]));
+		assert.equal(q("files-drop-info")!.getAttribute("data-over"), "true");
+		await fire(q("files-drop-info")!, "drop", transfer(["Files"], [pdf]));
 		assert.equal(calls.at(-1)!.method, "POST");
 		assert.equal(calls.at(-1)!.url, "/api/classes/cls_a/files");
+		assert.equal(q("files-drop-targets"), null, "the targets leave after the drop");
+
+		// Text dragged over the page is not a file: no targets.
+		await fire(q("files-page")!, "dragover", transfer(["text/plain"]));
+		assert.equal(q("files-drop-targets"), null);
+	});
+
+	it("Add files asks study material or course info before picking files", async () => {
+		fakeFetch();
+		await mount();
+		const input = q("class-file-input") as HTMLInputElement;
+		let picked = 0;
+		input.click = () => void picked++;
+		await act(async () => q("class-add-files")!.click());
+		assert.match(q("class-add-files-menu")!.textContent!, /Study material.*Course info/);
+		await act(async () => q("class-add-info")!.click());
+		assert.equal(picked, 1);
+		Object.defineProperty(input, "files", { configurable: true, value: [new File(["x"], "HW5.pdf")] });
+		await act(async () => input.dispatchEvent(new window.Event("change", { bubbles: true })));
+		assert.equal(calls.at(-1)!.method, "POST");
+	});
+
+	it("search narrows the groups to matching names, says when nothing matches, and clearing brings all back", async () => {
+		fakeFetch();
+		await mount();
+		await typeInto(q("files-search") as HTMLInputElement, "rosen 7");
+		assert.ok(q("class-file-f3"));
+		assert.equal(q("class-file-f2"), null);
+		assert.equal(q("files-group-lecture"), null, "groups with no match leave");
+		await typeInto(q("files-search") as HTMLInputElement, "zzz");
+		assert.match(q("files-no-match")!.textContent!, /No file names have .zzz./);
+		await act(async () => q("files-search-clear")!.click());
+		assert.ok(q("files-group-lecture"));
+		assert.equal(q("files-no-match"), null);
+	});
+
+	it("a group folds and stays folded for this class", async () => {
+		fakeFetch();
+		await mount();
+		await act(async () => q("files-group-toggle-lecture")!.click());
+		assert.equal(q("class-file-f1"), null);
+		assert.equal(q("files-group-toggle-lecture")!.getAttribute("aria-expanded"), "false");
+		await act(async () => root?.unmount());
+		host?.remove();
+		await mount();
+		assert.equal(q("class-file-f1"), null, "still folded after the page opens again");
+		await typeInto(q("files-search") as HTMLInputElement, "lecture 1");
+		assert.ok(q("class-file-f1"), "a search shows matches in folded groups too");
+	});
+
+	it("a class with no files says what to add", async () => {
+		fakeFetch();
+		const files = RECORD.files;
+		RECORD.files = [];
+		await mount();
+		RECORD.files = files;
+		assert.match(q("files-empty")!.textContent!, /Add lecture notes, readings, recordings or the syllabus/);
+		assert.equal(q("files-summary")!.textContent, "0 files");
+		assert.equal(q("files-search"), null, "nothing to search");
 	});
 
 	it("Link folder without the desktop picker opens a path field that links the folder", async () => {
@@ -356,18 +402,6 @@ describe("FilesPage", () => {
 			q("class-folder-form")!.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
 		});
 		assert.deepEqual(calls.at(-1), { method: "PUT", url: "/api/classes/cls_a/folder", body: { path: "/Users/me/New" } });
-	});
-
-	it("a #file-<id> hash scrolls to that row and outlines it", async () => {
-		fakeFetch();
-		window.location.hash = "#file-f2";
-		await mount();
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.deepEqual(scrolled, ["file-f2"]);
-		assert.equal(q("class-file-f2")!.getAttribute("data-flash"), "true");
-		assert.equal(q("class-file-f1")!.getAttribute("data-flash"), null);
 	});
 });
 

@@ -1,28 +1,51 @@
 /**
- * The Files page's pure helpers: the row's state
- * from a file's status and coverage, the coverage bar, the hash anchor,
- * the two sections and the home-folder shortening.
+ * The Files page's pure helpers: the row's state from a file's status and
+ * coverage, the coverage bar, the groups found from file names (a
+ * lecture's notes and transcript paired), search, dates, the summary
+ * line and the home-folder shortening.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClassFile, FileCoverage } from "../src/core/index.ts";
+import { groupFileSeries } from "../src/core/file-series.ts";
 import {
 	canRemove,
 	canRetry,
 	confirmCopy,
-	dropCopy,
-	fileAnchorId,
-	fileIdFromHash,
+	dropTitle,
+	fileGroups,
+	filesSummary,
 	fileState,
+	filterGroups,
+	pairSeries,
+	shortDate,
 	shortenHome,
 	fileBrowserName,
-	splitByKind,
 	studiedFill,
 } from "../src/components/files/files-model.ts";
 
 function file(over: Partial<ClassFile>): ClassFile {
 	return { id: "f_1", origin: "copied", name: "L1.pdf", path: "f_1/L1.pdf", kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
 }
+const named = (names: string[]) => names.map((name, i) => file({ id: `f${i}`, name, path: `f${i}/${name}` }));
+const CSE21 = named([
+	"Day1 intro_counting_annotated.pdf",
+	"Lecture01_2026-09-25.srt",
+	"Day2 sum_product_annotated.pdf",
+	"Lecture02_2026-09-28.srt",
+	"Day3 permutations.pdf",
+	"Lecture03.srt",
+	"Week 1 Evening Discussion.pdf",
+	"Week 2 Evening Discussion.pdf",
+	"Week 2 Morning Discussion_annotated.pdf",
+	"06_Counting.pdf",
+	"07_Discrete_Probability.pdf",
+	"01_The_Foundations_Logic_and_Proofs.pdf",
+	"HW1_F26.pdf",
+	"HW2_F26.pdf",
+	"syllabus.txt",
+	"Digital_Note_Sheet_STUDENT_GUIDE.pdf",
+]);
 const cov = (facts: number, inLessons: number): FileCoverage => ({ fileId: "f_1", name: "L1.pdf", facts, inLessons, share: facts ? inLessons / facts : null });
 
 describe("files-model", () => {
@@ -91,17 +114,10 @@ describe("files-model", () => {
 		assert.equal(studiedFill({ facts: 0, inLessons: 0 }), 0, "no facts: an empty bar");
 	});
 
-	it("dropCopy says what a drop will do", () => {
-		assert.deepEqual(dropCopy("study", { type: "finder", count: 2 }), { title: "Drop to add 2 files as study material" });
-		assert.deepEqual(dropCopy("info", { type: "finder", count: 1 }), { title: "Drop to add 1 file as course info" });
-		assert.deepEqual(dropCopy("study", { type: "finder", count: 0 }), { title: "Drop to add files as study material" });
-		assert.deepEqual(dropCopy("info", { type: "row", facts: 28 }), {
-			title: "Move to Course info",
-			detail: "Its 28 facts leave the graph. The teacher can still read it.",
-		});
-		assert.equal(dropCopy("info", { type: "row", facts: null }).detail, "Its facts leave the graph. The teacher can still read it.");
-		assert.equal(dropCopy("info", { type: "row", facts: 0 }).detail, "The teacher can still read it.", "no facts: nothing to lose");
-		assert.deepEqual(dropCopy("study", { type: "row", facts: null }), { title: "Move to Study material", detail: "It gets turned into facts for the graph." });
+	it("dropTitle says what a drop will do", () => {
+		assert.equal(dropTitle("study", 2), "Add 2 files as study material");
+		assert.equal(dropTitle("info", 1), "Add 1 file as course info");
+		assert.equal(dropTitle("study", 0), "Add files as study material");
 	});
 
 	it("Retry and Remove follow the old dialog's rules", () => {
@@ -113,19 +129,67 @@ describe("files-model", () => {
 		assert.equal(canRemove(file({ origin: "linked" })), false);
 	});
 
-	it("the hash anchor round-trips (the Overview's /class/files#file-<id>)", () => {
-		assert.equal(fileAnchorId("f_abc"), "file-f_abc");
-		assert.equal(fileIdFromHash("#file-f_abc"), "f_abc");
-		assert.equal(fileIdFromHash("#file-f%5Fabc"), "f_abc");
-		assert.equal(fileIdFromHash("#other"), null);
-		assert.equal(fileIdFromHash(""), null);
+	it("groups follow the name series; a lecture's notes and transcript share an entry with the transcript's date", () => {
+		const groups = fileGroups(CSE21);
+		assert.deepEqual(
+			groups.map((g) => [g.label, g.count, g.items.map((i) => i.label)]),
+			[
+				["HW · F26", 2, ["HW 1", "HW 2"]],
+				["Lecture", 6, ["Lecture 1", "Lecture 2", "Lecture 3"]],
+				["Numbered", 3, ["1", "6", "7"]],
+				["Week · Discussion", 3, ["Week 1", "Week 2"]],
+				["Other", 2, [null, null]],
+			],
+		);
+		const lectures = groups[1]!;
+		assert.deepEqual(lectures.items[0]!.files.map((f) => f.name), ["Day1 intro_counting_annotated.pdf", "Lecture01_2026-09-25.srt"], "notes first");
+		assert.deepEqual(lectures.items.map((i) => i.date), ["2026-09-25", "2026-09-28", null]);
+		assert.equal(groups[3]!.items[1]!.files.length, 2, "two files with one number stay in one entry");
+		assert.deepEqual(groups[4]!.items.map((i) => i.files[0]!.name), ["Digital_Note_Sheet_STUDENT_GUIDE.pdf", "syllabus.txt"]);
+		assert.deepEqual(fileGroups([]), []);
+		assert.deepEqual(
+			fileGroups([file({ id: "x", name: "syllabus.txt" })]).map((g) => g.label),
+			["Other"],
+			"only other files: one group",
+		);
 	});
 
-	it("splitByKind keeps class order", () => {
-		const files = [file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })];
-		const { study, info } = splitByKind(files);
-		assert.deepEqual(study.map((f) => f.id), ["a", "c"]);
-		assert.deepEqual(info.map((f) => f.id), ["b"]);
+	it("pairSeries pairs a transcript series with the one notes series most like it, never on a tie", () => {
+		const { series } = groupFileSeries(CSE21);
+		const pairs = pairSeries(series);
+		assert.deepEqual([...pairs].map(([t, n]) => [t.label, n.label]), [["Lecture", "Day"]]);
+		// Two notes series equally like the transcripts: no pair.
+		const tie = groupFileSeries(named(["Lecture01.srt", "Lecture02.srt", "Day1.pdf", "Day2.pdf", "Notes1.pdf", "Notes2.pdf"]));
+		assert.equal(pairSeries(tie.series).size, 0);
+		// Too few shared numbers: no pair.
+		const apart = groupFileSeries(named(["Lecture01.srt", "Lecture02.srt", "Lecture03.srt", "Day3.pdf", "Day7.pdf", "Day8.pdf"]));
+		assert.equal(pairSeries(apart.series).size, 0);
+		// A series mixing notes and transcripts pairs with nothing.
+		const mixed = groupFileSeries(named(["Lecture01.srt", "Lecture02.pdf", "Day1.pdf", "Day2.pdf"]));
+		assert.equal(pairSeries(mixed.series).size, 0);
+	});
+
+	it("filterGroups keeps entries with a matching file name, any case, and drops empty groups", () => {
+		const groups = fileGroups(CSE21);
+		assert.deepEqual(
+			filterGroups(groups, "lecture02").map((g) => [g.label, g.items.map((i) => i.label), g.count]),
+			[["Lecture", ["Lecture 2"], 2]],
+			"matching the transcript keeps the notes beside it",
+		);
+		assert.deepEqual(filterGroups(groups, "  SYLLABUS ").map((g) => g.label), ["Other"]);
+		assert.deepEqual(filterGroups(groups, "nothing like this"), []);
+		assert.equal(filterGroups(groups, " ").length, groups.length);
+	});
+
+	it("shortDate is a calendar day with its weekday", () => {
+		assert.equal(shortDate("2026-09-25"), "Fri Sep 25");
+		assert.equal(shortDate("2026-11-01"), "Sun Nov 1");
+	});
+
+	it("filesSummary counts files by kind", () => {
+		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "3 files · 2 study material · 1 course info");
+		assert.equal(filesSummary([file({ id: "a" })]), "1 file · 1 study material · 0 course info");
+		assert.equal(filesSummary([]), "0 files");
 	});
 
 	it("shortenHome", () => {
