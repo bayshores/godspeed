@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
-import type { FileCoverage } from "@/core";
+import { fileGroups, type FileCoverage } from "@/core";
 import { useAgentStatus } from "@/components/agent-status";
 import { useClasses } from "@/components/class-context";
 import { LoadFailed } from "@/components/load-failed";
@@ -23,7 +23,7 @@ import {
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileGroupSection, FinderDropTargets } from "./files-sections";
-import { confirmCopy, fileBrowserName, fileGroups, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { confirmCopy, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
 
 /**

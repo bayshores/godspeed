@@ -12,6 +12,7 @@ import { addClassDeadline, addFileFromPath, createClass, linkFolder, removeClass
 import { classFilePath, classTopics } from "./class-card.ts";
 import { fileExtents, readPassage, searchClassFiles } from "./search-index.ts";
 import { noteAgentAction, type AgentActionInput } from "./agent-actions.ts";
+import { shortcutPathProblem } from "./agent-folder.ts";
 import { SIGNATURE_MAX } from "../core/contracts.ts";
 
 /** Study files are read by the agent itself, as background work items. */
@@ -158,6 +159,8 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		add_class_file({ class_id, path, kind }) {
+			const problem = shortcutPathProblem(path);
+			if (problem) return { ok: false, error: problem };
 			const outcome = addFileFromPath(class_id, path, kind);
 			if (!outcome.ok) return outcome;
 			return done({ file: outcome.value, note: kind === "study" ? `Added. ${READING_NOTE}` : "Added." }, [
@@ -230,6 +233,8 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		link_class_folder({ class_id, path }) {
+			const problem = shortcutPathProblem(path);
+			if (problem) return { ok: false, error: problem };
 			const outcome = linkFolder(class_id, path);
 			if (!outcome.ok) return outcome;
 			return done({ class: classView(class_id), note: `Linked. ${READING_NOTE}` }, [

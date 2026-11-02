@@ -1,12 +1,12 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { ArrowRightLeftIcon, CaptionsIcon, CircleXIcon, EllipsisIcon, FileTextIcon, FolderIcon, FolderSearchIcon, LoaderIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
-import type { ClassFile, FileCoverage } from "@/core";
+import { isRecording, type ClassFile, type FileCoverage } from "@/core";
 import { CopyButton } from "@/components/copy-button";
 import { MenuShell } from "@/components/menu-shell";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
-import { canRemove, canRetry, fileState, isRecording, kindTitle, studiedFill, type FileState } from "./files-model";
+import { canRemove, canRetry, fileState, kindTitle, studiedFill, type FileState } from "./files-model";
 
 /**
  * ONE FILE ROW (Files page): icon, name (a folder mark when it comes from

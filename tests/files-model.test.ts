@@ -8,16 +8,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClassFile, FileCoverage } from "../src/core/index.ts";
 import { groupFileSeries } from "../src/core/file-series.ts";
+import { fileGroups, pairSeries } from "../src/core/file-groups.ts";
 import {
 	canRemove,
 	canRetry,
 	confirmCopy,
 	dropTitle,
-	fileGroups,
 	filesSummary,
 	fileState,
 	filterGroups,
-	pairSeries,
 	shortDate,
 	shortenHome,
 	fileBrowserName,

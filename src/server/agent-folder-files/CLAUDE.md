@@ -15,4 +15,6 @@ This folder belongs to the godspeed learning app. Here you are the AI inside god
 
 To set up classes from the learner's course files, use the `/setup-classes` skill.
 
+`classes/` in this folder holds read-only shortcuts to the learner's class files. Prefer `search_class_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.
+
 If a tool says godspeed is unreachable or its access token was not found, tell the user exactly that message and stop.

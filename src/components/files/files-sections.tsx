@@ -1,9 +1,9 @@
 import { memo, useState, type DragEvent } from "react";
 import { ArrowDownToLineIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
-import type { FileCoverage } from "@/core";
+import type { FileCoverage, FileGroup } from "@/core";
 import { cn } from "@/lib/utils";
 import { FileRow, type FileRowActions } from "./file-row";
-import { dropTitle, shortDate, type FileGroup } from "./files-model";
+import { dropTitle, shortDate } from "./files-model";
 
 /**
  * ONE GROUP (Files page): a series found in the file names ("Lecture",

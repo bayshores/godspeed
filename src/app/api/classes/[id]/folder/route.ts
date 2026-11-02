@@ -5,7 +5,7 @@
  *  DELETE — unlink: the folder's files leave the class with their facts
  *           (the folder itself is never touched)
  */
-import { linkFolder, unlinkFolder } from "@/server";
+import { linkFolder, shortcutPathProblem, unlinkFolder } from "@/server";
 import { isClassId } from "@/core";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,8 @@ export async function PUT(req: Request, { params }: Ctx) {
 	if (!isClassId(id)) return Response.json({ error: "No such class" }, { status: 404 });
 	const body = (await req.json().catch(() => ({}))) as { path?: unknown };
 	if (typeof body.path !== "string" || body.path.trim() === "") return Response.json({ error: "path is required" }, { status: 400 });
+	const problem = shortcutPathProblem(body.path.trim());
+	if (problem) return Response.json({ error: problem }, { status: 400 });
 	const outcome = linkFolder(id, body.path.trim());
 	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
 	return Response.json({ class: outcome.value });

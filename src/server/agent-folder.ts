@@ -1,7 +1,8 @@
 /**
  * The godspeed folder on disk (src/core/agent-folder.ts has the pure
  * parts). Setting it up writes the agent's instructions, its connection and
- * its start scripts there; the app refreshes them once per start, so an
+ * its start scripts there, plus classes/ with shortcuts to the class files
+ * (class-shortcuts.ts); the app refreshes them once per start, so an
  * update reaches them. Which folder is used, and whether the one-time
  * "godspeed has its own folder now" notice was seen, live in
  * <data>/agent-folder.json.
@@ -24,6 +25,7 @@ import {
 } from "../core/agent-folder.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 import { oldSetup, removeOldSetup } from "./old-setup.ts";
+import { syncShortcutsSafely, watchShortcuts } from "./class-shortcuts.ts";
 
 const STATE_FILE = path.join(PATHS.data, "agent-folder.json");
 const TEMPLATE = path.join(process.cwd(), "src", "server", "agent-folder-files");
@@ -141,7 +143,12 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	} catch (err) {
 		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
 	}
+	const before = readState().folder;
 	writeState({ ...readState(), folder, noticeSeen: true });
+	// A moved folder takes its shortcuts along.
+	if (before && path.resolve(before) !== path.resolve(folder)) syncShortcutsSafely(before, { clear: true });
+	syncShortcutsSafely(folder);
+	watchClassShortcuts();
 	try {
 		removeOldSetup();
 	} catch (err) {
@@ -163,6 +170,27 @@ export function refreshAgentFolder(): void {
 	} catch (err) {
 		console.error("[agent-folder] refresh failed:", err);
 	}
+	syncShortcutsSafely(folder);
+	watchClassShortcuts();
+}
+
+/** Why a file or folder can't be added from `p`: it's inside the godspeed
+ *  folder's classes/, which only holds shortcuts to files godspeed already
+ *  has. Null when it's fine. */
+export function shortcutPathProblem(p: string): string | null {
+	const root = path.resolve(agentFolder(), "classes");
+	const at = path.resolve(p);
+	return at === root || at.startsWith(root + path.sep)
+		? "That's in godspeed's classes folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead."
+		: null;
+}
+
+/** Keep classes/ in step with the classes while a folder is set up. */
+function watchClassShortcuts(): void {
+	watchShortcuts(() => {
+		const folder = agentFolder();
+		return agentFolderView(folder).exists ? folder : null;
+	});
 }
 
 /** The agent someone set up the old way (the plugin, or the Codex config)

@@ -10,4 +10,6 @@ Keep going until the user tells you to stop. Here, say only brief status lines; 
 
 When the user asks you to set up their classes, read `.claude/skills/setup-classes/SKILL.md` in this folder and follow it, calling `wait_for_work` yourself where it mentions the waiter.
 
+`classes/` in this folder holds read-only shortcuts to the learner's class files. Prefer `search_class_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.
+
 If a tool says godspeed is unreachable or its access token was not found, tell the user exactly that message and stop.
