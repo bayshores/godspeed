@@ -66,6 +66,13 @@ export function clearOf(spot: Point, size: number, obstacle: Box | null, gap = 1
 	return { x: spot.x, y: obstacle.top - gap - size };
 }
 
+/** The area cut at the docked panel's left edge, so a corner spot lands
+ *  left of the panel. Unchanged when the panel is right of it already. */
+export function clearOfDock(area: Box, dockLeft: number): Box {
+	const right = Math.min(area.left + area.width, dockLeft);
+	return right >= area.left + area.width ? area : { ...area, width: Math.max(0, right - area.left) };
+}
+
 // ─── targets ────────────────────────────────────────────────────────────────
 
 /** Gap between a target and Halley beside it. */

@@ -21,13 +21,19 @@ Object.assign(globalThis, {
 	Element: dom.window.Element,
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
+	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
 });
+// The Talk thread scrolls to its end.
+(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { HalleyFace } = await import("../src/components/halley/halley-face.tsx");
 const { HALLEY_MOODS } = await import("../src/components/halley/mood.ts");
-const { HalleyPanel, agentLine, panelPlacement } = await import("../src/components/halley/halley-panel.tsx");
+const { HalleyPanel, agentLine, dockWidth } = await import("../src/components/halley/halley-panel.tsx");
+const { clearOfDock } = await import("../src/components/halley/geometry.ts");
+const { startsTurn } = await import("../src/components/halley/talk-model.ts");
+const { askTeacher, useAskTeacher } = await import("../src/components/halley/ask-teacher.ts");
 const { FollowChipView } = await import("../src/components/halley/follow-chip.tsx");
 const { waitingNotice } = await import("../src/components/agent-status.tsx");
 const { ActivitySection } = await import("../src/components/activity-dock.tsx");
@@ -78,6 +84,7 @@ describe("the panel", () => {
 			agent={{ connected: true, teaching: true, name: "Claude Code", pendingWork: 0, claimedLessons: [] }}
 			follow={false}
 			onFollow={() => {}}
+			onClose={() => {}}
 			nowText="Reading syllabus.pdf for CSE 29"
 			recent={ACTIONS}
 			onPick={() => {}}
@@ -87,12 +94,18 @@ describe("the panel", () => {
 		/>
 	);
 
-	// The Talk tab opens the chat on mount; these tests don't need it to answer.
+	// The Talk tab opens the chat on mount; most tests don't need it to answer.
 	const talkCalls: string[] = [];
+	let talkChat: unknown = null;
 	globalThis.fetch = ((url: string, init?: RequestInit) => {
-		talkCalls.push(`${init?.method ?? "GET"} ${url}`);
+		talkCalls.push(`${init?.method ?? "GET"} ${url}${typeof init?.body === "string" ? ` ${init.body}` : ""}`);
+		if (url === "/api/talk" && init?.method === "POST" && talkChat) return Promise.resolve(new Response(JSON.stringify(talkChat)));
 		return new Promise(() => {});
 	}) as typeof fetch;
+	const settle = () =>
+		act(async () => {
+			for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+		});
 	const onActivity = (over: Parameters<typeof panel>[0] = {}) => {
 		const el = mount(panel(over));
 		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
@@ -109,11 +122,62 @@ describe("the panel", () => {
 		assert.equal(el.querySelector("[data-testid='halley-tab-activity']")?.getAttribute("aria-selected"), "true");
 		assert.ok(el.querySelector("[data-testid='halley-recent']"));
 	});
-	it("head: the name, the agent, and the Follow switch", () => {
+	it("head: the name, the agent, the Follow switch and a close button", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);
 		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Claude Code</);
 		assert.match(html, /role="switch" aria-checked="false" aria-label="Follow"/);
+		const closes: number[] = [];
+		const el = mount(panel({ onClose: () => closes.push(1) }));
+		act(() => (el.querySelector("[data-testid='halley-close']") as HTMLElement).click());
+		assert.deepEqual(closes, [1]);
+	});
+	it("docks on the right edge as a solid panel, never glass", () => {
+		const html = renderToStaticMarkup(panel());
+		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-0 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
+		assert.doesNotMatch(html, /lh-glass|rounded|blur/);
+	});
+	it("Talk reads like a script: the speaker's name once per turn, no bubbles, a white Send bar", async () => {
+		talkChat = {
+			id: "chat_talk",
+			turnInFlight: false,
+			messages: [
+				{ id: "u1", role: "user", content: [{ type: "text", text: "add the CSE 21 midterm on Nov 6 at 7pm" }], timestamp: 1 },
+				{ id: "u2", role: "user", content: [{ type: "text", text: "and the final" }], timestamp: 2 },
+			],
+		};
+		const el = mount(panel());
+		await settle();
+		const who = [...el.querySelectorAll("[data-testid='talk-who']")].map((n) => n.textContent);
+		assert.deepEqual(who, ["You", ""]);
+		assert.equal(el.querySelector("[data-testid='talk-you']")?.className.includes("bg-"), false, "no bubbles");
+		assert.ok(el.querySelector("[data-testid='talk-send']"));
+		talkChat = null;
+	});
+	it("a turn starts when the speaker changes; a change row is the teacher's", () => {
+		const rows = [
+			{ kind: "you" as const, id: "1", text: "a" },
+			{ kind: "you" as const, id: "2", text: "b" },
+			{ kind: "change" as const, id: "3", change: { label: "Adding HW 5", page: "/" } },
+			{ kind: "teacher" as const, id: "4", text: "c" },
+		];
+		assert.deepEqual(rows.map((_, i) => startsTurn(rows, i)), [true, false, true, false]);
+	});
+	it("a message asked from elsewhere is sent in Talk once, or left in the box while the teacher replies", async () => {
+		talkCalls.length = 0;
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
+		const asked: number[] = [];
+		mount(panel({ ask: { id: 1, text: "Check my CSE 21 files against the syllabus" }, onAsked: (id) => asked.push(id) }));
+		await settle();
+		assert.equal(talkCalls.filter((c) => c.startsWith("POST /api/chat ") && c.includes("Check my CSE 21 files")).length, 1);
+		assert.deepEqual(asked, [1]);
+		act(() => root?.unmount());
+		talkChat = { id: "chat_talk", turnInFlight: true, messages: [] };
+		const busy = mount(panel({ ask: { id: 2, text: "Check again" }, onAsked: (id) => asked.push(id) }));
+		await settle();
+		assert.equal((busy.querySelector("textarea") as HTMLTextAreaElement).value, "Check again");
+		assert.deepEqual(asked, [1, 2]);
+		talkChat = null;
 	});
 	it("the agent line matches the footer, and shows the waiting notice while work waits", () => {
 		const idle = { connected: false, teaching: false, pendingWork: 0, claimedLessons: [] };
@@ -161,11 +225,29 @@ describe("the panel", () => {
 		assert.match(jobs, /data-testid="activity-failed"/);
 		assert.match(jobs, /Failed: The PDF could not be read/);
 	});
-	it("sits above Halley in the bottom-right, aligned to its right edge", () => {
-		const style = panelPlacement({ spot: { x: 1356, y: 816 }, size: 56 }, { width: 1440, height: 900 });
-		assert.deepEqual({ right: style.right, bottom: style.bottom }, { right: 28, bottom: 900 - 816 + 16 });
-		const high = panelPlacement({ spot: { x: 300, y: 72 }, size: 56 }, { width: 1440, height: 900 });
-		assert.deepEqual({ left: high.left, top: high.top }, { left: 300, top: 72 + 56 + 16 });
+	it("is 400 wide, as wide as a wider Your turn panel to cover it, and the whole window when narrow", () => {
+		assert.equal(dockWidth(1440, null), 400);
+		assert.equal(dockWidth(1440, 520), 520);
+		assert.equal(dockWidth(1440, 340), 400);
+		assert.equal(dockWidth(600, null), 600);
+		assert.equal(dockWidth(700, 900), 700);
+	});
+	it("the teacher rests left of the open panel", () => {
+		const area = { left: 256, top: 0, width: 1184, height: 900 };
+		assert.deepEqual(clearOfDock(area, 1040), { left: 256, top: 0, width: 784, height: 900 });
+		assert.equal(clearOfDock({ ...area, width: 600 }, 1040).width, 600, "already clear");
+		assert.equal(clearOfDock(area, 0).width, 0);
+	});
+	it("askTeacher reaches the panel's listener with the text", () => {
+		const heard: string[] = [];
+		function Listener() {
+			useAskTeacher((t) => heard.push(t));
+			return null;
+		}
+		mount(<Listener />);
+		askTeacher("Check my files");
+		askTeacher("   ");
+		assert.deepEqual(heard, ["Check my files"]);
 	});
 });
 

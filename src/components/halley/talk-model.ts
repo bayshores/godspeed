@@ -27,6 +27,13 @@ export function talkRows(messages: readonly LhViewMessage[]): TalkRow[] {
 	return rows;
 }
 
+/** Whether a row starts a new speaker's turn, so the script shows the name
+ *  in the margin once per turn (a change row belongs to the teacher). */
+export function startsTurn(rows: readonly TalkRow[], index: number): boolean {
+	const who = (row: TalkRow | undefined) => (row ? (row.kind === "you" ? "you" : "teacher") : null);
+	return who(rows[index]) !== who(rows[index - 1]);
+}
+
 /** The recorded action behind a change row (newest first), so a click can
  *  go there like the Activity rows do. Null once it left the recent list. */
 export function actionFor(change: ClassChange, recent: readonly AgentAction[]): AgentAction | null {

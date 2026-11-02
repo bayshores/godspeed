@@ -118,16 +118,29 @@
 	--lh-heading-weight: 900;
 }
 
-/* Pop-ups (menus, Halley's panel) are see-through glass over
-   the page: a soft light edge on top and a deep shadow instead of an
-   outline. Rows that hover with bg-tone get a see-through tone inside. */
+/* Pop-ups (menus, the teacher's bubble, notices) are solid boxes with a
+   1px rule, like the rest of the app: no blur, no shadow. Rows that hover
+   with bg-tone get a tone that still shows on the box. */
 .lh-glass {
-	--accent: color-mix(in srgb, var(--foreground) 9%, transparent);
-	background-color: color-mix(in srgb, var(--lh-tip) 72%, transparent);
-	backdrop-filter: blur(18px) saturate(1.3);
-	box-shadow:
-		inset 0 1px 0 color-mix(in srgb, var(--foreground) 20%, transparent),
-		0 20px 50px rgb(0 0 0 / 0.6);
+	--accent: color-mix(in srgb, var(--foreground) 9%, var(--lh-tip));
+	background-color: var(--lh-tip);
+	border: 1px solid var(--border);
+}
+
+/* The teacher's panel slides in from the right edge. */
+@keyframes lh-dock-in {
+	from {
+		opacity: 0;
+		transform: translateX(16px);
+	}
+}
+.lh-dock {
+	animation: lh-dock-in var(--lh-dur) var(--lh-ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+	.lh-dock {
+		animation: none;
+	}
 }
 
 /* CMU Serif bold (titles) — bundled local file, no CDN dependency. */
@@ -1142,12 +1155,6 @@ body {
 	}
 }
 /* The halo hides while flying, so the trail reads clean. */
-.lh-halley .hy-halo {
-	transition: opacity 0.15s ease-out;
-}
-.lh-halley[data-flying] .hy-halo {
-	opacity: 0;
-}
 .lh-halley-bubble {
 	transition: opacity 0.2s ease-out;
 }

@@ -35,7 +35,9 @@ import { prefersReducedMotion } from "@/components/presence";
 import { useSettingsSaved } from "@/components/settings-signal";
 import { cn } from "@/lib/utils";
 import { HalleyFace } from "./halley-face";
-import { HalleyPanel } from "./halley-panel";
+import { HalleyPanel, currentDockWidth } from "./halley-panel";
+import { useAskTeacher } from "./ask-teacher";
+import type { TalkAsk } from "./talk-view";
 import { HalleyEngine, type Home } from "./engine";
 import { REACTION_MS, crossedUnderHour, eyesStill, pickMood, type HalleyMood, type HalleyReaction } from "./mood";
 import { BURST_MS, FLY_MS, STEP_MS, bubbleText, nextStep, summarize } from "./tour";
@@ -46,6 +48,7 @@ import {
 	SIZE,
 	besideTarget,
 	clearOf,
+	clearOfDock,
 	cornerSpot,
 	edgeToward,
 	parseCorner,
@@ -295,6 +298,14 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 
 	// ── the panel ──
 	const [panelOpen, setPanelOpen] = useState(false);
+	// A message asked from elsewhere (askTeacher), until Talk sends it.
+	const [ask, setAsk] = useState<TalkAsk | null>(null);
+	const askCount = useRef(0);
+	useAskTeacher((text) => {
+		setAsk({ id: ++askCount.current, text });
+		setPanelOpen(true);
+	});
+	const onAsked = useCallback((id: number) => setAsk((a) => (a?.id === id ? null : a)), []);
 
 	// ── the stage (engine) ──
 	const engineRef = useRef<HalleyEngine | null>(null);
@@ -489,7 +500,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const inLesson = pathname.startsWith("/chat/") && lesson !== null;
 	const classList = classes.classes;
 	const classNameOf = useCallback((id: string | null) => (id ? (classList.find((c) => c.id === id)?.name ?? null) : null), [classList]);
-	const bubble = tourBubble ?? (inLesson ? null : nowText);
+	// The resting "now" line is in the open panel's Activity tab instead.
+	const bubble = tourBubble ?? (inLesson || panelOpen ? null : nowText);
 
 	return (
 		<HalleyContext.Provider value={api}>
@@ -510,6 +522,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 				nowText={nowText}
 				go={go}
 				classNameOf={classNameOf}
+				ask={ask}
+				onAsked={onAsked}
 			/>
 		</HalleyContext.Provider>
 	);
@@ -533,6 +547,8 @@ function HalleyStage({
 	nowText,
 	go,
 	classNameOf,
+	ask,
+	onAsked,
 }: {
 	engineRef: React.RefObject<HalleyEngine | null>;
 	name: string;
@@ -549,6 +565,8 @@ function HalleyStage({
 	nowText: string | null;
 	go: (action: AgentAction) => void;
 	classNameOf: (id: string | null) => string | null;
+	ask: TalkAsk | null;
+	onAsked: (id: number) => void;
 }) {
 	const [mounted, setMounted] = useState(false);
 	const rootRef = useRef<HTMLButtonElement>(null);
@@ -569,7 +587,9 @@ function HalleyStage({
 	}, []);
 
 	const liftedRef = useRef(false);
-	liftedRef.current = !!bubble || panelOpen;
+	liftedRef.current = !!bubble;
+	const panelOpenRef = useRef(panelOpen);
+	panelOpenRef.current = panelOpen;
 
 	// The content area, or the reading pane in a lesson (clear of the
 	// Submit answer bar).
@@ -579,7 +599,8 @@ function HalleyStage({
 	}, []);
 
 	const home = useCallback((): Home => {
-		const a = area();
+		// The open panel docks on the right, so the teacher rests left of it.
+		const a = panelOpenRef.current ? clearOfDock(area(), window.innerWidth - currentDockWidth()) : area();
 		const banner = document.querySelector<HTMLElement>("[data-testid='update-banner']");
 		const obstacle = banner ? boxOf(banner.getBoundingClientRect()) : null;
 		const at = (risen: boolean) => clearOf(cornerSpot(cornerRef.current, a, SIZE, risen), SIZE, obstacle);
@@ -695,8 +716,6 @@ function HalleyStage({
 				// never change, so React never writes over it.
 				style={{ width: SIZE, height: SIZE, transform: "translate(-200px, -200px)" }}
 			>
-				{/* A soft dark halo, so the page fades around it instead of it looking cut off. */}
-				<span aria-hidden className="hy-halo pointer-events-none absolute -inset-3 rounded-full bg-black blur-[10px]" />
 				<HalleyFace mood={mood} lookRef={lookRef} className="relative" />
 			</button>
 			<div
@@ -717,11 +736,13 @@ function HalleyStage({
 					agent={agent}
 					follow={follow}
 					onFollow={setFollow}
+					onClose={() => setPanelOpen(false)}
 					nowText={nowText}
 					recent={recent}
 					onPick={go}
 					classNameOf={classNameOf}
-					anchor={{ spot: home().up, size: SIZE }}
+					ask={ask}
+					onAsked={onAsked}
 				/>
 			)}
 		</>,
