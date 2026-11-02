@@ -53,7 +53,7 @@ export function OpenAgentButton({
 					<ChevronDownIcon className="size-4" aria-hidden />
 				</button>
 			</div>
-			<MenuShell open={menu} anchorRef={anchorRef} testid="open-agent-choices" preferredSide="down" align="right" menuClass="lh-glass flex w-[220px] flex-col gap-0.5 p-1.5">
+			<MenuShell open={menu} anchorRef={anchorRef} testid="open-agent-choices" preferredSide="down" align="right" menuClass="lh-popup flex w-[220px] flex-col gap-0.5 p-1.5">
 				{CHOICES.map((c) => (
 					<button
 						key={c.id}

@@ -92,7 +92,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 	];
 	const unpricedRuns = displayUnpricedRuns(costs);
 	return (
-		<div className="lh-glass w-80 max-w-[calc(100vw-1.5rem)] p-3 text-xs">
+		<div className="lh-popup w-80 max-w-[calc(100vw-1.5rem)] p-3 text-xs">
 			<div className="mb-2 flex items-baseline justify-between">
 				<span className="text-xs font-semibold text-muted-foreground">
 					Graph pipeline costs

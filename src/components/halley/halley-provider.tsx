@@ -723,7 +723,7 @@ function HalleyStage({
 				role="status"
 				data-testid="halley-bubble"
 				className={cn(
-					"lh-halley-bubble pointer-events-none fixed left-0 top-0 z-40 flex items-center gap-[5px] whitespace-nowrap lh-glass px-2.5 py-1.5 font-ui text-[13px]",
+					"lh-halley-bubble pointer-events-none fixed left-0 top-0 z-40 flex items-center gap-[5px] whitespace-nowrap lh-popup px-2.5 py-1.5 font-ui text-[13px]",
 					text ? "opacity-100" : "opacity-0",
 				)}
 			>

@@ -254,7 +254,7 @@ function MetadataPopover({
 						// would clip at its message block's edge. A fixed-position
 						// portal sits on top of everything, like the dialogs.
 						style={{ position: "fixed", top: anchor.top, left: anchor.left }}
-						className="lh-pop z-50 lh-glass w-80 max-w-[calc(100vw-1rem)] p-4 text-left"
+						className="lh-pop z-50 lh-popup w-80 max-w-[calc(100vw-1rem)] p-4 text-left"
 					>
 				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
 						<dt className="text-muted-foreground">Mode</dt>

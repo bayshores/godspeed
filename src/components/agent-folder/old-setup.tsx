@@ -20,7 +20,7 @@ export function OldSetupNotice() {
 	const lines = oldSetupLines(view.oldSetup, view.short);
 	if (!lines.length && !removed) return null;
 	return (
-		<div data-testid="old-setup-notice" role="status" className="lh-rise lh-glass flex w-[340px] max-w-full flex-col gap-3 px-4 py-3.5 font-ui text-[13.5px] text-ink">
+		<div data-testid="old-setup-notice" role="status" className="lh-rise lh-popup flex w-[340px] max-w-full flex-col gap-3 px-4 py-3.5 font-ui text-[13.5px] text-ink">
 			{removed ? (
 				<p>{removedNote(removed)}</p>
 			) : (

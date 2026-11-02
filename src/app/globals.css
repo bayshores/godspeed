@@ -121,7 +121,7 @@
 /* Pop-ups (menus, the teacher's bubble, notices) are solid boxes with a
    1px rule, like the rest of the app: no blur, no shadow. Rows that hover
    with bg-tone get a tone that still shows on the box. */
-.lh-glass {
+.lh-popup {
 	--accent: color-mix(in srgb, var(--foreground) 9%, var(--lh-tip));
 	background-color: var(--lh-tip);
 	border: 1px solid var(--border);

@@ -50,7 +50,7 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				<PlusIcon className="size-3.5" aria-hidden />
 				Add files
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="class-add-files-menu" preferredSide="down" align="right" menuClass="lh-glass flex w-[220px] flex-col gap-0.5 p-1.5">
+			<MenuShell open={open} anchorRef={anchorRef} testid="class-add-files-menu" preferredSide="down" align="right" menuClass="lh-popup flex w-[220px] flex-col gap-0.5 p-1.5">
 				{(["study", "info"] as const).map((kind) => (
 					<button key={kind} type="button" data-testid={`class-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
 						<span className="text-[13.5px] text-ink">{kindTitle(kind)}</span>

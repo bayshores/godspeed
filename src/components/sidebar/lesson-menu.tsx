@@ -34,7 +34,7 @@ export function LessonMenu({
 			anchorRef={anchorRef}
 			testid="session-context-menu"
 			preferredSide="down"
-			menuClass="lh-glass flex w-52 flex-col gap-0.5 p-1.5 text-[13px]"
+			menuClass="lh-popup flex w-52 flex-col gap-0.5 p-1.5 text-[13px]"
 		>
 			<button type="button" data-testid="ctx-rename" onClick={onRename} className={`${ITEM} text-ink`}>
 				Rename

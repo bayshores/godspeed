@@ -66,7 +66,7 @@ export function ClassSwitcher() {
 				testid="class-switcher-menu"
 				preferredSide="down"
 				align="left"
-				menuClass="lh-glass flex w-[236px] flex-col gap-0.5 p-1.5"
+				menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5"
 			>
 				{current.map((c) => (
 					<button key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>

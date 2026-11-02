@@ -71,7 +71,7 @@ export function StatsBar({
 						data-testid="stats-detail"
 						data-side="up"
 						data-state={detail.state}
-						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 lh-glass p-3 text-xs"
+						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 lh-popup p-3 text-xs"
 					>
 						<div className="mb-2 text-xs font-semibold text-muted-foreground">
 							Session stats

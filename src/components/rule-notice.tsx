@@ -52,7 +52,7 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 			role="status"
 			onPointerEnter={() => setHover(true)}
 			onPointerLeave={() => setHover(false)}
-			className="lh-rise lh-glass flex w-[340px] max-w-full flex-col gap-2 px-4 py-3 font-ui text-[13.5px] text-ink"
+			className="lh-rise lh-popup flex w-[340px] max-w-full flex-col gap-2 px-4 py-3 font-ui text-[13.5px] text-ink"
 		>
 			<p className="flex items-center gap-2 font-bold">
 				<BookmarkCheckIcon className="size-3.5 shrink-0" aria-hidden />

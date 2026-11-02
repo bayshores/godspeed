@@ -18,7 +18,7 @@ export function DoneNotice({ notice, onUndo }: { notice: DoneNoticeState; onUndo
 		<div
 			data-testid="done-notice"
 			role={notice.undo ? "status" : "alert"}
-			className="lh-rise lh-glass flex items-center gap-2.5 px-4 py-2.5 font-ui text-sm text-ink"
+			className="lh-rise lh-popup flex items-center gap-2.5 px-4 py-2.5 font-ui text-sm text-ink"
 		>
 			{notice.text}
 			{notice.undo && (

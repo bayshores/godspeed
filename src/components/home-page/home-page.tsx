@@ -172,7 +172,7 @@ function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; on
 					testid="home-add-deadline-menu"
 					preferredSide="down"
 					align="right"
-					menuClass="lh-glass flex w-[236px] flex-col gap-0.5 p-1.5"
+					menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5"
 				>
 					{classes.map((c) => (
 						<button

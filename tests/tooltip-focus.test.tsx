@@ -105,7 +105,7 @@ describe("the tooltip's look", () => {
 		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 
-	it("the box is flat: solid tip surface, tone-2 edge, no glass, bold title", async () => {
+	it("the box is flat: solid tip surface, tone-2 edge, no blur, bold title", async () => {
 		const trigger = await mount();
 		await act(async () => {
 			trigger.dispatchEvent(new dom.window.Event("focusin", { bubbles: true }));
@@ -113,7 +113,7 @@ describe("the tooltip's look", () => {
 		const html = tooltip()!.outerHTML;
 		assert.match(html, /bg-tip/);
 		assert.match(html, /border-tone-2/);
-		assert.doesNotMatch(html, /lh-glass|shadow|rounded/);
+		assert.doesNotMatch(html, /lh-popup|shadow|rounded/);
 		assert.match(html, /class="[^"]*font-bold[^"]*" data-slot="tooltip-title">Waiting for your answer</);
 	});
 

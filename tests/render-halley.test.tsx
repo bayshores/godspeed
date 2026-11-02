@@ -132,10 +132,10 @@ describe("the panel", () => {
 		act(() => (el.querySelector("[data-testid='halley-close']") as HTMLElement).click());
 		assert.deepEqual(closes, [1]);
 	});
-	it("docks on the right edge as a solid panel, never glass", () => {
+	it("docks on the right edge as a solid panel with no blur", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-0 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
-		assert.doesNotMatch(html, /lh-glass|rounded|blur/);
+		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
 	});
 	it("Talk reads like a script: the speaker's name once per turn, no bubbles, a white Send bar", async () => {
 		talkChat = {

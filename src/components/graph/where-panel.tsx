@@ -85,7 +85,7 @@ export function WherePanel({
 }
 
 // The class switcher's fixed width, so a long deadline name truncates.
-const PICKER_MENU_CLASS = "lh-glass flex w-[236px] flex-col gap-0.5 p-1.5 text-[13.5px]";
+const PICKER_MENU_CLASS = "lh-popup flex w-[236px] flex-col gap-0.5 p-1.5 text-[13.5px]";
 
 function DeadlinePicker({
 	deadlines,
