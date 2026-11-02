@@ -80,9 +80,12 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
 	return <div className="shrink-0 pb-2 text-sm font-bold text-ink-2">{children}</div>;
 }
 
+/** A writing field's look: black with a visible edge, so it reads as a
+ *  page rather than another row of the panel. */
+export const FIELD_EDGE = "border border-tone-2 bg-background text-[16px]! leading-6! text-ink";
+
 /** The black writing field that fills the rest of the column. */
-export const PANEL_FIELD =
-	"lh-input min-h-28 w-full flex-1 resize-none bg-background px-3.5 py-3 text-[15px]! leading-[22px]! text-ink outline-none placeholder:text-ink-3";
+export const PANEL_FIELD = `lh-input min-h-28 w-full flex-1 resize-none px-5 py-[18px] outline-none placeholder:text-ink-3 ${FIELD_EDGE}`;
 
 /** The panel fields' keys: Esc stays in the field (it must not abort the
  *  turn); Enter submits, Shift+Enter is a newline, ⌘/Ctrl+Enter submits. */

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
-import { ConfidenceMeter } from "@/components/confidence-meter";
+import { ConfidenceMeter, ConfidenceSquares } from "@/components/confidence-meter";
 import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit, turnEyebrow } from "@/components/lesson/panel-parts";
 import { MathBox } from "@/components/math-box";
 import { InlineMath } from "@/components/overview/inline-math";
@@ -429,7 +429,12 @@ function QuestionDockForm({
 								</>
 							)
 						}
-						sure={kind === "quiz" && !sel.dontKnow && confIdx !== undefined ? confIdx + 1 : null}
+						sure={
+							kind === "quiz" &&
+							!sel.dontKnow && (
+								<ConfidenceSquares level={confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel)} onChange={(level) => setConfIdx(level - 1)} />
+							)
+						}
 						onOpen={() => setFolded(false)}
 					/>
 				)}

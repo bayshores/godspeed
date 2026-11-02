@@ -211,12 +211,19 @@ describe("the side question box", () => {
 		assert.ok(!box.test(panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 })));
 	});
 
-	it("names itself once, as its placeholder, with no em-dash or key hint", () => {
+	it("waits behind an Ask a side question link, with no em-dash or key hint", () => {
 		const html = panel(waiting);
+		const side = html.slice(html.indexOf('data-testid="side-question"'));
+		assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
+		assert.ok(!side.includes("<textarea"), "no field until it is asked for");
+		assert.ok(!side.includes("—") && !side.includes("Enter"));
+	});
+
+	it("stays open while there is a draft, and names itself once, as its placeholder", () => {
+		const html = panel({ ...waiting, composer: composer({ value: "why 13?" }) });
 		assert.equal(html.split("Ask the teacher something").length - 1, 2, "the placeholder and its accessible name");
 		assert.match(html, /placeholder="Ask the teacher something"/);
-		const side = html.slice(html.indexOf('data-testid="side-question"'));
-		assert.ok(!side.includes("—") && !side.includes("Enter"));
+		assert.ok(!html.includes('data-testid="side-question-open"'));
 	});
 
 	it("while the teacher replies, the box and Submit answer wait, the header says so and Stop takes Send's place", () => {
@@ -270,6 +277,58 @@ describe("the side question box", () => {
 		}
 	});
 
+	it("the link opens the field focused; leaving it empty closes it, sending closes it", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const render = (value: string, onSend = () => {}) => (
+			<YourTurnPanel
+				pending={waiting.pending}
+				requiresReveal={false}
+				onSaveQuestionDraft={() => {}}
+				onSubmitAnswer={() => {}}
+				onSkipQuestion={() => {}}
+				readingThinking=""
+				onReadingThinking={() => {}}
+				practice={null}
+				practiceNumber={null}
+				onSavePracticeDraft={() => {}}
+				onSubmitThinking={async () => true}
+				onDiscardProblem={() => {}}
+				sessionBusy={false}
+				compacting={false}
+				composer={composer({ value, canSend: value.trim() !== "", onSend })}
+				stats={null}
+			/>
+		);
+		const field = () => host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Ask the teacher something"]');
+		// linkedom has no activeElement: record focus() calls instead.
+		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
+		const realFocus = proto.focus;
+		const focused: unknown[] = [];
+		proto.focus = function (this: unknown) {
+			focused.push(this);
+		};
+		try {
+			await act(async () => root.render(render("")));
+			assert.equal(field(), null);
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-open"]')!.click());
+			assert.ok(field(), "open");
+			assert.ok(focused.includes(field()), "focused, ready to type");
+			await act(async () => field()!.dispatchEvent(new dom.window.Event("focusout", { bubbles: true })));
+			assert.equal(field(), null, "left empty, it closes");
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-open"]')!.click());
+			// The parent clears the draft once it is sent.
+			await act(async () => root.render(render("why 13?", () => root.render(render("")))));
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-send"]')!.click());
+			assert.equal(field(), null, "sent, it closes");
+		} finally {
+			proto.focus = realFocus;
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
 	it("Send asks the side question, and only when there is something to send", async () => {
 		const host = document.createElement("div");
 		document.body.append(host);
@@ -291,12 +350,13 @@ describe("the side question box", () => {
 				onDiscardProblem={() => {}}
 				sessionBusy={false}
 				compacting={false}
-				composer={composer({ value: canSend ? "why?" : "", canSend, onSend: () => sent++ })}
+				composer={composer({ value: canSend ? "why?" : " ", canSend, onSend: () => sent++ })}
 				stats={null}
 			/>
 		);
 		try {
 			await act(async () => root.render(render(false)));
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-open"]')!.click());
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-send"]')!.click());
 			assert.equal(sent, 0);
 			await act(async () => root.render(render(true)));
@@ -540,14 +600,48 @@ describe("writing folds the answer list", () => {
 			await act(async () => mercury.click());
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="confidence-level-4"]')!.click());
 			await focusThinking(host);
-			const row = host.querySelector<HTMLButtonElement>('[data-testid="picked-row"]')!;
+			const row = host.querySelector<HTMLElement>('[data-testid="picked-row"]')!;
 			assert.match(row.textContent ?? "", /Mercury/);
-			assert.match(row.textContent ?? "", /Sure 4/);
+			assert.equal(row.querySelector('[data-testid="confidence-square-4"]')!.getAttribute("aria-checked"), "true", "Sure 4 rides the row");
 			assert.equal(host.querySelectorAll('[data-testid="question-option"]').length, 0, "the list is folded");
 			assert.equal(host.querySelector('[data-testid="confidence-level-4"]'), null, "the Sure meter is folded");
-			await act(async () => row.click());
+			await act(async () => row.querySelector<HTMLButtonElement>('[data-testid="picked-change"]')!.click());
 			assert.equal(host.querySelector('[data-testid="picked-row"]'), null);
 			assert.equal(host.querySelectorAll('[data-testid="question-option"]').length, 3);
+			assert.equal(host.querySelector('[data-testid="confidence-level-4"]')!.getAttribute("aria-checked"), "true", "the meter comes back as set");
+		});
+	});
+
+	it("unrated when it folds, the row asks how sure; a square sets it and goes with the answer", async () => {
+		let sent: QuestionAnswerData | null = null;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="fold2" input={quizInput} onSubmit={(a) => (sent = a)} />));
+			const mercury = [...host.querySelectorAll<HTMLButtonElement>('[data-testid="question-option"]')].find((b) => b.textContent?.includes("Mercury"))!;
+			await act(async () => mercury.click());
+			await focusThinking(host);
+			const squares = [...host.querySelectorAll<HTMLButtonElement>('[data-testid^="confidence-square-"]')];
+			assert.equal(squares.length, 5);
+			assert.ok(squares.every((s) => s.getAttribute("aria-checked") === "false"), "nothing picked yet, all dark");
+			await act(async () => squares[2]!.click());
+			assert.equal(host.querySelector('[data-testid="confidence-square-3"]')!.getAttribute("aria-checked"), "true");
+			const form = host.querySelector('[data-testid="question-dock"]')!;
+			await act(async () => form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })));
+			assert.equal(sent!.confidence, CONFIDENCE_STOPS[2]);
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
+	});
+
+	it("I don't know folds without a Sure row", async () => {
+		await dock(async (host) => {
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="dont-know-option"]')!.click());
+			await focusThinking(host);
+			assert.match(host.querySelector('[data-testid="picked-row"]')!.textContent ?? "", /I don't know/);
+			assert.equal(host.querySelector('[data-testid="confidence-squares"]'), null);
 		});
 	});
 

@@ -1,4 +1,5 @@
-import { SquareIcon } from "lucide-react";
+import { useState } from "react";
+import { PlusIcon, SquareIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
@@ -128,7 +129,9 @@ export function StopButton({ onStop }: { onStop: () => void }) {
 /**
  * The message box in compact form, under a waiting question: the learner
  * asks the teacher something on the side and the question stays. Text
- * only; while the teacher replies, Send becomes Stop.
+ * only; while the teacher replies, Send becomes Stop. It waits behind an
+ * "Ask a side question" link so the question gets the room, and stays open
+ * while there's a draft or a reply.
  */
 export function SideQuestionBox({
 	busy,
@@ -138,9 +141,26 @@ export function SideQuestionBox({
 	onStop,
 	canSend,
 }: Pick<React.ComponentProps<typeof PanelComposer>, "busy" | "value" | "onChange" | "onSend" | "onStop" | "canSend">) {
+	const [opened, setOpened] = useState(false);
 	const send = () => {
-		if (canSend) onSend();
+		if (!canSend) return;
+		onSend();
+		setOpened(false);
 	};
+	if (!opened && !busy && !value.trim())
+		return (
+			<div data-testid="side-question" className="shrink-0 px-6 py-2.5">
+				<button
+					type="button"
+					data-testid="side-question-open"
+					onClick={() => setOpened(true)}
+					className="lh-press flex items-center gap-1.5 text-[13.5px] text-ink-2 hover:text-ink"
+				>
+					<PlusIcon aria-hidden className="size-3.5" />
+					Ask a side question
+				</button>
+			</div>
+		);
 	return (
 		<div data-testid="side-question" className="shrink-0 px-6 py-3">
 			<div className="flex items-end bg-background">
@@ -148,8 +168,13 @@ export function SideQuestionBox({
 					rows={1}
 					value={value}
 					disabled={busy}
+					// Opened by the link: the learner is about to type.
+					autoFocus={opened}
 					onChange={(e) => onChange(e.target.value)}
 					onKeyDown={(e) => fieldKeys(e, send)}
+					onBlur={() => {
+						if (!value.trim()) setOpened(false);
+					}}
 					placeholder="Ask the teacher something"
 					aria-label="Ask the teacher something"
 					className="lh-input field-sizing-content max-h-32 min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px]! leading-5! text-ink outline-none placeholder:text-ink-3 disabled:opacity-50"

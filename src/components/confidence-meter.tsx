@@ -91,3 +91,37 @@ export function ConfidenceMeter({
 		</div>
 	);
 }
+
+/**
+ * The folded form of the meter, for the picked row: "Sure" and five small
+ * squares, filled in the level's color up to the pick. Click a square to
+ * set the level; unrated, every square is dark.
+ */
+export function ConfidenceSquares({ level, onChange }: { level: ConfidenceLevel | null; onChange: (level: ConfidenceLevel) => void }) {
+	return (
+		<span data-testid="confidence-squares" className="flex shrink-0 items-center gap-2">
+			<span className="text-[13px] text-ink-2">Sure</span>
+			<span className="flex gap-[3px]" role="radiogroup" aria-label="Confidence">
+				{CONFIDENCE_WORDS.map((word, i) => {
+					const n = (i + 1) as ConfidenceLevel;
+					const on = level !== null && n <= level;
+					return (
+						<button
+							key={n}
+							type="button"
+							role="radio"
+							aria-checked={n === level}
+							aria-label={`${n} · ${word}`}
+							title={`${n} · ${word}`}
+							data-testid={`confidence-square-${n}`}
+							tabIndex={-1}
+							onClick={() => onChange(n)}
+							className={cn("block size-3 cursor-pointer outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)", !on && "bg-tone-2 hover:bg-ink-3")}
+							style={on ? { backgroundColor: CONFIDENCE_COLORS[level - 1] } : undefined}
+						/>
+					);
+				})}
+			</span>
+		</span>
+	);
+}
