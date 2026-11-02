@@ -14,6 +14,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it, mock } from "node:test";
@@ -550,9 +551,17 @@ describe("the class file pipeline", () => {
 			assert.equal(failed.status, "failed");
 			assert.ok(failed.error, "the error is shown");
 			assert.ok(failed.statSig, "the scan can tell the file has not changed");
-			const idle = classIdle(id);
-			server.scanLinkedFolder(id);
-			assert.equal(classIdle(id), idle, "nothing new was queued");
+			let changes = 0;
+			const stop = subscribe((e) => {
+				if (e.type === "classes-changed") changes++;
+			});
+			try {
+				server.scanLinkedFolder(id);
+				await classIdle(id);
+			} finally {
+				stop();
+			}
+			assert.equal(changes, 0, "nothing new was queued");
 		} finally {
 			fs.chmodSync(file, 0o644);
 			fs.rmSync(dir, { recursive: true, force: true });
@@ -687,6 +696,52 @@ describe("a linked folder over time (a synced Drive folder)", () => {
 		await scanSettled(id);
 		assert.equal(server.folderStatusOf(id).problem, null);
 		assert.equal(stores.classStore.getClass(id)!.files[0]!.status, "ready");
+	});
+
+	it("a folder that stops answering (Drive paused) keeps its files and facts and says so", async (t) => {
+		const id = await makeClass("CSE 154");
+		const dir = folder(t);
+		fs.writeFileSync(path.join(dir, "a.md"), "Sets");
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		const readdir = fs.readdirSync;
+		const timedOut = mock.method(fs, "readdirSync", ((p: fs.PathLike, ...rest: unknown[]) => {
+			if (String(p) === dir) throw Object.assign(new Error("Operation timed out"), { code: "ETIMEDOUT" });
+			return (readdir as (...a: unknown[]) => unknown)(p, ...rest);
+		}) as typeof fs.readdirSync);
+		syncBuiltinESMExports();
+		try {
+			await scanSettled(id);
+			assert.equal(server.folderStatusOf(id).problem, "not-responding");
+			assert.equal(stores.classStore.getClass(id)!.files.length, 1);
+			assert.deepEqual(getNames(id), ["Sets"]);
+		} finally {
+			timedOut.mock.restore();
+			syncBuiltinESMExports();
+		}
+		await scanSettled(id);
+		assert.equal(server.folderStatusOf(id).problem, null);
+	});
+
+	it("a lecture video whose transcript is there is not transcribed; it is once the transcript goes", async () => {
+		const id = await makeClass("CSE 21 videos");
+		const up = await (
+			await upload(id, "study", [
+				["CSE21_Lecture_01_2026-09-25.mp4", "video bytes"],
+				["Lecture01_2026-09-25.srt", "1\n00:00:00,000 --> 00:00:02,000\nCounting\n"],
+			])
+		).json();
+		await classIdle(id);
+		const [video, srt] = up.results.map((r: { file: { id: string } }) => r.file.id) as [string, string];
+		const videoFile = () => stores.classStore.getClass(id)!.files.find((f) => f.id === video)!;
+		assert.equal(videoFile().status, "ready");
+		assert.equal(videoFile().transcriptId, srt);
+		assert.deepEqual(getNames(id), ["Counting"], "facts only from the transcript");
+		const del = await fileRoute.DELETE(json("/x", "DELETE"), ctx({ id, fileId: srt }));
+		assert.equal(del.status, 200);
+		await classIdle(id);
+		assert.equal(videoFile().transcriptId, undefined);
+		assert.notEqual(videoFile().status, "pending", "queued again and processed");
 	});
 });
 

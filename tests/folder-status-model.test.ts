@@ -35,6 +35,8 @@ describe("the folder line", () => {
 	it("gives plain warnings instead when the folder is gone, looks empty or is still downloading", () => {
 		assert.deepEqual(folderStatusLine(DRIVE, ok({ problem: "missing" }), NOW), { text: "Can't find this folder. Is Google Drive open?", warn: true });
 		assert.equal(folderStatusLine(LOCAL, ok({ problem: "missing" }), NOW).text, "Can't find this folder");
+		assert.deepEqual(folderStatusLine(DRIVE, ok({ problem: "not-responding" }), NOW), { text: "Google Drive isn't responding. It may be paused or offline. Your files stay.", warn: true });
+		assert.equal(folderStatusLine(LOCAL, ok({ problem: "not-responding" }), NOW).text, "This folder isn't responding. Your files stay.");
 		assert.equal(folderStatusLine(DRIVE, ok({ problem: "empty" }), NOW).text, "Google Drive is starting, waiting to check");
 		assert.equal(folderStatusLine(LOCAL, ok({ problem: "empty" }), NOW).text, "This folder looks empty, waiting to check");
 		assert.deepEqual(folderStatusLine(DRIVE, ok({ settling: 3 }), NOW), { text: "3 files still downloading", warn: false });

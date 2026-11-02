@@ -1,8 +1,8 @@
 /**
  * The Files page's pure helpers: the row's state from a file's status and
  * coverage, the coverage bar, the groups found from file names (a
- * lecture's notes and transcript paired), search, dates, the summary
- * line and the home-folder shortening.
+ * lecture's notes and transcript paired), search, dates and the summary
+ * line.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -61,6 +61,9 @@ describe("files-model", () => {
 		assert.deepEqual(fileState(file({ status: "ready" }), cov(10, 4), true), { kind: "coverage", facts: 10, inLessons: 4, share: 0.4 });
 		assert.deepEqual(fileState(file({ status: "ready" }), undefined, true), { kind: "none" }, "no coverage yet: nothing");
 		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4), true), { kind: "none" }, "course info shows no coverage");
+		const covered = file({ name: "CSE21_Lecture_01_2026-09-25.mp4", transcriptId: "f_t" });
+		assert.deepEqual(fileState(covered, undefined, true, "Lecture01_2026-09-25.srt"), { kind: "transcript", label: "Uses its transcript: Lecture01_2026-09-25.srt" });
+		assert.deepEqual(fileState(covered, undefined, true), { kind: "transcript", label: "Uses its transcript" });
 	});
 
 	it("confirmCopy says how many files and facts go before Unlink, Remove and Move to Course info", () => {

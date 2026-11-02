@@ -42,10 +42,12 @@ export const MAX_LINKED_FILES = 500;
 
 /** What is wrong with a class's linked folder at its last scan:
  *  "missing" = not found (moved, renamed, drive unplugged);
+ *  "not-responding" = there, but reading it timed out (Google Drive paused
+ *  or offline), so nothing is taken as deleted;
  *  "empty" = there but showing no files (a synced folder starting up),
  *  so nothing is taken as deleted;
  *  "too-many-files" = only the first MAX_LINKED_FILES were added. */
-export type FolderProblem = "missing" | "empty" | "too-many-files";
+export type FolderProblem = "missing" | "not-responding" | "empty" | "too-many-files";
 
 /** A class's linked folder as its last scan saw it. */
 export interface FolderStatus {
@@ -82,6 +84,9 @@ export interface ClassFile {
 	/** Found by a later scan of its linked folder (not linked with the
 	 *  folder, nor added by hand): shown as new for a few days. */
 	foundByScan?: true;
+	/** A recording whose lecture transcript is already in the class: that
+	 *  file's id. It is not transcribed and has no facts of its own. */
+	transcriptId?: string;
 }
 
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";

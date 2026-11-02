@@ -10,6 +10,7 @@ import { useMenuDismiss } from "@/components/use-menu-dismiss";
 /** What the box says about each folder problem. */
 const PROBLEM_LINE: Record<FolderProblem, string> = {
 	missing: "Can't find this folder. It may have been moved, renamed or on a drive that isn't plugged in. Its files and facts are kept.",
+	"not-responding": "This folder isn't answering right now, so nothing is removed. If it's on Google Drive, make sure Drive is open and not paused.",
 	empty: "This folder shows no files right now, so nothing is removed. If you emptied it on purpose, unlink it.",
 	"too-many-files": `Only the first ${MAX_LINKED_FILES} files were added. Link a smaller folder to choose which ones.`,
 };
@@ -22,7 +23,8 @@ const BOX_BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-2.5 py-1.5 tex
  * is gone, looks empty or still has files downloading. Clicking it opens
  * a small box with the full path, what the folder does (or what is wrong
  * with it), and its buttons: Pick folder again
- * (the safe way to switch folders), Open in Finder (desktop app) and Unlink,
+ * (the safe way to switch folders), Open in Finder (desktop app, while the
+ * folder can be read) and Unlink,
  * which asks first.
  * (Tooltips here can't hold buttons, so the box opens on click.)
  */
@@ -54,7 +56,7 @@ export function LinkedFolderChip({
 		act();
 	};
 	const { problem } = status;
-	const missing = problem === "missing";
+	const unreadable = problem === "missing" || problem === "not-responding";
 	const line = folderStatusLine(path, status, now);
 	return (
 		<>
@@ -100,7 +102,7 @@ export function LinkedFolderChip({
 						<FolderSyncIcon className="size-[13px]" aria-hidden />
 						Pick folder again
 					</button>
-					{openFolder && !missing && (
+					{openFolder && !unreadable && (
 						<button type="button" data-testid="class-folder-open" onClick={pick(openFolder.run)} className={BOX_BUTTON}>
 							<FolderOpenIcon className="size-[13px]" aria-hidden />
 							{openFolder.label}

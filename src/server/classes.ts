@@ -36,6 +36,7 @@ import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { emit } from "../core/events.ts";
 import { folderSource } from "../core/linked-folder.ts";
 import { kindsForNewFiles } from "../core/new-files.ts";
+import { recordingsToRecheck, transcriptFor } from "../core/lecture-transcript.ts";
 import { recordFolderFiles } from "./agent-actions.ts";
 import { extraction } from "./extraction.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
@@ -256,8 +257,19 @@ export function listOpenDeadlines(): OpenDeadline[] {
 function mutateFiles(classId: string, fn: (files: ClassFile[]) => ClassFile[]): ClassRecord | null {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return null;
-	const next = stores.classStore.saveFiles(classId, fn(record.files));
+	let files = fn(record.files);
+	const recheck = recordingsToRecheck(files);
+	if (recheck.length > 0) {
+		files = files.map((f) => {
+			if (!recheck.includes(f.id)) return f;
+			const next: ClassFile = { ...f, status: "pending" };
+			delete next.transcriptId;
+			return next;
+		});
+	}
+	const next = stores.classStore.saveFiles(classId, files);
 	emit("classes-changed", {});
+	for (const id of recheck) enqueueFile(classId, id);
 	return next;
 }
 
@@ -392,6 +404,12 @@ function dropFile(record: ClassRecord, file: ClassFile): void {
 
 // ─── linked folder ──────────────────────────────────────────────────────────
 
+/** Errors of a folder that is there but not answering (a synced folder
+ *  whose app is paused or offline), unlike one that is gone. */
+const NOT_RESPONDING_CODES = new Set(["ETIMEDOUT", "EIO", "EAGAIN", "ECANCELED"]);
+const notResponding = (err: unknown) => NOT_RESPONDING_CODES.has((err as NodeJS.ErrnoException | null)?.code ?? "");
+const FOLDER_NOT_RESPONDING = "That folder isn't responding. If it's on Google Drive, make sure Drive is open and not paused, then try again.";
+
 export function linkFolder(classId: string, folder: string): ClassOutcome<ClassRecord> {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return fail(404, "not_found", "No such class");
@@ -400,7 +418,8 @@ export function linkFolder(classId: string, folder: string): ClassOutcome<ClassR
 	if (!path.isAbsolute(folder)) return fail(400, "bad_path", "Give the folder's full (absolute) path");
 	try {
 		if (!fs.statSync(folder).isDirectory()) return fail(400, "not_a_folder", `${folder} is not a folder`);
-	} catch {
+	} catch (err) {
+		if (notResponding(err)) return fail(503, "folder_not_responding", FOLDER_NOT_RESPONDING);
 		return fail(404, "folder_not_found", `No folder at ${folder}`);
 	}
 	// Linking another folder keeps the old folder's file entries: the scan
@@ -467,10 +486,11 @@ export function scanLinkedFolder(classId: string, { linking = false }: { linking
 	try {
 		if (!fs.statSync(root).isDirectory()) throw new Error("not a folder");
 		({ files: present, unreadable, capped } = walkLinkedFolder(root));
-	} catch {
-		// Folder gone (moved, renamed, drive unplugged): its files and facts
-		// stay, and the Files page says so.
-		setFolderStatus(classId, "missing");
+	} catch (err) {
+		// Folder gone (moved, renamed, drive unplugged) or not answering
+		// (Google Drive paused or offline): its files and facts stay, and the
+		// Files page says which.
+		setFolderStatus(classId, notResponding(err) ? "not-responding" : "missing");
 		return;
 	}
 	const linked = record.files.filter((f) => f.origin === "linked");
@@ -565,6 +585,11 @@ function triageNewFiles(classId: string, addedIds: string[], gone: ClassFile[], 
 			const file = record?.files.find((f) => f.id === id);
 			const abs = record && file ? classFilePath(record, file) : null;
 			if (!record || !file || !abs) continue;
+			// A covered recording is never read (on Google Drive that would download the video).
+			if (transcriptFor(file, record.files)) {
+				fresh.push(file);
+				continue;
+			}
 			let fp: string;
 			let statSig: string;
 			try {
@@ -673,14 +698,19 @@ export function enqueueFile(classId: string, fileId: string): void {
 
 /** Resolves when the class's new files are triaged and every queued file
  *  processed. */
-export function classIdle(classId: string): Promise<void> {
+export async function classIdle(classId: string): Promise<void> {
 	const triage = triaging.get(classId);
-	return triage ? triage.then(() => classIdle(classId)) : (queues.get(classId) ?? Promise.resolve());
+	if (triage) return triage.then(() => classIdle(classId));
+	// Work queued while waiting (a recording a new transcript covers) counts too.
+	const tail = queues.get(classId);
+	await tail;
+	if (queues.get(classId) !== tail) return classIdle(classId);
 }
 
 /**
  * Bring one file's facts up to date with its current content and kind.
  *  - info: no facts (old ones removed); readable by the teacher
+ *  - a recording its lecture's transcript covers: no facts, never read
  *  - study, unchanged: nothing
  *  - study, new/changed: old facts removed, the new text imported
  */
@@ -695,6 +725,12 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		return;
 	}
 	const stillThere = () => stores.classStore.getClass(classId)?.files.some((f) => f.id === fileId) === true;
+	// Before the fingerprint: hashing a video on Google Drive would download it.
+	const transcript = transcriptFor(file, record.files);
+	if (transcript) {
+		useTranscript(record, file, transcript.id);
+		return;
+	}
 	// Saved on failure too, so the folder scan stops re-queuing an unreadable file until it changes.
 	let statSig: string | undefined;
 	try {
@@ -764,6 +800,22 @@ async function processFile(classId: string, fileId: string): Promise<void> {
 		if (!stillThere()) return;
 		patchFile(classId, fileId, { status: "failed", error: err instanceof Error ? err.message : String(err), ...(statSig ? { statSig } : {}) });
 	}
+}
+
+/** A recording covered by its lecture's transcript: ready with no facts
+ *  of its own (any from an earlier transcription go, so nothing is in the
+ *  graph twice). Its saved transcript stays in case it is needed again. */
+function useTranscript(record: ClassRecord, file: ClassFile, transcriptId: string): void {
+	if (file.sourceId) deleteSourceTraces(graphStoreFor(record.id), file.sourceId);
+	if (file.contentFp) dropClassFile(record.id, file.id).catch((err: unknown) => console.error(`[classes] could not drop ${file.id} from search:`, err));
+	let statSig: string | undefined;
+	try {
+		const st = fs.statSync(classFilePath(record, file)!);
+		statSig = `${st.mtimeMs}:${st.size}`;
+	} catch {
+		/* gone since the check: the scan handles it */
+	}
+	patchFile(record.id, file.id, { status: "ready", contentFp: "", statSig, sourceId: undefined, transcriptId, error: undefined });
 }
 
 /** A file's text for the notes pipeline: a recording's or PDF's saved (or

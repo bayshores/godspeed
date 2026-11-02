@@ -11,6 +11,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export function folderStatusLine(folder: string, status: FolderStatus, now: number | null): { text: string; warn: boolean } {
 	const drive = isGoogleDriveFolder(folder);
 	if (status.problem === "missing") return { text: drive ? "Can't find this folder. Is Google Drive open?" : "Can't find this folder", warn: true };
+	if (status.problem === "not-responding") {
+		return { text: drive ? "Google Drive isn't responding. It may be paused or offline. Your files stay." : "This folder isn't responding. Your files stay.", warn: true };
+	}
 	if (status.problem === "empty") return { text: drive ? "Google Drive is starting, waiting to check" : "This folder looks empty, waiting to check", warn: true };
 	const n = status.settling;
 	if (n > 0) return { text: `${n} ${n === 1 ? "file" : "files"} still ${drive ? "downloading" : "being saved"}`, warn: false };
