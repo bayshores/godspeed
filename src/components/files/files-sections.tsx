@@ -18,6 +18,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 	coverage,
 	disabled,
 	agentTeaching,
+	names,
 	actions,
 }: {
 	group: FileGroup;
@@ -26,11 +27,21 @@ export const FileGroupSection = memo(function FileGroupSection({
 	coverage: ReadonlyMap<string, FileCoverage>;
 	disabled?: boolean;
 	agentTeaching: boolean;
+	/** Every class file's name by id (a recording names its transcript). */
+	names: ReadonlyMap<string, string>;
 	actions: FileRowActions;
 }) {
 	const Chevron = collapsed ? ChevronRightIcon : ChevronDownIcon;
 	const row = (file: FileGroup["items"][number]["files"][number]) => (
-		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} agentTeaching={agentTeaching} actions={actions} />
+		<FileRow
+			key={file.id}
+			file={file}
+			coverage={coverage.get(file.id)}
+			disabled={disabled}
+			agentTeaching={agentTeaching}
+			transcriptName={file.transcriptId ? names.get(file.transcriptId) : undefined}
+			actions={actions}
+		/>
 	);
 	return (
 		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className="flex w-full flex-col bg-panel px-1.5 pt-1.5 pb-1.5">

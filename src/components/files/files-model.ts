@@ -19,6 +19,7 @@ export type FileState =
 	| { kind: "building" }
 	| { kind: "waiting"; label: string }
 	| { kind: "failed"; label: string; error?: string; install?: string }
+	| { kind: "transcript"; label: string }
 	| { kind: "none" };
 
 /**
@@ -28,11 +29,13 @@ export type FileState =
  *   agent is teaching (a course-info file has nothing to do)
  * - failed → red label + Retry
  * - needs-whisper → "Needs a speech tool" + Retry, with the install command
+ * - ready recording its lecture's transcript covers → "Uses its
+ *   transcript: <name>" (it has no facts of its own)
  * - ready study file → the coverage bar and its fact count (once the
  *   progress payload has it)
  * - ready course info → nothing
  */
-export function fileState(file: ClassFile, coverage: FileCoverage | undefined, agentTeaching: boolean): FileState {
+export function fileState(file: ClassFile, coverage: FileCoverage | undefined, agentTeaching: boolean, transcriptName?: string): FileState {
 	switch (file.status) {
 		case "extracting":
 			return { kind: "building" };
@@ -43,6 +46,7 @@ export function fileState(file: ClassFile, coverage: FileCoverage | undefined, a
 		case "needs-whisper":
 			return { kind: "failed", label: "Needs a speech tool", install: SPEECH_TOOL_INSTALL };
 		case "ready":
+			if (file.transcriptId) return { kind: "transcript", label: transcriptName ? `Uses its transcript: ${transcriptName}` : "Uses its transcript" };
 			if (file.kind !== "study" || !coverage) return { kind: "none" };
 			return { kind: "coverage", facts: coverage.facts, inLessons: coverage.inLessons, share: coverage.share };
 	}

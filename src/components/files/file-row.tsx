@@ -65,6 +65,7 @@ export const FileRow = memo(function FileRow({
 	coverage,
 	disabled,
 	agentTeaching,
+	transcriptName,
 	actions,
 }: {
 	file: ClassFile;
@@ -72,9 +73,11 @@ export const FileRow = memo(function FileRow({
 	disabled?: boolean;
 	/** An agent is running the work loop (a waiting file says who it waits for). */
 	agentTeaching: boolean;
+	/** A recording's covering transcript (file.transcriptId), by name. */
+	transcriptName?: string;
 	actions: FileRowActions;
 }) {
-	const state = fileState(file, coverage, agentTeaching);
+	const state = fileState(file, coverage, agentTeaching, transcriptName);
 	const install = state.kind === "failed" ? state.install : undefined;
 	const Icon = fileIcon(file.name);
 	const help = KIND_HELP[file.sortedAsInfo && file.kind === "info" ? "sorted" : file.kind];
@@ -166,6 +169,12 @@ function RowState({
 				</span>
 			);
 		}
+		case "transcript":
+			return (
+				<span data-testid={`class-file-status-${fileId}`} title={state.label} className="w-[216px] shrink-0 truncate text-[13px] text-ink-2">
+					{state.label}
+				</span>
+			);
 		case "none":
 			// Keeps the menus in one column.
 			return <span className="w-[216px] shrink-0" aria-hidden />;

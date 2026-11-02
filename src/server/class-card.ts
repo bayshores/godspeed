@@ -30,7 +30,8 @@ export function transcriptPathOf(classId: string, fileId: string): string {
 }
 
 /** The card's data for a class as it stands now. A recording is listed by
- *  its transcript (once made); unreadable files are listed without a path. */
+ *  its transcript (its lecture's transcript file, or the one made from
+ *  it); unreadable files are listed without a path. */
 export function classCardFor(record: ClassRecord): ClassCardDetails {
 	const sizes = fileExtents(record.id);
 	const topics = classTopics(record.id);
@@ -40,7 +41,10 @@ export function classCardFor(record: ClassRecord): ClassCardDetails {
 		description: record.description,
 		files: record.files.map((file) => {
 			let p = classFilePath(record, file);
-			if (p && isRecordingFile(file.name)) {
+			const covering = file.transcriptId ? record.files.find((f) => f.id === file.transcriptId) : undefined;
+			if (covering) {
+				p = classFilePath(record, covering);
+			} else if (p && isRecordingFile(file.name)) {
 				const transcript = transcriptPathOf(record.id, file.id);
 				p = fs.existsSync(transcript) ? transcript : null;
 			}
