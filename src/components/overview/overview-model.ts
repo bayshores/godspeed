@@ -29,21 +29,24 @@ export function answeredLessons(lessons: readonly LessonProgress[]): LessonProgr
 	return lessons.filter((l) => l.answers.length > 0);
 }
 
-/** "<title> has the most misses." — the lesson with the most answers that
- *  weren't right (wrong + "I don't know"); the first one on a tie. Only
- *  when there are at least two lessons to compare and one has a miss. */
+/** A lesson title quoted, its trailing punctuation dropped so the
+ *  sentence around it reads right. */
+const quoted = (title: string) => `“${title.trim().replace(/[.!?,;:\s]+$/, "")}”`;
+
+/** "“<title>” has the most misses." — the lesson with the most answers
+ *  that weren't right (wrong + "I don't know"). A tie names both lessons,
+ *  or says how many tie. Only when there are at least two lessons to
+ *  compare and one has a miss. */
 export function mostMissesTakeaway(lessons: readonly LessonProgress[]): string | null {
 	if (lessons.length < 2) return null;
-	let best: LessonProgress | null = null;
-	let bestMisses = 0;
-	for (const l of lessons) {
-		const misses = l.answered - l.right;
-		if (misses > bestMisses) {
-			best = l;
-			bestMisses = misses;
-		}
-	}
-	return best ? `${best.title} has the most misses.` : null;
+	const most = Math.max(...lessons.map((l) => l.answered - l.right));
+	if (most <= 0) return null;
+	const top = lessons.filter((l) => l.answered - l.right === most);
+	const each = `${most} ${most === 1 ? "miss" : "misses"}`;
+	if (top.length === 1) return `${quoted(top[0]!.title)} has the most misses.`;
+	if (top.length === lessons.length) return lessons.length === 2 ? `Both lessons have ${each}.` : `All ${lessons.length} lessons have ${each}.`;
+	if (top.length === 2) return `${quoted(top[0]!.title)} and ${quoted(top[1]!.title)} have the most misses, ${each} each.`;
+	return `${top.length} lessons tie for the most misses, ${each} each.`;
 }
 
 /** A level is overconfident (drawn red) when it is a "sure" level (4–5)

@@ -241,7 +241,7 @@ const NextRow = memo(function NextRow({
 					<span className="text-[12.5px] font-bold" style={{ color: color ?? "var(--color-ink-2)" }}>
 						{topic ? statusLine(topic) : ""}
 					</span>
-					<span className="text-[12.5px] text-ink-3">{reasonText(item)}</span>
+					{item.reason && <span className="text-[12.5px] text-ink-3">{reasonText(item)}</span>}
 				</span>
 			</button>
 		</li>

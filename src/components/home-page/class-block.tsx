@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { PlusIcon } from "lucide-react";
 import type { ClassSummary, ProgressPayload } from "@/core";
-import { nextDueText, type OpenDeadline } from "@/components/deadlines-model";
 import { InkedSignature } from "@/components/overview/class-cover";
 import { studiedShare } from "@/components/overview/class-cover-model";
 import { studiedFacts } from "@/components/overview/runway-model";
@@ -12,15 +11,13 @@ import { cn } from "@/lib/utils";
  * A CLASS BLOCK (Home's right column):
  * the class name and the first line of its description (its signature
  * small and dim behind them, inked like the cover), the facts studied
- * with a bar ("Add notes or slides", to its Files page, while it has no
- * study files), the next deadline, then Continue (the latest lesson; "New
+ * with a bar ("Add files", to its Files page, while it has no
+ * study files), then Continue (the latest lesson; "New
  * lesson" when there is none) and Open class.
  */
 export const ClassBlock = memo(function ClassBlock({
 	cls,
 	progress,
-	nextDue,
-	nowMs,
 	onContinue,
 	onNewLesson,
 	onOpenClass,
@@ -28,9 +25,6 @@ export const ClassBlock = memo(function ClassBlock({
 }: {
 	cls: Pick<ClassSummary, "id" | "name" | "description" | "signature">;
 	progress: Pick<ProgressPayload, "facts" | "lessons" | "files">;
-	/** The class's soonest open deadline. */
-	nextDue: OpenDeadline | null;
-	nowMs: number;
 	onContinue: (classId: string, chatId: string) => void;
 	onNewLesson: (classId: string) => void;
 	onOpenClass: (classId: string) => void;
@@ -60,7 +54,7 @@ export const ClassBlock = memo(function ClassBlock({
 					className="lh-press flex items-center gap-1.5 text-[13.5px] font-bold text-ink hover:text-ink-max"
 				>
 					<PlusIcon className="size-3.5 shrink-0" aria-hidden />
-					Add notes or slides
+					Add files
 				</button>
 			) : (
 				<div className="flex w-full flex-col gap-2">
@@ -74,11 +68,6 @@ export const ClassBlock = memo(function ClassBlock({
 						{facts.total > 0 && <span className="h-full bg-ink-2" style={{ width: `${(facts.studied / facts.total) * 100}%` }} />}
 					</span>
 				</div>
-			)}
-			{nextDue && (
-				<p data-testid="class-block-next-due" className="w-full truncate text-[13.5px] text-ink-2">
-					Next due: <span className="text-ink">{nextDueText(nextDue, nowMs)}</span>
-				</p>
 			)}
 			<div className="flex w-full gap-2">
 				{latest ? (

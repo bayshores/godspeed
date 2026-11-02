@@ -34,7 +34,7 @@ export function GeneralSection({
 	const graph = record.graph;
 	return (
 		<>
-			<SettingsGroup label="You" testid="group-you">
+			<SettingsGroup label="Teacher and sounds" testid="group-you">
 				<SettingsRow label="Teacher name" hint="Shown in the window only" testid="teacher-name-row">
 					<CommitInput
 						value={record.general?.teacherName ?? ""}

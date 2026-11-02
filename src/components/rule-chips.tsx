@@ -12,14 +12,12 @@ import { RULE_MAX_CHARS, RULES_MAX, oneLine } from "@/core";
 export function RuleChips({
 	rules,
 	onChange,
-	addLabel = "Add a rule",
 	testid,
 	saved,
 	teacherName,
 }: {
 	rules: string[];
 	onChange: (next: string[]) => void;
-	addLabel?: string;
 	testid?: string;
 	/** When the agent saved each of these rules, by rule text. */
 	saved: Record<string, string>;
@@ -39,7 +37,7 @@ export function RuleChips({
 				<span key={rule} className="flex max-w-full items-center gap-2 bg-tone-2 py-[5px] pl-[11px] pr-[9px] text-[13px] text-ink">
 					<span className="min-w-0 break-words">{rule}</span>
 					{saved[rule] && (
-						<span title={`Saved by ${teacherName} on ${savedDay(saved[rule])}`} className="shrink-0 text-xs whitespace-nowrap text-ink-3">
+						<span title={savedDay(saved[rule])} className="shrink-0 text-xs whitespace-nowrap text-ink-3">
 							Saved by {teacherName}
 						</span>
 					)}
@@ -84,7 +82,7 @@ export function RuleChips({
 						onClick={() => setAdding(true)}
 					>
 						<PlusIcon className="size-[13px]" aria-hidden />
-						{addLabel}
+						Add a rule
 					</button>
 				)
 			)}

@@ -71,8 +71,8 @@ export function TopicPanel({
 				</div>
 				{(needs.length > 0 || leadsTo.length > 0) && (
 					<div className="mt-4 flex w-full gap-2.5">
-						<ChipColumn label="Needs first" topics={needs} onSelect={onSelectTopic} testid="needs-first" />
-						<ChipColumn label="Leads to" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
+						<ChipColumn label="Needs first" empty="Nothing, start here" topics={needs} onSelect={onSelectTopic} testid="needs-first" />
+						<ChipColumn label="Leads to" empty="Nothing yet" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
 					</div>
 				)}
 				<h3 className={`mt-4 ${HEAD}`}>Facts in this topic · {list.length}</h3>
@@ -86,11 +86,14 @@ export function TopicPanel({
 
 const ChipColumn = memo(function ChipColumn({
 	label,
+	empty,
 	topics,
 	onSelect,
 	testid,
 }: {
 	label: string;
+	/** Said when the column has no topics. */
+	empty: string;
 	topics: readonly TopicProgress[];
 	onSelect: (id: string) => void;
 	testid: string;
@@ -98,6 +101,7 @@ const ChipColumn = memo(function ChipColumn({
 	return (
 		<div className="flex min-w-0 flex-1 flex-col gap-1" data-testid={testid}>
 			<span className="text-[13px] font-bold text-ink-3">{label}</span>
+			{topics.length === 0 && <span className="text-[13px] text-ink-2">{empty}</span>}
 			{topics.map((t) => (
 				<button
 					key={t.id}

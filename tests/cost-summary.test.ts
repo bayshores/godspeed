@@ -44,7 +44,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PLAN)] }],
 		});
 		assert.equal(s.stages.extraction.subscriptionRuns, 2);
-		assert.deepEqual(s.stages.extraction.subscriptionProviders, ["Outside agent"]);
+		assert.deepEqual(s.stages.extraction.subscriptionProviders, ["Your agent"]);
 		assert.equal(s.stages.extraction.runs, 2);
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.runs, 0, "current records carry the extractor stage only");

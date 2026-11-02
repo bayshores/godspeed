@@ -140,7 +140,7 @@ describe("panel helpers", () => {
 	it("statusLine: score + overconfident, or not tested", () => {
 		assert.equal(statusLine(mini), "3/7 right · overconfident");
 		assert.equal(statusLine(byId.get("t-var")!), "4/7 right");
-		assert.equal(statusLine(byId.get("t-mom")!), "Not tested yet");
+		assert.equal(statusLine(byId.get("t-mom")!), "Not tested");
 	});
 
 	it("reasonText explains the overconfident group", () => {
@@ -151,7 +151,7 @@ describe("panel helpers", () => {
 	it("takeaway counts the sure misses", () => {
 		assert.equal(takeaway(mini), "3 of 7 right. On 4 of the misses you picked 4 or 5, so you felt sure.");
 		assert.equal(takeaway(byId.get("t-var")!), "4 of 7 right.");
-		assert.equal(takeaway(byId.get("t-mom")!), "Not tested yet.");
+		assert.equal(takeaway(byId.get("t-mom")!), "Not tested.");
 	});
 
 	it("topicFacts: wrong first, then don't know, right, untested", () => {

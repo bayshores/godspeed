@@ -32,7 +32,9 @@ export function FactList({
 	const closeMenu = useCallback(() => setMenu(null), []);
 	useMenuDismiss(menu !== null, closeMenu, anchorRef);
 
-	const shown = showAll ? facts : facts.slice(0, FACTS_SHOWN);
+	// One hidden fact isn't worth a button: show it.
+	const folded = !showAll && facts.length > FACTS_SHOWN + 1;
+	const shown = folded ? facts.slice(0, FACTS_SHOWN) : facts;
 	const onToggle = useCallback((id: string) => setOpenId((cur) => (cur === id ? null : id)), []);
 	const onMenu = useCallback((fact: FactProgress, e: MouseEvent<HTMLElement>) => {
 		e.preventDefault();
@@ -53,7 +55,7 @@ export function FactList({
 					<FactRow key={f.id} fact={f} open={openId === f.id} onToggle={onToggle} onMenu={onMenu} />
 				))}
 			</ul>
-			{!showAll && facts.length > FACTS_SHOWN && (
+			{folded && (
 				<button
 					type="button"
 					data-testid="facts-show-all"
@@ -113,7 +115,7 @@ const FactRow = memo(function FactRow({
 				className="lh-press flex w-full items-center gap-2 py-[9px] text-left text-sm text-ink hover:text-ink-max"
 			>
 				<span
-					aria-label={mark === null ? "Not asked yet" : mark === "right" ? "Last answer right" : mark === "wrong" ? "Last answer wrong" : "Last answer: I don't know"}
+					aria-label={mark === null ? "Not tested" : mark === "right" ? "Last answer right" : mark === "wrong" ? "Last answer wrong" : "Last answer: I don't know"}
 					className={`size-2 shrink-0 ${mark === null ? "outline outline-[1.5px] -outline-offset-[0.75px] outline-ink-3" : ""}`}
 					style={mark ? { background: PANEL_ANSWER_COLOR[mark] } : undefined}
 				/>

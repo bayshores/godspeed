@@ -9,9 +9,8 @@ import {
 	comingUpGroups,
 	dueSoon,
 	dueUnderLabel,
-	itemsSummary,
+	deadlinesSummary,
 	longDateLine,
-	nextDueText,
 	sidebarWhenLabel,
 	whenLabel,
 	type OpenDeadline,
@@ -76,23 +75,20 @@ describe("comingUpGroups", () => {
 });
 
 describe("labels", () => {
-	it("Coming up's head: '6 items · 1 overdue'", () => {
-		assert.equal(itemsSummary([d("a", "2026-10-27"), d("b", "2026-10-30"), d("c", "2026-10-31")], NOW), "3 items · 1 overdue");
-		assert.equal(itemsSummary([d("b", "2026-10-30")], NOW), "1 item");
+	it("Coming up's head: '6 deadlines · 1 overdue'", () => {
+		assert.equal(deadlinesSummary([d("a", "2026-10-27"), d("b", "2026-10-30"), d("c", "2026-10-31")], NOW), "3 deadlines · 1 overdue");
+		assert.equal(deadlinesSummary([d("b", "2026-10-30")], NOW), "1 deadline");
 	});
 	it("the meta line: the time, or the weekday with no time", () => {
 		assert.equal(whenLabel(d("a", "2026-10-30", "17:00")), "5:00 PM");
 		assert.equal(whenLabel(d("a", "2026-10-30")), "Fri");
 	});
 	it("under Home's countdown: the time, or 'was due Fri 11:59 PM' once overdue", () => {
-		assert.equal(dueUnderLabel(d("a", "2026-10-30", "23:59"), false), "11:59 PM");
-		assert.equal(dueUnderLabel(d("a", "2026-10-23", "23:59"), true), "was due Fri 11:59 PM");
-		assert.equal(dueUnderLabel(d("a", "2026-10-23"), true), "was due Fri");
-	});
-	it("a class block's Next due", () => {
-		assert.equal(nextDueText(d("Reading quiz", "2026-10-28", "17:00"), NOW), "Reading quiz, today 5:00 PM");
-		assert.equal(nextDueText(d("HW 5", "2026-10-29"), NOW), "HW 5, tomorrow");
-		assert.equal(nextDueText(d("Midterm 2", "2026-11-05", "19:00"), NOW), "Midterm 2, Thu Nov 5, 7:00 PM");
+		assert.equal(dueUnderLabel(d("a", "2026-10-30", "23:59"), false, false), "11:59 PM");
+		assert.equal(dueUnderLabel(d("a", "2026-10-23", "23:59"), true, false), "was due Fri 11:59 PM");
+		assert.equal(dueUnderLabel(d("a", "2026-10-23"), true, false), "was due Fri");
+		assert.equal(dueUnderLabel(d("a", "2026-10-30"), false, false), "", "the group heading has the date");
+		assert.equal(dueUnderLabel(d("a", "2026-11-30"), false, true), "Mon Nov 30", "Later has no dated heading");
 	});
 	it("Home's date line", () => {
 		assert.equal(longDateLine(NOW), "Wednesday, October 28 · 4:12 PM");

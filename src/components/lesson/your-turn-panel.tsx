@@ -5,7 +5,8 @@ import { QuestionDock, type QuestionDockProps } from "@/components/question-dock
 import { ReadingThinkingField } from "@/components/reading-thinking";
 import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/core";
 import { PanelComposer, SideQuestionBox } from "./panel-composer";
-import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit, turnEyebrow } from "./panel-parts";
+import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
+import { TurnEyebrow } from "./turn-eyebrow";
 import { ResizeHandle, usePaneWidth } from "@/components/ui/resize-handle";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
@@ -113,7 +114,7 @@ export function YourTurnPanel({
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>
 					<PanelHeader
-						eyebrow={turnEyebrow(composer.busy, composer.waitingForAgent ?? false)}
+						eyebrow={<TurnEyebrow busy={composer.busy} waitingForAgent={composer.waitingForAgent ?? false} />}
 						right={
 							<HeaderChip exit={skipExit(onSkipQuestion)}>
 								<KindChip>

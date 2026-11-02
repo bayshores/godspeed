@@ -1,6 +1,4 @@
 import { memo } from "react";
-import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
 import { Countdown, useIsOverdue, useMinute } from "@/components/countdown";
 import { DoneBox } from "@/components/done-box";
 import { dueSoon, sidebarWhenLabel, type OpenDeadline } from "@/components/deadlines-model";
@@ -11,7 +9,7 @@ import { cn } from "@/lib/utils";
  * DUE SOON (sidebar): the 4 most urgent
  * open deadlines from every class, overdue first. Each row: the done box
  * (red once overdue), the name with "CSE 21 · 5:00 PM" (or "Thu 7:00 PM", "Thu Nov 12") under it, and the
- * live countdown. "All" opens Home. Hidden while there is nothing open.
+ * live countdown. Hidden while there is nothing open.
  */
 export const DueSoon = memo(function DueSoon({
 	deadlines,
@@ -33,13 +31,7 @@ export const DueSoon = memo(function DueSoon({
 	const today = localDay(fixedNow ?? minute ?? Date.now());
 	return (
 		<section data-testid="due-soon" aria-label="Due soon" className="flex w-full flex-col">
-			<div className="flex w-full items-center justify-between px-2.5 pt-1">
-				<span className="text-[13px] font-bold text-ink-3">Due soon</span>
-				<Link href="/" data-testid="due-soon-all" className="lh-press flex items-center gap-1 text-[13px] font-bold text-ink-3 hover:text-ink">
-					All
-					<ArrowRightIcon className="size-3" aria-hidden />
-				</Link>
-			</div>
+			<span className="px-2.5 pt-1 text-[13px] font-bold text-ink-3">Due soon</span>
 			<ul className="mt-2 flex w-full flex-col gap-px">
 				{rows.map((d) => (
 					<DueSoonRow

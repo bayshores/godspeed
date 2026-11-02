@@ -26,6 +26,7 @@ export const OverviewBody = memo(function OverviewBody({
 	startError,
 	onLearn,
 	onAddSignature,
+	onAddDeadline,
 }: {
 	name: string;
 	description: string;
@@ -44,6 +45,8 @@ export const OverviewBody = memo(function OverviewBody({
 	onLearn: (topicId: string) => void;
 	/** The cover's "Add a signature" (opens Edit class). */
 	onAddSignature?: () => void;
+	/** The runway's Add deadline (opens Edit class with a new deadline). */
+	onAddDeadline?: () => void;
 }) {
 	const lessons = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
 	const facts = useMemo(() => studiedFacts(data?.facts ?? []), [data?.facts]);
@@ -66,10 +69,10 @@ export const OverviewBody = memo(function OverviewBody({
 						deadlines={data.deadlines}
 						today={data.today}
 						nowMs={nowMs}
-						facts={facts}
 						busy={busy}
 						startError={startError}
 						onLearn={onLearn}
+						onAddDeadline={onAddDeadline}
 					/>
 				)}
 				{(lessons.length > 0 || showConfidence) && (

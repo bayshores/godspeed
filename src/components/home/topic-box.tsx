@@ -42,9 +42,11 @@ export function ModeSwitch({ mode, onMode }: { mode: HomeMode; onMode: (m: HomeM
 /**
  * The topic box: the learner's topic, then "Start from facts" (opens the
  * fact picker; with picks it shows the count and a clear button) and the
- * white "Start lesson ↵". Enter starts, Shift+Enter is a new line.
+ * white start button ("Start lesson", or "Start practice" in Practice).
+ * Enter starts, Shift+Enter is a new line.
  */
 export function TopicBox({
+	mode,
 	text,
 	onText,
 	onStart,
@@ -55,6 +57,7 @@ export function TopicBox({
 	onOpenPicker,
 	onClearPicks,
 }: {
+	mode: HomeMode;
 	text: string;
 	onText: (text: string) => void;
 	onStart: () => void;
@@ -81,7 +84,7 @@ export function TopicBox({
 			<textarea
 				ref={inputRef}
 				data-testid="home-topic-input"
-				aria-label="What do you want to learn?"
+				aria-label={mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
 				value={text}
 				onChange={(e) => onText(e.target.value)}
 				onKeyDown={(e) => {
@@ -90,7 +93,11 @@ export function TopicBox({
 						if (!empty) onStart();
 					}
 				}}
-				placeholder="A topic, a homework method, or a question you're stuck on…"
+				placeholder={
+					mode === "practice"
+						? "A topic or a kind of problem to drill…"
+						: "A topic, a homework method, or a question you're stuck on…"
+				}
 				autoFocus
 				rows={2}
 				className="field-sizing-content lh-input max-h-60 min-h-[86px] w-full resize-none bg-transparent px-[18px] py-4 text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
@@ -132,7 +139,7 @@ export function TopicBox({
 					disabled={busy}
 					className="lh-press flex shrink-0 items-center gap-2 bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 				>
-					Start lesson
+					{mode === "practice" ? "Start practice" : "Start lesson"}
 				</button>
 			</div>
 		</form>

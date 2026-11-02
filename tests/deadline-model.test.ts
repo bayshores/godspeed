@@ -34,7 +34,7 @@ describe("the deadline's material", () => {
 		assert.equal(m.series.find((s) => s.label === "HW · F26")!.infoOnly, true);
 		assert.deepEqual(m.loose, [{ id: "syl", name: "syllabus.txt", state: "info" }]);
 		assert.deepEqual([m.studyFiles, m.infoFiles, m.reading, m.failed, m.facts, m.missing], [5, 3, 1, 1, 17, 1]);
-		assert.equal(materialSummary(m), "1 number looks missing in a series, 1 file couldn't be read, 1 still being read.");
+		assert.equal(materialSummary(m), "Day 3 looks missing, 1 file couldn't be read, 1 still being read.");
 	});
 	it("with no covered files it shows every study file", () => {
 		const m = deadlineMaterial(FILES, [], []);
@@ -48,7 +48,7 @@ describe("the deadline's material", () => {
 	});
 	it("labels and the syllabus check message", () => {
 		assert.equal(rightLabel({ right: 2, answered: 5 }), "2 of 5 right");
-		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tried yet");
+		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tested");
 		const msg = syllabusCheckMessage("CSE 21", { name: "Midterm", when: "Fri Nov 6, 7:00 PM" });
 		assert.match(msg, /CSE 21 files for Midterm \(Fri Nov 6, 7:00 PM\)/);
 		assert.match(msg, /syllabus/);

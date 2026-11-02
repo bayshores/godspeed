@@ -3,7 +3,7 @@ import type { ArtifactPartProps } from "@/core";
 
 /**
  * The generic tool-call card: a quiet, collapsed one-liner per
- * synchronous tool call (the tool name plus the headline argument, e.g.
+ * synchronous tool call (a plain verb plus the headline argument, e.g.
  * read's file name), expandable to the full input and output. Unregistered tools
  * still render nothing (lesson/message-row.tsx's registry default); this card is only
  * for the learner-filesystem set (read/ls/find/grep) where the call IS
@@ -28,15 +28,11 @@ function headlineArg(tool: string, input: unknown): string {
 		const p = typeof inp.path === "string" && inp.path.length > 0 ? inp.path : "~";
 		return p;
 	}
-	if (typeof inp.pattern === "string") return inp.pattern;
-	// list_propositions: the session id is the call's subject — the
-	// collapsed line reads "list_propositions chat_…". Shown as given
-	// (the id is exactly what list_sessions reported to the model).
-	if (tool === "list_propositions" && typeof inp.session === "string" && inp.session.length > 0) {
-		return inp.session;
-	}
-	return "";
+	return typeof inp.pattern === "string" ? inp.pattern : "";
 }
+
+/** The collapsed line's verb per tool, in plain words. */
+const DONE_LABEL: Record<string, string> = { read: "Read", ls: "Looked in", find: "Found files", grep: "Searched for" };
 
 /** Render a tool result body: plain strings verbatim, image-bearing read
  *  results show their text + an attachment note (the image itself is the
@@ -71,7 +67,7 @@ export function ToolCallCard({ part }: ArtifactPartProps) {
 		>
 			<summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
 				<span className={`font-semibold ${failed ? "text-red-500" : ""}`}>
-					{tool}
+					{DONE_LABEL[tool] ?? tool}
 				</span>
 				{arg && <span className="truncate">{arg}</span>}
 				<ChevronRight className="size-3 shrink-0 opacity-50 transition-transform group-open:rotate-90" />

@@ -140,12 +140,12 @@ export function TopicMap({ topics, links, inClass, focus, selectedId, onSelect }
 						<span>
 							Start a lesson or{" "}
 							<Link href="/class/files" data-testid="topic-map-add-notes" className="font-bold text-ink hover:text-ink-max">
-								add notes on the Files page
+								add files
 							</Link>{" "}
 							to build your graph.
 						</span>
 					) : (
-						"Start a lesson or import notes to build your graph."
+						"Start a lesson or add files to build your graph."
 					)}
 				</p>
 			) : (

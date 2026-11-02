@@ -35,7 +35,7 @@ export function parseNotesImportResults(body: unknown, files: readonly File[]): 
 	return body.results as NotesImportResult[];
 }
 
-/** No class's Import notes (a class adds notes on its Files page). */
+/** No class's Add files on the Graph page (a class adds files on its Files page). */
 export async function postNotesImport(files: readonly File[]): Promise<NotesImportResult[]> {
 	const form = new FormData();
 	for (const file of files) form.append("files", file);

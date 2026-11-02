@@ -27,7 +27,7 @@ import { ClassIconField } from "@/components/class-icon-field";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 import { LoadFailed } from "@/components/load-failed";
 
-/** `newDeadline`: open with a new deadline row ready to fill (Home's Add deadline). */
+/** `newDeadline`: open with a new deadline row ready to fill (Add deadline on Home and the Overview). */
 export type ClassDialogMode = { kind: "create" } | { kind: "edit"; classId: string; newDeadline?: boolean };
 type Mode = ClassDialogMode;
 

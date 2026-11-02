@@ -127,6 +127,6 @@ describe("the Settings label", () => {
 			<RuleChips rules={["Mine.", "Use Python."]} onChange={() => {}} saved={{ "Use Python.": "2026-10-30T12:00:00.000Z" }} teacherName="Halley" />,
 		);
 		assert.equal(html.match(/Saved by Halley</g)?.length, 1);
-		assert.match(html, /title="Saved by Halley on Oct 30"/);
+		assert.match(html, /title="Oct 30"/);
 	});
 });

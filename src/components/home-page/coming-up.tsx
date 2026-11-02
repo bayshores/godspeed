@@ -4,7 +4,7 @@ import { PlusIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/core";
 import { kindLabel } from "@/components/class-deadlines-model";
 import { Countdown, useIsOverdue } from "@/components/countdown";
-import { comingUpGroups, dueUnderLabel, itemsSummary, type OpenDeadline } from "@/components/deadlines-model";
+import { comingUpGroups, deadlinesSummary, dueUnderLabel, type OpenDeadline } from "@/components/deadlines-model";
 import { DoneBox } from "@/components/done-box";
 import { deadlineFilesText } from "@/components/graph/derive";
 import { displayName } from "@/components/overview/overview-model";
@@ -16,8 +16,8 @@ import { cn } from "@/lib/utils";
  * COMING UP (Home): every open deadline
  * from every class, grouped Overdue / Today / Tomorrow / each date / Later.
  * A row: the done box, the name and its kind, what it covers with a ready
- * bar (deadlines with files), the class, and the live countdown with the
- * due time under it. Click a row for the deadline's page. With no classes
+ * bar (deadlines with files), the class (when more than one class has
+ * deadlines), and the live countdown with the due time under it. Click a row for the deadline's page. With no classes
  * yet it offers New class.
  */
 export const ComingUp = memo(function ComingUp({
@@ -43,13 +43,14 @@ export const ComingUp = memo(function ComingUp({
 	onNewClass: () => void;
 }) {
 	const groups = comingUpGroups(deadlines, nowMs);
+	const manyClasses = new Set(deadlines.map((d) => d.classId)).size > 1;
 	return (
 		<section data-testid="coming-up" className={CARD}>
 			<div className="flex w-full items-end justify-between gap-4">
 				<h2 className={CARD_TITLE}>Coming up</h2>
 				{deadlines.length > 0 && (
 					<span data-testid="coming-up-summary" className="text-[13.5px] text-ink-2">
-						{itemsSummary(deadlines, nowMs)}
+						{deadlinesSummary(deadlines, nowMs)}
 					</span>
 				)}
 			</div>
@@ -57,7 +58,7 @@ export const ComingUp = memo(function ComingUp({
 				<>
 					<p data-testid="coming-up-empty" className="text-[13.5px] leading-5 text-ink-2">
 						{hasClasses
-							? "No deadlines coming up. Your agent can add them from the syllabus, or you can use Add deadline."
+							? "No deadlines yet. Your agent can add them from the syllabus."
 							: "No classes yet. Add one, then add its deadlines in Edit class."}
 					</p>
 					{!hasClasses && (
@@ -83,6 +84,8 @@ export const ComingUp = memo(function ComingUp({
 										key={d.id}
 										deadline={d}
 										progress={progress.get(d.id) ?? null}
+										later={g.key === "later"}
+										showClass={manyClasses}
 										leaving={leaving.has(d.id)}
 										fixedNow={fixedNow}
 										onDone={onDone}
@@ -100,12 +103,17 @@ export const ComingUp = memo(function ComingUp({
 function ComingUpRow({
 	deadline: d,
 	progress: p,
+	later,
+	showClass,
 	leaving,
 	fixedNow,
 	onDone,
 }: {
 	deadline: OpenDeadline;
 	progress: DeadlineProgress | null;
+	/** In the Later group, whose heading has no date. */
+	later: boolean;
+	showClass: boolean;
 	leaving: boolean;
 	fixedNow?: number;
 	onDone: (d: OpenDeadline) => void;
@@ -150,16 +158,18 @@ function ComingUpRow({
 				)}
 			</div>
 			{/* Capped and the one that shrinks, so the deadline name keeps the room. */}
-			<span
-				data-testid="coming-up-class"
-				title={d.className}
-				className="min-w-0 max-w-[160px] truncate bg-tone-2 px-2 py-0.5 text-[12.5px] leading-[18px] font-bold text-ink"
-			>
-				{d.className}
-			</span>
+			{showClass && (
+				<span
+					data-testid="coming-up-class"
+					title={d.className}
+					className="min-w-0 max-w-[160px] truncate bg-tone-2 px-2 py-0.5 text-[12.5px] leading-[18px] font-bold text-ink"
+				>
+					{d.className}
+				</span>
+			)}
 			<div className="flex w-[110px] shrink-0 flex-col items-end gap-0.5 text-right">
 				<Countdown due={d} now={fixedNow} className="text-[14px] leading-5" clockClassName="text-[16px] leading-5" />
-				<span className="truncate text-[12.5px] leading-[18px] text-ink-3">{dueUnderLabel(d, overdue)}</span>
+				<span className="truncate text-[12.5px] leading-[18px] text-ink-3">{dueUnderLabel(d, overdue, later)}</span>
 			</div>
 		</li>
 	);

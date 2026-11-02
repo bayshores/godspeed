@@ -1,5 +1,5 @@
 /**
- * Settings → Connection → Remembered: the notes outside agents saved with
+ * Settings → Teaching → Remembered: the notes outside agents saved with
  * remember, each with its class, its date and a Delete button.
  */
 

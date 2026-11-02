@@ -49,7 +49,7 @@ describe("Where you're at (nothing selected)", () => {
 		assert.ok(html.includes("4/7 right"));
 		assert.ok(html.includes("3/7 right · overconfident"));
 		assert.ok(html.includes("You felt sure on most of your misses"));
-		assert.ok(html.includes("Not tested yet"));
+		assert.ok(html.includes("Not tested"));
 		assert.ok(html.includes("Practice these 3"));
 	});
 
@@ -136,15 +136,15 @@ describe("adding notes and start errors", () => {
 
 	it("an empty class graph points to the Files page; No class keeps import", () => {
 		const inClass = renderToStaticMarkup(<GraphBody data={{ ...empty, classId: "cls_a" }} query="" practicing={false} practiceError={null} onPractice={noop} />);
-		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add notes on the Files page<\/a> to build your graph\./);
+		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add files<\/a> to build your graph\./);
 		const noClass = renderToStaticMarkup(<GraphBody data={{ ...empty, classId: null }} query="" practicing={false} practiceError={null} onPractice={noop} />);
-		assert.ok(noClass.includes("Start a lesson or import notes to build your graph."));
+		assert.ok(noClass.includes("Start a lesson or add files to build your graph."));
 		assert.ok(!noClass.includes("/class/files"));
 	});
 
-	it("the top bar's Add notes opens the Files page in a class; No class keeps Import notes", () => {
+	it("the top bar's Add files opens the Files page in a class; No class picks files right there", () => {
 		const inClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={null} />);
-		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add notes<\/a>/);
+		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add files<\/a>/);
 		assert.ok(!inClass.includes("import-notes"));
 		const noClass = renderToStaticMarkup(
 			<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />,

@@ -30,12 +30,13 @@ export type FileState =
  * - failed → red label + Retry
  * - needs-whisper → "Needs a speech tool" + Retry, with the install command
  * - ready recording its lecture's transcript covers → "Uses its
- *   transcript: <name>" (it has no facts of its own)
+ *   transcript" (it has no facts of its own; the transcript is the row
+ *   next to it)
  * - ready study file → the coverage bar and its fact count (once the
  *   progress payload has it)
  * - ready course info → nothing
  */
-export function fileState(file: ClassFile, coverage: FileCoverage | undefined, agentTeaching: boolean, transcriptName?: string): FileState {
+export function fileState(file: ClassFile, coverage: FileCoverage | undefined, agentTeaching: boolean): FileState {
 	switch (file.status) {
 		case "extracting":
 			return { kind: "building" };
@@ -46,15 +47,16 @@ export function fileState(file: ClassFile, coverage: FileCoverage | undefined, a
 		case "needs-whisper":
 			return { kind: "failed", label: "Needs a speech tool", install: SPEECH_TOOL_INSTALL };
 		case "ready":
-			if (file.transcriptId) return { kind: "transcript", label: transcriptName ? `Uses its transcript: ${transcriptName}` : "Uses its transcript" };
+			if (file.transcriptId) return { kind: "transcript", label: "Uses its transcript" };
 			if (file.kind !== "study" || !coverage) return { kind: "none" };
 			return { kind: "coverage", facts: coverage.facts, inLessons: coverage.inLessons, share: coverage.share };
 	}
 }
 
-/** Retry is offered while a file is stuck or failed. */
+/** The ⋯ menu offers Retry while a file is stuck waiting; a failed row
+ *  already shows its own Retry. */
 export function canRetry(file: ClassFile): boolean {
-	return file.status === "failed" || file.status === "needs-whisper" || file.status === "pending";
+	return file.status === "pending";
 }
 
 /** Only the app's own copies can be removed; a linked folder's files leave

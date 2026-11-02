@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/components/activity-dock";
-import { formatTokens } from "@/components/usage-format";
 
 /**
- * The coverage block in the sidebar's lesson context menu: how much of one
- * session the graph extractor hasn't covered yet, plus a manual Extract.
+ * The coverage block in the sidebar's lesson context menu: whether the
+ * lesson's facts are all in the graph yet, plus a manual "Add to graph".
  * Coverage comes from GET /api/chats/[id] (`coverage`).
  *
  * Extract posts to /api/graph/coverage/extract {chatId}. A 409 means a run
@@ -122,8 +121,8 @@ export function CoverageMenuBlock({ chatId }: { chatId: string }) {
 }
 
 /** The block's presentational core (exported for static-render tests):
- *  the numbers, the running pulse, and the Extract affordance with its
- *  optimistic "Running" state. */
+ *  one plain status line, the running pulse, and "Add to graph" with its
+ *  optimistic "Adding…" state. */
 export function CoverageMenuBody({
 	coverage,
 	extracting,
@@ -141,19 +140,12 @@ export function CoverageMenuBody({
 			{busy ? (
 				<span className="flex items-center gap-1.5 text-muted-foreground" data-testid="ctx-coverage-running">
 					<span className="size-1.5 animate-pulse rounded-full bg-foreground/70" aria-hidden />
-					extracting…
+					Adding its facts to the graph…
 				</span>
 			) : complete ? (
-				<span className="text-muted-foreground">fully extracted</span>
+				<span className="text-muted-foreground">All its facts are in the graph</span>
 			) : (
-				<span className="flex flex-col">
-					<span className="font-mono tabular-nums text-foreground">
-						{formatTokens(coverage.uncoveredTokens)} tok uncovered
-					</span>
-					<span className="font-mono tabular-nums text-muted-foreground">
-						{coverage.uncoveredCount} message{coverage.uncoveredCount === 1 ? "" : "s"} unextracted
-					</span>
-				</span>
+				<span className="text-foreground">Some of it isn't in the graph yet</span>
 			)}
 			<button
 				type="button"
@@ -162,7 +154,7 @@ export function CoverageMenuBody({
 				disabled={busy || complete}
 				className="lh-press flex items-center justify-center border px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
 			>
-				{busy ? "Running" : "Extract"}
+				{busy ? "Adding…" : "Add to graph"}
 			</button>
 		</div>
 	);

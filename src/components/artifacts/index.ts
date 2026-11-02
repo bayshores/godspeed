@@ -32,8 +32,9 @@ export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>>
 	// to the transcript.
 	probe_done: ProbeDoneCard,
 	// The learner-filesystem set: one quiet expandable
-	// tool-call card each — collapsed one-liner (tool name + headline
-	// argument), full input/output on expand.
+	// tool-call card each — collapsed one-liner (plain verb + headline
+	// argument), full input/output on expand. The prober's graph lookups
+	// (list_sessions, list_propositions) render nothing.
 	read: ToolCallCard,
 	ls: ToolCallCard,
 	find: ToolCallCard,
@@ -43,10 +44,6 @@ export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>>
 	// the conclusion carries the outcome + verdict + the reveal.
 	problem: ProblemCard,
 	conclude: ConcludeCard,
-	// The prober's graph tools: same quiet expandable card, the tool's own
-	// pre-formatted output verbatim on expand.
-	list_sessions: ToolCallCard,
-	list_propositions: ToolCallCard,
 	// A rule the teacher saved: one line with Undo and Edit.
 	save_rule: RuleSavedLine,
 };

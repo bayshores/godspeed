@@ -106,7 +106,6 @@ function FilesPageBody() {
 		return map;
 	}, [data, active]);
 	const groups = useMemo(() => fileGroups(record?.files ?? []), [record]);
-	const names = useMemo(() => new Map((record?.files ?? []).map((f) => [f.id, f.name])), [record]);
 	const shown = useMemo(() => filterGroups(groups, query), [groups, query]);
 	const searching = query.trim() !== "";
 	const arrived = useMemo(() => (record && minute !== null ? newSince(record.files, minute) : null), [record, minute]);
@@ -281,7 +280,6 @@ function FilesPageBody() {
 								coverage={coverage}
 								disabled={disabled}
 								agentTeaching={agentTeaching}
-								names={names}
 								actions={actions}
 							/>
 						))}

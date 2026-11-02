@@ -96,7 +96,7 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 				<span className="font-medium">Class context</span>
 				<span className="min-w-0 flex-1 truncate">
 					{name}
-					{files.length > 0 ? ` · ${files.length} ${files.length === 1 ? "file" : "files"}` : ""}
+					{files.length > 0 ? ` · ${files.length} ${files.length === 1 ? "file" : "files"} when this lesson started` : ""}
 				</span>
 			</button>
 			{fold.mounted && (

@@ -36,7 +36,7 @@ npm run desktop:local  # unsigned local macOS arm64 app in dist/
 npm run desktop:dist   # local signed/notarized macOS arm64 build (LH_NOTARY keychain)
 ```
 
-A change is done when `npm run check` passes. To bulk-import notes, use the app: a class's linked folder or Files page, the Graph's Import notes (No class only), or the `import_notes` MCP tool. All extraction runs on the connected agent.
+A change is done when `npm run check` passes. To bulk-import notes, use the app: a class's linked folder or Files page, the Graph's Add files (No class only), or the `import_notes` MCP tool. All extraction runs on the connected agent.
 
 For Windows/Linux packages and the three-OS CI/release flow, see [`desktop-release.md`](desktop-release.md). Native renderer binaries are traced per platform, so release builds run on the target OS, not as cross-builds from macOS.
 

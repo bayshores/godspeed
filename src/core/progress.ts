@@ -543,13 +543,12 @@ function statusCounts(topics: ReadonlyArray<Pick<TopicProgress, "status">>): Sta
  *  2. overconfident topics ("overconfident");
  *  3. the remaining weak/shaky ones ("Needed for <dependent>" when a topic
  *     in the set builds on it, else "<n>% right");
- *  4. untested topics ("Due soon, never practiced" / "Never practiced").
+ *  4. untested topics (no reason: the status line already says "Not tested").
  * Within a group: lowest right rate first, then earlier column, then name.
  */
 export function workOnNext(
 	topics: readonly TopicProgress[],
 	links: readonly TopicLink[],
-	context: "deadline" | "class",
 ): WorkOnNextItem[] {
 	const inSet = new Map(topics.map((t) => [t.id, t]));
 	const struggling = (t: TopicProgress | undefined) => !!t && (t.status === "weak" || t.status === "shaky");
@@ -580,7 +579,7 @@ export function workOnNext(
 	}
 	for (const t of sorted) {
 		if (listed.has(t.id) || t.status !== "untested") continue;
-		add(t, context === "deadline" ? "Due soon, never practiced" : "Never practiced");
+		add(t, "");
 	}
 	return out;
 }
@@ -729,7 +728,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 			files: d.fileIds.map((id) => ({ id, name: nameOfFile.get(id) ?? id })),
 			topicIds: covered.map((t) => t.id),
 			counts: statusCounts(covered),
-			workOnNext: workOnNext(covered, links, "deadline"),
+			workOnNext: workOnNext(covered, links),
 			ready: covered.length === 0 ? null : covered.reduce((sum, t) => sum + (t.rate ?? 0), 0) / covered.length,
 			topics: weakest.map((t) => ({ id: t.id, name: t.name, rate: t.rate })),
 		};
@@ -748,7 +747,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 		lessons,
 		calibration: calibration(allAnswers, (id) => titles.get(id) ?? id),
 		deadlines,
-		overall: { topicIds: grouped.map((t) => t.id), counts: statusCounts(grouped), workOnNext: workOnNext(grouped, links, "class") },
+		overall: { topicIds: grouped.map((t) => t.id), counts: statusCounts(grouped), workOnNext: workOnNext(grouped, links) },
 		totals: tally(allAnswers),
 	};
 }

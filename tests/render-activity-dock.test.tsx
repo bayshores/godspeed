@@ -242,6 +242,6 @@ describe("activity section render", () => {
 				}}
 			/>,
 		);
-		assert.match(html, /activity-total-cost[^>]*>Outside agent</);
+		assert.match(html, /activity-total-cost[^>]*>Your agent</);
 	});
 });

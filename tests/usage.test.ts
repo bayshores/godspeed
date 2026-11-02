@@ -25,7 +25,7 @@ test("sumSteps: absent stays absent; unknown long-cache detail stays unknown", (
 test("session costs count plan turns and unpriced turns separately", () => {
 	const turn: TurnUsage = { id: "t1", messageId: "m1", at: "x", model: "agent:outside-agent", steps: [call({ inputTokens: 10_000, outputTokens: 2_000 })] };
 	const totals = sessionCost({ turns: [turn, { ...turn, id: "t2", model: "not/a-model" }] });
-	assert.deepEqual(totals, { unpriced: 1, subscription: 1, subscriptionProviders: ["Outside agent"] });
+	assert.deepEqual(totals, { unpriced: 1, subscription: 1, subscriptionProviders: ["Your agent"] });
 });
 
 test("appendTurnUsage: idempotent per turn; continuations survive saveMessages; list omits log", () => {

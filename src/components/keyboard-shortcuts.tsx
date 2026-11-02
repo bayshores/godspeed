@@ -29,6 +29,7 @@ import {
 	isTypingSurface,
 	kbdEventForAction,
 	KEYBOARD_ACTIONS,
+	KEY_SCOPES,
 } from "@/core";
 import { useSettingsDialog } from "@/components/settings/settings-dialog-provider.tsx";
 import { showFocusRingAfterTab, trapTabInDialog } from "@/components/focus-hygiene";
@@ -129,12 +130,6 @@ export function KeyboardShortcuts() {
 function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 	const backdropDismiss = useBackdropDismiss(onClose);
 	if (!open) return null;
-	const scopes = ["global", "chat", "graph"] as const;
-	const scopeLabels: Record<(typeof scopes)[number], string> = {
-		global: "Global",
-		chat: "Chat",
-		graph: "Graph view",
-	};
 	return (
 		<div
 			role="dialog"
@@ -152,13 +147,13 @@ function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 					<span className="text-sm font-medium text-card-foreground">Keyboard shortcuts</span>
 					<span className="text-xs text-muted-foreground">Esc to close</span>
 				</div>
-				{scopes.map((scope) => {
+				{KEY_SCOPES.map(({ scope, label }) => {
 					const actions = KEYBOARD_ACTIONS.filter((a) => a.scope === scope);
 					if (actions.length === 0) return null;
 					return (
 						<div key={scope} className="mb-4">
 							<div className="mb-1.5 text-xs font-semibold text-muted-foreground/70">
-								{scopeLabels[scope]}
+								{label}
 							</div>
 							<div className="flex flex-col gap-1">
 								{actions.map((a) => (

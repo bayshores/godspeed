@@ -65,7 +65,6 @@ export const FileRow = memo(function FileRow({
 	coverage,
 	disabled,
 	agentTeaching,
-	transcriptName,
 	actions,
 }: {
 	file: ClassFile;
@@ -73,11 +72,9 @@ export const FileRow = memo(function FileRow({
 	disabled?: boolean;
 	/** An agent is running the work loop (a waiting file says who it waits for). */
 	agentTeaching: boolean;
-	/** A recording's covering transcript (file.transcriptId), by name. */
-	transcriptName?: string;
 	actions: FileRowActions;
 }) {
-	const state = fileState(file, coverage, agentTeaching, transcriptName);
+	const state = fileState(file, coverage, agentTeaching);
 	const install = state.kind === "failed" ? state.install : undefined;
 	const Icon = fileIcon(file.name);
 	const help = KIND_HELP[file.sortedAsInfo && file.kind === "info" ? "sorted" : file.kind];
@@ -199,9 +196,16 @@ function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 }
 
 /** "12/31 facts studied" with its bar: the fill is the share of the file's
- *  facts that came up in a lesson. */
+ *  facts that came up in a lesson. A file with no facts says so instead. */
 function CoverageCell({ fileId, state }: { fileId: string; state: Extract<FileState, { kind: "coverage" }> }) {
 	const fill = studiedFill(state);
+	if (state.facts === 0) {
+		return (
+			<span data-testid={`class-file-status-${fileId}`} className="w-[216px] shrink-0 text-[13px] text-ink-3">
+				No facts yet
+			</span>
+		);
+	}
 	return (
 		<span data-testid={`class-file-status-${fileId}`} className="flex w-[216px] shrink-0 items-center gap-2.5">
 			<span className="flex h-[5px] w-[72px] shrink-0 bg-tone-2" aria-hidden>
@@ -219,7 +223,7 @@ function CoverageCell({ fileId, state }: { fileId: string; state: Extract<FileSt
 
 const MENU_ITEM = "lh-press flex items-center gap-[9px] px-2.5 py-[7px] text-left hover:bg-tone";
 
-/** The ⋯ menu: Move to the other kind, Retry (stuck or failed), Show
+/** The ⋯ menu: Move to the other kind, Retry (stuck waiting), Show
  *  in Finder (desktop app) and Remove (the app's own copies). */
 function RowMenu({ file, disabled, actions }: { file: ClassFile; disabled?: boolean; actions: FileRowActions }) {
 	const [open, setOpen] = useState(false);

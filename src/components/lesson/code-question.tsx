@@ -4,7 +4,8 @@ import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
 import { buildCodeAnswer, codeLanguage, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
 import { CodeEditor } from "./code-editor";
-import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit, turnEyebrow } from "./panel-parts";
+import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "./panel-parts";
+import { TurnEyebrow } from "./turn-eyebrow";
 import { MathBox } from "@/components/math-box";
 
 /** The task in lesson prose, 18px in the full text color (the question
@@ -82,7 +83,7 @@ export function CodeQuestion({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={turnEyebrow(busy, waitingForAgent)}
+					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
 							<KindChip testId="question-kind">Code</KindChip>

@@ -206,7 +206,7 @@ export function Slider({
 				style={{ "--fill": `${((shown - min) / (max - min)) * 100}%` } as React.CSSProperties}
 				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--border)_var(--fill))] [&::-webkit-slider-thumb]:-mt-[5px] [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-ink"
 			/>
-			<span className="w-24 shrink-0 text-right font-mono text-xs tabular-nums text-ink-2">{label(shown)}</span>
+			<span className="w-28 shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums text-ink-2">{label(shown)}</span>
 		</span>
 	);
 }

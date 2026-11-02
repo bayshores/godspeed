@@ -205,12 +205,13 @@ export function normalizeQuizType(raw: unknown): QuizQuestionType | undefined {
 }
 
 /** A question's kind label, shared by the waiting question and its answered
- *  card. The opening questions read "Warm-up" and "Recall"; a predict-type
- *  quiz reads "Prediction". */
+ *  card. The opening questions read "Warm-up" and "Recall"; a quiz reads
+ *  "Quiz" ("Prediction" for a predict-type one), never "Check", which is
+ *  the reveal button's word. */
 export function questionKindLabel(tool: string, quizType: QuizQuestionType | undefined): string {
 	if (tool === "probe") return "Warm-up";
 	if (tool === "recall") return "Recall";
-	if (tool === "quiz") return quizType === "predict" ? "Prediction" : "Check";
+	if (tool === "quiz") return quizType === "predict" ? "Prediction" : "Quiz";
 	if (tool === "explain") return "Explain";
 	if (tool === "write_code") return "Code";
 	return "Question";

@@ -3,13 +3,14 @@
 /**
  * The corner notice when a class's linked folder brings new files (say,
  * a new lecture landing in a synced Google Drive folder): "3 new files in
- * CSE 21", with See files and a close button. It stays until one is clicked.
+ * CSE 21", with See files and a close button. It stays until one is clicked,
+ * and never shows on that class's own Files page (its New badges say it).
  * With no agent connected, it says the study material waits for one.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FolderInputIcon, XIcon } from "lucide-react";
 import { useAgentStatus } from "@/components/agent-status";
 import { useClasses } from "@/components/class-context";
@@ -19,10 +20,19 @@ import { addedNames, addedTitle, mergeAdded, type AddedFiles } from "./files-not
 
 export function FilesNotice() {
 	const [added, setAdded] = useState<AddedFiles[]>([]);
-	const { classes, setActive } = useClasses();
+	const { classes, active, setActive } = useClasses();
 	const agent = useAgentStatus();
 	const router = useRouter();
-	useServerEvent("files-added", (next) => setAdded((list) => mergeAdded(list, next)));
+	// The class whose Files page is open, if any.
+	const onFilesOf = usePathname() === "/class/files" ? active : null;
+	const onFilesRef = useRef(onFilesOf);
+	useEffect(() => {
+		onFilesRef.current = onFilesOf;
+		if (onFilesOf) setAdded((list) => (list.some((e) => e.classId === onFilesOf) ? list.filter((e) => e.classId !== onFilesOf) : list));
+	}, [onFilesOf]);
+	useServerEvent("files-added", (next) => {
+		if (next.classId !== onFilesRef.current) setAdded((list) => mergeAdded(list, next));
+	});
 	const dismiss = (classId: string) => setAdded((list) => list.filter((e) => e.classId !== classId));
 	if (typeof document === "undefined") return null;
 	return createPortal(

@@ -94,10 +94,10 @@ describe("Due soon", () => {
 		assert.deepEqual(ids, ["late", "quiz", "hw5", "mid"]);
 	});
 
-	it("heading and All → Home", () => {
+	it("heading, and no All link (the sidebar's Home row goes there)", () => {
 		const html = dueSoon();
 		assert.ok(html.includes(">Due soon</span>"));
-		assert.match(tag(html, "due-soon-all"), /href="\/"/);
+		assert.ok(!html.includes("due-soon-all"));
 	});
 
 	it("a row: name (14px), 'CSE 21 · 5:00 PM' (12px muted), countdown, 13px done box", () => {
@@ -244,10 +244,20 @@ function comingUp(deadlines: OpenDeadline[] = OPEN, hasClasses = true) {
 }
 
 describe("Coming up", () => {
-	it("head: 'Coming up' and '5 items · 1 overdue'", () => {
+	it("head: 'Coming up' and '5 deadlines · 1 overdue'", () => {
 		const html = comingUp();
 		assert.ok(html.includes(">Coming up</h2>"));
-		assert.match(html, /data-testid="coming-up-summary"[^>]*>5 items · 1 overdue</);
+		assert.match(html, /data-testid="coming-up-summary"[^>]*>5 deadlines · 1 overdue</);
+	});
+
+	it("the class chip shows only when more than one class has deadlines", () => {
+		const one = OPEN.filter((x) => x.classId !== "c29");
+		assert.ok(!comingUp(one).includes("coming-up-class"));
+	});
+
+	it("a dated group's no-time row shows no weekday under the countdown", () => {
+		const hw5 = section(comingUp(), "coming-up-row-hw5", "</li>");
+		assert.ok(!hw5.includes(">Fri<"), "the heading already says Fri Oct 30");
 	});
 
 	it("groups in order, the Overdue label red", () => {
@@ -298,7 +308,7 @@ describe("Coming up", () => {
 	});
 
 	it("empty: how to add deadlines, or a class first with a New class button", async () => {
-		assert.match(comingUp([]), /No deadlines coming up\. Your agent can add them from the syllabus, or you can use Add deadline\./);
+		assert.match(comingUp([]), /No deadlines yet\. Your agent can add them from the syllabus\./);
 		assert.ok(!comingUp([]).includes("coming-up-new-class"), "with classes: no New class button");
 		assert.match(comingUp([], false), /No classes yet\. Add one, then add its deadlines in Edit class\./);
 		assert.ok(!comingUp([]).includes("coming-up-summary"));
@@ -327,8 +337,6 @@ function block(props: Partial<React.ComponentProps<typeof ClassBlock>> = {}) {
 		<ClassBlock
 			cls={{ id: "c21", name: "CSE 21", description: "Discrete math\nSecond line" }}
 			progress={{ facts: FACTS, lessons: [lesson("ch1", "Induction"), lesson("ch0", "Older")], files: STUDY_FILES }}
-			nextDue={OPEN[1]!}
-			nowMs={NOW}
 			onContinue={() => {}}
 			onNewLesson={() => {}}
 			onOpenClass={() => {}}
@@ -361,9 +369,8 @@ describe("Class block", () => {
 		assert.match(block(), /style="width:40%"/);
 	});
 
-	it("Next due names the soonest open deadline", () => {
-		assert.match(section(block(), "class-block-next-due", "</p>"), /Next due: <span[^>]*>Reading quiz, today 5:00 PM</);
-		assert.ok(!block({ nextDue: null }).includes("class-block-next-due"));
+	it("no Next due line (Coming up on the same page lists it)", () => {
+		assert.ok(!block().includes("class-block-next-due"));
 	});
 
 	it("Continue the latest lesson (white, fills the width) and Open class (tone)", () => {
@@ -380,9 +387,9 @@ describe("Class block", () => {
 		assert.ok(!html.includes("class-block-continue"));
 	});
 
-	it("no study files yet: 'Add notes or slides' to the Files page instead of '0 of 0 facts studied'", async () => {
+	it("no study files yet: 'Add files' to the Files page instead of '0 of 0 facts studied'", async () => {
 		const html = block({ progress: { facts: [], lessons: [], files: [] } });
-		assert.match(html, /data-testid="class-block-add-files"[^>]*>.*Add notes or slides</);
+		assert.match(html, /data-testid="class-block-add-files"[^>]*>.*Add files</);
 		assert.ok(!html.includes("class-block-facts"));
 		assert.ok(!block().includes("class-block-add-files"), "with study files: the facts line");
 		const calls: string[] = [];
@@ -390,8 +397,6 @@ describe("Class block", () => {
 			<ClassBlock
 				cls={{ id: "c21", name: "CSE 21", description: "" }}
 				progress={{ facts: [], lessons: [], files: [] }}
-				nextDue={null}
-				nowMs={NOW}
 				onContinue={() => {}}
 				onNewLesson={() => {}}
 				onOpenClass={() => {}}
@@ -408,8 +413,6 @@ describe("Class block", () => {
 			<ClassBlock
 				cls={{ id: "c21", name: "CSE 21", description: "" }}
 				progress={{ facts: FACTS, lessons: [lesson("ch1", "Induction")], files: STUDY_FILES }}
-				nextDue={null}
-				nowMs={NOW}
 				onContinue={(c, chat) => calls.push(`continue ${c} ${chat}`)}
 				onNewLesson={(c) => calls.push(`new ${c}`)}
 				onOpenClass={(c) => calls.push(`open ${c}`)}

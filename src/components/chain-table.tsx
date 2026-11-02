@@ -17,13 +17,13 @@
  * lonely chip (no premises) carries no glyph; "(no premises)" survives
  * only as the row's aria-label.
  *
- * SORTING: Name (A→Z), Props (largest-first), Created (newest-first);
+ * SORTING: Name (A→Z), Facts (largest-first), Created (newest-first);
  * click toggles asc/desc. Sort orders cluster rows AND chains within.
  *
  * SELECTION never shifts layout: a floating bottom bar appears only when
- * something is selected, showing the agents' ACTUAL input
- * (chainsForSelection: a premise without its conclusion counts as the
- * singleton it becomes) + Clear. DELETE sits fenced at the bar's right end
+ * something is selected, showing the picked fact count + Clear. A file or
+ * chain check also picks the facts its chains build on (a line above the
+ * table says so). DELETE sits fenced at the bar's right end
  * and opens the same confirm dialog the canvas uses. The fuzzy search
  * (names, aliases, statements) filters chains grouped and auto-expanded
  * under their clusters.
@@ -201,12 +201,6 @@ export function ChainTableBody({
 		return list;
 	}, [visibleChains, byId, sessions, fileSources, sort]);
 
-	// The derived shape under the floating bar (the agents' ACTUAL input).
-	const derived = useMemo(() => {
-		const selectedNodes = [...selection].map((id) => byId.get(id)).filter((n): n is GraphNode => n !== undefined);
-		return chainsForSelection(selectedNodes, storedChains);
-	}, [selection, byId, storedChains]);
-
 	const nameOf = (id: string) => byId.get(id)?.name ?? id;
 	const dateOf = (id: string) => byId.get(id)?.createdAt.slice(0, 10) ?? "";
 	const dirIcon = (col: ChainSortCol) =>
@@ -220,7 +214,7 @@ export function ChainTableBody({
 			    (later in the DOM). */}
 			<TopBar>
 				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-					{chains.length} {chains.length === 1 ? "chain" : "chains"} · {nodes.length} {nodes.length === 1 ? "node" : "nodes"}
+					{nodes.length} {nodes.length === 1 ? "fact" : "facts"}
 				</span>
 				<div className="relative shrink-0">
 					<SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -228,8 +222,8 @@ export function ChainTableBody({
 						value={query}
 						data-testid="chain-table-search"
 						onChange={(e) => onQuery(e.target.value)}
-						placeholder="Search nodes…"
-						aria-label="Search nodes"
+						placeholder="Search facts…"
+						aria-label="Search facts"
 						spellCheck={false}
 						className="lh-no-drag h-8 w-56 border bg-background pl-8 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
 					/>
@@ -238,7 +232,7 @@ export function ChainTableBody({
 					type="button"
 					data-testid="chain-table-close"
 					onClick={onClose}
-					aria-label="Close chains"
+					aria-label="Close"
 					className="lh-press lh-no-drag flex size-8 shrink-0 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground hover:bg-accent hover:text-foreground"
 				>
 					<XIcon className="size-4" />
@@ -252,6 +246,12 @@ export function ChainTableBody({
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{/* The TOP rule: the table is framed (a line under the header, a
 			    line under the last group, lines between groups). */}
+				<div className="px-3 pb-2 pt-3">
+					{selectMode && <h2 className="text-sm font-semibold text-foreground">Pick the facts to start from</h2>}
+					<p data-testid="chain-table-hint" className="text-xs text-muted-foreground">
+						Picking a file or a fact also picks the facts it builds on.
+					</p>
+				</div>
 				<div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border/60 bg-background/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground/70 backdrop-blur">
 					<button
 						type="button"
@@ -269,7 +269,7 @@ export function ChainTableBody({
 						aria-sort={sort.col === "props" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
 						className="lh-press flex w-14 shrink-0 items-center justify-end gap-1 text-right hover:text-foreground"
 					>
-						Props {dirIcon("props")}
+						Facts {dirIcon("props")}
 					</button>
 					<button
 						type="button"
@@ -284,7 +284,7 @@ export function ChainTableBody({
 
 				{groups.length === 0 && (
 					<div data-testid="chain-table-nomatch" className="px-4 pt-3 text-xs text-muted-foreground">
-						No matching chains.
+						No matching facts.
 					</div>
 				)}
 
@@ -320,15 +320,15 @@ export function ChainTableBody({
 									indeterminate={selectedCount > 0 && selectedCount < group.nodeIds.length}
 									onToggle={(next) => onToggleNodes(group.nodeIds, next)}
 									testid={`cluster-checkbox-${group.key}`}
-									label={`Select everything born in ${group.label ?? "unlabeled"}`}
+									label={`Select all facts from ${group.label ?? "unlabeled"}`}
 								/>
-								<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand cluster ${group.label ?? "unlabeled"}`} />
+								<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand ${group.label ?? "unlabeled"}`} />
 								<span className="flex shrink-0 items-center justify-center text-muted-foreground">
 									{open ? <FolderOpenIcon className="size-3.5" /> : <FolderIcon className="size-3.5" />}
 								</span>
 								<span className="min-w-0 flex-1 truncate text-sm font-medium">
 									{group.label ?? <span className="text-muted-foreground/60">unlabeled</span>}
-									{group.kind === "notes" && <span className="ml-2 text-xs font-semibold text-muted-foreground/60">Notes</span>}
+									{group.kind === "chat" && <span className="ml-2 text-xs font-semibold text-muted-foreground/60">Lesson</span>}
 								</span>
 								<span className="w-14 shrink-0 text-right text-xs font-mono tabular-nums text-muted-foreground">
 									{group.nodeIds.length}
@@ -369,9 +369,9 @@ export function ChainTableBody({
 													indeterminate={selectedInChain > 0 && selectedInChain < memberIds.length}
 													onToggle={(next) => onToggleNodes(memberIds, next)}
 													testid={`chain-checkbox-${chain.id}`}
-													label={`Select chain ${nameOf(chain.conclusion)}`}
+													label={`Select ${nameOf(chain.conclusion)} and the facts it builds on`}
 												/>
-												<Expander open={chainOpen} onClick={() => onToggleChain(chain.id)} testid={`chain-toggle-${chain.id}`} label={`Expand chain ${nameOf(chain.conclusion)}`} />
+												<Expander open={chainOpen} onClick={() => onToggleChain(chain.id)} testid={`chain-toggle-${chain.id}`} label={`Expand ${nameOf(chain.conclusion)}`} />
 												{/* The chain line: proposition names as faint-outlined
 												    chips joined by the logic, `A ∧ B ⟹ C`, rendered
 												    through KaTeX. A lonely chip has no glyphs; the
@@ -431,7 +431,7 @@ export function ChainTableBody({
 																checked={selection.has(id)}
 																onToggle={(next) => onToggleNodes([id], next)}
 																testid={`prop-checkbox-${id}`}
-																label={`Select node ${node.name}`}
+																label={`Select ${node.name}`}
 															/>
 															<span className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
 																{node.statement}
@@ -459,8 +459,7 @@ export function ChainTableBody({
 						className="lh-pop pointer-events-auto lh-popup flex items-center gap-3 px-4 py-2"
 					>
 						<span data-testid="chain-selected-summary" className="text-xs font-medium">
-							{selection.size} {selection.size === 1 ? "node" : "nodes"} →{" "}
-							{derived.length} {derived.length === 1 ? "chain" : "chains"}
+							{selection.size} {selection.size === 1 ? "fact" : "facts"} picked
 						</span>
 						<button
 							type="button"
@@ -492,7 +491,7 @@ export function ChainTableBody({
 								type="button"
 								data-testid="chain-delete"
 								onClick={onDelete}
-								aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "node" : "nodes"}`}
+								aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "fact" : "facts"}`}
 								className="lh-press flex items-center gap-1.5 border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
 							>
 								<Trash2Icon aria-hidden="true" className="size-3.5" />
