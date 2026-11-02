@@ -22,7 +22,7 @@ const none = { fresh: null, lesson: null, extractions: [], jobs: [] };
 
 describe("freshAction", () => {
 	it("the agent's newest change, while it is fresh", () => {
-		assert.deepEqual(freshAction([action()], t + 5000), { action: action(), leftMs: NOW_WINDOW_MS - 5000 });
+		assert.deepEqual(freshAction([action()], t + 3000), { action: action(), leftMs: NOW_WINDOW_MS - 3000 });
 		assert.equal(freshAction([action()], t + NOW_WINDOW_MS), null);
 		assert.equal(freshAction([], t), null);
 	});

@@ -8,8 +8,9 @@
  */
 import { APP_SOURCE, type AgentAction, type JobKind } from "@/core";
 
-/** The newest change counts as "what it's doing now" this long. */
-export const NOW_WINDOW_MS = 20_000;
+/** The newest change counts as "what it's doing now" this long, ahead of
+ *  live work; then reading a file or a lesson shows. */
+export const NOW_WINDOW_MS = 8_000;
 /** A screen reader hears a new line at most this often. */
 export const ANNOUNCE_GAP_MS = 8_000;
 

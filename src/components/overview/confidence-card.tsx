@@ -30,9 +30,9 @@ export const ConfidenceCard = memo(function ConfidenceCard({
 					<LevelBar key={level.level} level={level} />
 				))}
 			</div>
-			<div data-testid="calibration-legend" className="-mt-2 flex w-full flex-col gap-0.5 text-[12.5px] text-ink-3">
-				<span className="text-center">How sure you were, from 1 (guessing) to 5 (certain)</span>
-				<span>The fill is how often you were right. The line is how often you should be at that level.</span>
+			<div data-testid="calibration-legend" className="-mt-2 flex w-full flex-col gap-0.5 text-center text-[12.5px] text-balance text-ink-3">
+				<span>How sure you were, from 1 (guessing) to 5 (certain)</span>
+				<span>The fill is how often you were right. The line is where it would be if your confidence matched.</span>
 			</div>
 			{takeaway && <p className="w-full text-[15px] font-bold text-ink">{takeaway}</p>}
 			{calibration.sureButWrong.length > 0 && (
