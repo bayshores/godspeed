@@ -147,6 +147,8 @@ describe("files-model", () => {
 		assert.equal(groups[3]!.items[1]!.files.length, 2, "two files with one number stay in one entry");
 		assert.deepEqual(groups[4]!.items.map((i) => i.files[0]!.name), ["Digital_Note_Sheet_STUDENT_GUIDE.pdf", "syllabus.txt"]);
 		assert.deepEqual(fileGroups([]), []);
+		const infoFirst = [file({ id: "h1", name: "HW1.pdf", kind: "info" }), file({ id: "h2", name: "HW2.pdf", kind: "info" }), file({ id: "w1", name: "Week 1.pdf" }), file({ id: "w2", name: "Week 2.pdf" })];
+		assert.deepEqual(fileGroups(infoFirst).map((g) => g.label), ["Week", "HW"], "groups with study material come first");
 		assert.deepEqual(
 			fileGroups([file({ id: "x", name: "syllabus.txt" })]).map((g) => g.label),
 			["Other"],

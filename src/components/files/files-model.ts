@@ -250,6 +250,9 @@ export function fileGroups(files: readonly ClassFile[]): FileGroup[] {
 	const pairs = pairSeries(series);
 	const paired = new Set(pairs.values());
 	const groups = series.filter((s) => !paired.has(s)).map((s) => seriesGroup(s, pairs.get(s)));
+	// Groups with study material (lectures, readings) come before course info.
+	const hasStudy = (g: FileGroup) => g.items.some((i) => i.files.some((f) => f.kind === "study"));
+	groups.sort((a, b) => Number(hasStudy(b)) - Number(hasStudy(a)));
 	if (other.length > 0)
 		groups.push({ key: "other", label: "Other", count: other.length, items: other.map((f) => ({ key: f.id, label: null, date: null, files: [f] })) });
 	return groups;
