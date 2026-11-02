@@ -1,7 +1,7 @@
 /**
  * The teacher's screens: the face (one svg, every
- * mood, plain black eyes), the panel (head, Follow switch, the Talk and
- * Activity tabs: Now, Recent, Background jobs), the Follow chip, the teacher name setting, and the
+ * mood, plain black eyes), the panel (head, the Talk and Activity tabs:
+ * Now, Recent, Background jobs), the Follow chip, the teacher name setting, and the
  * sidebar footer opening the panel instead of the old popup.
  */
 import React, { act } from "react";
@@ -24,6 +24,11 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
+	// The Follow chip measures its content; linkedom has no layout.
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 // The Talk thread scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
@@ -82,10 +87,8 @@ describe("the panel", () => {
 		<HalleyPanel
 			name="Halley"
 			agent={{ connected: true, teaching: true, name: "Claude Code", pendingWork: 0, claimedLessons: [] }}
-			follow={false}
-			onFollow={() => {}}
 			onClose={() => {}}
-			nowText="Reading syllabus.pdf for CSE 29"
+			doing={{ text: "Reading syllabus.pdf", count: "2 of 5", working: true }}
 			recent={ACTIONS}
 			onPick={() => {}}
 			classNameOf={names}
@@ -122,11 +125,11 @@ describe("the panel", () => {
 		assert.equal(el.querySelector("[data-testid='halley-tab-activity']")?.getAttribute("aria-selected"), "true");
 		assert.ok(el.querySelector("[data-testid='halley-recent']"));
 	});
-	it("head: the name, the agent, the Follow switch and a close button", () => {
+	it("head: the name, the agent and a close button (Follow is the top bar's chip)", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);
 		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Claude Code</);
-		assert.match(html, /role="switch" aria-checked="false" aria-label="Follow"/);
+		assert.doesNotMatch(html, /role="switch"/);
 		const closes: number[] = [];
 		const el = mount(panel({ onClose: () => closes.push(1) }));
 		act(() => (el.querySelector("[data-testid='halley-close']") as HTMLElement).click());
@@ -187,10 +190,16 @@ describe("the panel", () => {
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
-	it("Now shows what it is doing, and hides when nothing is happening", () => {
-		assert.match(onActivity().textContent ?? "", /Reading syllabus\.pdf for CSE 29/);
+	it("Now shows what it is doing, and hides while it is idle", () => {
+		assert.match(onActivity().querySelector("[data-testid='halley-now']")?.textContent ?? "", /^Reading syllabus\.pdf2 of 5$/);
 		act(() => root?.unmount());
-		assert.equal(onActivity({ nowText: null }).querySelector("[data-testid='halley-now']"), null);
+		assert.equal(onActivity({ doing: { text: "Idle", working: false } }).querySelector("[data-testid='halley-now']"), null);
+	});
+	it("with nothing in it, Activity says what will show there", () => {
+		const el = onActivity({ doing: { text: "Idle", working: false }, recent: [], jobs: undefined });
+		assert.equal(el.querySelector("[data-testid='halley-activity-empty']")?.textContent, "Nothing yet. What Halley reads and builds shows here.");
+		act(() => root?.unmount());
+		assert.equal(onActivity().querySelector("[data-testid='halley-activity-empty']"), null);
 	});
 	it("Recent hides when there is nothing yet", () => {
 		assert.equal(onActivity({ recent: [] }).querySelector("[data-testid='halley-recent']"), null);
@@ -209,14 +218,11 @@ describe("the panel", () => {
 		const el = onActivity({ recent: many });
 		assert.equal(el.querySelectorAll("[data-testid='halley-recent-row']").length, 8);
 	});
-	it("clicking a Recent row goes there; the switch turns Follow on", () => {
+	it("clicking a Recent row goes there", () => {
 		const picked: string[] = [];
-		const follows: boolean[] = [];
-		const el = onActivity({ onPick: (a) => picked.push(a.id), onFollow: (on) => follows.push(on) });
+		const el = onActivity({ onPick: (a) => picked.push(a.id) });
 		act(() => (el.querySelector("[data-testid='halley-recent-row']") as HTMLElement).click());
-		act(() => (el.querySelector("[data-testid='halley-follow']") as HTMLElement).click());
 		assert.deepEqual(picked, ["a2"]);
-		assert.deepEqual(follows, [true]);
 	});
 	it("Background jobs live in the panel", () => {
 		assert.ok(onActivity().querySelector("[data-testid='jobs-slot']"));
@@ -252,22 +258,47 @@ describe("the panel", () => {
 });
 
 describe("the Follow chip", () => {
-	it("white, 'Following <name>' with Stop", () => {
-		const stops: number[] = [];
-		const el = mount(<FollowChipView following name="Halley" onStop={() => stops.push(1)} offer={null} onGo={() => {}} />);
-		assert.match(el.textContent ?? "", /Following HalleyStop/);
-		assert.match(el.querySelector("[data-testid='follow-chip']")!.className, /bg-ink/);
+	const reading = { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true };
+	it("following: dark, 'Following <name>', what it's doing, and Stop", () => {
+		const follows: boolean[] = [];
+		const el = mount(<FollowChipView following name="Halley" doing={reading} onFollow={(on) => follows.push(on)} offer={null} onGo={() => {}} />);
+		const chip = el.querySelector("[data-testid='follow-chip']")!;
+		assert.match(chip.className, /bg-ink/);
+		assert.match(chip.textContent ?? "", /^Following HalleyReading 06_Counting\.pdf3 of 12Stop/);
+		assert.match(chip.querySelector("[data-testid='follow-doing'] .font-mono")!.className, /tabular-nums/, "counts don't jitter");
+		assert.ok(chip.querySelector("[data-working]")?.className.includes("lh-breathe"), "the dot breathes while it works");
+		assert.equal(el.querySelector("[data-testid='follow-stop']")?.getAttribute("aria-label"), "Stop following Halley");
 		act(() => (el.querySelector("[data-testid='follow-stop']") as HTMLElement).click());
-		assert.deepEqual(stops, [1]);
+		assert.deepEqual(follows, [false]);
 	});
-	it("renders nothing when off with no offer", () => {
-		assert.equal(renderToStaticMarkup(<FollowChipView following={false} name="Halley" onStop={() => {}} offer={null} onGo={() => {}} />), "");
+	it("idle: the dot is still", () => {
+		const html = renderToStaticMarkup(<FollowChipView following name="Halley" doing={{ text: "Idle", working: false }} onFollow={() => {}} offer={null} onGo={() => {}} />);
+		assert.match(html, />Idle</);
+		assert.doesNotMatch(html, /lh-breathe/);
+	});
+	it("a new line lifts the old one out", () => {
+		const el = mount(<FollowChipView following name="Halley" doing={reading} onFollow={() => {}} offer={null} onGo={() => {}} />);
+		act(() => root!.render(<FollowChipView following name="Halley" doing={{ text: "Adding HW 5", working: true }} onFollow={() => {}} offer={null} onGo={() => {}} />));
+		assert.equal(el.querySelector(".lh-swap-out")?.textContent, "Reading 06_Counting.pdf");
+		assert.equal(el.querySelector("[data-testid='follow-doing'] .lh-swap-in")?.textContent, "Adding HW 5");
+	});
+	it("screen readers hear the line in a polite live region", () => {
+		const html = renderToStaticMarkup(<FollowChipView following={false} name="Halley" doing={reading} onFollow={() => {}} offer={null} onGo={() => {}} />);
+		assert.match(html, /aria-live="polite"[^>]*>Halley: Reading 06_Counting\.pdf</);
+	});
+	it("not following: a quiet 'Follow <name>' button turns it on", () => {
+		const follows: boolean[] = [];
+		const el = mount(<FollowChipView following={false} name="Halley" doing={reading} onFollow={(on) => follows.push(on)} offer={null} onGo={() => {}} />);
+		assert.doesNotMatch(el.querySelector("[data-testid='follow-off']")!.className, /bg-ink/);
+		assert.equal(el.querySelector("[data-testid='follow-start']")?.textContent, "Follow Halley");
+		act(() => (el.querySelector("[data-testid='follow-start']") as HTMLElement).click());
+		assert.deepEqual(follows, [true]);
 	});
 	it("with Follow off, a change on another page offers 'Go to'", () => {
 		const offer: AgentAction = { id: "act_1", at: new Date().toISOString(), agent: "Claude Code", label: "Starting CSE 29 review", classId: null, target: null, page: "/chat/c1" };
 		const went: AgentAction[] = [];
-		const el = mount(<FollowChipView following={false} name="Halley" onStop={() => {}} offer={offer} onGo={(a) => went.push(a)} />);
-		assert.match(el.textContent ?? "", /Starting CSE 29 reviewGo to lesson/);
+		const el = mount(<FollowChipView following={false} name="Halley" doing={reading} onFollow={() => {}} offer={offer} onGo={(a) => went.push(a)} />);
+		assert.match(el.querySelector("[data-testid='follow-offer']")?.textContent ?? "", /^Starting CSE 29 reviewGo to lesson$/);
 		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
 		assert.deepEqual(went, [offer]);
 	});

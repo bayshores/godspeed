@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FolderAgent } from "@/core";
-import type { FolderView, Launch } from "./agent-folder-model";
+import { AGENT_LABEL, rememberedAgent, type FolderView, type Launch } from "./agent-folder-model";
 
 const AGENT_KEY = "lh-folder-agent";
 const UNREACHABLE = "Couldn't reach godspeed. Try again.";
@@ -84,4 +84,20 @@ export function useAgentFolder() {
 	}, []);
 
 	return { view, launch, open, change };
+}
+
+/** "Open Claude Code" for the agent last opened here (Claude Code when
+ *  none): the sidebar's button and the "No agent connected" lines. */
+export function useReopenAgent() {
+	const { launch, open } = useAgentFolder();
+	const [agent, setAgent] = useState<FolderAgent>("claude");
+	useEffect(() => setAgent(rememberedAgent(savedAgent())), []);
+	return {
+		label: `Open ${AGENT_LABEL[agent]}`,
+		open: () => void open(agent),
+		busy: !!launch && (launch.made === "wait" || launch.opened === "wait"),
+		error: typeof launch?.made === "object" ? launch.made.error : typeof launch?.opened === "object" ? launch.opened.error : null,
+		/** Outside the desktop app: the learner runs the command. */
+		manual: launch?.opened === "manual",
+	};
 }

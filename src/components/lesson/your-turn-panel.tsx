@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LightbulbIcon } from "lucide-react";
+import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { PracticeDock } from "@/components/practice-dock";
 import { QuestionDock, type QuestionDockProps } from "@/components/question-dock";
 import { ReadingThinkingField } from "@/components/reading-thinking";
@@ -104,7 +105,12 @@ export function YourTurnPanel({
 	const mode = revealPending ? `reveal:${pendingId}` : pending ? `question:${pendingId}` : practice ? `practice:${practice.toolCallId}` : "chat";
 	// The opening state appears still; later states rise in.
 	const initialModeRef = useRef(mode);
-	const footer = <div className="shrink-0 pt-3">{stats}</div>;
+	const footer = (
+		<div className="shrink-0 pt-3">
+			<NoAgentLine className="pb-3" />
+			{stats}
+		</div>
+	);
 
 	let body: React.ReactNode;
 	if (pending && revealPending) {

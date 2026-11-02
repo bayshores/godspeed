@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRightIcon, SquareIcon } from "lucide-react";
 import type { AgentAction, LhMessage } from "@/core";
 import { MessageResponse } from "@/components/ai-elements/message";
+import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { agentWaiting, type AgentStatus } from "@/components/agent-status";
 import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
 import { useChatSession } from "@/components/session";
@@ -224,6 +225,7 @@ function TalkThread({
 				<div ref={endRef} />
 			</div>
 			<div className="shrink-0 border-t border-tone-2">
+				<NoAgentLine className="px-6 pt-3.5" />
 				<textarea
 					rows={2}
 					value={text}

@@ -12,9 +12,10 @@
  *    made. Halley flies to the changed element (data-halley-target), the
  *    element glows, and the bubble says what happened (tour.ts paces it).
  *  - Follow: when on, it also takes the window to the change's page
- *    (follow.ts). On by default; only the switch turns it off.
- *  - The panel (click Halley, or the sidebar's agent line): Now, Recent,
- *    Background jobs, and the Follow switch.
+ *    (follow.ts). On by default; the top bar's Follow chip turns it on
+ *    and off, and says what the agent is doing (follow-status.ts).
+ *  - The panel (click Halley, or the sidebar's agent line): Talk, and
+ *    Activity (Now, Recent, Background jobs).
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -42,6 +43,7 @@ import { HalleyEngine, type Home } from "./engine";
 import { REACTION_MS, crossedUnderHour, eyesStill, pickMood, type HalleyMood, type HalleyReaction } from "./mood";
 import { BURST_MS, FLY_MS, STEP_MS, bubbleText, nextStep, summarize } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
+import { agentDoing, freshAction, type AgentDoing } from "./follow-status";
 import {
 	CORNER_KEY,
 	NARROW_WIDTH,
@@ -74,8 +76,6 @@ import {
 	type Ghost,
 } from "./dom";
 
-/** The latest change counts as "what it's doing now" this long. */
-const NOW_WINDOW_MS = 20_000;
 /** A run of visits waits this long first, so changes made together are
  *  seen together. */
 const GATHER_MS = 250;
@@ -99,8 +99,8 @@ interface HalleyApi {
 	setPanelOpen: (open: boolean) => void;
 	/** Newest first. */
 	recent: AgentAction[];
-	/** What the agent is doing now (the latest change, while fresh). */
-	nowText: string | null;
+	/** What the agent is doing now; null while no agent is connected. */
+	doing: AgentDoing | null;
 	/** A brief mood (a graded answer). */
 	react: (r: HalleyReaction) => void;
 	/** A lesson screen reports itself (null when it leaves). */
@@ -266,15 +266,13 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	useEffect(loadRecent, [loadRecent]);
 	useServerResync(loadRecent);
 
-	// "Now": the newest change, while it is fresh.
-	const [nowText, setNowText] = useState<string | null>(null);
+	// The agent's newest change, while it is fresh.
+	const [fresh, setFresh] = useState<AgentAction | null>(null);
 	useEffect(() => {
-		const latest = recent[0];
-		if (!latest) return setNowText(null);
-		const left = NOW_WINDOW_MS - (Date.now() - Date.parse(latest.at));
-		if (left <= 0) return setNowText(null);
-		setNowText(latest.label);
-		const t = setTimeout(() => setNowText(null), left);
+		const now = freshAction(recent, Date.now());
+		setFresh(now?.action ?? null);
+		if (!now) return;
+		const t = setTimeout(() => setFresh(null), now.leftMs);
 		return () => clearTimeout(t);
 	}, [recent]);
 
@@ -289,10 +287,12 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		return () => clearTimeout(t);
 	}, [recent, followOn, pathname]);
 
-	// ── the mood ──
-	const jobs = feed.jobs.length + feed.extractions.length;
-	const working = !!agent && (agent.pendingWork > 0 || jobs > 0 || !!lesson?.working);
-	const mood = pickMood({ reaction, streaming: !!lesson?.streaming, working, connected: agent ? agent.connected : null });
+	// ── what it's doing, and the mood ──
+	const doing = useMemo(
+		() => agentDoing({ agent, fresh, lesson, extractions: feed.extractions, jobs: feed.jobs }),
+		[agent, fresh, lesson, feed.extractions, feed.jobs],
+	);
+	const mood = pickMood({ reaction, streaming: !!lesson?.streaming, working: !!doing?.working, connected: agent ? agent.connected : null });
 	const moodRef = useRef(mood);
 	moodRef.current = mood;
 
@@ -495,15 +495,13 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	);
 
 	const api = useMemo<HalleyApi>(
-		() => ({ name, mood, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, nowText, react, setLesson, go, offer }),
-		[name, mood, followOn, setFollow, panelOpen, recent, nowText, react, setLesson, go, offer],
+		() => ({ name, mood, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, react, setLesson, go, offer }),
+		[name, mood, followOn, setFollow, panelOpen, recent, doing, react, setLesson, go, offer],
 	);
 
 	const inLesson = pathname.startsWith("/chat/") && lesson !== null;
 	const classList = classes.classes;
 	const classNameOf = useCallback((id: string | null) => (id ? (classList.find((c) => c.id === id)?.name ?? null) : null), [classList]);
-	// The resting "now" line is in the open panel's Activity tab instead.
-	const bubble = tourBubble ?? (inLesson || panelOpen ? null : nowText);
 
 	return (
 		<HalleyContext.Provider value={api}>
@@ -513,15 +511,14 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 				name={name}
 				mood={mood}
 				moodRef={moodRef}
-				bubble={bubble}
+				// Only on a visit: the Follow chip holds the resting line.
+				bubble={tourBubble}
 				inLesson={inLesson}
 				panelOpen={panelOpen}
 				setPanelOpen={setPanelOpen}
 				agent={agent}
-				follow={followOn}
-				setFollow={setFollow}
 				recent={recent}
-				nowText={nowText}
+				doing={doing}
 				go={go}
 				classNameOf={classNameOf}
 				ask={ask}
@@ -543,10 +540,8 @@ function HalleyStage({
 	panelOpen,
 	setPanelOpen,
 	agent,
-	follow,
-	setFollow,
 	recent,
-	nowText,
+	doing,
 	go,
 	classNameOf,
 	ask,
@@ -561,10 +556,8 @@ function HalleyStage({
 	panelOpen: boolean;
 	setPanelOpen: (open: boolean) => void;
 	agent: ReturnType<typeof useAgentStatus>;
-	follow: boolean;
-	setFollow: (on: boolean) => void;
 	recent: AgentAction[];
-	nowText: string | null;
+	doing: AgentDoing | null;
 	go: (action: AgentAction) => void;
 	classNameOf: (id: string | null) => string | null;
 	ask: TalkAsk | null;
@@ -720,9 +713,10 @@ function HalleyStage({
 			>
 				<HalleyFace mood={mood} lookRef={lookRef} className="relative" />
 			</button>
+			{/* Screen readers hear the Follow chip's line instead. */}
 			<div
 				ref={bubbleRef}
-				role="status"
+				aria-hidden
 				data-testid="halley-bubble"
 				className={cn(
 					"lh-halley-bubble pointer-events-none fixed left-0 top-0 z-40 flex items-center gap-[5px] whitespace-nowrap lh-popup px-2.5 py-1.5 font-ui text-[13px]",
@@ -736,10 +730,8 @@ function HalleyStage({
 				<HalleyPanel
 					name={name}
 					agent={agent}
-					follow={follow}
-					onFollow={setFollow}
 					onClose={() => setPanelOpen(false)}
-					nowText={nowText}
+					doing={doing}
 					recent={recent}
 					onPick={go}
 					classNameOf={classNameOf}

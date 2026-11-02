@@ -4,20 +4,20 @@
  * The teacher's panel: click the teacher or the sidebar's agent line.
  * Docked to the window's right edge at full height, over the page (in a
  * lesson it covers the Your turn panel until closed). The head (name, the
- * agent's state, Follow, close), then two tabs: Talk (a chat outside
- * lessons, talk-view.tsx) and Activity (what the agent is doing now, its
- * last changes, click one to go there, and background jobs; each part
- * shows only when it has something in it).
+ * agent's state, close), then two tabs: Talk (a chat outside lessons,
+ * talk-view.tsx) and Activity (what the agent is doing now, its last
+ * changes, click one to go there, and background jobs; each part shows
+ * only when it has something in it, and a line says so when none does).
  */
 import { useEffect, useState } from "react";
 import { ArrowRightIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentAction } from "@/core";
-import { ActivitySection } from "@/components/activity-dock";
+import { ActivitySection, useActivity, type ActivityFeed } from "@/components/activity-dock";
 import { agentWaiting, footerLabel, waitingNotice, type AgentStatus } from "@/components/agent-status";
-import { SmallSwitch } from "@/components/ui/small-switch";
 import { HalleyFace } from "./halley-face";
 import { safePage } from "./follow";
+import type { AgentDoing } from "./follow-status";
 import { pastLabel } from "./tour";
 import { TalkView, type TalkAsk } from "./talk-view";
 
@@ -32,6 +32,11 @@ type Tab = "talk" | "activity";
 /** The agent line under the name: the footer's line, or the waiting notice while work waits. */
 export function agentLine(agent: AgentStatus | null): string {
 	return agentWaiting(agent) ? waitingNotice(agent?.name) : footerLabel(agent, 0);
+}
+
+/** The background jobs block has something to show (it hides otherwise). */
+function hasJobs(feed: ActivityFeed, agent: AgentStatus | null): boolean {
+	return feed.jobs.length > 0 || feed.extractions.length > 0 || (feed.failed?.length ?? 0) > 0 || agentWaiting(agent);
 }
 
 /** "4:11 PM". */
@@ -57,10 +62,8 @@ export function currentDockWidth(): number {
 export function HalleyPanel({
 	name,
 	agent,
-	follow,
-	onFollow,
 	onClose,
-	nowText,
+	doing,
 	recent,
 	onPick,
 	classNameOf,
@@ -70,10 +73,8 @@ export function HalleyPanel({
 }: {
 	name: string;
 	agent: AgentStatus | null;
-	follow: boolean;
-	onFollow: (on: boolean) => void;
 	onClose: () => void;
-	nowText: string | null;
+	doing: AgentDoing | null;
 	recent: readonly AgentAction[];
 	onPick: (action: AgentAction) => void;
 	classNameOf: (id: string | null) => string | null;
@@ -84,6 +85,7 @@ export function HalleyPanel({
 	jobs?: React.ReactNode;
 }) {
 	const [tab, setTab] = useState<Tab>("talk");
+	const { feed } = useActivity();
 	const [width, setWidth] = useState(DOCK_WIDTH);
 	useEffect(() => {
 		const measure = () => setWidth(currentDockWidth());
@@ -114,10 +116,6 @@ export function HalleyPanel({
 					<span data-testid="halley-panel-agent" className="truncate text-[12.5px] text-ink-2">
 						{agentLine(agent)}
 					</span>
-				</span>
-				<span className="mt-1.5 flex shrink-0 items-center gap-[7px]">
-					<span className="text-[13px] text-ink-2">Follow</span>
-					<SmallSwitch on={follow} onChange={onFollow} label="Follow" testId="halley-follow" />
 				</span>
 				<button
 					type="button"
@@ -153,9 +151,15 @@ export function HalleyPanel({
 				<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} />
 			) : (
 				<div data-testid="halley-activity" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
-					{nowText && (
+					{doing?.working && (
 						<p data-testid="halley-now" className="text-[15px] font-bold text-ink-max">
-							{nowText}
+							{doing.text}
+							{doing.count && <span className="ml-2 font-mono text-[13px] font-normal text-ink-3 tabular-nums">{doing.count}</span>}
+						</p>
+					)}
+					{!doing?.working && recent.length === 0 && !jobs && !hasJobs(feed, agent) && (
+						<p data-testid="halley-activity-empty" className="text-[13.5px] text-ink-2">
+							Nothing yet. What {name} reads and builds shows here.
 						</p>
 					)}
 

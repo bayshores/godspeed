@@ -70,7 +70,7 @@ function GraphScreenBody() {
 	// Deleting every fact hides the table; close it so new facts don't reopen it.
 	if (chainsOpen && data && !hasFacts) setChainsOpen(false);
 	return (
-		<div className="flex h-full min-h-0 flex-col" data-testid="graph-page">
+		<div className="relative flex h-full min-h-0 flex-col" data-testid="graph-page">
 			<GraphTopBar
 				hasFacts={hasFacts}
 				query={query}
@@ -100,17 +100,17 @@ function GraphScreenBody() {
 						<NotesImportErrors errors={notesImport.errors} />
 					</div>
 				)}
-				{/* Last child: the overlay covers the page and its top bar
-				    (app-region subtraction follows DOM order). */}
-				<ChainTableOverlay
-					open={chainsOpen && snapshot !== null}
-					nodes={snapshot?.propositions ?? []}
-					chains={snapshot?.chains ?? []}
-					sessions={snapshot?.sessions ?? {}}
-					fileSources={snapshot?.fileSources ?? {}}
-					onClose={() => setChainsOpen(false)}
-				/>
 			</div>
+			{/* Last child: the overlay covers the page and its top bar (one bar,
+			    one Follow chip; app-region subtraction follows DOM order). */}
+			<ChainTableOverlay
+				open={chainsOpen && snapshot !== null}
+				nodes={snapshot?.propositions ?? []}
+				chains={snapshot?.chains ?? []}
+				sessions={snapshot?.sessions ?? {}}
+				fileSources={snapshot?.fileSources ?? {}}
+				onClose={() => setChainsOpen(false)}
+			/>
 		</div>
 	);
 }

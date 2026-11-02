@@ -2,16 +2,14 @@
  * Follow mode. Pure.
  *
  * With Follow on (the default), Halley takes you to the page of each
- * change. Only the switch (or the chip's Stop) turns it off. While you
+ * change. Only the Follow chip's Stop turns it off. While you
  * type or a dialog is open it waits, and catches up RESUME_MS after you
  * stop. It never leaves a lesson where you have unsent text. With Follow
  * off, a fresh change on another page offers a "Go to" button.
  */
 
 export const RESUME_MS = 3000;
-/** localStorage key (the switch's choice, remembered across restarts). A
- *  new key: the old one also stored the automatic stop, so it isn't the
- *  learner's choice. */
+/** localStorage key (the learner's choice, remembered across restarts). */
 export const FOLLOW_KEY = "lh:follow";
 
 export interface FollowState {

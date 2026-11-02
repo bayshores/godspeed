@@ -611,6 +611,10 @@ body {
                    fade + 4px rise (no exit)
    - .lh-press     buttons: ease the hover colors, dip to 97% while pressed
    - .lh-collapse  a folding section: grid-rows 0fr ↔ 1fr (data-state)
+   - .lh-swap-in / .lh-swap-out  a line of text replaced in place: the old
+                   one lifts 4px and fades, the new one rises 4px into place
+   - .lh-ease-width  a box easing to its content's new width (and colors)
+   - .lh-breathe   a small dot that slowly dims and returns while busy
 
    Reduced motion: every animation and transform here turns off; colors
    still change, instantly. */
@@ -724,15 +728,52 @@ body {
 	min-height: 0;
 }
 
+@keyframes lh-swap-out {
+	to {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+}
+.lh-swap-in {
+	animation: lh-rise-in 180ms var(--lh-ease-out) both;
+}
+.lh-swap-out {
+	animation: lh-swap-out 140ms var(--lh-ease-in) both;
+	pointer-events: none;
+}
+
+.lh-ease-width {
+	transition-property: width, background-color, color;
+	transition-duration: 200ms;
+	transition-timing-function: var(--lh-ease-out);
+}
+
+@keyframes lh-breathe {
+	50% {
+		opacity: 0.35;
+		transform: scale(0.8);
+	}
+}
+.lh-breathe {
+	animation: lh-breathe 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.lh-pop,
 	.lh-dialog,
 	.lh-fade,
-	.lh-rise {
+	.lh-rise,
+	.lh-swap-in,
+	.lh-breathe {
 		animation: none !important;
 	}
+	/* The old line goes at once instead of fading under the new one. */
+	.lh-swap-out {
+		display: none;
+	}
 	.lh-press,
-	.lh-collapse {
+	.lh-collapse,
+	.lh-ease-width {
 		transition-duration: 0ms !important;
 	}
 	.lh-press:active:not(:disabled) {
