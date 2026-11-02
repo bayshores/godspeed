@@ -7,6 +7,7 @@ import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "l
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { SettingsDialogProvider } from "@/components/settings/settings-dialog-provider.tsx";
 import { RuleNotice } from "@/components/rule-notice";
+import { FilesNotice } from "@/components/files-notice";
 import { Hint } from "@/components/ui/hint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -341,6 +342,7 @@ export function AppShell({
 			    matters for the events it dispatches, never for DOM priority. */}
 			<KeyboardShortcuts />
 			<RuleNotice />
+			<FilesNotice />
 		</SettingsDialogProvider>
 	);
 }

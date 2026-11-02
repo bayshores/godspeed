@@ -13,8 +13,9 @@
  *    become facts; "info" files never do. Both go into the class's
  *    search index (search-index.ts).
  *    A changed file rebuilds its facts; a removed one loses them.
- *  - the linked-folder scan: new files are added as study material,
- *    every 60 s while the app runs
+ *  - the linked-folder scan, every 60 s while the app runs: new files
+ *    are added with their series' kind and announced, a renamed file or
+ *    one already copied in keeps its facts
  *  - moving a lesson between classes (its facts leave the old graph and
  *    are rebuilt in the new one)
  *
@@ -33,6 +34,7 @@ import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf,
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { emit } from "../core/events.ts";
+import { kindsForNewFiles } from "../core/new-file-kind.ts";
 import { extraction } from "./extraction.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
 import { fileToText, fingerprintFile, walkLinkedFolder } from "./class-files.ts";
@@ -403,7 +405,7 @@ export function linkFolder(classId: string, folder: string): ClassOutcome<ClassR
 	// drops the ones the new folder lacks, and a file at the same path with
 	// the same contents keeps its facts.
 	stores.classStore.updateClass(classId, { linkedFolder: path.resolve(folder) });
-	scanLinkedFolder(classId);
+	scanLinkedFolder(classId, { linking: true });
 	return { ok: true, value: stores.classStore.getClass(classId)! };
 }
 
@@ -433,72 +435,173 @@ function setFolderProblem(classId: string, problem: FolderProblem | null): void 
 	emit("classes-changed", {});
 }
 
+/** How long a folder change must hold still before a scan acts on it: a
+ *  file still being written or downloaded (a synced Drive folder) keeps
+ *  changing size, and reading half a PDF would mean building it twice. */
+const SETTLE_MS = 30_000;
+
 /**
- * One scan of a class's linked folder: new files are added as study
- * material; edited files rebuild; deleted files lose their facts. Sync
- * except for the queued processing.
+ * One scan of a class's linked folder. New files are added (with the kind
+ * of the series they join, else study material), edited files rebuild and
+ * deleted files lose their facts, each once the change has held still for
+ * SETTLE_MS. `linking` (the folder was just picked) takes the folder as it
+ * is at once and announces nothing. Sync except for the triage of new
+ * files and the queued processing.
  */
-export function scanLinkedFolder(classId: string): void {
+export function scanLinkedFolder(classId: string, { linking = false }: { linking?: boolean } = {}): void {
+	const running = triaging.get(classId);
+	if (running) {
+		void running.then(() => scanLinkedFolder(classId, { linking }));
+		return;
+	}
 	const record = stores.classStore.getClass(classId);
 	if (!record?.linkedFolder || record.archived) return;
+	const root = record.linkedFolder;
 	let present: string[];
 	let unreadable: string[];
 	let capped: boolean;
 	try {
-		if (!fs.statSync(record.linkedFolder).isDirectory()) throw new Error("not a folder");
-		const walk = walkLinkedFolder(record.linkedFolder);
-		present = walk.files;
-		unreadable = walk.unreadable;
-		capped = walk.capped;
-		setFolderProblem(classId, capped ? "too-many-files" : null);
+		if (!fs.statSync(root).isDirectory()) throw new Error("not a folder");
+		({ files: present, unreadable, capped } = walkLinkedFolder(root));
 	} catch {
 		// Folder gone (moved, renamed, drive unplugged): its files and facts
 		// stay, and the Files page says so.
 		setFolderProblem(classId, "missing");
 		return;
 	}
+	const linked = record.files.filter((f) => f.origin === "linked");
+	// A synced folder (Google Drive starting up, signed out) can look empty
+	// for a while: that is never taken as every file deleted.
+	if (!linking && present.length === 0 && linked.length > 0) {
+		setFolderProblem(classId, "missing");
+		return;
+	}
+	setFolderProblem(classId, capped ? "too-many-files" : null);
+
+	const now = Date.now();
+	const before = seenFiles.get(classId);
+	const seen = new Map<string, SeenFile>();
+	const settled = (rel: string, sig: string | null): boolean => {
+		const last = before?.get(rel);
+		const since = linking ? 0 : last && last.sig === sig ? last.since : now;
+		seen.set(rel, { sig, since });
+		return now - since >= SETTLE_MS;
+	};
+
 	const presentSet = new Set(present);
-	const known = new Map(record.files.filter((f) => f.origin === "linked").map((f) => [f.path, f]));
-	const toProcess: string[] = [];
-	// Removed from the folder → facts go. Files in a subfolder that can't be
+	const known = new Map(linked.map((f) => [f.path, f]));
+	// Gone from the folder → facts go. Files in a subfolder that can't be
 	// read, or past the file cap where the walk stopped, are not known to be
 	// gone, so they stay.
 	const inUnreadable = (rel: string) => unreadable.some((dir) => rel.startsWith(`${dir}/`));
+	const gone: ClassFile[] = [];
 	for (const [rel, file] of known) {
 		if (presentSet.has(rel) || inUnreadable(rel) || importRunning(classId, file)) continue;
-		if (capped && fs.existsSync(path.join(record.linkedFolder, rel))) continue;
-		dropFile(stores.classStore.getClass(classId)!, file);
+		if (capped && fs.existsSync(path.join(root, rel))) continue;
+		if (settled(rel, null)) gone.push(file);
 	}
 	const added: ClassFile[] = [];
+	const toProcess: string[] = [];
 	for (const rel of present) {
-		const file = known.get(rel);
-		const abs = path.join(record.linkedFolder, rel);
-		if (!file) {
-			const id = newFileId();
-			added.push({
-				id,
-				origin: "linked",
-				name: path.basename(rel),
-				path: rel,
-				kind: "study",
-				contentFp: "",
-				status: "pending",
-				addedAt: new Date().toISOString(),
-			});
-			toProcess.push(id);
-			continue;
-		}
 		let sig: string;
 		try {
-			const st = fs.statSync(abs);
+			const st = fs.statSync(path.join(root, rel));
 			sig = `${st.mtimeMs}:${st.size}`;
 		} catch {
 			continue;
 		}
-		if (file.statSig !== sig && file.status !== "extracting") toProcess.push(file.id);
+		if (!settled(rel, sig)) continue;
+		const file = known.get(rel);
+		if (file) {
+			if (file.statSig !== sig && file.status !== "extracting") toProcess.push(file.id);
+			continue;
+		}
+		added.push({
+			id: newFileId(),
+			origin: "linked",
+			name: path.basename(rel),
+			path: rel,
+			kind: "study",
+			contentFp: "",
+			status: "pending",
+			addedAt: new Date().toISOString(),
+		});
 	}
-	if (added.length > 0) mutateFiles(classId, (files) => [...files, ...added]);
+	seenFiles.set(classId, seen);
 	for (const id of toProcess) enqueueFile(classId, id);
+	if (added.length === 0) {
+		for (const file of gone) dropFile(stores.classStore.getClass(classId)!, file);
+		return;
+	}
+	const kinds = kindsForNewFiles(stores.classStore.getClass(classId)?.files ?? [], added);
+	for (const file of added) file.kind = kinds.get(file.id) ?? "study";
+	mutateFiles(classId, (files) => [...files, ...added]);
+	triageNewFiles(classId, added.map((f) => f.id), gone, !linking);
+}
+
+/**
+ * New folder files, before they are read. One with the same contents as
+ * a copied file, or as a folder file that just went (renamed or moved),
+ * becomes that file's entry, which keeps its id, kind, facts and
+ * deadlines. The rest are announced (one notice, however many) and
+ * queued, and the gone files nothing matched lose their facts. Runs off
+ * the file queue, which can wait a long time for the agent.
+ */
+function triageNewFiles(classId: string, addedIds: string[], gone: ClassFile[], announce: boolean): void {
+	const run = async () => {
+		const unmatched = new Set(gone.map((f) => f.id));
+		const fresh: ClassFile[] = [];
+		for (const id of addedIds) {
+			const record = stores.classStore.getClass(classId);
+			const file = record?.files.find((f) => f.id === id);
+			const abs = record && file ? classFilePath(record, file) : null;
+			if (!record || !file || !abs) continue;
+			let fp: string;
+			let statSig: string;
+			try {
+				const st = fs.statSync(abs);
+				statSig = `${st.mtimeMs}:${st.size}`;
+				fp = await fingerprintFile(abs);
+			} catch {
+				// Unreadable (a Drive file that is online-only while offline): the queue marks it failed, with Retry.
+				fresh.push(file);
+				continue;
+			}
+			const match = stores.classStore.getClass(classId)?.files.find((f) => f.contentFp === fp && (f.origin === "copied" || unmatched.has(f.id)));
+			if (!match) {
+				fresh.push(file);
+				continue;
+			}
+			unmatched.delete(match.id);
+			mutateFiles(classId, (files) =>
+				files.filter((f) => f.id !== id).map((f) => (f.id === match.id ? { ...f, origin: "linked" as const, name: file.name, path: file.path, statSig } : f)),
+			);
+			if (match.origin === "copied") removeCopyDir(classId, match.id);
+		}
+		for (const file of gone) {
+			const record = stores.classStore.getClass(classId);
+			if (unmatched.has(file.id) && record?.files.some((f) => f.id === file.id) && !importRunning(classId, file)) dropFile(record, file);
+		}
+		if (announce && fresh.length > 0) emit("files-added", { classId, files: fresh.map((f) => ({ id: f.id, name: f.name, kind: f.kind })) });
+		for (const file of fresh) enqueueFile(classId, file.id);
+	};
+	const done: Promise<void> = run()
+		.catch((err: unknown) => console.error(`[classes] new files in ${classId}:`, err))
+		.finally(() => {
+			if (triaging.get(classId) === done) triaging.delete(classId);
+		});
+	triaging.set(classId, done);
+}
+
+/** Delete a copied file's folder, read-only files included. */
+function removeCopyDir(classId: string, fileId: string): void {
+	const dir = path.join(stores.classStore.filesDir(classId), fileId);
+	try {
+		for (const name of fs.readdirSync(dir)) fs.chmodSync(path.join(dir, name), 0o644);
+	} catch {
+		/* already gone */
+	}
+	fs.rmSync(dir, { recursive: true, force: true });
 }
 
 // ─── the file pipeline ──────────────────────────────────────────────────────
@@ -509,6 +612,8 @@ interface ClassQueuesGlobal {
 	__lhClassScanTimer?: ReturnType<typeof setInterval>;
 	__lhFolderProblems?: Map<string, FolderProblem>;
 	__lhCancelledClasses?: Set<string>;
+	__lhSeenFiles?: Map<string, Map<string, SeenFile>>;
+	__lhTriaging?: Map<string, Promise<void>>;
 }
 const G = globalThis as typeof globalThis & ClassQueuesGlobal;
 
@@ -521,6 +626,17 @@ const queued = (G.__lhClassQueued ??= new Set());
 const folderProblems = (G.__lhFolderProblems ??= new Map());
 /** Classes deleted while work was queued — their queued work is skipped. */
 const cancelledClasses = (G.__lhCancelledClasses ??= new Set<string>());
+/** A linked-folder path at a class's last scan: its size and time
+ *  (null once gone) and since when it has held still. */
+interface SeenFile {
+	sig: string | null;
+	since: number;
+}
+/** Each class's folder paths at its last scan (memory only: after a
+ *  restart, changes wait one settle again). */
+const seenFiles = (G.__lhSeenFiles ??= new Map());
+/** Classes whose new folder files are being triaged. */
+const triaging = (G.__lhTriaging ??= new Map());
 
 /** Queue one file for processing (deduped while waiting). */
 export function enqueueFile(classId: string, fileId: string): void {
@@ -542,9 +658,11 @@ export function enqueueFile(classId: string, fileId: string): void {
 	queues.set(classId, next);
 }
 
-/** Resolves when every queued file of the class has been processed. */
+/** Resolves when the class's new files are triaged and every queued file
+ *  processed. */
 export function classIdle(classId: string): Promise<void> {
-	return queues.get(classId) ?? Promise.resolve();
+	const triage = triaging.get(classId);
+	return triage ? triage.then(() => classIdle(classId)) : (queues.get(classId) ?? Promise.resolve());
 }
 
 /**

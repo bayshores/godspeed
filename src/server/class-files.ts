@@ -120,7 +120,7 @@ const SKIPPED_DIRS = new Set(["node_modules", ".git", "Library", ".Trash"]);
 
 /** Every supported file under `root`, as POSIX-style relative paths,
  *  sorted, and whether the walk stopped at MAX_LINKED_FILES with more
- *  left. Hidden files and noise folders are skipped. An unreadable
+ *  left. Hidden files, lock files and noise folders are skipped. An unreadable
  *  folder is not an empty one: the walk throws when the root can't be
  *  read, and lists unreadable subfolders in `unreadable`. */
 export function walkLinkedFolder(root: string): { files: string[]; capped: boolean; unreadable: string[] } {
@@ -138,7 +138,8 @@ export function walkLinkedFolder(root: string): { files: string[]; capped: boole
 		}
 		for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
 			if (capped) return;
-			if (entry.name.startsWith(".")) continue;
+			// Hidden files (where Drive and editors keep temporary ones) and Office lock files.
+			if (entry.name.startsWith(".") || entry.name.startsWith("~$")) continue;
 			const childRel = rel ? `${rel}/${entry.name}` : entry.name;
 			if (entry.isDirectory()) {
 				if (!SKIPPED_DIRS.has(entry.name)) visit(path.join(dir, entry.name), childRel);

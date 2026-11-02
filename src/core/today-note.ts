@@ -1,9 +1,9 @@
 /**
  * THE [Today] NOTE: a hidden lesson message that
  * tells the agent today's date, time and time zone, then the class's open
- * deadlines. It is appended (never rewritten) right before the learner's
- * message when the lesson has none yet, the day changed, the deadline part
- * changed, or a compaction cut the last one out of the model's view.
+ * deadlines and the files added in the last few days. It is appended (never rewritten) right before the learner's
+ * message when the lesson has none yet, the day changed, the deadline or
+ * new-files part changed, or a compaction cut the last one out of the model's view.
  *
  * Pure: `now` and `timeZone` are inputs so tests are deterministic.
  */
@@ -16,11 +16,14 @@ import { newTodayContextMessage, type LhMarkerMessage, type LhMessage } from "./
 /** What the note needs to know about the lesson's class (null = no class). */
 export interface TodayNoteClass {
 	deadlines: readonly ClassDeadline[];
-	files: readonly { id: string; name: string }[];
+	files: readonly { id: string; name: string; addedAt?: string }[];
 }
 
 /** Most file names on a Covers line before "and N more". */
 const MAX_COVERS = 4;
+/** Files added this recently are listed as new, at most this many by name. */
+const NEW_FILE_DAYS = 3;
+const MAX_NEW_FILES = 5;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -106,7 +109,8 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 	const [year] = clock.day.split("-");
 	const head = `[Today] ${dayLabel(clock.day)} ${year}, ${clockLabel(clock.time)} (${timeZoneLabel(now, timeZone)})`;
 	const open = (cls?.deadlines ?? []).filter((d) => !d.done).slice().sort(compareDeadlines);
-	if (open.length === 0) return head;
+	const fresh = newFilesLine(cls?.files ?? [], now);
+	if (open.length === 0) return fresh ? [head, "", fresh].join("\n") : head;
 
 	const nowStamp = `${clock.day}T${clock.time}`;
 	const dueStamp = (d: ClassDeadline) => {
@@ -130,10 +134,25 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 		const rel = relativeDay(daysBetween(clock.day, d.date));
 		push(`- ${d.name} (${d.kind}), ${d.kind === "exam" ? "" : "due "}${whenLabel(d)}, ${rel}.`, d);
 	}
+	if (fresh) lines.push("", fresh);
 	return lines.join("\n");
 }
 
-/** Everything after the [Today] line ("" when there are no open deadlines). */
+/** "New files (last 3 days): a, b, and 4 more", newest first; null when none. */
+function newFilesLine(files: TodayNoteClass["files"], now: Date): string | null {
+	const since = now.getTime() - NEW_FILE_DAYS * 86_400_000;
+	const fresh = files
+		.filter((f) => f.addedAt && Date.parse(f.addedAt) >= since)
+		.sort((a, b) => Date.parse(b.addedAt!) - Date.parse(a.addedAt!))
+		.map((f) => f.name);
+	if (fresh.length === 0) return null;
+	const head = `New files (last ${NEW_FILE_DAYS} days): `;
+	if (fresh.length <= MAX_NEW_FILES) return head + fresh.join(", ");
+	const shown = fresh.slice(0, MAX_NEW_FILES);
+	return `${head}${shown.join(", ")}, and ${fresh.length - shown.length} more`;
+}
+
+/** Everything after the [Today] line: deadlines and new files ("" when neither). */
 export function deadlinePartOf(text: string): string {
 	const at = text.indexOf("\n");
 	return at < 0 ? "" : text.slice(at + 1);
