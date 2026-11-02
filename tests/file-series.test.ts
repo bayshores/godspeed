@@ -66,6 +66,10 @@ describe("file series", () => {
 		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));
 		assert.deepEqual(s.map((x) => x.label), ["Rosen · Probability"]);
 	});
+	it("a date in front of the name doesn't split a series", () => {
+		const { series: s } = groupFileSeries(named(["2026-09-30 Week 1 Discussion.pdf", "Week 2 Morning Discussion_annotated.pdf"]));
+		assert.deepEqual(s.map((x) => [x.label, x.items.map((i) => i.number)]), [["Week · Discussion", [1, 2]]]);
+	});
 	it("a word shared in two cases shows once in the label", () => {
 		const { series: s } = groupFileSeries(named(["2026-09-30 Week 1 Discussion (evening discussion).pdf", "2026-10-07 Week 2 Discussion (evening discussion).pdf"]));
 		assert.deepEqual(s.map((x) => x.label), ["Week · Discussion evening"]);

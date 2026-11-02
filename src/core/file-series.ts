@@ -66,7 +66,7 @@ function candidates(name: string): Candidate[] {
 	for (const m of rest.matchAll(/\d+/g)) {
 		const prefix = rest.slice(0, m.index);
 		out.push({
-			key: prefix.toLowerCase().replace(/[\s_\-.]+$/, "").replace(/\s+/g, " "),
+			key: prefix.toLowerCase().replace(/^[\s_\-.]+|[\s_\-.]+$/g, "").replace(/\s+/g, " "),
 			prefix,
 			number: Number(m[0]),
 			remainder: rest.slice(m.index + m[0].length),
