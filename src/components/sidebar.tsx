@@ -135,8 +135,15 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		// Default: open (first run introduces the sidebar).
 		setOpen(stored === null ? true : stored === "1");
-		setMounted(true);
-		return () => off?.();
+		// Transitions turn on only after the stored state has painted; in the
+		// same render the width would slide in from 0 on every load.
+		let frame = requestAnimationFrame(() => {
+			frame = requestAnimationFrame(() => setMounted(true));
+		});
+		return () => {
+			cancelAnimationFrame(frame);
+			off?.();
+		};
 	}, []);
 
 	// Narrow-window auto-close/auto-restore (see SIDEBAR_AUTOCLOSE note):
@@ -173,7 +180,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
 			{/* transitions gated on mount: no slide-in flash on page load;
 			    motion-safe: reduced motion opens/closes at once */}
-			<div className={cn("flex h-dvh", mounted && "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
+			<div className={cn("flex h-dvh", mounted ? "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]" : "[&_.sidebar-motion]:transition-none")}>{children}</div>
 		</SidebarContext.Provider>
 	);
 }

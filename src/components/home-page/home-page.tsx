@@ -6,6 +6,7 @@ import { PlusIcon } from "lucide-react";
 import type { ClassSummary, DeadlineProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog, type ClassDialogMode } from "@/components/class-dialog";
+import { ClassIcon } from "@/components/class-icon";
 import { LoadFailed } from "@/components/load-failed";
 import { useMinute } from "@/components/countdown";
 import { longDateLine } from "@/components/deadlines-model";
@@ -179,7 +180,10 @@ function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; on
 							}}
 							className="lh-press flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[13.5px] text-ink hover:bg-tone"
 						>
-							<span className="min-w-0 flex-1 truncate">{c.name}</span>
+							<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-2" />
+							<span title={c.name} className="min-w-0 flex-1 truncate">
+								{c.name}
+							</span>
 						</button>
 					))}
 				</MenuShell>

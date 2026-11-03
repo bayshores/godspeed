@@ -136,14 +136,14 @@ function ComingUpRow({
 			<span className="relative z-10 flex">
 				<DoneBox size={16} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
 			</span>
-			<div className="flex min-w-0 flex-1 flex-col gap-1">
+			<div className="flex min-w-[40%] flex-1 flex-col gap-1">
 				<div className="flex min-w-0 items-baseline gap-2">
-					<span className="truncate text-[15.5px] leading-[22px] font-bold text-ink">{d.name}</span>
+					<span title={d.name} className="truncate text-[15.5px] leading-[22px] font-bold text-ink">{d.name}</span>
 					<span className="shrink-0 text-[13.5px] text-ink-2">{kindLabel(d.kind).toLowerCase()}</span>
 				</div>
 				{files && (
 					<div data-testid="coming-up-covers" className="flex min-w-0 items-center gap-2.5 text-[12.5px] leading-[18px]">
-						<span className="min-w-0 truncate text-ink-2">covers {files}</span>
+						<span title={files} className="min-w-0 truncate text-ink-2">covers {files}</span>
 						{ready !== null && (
 							<>
 								<span className="flex h-[5px] w-[120px] shrink-0 bg-tone-2" aria-hidden>
@@ -157,7 +157,7 @@ function ComingUpRow({
 					</div>
 				)}
 			</div>
-			{/* Capped and the one that shrinks, so the deadline name keeps the room. */}
+			{/* Capped and the one that shrinks once the name is down to its 40%. */}
 			{showClass && (
 				<span
 					data-testid="coming-up-class"

@@ -103,7 +103,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		<div className="flex h-full flex-col">
 			<TopBar>
 				<nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-					<Link href="/class" className="lh-press shrink-0 text-ink-2 hover:text-ink">
+					<Link href="/class" title={activeClass?.name} className="lh-press min-w-0 truncate text-ink-2 hover:text-ink">
 						{activeClass?.name ?? "Class"}
 					</Link>
 				</nav>

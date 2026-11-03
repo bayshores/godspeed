@@ -296,7 +296,7 @@ function DayMark({ state, open }: { state: DayState; open: boolean }) {
 	if (state === "ready")
 		return (
 			<span aria-hidden className="flex size-3.5 shrink-0 items-center justify-center bg-ans-right">
-				<CheckIcon className="size-2.5 text-black" strokeWidth={3.5} />
+				<CheckIcon className="size-2.5 text-background" strokeWidth={3.5} />
 			</span>
 		);
 	if (state === "failed") return <span aria-hidden className="size-3.5 shrink-0 scale-[0.78] rotate-45 bg-ans-wrong" />;
@@ -355,7 +355,7 @@ function PathCard({
 								{day.topics.map((t) => (
 									<li key={t.id} className="flex min-w-0 items-center gap-2 text-[13.5px]">
 										<span className="size-2.5 shrink-0" style={{ background: rampColor(t.rate) }} aria-hidden />
-										<span className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
+										<span title={t.name} className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
 										<span className="shrink-0 text-[12.5px] text-ink-3">{tallyText(tallies.get(t.id))}</span>
 									</li>
 								))}

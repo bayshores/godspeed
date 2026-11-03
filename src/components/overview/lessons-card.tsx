@@ -32,7 +32,7 @@ const LessonRow = memo(function LessonRow({ lesson }: { lesson: LessonProgress }
 				data-testid={`overview-lesson-${lesson.chatId}`}
 				className="lh-press -mx-2 flex items-center gap-3.5 px-2 py-[7px] hover:bg-tone focus-visible:bg-tone"
 			>
-				<span className="w-[200px] shrink-0 truncate text-[14.5px] font-bold text-ink">{lesson.title}</span>
+				<span title={lesson.title} className="w-[200px] shrink-0 truncate text-[14.5px] font-bold text-ink">{lesson.title}</span>
 				<span className="flex min-w-0 flex-1 items-center gap-[3px]" aria-hidden>
 					{lesson.answers.map((a) => (
 						<span key={a.toolCallId} data-outcome={a.outcome} className={`h-[18px] min-w-0.5 shrink basis-3.5 ${OUTCOME_BG[a.outcome]}`} />

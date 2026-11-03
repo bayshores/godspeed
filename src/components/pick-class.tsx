@@ -6,7 +6,7 @@ import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
 import { ClassIcon } from "@/components/class-icon";
 
-const CHOICE = "lh-press flex items-center gap-2 bg-tone px-3 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2";
+const CHOICE = "lh-press flex max-w-full items-center gap-2 bg-tone px-3 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2";
 
 /** For a class page opened with No class: the classes to switch to and
  *  New class, right on the page. */
@@ -21,7 +21,9 @@ export function PickClass({ line }: { line: string }) {
 				{current.map((c) => (
 					<button key={c.id} type="button" data-testid={`pick-class-${c.id}`} onClick={() => setActive(c.id)} className={CHOICE}>
 						<ClassIcon icon={c.icon} className="size-3.5 shrink-0 text-ink-2" />
-						{c.name}
+						<span title={c.name} className="min-w-0 truncate">
+							{c.name}
+						</span>
 					</button>
 				))}
 				<button type="button" data-testid="pick-class-new" onClick={() => setCreating(true)} className={CHOICE}>

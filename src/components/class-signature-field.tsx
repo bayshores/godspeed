@@ -40,7 +40,7 @@ export const ClassSignatureField = memo(function ClassSignatureField({
 					value={kind}
 					disabled={disabled}
 					onChange={(e) => onChange(e.target.value as SignatureKind, value)}
-					className="shrink-0 border border-tone-2 bg-black px-2 text-[13px] text-ink-2 outline-none [color-scheme:dark] focus-visible:text-ink"
+					className="shrink-0 border border-tone-2 bg-background px-2 text-[13px] text-ink-2 outline-none focus-visible:text-ink"
 				>
 					{KINDS.map((k) => (
 						<option key={k.kind} value={k.kind}>
@@ -61,7 +61,7 @@ export const ClassSignatureField = memo(function ClassSignatureField({
 				/>
 			</div>
 			{trimmed && (
-				<div data-testid="class-signature-preview" className="overflow-hidden bg-black px-3 py-3 text-[26px] leading-none text-ink">
+				<div data-testid="class-signature-preview" className="overflow-hidden bg-background px-3 py-3 text-[26px] leading-none text-ink">
 					<SignatureText signature={{ kind, value: trimmed }} />
 				</div>
 			)}

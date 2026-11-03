@@ -57,6 +57,10 @@ const LABEL = "text-[13px] font-bold text-ink-2";
 const FIELD =
 	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-edge placeholder:text-ink-3 focus:border-ink";
 
+function scrollIntoSight(el: HTMLElement | null) {
+	el?.scrollIntoView({ block: "nearest" });
+}
+
 function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: MotionState }) {
 	const { active, setActive } = useClasses();
 	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
@@ -370,8 +374,9 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						</div>
 					)}
 
+					{/* Scrolled to on each new error: below a long deadline list it was out of sight after Save. */}
 					{error && (
-						<div role="alert" data-testid="class-dialog-error" className="mt-2.5 whitespace-pre-wrap border border-ans-wrong/50 px-3 py-2 text-[13px] text-ans-wrong">
+						<div key={error} ref={scrollIntoSight} role="alert" data-testid="class-dialog-error" className="mt-2.5 whitespace-pre-wrap border border-ans-wrong/50 px-3 py-2 text-[13px] text-ans-wrong">
 							{error}
 						</div>
 					)}
