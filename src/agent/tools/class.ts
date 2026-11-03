@@ -47,13 +47,13 @@ const setNoteInput = Type.Object({
 });
 
 const searchInput = Type.Object({
-	query: Type.String({ description: "What to look for, in plain words." }),
+	query: Type.String({ minLength: 1, description: "What to look for, in plain words." }),
 	limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "Most passages to return (default 8)." })),
 });
 
 const readPassageInput = Type.Object({
 	passage_id: Type.Optional(Type.String({ description: "A passage id from search_class_files (or a previous/next id)." })),
-	file_id: Type.Optional(Type.String({ description: "Instead of passage_id: a class file id, with range." })),
+	file_id: Type.Optional(Type.String({ description: 'Instead of passage_id: a class file id (the part of a passage id before the ":"), with range.' })),
 	range: Type.Optional(Type.String({ description: 'With file_id: the place, e.g. "p. 12", "12:30" or "lines 40".' })),
 });
 
