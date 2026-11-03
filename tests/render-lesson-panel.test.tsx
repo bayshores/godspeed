@@ -8,6 +8,7 @@ import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
+import { runScopeHandlers, type EditorView } from "@codemirror/view";
 import { mathBoxView, stubCodeMirrorDom } from "./math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -66,7 +67,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			onSavePracticeDraft={() => {}}
 			onSubmitThinking={async () => true}
 			onDiscardProblem={() => {}}
-						sideReply={false}
+			sideReply={false}
 			compacting={false}
 			composer={composer()}
 			stats={null}
@@ -80,7 +81,7 @@ describe("the Your-turn panel's states", () => {
 		const html = panel();
 		assert.match(html, /data-mode="chat"/);
 		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Your turn</);
-		assert.match(html, /placeholder="Message the teacher…"/);
+		assert.match(html, /data-testid="composer"[\s\S]*data-testid="math-box"[\s\S]*>Message the teacher…</, "the writing box, where math formats as you type");
 		assert.match(html, /data-testid="composer-send"[^>]*disabled[\s\S]*?>Send</, "Send waits for text");
 		assert.ok(!html.includes("stop-turn"), "no Stop while idle");
 	});
@@ -204,6 +205,58 @@ describe("the Your-turn panel's states", () => {
 	});
 });
 
+describe("the writing boxes in the lesson box and the side question box", () => {
+	const enter = (view: EditorView, shiftKey = false) =>
+		runScopeHandlers(view, { key: "Enter", keyCode: 13, shiftKey, metaKey: false, ctrlKey: false, altKey: false } as KeyboardEvent, "editor");
+
+	for (const box of [
+		{ name: "the lesson box", label: "Message the teacher", pending: null },
+		{ name: "the side question box", label: "Ask the teacher something", pending: { tool: "quiz", toolCallId: "q1", input: quizInput } },
+	]) {
+		it(`${box.name}: typing reaches the lesson, Enter sends, Shift+Enter is a newline`, async () => {
+			const host = document.createElement("div");
+			document.body.append(host);
+			const root = createRoot(host);
+			const typed: string[] = [];
+			let sent = 0;
+			try {
+				await act(async () =>
+					root.render(
+						<YourTurnPanel
+							pending={box.pending}
+							requiresReveal={false}
+							onSaveQuestionDraft={() => {}}
+							onSubmitAnswer={async () => true}
+							onSkipQuestion={() => {}}
+							readingThinking=""
+							onReadingThinking={() => {}}
+							practice={null}
+							practiceNumber={null}
+							onSavePracticeDraft={() => {}}
+							onSubmitThinking={async () => true}
+							onDiscardProblem={() => {}}
+							sideReply={false}
+							compacting={false}
+							composer={composer({ value: "x^2", canSend: true, onChange: (v) => typed.push(v), onSend: () => sent++ })}
+							stats={null}
+						/>,
+					),
+				);
+				const view = await mathBoxView(host, box.label);
+				await act(async () => view.dispatch({ changes: { from: view.state.doc.length, insert: "+1" } }));
+				assert.deepEqual(typed, ["x^2+1"]);
+				await act(async () => void enter(view, true));
+				assert.equal(sent, 0);
+				await act(async () => void enter(view));
+				assert.equal(sent, 1);
+			} finally {
+				await act(async () => root.unmount());
+				host.remove();
+			}
+		});
+	}
+});
+
 describe("the side question box", () => {
 	const waiting = { pending: { tool: "quiz", toolCallId: "q1", input: quizInput } };
 	const box = /data-testid="side-question"/;
@@ -224,13 +277,13 @@ describe("the side question box", () => {
 			assert.match(html, /Your thinking[\s\S]*data-testid="practice-send"[\s\S]*data-testid="side-question"/);
 			const side = html.slice(html.indexOf('data-testid="side-question"'));
 			assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
-			assert.ok(!side.includes("<textarea"));
+			assert.ok(!side.includes('data-testid="math-box"'));
 		});
 
 		it("while the teacher replies to it, the box holds Stop, the only one", () => {
 			const html = panel({ ...problem, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
 			assert.match(html, /data-testid="practice-send"[^>]*disabled=""/, "the thinking waits");
-			assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
+			assert.match(html.slice(html.indexOf('data-testid="side-question"')), /data-testid="math-box"[\s\S]*>why\?</);
 			assert.equal(html.split('data-testid="stop-turn"').length - 1, 1);
 			assert.match(html.slice(html.indexOf('data-testid="side-question"')), /data-testid="stop-turn"/);
 		});
@@ -248,14 +301,13 @@ describe("the side question box", () => {
 		const html = panel(waiting);
 		const side = html.slice(html.indexOf('data-testid="side-question"'));
 		assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
-		assert.ok(!side.includes("<textarea"), "no field until it is asked for");
+		assert.ok(!side.includes('data-testid="math-box"'), "no field until it is asked for");
 		assert.ok(!side.includes("—") && !side.includes("Enter"));
 	});
 
-	it("stays open while there is a draft, and names itself once, as its placeholder", () => {
+	it("stays open while there is a draft, in the writing box where math formats as you type", () => {
 		const html = panel({ ...waiting, composer: composer({ value: "why 13?" }) });
-		assert.equal(html.split("Ask the teacher something").length - 1, 2, "the placeholder and its accessible name");
-		assert.match(html, /placeholder="Ask the teacher something"/);
+		assert.match(html.slice(html.indexOf('data-testid="side-question"')), /data-testid="math-box"[\s\S]*>why 13\?</);
 		assert.ok(!html.includes('data-testid="side-question-open"'));
 	});
 
@@ -274,8 +326,8 @@ describe("the side question box", () => {
 		const html = panel({ ...waiting, composer: composer({ attachments: files, canSend: true }) });
 		const side = html.slice(html.indexOf('data-testid="side-question"'));
 		assert.ok(!side.includes('data-testid="side-question-open"'), "waiting files keep it open");
-		assert.match(side, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*<textarea/);
-		assert.match(side, /data-testid="attach-button"[\s\S]*<textarea[\s\S]*data-testid="side-question-send"/);
+		assert.match(side, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*data-testid="math-box"/);
+		assert.match(side, /data-testid="attach-button"[\s\S]*data-testid="math-box"[\s\S]*data-testid="side-question-send"/);
 		assert.match(side, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.doesNotMatch(side, /data-testid="side-question-send"[^>]*disabled=""/, "files alone can be sent");
 		const refused = panel({ ...waiting, composer: composer({ attachments: { ...files, files: [], error: "You can add up to 5 files to one message." } }) });
@@ -288,7 +340,6 @@ describe("the side question box", () => {
 		assert.ok(!submit.test(panel({ ...waiting, initialQuestionDraft: picked })), "an answer is ready to submit");
 		const html = panel({ ...waiting, initialQuestionDraft: picked, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
 		assert.match(html, submit);
-		assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
 		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Teacher is writing…</);
 		const side = html.slice(html.indexOf('data-testid="side-question"'));
 		assert.match(side, /data-testid="stop-turn"/);
@@ -351,13 +402,13 @@ describe("the side question box", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
-								sideReply={false}
+				sideReply={false}
 				compacting={false}
 				composer={composer({ value, canSend: value.trim() !== "", onSend })}
 				stats={null}
 			/>
 		);
-		const field = () => host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Ask the teacher something"]');
+		const field = () => host.querySelector<HTMLElement>('[data-testid="side-question"] [data-testid="math-box"]');
 		// linkedom has no activeElement: record focus() calls instead.
 		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
 		const realFocus = proto.focus;
@@ -370,8 +421,9 @@ describe("the side question box", () => {
 			assert.equal(field(), null);
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-open"]')!.click());
 			assert.ok(field(), "open");
-			assert.ok(focused.includes(field()), "focused, ready to type");
-			await act(async () => field()!.dispatchEvent(new dom.window.Event("focusout", { bubbles: true })));
+			const view = await mathBoxView(host, "Ask the teacher something");
+			assert.ok(focused.includes(view.contentDOM), "focused, ready to type");
+			await act(async () => view.contentDOM.dispatchEvent(new dom.window.Event("focusout", { bubbles: true })));
 			assert.equal(field(), null, "left empty, it closes");
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="side-question-open"]')!.click());
 			// The parent clears the draft once it is sent.
@@ -404,7 +456,7 @@ describe("the side question box", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
-								sideReply={false}
+				sideReply={false}
 				compacting={false}
 				composer={composer({ value: canSend ? "why?" : " ", canSend, onSend: () => sent++ })}
 				stats={null}

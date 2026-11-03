@@ -92,9 +92,6 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
  *  the field has focus. */
 export const FIELD_EDGE = "border border-tone-2 focus-within:border-ink-2 bg-background text-[16px]! leading-6! text-ink";
 
-/** The black writing field that fills the rest of the column. */
-export const PANEL_FIELD = `lh-input min-h-28 w-full flex-1 resize-none px-5 py-[18px] outline-none placeholder:text-ink-3 ${FIELD_EDGE}`;
-
 /** The panel fields' keys: Esc stays in the field (it must not abort the
  *  turn); Enter submits, Shift+Enter is a newline, ⌘/Ctrl+Enter submits. */
 export function fieldKeys(e: React.KeyboardEvent<HTMLTextAreaElement>, submit: () => void) {

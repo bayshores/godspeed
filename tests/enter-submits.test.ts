@@ -15,7 +15,6 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import { buttonKeepsNativeEnter } from "../src/components/enter-submits.ts";
 import { blurAfterPointerClick, dialogTabTarget, showFocusRingAfterTab } from "../src/components/focus-hygiene.ts";
-import { nextField } from "../src/components/field-cycle.ts";
 
 const { document, Event } = parseHTML("<html><body></body></html>");
 
@@ -141,21 +140,3 @@ describe("showFocusRingAfterTab (the keyboard focus ring)", () => {
 	});
 });
 
-describe("nextField (Tab inside the lesson's text fields)", () => {
-	const field = () => {
-		const box = document.createElement("div");
-		box.appendChild(document.createElement("textarea"));
-		document.body.appendChild(box);
-		return box as unknown as HTMLElement;
-	};
-	const [thinking, composer] = [field(), field()];
-	const button = buttonIn({});
-	it("Tab in a field moves to the next field", () => {
-		assert.equal(nextField([thinking, composer], thinking.firstChild), composer);
-	});
-	it("from the last field, or outside the fields, Tab moves focus as usual", () => {
-		assert.equal(nextField([thinking, composer], composer), undefined);
-		assert.equal(nextField([thinking, composer], button), undefined);
-		assert.equal(nextField([], null), undefined);
-	});
-});

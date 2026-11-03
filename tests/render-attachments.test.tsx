@@ -56,7 +56,7 @@ describe("the composer's waiting files", () => {
 		assert.match(html, /data-testid="draft-pdf"[\s\S]*?title="Week 3 notes\.pdf"[^>]*>Week 3 notes\.pdf/, "a long name shows in full on hover");
 		assert.match(html, /aria-label="Remove graph\.png"/);
 		assert.match(html, /aria-label="Remove Week 3 notes\.pdf"/);
-		assert.ok(html.indexOf("attachment-tray") < html.indexOf("<textarea"), "the tray sits above the box");
+		assert.ok(html.indexOf("attachment-tray") < html.indexOf('data-testid="math-box"'), "the tray sits above the box");
 		assert.match(html, /data-testid="attach-button"[^>]*aria-label="Add pictures or PDFs"|aria-label="Add pictures or PDFs"[^>]*data-testid="attach-button"/);
 		assert.match(html, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.ok(!html.includes("attachment-note"), "no hold while idle");

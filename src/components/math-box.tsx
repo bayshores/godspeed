@@ -10,9 +10,9 @@ function keepKeysInBox(e: React.KeyboardEvent) {
 }
 
 /**
- * The writing box (thinking, answers): text where math formats as you
- * type. CodeMirror loads on mount, so server rendering shows the
- * placeholder.
+ * The writing box (thinking, answers, the lesson's message box): text
+ * where math formats as you type. CodeMirror loads on mount, so server
+ * rendering shows the placeholder.
  */
 export function MathBox({
 	value,
@@ -21,6 +21,8 @@ export function MathBox({
 	onFocus,
 	placeholder,
 	ariaLabel,
+	compact = false,
+	autoFocus = false,
 	ref,
 }: {
 	value: string;
@@ -30,6 +32,10 @@ export function MathBox({
 	onFocus?: () => void;
 	placeholder: string;
 	ariaLabel: string;
+	/** One line that grows (the side question row), its edge drawn by the row. */
+	compact?: boolean;
+	/** Focus once it loads. */
+	autoFocus?: boolean;
 	ref?: React.Ref<{ focus(): void }>;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
@@ -50,6 +56,7 @@ export function MathBox({
 				doc: latest.current.value,
 				placeholder,
 				ariaLabel,
+				compact,
 				onEnter: () => {
 					const action = latest.current.onEnter;
 					action?.();
@@ -60,6 +67,7 @@ export function MathBox({
 					latest.current.onChange(text);
 				},
 			});
+			if (autoFocus) handleRef.current.focus();
 			setReady(true);
 		});
 		return () => {
@@ -79,10 +87,10 @@ export function MathBox({
 			data-testid="math-box"
 			onKeyDown={keepKeysInBox}
 			onFocus={onFocus}
-			className={`lh-input relative flex min-h-28 w-full min-w-0 flex-1 flex-col overflow-hidden ${FIELD_EDGE}`}
+			className={`lh-input relative flex w-full min-w-0 flex-1 flex-col overflow-hidden ${compact ? "max-h-32 text-[14px]! leading-5! text-ink" : `min-h-28 ${FIELD_EDGE}`}`}
 		>
 			{!ready && (
-				<div aria-hidden className={value ? "whitespace-pre-wrap px-5 py-[18px]" : "px-5 py-[18px] text-ink-3"}>
+				<div aria-hidden className={`${compact ? "px-3.5 py-2.5" : "px-5 py-[18px]"} ${value ? "whitespace-pre-wrap" : "text-ink-3"}`}>
 					{value || placeholder}
 				</div>
 			)}

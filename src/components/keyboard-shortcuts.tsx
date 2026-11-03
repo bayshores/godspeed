@@ -1,8 +1,7 @@
 /**
  * Keyboard shortcuts — the single document-level keydown listener. Owns the pieces that belong to no surface in particular:
  *
- * - Tab moves focus as usual. Only the lesson's text fields take it over
- *   (field-cycle.ts), and an open modal dialog keeps it inside
+ * - Tab moves focus as usual; an open modal dialog keeps it inside
  *   (trapTabInDialog in focus-hygiene.ts).
  * - Esc is a layered dismiss: topmost popover first (popovers stopPropagation
  *   on their own Esc — usePopoverDismiss), then abort of an

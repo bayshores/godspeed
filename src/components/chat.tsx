@@ -7,7 +7,6 @@ import { useChatSession } from "@/components/session";
 import { visibleQueuedSteers } from "@/components/session-core";
 import { prefersReducedMotion, usePresence } from "@/components/presence";
 import { cn } from "@/lib/utils";
-import { useFieldCycle } from "@/components/field-cycle";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { JobsContext } from "@/components/jobs-context";
 import { ChatActionsContext } from "@/components/chat-actions-context";
@@ -324,18 +323,6 @@ export function Chat({
 	// Halley rests in the reading pane: Talking while the teacher writes,
 	// Thinking while the turn runs.
 	useHalleyLesson(status === "streaming", busy, draftHeld);
-	// Tab cycles the lesson's fields in visual order.
-	const cycleChatFields = useCallback((): readonly HTMLElement[] => {
-		const pick = (sel: string) => Array.from(document.querySelectorAll<HTMLElement>(sel));
-		return [
-			...pick('[data-testid="reading-thinking-field"] textarea'),
-			...pick('[data-testid="question-dock"] textarea'),
-			...pick('[data-testid="practice-dock"] textarea'),
-			...pick('[data-testid="composer"] textarea'),
-		];
-	}, []);
-	useFieldCycle(cycleChatFields);
-
 	const attachments = useAttachmentDraft(chatId);
 	const hasFiles = attachments.files.length > 0;
 

@@ -3,13 +3,15 @@ import { PlusIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
-import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, StopButton, ToneButton, fieldKeys } from "./panel-parts";
+import { ActionBar, PanelBody, PanelHeader, StopButton, ToneButton } from "./panel-parts";
+import { MathBox } from "@/components/math-box";
 import { TurnEyebrow } from "./turn-eyebrow";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
- * The Your-turn panel with no question waiting: a message box and Send.
- * While the teacher writes, the header says so with a Stop button (Esc also stops), and the bar turns gray:
+ * The Your-turn panel with no question waiting: a message box (the writing
+ * box, where math formats as you type) and Send.
+ * While the teacher writes, the header says so with a Stop button, and the bar turns gray:
  * "Send when ready". A message typed now steers the running turn and
  * shows as a queued line until it lands in the lesson.
  *
@@ -83,20 +85,16 @@ export function PanelComposer({
 					</div>
 				)}
 				<AttachmentTray draft={attachments} note={busy ? "Send pictures after the teacher finishes" : undefined} />
-				<textarea
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					onKeyDown={(e) => {
-						// Enter sends, Shift+Enter is a newline, ⌘/Ctrl+Enter sends too.
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey || !e.shiftKey)) {
-							e.preventDefault();
-							act();
-						}
-					}}
-					placeholder={next !== undefined ? "Ask anything, or go on to the next problem." : "Message the teacher…"}
-					aria-label="Message the teacher"
-					className={cn(PANEL_FIELD, busy ? "mt-4" : "mt-3")}
-				/>
+				<div className={cn("flex flex-1 flex-col", busy ? "mt-4" : "mt-3")}>
+					{/* Enter sends, Shift+Enter is a newline, ⌘/Ctrl+Enter sends too. */}
+					<MathBox
+						value={value}
+						onChange={onChange}
+						onEnter={act}
+						placeholder={next !== undefined ? "Ask anything, or go on to the next problem." : "Message the teacher…"}
+						ariaLabel="Message the teacher"
+					/>
+				</div>
 				{footer}
 			</PanelBody>
 			<div className="flex shrink-0">
@@ -159,23 +157,25 @@ export function SideQuestionBox({
 	return (
 		<div data-testid="side-question" className="shrink-0 px-6 pb-3" {...attachmentInputProps(attachments)}>
 			<AttachmentTray draft={attachments} />
-			<div className="mt-3 flex items-end bg-background has-[textarea:focus]:inset-ring has-[textarea:focus]:inset-ring-ink-2">
+			<div className="mt-3 flex items-end bg-background has-[.cm-focused]:inset-ring has-[.cm-focused]:inset-ring-ink-2">
 				<AttachButton draft={attachments} />
-				<textarea
-					rows={1}
-					value={value}
-					disabled={busy}
-					// Opened by the link: the learner is about to type.
-					autoFocus={opened}
-					onChange={(e) => onChange(e.target.value)}
-					onKeyDown={(e) => fieldKeys(e, send)}
-					onBlur={() => {
-						if (!value.trim()) setOpened(false);
+				<div
+					className="flex min-w-0 flex-1 flex-col self-stretch"
+					onBlur={(e) => {
+						if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !value.trim()) setOpened(false);
 					}}
-					placeholder="Ask the teacher something"
-					aria-label="Ask the teacher something"
-					className="lh-input field-sizing-content max-h-32 min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px]! leading-5! text-ink outline-none placeholder:text-ink-3 disabled:opacity-50"
-				/>
+				>
+					<MathBox
+						compact
+						value={value}
+						onChange={onChange}
+						onEnter={send}
+						// Opened by the link: the learner is about to type.
+						autoFocus={opened}
+						placeholder="Ask the teacher something"
+						ariaLabel="Ask the teacher something"
+					/>
+				</div>
 				<div className="p-2">
 					{busy ? (
 						<StopButton onStop={onStop} />

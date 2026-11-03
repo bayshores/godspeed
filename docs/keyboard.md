@@ -30,9 +30,7 @@ the keys.
 
 ## Rules
 
-- **Tab moves focus as usual**, through buttons and links too. In a
-  lesson's text fields Tab jumps to the next text field; from the last
-  one it moves on as usual (`src/components/field-cycle.ts`). An open
+- **Tab moves focus as usual**, through buttons and links too. An open
   question claims Tab from its rows (see below). An
   open modal dialog keeps Tab inside itself (`trapTabInDialog` in
   `src/components/focus-hygiene.ts`).
@@ -75,5 +73,4 @@ modifier held:
 - **Space** acts on the walked row like a click.
 - **Enter** submits once there is an answer.
 - **Tab** from the rows moves focus to the thinking field. From the
-  thinking field Tab moves on like in the other lesson fields, so it
-  reaches Submit.
+  thinking field Tab moves on as usual, so it reaches Submit.

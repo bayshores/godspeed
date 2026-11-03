@@ -237,6 +237,13 @@ const theme = EditorView.theme(
 	{ dark: true },
 );
 
+/** The one-line box under a waiting question (the side question): the
+ *  smaller type and padding of that row. */
+const compactTheme = EditorView.theme({
+	".cm-scroller": { fontSize: "14px", lineHeight: "20px" },
+	".cm-content": { padding: "10px 14px" },
+});
+
 export interface MathBoxHandle {
 	focus(): void;
 	setValue(text: string): void;
@@ -253,6 +260,7 @@ export function mountMathBox(
 		 *  right now, so it makes a newline. */
 		onEnter: () => boolean;
 		onChange: (text: string) => void;
+		compact?: boolean;
 	},
 ): MathBoxHandle {
 	const view = new EditorView({
@@ -290,6 +298,7 @@ export function mountMathBox(
 				EditorView.lineWrapping,
 				placeholder(opts.placeholder),
 				theme,
+				opts.compact ? Prec.highest(compactTheme) : [],
 				EditorView.contentAttributes.of({ "aria-label": opts.ariaLabel, "aria-multiline": "true" }),
 				EditorView.updateListener.of((u) => {
 					if (u.docChanged && !u.transactions.some((tr) => tr.annotation(fromOutside))) opts.onChange(u.state.doc.toString());
