@@ -9,18 +9,12 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, it } from "node:test";
-import { createFauxCore, fauxAssistantMessage, fauxText, fauxToolCall, type FauxResponseStep } from "@earendil-works/pi-ai";
-import type { PiEngine } from "../src/agent/models.ts";
+import { fauxAssistantMessage, fauxText, fauxToolCall } from "@earendil-works/pi-ai";
 import { runPdfReaderAgent } from "../src/agent/subagents/pdf-reader.ts";
 import type { HeadlessApi } from "../src/agent/subagents/headless.ts";
+import { fauxEngine } from "./faux-engine.ts";
 
 const FIXTURE = path.join(import.meta.dirname, "fixtures", "sample-3page.pdf");
-
-function fauxEngine(steps: FauxResponseStep[]): PiEngine {
-	const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });
-	faux.setResponses(steps);
-	return { model: faux.getModel(), streamFn: faux.streamSimple };
-}
 
 const PNG_1PX = Buffer.from([
 	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,

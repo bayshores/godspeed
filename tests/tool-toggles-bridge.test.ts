@@ -20,16 +20,8 @@ import type { ProberToolContext } from "../src/agent/tools.ts";
 import { jobStore } from "../src/store/jobs.ts";
 import { parseAgentSettingsBody } from "../src/server/settings-body.ts";
 import { chatStore } from "../src/store/chats.ts";
-import { createFauxCore } from "@earendil-works/pi-ai";
-import type { PiEngine } from "../src/agent/models.ts";
-
-/** A scripted pi engine — the agent builds need an injected engine since
- *  BYOK removed the factory pins. */
-function fauxEngine(): PiEngine {
-	const faux = createFauxCore({});
-	return { model: faux.getModel(), streamFn: faux.streamSimple };
-}
 import type { AgentSettings } from "../src/core/settings.ts";
+import { fauxEngine } from "./faux-engine.ts";
 // The agent engine loads on first use in the app; agent-building tests load it up front.
 await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 

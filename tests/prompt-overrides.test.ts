@@ -15,8 +15,7 @@ import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
-import { createFauxCore } from "@earendil-works/pi-ai";
-import type { PiEngine } from "../src/agent/models.ts";
+import { fauxEngine } from "./faux-engine.ts";
 // The agent engine loads on first use in the app; agent-building tests load it up front.
 await (await import("../src/agent/engine-load.ts")).loadAgentCore();
 
@@ -61,13 +60,6 @@ after(() => {
 	);
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
 });
-
-/** A scripted pi engine (pi-ai's faux provider) — the agent build needs an
- *  injected engine since BYOK removed the factory pins. */
-function fauxEngine(): PiEngine {
-	const faux = createFauxCore({});
-	return { model: faux.getModel(), streamFn: faux.streamSimple };
-}
 
 /** PUT /api/settings/prompts/<segment...> with a fabricated params context. */
 function putSegment(segment: string[], text: string): Promise<Response> {

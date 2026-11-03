@@ -21,8 +21,9 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import { after, describe, it } from "node:test";
-import { createFauxCore, fauxAssistantMessage, fauxToolCall, type FauxResponseStep, type ToolCall, type Usage } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxToolCall, type FauxResponseStep, type ToolCall, type Usage } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../src/agent/models.ts";
+import { fauxEngine } from "./faux-engine.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import { newPlanBlockMessage } from "../src/core/native-messages.ts";
 import type {
@@ -59,16 +60,6 @@ import { PATHS } from "../src/config.ts";
 // ─── fixtures ────────────────────────────────────────────────────────────────
 
 const createdChats: string[] = [];
-
-/** A scripted pi engine (faux provider, docs/archive/pi-engine-swap.md §7): the
- *  response queue replaces the old doGenerate turn counter. Usage is
- *  ESTIMATED by faux from the prompt/response text (deterministic, > 0) —
- *  the tests assert structure and positivity, not flat mock numbers. */
-function fauxEngine(steps: FauxResponseStep[]): PiEngine {
-	const faux = createFauxCore({});
-	faux.setResponses(steps);
-	return { model: faux.getModel(), streamFn: faux.streamSimple };
-}
 
 /** An in-memory GraphStore (core/ports.ts) — this suite never touches data/graph. */
 function memoryLedgers() {
