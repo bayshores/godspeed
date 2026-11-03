@@ -40,13 +40,34 @@ function readBase64(file: File): Promise<string> {
 	});
 }
 
-/** `kept`: files an earlier mount of the same box still held. */
-export function useAttachmentDraft(kept: readonly DraftFile[] = []): AttachmentDraft {
-	const [files, setFiles] = useState<DraftFile[]>(() => [...kept]);
+/** Waiting files by box, for this app run: leaving a lesson and coming back
+ *  keeps them. Never stored on disk (they can be large); a reload drops them. */
+const waitingFiles = new Map<string, DraftFile[]>();
+
+/** `key` names the box (a lesson's message box, a question, a problem), so
+ *  its files outlive the box's component. Without one they live and go with it. */
+export function useAttachmentDraft(key?: string): AttachmentDraft {
+	const [files, showFiles] = useState(() => (key && waitingFiles.get(key)) || []);
+	const filesRef = useRef(files);
 	const [error, setError] = useState<string | null>(null);
 	// Files still being read count toward the limit; a clear drops reads in flight.
-	const countRef = useRef(kept.length);
+	const countRef = useRef(files.length);
 	const generationRef = useRef(0);
+
+	// The store is written at once, so a send that settles after the box
+	// is gone (an answer) still clears or keeps its files.
+	const setFiles = useCallback(
+		(next: (prev: DraftFile[]) => DraftFile[]) => {
+			const value = next(filesRef.current);
+			filesRef.current = value;
+			if (key) {
+				if (value.length > 0) waitingFiles.set(key, value);
+				else waitingFiles.delete(key);
+			}
+			showFiles(value);
+		},
+		[key],
+	);
 
 	const add = useCallback((incoming: readonly File[]) => {
 		const { accepted, refusal } = pickAttachments(countRef.current, incoming);
@@ -71,26 +92,26 @@ export function useAttachmentDraft(kept: readonly DraftFile[] = []): AttachmentD
 			});
 			setFiles((prev) => [...prev, ...read]);
 		});
-	}, []);
+	}, [setFiles]);
 
 	const remove = useCallback((id: string) => {
 		countRef.current -= 1;
 		setFiles((prev) => prev.filter((f) => f.id !== id));
 		setError(null);
-	}, []);
+	}, [setFiles]);
 
 	const clear = useCallback(() => {
 		countRef.current = 0;
 		generationRef.current += 1;
-		setFiles([]);
+		setFiles(() => []);
 		setError(null);
-	}, []);
+	}, [setFiles]);
 
 	const restore = useCallback((back: readonly DraftFile[]) => {
 		const kept = back.slice(0, Math.max(0, MAX_ATTACHMENTS - countRef.current));
 		countRef.current += kept.length;
 		setFiles((prev) => [...kept, ...prev]);
-	}, []);
+	}, [setFiles]);
 
 	return useMemo(() => ({ files, error, add, remove, clear, restore }), [files, error, add, remove, clear, restore]);
 }

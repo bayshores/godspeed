@@ -17,10 +17,6 @@ import { useChatSession } from "@/components/session";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { pastLabel } from "./tour";
 
-/** The files waiting in the Talk box, kept for this app run (they are too
- *  big for storage, as in the lesson box). */
-let keptFiles: AttachmentDraft["files"] = [];
-
 interface TalkChat {
 	id: string;
 	messages: LhMessage[];
@@ -142,10 +138,7 @@ function TalkThread({
 			setText(saved);
 		}
 	}, [draftsLoaded]);
-	const attachments = useAttachmentDraft(keptFiles);
-	useEffect(() => {
-		keptFiles = attachments.files;
-	}, [attachments.files]);
+	const attachments = useAttachmentDraft(chat.id);
 	const [clearError, setClearError] = useState<string | null>(null);
 	const busy = session.status === "submitted" || session.status === "streaming";
 	const rows = talkRows(session.messages);

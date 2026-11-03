@@ -336,7 +336,7 @@ export function Chat({
 	}, []);
 	useFieldCycle(cycleChatFields);
 
-	const attachments = useAttachmentDraft();
+	const attachments = useAttachmentDraft(chatId);
 	const hasFiles = attachments.files.length > 0;
 
 	// A running turn never gates the box: Enter while busy STEERS it (text

@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { PanelComposer } from "../src/components/lesson/panel-composer.tsx";
 import { PracticeDock } from "../src/components/practice-dock.tsx";
 import { MessageRow } from "../src/components/lesson/message-row.tsx";
-import type { AttachmentDraft } from "../src/components/lesson/attachment-tray.tsx";
+import { useAttachmentDraft, type AttachmentDraft } from "../src/components/lesson/attachment-tray.tsx";
 import { HEIC_REFUSAL, newThinkingMessage, newUserMessage, pdfNote, projectView, type AttachmentPart } from "../src/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
@@ -79,6 +79,65 @@ describe("the composer's waiting files", () => {
 	it("the practice panel has the same picture button", () => {
 		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Solve it." }} onSubmit={async () => true} />);
 		assert.match(html, /data-testid="attach-button"/);
+	});
+});
+
+describe("waiting files outlive their box", () => {
+	// Node has no FileReader: read the file's bytes into a data URL.
+	class TestFileReader {
+		result: string | null = null;
+		error: Error | null = null;
+		onload: (() => void) | null = null;
+		onerror: (() => void) | null = null;
+		readAsDataURL(file: File) {
+			void file.arrayBuffer().then((b) => {
+				this.result = `data:${file.type};base64,${Buffer.from(b).toString("base64")}`;
+				this.onload?.();
+			});
+		}
+	}
+
+	async function mountDraft(key: string | undefined) {
+		const host = document.createElement("div");
+		const root = createRoot(host);
+		const box: { draft?: AttachmentDraft } = {};
+		function Box() {
+			box.draft = useAttachmentDraft(key);
+			return null;
+		}
+		await act(async () => root.render(<Box />));
+		return { box, unmount: () => act(async () => root.unmount()) };
+	}
+
+	it("a named box gets its files back after leaving and coming back, until they are sent; an unnamed box doesn't", async () => {
+		(globalThis as Record<string, unknown>).FileReader = TestFileReader;
+		try {
+			const first = await mountDraft("chat_1");
+			await act(async () => first.box.draft!.add([new File(["png"], "graph.png", { type: "image/png" })]));
+			assert.deepEqual(first.box.draft!.files.map((f) => f.attachment.name), ["graph.png"]);
+			await first.unmount();
+
+			const back = await mountDraft("chat_1");
+			assert.deepEqual(back.box.draft!.files.map((f) => f.attachment.name), ["graph.png"], "the lesson's files wait again");
+			const other = await mountDraft("chat_2");
+			assert.equal(other.box.draft!.files.length, 0, "another lesson has its own");
+			await other.unmount();
+			// A send that settles after the box is gone still clears the store.
+			await back.unmount();
+			await act(async () => back.box.draft!.clear());
+			const after = await mountDraft("chat_1");
+			assert.equal(after.box.draft!.files.length, 0);
+			await after.unmount();
+
+			const loose = await mountDraft(undefined);
+			await act(async () => loose.box.draft!.add([new File(["png"], "a.png", { type: "image/png" })]));
+			await loose.unmount();
+			const looseBack = await mountDraft(undefined);
+			assert.equal(looseBack.box.draft!.files.length, 0);
+			await looseBack.unmount();
+		} finally {
+			delete (globalThis as Record<string, unknown>).FileReader;
+		}
 	});
 });
 

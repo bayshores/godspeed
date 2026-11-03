@@ -64,7 +64,7 @@ export function PracticeDock({
 	const [thinking, setThinking] = useState(initialDraft);
 	// The ref mirrors the field: the window-level Enter reads the current trace.
 	const thinkingRef = useRef(initialDraft);
-	const attachments = useAttachmentDraft();
+	const attachments = useAttachmentDraft(problemCallId);
 	const empty = thinking.trim().length === 0 && attachments.files.length === 0;
 
 	const submit = () => {
