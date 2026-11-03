@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowUpIcon, GripVerticalIcon, PinIcon, PinOffIcon, RefreshCwIcon, ShrinkIcon, Trash2Icon } from "lucide-react";
 import type { CheatSheetBlock } from "@/core";
+import { fieldKeys } from "@/components/lesson/panel-parts";
 import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
 
@@ -63,13 +64,29 @@ export function BlockToolbar({
 }
 
 /** Beside the clicked block: why it says what it says, and a box to ask
- *  for a change to it. */
-export function AskPanel({ block, color, busy, onAsk }: { block: CheatSheetBlock; color: string; busy: boolean; onAsk: (text: string) => void }) {
+ *  for a change to it. Enter sends; the text stays until the request goes
+ *  through. */
+export function AskPanel({
+	block,
+	color,
+	busy,
+	onAsk,
+}: {
+	block: CheatSheetBlock;
+	color: string;
+	busy: boolean;
+	/** Resolves to the error line, or null once the request went through. */
+	onAsk: (text: string) => Promise<string | null>;
+}) {
 	const [text, setText] = useState("");
+	const [sending, setSending] = useState(false);
 	const send = () => {
-		if (!text.trim() || busy) return;
-		onAsk(text.trim());
-		setText("");
+		if (!text.trim() || busy || sending) return;
+		setSending(true);
+		void onAsk(text.trim()).then((error) => {
+			setSending(false);
+			if (!error) setText("");
+		});
 	};
 	return (
 		<div data-testid="block-ask" className="flex w-[245px] flex-col gap-3 bg-panel p-4 shadow-[0_4px_16px_#000000b3] outline outline-1 -outline-offset-1 outline-tone-2">
@@ -86,13 +103,14 @@ export function AskPanel({ block, color, busy, onAsk }: { block: CheatSheetBlock
 					maxLength={400}
 					placeholder="Ask for a change to this block"
 					onChange={(e) => setText(e.target.value)}
+					onKeyDown={(e) => fieldKeys(e, send)}
 					className="lh-input w-full resize-none border border-edge bg-background px-3 py-2.5 pr-11 text-[14px] text-ink placeholder:text-ink-3 focus:border-ink"
 				/>
 				<button
 					type="button"
 					aria-label="Send"
 					data-testid="block-ask-send"
-					disabled={!text.trim() || busy}
+					disabled={!text.trim() || busy || sending}
 					onClick={send}
 					className="lh-press absolute right-2 bottom-2.5 flex size-7 items-center justify-center bg-ink text-background hover:bg-ink-max disabled:opacity-40"
 				>

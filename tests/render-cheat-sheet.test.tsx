@@ -2,9 +2,10 @@
  * The cheat sheet's screens: the setup (where the rules came from, the
  * paper choices, what goes on it, Make), the studio's rail (rules, banned
  * kinds, the fixes when it runs long, the left-out topics) and a block's
- * lines with real KaTeX, and the top bar's status while a request runs or waits.
+ * lines with real KaTeX, the top bar's status while a request runs or
+ * waits, and the box that asks for a change to a block.
  */
-import React from "react";
+import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
@@ -20,6 +21,7 @@ const { SetupBody } = await import("../src/components/cheat-sheet/setup-dialog.t
 const { Rail } = await import("../src/components/cheat-sheet/rail.tsx");
 const { SheetLines } = await import("../src/components/cheat-sheet/paper.tsx");
 const { StudioStatus } = await import("../src/components/cheat-sheet/studio-states.tsx");
+const { AskPanel } = await import("../src/components/cheat-sheet/block-tools.tsx");
 
 const topics: SheetTopic[] = [
 	{ id: "a", name: "Counting", status: "weak", mistakes: 3 },
@@ -131,5 +133,45 @@ describe("a block's lines", () => {
 		assert.match(html, /•<\/span><span><span>one/);
 		assert.match(html, /2\.<\/span>/);
 		assert.match(html, /lh-sheet-display.*katex-display/);
+	});
+});
+
+describe("asking for a change to a block", () => {
+	const block = { id: "blk_1", topicId: "a", title: "Counting", body: "", reason: "Missed twice" };
+
+	async function mountAsk(onAsk: (text: string) => Promise<string | null>) {
+		Object.assign(globalThis, { Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, Node: dom.window.Node, IS_REACT_ACT_ENVIRONMENT: true });
+		const { createRoot } = await import("react-dom/client");
+		const host = document.createElement("div");
+		document.body.appendChild(host);
+		const root = createRoot(host);
+		await act(async () => root.render(<AskPanel block={block} color="red" busy={false} onAsk={onAsk} />));
+		const field = host.querySelector("textarea")!;
+		// The box's own handlers: linkedom's text field events don't reach React here.
+		const props = () => Object.entries(field).find(([k]) => k.startsWith("__reactProps"))![1] as { onChange: (e: unknown) => void; onKeyDown: (e: unknown) => void };
+		const type = (value: string) => act(async () => props().onChange({ target: { value } }));
+		const key = (k: string, shiftKey = false) =>
+			act(async () => props().onKeyDown({ key: k, shiftKey, metaKey: false, ctrlKey: false, preventDefault() {}, stopPropagation() {} }));
+		return { field, type, key, done: () => act(async () => root.unmount()) };
+	}
+
+	it("Enter sends, Shift+Enter doesn't; the text clears only once the request went through", async () => {
+		const asked: string[] = [];
+		let answer: string | null = "Couldn't reach the agent.";
+		const box = await mountAsk(async (text) => {
+			asked.push(text);
+			return answer;
+		});
+		await box.type("shorter please");
+		await box.key("Enter", true);
+		assert.deepEqual(asked, []);
+		await box.key("Enter");
+		assert.deepEqual(asked, ["shorter please"]);
+		assert.equal(box.field.value, "shorter please", "a failed request keeps the text");
+		answer = null;
+		await box.key("Enter");
+		assert.deepEqual(asked, ["shorter please", "shorter please"]);
+		assert.equal(box.field.value, "");
+		await box.done();
 	});
 });

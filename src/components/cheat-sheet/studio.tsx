@@ -108,7 +108,9 @@ function Studio({
 
 	const post = useCallback(
 		async (body: Record<string, unknown>) => {
-			setFailed(await act(body));
+			const error = await act(body);
+			setFailed(error);
+			return error;
 		},
 		[act],
 	);
@@ -249,7 +251,7 @@ function Studio({
 							))}
 							{block && spot && spot.column === 0 && (
 								<div className="absolute right-0" style={{ top: spot.y }} onClick={(e) => e.stopPropagation()}>
-									<AskPanel key={block.id} block={block} color={colorOf(block.topicId)} busy={!!run} onAsk={(text) => void post({ action: "change", how: "ask", blockIds: [block.id], text })} />
+									<AskPanel key={block.id} block={block} color={colorOf(block.topicId)} busy={!!run} onAsk={(text) => post({ action: "change", how: "ask", blockIds: [block.id], text })} />
 								</div>
 							)}
 						</div>
@@ -307,7 +309,7 @@ function Studio({
 							))}
 							{block && spot && spot.column > 0 && (
 								<div className="absolute left-0" style={{ top: spot.y }} onClick={(e) => e.stopPropagation()}>
-									<AskPanel key={block.id} block={block} color={colorOf(block.topicId)} busy={!!run} onAsk={(text) => void post({ action: "change", how: "ask", blockIds: [block.id], text })} />
+									<AskPanel key={block.id} block={block} color={colorOf(block.topicId)} busy={!!run} onAsk={(text) => post({ action: "change", how: "ask", blockIds: [block.id], text })} />
 								</div>
 							)}
 						</div>
