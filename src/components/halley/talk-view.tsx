@@ -207,7 +207,7 @@ function TalkThread({
 								onClick={() => action && onPick(action)}
 								className="lh-press flex w-full items-center gap-2 bg-tone px-3 py-2 text-left text-[13px] text-ink-2 enabled:hover:text-ink disabled:cursor-default"
 							>
-								<span className="min-w-0 flex-1 truncate">{pastLabel(row.change.label)}</span>
+								<span className="min-w-0 flex-1 truncate" title={pastLabel(row.change.label)}>{pastLabel(row.change.label)}</span>
 								{action && <ArrowRightIcon aria-hidden className="size-[13px] shrink-0 text-ink-3" />}
 							</button>
 						);

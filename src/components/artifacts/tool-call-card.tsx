@@ -69,7 +69,7 @@ export function ToolCallCard({ part }: ArtifactPartProps) {
 				<span className={`font-semibold ${failed ? "text-ans-wrong" : ""}`}>
 					{DONE_LABEL[tool] ?? tool}
 				</span>
-				{arg && <span className="truncate">{arg}</span>}
+				{arg && <span className="truncate" title={arg}>{arg}</span>}
 				<ChevronRight className="size-3 shrink-0 opacity-50 transition-transform group-open:rotate-90" />
 			</summary>
 			<div className="mt-2 space-y-2 border bg-card p-3 text-xs">

@@ -96,7 +96,7 @@ export function AnsweredCard({
 			{/* Thoughts noted while reading come before the question: their own
 			    block above the card. */}
 			{answer.readingThinking && (
-				<ThinkingBlock testId="reading-thinking-block" label="Your thinking" text={answer.readingThinking} defaultOpen />
+				<ThinkingBlock testId="reading-thinking-block" text={answer.readingThinking} defaultOpen />
 			)}
 			<div data-testid="answered-card" className="flex flex-col gap-2 bg-panel px-4 py-3.5 text-card-foreground">
 				<div className="flex items-center gap-2.5 text-[13px]">
@@ -208,7 +208,7 @@ export function AnsweredCard({
 									))}
 								</div>
 							)}
-							{thinking && <ThinkingBlock testId="your-thinking" label="Your thinking" text={thinking} inCard />}
+							{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
 							{isQuiz && answer.explanation && (
 								<div data-testid="tucked-explanation" className="bg-tone px-3 py-2 text-sm text-ink-2">
 									<ToolContentResponse className="[&>p:first-child]:mt-0">{answer.explanation}</ToolContentResponse>

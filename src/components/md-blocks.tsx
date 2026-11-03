@@ -38,6 +38,8 @@ import { blurAfterPointerClick } from "@/components/focus-hygiene";
 import { CopyButton } from "@/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/components/session-overlay";
 import { Hint } from "@/components/ui/hint";
+import { useAppearance } from "@/components/settings/appearance";
+import { wantsDarkText } from "@/core";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
 
@@ -173,6 +175,11 @@ function MermaidInline({ chart }: { chart: string }) {
 	);
 }
 
+/** On a light background, code tokens take the light theme's colors: the
+ *  page keeps its `dark` class there, so the dark theme's pale colors would
+ *  otherwise win and fade into the light code tint. */
+const LIGHT_TOKENS = "[&_[style*='--sdm-c']]:text-(--sdm-c)!";
+
 /** The Streamdown `code` override: inline code passes through with the
  *  house inline classes; block fences split — mermaid renders as the bare
  *  chart above, everything else delegates to streamdown's exported
@@ -182,6 +189,8 @@ function MermaidInline({ chart }: { chart: string }) {
  *  (data-streamdown="code-block"…). */
 function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const incomplete = useIsCodeFenceIncomplete();
+	const { background } = useAppearance().appearance;
+	const light = background !== null && wantsDarkText(background);
 	const { children, className, node, ...rest } = props;
 
 	// Inline code: no data-block (the pre handler stamps block fences only).
@@ -203,7 +212,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const startLine = startMatch ? Number.parseInt(startMatch[1]!, 10) : undefined;
 	const lineNumbers = !/\bnoLineNumbers\b/.test(meta);
 	return (
-		<div className="group/md relative" data-testid="md-code">
+		<div className={cn("group/md relative", light && LIGHT_TOKENS)} data-testid="md-code">
 			<CopyCorner className="absolute top-1.5 right-2 z-10" getText={() => source} label="Copy code" />
 			<CodeBlock
 				code={source}

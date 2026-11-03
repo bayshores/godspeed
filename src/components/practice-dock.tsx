@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { ActionBar, FieldLabel, HeaderChip, KindChip, PanelBody, PanelHeader } from "@/components/lesson/panel-parts";
+import { ActionBar, FieldLabel, HeaderChip, KindChip, PanelBody, PanelHeader, StopButton } from "@/components/lesson/panel-parts";
 import { TurnEyebrow } from "@/components/lesson/turn-eyebrow";
 import { MathBox } from "@/components/math-box";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
@@ -43,6 +43,8 @@ interface PracticeDockProps {
 	onSaveDraft?: (thinking: string) => void;
 	/** Opens the discard confirm. */
 	onDiscard?: () => void;
+	/** Stops the running turn (shown while it runs). */
+	onStop?: () => void;
 }
 
 export function PracticeDock({
@@ -57,6 +59,7 @@ export function PracticeDock({
 	initialDraft = "",
 	onSaveDraft,
 	onDiscard,
+	onStop,
 }: PracticeDockProps) {
 	const [thinking, setThinking] = useState(initialDraft);
 	// The ref mirrors the field: the window-level Enter reads the current trace.
@@ -102,8 +105,9 @@ export function PracticeDock({
 					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={onDiscard && { label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
+							{busy && onStop && <StopButton onStop={onStop} />}
 							<KindChip testId="problem-number">
-								<span className="text-[12.5px] font-bold text-ink-2">{number ? `Problem ${number}` : "Problem"}</span>
+								{number ? `Problem ${number}` : "Problem"}
 							</KindChip>
 						</HeaderChip>
 					}
@@ -116,7 +120,7 @@ export function PracticeDock({
 				>
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
-				<div data-testid="practice-thinking-field" className="mt-5 flex min-h-0 flex-1 flex-col">
+				<div data-testid="practice-thinking-field" className="mt-5 flex flex-1 flex-col">
 					<FieldLabel>Your thinking</FieldLabel>
 					<AttachmentTray draft={attachments} />
 					<MathBox

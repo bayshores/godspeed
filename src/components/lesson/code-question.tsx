@@ -118,7 +118,7 @@ export function CodeQuestion({
 					<span aria-hidden className={cn("size-6 shrink-0", dontKnow ? "bg-background" : "outline outline-1 -outline-offset-1 outline-tone-2")} />
 					<span className="text-[15px]">I don't know</span>
 				</button>
-				<div className="mt-[18px] flex min-h-0 flex-1 flex-col" data-testid="thinking-field">
+				<div className="mt-[18px] flex flex-1 flex-col" data-testid="thinking-field">
 					<FieldLabel>Your thinking</FieldLabel>
 					<MathBox
 						value={thinking}

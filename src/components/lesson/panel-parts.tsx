@@ -1,3 +1,4 @@
+import { SquareIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,6 +39,16 @@ export function ToneButton({ children, onClick, testId, disabled }: { children: 
 		>
 			{children}
 		</button>
+	);
+}
+
+/** Stops the running turn (Esc does too). */
+export function StopButton({ onStop }: { onStop: () => void }) {
+	return (
+		<ToneButton testId="stop-turn" onClick={onStop}>
+			<SquareIcon aria-hidden className="size-3" />
+			Stop
+		</ToneButton>
 	);
 }
 

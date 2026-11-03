@@ -108,9 +108,7 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          /* The heading register: the small mono caps of the card
-             eyebrows, matching YOUR THINKING, whose rail offsets it by
-             exactly the character difference. */
+          /* The heading register of the learner's "Your thinking" rows. */
           "flex w-full items-center gap-2 text-muted-foreground text-xs font-semibold transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground",
           className
         )}

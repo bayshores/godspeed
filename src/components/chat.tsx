@@ -99,12 +99,16 @@ export function Chat({
 	const [arrivalsLive, setArrivalsLive] = useState(false);
 	useEffect(() => setArrivalsLive(true), []);
 
-	// A new lesson with a topic sends its first message exactly once.
+	// A new lesson with a topic sends its first message exactly once. The
+	// topic then leaves the address, which a remount with the first render's
+	// props (a cached page, a code reload) checks, so it can't send it again.
 	const sentInitial = useRef(false);
 	useEffect(() => {
-		if (!sentInitial.current && initialPromptOwed(initialMessages, initialPrompt)) {
+		const inAddress = new URLSearchParams(window.location.search).has("prompt");
+		if (!sentInitial.current && inAddress && initialPromptOwed(initialMessages, initialPrompt)) {
 			sentInitial.current = true;
 			void send({ type: "text", text: initialPrompt! });
+			window.history.replaceState(null, "", window.location.pathname);
 		}
 	}, [initialPrompt, initialMessages, send]);
 

@@ -549,7 +549,7 @@ function QuestionDockForm({
 					</div>
 				)}
 
-				<div className="mt-[18px] flex min-h-0 flex-1 flex-col" data-testid={qd.mode === "text" ? "answer-field" : "thinking-field"}>
+				<div className="mt-[18px] flex flex-1 flex-col" data-testid={qd.mode === "text" ? "answer-field" : "thinking-field"}>
 					<FieldLabel>{qd.mode === "text" ? "Your answer" : "Your thinking"}</FieldLabel>
 					{qd.mode === "text" ? (
 						<MathBox

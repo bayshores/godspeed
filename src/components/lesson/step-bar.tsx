@@ -71,7 +71,7 @@ export const StepBar = memo(function StepBar({
 				<span data-testid="plan-step-count" className="shrink-0 font-mono text-[12.5px] text-ink-3 tabular-nums">
 					{position} / {steps.length}
 				</span>
-				<span className="min-w-0 truncate text-[13.5px] font-bold text-ink">{current?.title ?? "Plan"}</span>
+				<span className="min-w-0 truncate text-[13.5px] font-bold text-ink" title={current?.title}>{current?.title ?? "Plan"}</span>
 				<ChevronDownIcon aria-hidden className="size-3.5 shrink-0 text-ink-2" />
 			</button>
 		</div>

@@ -56,6 +56,14 @@ describe("PracticeDock", () => {
 		assert.match(html, />Send</);
 		assert.ok(!html.includes("practice-nudge") && !html.includes("practice-commit"), "the two-lane buttons are gone");
 		assert.ok(!html.includes("practice-dock-bar"), "no collapsed bar — the panel is always open");
+		assert.ok(!html.includes('data-testid="stop-turn"'), "no Stop while nothing runs");
+	});
+
+	it("while the teacher writes, the header has Stop", () => {
+		const html = renderToStaticMarkup(
+			<PracticeDock problemCallId="call_p1" input={{ statement: "x" }} onSubmit={async () => true} busy onStop={() => {}} />,
+		);
+		assert.match(html, /data-testid="stop-turn"/);
 	});
 
 	it("the header says who is writing while a turn runs, like the question dock", () => {
@@ -169,7 +177,7 @@ describe("the practice transcript cards", () => {
 
 	it("ThinkingCard: one label, right side, expanded arrival", () => {
 		const trace = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: false, text: "stuck at step two" }} />);
-		assert.match(trace, /YOUR THINKING/);
+		assert.match(trace, /Your thinking/);
 		// Transcript rows arrive EXPANDED (clearly conveyed as sent) as
 		// full-width card-color bands with the 6px rail (the document,
 		// all-in).
@@ -178,7 +186,7 @@ describe("the practice transcript cards", () => {
 		assert.ok(trace.includes("bg-card"), "the card-color band");
 		assert.ok(trace.includes("border-l-[calc(3ch-14px)]"), "narrow rail inside the 3ch inset");
 		const legacy = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: true, text: "It is 42." }} />);
-		assert.match(legacy, /YOUR THINKING/);
+		assert.match(legacy, /Your thinking/);
 		assert.doesNotMatch(legacy, /Your solution/);
 	});
 });

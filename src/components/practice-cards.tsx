@@ -294,5 +294,5 @@ export function ThinkingCard({ data }: { data: PracticeThinkingData }) {
 	// One style, one label: 50%-italic quote block. Old records' commit
 	// flag is deliberately unread (one lane). A transcript row: full-width
 	// band + rail, arriving expanded.
-	return <ThinkingBlock testId="thinking-card" label="YOUR THINKING" text={data.text} defaultOpen />;
+	return <ThinkingBlock testId="thinking-card" text={data.text} defaultOpen />;
 }

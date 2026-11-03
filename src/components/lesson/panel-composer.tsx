@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { PlusIcon, SquareIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { cn } from "@/lib/utils";
-import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, ToneButton, fieldKeys } from "./panel-parts";
+import { ActionBar, PANEL_FIELD, PanelBody, PanelHeader, StopButton, ToneButton, fieldKeys } from "./panel-parts";
 import { TurnEyebrow } from "./turn-eyebrow";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
@@ -113,16 +113,6 @@ export function PanelComposer({
 				</div>
 			</div>
 		</form>
-	);
-}
-
-/** Stops the running turn (Esc does too). */
-function StopButton({ onStop }: { onStop: () => void }) {
-	return (
-		<ToneButton testId="stop-turn" onClick={onStop}>
-			<SquareIcon aria-hidden className="size-3" />
-			Stop
-		</ToneButton>
 	);
 }
 
