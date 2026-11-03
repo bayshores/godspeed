@@ -199,7 +199,7 @@ export function HalleyPanel({
 									>
 										<span className="w-[58px] shrink-0 font-mono text-xs text-ink-3 tabular-nums">{actionTime(a.at)}</span>
 										<span className="flex min-w-0 flex-1 items-center gap-1.5">
-											<span className="truncate text-[13.5px] text-ink">{pastLabel(a.label)}</span>
+											<span className="truncate text-[13.5px] text-ink" title={pastLabel(a.label)}>{pastLabel(a.label)}</span>
 											{cls && <span className="shrink-0 text-[12.5px] text-ink-3">{cls}</span>}
 										</span>
 										{canGo && <ArrowRightIcon aria-hidden className="size-[13px] shrink-0 text-ink-3" />}
