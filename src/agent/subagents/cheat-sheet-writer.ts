@@ -32,7 +32,7 @@ import {
 } from "../../core/cheat-sheet.ts";
 import { runSubmitAgent } from "./submit-agent.ts";
 
-export const CHEAT_SHEET_INSTRUCTIONS = `You write a student's cheat sheet: the notes their class lets them bring into one exam. You get the class's rules, the student's choices, the page budget, the topics with how well the student knows each, and the mistakes they made in practice. Submit with one write_cheat_sheet call.
+const CHEAT_SHEET_INSTRUCTIONS = `You write a student's cheat sheet: the notes their class lets them bring into one exam. You get the class's rules, the student's choices, the page budget, the topics with how well the student knows each, and the mistakes they made in practice. Submit with one write_cheat_sheet call.
 
 - One block per listed topic. When mistakes are listed, also a Watch out block (topic_id "${WATCH_OUT}"): one line per mistake, the right method next to the slip.
 - Room follows need: weak topics and mistakes get the most, shaky topics are short, untested topics only the key formulas and definitions. Keep each block near its line budget.
@@ -42,7 +42,7 @@ export const CHEAT_SHEET_INSTRUCTIONS = `You write a student's cheat sheet: the 
 - title: the topic's name, or "Watch out". reason: 2 to 5 words the student sees beside the block, from the data ("Missed twice", "Shaky", "Not tested yet", "Needed a hint"). why: one sentence on what the block focuses on and why. Plain words, no em-dashes.
 - Asked to change blocks: return only those, each with its block_id.`;
 
-export const CHEAT_SHEET_RULES_INSTRUCTIONS = `You find a class's cheat sheet rules for one exam in the class's own files: whether a sheet of notes is allowed, the paper (letter one side, letter both sides, a 3 × 5 index card, A4), handwritten or printed, and anything not allowed on it. Search with search_class_files, open what you need with read_passage, then submit once with set_cheat_sheet_rules. Report only what the files say; found is false when they say nothing. source: the file name and page, like "Syllabus.pdf, page 3".`;
+const CHEAT_SHEET_RULES_INSTRUCTIONS = `You find a class's cheat sheet rules for one exam in the class's own files: whether a sheet of notes is allowed, the paper (letter one side, letter both sides, a 3 × 5 index card, A4), handwritten or printed, and anything not allowed on it. Search with search_class_files, open what you need with read_passage, then submit once with set_cheat_sheet_rules. Report only what the files say; found is false when they say nothing. source: the file name and page, like "Syllabus.pdf, page 3".`;
 
 const blockSchema = Type.Object({
 	block_id: Type.Optional(Type.String({ description: "When changing a block: its id." })),
@@ -88,6 +88,8 @@ interface SheetRequest {
 	linesPerColumn: number;
 	topics: RequestTopic[];
 	mistakes: readonly SheetMistake[];
+	/** Every topic of the deadline by id (a mistake names its topic). */
+	topicNames: ReadonlyMap<string, string>;
 	engine: PiEngine | undefined;
 	signal?: AbortSignal;
 }
@@ -117,7 +119,7 @@ function sheetHeader(r: SheetRequest): string {
 
 function topicLines(t: RequestTopic): string {
 	const facts = t.facts.map((f) => `  - ${f.name}: ${oneLine(f.statement, 140)}`);
-	return [`${t.id} | ${t.name} | ${STATUS_WORDS[t.status]}${t.mistakes > 0 ? `, ${t.mistakes} mistakes` : ""} | about ${t.lines} lines`, ...facts].join("\n");
+	return [`${t.id} | ${t.name} | ${STATUS_WORDS[t.status]}${t.mistakes > 0 ? `, ${t.mistakes} ${t.mistakes === 1 ? "mistake" : "mistakes"}` : ""} | about ${t.lines} lines`, ...facts].join("\n");
 }
 
 function mistakeLines(mistakes: readonly SheetMistake[], names: ReadonlyMap<string, string>): string {
@@ -125,20 +127,18 @@ function mistakeLines(mistakes: readonly SheetMistake[], names: ReadonlyMap<stri
 }
 
 /** The request for a whole sheet. */
-export function sheetPrompt(r: SheetRequest, watchOutLines: number): string {
-	const names = new Map(r.topics.map((t) => [t.id, t.name]));
+function sheetPrompt(r: SheetRequest, watchOutLines: number): string {
 	return [
 		sheetHeader(r),
 		`Topics (id | name | how the student does | budget), with some of the class's facts:\n${r.topics.map(topicLines).join("\n")}`,
-		r.mistakes.length > 0 && r.content.includes("mistakes") ? `Mistakes for the Watch out block (about ${watchOutLines} lines):\n${mistakeLines(r.mistakes, names)}` : "",
+		r.mistakes.length > 0 && r.content.includes("mistakes") ? `Mistakes for the Watch out block (about ${watchOutLines} lines):\n${mistakeLines(r.mistakes, r.topicNames)}` : "",
 	]
 		.filter(Boolean)
 		.join("\n\n");
 }
 
 /** The request for one to three blocks: tighten, redo, the learner's own words, or a topic added back. */
-export function changePrompt(r: SheetRequest, change: BlockChange): string {
-	const names = new Map(r.topics.map((t) => [t.id, t.name]));
+function changePrompt(r: SheetRequest, change: BlockChange): string {
 	const how =
 		change.how === "tighten"
 			? "Make each shorter: the same key facts in fewer lines, about two thirds of its length. Cut words, keep the formulas."
@@ -152,7 +152,7 @@ export function changePrompt(r: SheetRequest, change: BlockChange): string {
 	return [
 		sheetHeader(r),
 		`Topics:\n${topics.map(topicLines).join("\n")}`,
-		change.blocks.some((b) => b.topicId === WATCH_OUT) && r.mistakes.length > 0 ? `Mistakes:\n${mistakeLines(r.mistakes, names)}` : "",
+		change.blocks.some((b) => b.topicId === WATCH_OUT) && r.mistakes.length > 0 ? `Mistakes:\n${mistakeLines(r.mistakes, r.topicNames)}` : "",
 		change.how === "add" ? `Add topic_id ${change.topicId}.` : `Change ${change.blocks.length === 1 ? "this block" : "these blocks"}. ${how}\n\n${blocks}`,
 		change.how === "add" ? how : "",
 	]
@@ -230,7 +230,7 @@ export async function changeBlocks(r: SheetRequest, change: BlockChange): Promis
 }
 
 /** What the agent found about the rules (found false = nothing). */
-export type FoundRules = { found: false } | { found: true; rules: Partial<CheatSheetRules> };
+type FoundRules = { found: false } | { found: true; rules: Partial<CheatSheetRules> };
 
 /** Search the class's files for the cheat sheet rules. */
 export async function readRules(input: {

@@ -18,7 +18,7 @@ export type CheatSheetPaper = "letter" | "letter-both" | "index-card" | "a4";
 
 export const CHEAT_SHEET_PAPERS: readonly CheatSheetPaper[] = ["letter", "letter-both", "index-card", "a4"];
 
-export interface PaperSize {
+interface PaperSize {
 	label: string;
 	/** The size as the learner knows it ("8.5 × 11 in"). */
 	size: string;
@@ -53,8 +53,8 @@ export interface CheatSheetRules {
 }
 
 /** Longest banned item and most of them. */
-export const BANNED_MAX_CHARS = 60;
-export const BANNED_MAX = 8;
+const BANNED_MAX_CHARS = 60;
+const BANNED_MAX = 8;
 
 // ─── preferences ────────────────────────────────────────────────────────────
 
@@ -337,7 +337,7 @@ export function leftOutTopics(topics: readonly SheetTopic[], blocks: readonly Pi
 }
 
 /** One line of the setup's "What goes on it", with its ramp color. */
-export interface PlanLine {
+interface PlanLine {
 	status: TopicStatus;
 	text: string;
 }

@@ -124,7 +124,7 @@ describe("cheat sheets", () => {
 		assert.match(prompt, /About the class: Discrete math/);
 		assert.match(prompt, /On it: formulas, your mistakes\n/, "examples are banned");
 		assert.match(prompt, /Not allowed: Worked examples/);
-		assert.match(prompt, /tpc_count \| Counting \| weak, 1 mistakes \| about \d+ lines\n {2}- Permutations: P\(n,k\)/);
+		assert.match(prompt, /tpc_count \| Counting \| weak, 1 mistake \| about \d+ lines\n {2}- Permutations: P\(n,k\)/);
 		assert.match(prompt, /answered wrong \(Counting\): "How many 5-letter strings use each letter once\?"/);
 		assert.doesNotMatch(prompt, /tpc_sum/, "a strong topic stays off");
 		assert.equal(prompts.length, 2, "an unknown topic id is sent back once");

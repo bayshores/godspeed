@@ -181,11 +181,14 @@ function engine(): PiEngine {
 	return cheatSheetSeams.engine ?? agentEngine();
 }
 
-/** The request's shared part: rules, choices, budgets, topics with facts. */
+/** The request's shared part: rules, choices, budgets, topics with facts.
+ *  Budgets share the page among every topic on it, also when only some
+ *  blocks are asked for. */
 function request(ctx: Context, sheet: CheatSheet, topics: readonly SheetTopic[], signal: AbortSignal) {
 	const content = sheetContent(sheet);
 	const mistakes = content.includes("mistakes") ? ctx.mistakes : [];
-	const budgets = lineBudgets(sheetLines(sheet), topics, mistakes.length);
+	const on = sheetTopics(ctx.topics).on;
+	const budgets = lineBudgets(sheetLines(sheet), [...on, ...topics.filter((t) => !on.includes(t))], mistakes.length);
 	const withFacts: RequestTopic[] = topics.map((t) => ({
 		...t,
 		lines: budgets.get(t.id) ?? 2,
@@ -205,6 +208,7 @@ function request(ctx: Context, sheet: CheatSheet, topics: readonly SheetTopic[],
 			linesPerColumn: linesPerColumn(sheet),
 			topics: withFacts,
 			mistakes,
+			topicNames: new Map(ctx.topics.map((t) => [t.id, t.name])),
 			engine: engine(),
 			signal,
 		},
