@@ -29,6 +29,7 @@ import {
 	type SheetTopic,
 } from "../src/core/cheat-sheet.ts";
 import { fitFixes, fitLabel, overflowLines, packBlocks, stackNotes } from "../src/core/cheat-sheet-fit.ts";
+import { sheetText } from "../src/core/sheet-text.ts";
 
 const topic = (id: string, status: SheetTopic["status"], mistakes = 0): SheetTopic => ({ id, name: id[0]!.toUpperCase() + id.slice(1), status, mistakes });
 const block = (id: string, topicId: string, pinned = false): CheatSheetBlock => ({ id, topicId, title: id, body: "x", reason: "r", ...(pinned ? { pinned: true as const } : {}) });
@@ -178,5 +179,23 @@ describe("cheat sheet: the fit", () => {
 
 	it("stacks margin notes so none overlaps", () => {
 		assert.deepEqual(stackNotes([{ id: "a", y: 0 }, { id: "c", y: 50 }, { id: "b", y: 10 }], 20).map((n) => [n.id, n.y]), [["a", 0], ["b", 20], ["c", 50]]);
+	});
+});
+
+describe("cheat sheet: a block's text", () => {
+	it("splits lines into text, bold, inline math, bullets and steps", () => {
+		assert.deepEqual(sheetText("**Bayes:** $P(A)$ and \\(B\\)\n\n- one\n2) two"), [
+			{ kind: "text", pieces: [{ kind: "text", text: "Bayes:", bold: true }, { kind: "text", text: " " }, { kind: "math", tex: "P(A)" }, { kind: "text", text: " and " }, { kind: "math", tex: "B" }] },
+			{ kind: "bullet", pieces: [{ kind: "text", text: "one" }] },
+			{ kind: "step", marker: "2)", pieces: [{ kind: "text", text: "two" }] },
+		]);
+	});
+
+	it("reads display math on one line or over several", () => {
+		assert.deepEqual(sheetText("$$x^2$$\n\\[\n\\sum_k k\n\\]\nafter"), [
+			{ kind: "display", tex: "x^2" },
+			{ kind: "display", tex: "\\sum_k k" },
+			{ kind: "text", pieces: [{ kind: "text", text: "after" }] },
+		]);
 	});
 });
