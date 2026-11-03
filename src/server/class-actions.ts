@@ -73,6 +73,8 @@ function classView(classId: string, withFiles = false) {
 			...(d.time !== undefined ? { time: d.time } : {}),
 			done: d.done,
 			files: d.fileIds.map((id) => ({ id, name: record.files.find((f) => f.id === id)?.name ?? id })),
+			...(d.leftOutIds ? { leftOut: d.leftOutIds.map((id) => ({ id, name: record.files.find((f) => f.id === id)?.name ?? id })) } : {}),
+			...(d.source ? { source: d.source } : {}),
 		})),
 		lessons: stores.chatStore
 			.listChats()
@@ -191,8 +193,16 @@ export function classActions(caller: string | undefined): ClassActions {
 			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const added: ClassDeadline[] = [];
 			const refused: { name: string; error: string }[] = [];
-			for (const { kind, name, date, time, file_ids } of deadlines) {
-				const outcome = addClassDeadline(class_id, { kind, name, date, ...(time !== undefined ? { time } : {}), ...(file_ids ? { fileIds: file_ids } : {}) });
+			for (const { kind, name, date, time, file_ids, left_out_ids, source } of deadlines) {
+				const outcome = addClassDeadline(class_id, {
+					kind,
+					name,
+					date,
+					...(time !== undefined ? { time } : {}),
+					...(file_ids ? { fileIds: file_ids } : {}),
+					...(left_out_ids ? { leftOutIds: left_out_ids } : {}),
+					...(source !== undefined ? { source } : {}),
+				});
 				if (!outcome.ok) refused.push({ name, error: outcome.error });
 				else added.push(outcome.value);
 			}
@@ -203,17 +213,19 @@ export function classActions(caller: string | undefined): ClassActions {
 			);
 		},
 
-		update_class_deadline({ class_id, deadline_id, kind, name, date, time, file_ids, done: isDone }) {
+		update_class_deadline({ class_id, deadline_id, kind, name, date, time, file_ids, left_out_ids, source, done: isDone }) {
 			const outcome = updateClassDeadline(class_id, deadline_id, {
 				...(kind !== undefined ? { kind } : {}),
 				...(name !== undefined ? { name } : {}),
 				...(date !== undefined ? { date } : {}),
 				...(time !== undefined ? { time } : {}),
 				...(file_ids !== undefined ? { fileIds: file_ids } : {}),
+				...(left_out_ids !== undefined ? { leftOutIds: left_out_ids } : {}),
+				...(source !== undefined ? { source } : {}),
 				...(isDone !== undefined ? { done: isDone } : {}),
 			});
 			if (!outcome.ok) return outcome;
-			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && isDone === undefined;
+			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && left_out_ids === undefined && source === undefined && isDone === undefined;
 			const label =
 				isDone === true
 					? `Marking ${outcome.value.name} done`

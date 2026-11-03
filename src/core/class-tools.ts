@@ -35,7 +35,7 @@ export interface ClassActions {
 	set_class_file_kind(args: { class_id: string; file_ids: string[]; kind: FileKind }): ToolOutcome;
 	add_class_deadline(args: {
 		class_id: string;
-		deadlines: { kind: DeadlineKind; name: string; date: string; time?: string; file_ids?: string[] }[];
+		deadlines: { kind: DeadlineKind; name: string; date: string; time?: string; file_ids?: string[]; left_out_ids?: string[]; source?: string }[];
 	}): ToolOutcome;
 	update_class_deadline(args: {
 		class_id: string;
@@ -45,6 +45,8 @@ export interface ClassActions {
 		date?: string;
 		time?: string | null;
 		file_ids?: string[];
+		left_out_ids?: string[];
+		source?: string | null;
 		done?: boolean;
 	}): ToolOutcome;
 	remove_class_deadline(args: { class_id: string; deadline_id: string }): ToolOutcome;
@@ -70,9 +72,9 @@ export const CLASS_TOOL_TEXT: Record<ClassToolName, string> = {
 	set_class_file_kind:
 		"Switch one or more class files between study material and course info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
 	add_class_deadline:
-		"Add one or more deadlines to a class (send all of a syllabus's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times, and the covered lectures from the syllabus or course info; file ids come from read_class with files: true. If a date, a time or the covered files aren't clear, ask the learner instead of guessing. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
+		"Add one or more deadlines to a class (send all of a syllabus's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the syllabus or course info, and never make up a date or time. Work out what a deadline covers from the class's own files first: a practice exam or review sheet, the syllabus schedule, announcements (search_class_files). Link the lectures they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_class with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
 	update_class_deadline:
-		"Change a deadline's kind, name, date, time or covered files, or tick it done (done: true) or not done (done: false). file_ids replaces the whole list; time: null removes the time. Ask the learner instead of guessing when a change isn't clear.",
+		"Change a deadline's kind, name, date, time, covered files, left-out files or source, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null and source: null remove them. Work out coverage from the class's own files as add_class_deadline says; ask the learner when the files don't settle it.",
 	remove_class_deadline: "Remove one deadline from a class (its files and facts are not touched).",
 	link_class_folder:
 		"Link a folder on this computer to a class. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and course info itself while reading them, and never changes the folder. Use set_class_file_kind only to correct a kind.",
@@ -101,6 +103,8 @@ export const CLASS_ARG_TEXT = {
 	date: "The due day as YYYY-MM-DD.",
 	time: 'The due time as 24-hour "HH:MM" on this computer\'s clock. Leave it out when there is none (it then counts as due at the end of the day).',
 	coveredFiles: "Ids of the class files it covers.",
+	leftOutFiles: "Ids of class files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing.",
+	source: "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
 	newTime: '24-hour "HH:MM", or null to remove the time.',
 } as const;
 

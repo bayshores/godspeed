@@ -162,15 +162,19 @@ export interface DeadlineInit {
 	date: string;
 	time?: string;
 	fileIds?: string[];
+	leftOutIds?: string[];
+	source?: string;
 }
 
-/** A deadline change. `time: null` clears the time. */
+/** A deadline change. `time: null` and `source: null` clear them. */
 export interface DeadlinePatch {
 	kind?: DeadlineKind;
 	name?: string;
 	date?: string;
 	time?: string | null;
 	fileIds?: string[];
+	leftOutIds?: string[];
+	source?: string | null;
 	done?: boolean;
 }
 

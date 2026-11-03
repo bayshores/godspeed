@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilIcon } from "lucide-react";
-import { planDays, type TopicProgress } from "@/core";
+import { DEFAULT_TEACHER_NAME, planDays, type TopicProgress } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
 import { dueLabel } from "@/components/class-deadlines-model";
 import { useMinute } from "@/components/countdown";
 import { useClassRecord } from "@/components/files/class-files-api";
+import { useHalley } from "@/components/halley/halley-provider";
 import { practicePicks, practiceTitle } from "@/components/graph/practice";
 import { askTeacher } from "@/components/halley/ask-teacher";
 import { useLessonStart } from "@/components/home/use-lesson-start";
@@ -17,7 +18,7 @@ import { LoadFailed } from "@/components/load-failed";
 import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
 import { DeadlineBody } from "./deadline-body";
-import { deadlineMaterial, syllabusCheckMessage } from "./deadline-model";
+import { coverageMessage, deadlineMaterial } from "./deadline-model";
 
 /**
  * A deadline's page, opened from its ring on the Overview or its row in
@@ -38,7 +39,10 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 	}, [active, classId, joined, setActive, router]);
 
 	const { data, error, refresh } = useProgress();
-	const { record } = useClassRecord(classId);
+	const { record, reload } = useClassRecord(classId);
+	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const [saving, setSaving] = useState(false);
+	const [saveError, setSaveError] = useState<string | null>(null);
 	const nowMs = useMinute();
 	const lesson = useLessonStart();
 	// "class": Edit class as it opens anywhere; "deadline": with this deadline's row open.
@@ -46,9 +50,36 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 
 	const current = data && data.classId === classId ? data : null;
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
+	const saved = record?.deadlines?.find((d) => d.id === deadlineId) ?? null;
 	const material = useMemo(
-		() => (record && deadline ? deadlineMaterial(record.files, deadline.files.map((f) => f.id), current?.files ?? []) : null),
-		[record, deadline, current?.files],
+		() => (record && saved ? deadlineMaterial(record.files, saved, record.deadlines ?? [], current?.files ?? []) : null),
+		[record, saved, current?.files],
+	);
+	// Add puts files on the deadline; Leave out marks them as not on it.
+	const saveFiles = useCallback(
+		async (fileIds: string[], add: boolean) => {
+			if (!saved) return;
+			const ids = new Set(fileIds);
+			const patch = add
+				? { fileIds: [...saved.fileIds, ...fileIds.filter((id) => !saved.fileIds.includes(id))], leftOutIds: (saved.leftOutIds ?? []).filter((id) => !ids.has(id)) }
+				: { leftOutIds: [...(saved.leftOutIds ?? []), ...fileIds] };
+			setSaving(true);
+			setSaveError(null);
+			try {
+				const res = await fetch(`/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}`, {
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(patch),
+				});
+				if (!res.ok) throw new Error();
+				await Promise.all([reload(), refresh()]);
+			} catch {
+				setSaveError("Couldn't save that. Try again.");
+			} finally {
+				setSaving(false);
+			}
+		},
+		[saved, classId, deadlineId, reload, refresh],
 	);
 	const plan = useMemo(() => (current && deadline ? planDays(current.today, deadline.date, deadline.topics) : []), [current, deadline]);
 
@@ -59,8 +90,8 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		const topics = ids.map((id) => current.topics.find((t) => t.id === id)).filter((t): t is TopicProgress => !!t);
 		if (topics.length > 0) void start({ title: practiceTitle(topics), kind: "practice", picks: practicePicks(topics, current.facts) });
 	}, [current, deadline, plan, start]);
-	const onCheckSyllabus = useCallback(() => {
-		if (deadline) askTeacher(syllabusCheckMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
+	const onAsk = useCallback(() => {
+		if (deadline) askTeacher(coverageMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
 	}, [deadline, activeClass?.name]);
 
 	const editMode = useMemo(
@@ -102,10 +133,15 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						plan={plan}
 						nowMs={nowMs}
 						busy={lesson.busy}
-						startError={lesson.error}
+						startError={lesson.error ?? saveError}
 						onStart={onStart}
 						onEditClass={() => setEditing("deadline")}
-						onCheckSyllabus={onCheckSyllabus}
+						source={saved?.source}
+						teacherName={teacherName}
+						saving={saving}
+						onAsk={onAsk}
+						onAdd={(ids) => void saveFiles(ids, true)}
+						onLeaveOut={(ids) => void saveFiles(ids, false)}
 					/>
 				) : error ? (
 					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} className="px-[52px] py-6" />

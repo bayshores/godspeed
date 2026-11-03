@@ -670,6 +670,8 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 						date: z.string().describe(CLASS_ARG_TEXT.date),
 						time: z.string().optional().describe(CLASS_ARG_TEXT.time),
 						file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
+						left_out_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.leftOutFiles),
+						source: z.string().optional().describe(CLASS_ARG_TEXT.source),
 					}),
 				)
 				.min(1),
@@ -681,7 +683,9 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 			name: z.string().min(1).optional(),
 			date: z.string().optional().describe("YYYY-MM-DD."),
 			time: z.string().nullable().optional().describe(CLASS_ARG_TEXT.newTime),
-			file_ids: z.array(z.string()).optional(),
+			file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
+			left_out_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.leftOutFiles),
+			source: z.string().nullable().optional().describe(CLASS_ARG_TEXT.source),
 			done: z.boolean().optional(),
 		}), annotations: SETS }, async (args) => reply(await actions.update_class_deadline(args)));
 	server.registerTool("remove_class_deadline", { title: "Remove a class deadline", description: CLASS_TOOL_TEXT.remove_class_deadline, inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_class_deadline(args)));

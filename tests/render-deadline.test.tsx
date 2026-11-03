@@ -1,9 +1,9 @@
 /**
  * A deadline's page body: the name, when and countdown with the ready ring,
- * the topic strip and its counts, Material (series slots with missing
- * numbers, loose files, the read and course-info lines, Add files and
- * Check with the syllabus) and the path with Start, plus the done, past,
- * due-today, no-files and nothing-to-plan states.
+ * the topic strip and its counts, What's on it (class days by week, the
+ * days before it that it doesn't cover with Add and Leave out, the source,
+ * Add files and Ask) and the path with Start, plus the done, past,
+ * due-today, nothing-linked and nothing-to-plan states.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -39,7 +39,7 @@ function deadline(over: Partial<DeadlineProgress> = {}): DeadlineProgress {
 		time: "19:00",
 		done: false,
 		daysUntil: 4,
-		files: [{ id: "d1", name: "Day1.pdf" }, { id: "d3", name: "Day3.pdf" }, { id: "syl", name: "syllabus.txt" }],
+		files: [{ id: "d1", name: "2026-10-26 Day1.pdf" }, { id: "d3", name: "2026-10-28 Day3.pdf" }, { id: "syl", name: "syllabus.txt" }],
 		topicIds: TOPICS.map((t) => t.id),
 		counts: { strong: 1, shaky: 1, weak: 1, untested: 1 },
 		workOnNext: [],
@@ -50,13 +50,15 @@ function deadline(over: Partial<DeadlineProgress> = {}): DeadlineProgress {
 }
 
 const RECORD_FILES = [
-	{ id: "d1", name: "Day1.pdf", kind: "study" as const, status: "ready" as const },
-	{ id: "d3", name: "Day3.pdf", kind: "study" as const, status: "extracting" as const },
+	{ id: "d1", name: "2026-10-26 Counting (lecture slides).pdf", kind: "study" as const, status: "ready" as const },
+	{ id: "d2", name: "2026-10-27 Pigeonhole (lecture slides).pdf", kind: "study" as const, status: "ready" as const },
+	{ id: "d3", name: "2026-10-28 Stars and bars (lecture slides).pdf", kind: "study" as const, status: "extracting" as const },
 	{ id: "syl", name: "syllabus.txt", kind: "info" as const, status: "ready" as const },
 ];
 
-function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentProps<typeof DeadlineBody>> = {}) {
-	const material = deadlineMaterial(RECORD_FILES, d.files.map((f) => f.id), [{ fileId: "d1", facts: 12 }]);
+function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentProps<typeof DeadlineBody>> = {}, leftOut: string[] = []) {
+	const saved = { id: d.id, kind: d.kind, date: d.date, fileIds: d.files.map((f) => f.id), ...(leftOut.length ? { leftOutIds: leftOut } : {}) };
+	const material = deadlineMaterial(RECORD_FILES, saved, [saved], [{ fileId: "d1", facts: 12 }]);
 	return renderToStaticMarkup(
 		<DeadlineBody
 			deadline={d}
@@ -68,7 +70,12 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 			startError={null}
 			onStart={() => {}}
 			onEditClass={() => {}}
-			onCheckSyllabus={() => {}}
+			source="Midterm practice exam.pdf"
+			teacherName="marco"
+			saving={false}
+			onAsk={() => {}}
+			onAdd={() => {}}
+			onLeaveOut={() => {}}
 			{...over}
 		/>,
 	);
@@ -88,14 +95,23 @@ describe("the deadline page", () => {
 		assert.equal(count(html, 'data-testid="deadline-topic"'), 4);
 		assert.match(html, /deadline-count-untested.*>1<\/span> not tested/);
 	});
-	it("material: slots per number, the gap marked missing, the reading and course info lines", () => {
+	it("what's on it: class days by week, the source, the day before it that's missing with Add and Leave out", () => {
 		const html = render();
-		assert.deepEqual([...html.matchAll(/data-testid="deadline-slot" data-state="(\w+)"/g)].map((m) => m[1]), ["ready", "missing", "reading"]);
-		assert.match(html, /\w+ \d+ looks missing, 1 still being read\./);
-		assert.match(html, /1 of 2 study files read, 12 facts so far\./);
-		assert.match(html, /1 course info file: the teacher can read it, but it makes no facts\./);
+		assert.equal(count(html, 'data-testid="deadline-week"'), 1);
+		assert.deepEqual([...html.matchAll(/data-testid="deadline-day-row" data-state="(\w+)"/g)].map((m) => m[1]), ["ready", "reading", "info", "open"]);
+		assert.match(html, /2 class days · 3 files · 1 still being read\. From <span[^>]*>Midterm practice exam\.pdf</);
+		assert.match(html, /Not on it, but before the exam/);
+		assert.match(html, /Pigeonhole/);
+		assert.match(html, />Add<\/button>.*>Leave out<\/button>/);
+		assert.ok(!html.includes("Leave all out"), "one day needs no Leave all out");
 		assert.match(html, /data-testid="deadline-add-files"[^>]*href="\/class\/files"|href="\/class\/files"[^>]*data-testid="deadline-add-files"/);
-		assert.match(html, /data-testid="deadline-check-syllabus"/);
+		assert.match(html, /Ask marco to check/);
+	});
+	it("once every day before it is on it or left out, it says so, and left-out days can be shown", () => {
+		const html = render(deadline(), {}, ["d2"]);
+		assert.ok(!html.includes('data-testid="deadline-not-included"'));
+		assert.match(html, /Every class day before the exam is on it or left out\./);
+		assert.match(html, /1 left out · Show/);
 	});
 	it("path: weakest first from today, the deadline day last, Start today", () => {
 		const html = render();
@@ -120,11 +136,13 @@ describe("the deadline page", () => {
 		assert.match(render(deadline({ date: "2026-11-01", daysUntil: -1 })), /Was due/);
 		assert.ok(!render(deadline({ done: true })).includes("deadline-path-note"), "the header already says it");
 	});
-	it("no covered files: all study files with a pointer to Edit class, and no plan", () => {
+	it("nothing linked: no file dump, Ask the teacher or pick files, and no plan", () => {
 		const html = render(deadline({ files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } }));
 		assert.match(html, /data-testid="deadline-no-files"/);
-		assert.match(html, /A plan shows up once it names its files\./);
-		assert.equal(count(html, "Edit class"), 1, "one pointer to Edit class");
+		assert.match(html, /Nothing is linked yet\. marco can work it out from your files/);
+		assert.match(html, />Ask marco<\/button>/);
+		assert.ok(!html.includes('data-testid="deadline-day-row"'), "no list of every file");
+		assert.match(html, /A plan shows up once it knows what&#x27;s on it\./);
 		assert.match(html, /data-testid="deadline-ring".*>–<.*Not measured yet/);
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
 	});

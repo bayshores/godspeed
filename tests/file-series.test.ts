@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { dateInName, groupFileSeries, seriesGaps } from "../src/core/file-series.ts";
+import { dateInName, groupFileSeries } from "../src/core/file-series.ts";
 import { kindsForNewFiles } from "../src/core/new-files.ts";
 
 const named = (names: string[]) => names.map((name, i) => ({ id: `f${i}`, name }));
@@ -55,12 +55,6 @@ describe("file series", () => {
 		assert.equal(by("CSE21 HW · Practice Problems")!.items[1]!.files.length, 2);
 		assert.deepEqual(by("Lecture")!.items.map((i) => i.date), ["2026-09-25", "2026-09-28", "2026-10-02"]);
 		assert.equal(by("Day")!.items[0]!.date, null);
-	});
-	it("gaps are the numbers a series skips before its last", () => {
-		assert.deepEqual(seriesGaps(by("Lecture")!), [3]);
-		assert.deepEqual(seriesGaps(by("Day")!), [3, 4, 5, 6, 7, 8, 9]);
-		assert.deepEqual(seriesGaps({ items: [{ number: 0, files: [], date: null }, { number: 2, files: [], date: null }] }), [1]);
-		assert.deepEqual(seriesGaps({ items: [{ number: 3, files: [], date: null }, { number: 4, files: [], date: null }] }), [1, 2]);
 	});
 	it("labels use words only, never a dash or a number", () => {
 		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));

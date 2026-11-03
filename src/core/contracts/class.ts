@@ -125,6 +125,11 @@ export interface ClassDeadline {
 	time?: string;
 	/** The class files (ClassFile.id) it covers. */
 	fileIds: string[];
+	/** Files it doesn't cover, on purpose (Leave out, or the agent), so the
+	 *  "before it, not on it" check stays quiet about them. */
+	leftOutIds?: string[];
+	/** Where the agent found what it covers ("2026-11-04 Midterm (practice exam).pdf"). */
+	source?: string;
 	done: boolean;
 	/** ISO time it was ticked done. */
 	doneAt?: string;
@@ -236,7 +241,7 @@ export const CURRENT_CLASS_VERSION = 5;
  *  maps it to a 400 / 404 with this message). */
 export class ClassDeadlineError extends Error {
 	constructor(
-		public readonly code: "bad_name" | "bad_kind" | "bad_date" | "bad_time" | "unknown_file" | "deadline_not_found",
+		public readonly code: "bad_name" | "bad_kind" | "bad_date" | "bad_time" | "bad_source" | "unknown_file" | "deadline_not_found",
 		message: string,
 	) {
 		super(message);

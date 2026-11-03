@@ -1,56 +1,90 @@
 /**
- * The deadline page's material check: covered files in numbered series with
- * the numbers that look missing, every study file when none are covered,
- * and what is still reading, failed or course info.
+ * The deadline page's "What's on it": covered files as class days by week,
+ * the class days before it that it doesn't cover (unless left out), the
+ * left-out ones, and the summary line.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { deadlineMaterial, materialSummary, rightLabel, syllabusCheckMessage } from "../src/components/deadline/deadline-model.ts";
+import { coverageMessage, deadlineMaterial, materialSummary, rightLabel, shortDate } from "../src/components/deadline/deadline-model.ts";
 
 type Kind = "study" | "info";
 type Status = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
 const f = (id: string, name: string, kind: Kind = "study", status: Status = "ready") => ({ id, name, kind, status });
 
 const FILES = [
-	f("d1", "Day1 intro.pdf"),
-	f("d2", "Day2 sums.pdf", "study", "extracting"),
-	f("d4", "Day4 perms.pdf"),
-	f("l1", "Lecture01_2026-09-25.srt"),
-	f("l2", "Lecture02_2026-09-28.srt", "study", "failed"),
-	f("h1", "HW1_F26.pdf", "info"),
-	f("h2", "HW2_F26.pdf", "info"),
+	f("s1", "2026-09-25 Intro and Counting (lecture slides).pdf"),
+	f("t1", "CSE 21 Lecture 01 (2026-09-25) transcript.pdf"),
+	f("s2", "2026-09-28 Permutations (lecture slides).pdf", "study", "extracting"),
+	f("l2", "Lecture02_2026-09-28 (e1).srt"),
+	f("d1", "2026-09-30 Week 1 Discussion (evening discussion).pdf"),
+	f("s3", "2026-09-30 Combinations (lecture slides).pdf"),
+	f("s4", "2026-10-05 Combinatorial Identities (lecture slides).pdf", "study", "failed"),
+	f("s5", "2026-10-21 Sorting (lecture slides).pdf"),
+	f("s6", "2026-10-23 Searching (lecture slides).pdf"),
+	f("s7", "2026-11-09 Graphs (lecture slides).pdf"),
+	f("pe", "Midterm practice exam.pdf"),
 	f("syl", "syllabus.txt", "info"),
-	f("other", "Notes.pdf"),
 ];
 
-describe("the deadline's material", () => {
-	it("groups covered files into series with slots, gaps marked missing", () => {
-		const m = deadlineMaterial(FILES, ["d1", "d2", "d4", "l1", "l2", "h1", "h2", "syl"], [{ fileId: "d1", facts: 12 }, { fileId: "l1", facts: 5 }, { fileId: "zzz", facts: 99 }]);
-		assert.equal(m.allStudy, false);
-		const day = m.series.find((s) => s.label === "Day")!;
-		assert.deepEqual(day.slots.map((s) => [s.number, s.state]), [[1, "ready"], [2, "reading"], [3, "missing"], [4, "ready"]]);
-		assert.deepEqual([day.present, day.last], [3, 4]);
-		assert.deepEqual(m.series.find((s) => s.label === "Lecture")!.slots.map((s) => s.state), ["ready", "failed"]);
-		assert.equal(m.series.find((s) => s.label === "HW · F26")!.infoOnly, true);
-		assert.deepEqual(m.loose, [{ id: "syl", name: "syllabus.txt", state: "info" }]);
-		assert.deepEqual([m.studyFiles, m.infoFiles, m.reading, m.failed, m.facts, m.missing], [5, 3, 1, 1, 17, 1]);
-		assert.equal(materialSummary(m), "Day 3 looks missing, 1 file couldn't be read, 1 still being read.");
+const deadline = (over: Partial<{ fileIds: string[]; leftOutIds: string[]; kind: "exam" | "homework"; date: string }> = {}) => ({
+	id: "mid",
+	kind: "exam" as const,
+	date: "2026-11-04",
+	fileIds: ["s1", "t1", "s2", "l2", "d1", "s3", "s4", "pe"],
+	...over,
+});
+
+describe("what a deadline covers", () => {
+	it("groups covered files into class days by week, with each day's title, parts and worst state", () => {
+		const d = deadline();
+		const m = deadlineMaterial(FILES, d, [d], [{ fileId: "s1", facts: 12 }, { fileId: "t1", facts: 5 }, { fileId: "zzz", facts: 99 }]);
+		assert.deepEqual(m.weeks.map((w) => [w.number, w.days.map((x) => x.date)]), [[1, ["2026-09-25", "2026-09-28", "2026-09-30"]], [2, ["2026-10-05"]]]);
+		const first = m.weeks[0]!.days[0]!;
+		assert.equal(first.title, "Intro and Counting", "the day's topic, not the transcript's 'CSE 21 Lecture 01'");
+		assert.deepEqual(first.parts, ["lecture slides", "transcript"]);
+		assert.equal(m.weeks[0]!.days[1]!.state, "reading");
+		assert.equal(m.weeks[0]!.days[1]!.title, "Permutations", "not 'Lecture02'");
+		assert.deepEqual(m.weeks[0]!.days[1]!.parts, ["lecture slides"], "no code like 'e1' as a part");
+		assert.equal(m.weeks[0]!.days[2]!.title, "Combinations", "a lecture beats a discussion on the same day");
+		assert.deepEqual(m.weeks[0]!.days[2]!.parts, ["evening discussion", "lecture slides"]);
+		assert.equal(m.weeks[1]!.days[0]!.state, "failed");
+		assert.deepEqual(m.undated.map((x) => x.title), ["Midterm practice exam.pdf"]);
+		assert.deepEqual([m.classDays, m.files, m.reading, m.failed, m.facts], [4, 8, 1, 1, 17]);
+		assert.equal(materialSummary(m), "4 class days · 8 files · 1 still being read · 1 couldn't be read");
 	});
-	it("with no covered files it shows every study file", () => {
-		const m = deadlineMaterial(FILES, [], []);
-		assert.equal(m.allStudy, true);
-		assert.equal(m.infoFiles, 0);
-		assert.ok(m.loose.some((x) => x.name === "Notes.pdf"));
+
+	it("flags study days before an exam that it doesn't cover, and stops once they're left out", () => {
+		const d = deadline();
+		const m = deadlineMaterial(FILES, d, [d], []);
+		assert.deepEqual(m.notIncluded.map((x) => x.title), ["Sorting", "Searching"], "not course info, not after the exam");
+		const out = deadline({ leftOutIds: ["s5"] });
+		const later = deadlineMaterial(FILES, out, [out], []);
+		assert.deepEqual(later.notIncluded.map((x) => x.title), ["Searching"]);
+		assert.deepEqual(later.leftOut.map((x) => x.title), ["Sorting"]);
 	});
-	it("says so when nothing looks missing, or when there are no files", () => {
-		assert.equal(materialSummary(deadlineMaterial([f("a", "Day1.pdf"), f("b", "Day2.pdf")], [], [])), "Nothing looks missing from the file names.");
-		assert.equal(materialSummary(deadlineMaterial([], [], [])), "No study files yet.");
+
+	it("an exam's check starts after the class's previous exam", () => {
+		const first = { id: "m1", kind: "exam" as const, date: "2026-10-10", fileIds: [] };
+		const d = deadline({ date: "2026-11-20", fileIds: ["s5"] });
+		const m = deadlineMaterial(FILES, d, [first, d], []);
+		assert.deepEqual(m.notIncluded.map((x) => x.title), ["Searching", "Graphs"]);
 	});
-	it("labels and the syllabus check message", () => {
+
+	it("other deadlines are checked from their first covered day; nothing linked means no check", () => {
+		const hw = deadline({ kind: "homework", date: "2026-10-25", fileIds: ["s5"] });
+		assert.deepEqual(deadlineMaterial(FILES, hw, [hw], []).notIncluded.map((x) => x.title), ["Searching"]);
+		const none = deadline({ fileIds: [] });
+		const m = deadlineMaterial(FILES, none, [none], []);
+		assert.deepEqual([m.weeks.length, m.notIncluded.length, m.files], [0, 0, 0]);
+		assert.equal(materialSummary(m), "0 files");
+	});
+
+	it("labels, dates and the message Ask sends", () => {
 		assert.equal(rightLabel({ right: 2, answered: 5 }), "2 of 5 right");
 		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tested");
-		const msg = syllabusCheckMessage("CSE 21", { name: "Midterm", when: "Fri Nov 6, 7:00 PM" });
-		assert.match(msg, /CSE 21 files for Midterm \(Fri Nov 6, 7:00 PM\)/);
-		assert.match(msg, /syllabus/);
+		assert.equal(shortDate("2026-09-25"), "Sep 25");
+		const msg = coverageMessage("CSE 21", { name: "Midterm", when: "Wed Nov 4, 6:30 PM" });
+		assert.match(msg, /^Work out what Midterm \(Wed Nov 4, 6:30 PM\) in CSE 21 covers from my files/);
+		assert.match(msg, /tell me which file you went by/);
 	});
 });

@@ -70,6 +70,8 @@ const isClassDeadline = (v: unknown): v is ClassDeadline =>
 	v.fileIds.every(isString) &&
 	typeof v.done === "boolean";
 
+const isIdList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isString);
+
 /** A v2 exam as saved (read as a deadline of kind "exam"). */
 const isLegacyExam = (v: unknown): v is { id: string; name: string; date: string; fileIds: string[] } =>
 	isRecord(v) && isString(v.id) && isString(v.name) && isString(v.date) && Array.isArray(v.fileIds) && v.fileIds.every(isString);
@@ -85,6 +87,8 @@ function readDeadlines(parsed: Record<string, unknown>): ClassDeadline[] | undef
 			date: d.date,
 			...(d.time !== undefined ? { time: d.time } : {}),
 			fileIds: d.fileIds,
+			...(isIdList(d.leftOutIds) && d.leftOutIds.length > 0 ? { leftOutIds: d.leftOutIds } : {}),
+			...(isString(d.source) && d.source ? { source: d.source } : {}),
 			done: d.done,
 			...(d.done && isString(d.doneAt) ? { doneAt: d.doneAt } : {}),
 		}));
@@ -130,7 +134,7 @@ function getClass(id: string): ClassRecord | null {
 		archived: parsed.archived === true,
 		...(isString(parsed.linkedFolder) ? { linkedFolder: parsed.linkedFolder } : {}),
 		files,
-		...(deadlines ? { deadlines: deadlines.map((d) => ({ ...d, fileIds: d.fileIds.filter((f) => fileIds.has(f)) })).sort(compareDeadlines) } : {}),
+		...(deadlines ? { deadlines: deadlines.map((d) => withFiles(d, d.fileIds.filter((f) => fileIds.has(f)), d.leftOutIds?.filter((f) => fileIds.has(f)))).sort(compareDeadlines) } : {}),
 		...(signature ? { signature } : {}),
 		...(isClassIcon(parsed.icon) ? { icon: parsed.icon } : {}),
 		...(isClassNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
@@ -266,6 +270,21 @@ function deadlineFiles(record: ClassRecord, fileIds: unknown): string[] {
 	return [...new Set(fileIds)];
 }
 
+function deadlineSource(source: unknown): string | undefined {
+	if (typeof source !== "string") throw new ClassDeadlineError("bad_source", "The source must be text");
+	return source.trim().replace(/\s+/g, " ").slice(0, 300) || undefined;
+}
+
+/** The deadline with these covered and left-out files; a file is never both
+ *  (`leftOutWins` says which list was just set). */
+function withFiles(d: ClassDeadline, fileIds: string[], leftOutIds: string[] | undefined, leftOutWins = false): ClassDeadline {
+	const out = new Set(leftOutIds ?? []);
+	const covered = leftOutWins ? fileIds.filter((f) => !out.has(f)) : fileIds;
+	const left = (leftOutIds ?? []).filter((f) => leftOutWins || !covered.includes(f));
+	const { leftOutIds: _old, ...rest } = d;
+	return { ...rest, fileIds: covered, ...(left.length > 0 ? { leftOutIds: left } : {}) };
+}
+
 function requireClass(id: string): ClassRecord {
 	const record = getClass(id);
 	if (!record) throw new Error(`Class not found: ${id}`);
@@ -282,15 +301,18 @@ function saveDeadlines(record: ClassRecord, deadlines: ClassDeadline[]): void {
 function addDeadline(id: string, init: DeadlineInit): ClassDeadline {
 	const record = requireClass(id);
 	const time = init.time !== undefined ? deadlineTime(init.time) : undefined;
-	const deadline: ClassDeadline = {
+	const source = init.source !== undefined ? deadlineSource(init.source) : undefined;
+	const base: ClassDeadline = {
 		id: `ddl_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
 		kind: deadlineKind(init.kind),
 		name: deadlineName(init.name),
 		date: deadlineDate(init.date),
 		...(time !== undefined ? { time } : {}),
-		fileIds: deadlineFiles(record, init.fileIds ?? []),
+		fileIds: [],
+		...(source !== undefined ? { source } : {}),
 		done: false,
 	};
+	const deadline = withFiles(base, deadlineFiles(record, init.fileIds ?? []), init.leftOutIds !== undefined ? deadlineFiles(record, init.leftOutIds) : undefined);
 	saveDeadlines(record, [...(record.deadlines ?? []), deadline]);
 	return deadline;
 }
@@ -300,19 +322,27 @@ function updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): C
 	const prev = record.deadlines?.find((d) => d.id === deadlineId);
 	if (!prev) throw new ClassDeadlineError("deadline_not_found", `No deadline "${deadlineId}" in this class`);
 	const time = patch.time === undefined ? prev.time : patch.time === null ? undefined : deadlineTime(patch.time);
+	const source = patch.source === undefined ? prev.source : patch.source === null ? undefined : deadlineSource(patch.source);
 	const done = patch.done ?? prev.done;
 	// Ticking stamps the time; unticking clears it; leaving it alone keeps it.
 	const doneAt = !done ? undefined : patch.done === true && !prev.done ? new Date().toISOString() : prev.doneAt;
-	const next: ClassDeadline = {
+	const base: ClassDeadline = {
 		id: prev.id,
 		kind: patch.kind !== undefined ? deadlineKind(patch.kind) : prev.kind,
 		name: patch.name !== undefined ? deadlineName(patch.name) : prev.name,
 		date: patch.date !== undefined ? deadlineDate(patch.date) : prev.date,
 		...(time !== undefined ? { time } : {}),
-		fileIds: patch.fileIds !== undefined ? deadlineFiles(record, patch.fileIds) : prev.fileIds,
+		fileIds: [],
+		...(source !== undefined ? { source } : {}),
 		done,
 		...(doneAt !== undefined ? { doneAt } : {}),
 	};
+	const next = withFiles(
+		base,
+		patch.fileIds !== undefined ? deadlineFiles(record, patch.fileIds) : prev.fileIds,
+		patch.leftOutIds !== undefined ? deadlineFiles(record, patch.leftOutIds) : prev.leftOutIds,
+		patch.leftOutIds !== undefined && patch.fileIds === undefined,
+	);
 	saveDeadlines(record, (record.deadlines ?? []).map((d) => (d.id === deadlineId ? next : d)));
 	return next;
 }

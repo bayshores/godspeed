@@ -1,7 +1,7 @@
 /**
  * Numbered series in a class's file names ("Day1 …", "Lecture01_2026-09-25",
  * "Week 2 Evening Discussion", "HW3_F26", "06_Counting"), so the Files page
- * can group them and a deadline can show which numbers look missing.
+ * can group them.
  * Purely from names: nothing here knows what the course actually has.
  */
 
@@ -155,13 +155,4 @@ export function groupFileSeries<F extends NamedFile>(files: readonly F[]): { ser
 	series.sort((a, b) => a.label.localeCompare(b.label));
 	other.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 	return { series, other };
-}
-
-/** Numbers a series skips: from 1 (or 0 when it has a 0) up to its last. */
-export function seriesGaps(series: Pick<FileSeries, "items">): number[] {
-	const have = new Set(series.items.map((i) => i.number));
-	const last = Math.max(...have);
-	const gaps: number[] = [];
-	for (let n = have.has(0) ? 0 : 1; n < last; n++) if (!have.has(n)) gaps.push(n);
-	return gaps;
 }

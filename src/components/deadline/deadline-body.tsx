@@ -1,5 +1,6 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import Link from "next/link";
+import { CheckIcon } from "lucide-react";
 import { rampColor, topicStatus, type DeadlineProgress, type PlanDay, type TopicProgress } from "@/core";
 import { clockLabel, deadlineDateLabel, dueLabel, kindLabel } from "@/components/class-deadlines-model";
 import { Countdown } from "@/components/countdown";
@@ -9,13 +10,13 @@ import { ReadyRing } from "@/components/overview/ready-ring";
 import { CARD, CARD_TITLE } from "@/components/overview/styles";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { materialSummary, rightLabel, type Material, type MaterialSeries, type Slot } from "./deadline-model";
+import { materialSummary, rightLabel, shortDate, type ClassDay, type DayState, type Material } from "./deadline-model";
 
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the name, when,
  * the countdown and the ready ring; its topics as a strip colored by how
- * you do; Material (does godspeed have everything it covers?) and the
- * path to it (topics that need work, weakest first, one day at a time)
+ * you do; What's on it (its class days by week, and the ones before it
+ * that it doesn't cover yet, to add or leave out) and the path to it (topics that need work, weakest first, one day at a time)
  * with the white Start bar on today.
  */
 
@@ -34,7 +35,14 @@ interface DeadlineBodyProps {
 	startError: string | null;
 	onStart: () => void;
 	onEditClass: () => void;
-	onCheckSyllabus: () => void;
+	/** Where the agent found what it covers. */
+	source: string | undefined;
+	teacherName: string;
+	/** An Add or Leave out is being saved. */
+	saving: boolean;
+	onAsk: () => void;
+	onAdd: (fileIds: string[]) => void;
+	onLeaveOut: (fileIds: string[]) => void;
 }
 
 const LEGEND: { key: keyof DeadlineProgress["counts"]; label: string; rate: number | null }[] = [
@@ -80,7 +88,17 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 
 			<div className="flex flex-col items-start gap-4 px-[52px] @4xl:flex-row">
 				<div className="w-full min-w-0 flex-1">
-					<MaterialCard material={props.material} coversFiles={d.files.length > 0} onEditClass={props.onEditClass} onCheckSyllabus={props.onCheckSyllabus} />
+					<CoversCard
+						deadline={d}
+						material={props.material}
+						source={props.source}
+						teacherName={props.teacherName}
+						saving={props.saving}
+						onEditClass={props.onEditClass}
+						onAsk={props.onAsk}
+						onAdd={props.onAdd}
+						onLeaveOut={props.onLeaveOut}
+					/>
 				</div>
 				<div className="w-full @4xl:w-[400px] @4xl:shrink-0">
 					<PathCard {...props} past={past} tallies={tallies} />
@@ -122,81 +140,147 @@ function TopicStrip({ deadline: d, tallies }: { deadline: DeadlineProgress; tall
 
 const tallyText = (t: TopicTally | undefined) => (t ? rightLabel(t) : "not tested");
 
-const BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2";
+const BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2 disabled:opacity-50";
+const TEXT_BUTTON = "lh-press text-[13px] font-bold text-ink hover:underline disabled:opacity-50";
+const WARN = "text-(--lh-ramp-2)";
 
-function MaterialCard({
+function CoversCard({
+	deadline: d,
 	material: m,
-	coversFiles,
+	source,
+	teacherName,
+	saving,
 	onEditClass,
-	onCheckSyllabus,
+	onAsk,
+	onAdd,
+	onLeaveOut,
 }: {
+	deadline: DeadlineProgress;
 	material: Material | null;
-	coversFiles: boolean;
+	source: string | undefined;
+	teacherName: string;
+	saving: boolean;
 	onEditClass: () => void;
-	onCheckSyllabus: () => void;
+	onAsk: () => void;
+	onAdd: (fileIds: string[]) => void;
+	onLeaveOut: (fileIds: string[]) => void;
 }) {
+	const [showLeftOut, setShowLeftOut] = useState(false);
+	const empty = d.files.length === 0;
+	const before = d.kind === "exam" ? "before the exam" : "before it's due";
 	return (
 		<section data-testid="deadline-material" className={CARD}>
-			<div className="flex w-full flex-col gap-1">
-				<h2 className={CARD_TITLE}>Material</h2>
-				{m && (
-					<p data-testid="deadline-material-summary" className="text-[13.5px] text-ink-2">
-						{materialSummary(m)}
-					</p>
-				)}
+			<div className="flex w-full items-center justify-between gap-4">
+				<h2 className={CARD_TITLE}>What&apos;s on it</h2>
+				<button type="button" data-testid="deadline-edit-files" onClick={onEditClass} className={cn(TEXT_BUTTON, "text-ink-2 hover:text-ink")}>
+					Edit
+				</button>
 			</div>
 			{!m ? (
 				<div className="h-40 w-full bg-tone" aria-hidden />
+			) : empty ? (
+				<div data-testid="deadline-no-files" className="flex w-full flex-col items-start gap-3">
+					<p className="text-[13.5px] leading-5 text-ink-2">
+						Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.
+					</p>
+					<div className="flex flex-wrap gap-2">
+						<button type="button" data-testid="deadline-ask" onClick={onAsk} className={BUTTON}>
+							Ask {teacherName}
+						</button>
+						<button type="button" onClick={onEditClass} className={BUTTON}>
+							Pick files
+						</button>
+					</div>
+				</div>
 			) : (
 				<>
-					{!coversFiles && (
-						<p data-testid="deadline-no-files" className="text-[13.5px] leading-5 text-ink-2">
-							This deadline doesn&apos;t name the files it covers yet, so here is all your study material.{" "}
-							<button type="button" onClick={onEditClass} className="lh-press font-bold text-ink underline underline-offset-2">
-								Pick its files in Edit class
-							</button>
+					<p data-testid="deadline-material-summary" className="-mt-2 w-full text-[13.5px] leading-5 text-ink-2">
+						{materialSummary(m)}
+						{source && (
+							<>
+								{". From "}
+								<span data-testid="deadline-source" className="text-ink">
+									{source}
+								</span>
+							</>
+						)}
+					</p>
+					<div className="flex w-full flex-col">
+						{m.weeks.map((w) => (
+							<div key={w.number} data-testid="deadline-week" className="flex w-full gap-4 border-t border-tone-2 py-2.5">
+								<span className="w-14 shrink-0 pt-px text-[12.5px] font-bold text-ink-3">Week {w.number}</span>
+								<ul className="flex min-w-0 flex-1 flex-col gap-1.5">
+									{w.days.map((day) => (
+										<DayRow key={day.key} day={day} />
+									))}
+								</ul>
+							</div>
+						))}
+						{m.undated.length > 0 && (
+							<div data-testid="deadline-undated" className="flex w-full gap-4 border-t border-tone-2 py-2.5">
+								<span className="w-14 shrink-0 pt-px text-[12.5px] font-bold text-ink-3">Other</span>
+								<ul className="flex min-w-0 flex-1 flex-col gap-1.5">
+									{m.undated.map((day) => (
+										<DayRow key={day.key} day={day} />
+									))}
+								</ul>
+							</div>
+						)}
+					</div>
+					{m.notIncluded.length > 0 ? (
+						<div data-testid="deadline-not-included" className="flex w-full flex-col gap-2 bg-[color-mix(in_oklab,var(--lh-ramp-2)_9%,transparent)] px-3.5 py-3">
+							<div className="flex items-center justify-between gap-4">
+								<p className={cn("text-[13.5px] font-bold", WARN)}>Not on it, but {before}</p>
+								{m.notIncluded.length > 1 && (
+									<button type="button" disabled={saving} onClick={() => onLeaveOut(m.notIncluded.flatMap((x) => x.fileIds))} className={cn(TEXT_BUTTON, "font-normal text-ink-2")}>
+										Leave all out
+									</button>
+								)}
+							</div>
+							<ul className="flex flex-col gap-1.5">
+								{m.notIncluded.map((day) => (
+									<DayRow key={day.key} day={day} open>
+										<button type="button" disabled={saving} onClick={() => onAdd(day.fileIds)} className={TEXT_BUTTON}>
+											Add
+										</button>
+										<button type="button" disabled={saving} onClick={() => onLeaveOut(day.fileIds)} className={cn(TEXT_BUTTON, "font-normal text-ink-2")}>
+											Leave out
+										</button>
+									</DayRow>
+								))}
+							</ul>
+						</div>
+					) : (
+						<p data-testid="deadline-all-accounted" className="flex items-center gap-2 text-[13px] text-ink-2">
+							<CheckIcon aria-hidden className="size-3.5 text-ans-right" />
+							Every class day {before} is on it or left out.
 						</p>
 					)}
-					{m.series.length > 0 && (
-						<div className="flex w-full flex-col gap-2.5">
-							{m.series.map((s) => (
-								<SeriesRow key={s.key} series={s} />
-							))}
+					{m.leftOut.length > 0 && (
+						<div className="flex w-full flex-col gap-1.5">
+							<button type="button" data-testid="deadline-left-out-toggle" aria-expanded={showLeftOut} onClick={() => setShowLeftOut((v) => !v)} className={cn(TEXT_BUTTON, "self-start font-normal text-ink-2")}>
+								{m.leftOut.length} left out · {showLeftOut ? "Hide" : "Show"}
+							</button>
+							{showLeftOut && (
+								<ul data-testid="deadline-left-out" className="flex flex-col gap-1.5">
+									{m.leftOut.map((day) => (
+										<DayRow key={day.key} day={day} open>
+											<button type="button" disabled={saving} onClick={() => onAdd(day.fileIds)} className={TEXT_BUTTON}>
+												Add back
+											</button>
+										</DayRow>
+									))}
+								</ul>
+							)}
 						</div>
-					)}
-					{m.loose.length > 0 && (
-						<ul data-testid="deadline-loose" className="flex w-full flex-col gap-1 text-[13.5px]">
-							{m.loose.map((f) => (
-								<li key={f.id} className="flex min-w-0 items-center gap-3">
-									<span className="min-w-0 flex-1 truncate text-ink">{f.name}</span>
-									{f.state !== "ready" && (
-										<span className={cn("shrink-0 text-[12.5px]", f.state === "failed" ? "text-ans-wrong" : "text-ink-3")}>{LOOSE_STATE[f.state]}</span>
-									)}
-								</li>
-							))}
-						</ul>
 					)}
 					<div className="flex flex-wrap gap-2">
 						<Link href="/class/files" data-testid="deadline-add-files" className={BUTTON}>
 							Add files
 						</Link>
-						<button type="button" data-testid="deadline-check-syllabus" onClick={onCheckSyllabus} className={BUTTON}>
-							Check with the syllabus
+						<button type="button" data-testid="deadline-ask" onClick={onAsk} className={BUTTON}>
+							Ask {teacherName} to check
 						</button>
-					</div>
-					<div className="flex w-full flex-col gap-1 border-t border-tone-2 pt-3 text-[12.5px] leading-[18px] text-ink-3">
-						{m.studyFiles > 0 && (
-							<p data-testid="deadline-read">
-								{m.reading + m.failed === 0
-									? `All ${m.studyFiles} study ${m.studyFiles === 1 ? "file" : "files"} read, ${m.facts} facts.`
-									: `${m.studyFiles - m.reading - m.failed} of ${m.studyFiles} study files read, ${m.facts} facts so far.`}
-							</p>
-						)}
-						{m.infoFiles > 0 && (
-							<p data-testid="deadline-info-note">
-								{m.infoFiles} course info {m.infoFiles === 1 ? "file" : "files"}: the teacher can read {m.infoFiles === 1 ? "it" : "them"}, but {m.infoFiles === 1 ? "it makes" : "they make"} no facts.
-							</p>
-						)}
 					</div>
 				</>
 			)}
@@ -204,63 +288,40 @@ function MaterialCard({
 	);
 }
 
-/** A loose file's state word; a read file shows none (most are read). */
-const LOOSE_STATE: Record<Exclude<Slot["state"], "missing" | "ready">, string> = {
-	reading: "being read",
-	failed: "couldn't be read",
-	info: "course info",
-};
+/** A state is a shape, not only a color: read is a check, being read a
+ *  half box, couldn't be read a red diamond, course info an empty box; a
+ *  day that isn't on it is an empty box in the warning color. */
+function DayMark({ state, open }: { state: DayState; open: boolean }) {
+	if (open) return <span aria-hidden className="size-3.5 shrink-0 shadow-[inset_0_0_0_1px_var(--lh-ramp-2)]" />;
+	if (state === "ready")
+		return (
+			<span aria-hidden className="flex size-3.5 shrink-0 items-center justify-center bg-ans-right">
+				<CheckIcon className="size-2.5 text-black" strokeWidth={3.5} />
+			</span>
+		);
+	if (state === "failed") return <span aria-hidden className="size-3.5 shrink-0 scale-[0.78] rotate-45 bg-ans-wrong" />;
+	if (state === "reading") return <span aria-hidden className="size-3.5 shrink-0 bg-[linear-gradient(to_top,var(--lh-ink-3)_50%,transparent_50%)] shadow-[inset_0_0_0_1px_var(--lh-ink-3)]" />;
+	return <span aria-hidden className="size-3.5 shrink-0 shadow-[inset_0_0_0_1px_var(--lh-ink-3)]" />;
+}
 
-/** Each state is its own shape, not only its own color: read is full,
- *  being read is half full, failed is a red diamond, course info is an
- *  empty box, missing is a dashed red box. */
-const SLOT_CLASS: Record<Slot["state"], string> = {
-	ready: "bg-ink",
-	reading: "bg-[linear-gradient(to_top,var(--lh-ink-3)_50%,transparent_50%)] shadow-[inset_0_0_0_1px_var(--lh-ink-3)]",
-	failed: "rotate-45 scale-[0.78] bg-ans-wrong",
-	info: "shadow-[inset_0_0_0_1px_var(--lh-ink-3)]",
-	missing: "border border-dashed border-ans-wrong",
-};
+const STATE_WORD: Record<DayState, string> = { ready: "read", reading: "being read", failed: "couldn't be read", info: "course info, no facts" };
 
-function SeriesRow({ series: s }: { series: MaterialSeries }) {
+function DayRow({ day, open = false, children }: { day: ClassDay; open?: boolean; children?: React.ReactNode }) {
 	return (
-		<div data-testid="deadline-series" className="flex w-full min-w-0 items-center gap-4">
-			<span className="w-[170px] shrink-0 truncate text-[13.5px] font-bold text-ink" title={s.label}>
-				{s.label}
+		<li data-testid="deadline-day-row" data-state={open ? "open" : day.state} className="flex min-w-0 items-center gap-2.5">
+			<DayMark state={day.state} open={open} />
+			<span className="w-[52px] shrink-0 font-mono text-[12.5px] text-ink-2 tabular-nums">{day.date ? shortDate(day.date) : ""}</span>
+			<Tip title={day.title} body={<span className="text-xs text-ink-2">{`${day.names.join(", ")} · ${STATE_WORD[day.state]}`}</span>}>
+				<span tabIndex={0} className="max-w-[60%] shrink-0 truncate text-[14px] text-ink">
+					{day.title}
+				</span>
+			</Tip>
+			<span className={cn("min-w-0 flex-1 truncate text-[12.5px]", day.state === "failed" ? "text-ans-wrong" : "text-ink-3")}>
+				{day.state === "failed" ? "couldn't be read" : day.parts.join(" · ")}
 			</span>
-			<div className="flex min-w-0 flex-1 flex-wrap gap-[3px]">
-				{s.slots.map((slot) => (
-					<Tip key={slot.number} title={slotTitle(s, slot)} body={<span className="text-xs text-ink-2">{slotBody(slot)}</span>}>
-						<span
-							data-testid="deadline-slot"
-							data-state={slot.state}
-							role="img"
-							tabIndex={0}
-							aria-label={`${slotTitle(s, slot)}: ${slotBody(slot)}`}
-							className={cn("size-3.5 shrink-0", SLOT_CLASS[slot.state])}
-						/>
-					</Tip>
-				))}
-			</div>
-			<span className="w-[64px] shrink-0 text-right text-[12.5px] text-ink-2">
-				{s.infoOnly ? "no facts" : <span className="font-mono tabular-nums">{`${s.present}/${s.last}`}</span>}
-			</span>
-		</div>
+			{children && <span className="ml-auto flex shrink-0 items-center gap-3 pl-2">{children}</span>}
+		</li>
 	);
-}
-
-function slotTitle(s: MaterialSeries, slot: Slot): string {
-	const name = `${s.label} ${slot.number}`;
-	return slot.date ? `${name} · ${deadlineDateLabel(slot.date)}` : name;
-}
-
-function slotBody(slot: Slot): string {
-	if (slot.state === "missing") return "No file with this number. Add it on the Files page if the class had one.";
-	const files = slot.names.join(", ");
-	if (slot.state === "reading") return `${files} · being read`;
-	if (slot.state === "failed") return `${files} · couldn't be read, retry it on the Files page`;
-	if (slot.state === "info") return `${files} · course info, no facts`;
-	return files;
 }
 
 function PathCard({
@@ -327,7 +388,7 @@ function PathCard({
 function pathNote(d: DeadlineProgress, hasPlan: boolean, allStrong: boolean, m: Material | null): string {
 	if (hasPlan) return d.daysUntil === 0 ? "Due today, so everything that needs work is on today." : "Topics that need work, weakest first.";
 	if (allStrong) return "Every topic is strong. Practice them to keep it that way.";
-	if (d.files.length === 0) return "A plan shows up once it names its files.";
+	if (d.files.length === 0) return "A plan shows up once it knows what's on it.";
 	if (m && m.reading > 0) return "Its files are still being read. The plan shows up once their facts are built.";
 	return "Its files have no facts yet, so there is nothing to plan. Course info files never make facts.";
 }

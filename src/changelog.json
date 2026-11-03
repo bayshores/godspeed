@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.20",
+		"date": "2026-11-02",
+		"changes": [
+			"A deadline's page shows what's on it as class days by week, so a day's slides, transcript and discussion are one row, and it names the file your agent went by.",
+			"Class days before an exam that aren't on it get flagged, each with Add or Leave out. Once every day is on it or left out, the page says so.",
+			"Your agent works out what a deadline covers from your files first, like a practice exam or the syllabus, and only asks you when they don't say.",
+			"A deadline with nothing linked no longer lists every file. Ask your teacher to work it out, or pick the files yourself.",
+			"No more false \"look missing\" warnings from numbered file names."
+		]
+	},
+	{
 		"version": "0.5.19",
 		"date": "2026-11-02",
 		"changes": [

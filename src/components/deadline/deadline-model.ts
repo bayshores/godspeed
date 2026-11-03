@@ -1,118 +1,210 @@
 /**
- * The deadline page's material check: the files it covers (or every study
- * file when it covers none) grouped into numbered series with the numbers
- * that look missing, and what is still being read, failed or is course
- * info. Pure and unit-tested.
+ * The deadline page's "What's on it": the files it covers grouped into class
+ * days (a day's slides, transcript and discussion are one row) and weeks,
+ * the class days before it that it neither covers nor leaves out, and the
+ * ones left out on purpose. Pure and unit-tested.
  */
-import { groupFileSeries, seriesGaps, type ClassFile, type FileCoverage } from "@/core";
+import { dateInName, extensionOf, type ClassDeadline, type ClassFile, type FileCoverage } from "@/core";
 
-export type SlotState = "ready" | "reading" | "failed" | "info" | "missing";
-
-export interface Slot {
-	number: number;
-	state: SlotState;
-	/** The files at this number (none for a missing one). */
-	names: string[];
-	date: string | null;
-}
-
-export interface MaterialSeries {
-	key: string;
-	label: string;
-	slots: Slot[];
-	/** Numbers present / the last number. */
-	present: number;
-	last: number;
-	/** Every file in it is course info (no facts). */
-	infoOnly: boolean;
-}
-
-export interface Material {
-	/** The deadline covers no files, so this is every study file. */
-	allStudy: boolean;
-	series: MaterialSeries[];
-	/** Files that are not part of a series, in name order. */
-	loose: { id: string; name: string; state: Exclude<SlotState, "missing"> }[];
-	studyFiles: number;
-	infoFiles: number;
-	reading: number;
-	failed: number;
-	/** Facts born in the study files shown. */
-	facts: number;
-	/** Numbers missing across every series. */
-	missing: number;
-}
+export type DayState = "ready" | "reading" | "failed" | "info";
 
 type FileLike = Pick<ClassFile, "id" | "name" | "kind" | "status">;
 
-function fileState(f: FileLike): Exclude<SlotState, "missing"> {
+/** One class day: every file dated that day (or one undated file). */
+export interface ClassDay {
+	/** The date, or the file id for an undated file. */
+	key: string;
+	/** "YYYY-MM-DD"; null for an undated file. */
+	date: string | null;
+	/** "Intro and Counting", or the file's name when undated. */
+	title: string;
+	/** What the day's files are: "lecture slides", "transcript". */
+	parts: string[];
+	fileIds: string[];
+	names: string[];
+	/** The worst state among its files. */
+	state: DayState;
+}
+
+export interface Week {
+	/** Counted from the week of the class's first dated study file. */
+	number: number;
+	days: ClassDay[];
+}
+
+export interface Material {
+	/** The covered files' class days by week, then undated files as their own days. */
+	weeks: Week[];
+	undated: ClassDay[];
+	/** Study days before it that it doesn't cover and that weren't left out. */
+	notIncluded: ClassDay[];
+	leftOut: ClassDay[];
+	classDays: number;
+	files: number;
+	reading: number;
+	failed: number;
+	/** Facts born in the covered files. */
+	facts: number;
+}
+
+function fileState(f: FileLike): DayState {
 	if (f.status === "failed" || f.status === "needs-whisper") return "failed";
 	if (f.status === "pending" || f.status === "extracting") return "reading";
 	return f.kind === "info" ? "info" : "ready";
 }
 
-/** The worst state among a number's files. */
-const ORDER: Exclude<SlotState, "missing">[] = ["failed", "reading", "ready", "info"];
-const worst = (states: Exclude<SlotState, "missing">[]) => ORDER.find((s) => states.includes(s)) ?? "ready";
+const ORDER: DayState[] = ["failed", "reading", "ready", "info"];
+const worst = (states: DayState[]) => ORDER.find((s) => states.includes(s)) ?? "ready";
 
-export function deadlineMaterial(files: readonly FileLike[], coveredIds: readonly string[], coverage: readonly Pick<FileCoverage, "fileId" | "facts">[]): Material {
-	const covered = new Set(coveredIds);
-	const shown = covered.size > 0 ? files.filter((f) => covered.has(f.id)) : files.filter((f) => f.kind === "study");
-	const { series, other } = groupFileSeries(shown);
-	const factsOf = new Map(coverage.map((c) => [c.fileId, c.facts]));
-	let missing = 0;
-	const groups = series.map((s): MaterialSeries => {
-		const gaps = seriesGaps(s);
-		missing += gaps.length;
-		const slots: Slot[] = [
-			...s.items.map((i) => ({ number: i.number, state: worst(i.files.map(fileState)), names: i.files.map((f) => f.name), date: i.date })),
-			...gaps.map((n) => ({ number: n, state: "missing" as const, names: [], date: null })),
-		].sort((a, b) => a.number - b.number);
-		return {
-			key: s.key,
-			label: s.label,
-			slots,
-			present: s.items.length,
-			last: s.items[s.items.length - 1]!.number,
-			infoOnly: s.items.every((i) => i.files.every((f) => f.kind === "info")),
-		};
-	});
+/** Words that say what kind of file it is, not what the day was about. */
+const PART_WORDS = ["transcript", "slides", "notes", "annotated", "recording", "handout", "worksheet", "solutions", "discussion"];
+const GENERIC = new Set([...PART_WORDS, "lecture", "week", "day", "class", "evening", "morning", "section", "lab", "and", "the", "of"]);
+
+/** The name without its extension, date and empty brackets. */
+function plain(name: string): string {
+	const ext = extensionOf(name);
+	const stem = ext ? name.slice(0, -ext.length) : name;
+	return stem
+		.replace(/\d{4}-\d{2}-\d{2}|(?<!\d)20\d{6}(?!\d)/g, " ")
+		.replace(/\(\s*\)/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+/** "Intro and Counting" from "2026-09-25 Intro and Counting (lecture slides).pdf". */
+function titleOf(name: string): string {
+	return plain(name)
+		.replace(/\([^)]*\)/g, " ")
+		.replace(/^[\s_\-.]+|[\s_\-.]+$/g, "")
+		.replace(/[_]+/g, " ")
+		.replace(/\s+/g, " ");
+}
+
+/** How much of a title is about the day: words that aren't course codes, numbers or file words. */
+function topicWords(title: string): number {
+	return title.split(/\s+/).filter((w) => /\p{Ll}/u.test(w) && !/\d/.test(w) && !GENERIC.has(w.toLowerCase())).length;
+}
+
+/** "lecture slides" from the brackets, else a file word in the name; null when neither says. */
+function partOf(name: string): string | null {
+	const bracket = /\(([^)\d]*\p{L}[^)\d]*)\)/u.exec(plain(name))?.[1]?.trim();
+	if (bracket) return bracket.toLowerCase();
+	const lower = name.toLowerCase();
+	return PART_WORDS.find((w) => lower.includes(w)) ?? null;
+}
+
+function dayOf(key: string, date: string | null, files: FileLike[]): ClassDay {
+	const titles = files.map((f) => titleOf(f.name));
+	const best = titles.reduce((a, b) => (topicWords(b) > topicWords(a) || (topicWords(b) === topicWords(a) && b.length < a.length) ? b : a));
 	return {
-		allStudy: covered.size === 0,
-		series: groups,
-		loose: other.map((f) => ({ id: f.id, name: f.name, state: fileState(f) })),
-		studyFiles: shown.filter((f) => f.kind === "study").length,
-		infoFiles: shown.filter((f) => f.kind === "info").length,
-		reading: shown.filter((f) => fileState(f) === "reading").length,
-		failed: shown.filter((f) => fileState(f) === "failed").length,
-		facts: shown.reduce((sum, f) => sum + (factsOf.get(f.id) ?? 0), 0),
-		missing,
+		key,
+		date,
+		title: date ? best || files[0]!.name : files[0]!.name,
+		parts: [...new Set(files.map((f) => partOf(f.name)).filter((p): p is string => p !== null))].sort(),
+		fileIds: files.map((f) => f.id),
+		names: files.map((f) => f.name),
+		state: worst(files.map(fileState)),
 	};
 }
 
-/** The line under "Material". */
+/** Files grouped into class days: dated ones by day (in date order), then each undated one alone (by name). */
+function classDays(files: readonly FileLike[]): ClassDay[] {
+	const byDate = new Map<string, FileLike[]>();
+	const undated: FileLike[] = [];
+	for (const f of files) {
+		const date = dateInName(f.name);
+		if (date) byDate.set(date, [...(byDate.get(date) ?? []), f]);
+		else undated.push(f);
+	}
+	return [
+		...[...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, fs]) => dayOf(date, date, fs)),
+		...undated.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map((f) => dayOf(f.id, null, [f])),
+	];
+}
+
+/** The Monday on or before a day (days since 1970). */
+function weekStart(day: number): number {
+	// 1970-01-01 was a Thursday: Monday is 3 days earlier.
+	return day - ((day + 3) % 7);
+}
+
+const dayNumber = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
+
+type DeadlineLike = Pick<ClassDeadline, "id" | "kind" | "date" | "fileIds" | "leftOutIds">;
+
+/** Where the "not on it" check starts: after the class's last earlier exam
+ *  for an exam, else at its first covered day; null = no check. */
+function checkFrom(d: DeadlineLike, others: readonly DeadlineLike[], coveredDates: string[]): string | null {
+	if (d.kind === "exam") {
+		const before = others.filter((o) => o.id !== d.id && o.kind === "exam" && o.date < d.date).map((o) => o.date);
+		return before.length > 0 ? before.sort().at(-1)! : "";
+	}
+	return coveredDates.length > 0 ? coveredDates.sort()[0]! : null;
+}
+
+export function deadlineMaterial(
+	files: readonly FileLike[],
+	deadline: DeadlineLike,
+	deadlines: readonly DeadlineLike[],
+	coverage: readonly Pick<FileCoverage, "fileId" | "facts">[],
+): Material {
+	const covered = new Set(deadline.fileIds);
+	const leftOut = new Set(deadline.leftOutIds ?? []);
+	const shown = files.filter((f) => covered.has(f.id));
+	const days = classDays(shown);
+	const firstDate = files.filter((f) => f.kind === "study").map((f) => dateInName(f.name)).filter((d): d is string => d !== null).sort()[0];
+	// A term that starts on a Friday folds those days into week 1.
+	const base = firstDate ? weekStart(dayNumber(firstDate) + 3) : 0;
+	const weeks: Week[] = [];
+	for (const day of days.filter((d) => d.date)) {
+		const number = firstDate ? Math.max(1, Math.floor((weekStart(dayNumber(day.date!)) - base) / 7) + 1) : 1;
+		const last = weeks.at(-1);
+		if (last?.number === number) last.days.push(day);
+		else weeks.push({ number, days: [day] });
+	}
+	const coveredDates = days.map((d) => d.date).filter((d): d is string => d !== null);
+	const from = checkFrom(deadline, deadlines, coveredDates);
+	const candidates =
+		from === null || covered.size === 0
+			? []
+			: files.filter((f) => {
+					if (f.kind !== "study" || covered.has(f.id) || leftOut.has(f.id)) return false;
+					const date = dateInName(f.name);
+					// An exam's check starts the day after the last exam; another deadline's on its first covered day.
+					return date !== null && date < deadline.date && (deadline.kind === "exam" ? date > from : date >= from);
+				});
+	const factsOf = new Map(coverage.map((c) => [c.fileId, c.facts]));
+	return {
+		weeks,
+		undated: days.filter((d) => !d.date),
+		notIncluded: classDays(candidates),
+		leftOut: classDays(files.filter((f) => leftOut.has(f.id))),
+		classDays: coveredDates.length,
+		files: shown.length,
+		reading: shown.filter((f) => fileState(f) === "reading").length,
+		failed: shown.filter((f) => fileState(f) === "failed").length,
+		facts: shown.reduce((sum, f) => sum + (factsOf.get(f.id) ?? 0), 0),
+	};
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** "11 class days · 34 files · 2 still being read". */
 export function materialSummary(m: Material): string {
-	if (m.series.length === 0 && m.loose.length === 0) return "No study files yet.";
-	const parts: string[] = [];
-	if (m.missing > 0) parts.push(`${missingText(m.series)} ${m.missing === 1 ? "looks" : "look"} missing`);
-	if (m.failed > 0) parts.push(`${m.failed} ${m.failed === 1 ? "file" : "files"} couldn't be read`);
+	const parts = [m.classDays > 0 ? plural(m.classDays, "class day") : null, plural(m.files, "file")];
 	if (m.reading > 0) parts.push(`${m.reading} still being read`);
-	return parts.length > 0 ? `${parts.join(", ")}.` : "Nothing looks missing from the file names.";
+	if (m.failed > 0) parts.push(`${m.failed} couldn't be read`);
+	return parts.filter(Boolean).join(" · ");
 }
 
-/** "Lecture 3, 4 and HW 2", naming at most two series. */
-function missingText(series: readonly MaterialSeries[]): string {
-	const named = series
-		.map((s) => ({ label: s.label, numbers: s.slots.filter((slot) => slot.state === "missing").map((slot) => slot.number) }))
-		.filter((s) => s.numbers.length > 0)
-		.map((s) => `${s.label} ${s.numbers.join(", ")}`);
-	if (named.length <= 2) return named.join(" and ");
-	return `${named.slice(0, 2).join(", ")} and ${named.length - 2} more`;
+/** "Sep 25" from "2026-09-25". */
+export function shortDate(date: string): string {
+	return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** The message "Check with the syllabus" sends to the teacher. */
-export function syllabusCheckMessage(className: string, deadline: { name: string; when: string }): string {
-	return `Check my ${className} files for ${deadline.name} (${deadline.when}). Compare the syllabus and course info with the class's files and tell me which lectures, transcripts, discussions or readings it covers that are missing. Don't add anything yet.`;
+/** The message Ask sends the teacher. */
+export function coverageMessage(className: string, deadline: { name: string; when: string }): string {
+	return `Work out what ${deadline.name} (${deadline.when}) in ${className} covers from my files, like a practice exam, a review sheet or the syllabus. Link those files to it, leave out the earlier ones it doesn't cover, and tell me which file you went by.`;
 }
 
 /** "2 of 5 right", or "not tested". */

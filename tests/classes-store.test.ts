@@ -163,6 +163,22 @@ describe("deadlines", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.id), [finalExam.id]);
 	});
 
+	it("keeps left-out files and the source; a file is never both covered and left out", () => {
+		const cls = classStore.createClass({ name: "CSE 21" });
+		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb"), studyFile("f_cccccccccccc")]);
+		const mid = classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: "2026-11-04", fileIds: ["f_aaaaaaaaaaaa"], leftOutIds: ["f_bbbbbbbbbbbb"], source: "  practice   exam.pdf " });
+		assert.deepEqual([mid.fileIds, mid.leftOutIds, mid.source], [["f_aaaaaaaaaaaa"], ["f_bbbbbbbbbbbb"], "practice exam.pdf"]);
+		const added = classStore.updateDeadline(cls.id, mid.id, { fileIds: ["f_aaaaaaaaaaaa", "f_bbbbbbbbbbbb"] });
+		assert.deepEqual([added.fileIds, "leftOutIds" in added], [["f_aaaaaaaaaaaa", "f_bbbbbbbbbbbb"], false], "adding a left-out file takes it off the left-out list");
+		const out = classStore.updateDeadline(cls.id, mid.id, { leftOutIds: ["f_bbbbbbbbbbbb", "f_cccccccccccc"] });
+		assert.deepEqual([out.fileIds, out.leftOutIds], [["f_aaaaaaaaaaaa"], ["f_bbbbbbbbbbbb", "f_cccccccccccc"]], "leaving out a covered file uncovers it");
+		const cleared = classStore.updateDeadline(cls.id, mid.id, { source: null });
+		assert.equal("source" in cleared, false);
+		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
+		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.[0]?.leftOutIds, ["f_bbbbbbbbbbbb"], "a removed file drops off the left-out list");
+		assert.throws(() => classStore.updateDeadline(cls.id, mid.id, { leftOutIds: ["f_nope00000000"] }), /Not files of this class/);
+	});
+
 	it("sorts by date, then time (none = 23:59), then name", () => {
 		const cls = classStore.createClass({ name: "Sorting" });
 		classStore.addDeadline(cls.id, { kind: "homework", name: "B no time", date: "2026-11-01" });

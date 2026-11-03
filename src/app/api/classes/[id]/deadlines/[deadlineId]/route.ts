@@ -1,6 +1,6 @@
 /**
  * /api/classes/[id]/deadlines/[deadlineId]
- *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, done? }
+ *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, leftOutIds?, source?: string | null, done? }
  *  DELETE — remove the deadline
  */
 import { removeClassDeadline, updateClassDeadline } from "@/server";
@@ -19,6 +19,8 @@ export async function PUT(req: Request, { params }: Ctx) {
 		date?: unknown;
 		time?: unknown;
 		fileIds?: unknown;
+		leftOutIds?: unknown;
+		source?: unknown;
 		done?: unknown;
 	};
 	if (body.done !== undefined && typeof body.done !== "boolean") return Response.json({ error: "done must be true or false" }, { status: 400 });
@@ -28,6 +30,8 @@ export async function PUT(req: Request, { params }: Ctx) {
 		...(body.date !== undefined ? { date: body.date as string } : {}),
 		...(body.time !== undefined ? { time: body.time as string | null } : {}),
 		...(body.fileIds !== undefined ? { fileIds: body.fileIds as string[] } : {}),
+		...(body.leftOutIds !== undefined ? { leftOutIds: body.leftOutIds as string[] } : {}),
+		...(body.source !== undefined ? { source: body.source as string | null } : {}),
 		...(body.done !== undefined ? { done: body.done } : {}),
 	});
 	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
