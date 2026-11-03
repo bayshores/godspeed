@@ -24,6 +24,7 @@ import { planBlocksFor } from "../core/plan-blocks.ts";
 import { coverageOf } from "../core/coverage.ts";
 import type { ChatStore, GraphStore } from "../core/ports.ts";
 import type { ExtractionPipeline } from "../agent/subagents/extraction.ts";
+import { runs } from "../agent/subagents/extraction-runs.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 
 /** Distinguish a failed canonical save from later bookkeeping failures. */
@@ -111,29 +112,50 @@ export function triggerExtraction(
 ): void {
 	if (process.env.NODE_ENV === "test") return;
 	try {
-		const record = deps.chatStore.getChat(chatId);
-		if (!record) return;
-		const covered = coverageOf(record.messages, deps.graphStore.readCoverage(), chatId);
-		const timers = leftoverTimers();
-		clearTimeout(timers.get(chatId));
-		timers.delete(chatId);
-		if (covered.uncoveredTokens === 0) return;
-		const run = () =>
-			void extraction.runExtraction(chatId).catch((err) => {
-				console.error(`[chat ${chatId}] extraction pipeline failed:`, err);
-			});
-		if (covered.uncoveredTokens >= chunkTokens) return run();
-		// Less than a chunk: extract it once the lesson sits idle, so a short
+		const uncovered = uncoveredTokens(deps, chatId);
+		if (uncovered >= chunkTokens && !runs().inFlight.has(chatId)) return runExtraction(extraction, chatId);
+		// Less than a chunk, or a run already going (it would ignore this
+		// request): extract it once the lesson sits idle, so a short
 		// lesson's answers still count. A newer turn resets the wait.
-		const timer = setTimeout(() => {
-			timers.delete(chatId);
-			if (!isTurnRunning(chatId)) run();
-		}, LEFTOVER_IDLE_MS);
-		timer.unref?.();
-		timers.set(chatId, timer);
+		if (uncovered > 0) extractWhenIdle(deps, extraction, chatId, LEFTOVER_IDLE_MS);
 	} catch (err) {
 		console.error(`[chat ${chatId}] extraction trigger failed:`, err);
 	}
+}
+
+/** Extract what the lesson has left after `delayMs`, unless a newer call
+ *  resets the wait. A turn or an extraction still going pushes it back
+ *  (a run already going would ignore the request). */
+export function extractWhenIdle(
+	deps: { chatStore: ChatStore; graphStore: GraphStore },
+	extraction: ExtractionPipeline,
+	chatId: string,
+	delayMs: number,
+): void {
+	const timers = leftoverTimers();
+	clearTimeout(timers.get(chatId));
+	const timer = setTimeout(() => {
+		timers.delete(chatId);
+		try {
+			if (isTurnRunning(chatId) || runs().inFlight.has(chatId)) return extractWhenIdle(deps, extraction, chatId, LEFTOVER_IDLE_MS);
+			if (uncoveredTokens(deps, chatId) > 0) runExtraction(extraction, chatId);
+		} catch (err) {
+			console.error(`[chat ${chatId}] leftover extraction failed:`, err);
+		}
+	}, delayMs);
+	timer.unref?.();
+	timers.set(chatId, timer);
+}
+
+function uncoveredTokens(deps: { chatStore: ChatStore; graphStore: GraphStore }, chatId: string): number {
+	const record = deps.chatStore.getChat(chatId);
+	return record ? coverageOf(record.messages, deps.graphStore.readCoverage(), chatId).uncoveredTokens : 0;
+}
+
+function runExtraction(extraction: ExtractionPipeline, chatId: string): void {
+	void extraction.runExtraction(chatId).catch((err) => {
+		console.error(`[chat ${chatId}] extraction pipeline failed:`, err);
+	});
 }
 
 /** How long a lesson sits idle before its last stretch (under a chunk) is extracted. */

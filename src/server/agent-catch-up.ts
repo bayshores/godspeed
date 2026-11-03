@@ -14,23 +14,25 @@ import { handleChatInput } from "./chat-handler.ts";
 import { extraction } from "./extraction.ts";
 import { effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
-import { LEFTOVER_IDLE_MS } from "./turn-service.ts";
+import { extractWhenIdle, LEFTOVER_IDLE_MS } from "./turn-service.ts";
 
 const G = globalThis as typeof globalThis & { __lhLessonsCaughtUp?: boolean; __lhAskingDeadlines?: boolean };
 
-/** Once per app run: extract what each idle lesson has left. */
+/** Once per app run: extract what each lesson has left, now when it sits
+ *  idle, else once it has (its timer died with the last run). */
 function catchUpLessons(now: number): void {
-	if (G.__lhLessonsCaughtUp) return;
+	if (G.__lhLessonsCaughtUp || !effectiveSettings().graph.enabled) return;
 	G.__lhLessonsCaughtUp = true;
-	if (!effectiveSettings().graph.enabled) return;
 	const archived = new Set(stores.classStore.listClasses().filter((c) => c.archived).map((c) => c.id));
 	for (const { id } of stores.chatStore.listChats()) {
 		const record = stores.chatStore.getChat(id);
 		// Practice and Talk carry a kind and write no facts; a lesson has none.
-		if (!record || record.kind || (record.classId && archived.has(record.classId))) continue;
-		if (isTurnRunning(id) || now - Date.parse(record.updatedAt) < LEFTOVER_IDLE_MS) continue;
-		if (coverageOf(record.messages, graphStoreFor(record.classId ?? null).readCoverage(), id).uncoveredTokens === 0) continue;
-		void extraction.runExtraction(id).catch((err: unknown) => console.error(`[catch-up] extraction failed for ${id}:`, err));
+		if (!record || record.kind || (record.classId && archived.has(record.classId)) || isTurnRunning(id)) continue;
+		const graphStore = graphStoreFor(record.classId ?? null);
+		if (coverageOf(record.messages, graphStore.readCoverage(), id).uncoveredTokens === 0) continue;
+		const idleFor = now - Date.parse(record.updatedAt);
+		if (idleFor < LEFTOVER_IDLE_MS) extractWhenIdle({ chatStore: stores.chatStore, graphStore }, extraction, id, LEFTOVER_IDLE_MS - idleFor);
+		else void extraction.runExtraction(id).catch((err: unknown) => console.error(`[catch-up] extraction failed for ${id}:`, err));
 	}
 }
 
