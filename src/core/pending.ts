@@ -55,6 +55,11 @@ export function isQuestionTool(name: string): boolean {
 	return (QUESTION_TOOLS as readonly string[]).includes(name);
 }
 
+/** The questions with a right answer, the ones that count toward progress. */
+export function isGradedTool(name: string): boolean {
+	return name === "quiz" || name === "probe";
+}
+
 /** The tool→kind map (the dock's own fold, named once — the dismissal
  *  path and the dock must never disagree on what a tool is). The probe
  *  names fold onto their teach kinds — the dock is kind-driven. */

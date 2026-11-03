@@ -345,6 +345,35 @@ describe("the merger (mergeFindings)", () => {
 		assert.deepEqual(chains[0]!.provenance, [{ chatId: chat.id, messageId: "" }], "chains stay chat-level — never anchored");
 	});
 
+	it("a question's tested ideas get a point at the question's message, once each", () => {
+		const chat = fixtureChat("Question fixture", [...user("u1", "quiz me"), ...teacher("t1", "Taught."), ...teacher("q1", "Ready?")].flat());
+		mergeFindings(
+			chat.id,
+			{ propositions: [{ id: "p1", name: "Old", statement: "An idea taught earlier", aliases: [], messageId: "t1" }], chains: [], reteaches: [] },
+			graphDeps,
+			sessionSource(chat.id),
+		);
+		const old = scopedGraph([chat.id]).nodes.find((n) => n.statement === "An idea taught earlier")!;
+		mergeFindings(
+			chat.id,
+			{
+				propositions: [{ id: "p2", name: "New", statement: "An idea the question needs", aliases: [], messageId: "q1" }],
+				chains: [],
+				reteaches: [],
+				tests: [{ messageId: "q1", ids: [old.id, "p2", old.id, "nope"] }],
+			},
+			graphDeps,
+			sessionSource(chat.id),
+		);
+		const graph = scopedGraph([chat.id]).nodes;
+		assert.deepEqual(graph.find((n) => n.id === old.id)!.provenance, [
+			{ chatId: chat.id, messageId: "t1" },
+			{ chatId: chat.id, messageId: "q1" },
+		]);
+		const fresh = graph.find((n) => n.statement === "An idea the question needs")!;
+		assert.deepEqual(fresh.provenance, [{ chatId: chat.id, messageId: "q1" }], "already anchored there: no second point");
+	});
+
 	it("merges INDEPENDENTLY per call — no cross-run identity", () => {
 		// The mappings ledger is gone: resolution is a job-local in-memory
 		// map, so a second merge of the same findings knows nothing of the

@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.22",
+		"date": "2026-11-02",
+		"changes": [
+			"Questions now count toward being ready even when your teacher didn't re-explain the idea first. When a lesson is saved to your graph, your agent also says which ideas each question tested, so warm-up questions and exam practice move your deadline's percentage.",
+			"Lessons you already had get their questions read once, the next time your agent connects."
+		]
+	},
+	{
 		"version": "0.5.21",
 		"date": "2026-11-02",
 		"changes": [

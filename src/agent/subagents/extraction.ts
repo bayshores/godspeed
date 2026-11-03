@@ -4,7 +4,7 @@ import { Type, type Static } from "typebox";
 import type { ModelRole } from "../../config.ts";
 import { FACTORY_SETTINGS } from "../../core/settings.ts";
 import type { PiEngine } from "../models.ts";
-import type { CallUsage, ExtractionRunUsage, SessionFindings } from "../../core/contracts.ts";
+import type { CallUsage, ExtractionRunUsage, QuestionTest, SessionFindings } from "../../core/contracts.ts";
 import { getGraph, mergeFindings, type DerivedGraph, type EmissionStats, type GraphDeps } from "../../core/graph.ts";
 import type { GraphStore } from "../../core/ports.ts";
 import { emit } from "../../core/events.ts";
@@ -154,6 +154,15 @@ const sessionFindingsSchema = Type.Object({
 		description: chainsDescription,
 	}),
 	reteaches: reteachesSchema,
+	tests: Type.Optional(Type.Array(
+		Type.Object({
+			messageId: Type.String({ description: 'The question\'s message id, copied EXACTLY from its "QUESTION [id]" label.' }),
+			ids: Type.Array(Type.String(), {
+				description: "The ideas the question asks about: proposition ids from this call or existing ids from THE GRAPH SO FAR or RELATED IDEAS.",
+			}),
+		}),
+		{ description: 'One entry per "QUESTION [id]" passage in this stretch; [] when it has none.' },
+	)),
 });
 
 // THE COURSE-INFO EXTENSION: a class file godspeed may sort by itself
@@ -181,7 +190,8 @@ type SessionFindingsSubmit = Static<typeof sessionFindingsSchema>;
 
 // ── the submit seam ──
 //
-// Every top-level field on each submit tool is REQUIRED, so a payload
+// Every top-level field on each submit tool is REQUIRED (except a lesson's
+// tests, which only questions need), so a payload
 // missing `chains` or `reteaches` fails validation instead of merging a
 // pile of nodes with no structure (a truncated retry used to pass with
 // propositions only). Only the per-item aliases stay optional, filled in
@@ -238,7 +248,17 @@ function validateFindingsChains(value: FindingsSubmit, existingIds: ReadonlySet<
  *  submit lands. The boundary is strict on purpose — an id from a LATER
  *  or already-covered batch, another chat, or a learner/tool message is
  *  refused even when it is a real message id of this chat. */
-function validateSessionAnchors(value: SessionFindingsSubmit, batchIds: ReadonlySet<string>): string | null {
+function validateSessionAnchors(value: SessionFindingsSubmit, batchIds: ReadonlySet<string>, existingIds: ReadonlySet<string>): string | null {
+	const localIds = new Set(value.propositions.map((p) => p.id));
+	for (const test of value.tests ?? []) {
+		if (!batchIds.has(test.messageId)) {
+			return `tests: messageId "${test.messageId}" is not a passage of THIS stretch — copy the id from the brackets of one of this stretch's own QUESTION [id] passages.`;
+		}
+		const unknown = test.ids.find((id) => !localIds.has(id) && !existingIds.has(id));
+		if (unknown !== undefined) {
+			return `tests: "${unknown}" is neither a submitted proposition id nor an existing idea id from THE GRAPH SO FAR or RELATED IDEAS.`;
+		}
+	}
 	for (const p of value.propositions) {
 		if (p.messageId.trim().length === 0) {
 			return `propositions: "${p.id}" is missing its messageId — copy the message id from the brackets of the passage (TEACHER [id]) that most directly states or explains it.`;
@@ -259,11 +279,13 @@ const asSessionFindings = (
 		propositions: Array<{ id: string; name: string; statement: string; aliases?: string[]; messageId?: string }>;
 		chains: Array<{ premises: string[]; conclusion: string }>;
 		reteaches: string[];
+		tests?: QuestionTest[];
 	},
 ): SessionFindings => ({
 	propositions: raw.propositions.map((p) => ({ ...p, aliases: p.aliases ?? [] })),
 	chains: raw.chains,
 	reteaches: raw.reteaches,
+	...(raw.tests ? { tests: raw.tests } : {}),
 });
 
 // ── the extractor's system prompt ──
@@ -328,7 +350,12 @@ of later chains. A bare idea that no argument uses rides the propositions list a
 field even when empty — "chains": [] when the source makes no arguments, "reteaches": [] when it
 re-teaches nothing. The tool's field descriptions carry the details.`;
 
-export const EXTRACTOR_INSTRUCTIONS = `${SESSION_PREAMBLE}\n\n${EXTRACTION_CORE}\n\n${SESSION_MESSAGE_ID_RULE}`;
+/** Lessons: questions the learner answered arrive as "QUESTION [id]" lines. */
+const SESSION_QUESTION_RULE =
+	"QUESTION [id] passages are questions the learner was asked. They teach nothing themselves; for each one, " +
+	"list in tests the ideas it asks about (new or existing ids) under its message id, so the learner's answer counts for them.";
+
+export const EXTRACTOR_INSTRUCTIONS = `${SESSION_PREAMBLE}\n\n${EXTRACTION_CORE}\n\n${SESSION_MESSAGE_ID_RULE}\n\n${SESSION_QUESTION_RULE}`;
 export const NOTES_EXTRACTOR_INSTRUCTIONS = `${NOTES_PREAMBLE}\n\n${EXTRACTION_CORE}`;
 
 /** Added for class files godspeed may sort by itself. */
@@ -393,7 +420,7 @@ function runExtractor(
 		toolDescription: "Submit the session findings.",
 		parameters: sessionFindingsSchema,
 		fill: (raw: SessionFindingsSubmit) => raw,
-		validate: (value) => validateSessionAnchors(value, batchIds) ?? validateFindingsChains(value, existingIds),
+		validate: (value) => validateSessionAnchors(value, batchIds, existingIds) ?? validateFindingsChains(value, existingIds),
 		systemPrompt: EXTRACTOR_INSTRUCTIONS,
 		prompt,
 		engine,

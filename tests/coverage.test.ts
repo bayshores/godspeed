@@ -99,14 +99,18 @@ describe("messageFingerprint — what changes it, what never does", () => {
 		);
 	});
 
-	it("quiz Q&A is INVISIBLE under the teacher-prose ruling", () => {
-		// Neither the asking message nor the graded answer produces view
-		// lines — a quiz exchange can never open or join an extraction run.
-		const asking = assistantWithCalls("a1", [{ id: "q1", name: "quiz", args: { question: "Q?" } }]);
+	it("a graded question is a QUESTION line; its answer stays invisible", () => {
+		// The extractor sees what was asked (to say which ideas it tests),
+		// never what the learner answered. Other calls add nothing.
+		const asking = assistantWithCalls("a1", [
+			{ id: "q1", name: "quiz", args: { question: "Q?" } },
+			{ id: "p1", name: "probe", args: { question: "  P?  " } },
+			{ id: "x1", name: "ask_user_question", args: { question: "Which?" } },
+		]);
 		const answer = result("r1", "q1", "quiz", { questionText: "Q?", correct: true });
-		assert.deepEqual(messageViewLines(asking, "a1"), []);
+		assert.deepEqual(messageViewLines(asking, "a1"), ["QUESTION [a1] Q?", "QUESTION [a1] P?"]);
 		assert.deepEqual(messageViewLines(answer, "r1"), []);
-		assert.equal(slot([asking, answer], "a1").tokens, 0);
+		assert.ok(slot([asking, answer], "a1").tokens > 0);
 		assert.equal(slot([asking, answer], "r1").tokens, 0);
 	});
 

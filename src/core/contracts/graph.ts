@@ -233,13 +233,23 @@ export interface ExtractedChain {
 	conclusion: string;
 }
 
+/** The ideas one question in a lesson asks about: proposition ids from
+ *  the same submit or existing node ids. The merge anchors them at the
+ *  question's message, so the learner's answer counts for them. */
+export interface QuestionTest {
+	messageId: string;
+	ids: string[];
+}
+
 /** The extractor's output shape: the raw reasoning chains, plus the
  *  existing graph ideas this stretch also teaches (`reteaches` — the merge
- *  credits the source for them, so re-taught ideas never duplicate). */
+ *  credits the source for them, so re-taught ideas never duplicate), and
+ *  for lessons, what each question tests (notes have none). */
 export interface SessionFindings {
 	propositions: ExtractedProposition[];
 	chains: ExtractedChain[];
 	reteaches: string[];
+	tests?: QuestionTest[];
 }
 
 /** The GET /api/graph payload — everything the home view's PURE renderer needs. */

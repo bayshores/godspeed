@@ -18,7 +18,7 @@
 import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines } from "./contracts.ts";
 import type { LhMessage } from "./native-messages.ts";
-import { isQuestionTool } from "./pending.ts";
+import { isGradedTool, isQuestionTool } from "./pending.ts";
 import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
 import { birthSessionOf } from "./session-clusters.ts";
 import { resolveTopics } from "./topics.ts";
@@ -88,7 +88,6 @@ export interface AnswerRef {
 	answeredAt: string;
 }
 
-const GRADED_TOOLS = new Set(["quiz", "probe"]);
 
 /** The outcome of a graded answer; null when it isn't one (ask/explain,
  *  dismissed, or a record without a verdict). */
@@ -120,7 +119,7 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 			const content = (m as { content?: unknown }).content;
 			if (Array.isArray(content)) {
 				for (const block of content as Array<{ type?: string; id?: string; name?: string; arguments?: unknown }>) {
-					if (block.type !== "toolCall" || !block.id || !block.name || !GRADED_TOOLS.has(block.name)) continue;
+					if (block.type !== "toolCall" || !block.id || !block.name || !isGradedTool(block.name)) continue;
 					calls.set(block.id, {
 						messageId: m.id,
 						context: [...turn].reverse(),

@@ -1,8 +1,9 @@
 /**
  * Extraction coverage — the pure core. THE TEACHER'S PROSE IS THE UNIT:
  * the extractor sees ONLY the teacher agent's
- * prose — ordinary text blocks and explicit send_to_user messages. No
- * learner messages, thinking, other tool calls/results, or quiz blocks.
+ * prose — ordinary text blocks and explicit send_to_user messages — and
+ * the graded questions it asked (quiz, probe), so it can say which ideas
+ * each one tests. No learner messages, thinking, or other tool calls/results.
  * Everything else is INVISIBLE to coverage: it neither opens nor joins a run, so answering a quiz or editing a learner
  * message triggers nothing. "Covered" is by construction exactly "what
  * the extractor saw": the fingerprint (sha256 of a message's view lines)
@@ -20,13 +21,14 @@ import { createHash } from "node:crypto";
 
 import type { CoverageEntry } from "./contracts/graph.ts";
 import { failedOutputCallIds, userFacingTextOf, type LhMessage } from "./native-messages.ts";
+import { isGradedTool } from "./pending.ts";
 
 
 /**
  * The extraction-relevant lines of ONE native message — the shared seam
  * between the extractor's prompt and messageFingerprint (coverage).
- * TEACHER PROSE ONLY: an assistant message yields one
- * line per learner-facing prose block; everything else (user messages,
+ * TEACHER PROSE AND QUESTIONS: an assistant message yields one line per
+ * learner-facing prose block, then one per graded question; everything else (user messages,
  * tool results, markers) yields NOTHING and is invisible to coverage.
  * `mid` is the message id — part of the hash input, so the same prose in two messages
  * is two slots (per-message coverage).
@@ -38,10 +40,21 @@ export function messageViewLines(
 ): string[] {
 	const lines: string[] = [];
 	if ((message as { role?: string }).role !== "assistant") return lines;
-	for (const text of userFacingTextOf((message as { content: unknown }).content, failedOutputCalls)) {
+	const content = (message as { content: unknown }).content;
+	for (const text of userFacingTextOf(content, failedOutputCalls)) {
 		lines.push(`TEACHER [${mid}] ${text.trim()}`);
 	}
+	for (const question of gradedQuestionsOf(content)) lines.push(`QUESTION [${mid}] ${question}`);
 	return lines;
+}
+
+/** The question text of each graded question call in a message's content. */
+function gradedQuestionsOf(content: unknown): string[] {
+	if (!Array.isArray(content)) return [];
+	return content.flatMap((block: { type?: string; name?: string; arguments?: { question?: unknown } }) => {
+		const question = block?.type === "toolCall" && isGradedTool(block.name ?? "") ? block.arguments?.question : undefined;
+		return typeof question === "string" && question.trim() ? [question.trim()] : [];
+	});
 }
 
 /** Tokens of a message's view — chars/4, ceil, the app-wide estimate. */

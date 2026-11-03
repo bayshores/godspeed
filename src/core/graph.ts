@@ -119,6 +119,7 @@ export function mergeFindings(
 	const nodes = ledgers.readNodes();
 	const existingIds = new Set(nodes.map((n) => n.id));
 	const mapping = new Map<string, string>();
+	const created = new Map<string, GraphNode>();
 	const now = new Date().toISOString();
 
 	for (const p of findings.propositions) {
@@ -133,6 +134,7 @@ export function mergeFindings(
 			provenance: pointOf(chatId, p.messageId),
 		};
 		ledgers.appendNode(node);
+		created.set(node.id, node);
 		stats.nodes++;
 		existingIds.add(node.id);
 		mapping.set(p.id, node.id);
@@ -150,6 +152,19 @@ export function mergeFindings(
 		const node = firstLine.get(id);
 		if (!node || credited.has(id)) continue;
 		ledgers.appendNode({ id, name: node.name, statement: node.statement, aliases: [], createdAt: now, provenance: pointOf(chatId) });
+	}
+
+	// 1c. What each question tests: a point at the question's message on
+	//     each idea, so the learner's answer counts for it.
+	const anchored = new Set([...nodes, ...created.values()].flatMap((line) => line.provenance.filter((pt) => pt.chatId === chatId).map((pt) => `${line.id} ${pt.messageId}`)));
+	for (const test of findings.tests ?? []) {
+		for (const local of new Set(test.ids)) {
+			const id = mapping.get(local) ?? (existingIds.has(local) ? local : undefined);
+			const node = id === undefined ? undefined : (firstLine.get(id) ?? created.get(id));
+			if (!id || !node || anchored.has(`${id} ${test.messageId}`)) continue;
+			anchored.add(`${id} ${test.messageId}`);
+			ledgers.appendNode({ id, name: node.name, statement: node.statement, aliases: [], createdAt: now, provenance: pointOf(chatId, test.messageId) });
+		}
 	}
 
 	// 2. Chains — the extractor's alone (it continues its own source, so
