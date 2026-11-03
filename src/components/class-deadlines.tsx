@@ -123,7 +123,7 @@ const DeadlineRow = memo(function DeadlineRow({
 					value={draft.kind}
 					disabled={disabled}
 					onChange={(e) => onChange(draft.key, { kind: e.target.value as DeadlineKind })}
-					className="shrink-0 bg-transparent text-[13px] text-ink-2 outline-none [color-scheme:dark] focus-visible:text-ink"
+					className="shrink-0 bg-transparent text-[13px] text-ink-2 outline-none focus-visible:text-ink"
 				>
 					{KIND_OPTIONS.map((o) => (
 						<option key={o.kind} value={o.kind}>
@@ -149,7 +149,7 @@ const DeadlineRow = memo(function DeadlineRow({
 					value={draft.date}
 					disabled={disabled}
 					onChange={(e) => onChange(draft.key, { date: e.target.value })}
-					className="shrink-0 bg-transparent font-mono text-[12.5px] text-ink-2 outline-none [color-scheme:dark] focus-visible:text-ink"
+					className="shrink-0 bg-transparent font-mono text-[12.5px] text-ink-2 outline-none focus-visible:text-ink"
 				/>
 				<span className="flex shrink-0 items-center gap-1">
 					<input
@@ -159,7 +159,7 @@ const DeadlineRow = memo(function DeadlineRow({
 						value={draft.time}
 						disabled={disabled}
 						onChange={(e) => onChange(draft.key, { time: e.target.value })}
-						className="bg-transparent font-mono text-[12.5px] text-ink-2 outline-none [color-scheme:dark] focus-visible:text-ink"
+						className="bg-transparent font-mono text-[12.5px] text-ink-2 outline-none focus-visible:text-ink"
 					/>
 					{draft.time !== "" && (
 						<button
