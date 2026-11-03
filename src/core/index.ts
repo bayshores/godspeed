@@ -71,6 +71,7 @@ export * from "./study.ts";
 export * from "./continue-study.ts";
 export * from "./cheat-sheet.ts";
 export * from "./cheat-sheet-fit.ts";
+export * from "./sheet-text.ts";
 export type { ClassChange } from "./class-tools.ts";
 export * from "./teaching-areas.ts";
 export * from "./agent-rules.ts";

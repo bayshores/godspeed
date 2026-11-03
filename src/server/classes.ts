@@ -85,6 +85,15 @@ export function getClass(id: string): ClassRecord | null {
 	return stores.classStore.getClass(id);
 }
 
+/** A deadline with its class (deadline ids are unique across classes), or null. */
+export function deadlineWithClass(deadlineId: string): { classId: string; deadline: ClassDeadline } | null {
+	for (const record of stores.classStore.listClassRecords()) {
+		const deadline = record.deadlines?.find((d) => d.id === deadlineId);
+		if (deadline) return { classId: record.id, deadline };
+	}
+	return null;
+}
+
 /** PDF, Word and PowerPoint files: their text is pulled out (and saved). */
 function isDocumentFile(name: string): boolean {
 	return (DOCUMENT_EXTENSIONS as readonly string[]).includes(extensionOf(name));

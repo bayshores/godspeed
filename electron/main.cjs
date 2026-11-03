@@ -853,6 +853,21 @@ async function main() {
 		if (!fromAppWindow(event)) throw untrusted();
 		return openAgentTerminal(folder, agent);
 	});
+	// The cheat sheet's Save as PDF: the page printed at its CSS page size
+	// (the print CSS shows only the paper), saved where the learner picks.
+	// Resolves to the saved path, or null when cancelled.
+	ipcMain.handle("lh:save-pdf", async (event, name) => {
+		if (!fromAppWindow(event)) throw untrusted();
+		const base = typeof name === "string" ? name.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 120) : "";
+		const result = await dialog.showSaveDialog(BrowserWindow.fromWebContents(event.sender), {
+			defaultPath: path.join(app.getPath("downloads"), `${base || "Cheat sheet"}.pdf`),
+			filters: [{ name: "PDF", extensions: ["pdf"] }],
+		});
+		if (result.canceled || !result.filePath) return null;
+		const pdf = await event.sender.printToPDF({ preferCSSPageSize: true, printBackground: true, margins: { top: 0, bottom: 0, left: 0, right: 0 } });
+		await fs.promises.writeFile(result.filePath, pdf);
+		return result.filePath;
+	});
 	// The renderer's first paint can race did-finish-load, so it asks for
 	// the current factor itself (mirrors "lh:zoom" pushes).
 	ipcMain.handle("lh:zoom:get", (event) => {

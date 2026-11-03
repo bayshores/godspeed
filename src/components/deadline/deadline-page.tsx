@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilIcon } from "lucide-react";
-import { DEFAULT_TEACHER_NAME, planDays } from "@/core";
+import { DEFAULT_TEACHER_NAME, planDays, type CheatSheetView } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
+import { SetupDialog } from "@/components/cheat-sheet/setup-dialog";
+import { studioPath } from "@/components/cheat-sheet/use-cheat-sheet";
+import { send } from "@/components/files/class-files-api";
 import { dueLabel } from "@/components/class-deadlines-model";
 import { useMinute } from "@/components/countdown";
 import { useClassRecord } from "@/components/files/class-files-api";
@@ -46,6 +49,13 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 	const lesson = useLessonStart();
 	// "class": Edit class as it opens anywhere; "deadline": with this deadline's row open.
 	const [editing, setEditing] = useState<"class" | "deadline" | null>(null);
+	const [cheatSetup, setCheatSetup] = useState(false);
+	// A cheat sheet whose rules are confirmed opens in its studio; the first time, the setup.
+	const onCheatSheet = useCallback(async () => {
+		const { error, body } = await send(`/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}/cheat-sheet`, { method: "GET" });
+		if (!error && (body as CheatSheetView).sheet.confirmedAt) router.push(studioPath(deadlineId));
+		else setCheatSetup(true);
+	}, [classId, deadlineId, router]);
 
 	const current = data && data.classId === classId ? data : null;
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
@@ -138,6 +148,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						onAsk={onAsk}
 						onAdd={(ids) => void saveFiles(ids, true)}
 						onLeaveOut={(ids) => void saveFiles(ids, false)}
+						onCheatSheet={() => void onCheatSheet()}
 					/>
 				) : error ? (
 					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} className="px-[52px] py-6" />
@@ -150,6 +161,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				)}
 			</div>
 			<ClassDialog mode={editMode} onClose={() => setEditing(null)} />
+			<SetupDialog classId={classId} deadlineId={deadlineId} open={cheatSetup} onClose={() => setCheatSetup(false)} />
 		</div>
 	);
 }

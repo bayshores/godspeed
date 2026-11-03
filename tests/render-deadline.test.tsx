@@ -76,6 +76,7 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 			onAsk={() => {}}
 			onAdd={() => {}}
 			onLeaveOut={() => {}}
+			onCheatSheet={() => {}}
 			{...over}
 		/>,
 	);
@@ -89,6 +90,7 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm</);
 		assert.match(html, /Exam<\/span>.*Fri Nov 6, 7:00 PM/);
 		assert.match(html, /data-testid="deadline-ring".*>38%</);
+		assert.match(html, /data-testid="deadline-cheat-sheet"[^>]*>.*Cheat sheet<\/button>/);
 	});
 	it("one strip segment per topic and counts for the statuses it has", () => {
 		const html = render();
