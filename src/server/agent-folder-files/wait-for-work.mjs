@@ -44,8 +44,9 @@ const flag = (name) => {
 };
 let lessonId = flag("--lesson");
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
-const maxMinutes = Number(flag("--max-minutes") ?? 120);
-const deadline = Date.now() + (Number.isFinite(maxMinutes) && maxMinutes > 0 ? maxMinutes : 120) * 60_000;
+const asked = Number(flag("--max-minutes") ?? 120);
+const maxMinutes = Number.isFinite(asked) && asked > 0 ? asked : 120;
+const deadline = Date.now() + maxMinutes * 60_000;
 const UNREACHABLE_LIMIT_MS = 5 * 60_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
