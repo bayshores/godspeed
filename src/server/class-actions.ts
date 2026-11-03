@@ -147,6 +147,7 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		update_class({ class_id, name, description, signature, icon, archived }) {
+			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const sig = signature ? cleanSignature(signature) : undefined;
 			if (sig === null) return badSignature;
 			const outcome = updateClass(class_id, { name, description, archived, ...(icon ? { icon } : {}), ...(sig ? { signature: sig } : {}) });
@@ -161,6 +162,7 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		add_class_file({ class_id, path, kind }) {
+			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const problem = shortcutPathProblem(path);
 			if (problem) return { ok: false, error: problem };
 			const outcome = addFileFromPath(class_id, path, kind);
@@ -214,6 +216,7 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		update_class_deadline({ class_id, deadline_id, kind, name, date, time, file_ids, left_out_ids, source, done: isDone }) {
+			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const outcome = updateClassDeadline(class_id, deadline_id, {
 				...(kind !== undefined ? { kind } : {}),
 				...(name !== undefined ? { name } : {}),
@@ -236,6 +239,7 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		remove_class_deadline({ class_id, deadline_id }) {
+			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const removedName = deadlineName(class_id, deadline_id);
 			const outcome = removeClassDeadline(class_id, deadline_id);
 			if (!outcome.ok) return outcome;
@@ -245,6 +249,7 @@ export function classActions(caller: string | undefined): ClassActions {
 		},
 
 		link_class_folder({ class_id, path }) {
+			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const problem = shortcutPathProblem(path);
 			if (problem) return { ok: false, error: problem };
 			const outcome = linkFolder(class_id, path);

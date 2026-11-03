@@ -632,6 +632,7 @@ describe("the /api/mcp door", () => {
 		assert.match(linked.body.note, /wait_for_work/);
 		assert.equal(linked.body.class.files, undefined, "no file list unless asked");
 		assert.deepEqual((await call("unlink_class_folder", { class_id: id })).body, { classId: id, unlinked: folder, filesRemoved: 0 });
+		assert.equal((await call("unlink_class_folder", { class_id: "cls_missing" })).body, 'No class "cls_missing". Use list_classes.');
 
 		// Lessons: by class, newest first, limited, with the total.
 		for (const title of ["Pointers", "Structs", "Malloc"]) chatStore.createChat(title, undefined, id);

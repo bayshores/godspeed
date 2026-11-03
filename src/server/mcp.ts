@@ -706,10 +706,11 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 		},
 		async ({ class_id }) => {
 			const before = stores.classStore.getClass(class_id);
+			if (!before) return failure(`No class "${class_id}". Use list_classes.`);
 			const outcome = unlinkFolder(class_id);
 			if (!outcome.ok) return failure(outcome.code === "extraction_running" ? AGENT_FILE_READING_REFUSAL : outcome.error);
-			noteAgentAction(caller, { label: `Unlinking ${folderName(before?.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
-			return result({ classId: class_id, unlinked: before?.linkedFolder, filesRemoved: before?.files.filter((f) => f.origin === "linked").length ?? 0 });
+			noteAgentAction(caller, { label: `Unlinking ${folderName(before.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
+			return result({ classId: class_id, unlinked: before.linkedFolder, filesRemoved: before.files.filter((f) => f.origin === "linked").length });
 		},
 	);
 }

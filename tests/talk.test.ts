@@ -122,6 +122,21 @@ describe("the Talk tools", () => {
 		assert.deepEqual(listed.details, { changes: [] });
 		assert.match((listed.content[0] as { text: string }).text, /CSE 21/);
 	});
+	it("every class action names a missing class the same way, so the agent knows to list classes", () => {
+		const actions = classActions("Claude Code");
+		const missing = { class_id: "cls_missing" };
+		const outcomes = [
+			actions.read_class(missing),
+			actions.update_class({ ...missing, name: "x" }),
+			actions.add_class_file({ ...missing, path: "/tmp/x.md", kind: "study" }),
+			actions.set_class_file_kind({ ...missing, file_ids: ["f_x"], kind: "info" }),
+			actions.add_class_deadline({ ...missing, deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] }),
+			actions.update_class_deadline({ ...missing, deadline_id: "ddl_x", done: true }),
+			actions.remove_class_deadline({ ...missing, deadline_id: "ddl_x" }),
+			actions.link_class_folder({ ...missing, path: "/tmp" }),
+		];
+		for (const outcome of outcomes) assert.deepEqual(outcome, { ok: false, error: 'No class "cls_missing". Use list_classes.' });
+	});
 	it("a refusal reaches the model as an error", async () => {
 		const refuse = { read_class: () => ({ ok: false, error: 'No class "nope". Use list_classes.' }) } as unknown as ClassActions;
 		await assert.rejects(talkTools(refuse).read_class!.execute("t3", { class_id: "nope" }), /No class "nope"/);
