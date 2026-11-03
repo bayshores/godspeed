@@ -1,6 +1,6 @@
 # The theory of learning and teaching
 
-*(Owner theory, formulated 2026-09-24. This document is the canonical theory layer — the system prompts are a compression of it. Scope: the theory itself, and what it demands of the implementation. Not an implementation spec.)*
+*(The owner's theory. This document is the canonical theory layer — the system prompts are a compression of it. Scope: the theory itself, and what it demands of the implementation. Not an implementation spec.)*
 
 ## 1. Two knowledge states
 
@@ -83,7 +83,7 @@ Explicitness is a tool. The measure of a step's presentation is a single questio
 
 Every reasoning step ends with a check: a graded question verifying that the step actually landed. This is not bookkeeping; it is the error-catching mechanism of Section 5 — a step that didn't land is found the moment it's stepped on, precisely localized by the check, and strengthened before anything is built on it.
 
-The cadence also shapes the session's rhythm: each check pauses the lesson for the learner's answer, so teaching advances in a rhythm of step → check → repair-or-continue. *(Locked decision, 2026-09-24: one check per reasoning step. If the rhythm proves unpleasant in practice, revisit — but the default is every step.)*
+The cadence also shapes the session's rhythm: each check pauses the lesson for the learner's answer, so teaching advances in a rhythm of step → check → repair-or-continue. *(Decided: one check per reasoning step. If the rhythm proves unpleasant in practice, revisit, but the default is every step.)*
 
 ## 10. What this demands of the implementation
 

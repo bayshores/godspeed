@@ -286,3 +286,25 @@ The teacher's context window and attention are precious — it has the lesson to
 | Mermaid DAG as the plan artifact | Structured tools as source of truth; mermaid only for ad-hoc diagrams |
 | UI deferred, "not important" | UI exists (Next.js, v3.4); the graph view is the app's home page |
 | pi as core dependency | pi removed; harness is standalone Next.js + Vercel AI SDK |
+
+## Superseded decisions (do not re-litigate without new evidence)
+
+Each of these was implemented, lived in real data, and was replaced. Most of the reasoning is in the amendments table above; the files named `vision-*.md` below are not in this repo.
+
+| Superseded | Replaced by | When |
+|---|---|---|
+| Live-emission graph construction (per-session, plan-tree-derived) | Post-hoc, tree-blind extraction pipeline | 2026-09-02 (vision §1) |
+| `taught` events, misconception nodes, node descriptions/kinds | True propositions only; wrongness lives in the ledger; name+statement+aliases | 2026-09-02/08 |
+| Editable plan tree (`plan_add_node`…`plan_mark_done`) | Author-once `plan_init` + derived statuses | 2026-09-08 era |
+| Hotspot + 1-hop graph context | Semantic top-K under token budget, delivered as a steer | 2026-09-14 (vision-context-injection) |
+| every-N-quiz-answers extraction trigger | Token-coverage batches (fingerprint ledger) | 2026-09-15 (vision-extraction-coverage) |
+| sigma.js + graphology + forceAtlas2 + Louvain clustering | Hand-rolled Canvas 2D renderer over a d3-force layout | 2026-09-13 era |
+| The canvas of individual facts, saved positions and render settings | The topic map: model-grouped topics in a computed column layout, nothing stored | the topic-map redesign |
+| Vercel AI SDK LLM loop (`MockLanguageModelV4` tests) | pi-ai engine (faux-provider tests) | [archive/pi-engine-swap.md](archive/pi-engine-swap.md) |
+| AI SDK `UIMessage` records and wire | pi's own message shapes in the record and pi agent events on the wire | the native-record wave |
+| Problem sets (`/practice`: partitioner, generators, grader, `data/practice`) | Practice sessions, a lesson kind ([architecture](architecture.md) §7) | the practice-session redesign |
+| Built-in model sign-ins, model slots and API keys | The outside agent over MCP is the only model ([architecture](architecture.md) §8.1) | the MCP fork |
+
+## Lineage
+
+The teaching methodology comes from an Obsidian-based POC (its `knowledge graph design.md` was the original epistemic-model source, since amended — see the amendments table above). The harness was originally built on the pi agent SDK, pivoted to standalone Next.js + the Vercel AI SDK, later swapped its LLM engine back to pi-ai ([archive/pi-engine-swap.md](archive/pi-engine-swap.md)), and now stores pi's own message shapes with no AI SDK left. godspeed is a fork of LearnHarness that replaced built-in model sign-ins with outside agents over MCP.

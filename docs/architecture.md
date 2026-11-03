@@ -137,7 +137,7 @@ flowchart TB
     COMP -.->|"✗ FORBIDDEN (lint)"| SERVER
 ```
 
-**Two rules are documentation-only by design.** The ESLint plugin's `except` can't express "all but one", so (a) `src/server/stores.ts` is *intended* to be the only server module importing adapters — but the server barrel also re-exports the settings reader and `promptOverrides`, and `observability.ts`, `onboarding.ts`, `whats-new.ts`, `settings-read.ts`, `mcp.ts`, `agent-memory.ts` and `agent-rules.ts` import store modules directly, and `classes.ts`, `agent-folder.ts` and `old-setup.ts` import `writeFileAtomic`; and (b) the browser-safety of the core barrel is a doc-comment convention (see §2.1). `tests/`, `scripts/`, and `electron/` are deliberately outside the law (lint-excluded); tests import freely across layers, scripts act as extra composition roots.
+**Two rules are documentation-only by design.** The ESLint plugin's `except` can't express "all but one", so (a) `src/server/stores.ts` is *intended* to be the only server module importing adapters — but the server barrel also re-exports the settings reader and `promptOverrides`, and `observability.ts`, `onboarding.ts`, `whats-new.ts`, `settings-read.ts`, `mcp.ts`, `agent-memory.ts` and `agent-rules.ts` import store modules directly, and `classes.ts`, `class-shortcuts.ts`, `agent-folder.ts` and `old-setup.ts` import `writeFileAtomic`; and (b) the browser-safety of the core barrel is a doc-comment convention (see §2.1). `tests/`, `scripts/`, and `electron/` are deliberately outside the law (lint-excluded); tests import freely across layers, scripts act as extra composition roots.
 
 ### 2.1 The core barrel and browser-safety
 
@@ -511,6 +511,7 @@ The client learns about server-side change by **push**, not polling: exactly one
 | `compaction-changed` | `{chatId, running}` | a compaction started or finished; `running: true` blocks sending |
 | `agent-action` | the action | an outside agent changed something (`src/server/agent-actions.ts`) |
 | `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`src/server/agent-rules.ts`); `saved` carries the rule when an outside agent saved it from the terminal |
+| `files-added` | `{classId, files}` | a linked folder scan added new files (`triageNewFiles` in `src/server/classes.ts`); the window shows a notice |
 
 ### 10.3 Emitter laws
 
@@ -572,24 +573,6 @@ Every place the architecture is designed to be cut — the "one file" a future c
 
 ---
 
-## 13. Decision history — superseded decisions (do not re-litigate without new evidence)
-
-Each of these was implemented, lived in real data, and was replaced. Most of the reasoning is in [vision.md](vision.md)'s amendments table; the files named `vision-*.md` below are not in this repo.
-
-| Superseded | Replaced by | When |
-|---|---|---|
-| Live-emission graph construction (per-session, plan-tree-derived) | Post-hoc, tree-blind extraction pipeline | 2026-09-02 (vision §1) |
-| `taught` events, misconception nodes, node descriptions/kinds | True propositions only; wrongness lives in the ledger; name+statement+aliases | 2026-09-02/08 |
-| Editable plan tree (`plan_add_node`…`plan_mark_done`) | Author-once `plan_init` + derived statuses | 2026-09-08 era |
-| Hotspot + 1-hop graph context | Semantic top-K under token budget, delivered as a steer | 2026-09-14 (vision-context-injection) |
-| every-N-quiz-answers extraction trigger | Token-coverage batches (fingerprint ledger) | 2026-09-15 (vision-extraction-coverage) |
-| sigma.js + graphology + forceAtlas2 + Louvain clustering | Hand-rolled Canvas 2D renderer over a d3-force layout | 2026-09-13 era |
-| The canvas of individual facts, saved positions and render settings | The topic map: model-grouped topics in a computed column layout, nothing stored | the topic-map redesign |
-| Vercel AI SDK LLM loop (`MockLanguageModelV4` tests) | pi-ai engine (faux-provider tests) | [archive/pi-engine-swap.md](archive/pi-engine-swap.md) |
-| AI SDK `UIMessage` records and wire | pi's own message shapes in the record and pi agent events on the wire | the native-record wave |
-| Problem sets (`/practice`: partitioner, generators, grader, `data/practice`) | Practice sessions, a lesson kind (§7) | the practice-session redesign |
-| Built-in model sign-ins, model slots and API keys | The outside agent over MCP is the only model (§8.1) | the MCP fork |
-
-## 14. Deliberately deferred
+## 13. Deliberately deferred
 
 Structured logging (§10); SQLite/remote storage (drop-in behind the ports, §3); multi-scale cluster hierarchy (Louvain's dendrogram idea, parked); the anchored calibration rubric; alternative extraction triggers beyond the coverage seam (session end, idle); retroactive bootstrap of the POC sessions (vision §1 consolidation). When any of these land, this doc changes with the commit that lands them — it describes the system, not an intention.
