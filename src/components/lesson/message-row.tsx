@@ -255,6 +255,7 @@ function AssistantPart({
 			return (
 				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot))}>
 					<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} />
+					{part.files && <MessageAttachments parts={part.files} />}
 				</div>
 			);
 		default: {

@@ -2,7 +2,8 @@
  * Pictures and PDFs on screen: the composer's waiting files (previews, ✕,
  * the refusal line, the picture button, the busy hold) and the learner's
  * message with its thumbnails and PDF chips (a click shows a picture full
- * size; Esc or a click closes it).
+ * size; Esc or a click closes it), the files an answer takes, and waiting
+ * files kept by box across leaving a lesson.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -15,7 +16,9 @@ import { PanelComposer } from "../src/components/lesson/panel-composer.tsx";
 import { PracticeDock } from "../src/components/practice-dock.tsx";
 import { MessageRow } from "../src/components/lesson/message-row.tsx";
 import { useAttachmentDraft, type AttachmentDraft } from "../src/components/lesson/attachment-tray.tsx";
-import { HEIC_REFUSAL, newThinkingMessage, newUserMessage, pdfNote, projectView, type AttachmentPart } from "../src/core/index.ts";
+import { HEIC_REFUSAL, newAnswerResult, newThinkingMessage, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage, type QuestionAnswerData } from "../src/core/index.ts";
+import { QuestionDock } from "../src/components/question-dock.tsx";
+import { stubCodeMirrorDom } from "./math-box-dom.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, {
@@ -25,6 +28,7 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
+stubCodeMirrorDom(dom);
 
 const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 	files: [
@@ -139,6 +143,55 @@ describe("waiting files outlive their box", () => {
 			delete (globalThis as Record<string, unknown>).FileReader;
 		}
 	});
+
+	it("an answer in the learner's words sends its files; a refused send keeps them, a taken one clears them", async () => {
+		(globalThis as Record<string, unknown>).FileReader = TestFileReader;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			// Files dropped on the explain question's box earlier.
+			const earlier = await mountDraft("q_explain");
+			await act(async () => earlier.box.draft!.add([new File(["png"], "work.png", { type: "image/png" })]));
+			await earlier.unmount();
+
+			const sent: { files: string[]; answer: QuestionAnswerData }[] = [];
+			let taken = false;
+			const dock = (
+				<QuestionDock
+					toolName="explain"
+					toolCallId="q_explain"
+					input={{ question: "Show your work.", correctAnswer: "4" }}
+					onSubmit={async (answer, files) => {
+						sent.push({ answer, files: files.map((f) => f.name) });
+						return taken;
+					}}
+				/>
+			);
+			await act(async () => root.render(dock));
+			assert.match(host.innerHTML, /data-testid="attachment-tray"[\s\S]*work\.png/);
+			assert.equal(host.querySelector<HTMLButtonElement>('[data-testid="question-submit"]')!.disabled, false, "a picture alone can be the answer");
+			const submit = () => host.querySelector('[data-testid="question-dock"]')!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+			await act(async () => void submit());
+			assert.deepEqual(sent.map((s) => s.files), [["work.png"]]);
+			assert.match(host.innerHTML, /work\.png/, "refused: the files wait");
+
+			taken = true;
+			await act(async () => void submit());
+			assert.deepEqual(sent.map((s) => s.files), [["work.png"], ["work.png"]]);
+			assert.ok(!host.innerHTML.includes("attachment-tray"), "taken: the files are gone");
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+			delete (globalThis as Record<string, unknown>).FileReader;
+		}
+	});
+
+	it("a quiz takes no files: no picture button", () => {
+		const quiz = { question: "Pick one.", options: [{ label: "A" }, { label: "B" }], correctAnswer: "A" };
+		assert.ok(!renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q_quiz" input={quiz} onSubmit={async () => true} />).includes("attach-button"));
+		assert.match(renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="q_ask" input={{ question: "Which?" }} onSubmit={async () => true} />), /data-testid="attach-button"/);
+	});
 });
 
 const image: AttachmentPart = { type: "image", data: "QUJD", mimeType: "image/jpeg" };
@@ -162,6 +215,24 @@ describe("the learner's message with files", () => {
 	it("a message with only files still reads as the learner's", () => {
 		const html = renderToStaticMarkup(row({ ...newUserMessage("", [image]), id: "u2" }));
 		assert.match(html, /data-testid="user-message"[\s\S]*data-testid="message-image"/);
+	});
+
+	it("an answered question shows its files under the card", () => {
+		const call = {
+			id: "a1",
+			role: "assistant",
+			content: [{ type: "toolCall", id: "q1", name: "explain", arguments: { question: "Show your work.", correctAnswer: "4" } }],
+			stopReason: "toolUse",
+			api: "faux",
+			provider: "faux",
+			model: "m",
+			usage: {},
+			timestamp: 0,
+		} as unknown as LhMessage;
+		const answer = { kind: "explain", questionText: "Show your work.", dontKnow: false, answers: [], text: "see it" } as never;
+		const view = projectView([call, newAnswerResult("q1", "explain", answer, [image])])[0]!;
+		const html = renderToStaticMarkup(<MessageRow message={view} index={0} teachSeam={false} streamingLast={false} hideSteps={false} arrive={() => undefined} onOpenPlan={() => {}} />);
+		assert.match(html, /data-testid="answered-card"[\s\S]*data-testid="message-image"/);
 	});
 
 	it("a thinking card shows its files under it", () => {

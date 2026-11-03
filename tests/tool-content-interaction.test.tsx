@@ -24,7 +24,7 @@ test("actual select → submit → saved result → historical Why uses source d
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host);
 	try {
-		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="interactive_source" input={input} onSubmit={a => { answer = a; }} />));
+		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="interactive_source" input={input} onSubmit={async (a) => { answer = a; return true; }} />));
 		assert.equal(host.querySelectorAll("mtr").length, 2, "the live matrix retains two rows");
 		const choice = [...host.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find(button => button.querySelector(".katex"))!;
 		assert.ok(choice);
@@ -88,7 +88,7 @@ test("Tab from a quiz row goes to the thinking field; Tab from the thinking fiel
 		return e.defaultPrevented;
 	};
 	try {
-		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="tab_loop" input={input} onSubmit={() => {}} />));
+		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="tab_loop" input={input} onSubmit={async () => true} />));
 		assert.equal(tab(host.querySelector('[data-kbdrow="0"]')!), true, "the dock moves focus from the rows to the thinking field");
 		const thinking = (await mathBoxView(host, "Your thinking")).contentDOM;
 		assert.equal(tab(thinking), false, "the browser's own Tab moves on toward Submit");

@@ -408,15 +408,16 @@ export function Chat({
 	};
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
-	// turn. The reading-thinking draft rides along.
-	const onSubmitAnswer = (output: QuestionAnswerData) => {
-		if (!pending) return;
+	// turn. The reading-thinking draft and the answer's files ride along.
+	const onSubmitAnswer = (output: QuestionAnswerData, files: ChatAttachment[]) => {
+		if (!pending) return Promise.resolve(false);
 		const reading = readingThinkingRef.current.trim() || undefined;
-		submitAnswer(pending.toolCallId, reading ? { ...output, readingThinking: reading } : output);
+		const sent = submitAnswer(pending.toolCallId, reading ? { ...output, readingThinking: reading } : output, files);
 		// Graded right or wrong: Halley reacts for a moment.
 		const outcome = answerOutcome(output);
 		if (outcome === "right") halley?.react("happy");
 		else if (outcome === "wrong") halley?.react("oops");
+		return sent;
 	};
 
 	// ── the top bar's data ──

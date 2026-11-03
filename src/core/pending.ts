@@ -69,6 +69,13 @@ export function toolQuestionKind(tool: string): QuestionKind {
 	return tool === "write_code" ? "code" : "ask";
 }
 
+/** Questions answered in the learner's own words (explain, recall, ask)
+ *  take pictures and PDFs with the answer, like a message. */
+export function answerTakesFiles(tool: string): boolean {
+	const kind = toolQuestionKind(tool);
+	return kind === "explain" || kind === "ask";
+}
+
 export function findPendingToolCall(messages: UIMessage[]): PendingToolCall | null {
 	for (let m = messages.length - 1; m >= 0; m--) {
 		const msg = messages[m]!;

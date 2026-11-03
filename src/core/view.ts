@@ -57,6 +57,8 @@ export interface LhViewPart extends Record<string, unknown> {
 	rawInput?: unknown;
 	errorText?: string;
 	data?: unknown;
+	/** An answered question's files (pictures, PDF notes), as their own parts. */
+	files?: LhViewPart[];
 }
 
 /** A view message: user (bubble) or assistant (one continuous run). */
@@ -448,6 +450,10 @@ function applyResultTo(part: LhViewPart | undefined, result: ToolResultMessage):
 			return;
 		}
 		applyResult(part, result);
+		// An answer's files follow its record in the result.
+		if (isQuestionTool(tool) && part.state === "output-available" && result.content.length > 1) {
+			part.files = result.content.slice(1).map((c, i) => contentPart(c, `${result.toolCallId}-a${i}`));
+		}
 	}
 	// A result with no visible part (e.g. a call whose assistant message
 	// rendered nothing) is dropped from the view — the record keeps it.

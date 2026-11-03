@@ -42,7 +42,7 @@ async function mounted(el: React.ReactElement, run: (host: HTMLElement) => Promi
 
 describe("the code question panel", () => {
 	it("shows the task, the editor with its language and the Vim switch (off), I don't know, thinking and Submit", () => {
-		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c1" input={task} onSubmit={() => {}} />);
+		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c1" input={task} onSubmit={async () => true} />);
 		assert.match(html, /data-testid="question-kind"[^>]*>Code</);
 		assert.match(html, /<strong /, "the task renders as markdown");
 		assert.match(html, /data-testid="code-language"[^>]*>C</);
@@ -55,19 +55,19 @@ describe("the code question panel", () => {
 	});
 
 	it("an empty editor waits for code", () => {
-		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c2" input={{ question: "Write it.", language: "python" }} onSubmit={() => {}} />);
+		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c2" input={{ question: "Write it.", language: "python" }} onSubmit={async () => true} />);
 		assert.match(html, /data-testid="code-language"[^>]*>python</);
 		assert.match(html, /data-testid="question-submit"[^>]*disabled=""/);
 	});
 
 	it("a malformed call shows the quiet fallback", () => {
-		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c3" input={{ question: "" } as never} onSubmit={() => {}} />);
+		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c3" input={{ question: "" } as never} onSubmit={async () => true} />);
 		assert.match(html, /data-testid="malformed-question"/);
 	});
 
 	it("restores an unconfirmed submission's code, choice and thinking", () => {
 		const draft = { selection: { selected: new Set<number>(), otherSelected: false, dontKnow: true }, thinking: "kept thinking", other: "", text: "int kept;" };
-		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c4" input={task} onSubmit={() => {}} initialDraft={draft} />);
+		const html = renderToStaticMarkup(<QuestionDock toolName="write_code" toolCallId="c4" input={task} onSubmit={async () => true} initialDraft={draft} />);
 		assert.match(html, /data-testid="dont-know-option" aria-pressed="true"/);
 		assert.ok(html.includes("kept thinking"));
 	});
@@ -76,7 +76,7 @@ describe("the code question panel", () => {
 		const saved: string[] = [];
 		let skipped = 0;
 		await mounted(
-			<QuestionDock toolName="write_code" toolCallId="c6" input={task} onSubmit={() => {}} onSaveDraft={(d) => saved.push(d.text)} onSkip={() => skipped++} />,
+			<QuestionDock toolName="write_code" toolCallId="c6" input={task} onSubmit={async () => true} onSaveDraft={(d) => saved.push(d.text)} onSkip={() => skipped++} />,
 			async (host) => {
 				assert.deepEqual(saved, [""], "the starter code is not the learner's draft");
 				await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="skip-question"]')!.click());
@@ -87,7 +87,7 @@ describe("the code question panel", () => {
 
 	it("submits the starter code, or I don't know without code, with the thinking", async () => {
 		const answers: QuestionAnswerData[] = [];
-		await mounted(<QuestionDock toolName="write_code" toolCallId="c5" input={task} onSubmit={(a) => answers.push(a)} />, async (host) => {
+		await mounted(<QuestionDock toolName="write_code" toolCallId="c5" input={task} onSubmit={async (a) => answers.push(a) > 0} />, async (host) => {
 			const form = host.querySelector("form")!;
 			await act(async () => form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })));
 			assert.deepEqual(answers[0]!.code, task.starter);
@@ -103,7 +103,7 @@ describe("the code question panel", () => {
 
 describe("keys typed in the editor stay in it", () => {
 	it("Esc, Tab, Ctrl and single keys never reach the app's window shortcuts; ⌘ keys do", async () => {
-		await mounted(<QuestionDock toolName="write_code" toolCallId="k1" input={task} onSubmit={() => {}} />, async (host) => {
+		await mounted(<QuestionDock toolName="write_code" toolCallId="k1" input={task} onSubmit={async () => true} />, async (host) => {
 			const reached: string[] = [];
 			const onKey = (e: Event) => reached.push((e as KeyboardEvent).key);
 			window.addEventListener("keydown", onKey);
@@ -156,20 +156,20 @@ describe("the unrated confidence meter", () => {
 	};
 
 	it("starts with no level picked", () => {
-		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="u1" input={quizInput} onSubmit={() => {}} />);
+		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="u1" input={quizInput} onSubmit={async () => true} />);
 		assert.match(html, /data-testid="confidence-value"[^>]*>How sure are you\?</);
 		assert.ok(!/role="radio" aria-checked="true" aria-label="\d/.test(html), "no bar is checked");
 	});
 
 	it("an untouched meter sends no confidence; a picked level sends its percentage", async () => {
 		const answers: QuestionAnswerData[] = [];
-		await mounted(<QuestionDock toolName="quiz" toolCallId="u2" input={quizInput} onSubmit={(a) => answers.push(a)} />, async (host) => {
+		await mounted(<QuestionDock toolName="quiz" toolCallId="u2" input={quizInput} onSubmit={async (a) => answers.push(a) > 0} />, async (host) => {
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="question-option"]')!.click());
 			const form = host.querySelector("form")!;
 			await act(async () => form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })));
 			assert.ok(!("confidence" in answers[0]!), "untouched = no confidence at all");
 		});
-		await mounted(<QuestionDock toolName="quiz" toolCallId="u3" input={quizInput} onSubmit={(a) => answers.push(a)} />, async (host) => {
+		await mounted(<QuestionDock toolName="quiz" toolCallId="u3" input={quizInput} onSubmit={async (a) => answers.push(a) > 0} />, async (host) => {
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="question-option"]')!.click());
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="confidence-level-2"]')!.click());
 			const form = host.querySelector("form")!;

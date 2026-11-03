@@ -57,7 +57,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			pending={null}
 			requiresReveal={false}
 			onSaveQuestionDraft={() => {}}
-			onSubmitAnswer={() => {}}
+			onSubmitAnswer={async () => true}
 			onSkipQuestion={() => {}}
 			readingThinking=""
 			onReadingThinking={() => {}}
@@ -168,7 +168,7 @@ describe("the Your-turn panel's states", () => {
 				pending={null}
 				requiresReveal={false}
 				onSaveQuestionDraft={() => {}}
-				onSubmitAnswer={() => {}}
+				onSubmitAnswer={async () => true}
 				onSkipQuestion={() => asked.push("question")}
 				readingThinking=""
 				onReadingThinking={() => {}}
@@ -309,7 +309,7 @@ describe("the side question box", () => {
 						pending={waiting.pending}
 						requiresReveal={false}
 						onSaveQuestionDraft={() => {}}
-						onSubmitAnswer={() => {}}
+						onSubmitAnswer={async () => true}
 						onSkipQuestion={() => calls.push("skip")}
 						readingThinking=""
 						onReadingThinking={() => {}}
@@ -342,7 +342,7 @@ describe("the side question box", () => {
 				pending={waiting.pending}
 				requiresReveal={false}
 				onSaveQuestionDraft={() => {}}
-				onSubmitAnswer={() => {}}
+				onSubmitAnswer={async () => true}
 				onSkipQuestion={() => {}}
 				readingThinking=""
 				onReadingThinking={() => {}}
@@ -395,7 +395,7 @@ describe("the side question box", () => {
 				pending={waiting.pending}
 				requiresReveal={false}
 				onSaveQuestionDraft={() => {}}
-				onSubmitAnswer={() => {}}
+				onSubmitAnswer={async () => true}
 				onSkipQuestion={() => {}}
 				readingThinking=""
 				onReadingThinking={() => {}}
@@ -455,7 +455,7 @@ describe("saved drafts in the panel", () => {
 	it("a question form starts from the saved draft and saves every change", async () => {
 		const draft: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "because", other: "", text: "" };
 		assert.match(
-			renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={() => {}} initialDraft={draft} />),
+			renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={async () => true} initialDraft={draft} />),
 			/data-testid="math-box"[^]*>because</,
 		);
 		const host = document.createElement("div");
@@ -464,7 +464,7 @@ describe("saved drafts in the panel", () => {
 		const saved: QuestionFormDraft[] = [];
 		try {
 			await act(async () =>
-				root.render(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={() => {}} initialDraft={draft} onSaveDraft={(d) => saved.push(d)} />),
+				root.render(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={async () => true} initialDraft={draft} onSaveDraft={(d) => saved.push(d)} />),
 			);
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="dont-know-option"]')!.click());
 			assert.equal(saved.at(-1)!.selection.dontKnow, true);
@@ -595,7 +595,7 @@ describe("the question panel's keys", () => {
 		const root = createRoot(host);
 		let answer: QuestionAnswerData | undefined;
 		try {
-			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="keys1" input={quizInput} onSubmit={(a) => (answer = a)} />));
+			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="keys1" input={quizInput} onSubmit={async (a) => ((answer = a), true)} />));
 			const rows = () => [...host.querySelectorAll<HTMLButtonElement>('[data-testid="question-option"]')];
 			await act(async () => press("2"));
 			assert.equal(rows()[1]!.getAttribute("aria-checked"), "true", "2 picks the second row");
@@ -623,7 +623,7 @@ describe("the question panel's keys", () => {
 		document.body.append(host);
 		const root = createRoot(host);
 		try {
-			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="keys2" input={quizInput} onSubmit={() => {}} />));
+			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="keys2" input={quizInput} onSubmit={async () => true} />));
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="confidence-level-5"]')!.click());
 			assert.equal(host.querySelector('[data-testid="confidence-value"]')!.textContent, "5 · Certain");
 			assert.equal(host.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("aria-checked"), "true");
@@ -640,7 +640,7 @@ describe("writing folds the answer list", () => {
 		document.body.append(host);
 		const root = createRoot(host);
 		try {
-			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="fold1" input={quizInput} onSubmit={() => {}} />));
+			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="fold1" input={quizInput} onSubmit={async () => true} />));
 			await run(host);
 		} finally {
 			await act(async () => root.unmount());
@@ -676,7 +676,7 @@ describe("writing folds the answer list", () => {
 		document.body.append(host);
 		const root = createRoot(host);
 		try {
-			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="fold2" input={quizInput} onSubmit={(a) => (sent = a)} />));
+			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="fold2" input={quizInput} onSubmit={async (a) => ((sent = a), true)} />));
 			const mercury = [...host.querySelectorAll<HTMLButtonElement>('[data-testid="question-option"]')].find((b) => b.textContent?.includes("Mercury"))!;
 			await act(async () => mercury.click());
 			await focusThinking(host);

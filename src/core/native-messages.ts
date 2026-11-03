@@ -311,18 +311,20 @@ export function newUserSteer(text: string, id: string): LhMessage & UserMessage 
  *  compact learner-only record (compactAnswerForModel — the call's own
  *  arguments already carry the question/options/explanation/commitment;
  *  restating them would double every answer's tokens), while `details` keeps
- *  the FULL graded QuestionAnswerData for the record and the UI. */
+ *  the FULL graded QuestionAnswerData for the record and the UI. The
+ *  answer's files follow the record as content parts. */
 export function newAnswerResult(
 	toolCallId: string,
 	toolName: string,
 	answer: unknown,
+	attachments: readonly AttachmentPart[] = [],
 ): LhMessage & ToolResultMessage {
 	return {
 		id: newMessageId(),
 		role: "toolResult",
 		toolCallId,
 		toolName,
-		content: [{ type: "text", text: JSON.stringify(compactAnswerForModel(answer as QuestionAnswerData)) }],
+		content: [{ type: "text", text: JSON.stringify(compactAnswerForModel(answer as QuestionAnswerData)) }, ...attachments],
 		// ToolResultMessage.details is JsonRepresentation —
 		// our payloads are JSON-safe answer structures, so the cast is honest.
 		details: answer as ToolResultMessage["details"],
@@ -865,9 +867,11 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 			const result = m as ToolResultMessage;
 			const held = sideHeld.get(result.toolCallId);
 			if (held && i > held.sideAt) {
-				const answer = result.content.map((c) => (c.type === "text" ? c.text : "")).join("");
+				// The answer record, then its files.
+				const [answer, ...files] = result.content;
 				const lead = sideAnswerLead(lhMessages[held.callAt]!, result.toolCallId);
-				out.push({ role: "user", content: [{ type: "text", text: lead + answer }], timestamp: result.timestamp });
+				const text = answer?.type === "text" ? answer.text : "";
+				out.push({ role: "user", content: [{ type: "text", text: lead + text }, ...files], timestamp: result.timestamp });
 				continue;
 			}
 		}

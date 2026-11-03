@@ -103,7 +103,7 @@ test("shape parsers retain source text and identities; recovery is presentation 
 test("the live dock recovers only its rendering, including question, context and option labels", () => {
 	const source = { question: doubled, details: doubled, options: [{ label: doubled }, { label: "no" }] };
 	const before = structuredClone(source);
-	const html = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="source_q" input={source} onSubmit={() => {}} />);
+	const html = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="source_q" input={source} onSubmit={async () => true} />);
 	assert.deepEqual(tex(html), Array(3).fill(String.raw`\nabla f`));
 	assert.deepEqual(source, before);
 });

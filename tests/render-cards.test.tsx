@@ -65,13 +65,12 @@ function renderDock(props: {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall";
 	toolCallId: string;
 	input: never;
-	onSubmit?: () => void;
 }) {
 	// expanded=true renders the full form (the collapsed bar is covered by the
 	// QuestionDockBar test below). No scroll context needed — the DockOverlay
 	// in the chat view owns that.
 	return renderToStaticMarkup(
-		<QuestionDock {...props} onSubmit={props.onSubmit ?? (() => {})} />,
+		<QuestionDock {...props} onSubmit={async () => true} />,
 	);
 }
 
@@ -85,7 +84,7 @@ describe("question submission draft restoration", () => {
 	};
 
 	it("restores a quiz selection, thinking, and confidence when its form remounts", () => {
-		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={() => {}} initialDraft={draft} />);
+		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={async () => true} initialDraft={draft} />);
 		assert.match(html, /role="radio" aria-checked="true" data-kbdrow="0"/);
 		assert.ok(html.includes("preserved reasoning"));
 		assert.ok(html.includes("5 · Certain"), "index 4 = level 5");
@@ -94,10 +93,10 @@ describe("question submission draft restoration", () => {
 	});
 
 	it("restores an ask's custom answer and a free-text answer", () => {
-		const custom = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="ask1" input={{ question: "Fixture?", options: [{ label: "Listed answer" }, { label: "Another answer" }], multiSelect: true }} onSubmit={() => {}} initialDraft={draft} />);
+		const custom = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="ask1" input={{ question: "Fixture?", options: [{ label: "Listed answer" }, { label: "Another answer" }], multiSelect: true }} onSubmit={async () => true} initialDraft={draft} />);
 		assert.ok(custom.includes('value="preserved custom answer"'));
 		assert.match(custom, /aria-checked="true" data-testid="other-option"/);
-		const text = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="ask2" input={{ question: "Fixture?" }} onSubmit={() => {}} initialDraft={draft} />);
+		const text = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="ask2" input={{ question: "Fixture?" }} onSubmit={async () => true} initialDraft={draft} />);
 		assert.ok(text.includes("preserved free-text answer"));
 	});
 });
@@ -223,7 +222,7 @@ describe("render smoke tests", () => {
 		assert.match(html, /This question came through broken\. Skip it and the teacher will ask again\./);
 		assert.ok(!html.includes('data-testid="skip-question"'), "no skip button without a handler");
 		const withSkip = renderToStaticMarkup(
-			<QuestionDock toolName="quiz" toolCallId="bad" input={{ question: "q?", options: "[]" } as never} onSubmit={() => {}} onSkip={() => {}} />,
+			<QuestionDock toolName="quiz" toolCallId="bad" input={{ question: "q?", options: "[]" } as never} onSubmit={async () => true} onSkip={() => {}} />,
 		);
 		assert.match(withSkip, /data-testid="skip-question"[^>]*>[\s\S]*?Skip question/, "the broken question's one way on is Skip question");
 	});
@@ -579,7 +578,7 @@ describe("predict vs check rendering", () => {
 					toolCallId: "call-p1",
 					input: { ...quizInput, type: "predict", nodeId: "planet-order" },
 				}}
-				onSubmit={() => {}}
+				onSubmit={async () => true}
 			/>,
 		);
 		assert.ok(html.includes("Prediction"), `eyebrow missing: ${html.slice(0, 200)}`);
@@ -593,7 +592,7 @@ describe("predict vs check rendering", () => {
 					toolCallId: "call-c1",
 					input: { ...quizInput, type: "check", nodeId: "planet-order" },
 				}}
-				onSubmit={() => {}}
+				onSubmit={async () => true}
 			/>,
 		);
 		assert.match(html, /data-testid="question-kind"[^>]*>Quiz</);

@@ -8,10 +8,12 @@ import { TurnEyebrow } from "@/components/lesson/turn-eyebrow";
 import { MathBox } from "@/components/math-box";
 import { InlineMath } from "@/components/overview/inline-math";
 import { PickedRow } from "@/components/lesson/picked-row";
+import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/components/sounds";
 import {
 	answerSound,
+	answerTakesFiles,
 	buildAnswer,
 	normalizeQuizType,
 	questionKindLabel,
@@ -31,6 +33,7 @@ import {
 	toggleOther,
 	type AnswerRequest,
 	type AskToolInput,
+	type ChatAttachment,
 	type ConfidenceLevel,
 	type DockSelection,
 	type ExplainDisplayInput,
@@ -55,13 +58,16 @@ import { CodeQuestion } from "@/components/lesson/code-question";
  * called optional; Enter submits, Shift+Enter is a newline. The ask
  * "Other…" option is an editable row, so picking Other never displaces
  * the thinking. A write_code question has its own form (CodeQuestion).
+ * An answer in the learner's own words (explain, recall, ask) takes
+ * pictures and PDFs like the message box.
  */
 
 export interface QuestionDockProps {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall" | "write_code";
 	toolCallId: string;
 	input: unknown;
-	onSubmit: (output: QuestionAnswerData) => void;
+	/** The answer and its files. Resolves false when the send was not taken. */
+	onSubmit: (output: QuestionAnswerData, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** The form as the learner left it (this call's saved draft). */
 	initialDraft?: QuestionFormDraft;
 	/** Called on every change, so the form survives leaving the lesson. */
@@ -162,6 +168,10 @@ function QuestionDockForm({
 }: Omit<QuestionDockProps, "input"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
 	const kind = toolQuestionKind(toolName);
 	const play = useSound();
+	// Kept by question until the answer is taken, so a refused send keeps them.
+	const attachments = useAttachmentDraft(toolCallId);
+	const takesFiles = answerTakesFiles(toolName);
+	const hasFiles = takesFiles && attachments.files.length > 0;
 
 	// Canonical QuestionData, built once per question. Quiz options are
 	// shuffled deterministically (seeded by toolCallId) so position never
@@ -231,7 +241,7 @@ function QuestionDockForm({
 
 	const canSubmit =
 		qd.mode === "text"
-			? text.trim().length > 0
+			? text.trim().length > 0 || hasFiles
 			: sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
 
 	// Writing with an answer picked folds the list into one row (Change opens it).
@@ -255,7 +265,10 @@ function QuestionDockForm({
 		const answer = buildAnswer(qd, req, toolName);
 		const sound = answerSound(answer);
 		if (sound) play(sound);
-		onSubmit(answer);
+		const files = hasFiles ? attachments.files.map((f) => f.attachment) : [];
+		void onSubmit(answer, files).then((sent) => {
+			if (sent && files.length > 0) attachments.clear();
+		});
 	};
 
 	// Enter submits from anywhere outside a typing surface.
@@ -380,6 +393,7 @@ function QuestionDockForm({
 				e.preventDefault();
 				submit();
 			}}
+			{...(takesFiles ? attachmentInputProps(attachments) : {})}
 		>
 			<PanelBody>
 				<PanelHeader
@@ -551,6 +565,7 @@ function QuestionDockForm({
 
 				<div className="mt-[18px] flex flex-1 flex-col" data-testid={qd.mode === "text" ? "answer-field" : "thinking-field"}>
 					<FieldLabel>{qd.mode === "text" ? "Your answer" : "Your thinking"}</FieldLabel>
+					{takesFiles && <AttachmentTray draft={attachments} />}
 					{qd.mode === "text" ? (
 						<MathBox
 							value={text}
@@ -579,12 +594,17 @@ function QuestionDockForm({
 				</div>
 				{footer}
 			</PanelBody>
-			<ActionBar
-				type="submit"
-				testId="question-submit"
-				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-				disabled={!canSubmit || compactionRunning || busy}
-			/>
+			<div className="flex shrink-0">
+				{takesFiles && <AttachButton draft={attachments} />}
+				<div className="min-w-0 flex-1">
+					<ActionBar
+						type="submit"
+						testId="question-submit"
+						label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
+						disabled={!canSubmit || compactionRunning || busy}
+					/>
+				</div>
+			</div>
 		</form>
 	);
 }

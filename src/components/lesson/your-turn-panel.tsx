@@ -53,7 +53,7 @@ export function YourTurnPanel({
 	requiresReveal: boolean;
 	initialQuestionDraft?: QuestionFormDraft;
 	onSaveQuestionDraft: (draft: QuestionFormDraft) => void;
-	onSubmitAnswer: (output: QuestionAnswerData) => void;
+	onSubmitAnswer: (output: QuestionAnswerData, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** Opens the skip confirm for the waiting question. */
 	onSkipQuestion: () => void;
 	readingThinking: string;

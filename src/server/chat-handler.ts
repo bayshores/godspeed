@@ -165,7 +165,7 @@ export async function handleChatInput(
 	// The learner's files, stored first: no await may sit between the
 	// record read below and the write-ahead.
 	let attachments: AttachmentPart[] = [];
-	if ((input.type === "text" || input.type === "thinking" || input.type === "side") && input.attachments) {
+	if ("attachments" in input && input.attachments) {
 		try {
 			attachments = await storeAttachments(chatId, input.attachments);
 		} catch (err) {

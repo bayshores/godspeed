@@ -33,6 +33,7 @@ import {
 	type LhMessage,
 	type LhViewMessage,
 	type LiveExecution,
+	type ChatAttachment,
 	type QuestionAnswerData,
 } from "../core";
 
@@ -710,7 +711,7 @@ export class SessionModel {
 			optimistic.push({ ...newNextMessage(), id: localId() });
 		} else if (input.type === "answer") {
 			const tool = pendingCallTool([...this.base, ...this.tail], input.toolCallId) ?? "quiz";
-			const result = { ...newAnswerResult(input.toolCallId, tool, input.answer), id: localId() };
+			const result = { ...newAnswerResult(input.toolCallId, tool, input.answer, files), id: localId() };
 			optimistic.push(result);
 			this.unconfirmedAnswers.set(result.id, input.toolCallId);
 		}
@@ -819,9 +820,9 @@ export class SessionModel {
 	}
 
 	/** The answer path (the dock): the answer IS the question call's tool
-	 *  result (fork 1), riding as its input event. */
-	submitAnswer(toolCallId: string, output: QuestionAnswerData): Promise<boolean> {
-		return this.send({ type: "answer", toolCallId, answer: output });
+	 *  result (fork 1), riding as its input event with the answer's files. */
+	submitAnswer(toolCallId: string, output: QuestionAnswerData, attachments: ChatAttachment[] = []): Promise<boolean> {
+		return this.send({ type: "answer", toolCallId, answer: output, ...(attachments.length > 0 ? { attachments } : {}) });
 	}
 
 	/** The dismissal path: the skipped toolResult lands optimistically,

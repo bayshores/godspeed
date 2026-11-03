@@ -91,7 +91,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 			for (const raw of [`$${formula}$`, `\\(${formula}\\)`, `$$\n${formula}\n$$`, `\\[\n${formula}\n\\]`]) {
 				for (const element of [
 					<MessageResponse mode="static">{raw}</MessageResponse>,
-					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={() => {}} />,
+					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={async () => true} />,
 					dock({ statement: raw }),
 				]) {
 					const html = renderToStaticMarkup(element);
@@ -107,7 +107,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 	}
 	it("preserves escaped currency and code on both dock surfaces", () => {
 		const raw = "Costs \\$5 and \\$10. `" + clean + "`\n\n```text\n" + doubled + "\n```";
-		for (const element of [dock({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={() => {}} />]) {
+		for (const element of [dock({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={async () => true} />]) {
 			const html = renderToStaticMarkup(element);
 			assert.deepEqual(math(html).annotations, []);
 			assert.ok(parseHTML(html).document.firstElementChild?.textContent?.includes("$5 and $10"));

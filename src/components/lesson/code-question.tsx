@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
-import { buildCodeAnswer, codeLanguage, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
+import { buildCodeAnswer, codeLanguage, type ChatAttachment, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
 import { CodeEditor } from "./code-editor";
 import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "./panel-parts";
 import { TurnEyebrow } from "./turn-eyebrow";
@@ -38,7 +38,7 @@ export function CodeQuestion({
 }: {
 	toolName: string;
 	input: WriteCodeInput;
-	onSubmit: (output: QuestionAnswerData) => void;
+	onSubmit: (output: QuestionAnswerData, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** The form as the learner left it: the code rides `text` (empty while it is still the starter code). */
 	initialDraft?: QuestionFormDraft;
 	/** Called on every change, so the code survives leaving the lesson. */
@@ -66,7 +66,7 @@ export function CodeQuestion({
 
 	const submit = () => {
 		if (!canSubmit || compactionRunning || busy) return;
-		onSubmit(buildCodeAnswer(input, { code, dontKnow, thinking }, toolName));
+		void onSubmit(buildCodeAnswer(input, { code, dontKnow, thinking }, toolName), []);
 	};
 	// Enter outside the editor and the fields submits, like every question.
 	useEnterSubmits(submit);

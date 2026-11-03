@@ -10,7 +10,8 @@
  *             topic, the demo error-fix loop)
  *   answer  — the pending question's graded result (QuestionAnswerData,
  *             built client-side exactly as today; a dismissal is an answer
- *             carrying its flag). Server-side this becomes the call's
+ *             carrying its flag), with files when the question takes them
+ *             (answerTakesFiles). Server-side this becomes the call's
  *             native tool result.
  *   continue — run the next turn on the current record (mount
  *             continuations, job-settle re-syncs: the record ends at an
@@ -38,7 +39,7 @@ import {
 	newUserMessage,
 	pendingProblemDismissalOf,
 } from "./native-messages.ts";
-import { toolQuestionKind } from "./pending.ts";
+import { answerTakesFiles, toolQuestionKind } from "./pending.ts";
 import {
 	attachmentRefusal,
 	base64Bytes,
@@ -51,7 +52,7 @@ import {
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
 	| { type: "text"; text: string; attachments?: ChatAttachment[] }
-	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData }
+	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData; attachments?: ChatAttachment[] }
 	| { type: "continue" }
 	| { type: "side"; text: string; attachments?: ChatAttachment[] }
 	/** The learner's thinking on the ACTIVE practice problem — one lane:
@@ -169,14 +170,16 @@ export function parseChatInput(input: unknown): ChatInput {
 			}
 			return { type: "text", text: i.text, ...(attachments ? { attachments } : {}) };
 		}
-		case "answer":
+		case "answer": {
 			if (typeof i.toolCallId !== "string" || i.toolCallId.length === 0) {
 				throw new ChatInputError("answer input requires toolCallId");
 			}
 			if (typeof i.answer !== "object" || i.answer === null) {
 				throw new ChatInputError("answer input requires the graded answer object");
 			}
-			return { type: "answer", toolCallId: i.toolCallId, answer: i.answer as QuestionAnswerData };
+			const attachments = parseAttachments(i.attachments);
+			return { type: "answer", toolCallId: i.toolCallId, answer: i.answer as QuestionAnswerData, ...(attachments ? { attachments } : {}) };
+		}
 		case "continue":
 			return { type: "continue" };
 		case "side": {
@@ -250,7 +253,10 @@ export function inputAppends(
 			if (!pending || pending.toolCallId !== input.toolCallId) {
 				throw new ChatInputError("answer input targets no pending question call");
 			}
-			return [newAnswerResult(input.toolCallId, pending.tool, input.answer)];
+			if (attachments.length > 0 && !answerTakesFiles(pending.tool)) {
+				throw new ChatInputError(`a ${pending.tool} answer takes no files`);
+			}
+			return [newAnswerResult(input.toolCallId, pending.tool, input.answer, attachments)];
 		}
 		case "continue":
 			return dismissalConclusion(record);

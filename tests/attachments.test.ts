@@ -25,7 +25,8 @@ import {
 	type AttachmentPart,
 } from "../src/core/attachments.ts";
 import { ChatInputError, inputAppends, parseChatInput } from "../src/core/input-events.ts";
-import { newThinkingMessage, newUserMessage, PRACTICE_PROBLEM_TOOL, toLlmMessages, type LhMessage } from "../src/core/native-messages.ts";
+import { newAnswerResult, newSideQuestion, newThinkingMessage, newUserMessage, PRACTICE_PROBLEM_TOOL, toLlmMessages, type LhMessage } from "../src/core/native-messages.ts";
+import { answerTakesFiles } from "../src/core/pending.ts";
 import { projectView } from "../src/core/view.ts";
 import { serializeForSummary } from "../src/core/compaction.ts";
 import { absorbed } from "../src/components/session-core.ts";
@@ -213,5 +214,74 @@ describe("the view", () => {
 		];
 		const thinking = projectView(pose).at(-1)!;
 		assert.deepEqual(thinking.parts.map((p) => p.type), ["data-practice-thinking", "data-image"]);
+	});
+});
+
+describe("an answer's files", () => {
+	const ask = (id: string, tool: string): LhMessage =>
+		({
+			id: `a_${id}`,
+			role: "assistant",
+			content: [{ type: "toolCall", id, name: tool, arguments: { question: "Show your work." } }],
+			stopReason: "toolUse",
+			api: "faux",
+			provider: "faux",
+			model: "m",
+			usage: {},
+			timestamp: 0,
+		}) as unknown as LhMessage;
+	const explained = { kind: "explain", questionText: "Show your work.", dontKnow: false, answers: [], text: "see the picture" } as never;
+	const att = { name: "work.png", mimeType: "image/png", data: PNG };
+
+	it("explain, recall and ask answers take files; quiz, probe and code answers don't", () => {
+		for (const tool of ["explain", "recall", "ask_user_question"]) assert.equal(answerTakesFiles(tool), true, tool);
+		for (const tool of ["quiz", "probe", "write_code"]) assert.equal(answerTakesFiles(tool), false, tool);
+	});
+
+	it("the parse keeps them on the answer", () => {
+		assert.deepEqual(parseChatInput({ type: "answer", toolCallId: "q1", answer: explained, attachments: [att] }), {
+			type: "answer",
+			toolCallId: "q1",
+			answer: explained,
+			attachments: [att],
+		});
+		assert.throws(() => parseChatInput({ type: "answer", toolCallId: "q1", answer: explained, attachments: [] }), ChatInputError);
+	});
+
+	it("they follow the answer record in the call's result, and a question that takes none refuses them", () => {
+		const [result] = inputAppends({ messages: [ask("q1", "explain")] }, { type: "answer", toolCallId: "q1", answer: explained }, [image, pdf]);
+		const content = (result as ToolResultMessage).content;
+		assert.equal(content[0]!.type, "text");
+		assert.deepEqual(content.slice(1), [image, pdf]);
+		assert.throws(() => inputAppends({ messages: [ask("q2", "quiz")] }, { type: "answer", toolCallId: "q2", answer: explained }, [image]), /takes no files/);
+	});
+
+	it("the model gets them with the result, and the answered card gets them as file parts", () => {
+		const record = [ask("q1", "recall"), { ...newAnswerResult("q1", "recall", explained, [image, pdf]), id: "r1" }];
+		const wire = toLlmMessages(record).at(-1) as ToolResultMessage;
+		assert.deepEqual(wire.content.slice(1), [image, pdf]);
+		const part = projectView(record)[0]!.parts.find((p) => p.type === "tool-recall")!;
+		assert.deepEqual(part.files, [
+			{ type: "data-image", id: "q1-a0", data: { base64: image.data, mimeType: "image/jpeg" } },
+			{ type: "data-pdf", id: "q1-a1", data: { name: "notes.pdf", path: "/data/chats/chat_1/abc-notes.pdf" } },
+		]);
+		const plain = projectView([ask("q2", "explain"), newAnswerResult("q2", "explain", explained)]);
+		assert.equal(plain[0]!.parts.find((p) => p.type === "tool-explain")!.files, undefined);
+	});
+
+	it("an answer given after a side question carries them in its late message, and the earlier view stays a prefix", () => {
+		const asked = [ask("q1", "explain"), newSideQuestion("why?")];
+		const before = toLlmMessages(asked);
+		const after = toLlmMessages([...asked, newAnswerResult("q1", "explain", explained, [image])]);
+		assert.deepEqual(after.slice(0, before.length), before);
+		const late = after.at(-1)!;
+		assert.equal(late.role, "user");
+		assert.deepEqual((late.content as AttachmentPart[]).slice(1), [image]);
+	});
+
+	it("compaction reads them as text and never their base64", () => {
+		const text = serializeForSummary([newAnswerResult("q1", "explain", explained, [image])]);
+		assert.ok(!text.includes(image.data));
+		assert.match(text, /\[image\]/);
 	});
 });

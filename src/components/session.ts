@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { reuseUnchangedMessages, type ChatInput, type LhMessage, type QuestionAnswerData } from "@/core";
+import { reuseUnchangedMessages, type ChatAttachment, type ChatInput, type LhMessage, type QuestionAnswerData } from "@/core";
 import { SessionModel, type SessionState } from "@/components/session-core";
 
 /** The streaming redraw's safety net when animation frames pause (a
@@ -127,7 +127,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 	const continueIfOwed = useCallback((record: readonly LhMessage[]) => void model.continueIfOwed(record), [model]);
 	const steer = useCallback((text: string) => model.steer(text), [model]);
 	const submitAnswer = useCallback(
-		(toolCallId: string, output: QuestionAnswerData) => void model.submitAnswer(toolCallId, output),
+		(toolCallId: string, output: QuestionAnswerData, attachments: ChatAttachment[]) => model.submitAnswer(toolCallId, output, attachments),
 		[model],
 	);
 	const dismissQuestion = useCallback(
