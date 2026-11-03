@@ -8,7 +8,8 @@
  *
  *   node wait-for-work.mjs [--lesson <lesson id>] [--max-minutes <n>]
  *
- * If the --lesson lesson is deleted, it waits for any work instead.
+ * With --lesson it takes that lesson's turns, Talk messages and background
+ * jobs. If the lesson is deleted, it waits for any work instead.
  *
  * Exit codes: 0 = work item printed; 2 = nothing arrived within
  * --max-minutes (default 120; run it again to keep waiting); 1 = godspeed

@@ -36,6 +36,8 @@ const mcp = await import("../src/server/mcp.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { subscribe } = await import("../src/core/events.ts");
 const { WORK_PAGE_BYTES } = await import("../src/core/work-pages.ts");
+const { TALK_CHAT_ID } = await import("../src/core/contracts.ts");
+const { openTalk } = await import("../src/server/talk.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -134,6 +136,28 @@ describe("outside agent as the model", () => {
 		await finished;
 		abortTurn(other.id);
 		await waitFor(() => !isTurnRunning(other.id), 8000, "other lesson settle");
+		assert.equal(bridge.pendingWorkCount(), 0);
+	});
+
+	it("an agent staying on one lesson also takes Talk messages, oldest first", async () => {
+		const lesson = chatStore.createChat("Stay with Talk");
+		const park = (sessionId: string, text: string) => {
+			const stream = bridge.agentStream(bridge.agentModel(), { messages: [{ role: "user", content: text, timestamp: Date.now() }] } as never, { sessionId });
+			return (async () => { for await (const _ of stream) { /* drain */ } })();
+		};
+		const talkDone = park(TALK_CHAT_ID, "add my midterm");
+		await waitFor(() => bridge.pendingWorkCount() === 1, 5000, "talk parked");
+		const lessonDone = park(lesson.id, "next question");
+		await waitFor(() => bridge.pendingWorkCount() === 2, 5000, "lesson parked");
+
+		const first = await bridge.waitForWork(1000, { conversation: lesson.id, andBackground: true });
+		assert.equal(first?.conversation, TALK_CHAT_ID, "the older Talk message comes first");
+		const second = await bridge.waitForWork(1000, { conversation: lesson.id, andBackground: true });
+		assert.equal(second?.conversation, lesson.id);
+		assert.equal(await bridge.waitForWork(50, { conversation: "job_other", andBackground: true }), null, "a background job's follow-up doesn't take Talk");
+
+		for (const work of [first!, second!]) assert.ok(bridge.respondToWork(work.workId, { text: "Done." }, 0).ok);
+		await Promise.all([talkDone, lessonDone]);
 		assert.equal(bridge.pendingWorkCount(), 0);
 	});
 
@@ -967,6 +991,21 @@ describe("the work loop's status, references and recovery", () => {
 		const done = await call("respond", { work_id: work.workId, text: "Hello.", wait_seconds: 0 });
 		assert.match(JSON.parse(done.content[0]!.text).note, new RegExp(`wait-for-work\\.mjs --lesson ${chat.id}`));
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("after a Talk reply, the waiter goes back to the lesson it stayed on", async () => {
+		await initialize("claude-code");
+		const lesson = chatStore.createChat("Midterm review");
+		openTalk();
+		await call("wait_for_work", { timeout_seconds: 1, lesson_id: lesson.id }, "talk-agent");
+		const stream = park(TALK_CHAT_ID, [system(), user("add my midterm date")]);
+		const work = await bridge.waitForWork(5000, { conversation: lesson.id, andBackground: true, agent: "talk-agent" });
+		assert.equal(work?.conversation, TALK_CHAT_ID);
+		for (let page = 2; bridge.readWorkPage(work!.workId, page).ok; page++); // read every page
+		const note = JSON.parse((await call("respond", { work_id: work!.workId, text: "Which date?", wait_seconds: 0 }, "talk-agent")).content[0]!.text).note as string;
+		assert.match(note, /^Your reply is in Talk\./);
+		assert.match(note, new RegExp(`wait-for-work\\.mjs --lesson ${lesson.id} `));
+		await stream.result();
 	});
 
 	it("answers the agent making the call, not the one that checked in last", async () => {

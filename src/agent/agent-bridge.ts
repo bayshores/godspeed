@@ -37,7 +37,7 @@ import type {
 // every provider (~0.15–0.3 s at startup); this subpath is a few small files.
 import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
 import { createHash } from "node:crypto";
-import { CHAT_ID_PREFIX } from "../core/contracts.ts";
+import { CHAT_ID_PREFIX, TALK_CHAT_ID } from "../core/contracts.ts";
 import { continuesFrom, seenMark, type SeenMark, type SeenStore } from "../core/agent-seen.ts";
 import { emit } from "../core/events.ts";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "../core/settings.ts";
@@ -152,13 +152,15 @@ interface BridgeState {
 	held: Map<string, number>;
 	/** Background conversations whose run hasn't ended (forgetConversation). */
 	backgroundRuns: Set<string>;
+	/** agent id ("" = no id) → the lesson its waiter stays on. */
+	stayingOn: Map<string, string>;
 }
 
 const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set(), stayingOn: new Map() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	g[STATE_KEY].held ??= new Map();
 	g[STATE_KEY].seenBy ??= new Map();
@@ -166,6 +168,7 @@ function state(): BridgeState {
 	g[STATE_KEY].lastContact ??= 0;
 	g[STATE_KEY].lastWork ??= 0;
 	g[STATE_KEY].known ??= new Map();
+	g[STATE_KEY].stayingOn ??= new Map();
 	return g[STATE_KEY];
 }
 
@@ -471,14 +474,16 @@ function oldestClaimable(now: number, taker: Taker, keep: (i: WorkItem) => boole
 	return items.find((i) => keep(i) && claimable(i, now, taker));
 }
 
-/** Pick the next item. With a conversation, that conversation's item;
- *  `andBackground` also allows background jobs, so an agent staying on one
- *  lesson still does the file reading and graph work nobody else would. */
+/** Pick the next item. With a conversation, that conversation's item; a
+ *  lesson also takes Talk messages, oldest first, so Talk never waits on a
+ *  lesson. `andBackground` also allows background jobs, so an agent staying
+ *  on one lesson still does the file reading and graph work nobody else would. */
 function pick(now: number, opts: Taker & { andBackground?: boolean }): WorkItem | undefined {
 	const { conversation } = opts;
 	if (!conversation) return oldestClaimable(now, opts, () => true);
+	const withTalk = conversation.startsWith(CHAT_ID_PREFIX);
 	return (
-		oldestClaimable(now, opts, (i) => i.conversation === conversation) ??
+		oldestClaimable(now, opts, (i) => i.conversation === conversation || (withTalk && i.conversation === TALK_CHAT_ID)) ??
 		(opts.andBackground ? oldestClaimable(now, opts, isBackground) : undefined)
 	);
 }
@@ -521,6 +526,17 @@ export async function waitForWork(
 			opts.signal?.addEventListener("abort", done, { once: true });
 		});
 	}
+}
+
+/** Remember the lesson an agent's waiter stays on (none = any work), so a
+ *  Talk reply can send it back there. */
+export function stayOn(agent: string | undefined, lessonId: string | undefined): void {
+	if (lessonId) state().stayingOn.set(agent ?? "", lessonId);
+	else state().stayingOn.delete(agent ?? "");
+}
+
+export function stayingOn(agent: string | undefined): string | undefined {
+	return state().stayingOn.get(agent ?? "");
 }
 
 /** Answer a work item. Its conversation's next item is held for the

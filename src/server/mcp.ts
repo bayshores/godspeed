@@ -37,6 +37,8 @@ import {
 	releaseConversation,
 	respondToWork,
 	setWorkPages,
+	stayingOn,
+	stayOn,
 	waitForWork,
 	type WorkView,
 } from "../agent/agent-bridge.ts";
@@ -296,7 +298,7 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"wait_for_work",
 		{
 			title: "Wait for work",
-			description: "Wait for the next request from godspeed (a lesson turn, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
+			description: "Wait for the next request from godspeed (a lesson turn, a Talk message, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
 			inputSchema: z.object({
 				timeout_seconds: z
 					.number()
@@ -305,14 +307,16 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 					.max(MAX_WAIT_S)
 					.optional()
 					.describe(`How long to wait in seconds (default ${DEFAULT_WAIT_S}, at most ${MAX_WAIT_S}). Stay under your client's tool timeout: for Codex that is its tool_timeout_sec (60 unless raised; the godspeed folder's start command sets 620).`),
-				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
+				lesson_id: z.string().optional().describe("Stay on this lesson: take its turns and Talk messages, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait."),
 				full_context: z.boolean().optional().describe("Send the whole conversation and instructions again, even if you saw them before (use after losing your context)."),
 			}),
 			annotations: ADDS,
 		},
 		async ({ timeout_seconds, lesson_id, full_context }, ctx) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent: agentIdOf(ctx.mcpReq._meta), signal });
+			const agent = agentIdOf(ctx.mcpReq._meta);
+			stayOn(agent, lesson_id);
+			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent, signal });
 			return view ? workResult(view) : result(idle(caller));
 		},
 	);
@@ -344,11 +348,17 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			const claudeCode = inClaudeCode(caller);
+			// A Talk reply goes back to the lesson the agent was staying on, not to Talk alone.
+			const talk = chat?.kind === "talk";
+			const lessonId = talk ? stayingOn(answered.agent) : chat?.id;
+			const wait = claudeCode ? waiterHint(lessonId) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
 			return result({
 				status: "turn_complete",
-				note: chat
-					? `Your turn is done. The learner is reading and will answer in the godspeed window. ${claudeCode ? waiterHint(chat.id) : `Call wait_for_work to continue (lesson_id "${chat.id}" to stay on this lesson).`}`
-					: `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`,
+				note: !chat
+					? `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`
+					: talk
+						? `Your reply is in Talk. ${wait}`
+						: `Your turn is done. The learner is reading and will answer in the godspeed window. ${wait}`,
 			});
 		},
 	);

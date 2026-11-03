@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.19",
+		"date": "2026-11-02",
+		"changes": [
+			"Talk messages reach your agent even while it's working on a lesson. It answers whichever came first, then goes back to the lesson."
+		]
+	},
+	{
 		"version": "0.5.18",
 		"date": "2026-11-02",
 		"changes": [
