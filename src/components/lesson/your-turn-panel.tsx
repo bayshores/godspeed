@@ -190,7 +190,7 @@ export function YourTurnPanel({
 				{body}
 			</div>
 			{/* Outside the keyed state, so opening the check keeps what's typed. */}
-			{pending && <SideQuestionBox busy={composer.busy} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} />}
+			{pending && <SideQuestionBox busy={composer.busy} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} attachments={composer.attachments} />}
 		</aside>
 	);
 }

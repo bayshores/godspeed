@@ -16,7 +16,8 @@
  *             continuations, job-settle re-syncs: the record ends at an
  *             answered question with no teacher reaction yet).
  *   side    — a side question: the learner asks the teacher something
- *             while a question waits, which stays open around it.
+ *             (text, files or both) while a question waits, which stays
+ *             open around it.
  *
  * Server-originated delivery (the wake pipeline's steers) is NOT a client
  * input — the handler accepts it on the same path (TurnInput) so every
@@ -52,7 +53,7 @@ export type ChatInput =
 	| { type: "text"; text: string; attachments?: ChatAttachment[] }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData }
 	| { type: "continue" }
-	| { type: "side"; text: string }
+	| { type: "side"; text: string; attachments?: ChatAttachment[] }
 	/** The learner's thinking on the ACTIVE practice problem — one lane:
 	 *  whether it claims an answer is read from the text. One
 	 *  problem may carry many submissions; each is its own turn. */
@@ -178,11 +179,13 @@ export function parseChatInput(input: unknown): ChatInput {
 			return { type: "answer", toolCallId: i.toolCallId, answer: i.answer as QuestionAnswerData };
 		case "continue":
 			return { type: "continue" };
-		case "side":
-			if (typeof i.text !== "string" || i.text.trim().length === 0) {
-				throw new ChatInputError("side input requires non-empty text");
+		case "side": {
+			const attachments = parseAttachments(i.attachments);
+			if (typeof i.text !== "string" || (i.text.trim().length === 0 && !attachments)) {
+				throw new ChatInputError("side input requires non-empty text or attachments");
 			}
-			return { type: "side", text: i.text };
+			return { type: "side", text: i.text, ...(attachments ? { attachments } : {}) };
+		}
 		case "thinking": {
 			if (typeof i.problemCallId !== "string" || i.problemCallId.length === 0) {
 				throw new ChatInputError("thinking input requires problemCallId");
@@ -255,7 +258,7 @@ export function inputAppends(
 			if (!danglingQuestionOf(record.messages)) {
 				throw new ChatInputError("side input requires a waiting question");
 			}
-			return [newSideQuestion(input.text)];
+			return [newSideQuestion(input.text, attachments)];
 		case "thinking": {
 			const active = activeProblemOf(record.messages);
 			if (!active || active.toolCallId !== input.problemCallId) {

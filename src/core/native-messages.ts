@@ -190,9 +190,10 @@ export function newUserMessage(text: string, attachments: readonly AttachmentPar
 }
 
 /** A side question: the learner asks the teacher something while a
- *  question waits. The question stays open around it (danglingQuestionOf). */
-export function newSideQuestion(text: string): LhMessage & UserMessage {
-	return { ...newUserMessage(text), side: true };
+ *  question waits, with files like any learner message. The question stays
+ *  open around it (danglingQuestionOf). */
+export function newSideQuestion(text: string, attachments: readonly AttachmentPart[] = []): LhMessage & UserMessage {
+	return { ...newUserMessage(text, attachments), side: true };
 }
 
 function isSideQuestion(m: LhMessage): boolean {

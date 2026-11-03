@@ -4,9 +4,10 @@ import { Hint } from "@/components/ui/hint";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/core";
 
 /**
- * The files waiting in a message box (the lesson composer and the practice
- * panel): paste, drop or the picture button add them, small previews show
- * them above the box, and the send carries them.
+ * The files waiting in a message box (the lesson composer, the side
+ * question box, the practice panel and Talk): paste, drop or the picture
+ * button add them, small previews show them above the box, and the send
+ * carries them.
  */
 
 interface DraftFile {

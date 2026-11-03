@@ -340,10 +340,10 @@ export function Chat({
 	// A running turn never gates the box: Enter while busy STEERS it (text
 	// only, so waiting files hold the send). A waiting question or problem
 	// owns the panel; compaction gates sends. Under a waiting question the
-	// box asks a side question: text only, never while the teacher replies.
+	// box asks a side question, never while the teacher replies.
 	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: activeProblem !== null, compacting });
 	const canSend = pending
-		? text.trim().length > 0 && !busy && !compacting
+		? (text.trim().length > 0 || hasFiles) && !busy && !compacting
 		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
 
 	/* THE PRACTICE PAUSE (practice and study): between problems, once a
@@ -383,20 +383,20 @@ export function Chat({
 		if (compacting) return;
 		const t = textRef.current.trim();
 		const files = attachments.files.map((f) => f.attachment);
-		// Text only: a side question, or a steer of the running turn.
-		if (pending || busy) {
-			if (!t || (pending ? busy : files.length > 0)) return;
+		// A steer of the running turn is text only.
+		if (busy && !pending) {
+			if (!t || files.length > 0) return;
 			editText("");
-			void (pending ? send({ type: "side", text: t }) : steer(t)).then((sent) => {
+			void steer(t).then((sent) => {
 				if (!sent) editText(restoreUnsent(t, textRef.current));
 			});
 			return;
 		}
-		if (!t && files.length === 0) return;
+		if (busy || (!t && files.length === 0)) return;
 		const drafts = attachments.files;
 		editText("");
 		attachments.clear();
-		void send({ type: "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
+		void send({ type: pending ? "side" : "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
 			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
 			attachments.restore(drafts);

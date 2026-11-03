@@ -6,6 +6,8 @@ import type { AgentAction, LhMessage } from "@/core";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { agentWaiting, type AgentStatus } from "@/components/agent-status";
+import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/components/lesson/attachment-tray";
+import { MessageAttachments } from "@/components/lesson/message-attachments";
 import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
 import { useServerEvent } from "@/components/server-events";
 import { useChatSession } from "@/components/session";
@@ -110,6 +112,7 @@ function TalkThread({
 }) {
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
 	const [text, setText] = useState("");
+	const attachments = useAttachmentDraft();
 	const [clearError, setClearError] = useState<string | null>(null);
 	const busy = session.status === "submitted" || session.status === "streaming";
 	const rows = talkRows(session.messages);
@@ -126,13 +129,17 @@ function TalkThread({
 	});
 
 	const { send: sendMessage } = session;
+	const { restore } = attachments;
 	const sendText = useCallback(
-		(message: string) => {
-			void sendMessage({ type: "text", text: message }).then((sent) => {
-				if (!sent) setText(message);
+		(message: string, drafts: AttachmentDraft["files"] = []) => {
+			const files = drafts.map((f) => f.attachment);
+			void sendMessage({ type: "text", text: message, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
+				if (sent) return;
+				setText(message);
+				restore(drafts);
 			});
 		},
-		[sendMessage],
+		[sendMessage, restore],
 	);
 
 	// A message asked from elsewhere: sent now, or left in the box while the
@@ -148,9 +155,11 @@ function TalkThread({
 
 	const send = () => {
 		const message = text.trim();
-		if (!message || busy) return;
+		const drafts = attachments.files;
+		if ((!message && drafts.length === 0) || busy) return;
 		setText("");
-		sendText(message);
+		attachments.clear();
+		sendText(message, drafts);
 	};
 
 	const clear = () => {
@@ -177,9 +186,14 @@ function TalkThread({
 					let body: React.ReactNode;
 					if (row.kind === "you")
 						body = (
-							<p data-testid="talk-you" className="text-[14px] leading-5 whitespace-pre-wrap break-words text-ink">
-								{row.text}
-							</p>
+							<>
+								{row.text && (
+									<p data-testid="talk-you" className="text-[14px] leading-5 whitespace-pre-wrap break-words text-ink">
+										{row.text}
+									</p>
+								)}
+								<MessageAttachments parts={row.files} />
+							</>
 						);
 					else if (row.kind === "app")
 						body = (
@@ -239,8 +253,11 @@ function TalkThread({
 				)}
 				<div ref={endRef} />
 			</div>
-			<div className="shrink-0 border-t border-tone-2">
+			<div data-testid="talk-box" className="shrink-0 border-t border-tone-2" {...attachmentInputProps(attachments)}>
 				<NoAgentLine className="px-6 pt-3.5" />
+				<div className="px-6">
+					<AttachmentTray draft={attachments} />
+				</div>
 				<textarea
 					rows={2}
 					value={text}
@@ -251,11 +268,12 @@ function TalkThread({
 					className="lh-input block max-h-40 min-h-[76px] w-full resize-none bg-transparent px-6 py-4 text-[14px]! leading-5! text-ink outline-none field-sizing-content placeholder:text-ink-3 focus:inset-ring focus:inset-ring-ink-2"
 				/>
 				<div className="flex items-stretch">
+					<AttachButton draft={attachments} />
 					<div className="min-w-0 flex-1">
 						{busy ? (
 							<ActionBar testId="talk-stop" waiting onClick={session.stop} label={<span className="flex items-center gap-2"><SquareIcon aria-hidden className="size-3.5" />Stop</span>} />
 						) : (
-							<ActionBar testId="talk-send" onClick={send} disabled={!text.trim()} label="Send" />
+							<ActionBar testId="talk-send" onClick={send} disabled={!text.trim() && attachments.files.length === 0} label="Send" />
 						)}
 					</div>
 					{rows.length > 0 && (

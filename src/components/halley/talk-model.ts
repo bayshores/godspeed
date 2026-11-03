@@ -1,12 +1,12 @@
 /**
- * The Talk thread as rows: the learner's messages, godspeed's own
- * requests, the teacher's replies, and one row per change a tool made
- * (from its result's details).
+ * The Talk thread as rows: the learner's messages (text and files),
+ * godspeed's own requests, the teacher's replies, and one row per change
+ * a tool made (from its result's details).
  */
-import type { AgentAction, AppRequestDeadline, ClassChange, LhViewMessage } from "@/core";
+import { isAttachmentPart, type AgentAction, type AppRequestDeadline, type ClassChange, type LhViewMessage, type LhViewPart } from "@/core";
 
 type TalkRow =
-	| { kind: "you"; id: string; text: string }
+	| { kind: "you"; id: string; text: string; files: LhViewPart[] }
 	| { kind: "teacher"; id: string; text: string }
 	| { kind: "app"; id: string; deadlines: AppRequestDeadline[] }
 	| { kind: "change"; id: string; change: ClassChange };
@@ -19,10 +19,16 @@ function changesOf(output: unknown): ClassChange[] {
 export function talkRows(messages: readonly LhViewMessage[]): TalkRow[] {
 	const rows: TalkRow[] = [];
 	for (const m of messages) {
+		if (m.role === "user") {
+			const text = m.parts.filter((p) => p.type === "text" && p.text?.trim()).map((p) => p.text).join("\n");
+			const files = m.parts.filter(isAttachmentPart);
+			if (text || files.length > 0) rows.push({ kind: "you", id: m.id, text, files });
+		}
 		m.parts.forEach((part, i) => {
 			const id = `${m.id}-${i}`;
-			if (part.type === "text" && part.text?.trim()) rows.push({ kind: m.role === "user" ? "you" : "teacher", id, text: part.text });
-			else if (part.type === "data-app-request")
+			if (part.type === "text" && part.text?.trim()) {
+				if (m.role !== "user") rows.push({ kind: "teacher", id, text: part.text });
+			} else if (part.type === "data-app-request")
 				rows.push({ kind: "app", id, deadlines: (part.data as { deadlines: AppRequestDeadline[] }).deadlines });
 			else if (m.role === "assistant" && part.type.startsWith("tool-"))
 				changesOf(part.output).forEach((change, n) => rows.push({ kind: "change", id: `${id}-${n}`, change }));

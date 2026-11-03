@@ -162,10 +162,45 @@ describe("the panel", () => {
 		assert.ok(el.querySelector("[data-testid='talk-send']"));
 		talkChat = null;
 	});
+	it("Talk takes pictures and PDFs like the lesson box, and shows them under your message", async () => {
+		talkChat = {
+			id: "chat_talk",
+			turnInFlight: false,
+			messages: [
+				{
+					id: "u1",
+					role: "user",
+					content: [
+						{ type: "text", text: "here is the syllabus" },
+						{ type: "image", data: "QUJD", mimeType: "image/png" },
+						{ type: "text", text: "[Attached PDF] syllabus.pdf\nPath: /data/chats/chat_talk/abc-syllabus.pdf\nRead it with the pdf tool when you need its content." },
+					],
+					timestamp: 1,
+				},
+				{ id: "u2", role: "user", content: [{ type: "image", data: "REVG", mimeType: "image/png" }], timestamp: 2 },
+			],
+		};
+		const el = mount(panel());
+		await settle();
+		const rows = [...el.querySelectorAll("[data-testid='talk-row']")];
+		assert.equal(rows.length, 2);
+		assert.equal(rows[0]!.querySelector("[data-testid='talk-you']")?.textContent, "here is the syllabus");
+		assert.ok(rows[0]!.querySelector("[data-testid='message-image']"));
+		assert.equal(rows[0]!.querySelector("[data-testid='message-pdf']")?.textContent, "syllabus.pdf");
+		assert.ok(!el.textContent!.includes("[Attached PDF]"), "the note never shows as text");
+		assert.equal(rows[1]!.querySelector("[data-testid='talk-you']"), null, "a message with only files has no empty line");
+		assert.ok(rows[1]!.querySelector("[data-testid='message-image']"));
+		const box = el.querySelector("[data-testid='talk-box']")!;
+		const button = box.querySelector("[data-testid='attach-button']");
+		assert.equal(button?.getAttribute("aria-label"), "Add pictures or PDFs");
+		assert.equal(box.querySelector("[data-testid='attachment-input']")?.getAttribute("accept"), "image/png,image/jpeg,image/gif,image/webp,application/pdf");
+		assert.ok(box.innerHTML.indexOf('data-testid="attach-button"') < box.innerHTML.indexOf('data-testid="talk-send"'), "beside Send, before it");
+		talkChat = null;
+	});
 	it("a turn starts when the speaker changes; a change row is the teacher's", () => {
 		const rows = [
-			{ kind: "you" as const, id: "1", text: "a" },
-			{ kind: "you" as const, id: "2", text: "b" },
+			{ kind: "you" as const, id: "1", text: "a", files: [] },
+			{ kind: "you" as const, id: "2", text: "b", files: [] },
 			{ kind: "change" as const, id: "3", change: { label: "Adding HW 5", page: "/" } },
 			{ kind: "teacher" as const, id: "4", text: "c" },
 		];

@@ -29,6 +29,8 @@ const {
 	newSideQuestion,
 	newUserMessage,
 	parseChatInput,
+	pdfNote,
+	pdfNoteOf,
 	phaseTimeline,
 	projectView,
 	SIDE_ANSWER_LEAD,
@@ -168,6 +170,13 @@ describe("what the model sees (toLlmMessages)", () => {
 		assert.ok(last!.startsWith(`The learner answered your open question (${JSON.stringify(second.question)}): `));
 	});
 
+	it("a side question's pictures and PDF notes reach the model with its text", () => {
+		const picture = { type: "image" as const, data: "QUJD", mimeType: "image/png" };
+		const pdf = pdfNote("notes.pdf", "/data/chats/c1/abc-notes.pdf");
+		const out = toLlmMessages([...start, newSideQuestion("what about this?", [picture, pdf])]);
+		assert.deepEqual(out.at(-1)!.content, [{ type: "text", text: "what about this?" }, picture, pdf]);
+	});
+
 	it("without side questions nothing changes: the answer is the call's tool result", () => {
 		const out = toLlmMessages([...start, answer("q1")]);
 		assert.deepEqual(out.map((m) => m.role), ["user", "assistant", "toolResult"]);
@@ -191,6 +200,17 @@ describe("the side input", () => {
 	it("parses text and refuses an empty one", () => {
 		assert.deepEqual(parseChatInput({ type: "side", text: "why?" }), { type: "side", text: "why?" });
 		assert.throws(() => parseChatInput({ type: "side", text: "  " }), ChatInputError);
+	});
+
+	it("takes files like the message box: alone or with text, within the same limits", () => {
+		const file = { name: "graph.png", mimeType: "image/png", data: "iVBORw0KGgo=" };
+		assert.deepEqual(parseChatInput({ type: "side", text: "", attachments: [file] }), { type: "side", text: "", attachments: [file] });
+		assert.throws(() => parseChatInput({ type: "side", text: "why?", attachments: Array(6).fill(file) }), ChatInputError);
+		assert.throws(() => parseChatInput({ type: "side", text: "why?", attachments: [{ ...file, name: "a.heic", mimeType: "image/heic" }] }), ChatInputError);
+		const picture = { type: "image" as const, data: "QUJD", mimeType: "image/png" };
+		const [m] = inputAppends(waiting, { type: "side", text: "", attachments: [file] }, [picture]);
+		assert.equal((m as { side?: boolean }).side, true);
+		assert.deepEqual(m!.content, [picture]);
 	});
 
 	it("appends a side question only while a question waits", () => {
@@ -290,6 +310,31 @@ describe("a side question through the chat handler", () => {
 		assert.equal(danglingQuestionOf(chatStore.getChat(chat.id)!.messages), null);
 		assert.equal(seen[2]!.roles.at(-1), "user");
 		assert.ok(seen[2]!.last.includes(SIDE_ANSWER_LEAD), "the answer arrives as the learner's message");
+	});
+
+	it("a side question's PDF is saved beside the lesson and the teacher gets its path", async () => {
+		const seen: unknown[] = [];
+		const faux = createFauxCore({});
+		faux.setResponses([
+			() => fauxAssistantMessage([fauxToolCall("quiz", QUIZ, { id: "call-q" })], { stopReason: "toolUse" }),
+			(context) => {
+				seen.push((context as { messages: Array<{ content?: unknown }> }).messages.at(-1)!.content);
+				return fauxAssistantMessage([fauxText("Page 2 says so.")]);
+			},
+		]);
+		const engine = { model: faux.getModel(), streamFn: faux.streamSimple };
+		const build: Parameters<typeof handleChatInput>[2] = (opts) => createTeacherAgent(undefined, { engine, messages: opts.messages, sideTurn: opts.sideTurn });
+		const chat = chatStore.createChat("side question files");
+		await run(chat.id, { type: "text", text: "teach me planets" }, build);
+		const data = Buffer.from("%PDF-1.4\n%%EOF\n").toString("base64");
+		const res = await run(chat.id, { type: "side", text: "see my notes", attachments: [{ name: "notes.pdf", mimeType: "application/pdf", data }] }, build);
+		assert.equal(res.status, 200);
+		const [text, note] = seen[0] as Array<{ type: string; text: string }>;
+		assert.equal(text!.text, "see my notes");
+		const saved = pdfNoteOf(note!.text);
+		assert.equal(saved?.name, "notes.pdf");
+		assert.ok(fs.existsSync(saved!.path), "the PDF is on disk at the path the teacher reads");
+		assert.equal(danglingQuestionOf(chatStore.getChat(chat.id)!.messages)?.toolCallId, "call-q", "the question is still waiting");
 	});
 
 	it("a side turn takes no [Today] note and no job result, so nothing but the side reply follows the question", async () => {

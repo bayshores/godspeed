@@ -226,6 +226,29 @@ describe("the side question box", () => {
 		assert.ok(!html.includes('data-testid="side-question-open"'));
 	});
 
+	it("takes pictures and PDFs like the message box: the same button beside the field, the tray above it", () => {
+		const files = {
+			files: [
+				{ id: "f1", attachment: { name: "graph.png", mimeType: "image/png", data: "iVBORw0KGgo=" } },
+				{ id: "f2", attachment: { name: "notes.pdf", mimeType: "application/pdf", data: "JVBERi0=" } },
+			],
+			error: null,
+			add: () => {},
+			remove: () => {},
+			clear: () => {},
+			restore: () => {},
+		};
+		const html = panel({ ...waiting, composer: composer({ attachments: files, canSend: true }) });
+		const side = html.slice(html.indexOf('data-testid="side-question"'));
+		assert.ok(!side.includes('data-testid="side-question-open"'), "waiting files keep it open");
+		assert.match(side, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*<textarea/);
+		assert.match(side, /data-testid="attach-button"[\s\S]*<textarea[\s\S]*data-testid="side-question-send"/);
+		assert.match(side, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
+		assert.doesNotMatch(side, /data-testid="side-question-send"[^>]*disabled=""/, "files alone can be sent");
+		const refused = panel({ ...waiting, composer: composer({ attachments: { ...files, files: [], error: "You can add up to 5 files to one message." } }) });
+		assert.match(refused.slice(refused.indexOf('data-testid="side-question"')), /data-testid="attachment-error"[^>]*>You can add up to 5 files to one message\.</);
+	});
+
 	it("while the teacher replies, the box and Submit answer wait, the header says so and Stop takes Send's place", () => {
 		const picked: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "", other: "", text: "" };
 		const submit = /data-testid="question-submit"[^>]*disabled=""/;

@@ -118,10 +118,10 @@ export function PanelComposer({
 
 /**
  * The message box in compact form, under a waiting question: the learner
- * asks the teacher something on the side and the question stays. Text
- * only; while the teacher replies, Send becomes Stop. It waits behind an
- * "Ask a side question" link so the question gets the room, and stays open
- * while there's a draft or a reply.
+ * asks the teacher something on the side and the question stays. Pictures
+ * and PDFs wait above it as in the message box; while the teacher replies,
+ * Send becomes Stop. It waits behind an "Ask a side question" link so the
+ * question gets the room, and stays open while there's a draft or a reply.
  */
 export function SideQuestionBox({
 	busy,
@@ -130,16 +130,17 @@ export function SideQuestionBox({
 	onSend,
 	onStop,
 	canSend,
-}: Pick<React.ComponentProps<typeof PanelComposer>, "busy" | "value" | "onChange" | "onSend" | "onStop" | "canSend">) {
+	attachments,
+}: Pick<React.ComponentProps<typeof PanelComposer>, "busy" | "value" | "onChange" | "onSend" | "onStop" | "canSend" | "attachments">) {
 	const [opened, setOpened] = useState(false);
 	const send = () => {
 		if (!canSend) return;
 		onSend();
 		setOpened(false);
 	};
-	if (!opened && !busy && !value.trim())
+	if (!opened && !busy && !value.trim() && attachments.files.length === 0 && !attachments.error)
 		return (
-			<div data-testid="side-question" className="shrink-0 px-6 py-2.5">
+			<div data-testid="side-question" className="shrink-0 px-6 py-2.5" {...attachmentInputProps(attachments)}>
 				<button
 					type="button"
 					data-testid="side-question-open"
@@ -152,8 +153,10 @@ export function SideQuestionBox({
 			</div>
 		);
 	return (
-		<div data-testid="side-question" className="shrink-0 px-6 py-3">
-			<div className="flex items-end bg-background has-[textarea:focus]:inset-ring has-[textarea:focus]:inset-ring-ink-2">
+		<div data-testid="side-question" className="shrink-0 px-6 pb-3" {...attachmentInputProps(attachments)}>
+			<AttachmentTray draft={attachments} />
+			<div className="mt-3 flex items-end bg-background has-[textarea:focus]:inset-ring has-[textarea:focus]:inset-ring-ink-2">
+				<AttachButton draft={attachments} />
 				<textarea
 					rows={1}
 					value={value}

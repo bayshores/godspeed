@@ -84,6 +84,27 @@ describe("the Talk rows", () => {
 			],
 		);
 	});
+	it("your message's pictures and PDFs ride its row, even with no text", () => {
+		const rows = talkRows([
+			{
+				id: "u1",
+				role: "user",
+				parts: [
+					{ type: "text", text: "Here is the syllabus" },
+					{ type: "data-image", id: "u1-a1", data: { base64: "QUJD", mimeType: "image/png" } },
+					{ type: "data-pdf", id: "u1-a2", data: { name: "syllabus.pdf", path: "/x/syllabus.pdf" } },
+				],
+			},
+			{ id: "u2", role: "user", parts: [{ type: "data-image", id: "u2-a0", data: { base64: "REVG", mimeType: "image/png" } }] },
+		] as never);
+		assert.deepEqual(
+			rows.map((r) => (r.kind === "you" ? [r.text, r.files.map((f) => f.type)] : r.kind)),
+			[
+				["Here is the syllabus", ["data-image", "data-pdf"]],
+				["", ["data-image"]],
+			],
+		);
+	});
 	it("godspeed's own requests are their own speaker, and say what was asked", () => {
 		const rows = talkRows([
 			{ id: "u1", role: "user", parts: [{ type: "text", text: "hi" }] },
