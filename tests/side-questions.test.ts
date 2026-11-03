@@ -3,6 +3,9 @@
  * something else. The question stays open around the side question and
  * its reply, the model sees a placeholder result at the call and the real
  * answer later where it happened, and a side turn can't pose a question.
+ * The same holds around an active practice problem: it stays active, the
+ * model reads the side question as one, and a side turn can't pose or
+ * conclude a problem.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -16,6 +19,7 @@ process.env.LH_DATA_DIR = TMP_DATA;
 
 const { createFauxCore, fauxAssistantMessage, fauxText, fauxToolCall } = await import("@earendil-works/pi-ai");
 const {
+	activeProblemOf,
 	ChatInputError,
 	danglingQuestionOf,
 	dismissedAnswer,
@@ -27,6 +31,7 @@ const {
 	newCompactionMarker,
 	newPlanBlockMessage,
 	newSideQuestion,
+	newThinkingMessage,
 	newUserMessage,
 	parseChatInput,
 	pdfNote,
@@ -35,11 +40,13 @@ const {
 	projectView,
 	SIDE_ANSWER_LEAD,
 	SIDE_PENDING_TEXT,
+	SIDE_PROBLEM_LEAD,
 	teachStepIndex,
 	toLlmMessages,
 } = await import("../src/core/index.ts");
 type LhMessage = import("../src/core/index.ts").LhMessage;
-const { createTeacherAgent } = await import("../src/agent/teacher-agent.ts");
+const { createPracticeAgent, createStudyAgent, createTeacherAgent } = await import("../src/agent/teacher-agent.ts");
+const { practiceOutcomes } = await import("../src/core/practice-outcomes.ts");
 const { handleChatInput } = await import("../src/server/chat-handler.ts");
 const { runningTurn } = await import("../src/server/turn-runs.ts");
 const { deliverJobResult, discardChatDeliveries, setTurnRunner } = await import("../src/server/jobs.ts");
@@ -371,5 +378,125 @@ describe("a side question through the chat handler", () => {
 		assert.equal(danglingQuestionOf(messages)?.toolCallId, "call-q");
 		assert.equal(wakes, 0);
 		discardChatDeliveries(chat.id);
+	});
+});
+
+// ─── around an active practice problem ──────────────────────────────────────
+
+const POSE = { statement: "How many subsets does a 3-element set have?", mode: "recall", target: ["n_count"], modelSolution: "$2^3 = 8$." };
+const CONCLUDE = { outcome: "solved", verdict: "Right.", rung: null, missClass: null, retest: false };
+const call = (id: string, name: string, callId: string, args: unknown) => assistant(id, [{ type: "toolCall", id: callId, name, arguments: args }]);
+const ack = (callId: string, toolName: string, isError = false) =>
+	({ id: `r-${callId}`, role: "toolResult", toolCallId: callId, toolName, content: [{ type: "text", text: isError ? "refused" : "ok" }], details: null, isError, timestamp: 0 }) as unknown as LhMessage;
+
+describe("a side question on a practice problem", () => {
+	const posed = [newUserMessage("practice counting"), call("a1", "problem", "p1", POSE), ack("p1", "problem")];
+	const picture = { type: "image" as const, data: "QUJD", mimeType: "image/png" };
+	// The side reply tries to conclude (refused), then answers in text;
+	// thinking follows and the teacher concludes.
+	const full = [
+		...posed,
+		newSideQuestion("what's a subset?", [picture]),
+		call("a2", "conclude", "c0", CONCLUDE),
+		ack("c0", "conclude", true),
+		reply("a3", "A set inside the set."),
+		newThinkingMessage("p1", "2^3 = 8"),
+		call("a4", "conclude", "c1", CONCLUDE),
+		ack("c1", "conclude"),
+		reply("a5", "Nice."),
+	];
+
+	it("is taken while a problem is active, and refused once it is concluded or discarded", () => {
+		const [m] = inputAppends({ messages: posed }, { type: "side", text: "what's a subset?" });
+		assert.equal((m as { side?: boolean }).side, true);
+		assert.throws(() => inputAppends({ messages: full }, { type: "side", text: "why?" }), ChatInputError, "concluded");
+		const dismissed = [...posed, { id: "d1", role: "custom", customType: "problem-dismissed", content: "", display: false, details: { problemCallId: "p1" }, timestamp: 0 } as LhMessage];
+		assert.throws(() => inputAppends({ messages: dismissed }, { type: "side", text: "why?" }), ChatInputError, "discarded");
+	});
+
+	it("leaves the problem active through the side question and its reply, and thinking still targets it", () => {
+		const replied = full.slice(0, posed.length + 4);
+		assert.equal(activeProblemOf(replied)?.toolCallId, "p1");
+		const [thinking] = inputAppends({ messages: replied }, { type: "thinking", problemCallId: "p1", text: "8" }).slice(-1) as Array<{ customType?: string }>;
+		assert.equal(thinking!.customType, "practice-thinking");
+		assert.equal(activeProblemOf(full), null, "the teacher's own conclude ends it");
+	});
+
+	it("counts the problem's outcome once: the refused conclude and the side question change nothing", () => {
+		const outcomes = practiceOutcomes(full);
+		assert.equal(outcomes.length, 1);
+		assert.equal(outcomes[0]!.outcome, "solved");
+		assert.equal(outcomes[0]!.problemCallId, "p1");
+	});
+
+	it("is a side turn only while its reply is owed: not after thinking, a job result or a conclude", () => {
+		const asked = [...posed, newSideQuestion("why?")];
+		assert.equal(isSideTurn(asked), true);
+		assert.equal(isSideTurn([...asked, reply("a2", "Because."), newSideQuestion("and?")]), true);
+		assert.equal(isSideTurn([...asked, reply("a2", "Because."), newThinkingMessage("p1", "8")]), false, "the thinking turn");
+		const job = jobStore.createJob({ kind: "research", chatId: "c-side", toolCallId: "call-r" });
+		assert.equal(isSideTurn([...asked, reply("a2", "Because."), buildSubagentSteer(job, { brief: "Done.", sources: [] }) as LhMessage]), false, "a job result's wake");
+		assert.equal(isSideTurn([...asked, reply("a2", "Because."), call("a3", "conclude", "c1", CONCLUDE), ack("c1", "conclude")]), false);
+	});
+
+	it("reaches the model as a side question after the problem's own result, its picture with it, and every earlier view stays a prefix", () => {
+		const views = [posed.length + 1, posed.length + 4, posed.length + 5, full.length].map((n) => toLlmMessages(full.slice(0, n) as never));
+		for (let i = 1; i < views.length; i++) assert.deepEqual(views[i]!.slice(0, views[i - 1]!.length), views[i - 1], `view ${i - 1} is a prefix of view ${i}`);
+		const wire = views.at(-1)!;
+		assert.deepEqual(
+			wire.map((m) => m.role),
+			["user", "assistant", "toolResult", "user", "assistant", "toolResult", "assistant", "user", "assistant", "toolResult", "assistant"],
+		);
+		const side = wire[3]!.content as Array<{ type: string; text?: string }>;
+		assert.equal(side[0]!.text, `${SIDE_PROBLEM_LEAD}what's a subset?`);
+		assert.deepEqual(side[1], picture);
+		assert.equal((wire[2] as { content: Array<{ text: string }> }).content[0]!.text, "ok", "the problem keeps its own result");
+		assert.ok(!JSON.stringify(wire).includes(SIDE_PENDING_TEXT));
+		assert.ok(!("side" in wire[3]!), "the record field never reaches the wire");
+	});
+
+	it("a picture alone gets the lead as its text", () => {
+		const wire = toLlmMessages([...posed, newSideQuestion("", [picture])] as never);
+		assert.deepEqual(wire.at(-1)!.content, [{ type: "text", text: SIDE_PROBLEM_LEAD.trimEnd() }, picture]);
+	});
+
+	it("practice and study side turns keep their tools, but problem and conclude refuse", async () => {
+		const ctx = { chatId: "c-side", chatStore: { getChat: () => ({ messages: posed }) } };
+		const practice = (sideTurn: boolean) => createPracticeAgent(ctx, { sideTurn }).state.tools;
+		const study = (sideTurn: boolean) =>
+			createStudyAgent({ ...ctx, jobStore, spawn: () => {} } as never, { sideTurn }).state.tools;
+		for (const tools of [practice, study]) {
+			assert.deepEqual(tools(true).map((t) => t.name), tools(false).map((t) => t.name));
+			for (const name of ["problem", "conclude"]) {
+				const result = await tools(true).find((t) => t.name === name)!.execute("call-x", (name === "problem" ? POSE : CONCLUDE) as never);
+				assert.equal(result.isError, true, name);
+				assert.match((result.content[0] as { text: string }).text, /side question/);
+			}
+		}
+	});
+
+	it("through the handler, an older practice session's side reply can't conclude and the problem stays", async () => {
+		const faux = createFauxCore({});
+		faux.setResponses([
+			() => fauxAssistantMessage([fauxToolCall("problem", POSE, { id: "call-p" })], { stopReason: "toolUse" }),
+			() => fauxAssistantMessage([fauxToolCall("conclude", CONCLUDE, { id: "call-c0" })], { stopReason: "toolUse" }),
+			() => fauxAssistantMessage([fauxText("A set inside the set.")]),
+		]);
+		const engine = { model: faux.getModel(), streamFn: faux.streamSimple };
+		const chat = chatStore.createChat("side question on a problem", "practice");
+		const build: Parameters<typeof handleChatInput>[2] = (opts) => createPracticeAgent({ chatId: chat.id, chatStore }, { engine, messages: opts.messages, sideTurn: opts.sideTurn });
+		const run = async (input: unknown) => {
+			const res = await handleChatInput(chat.id, input as never, build);
+			const handle = runningTurn(chat.id);
+			if (handle) await new Response(handle.subscribe()).text();
+			return res.status;
+		};
+		await run({ type: "text", text: "practice counting" });
+		assert.equal(await run({ type: "side", text: "what's a subset?" }), 200);
+		const messages = chatStore.getChat(chat.id)!.messages;
+		assert.equal(activeProblemOf(messages)?.toolCallId, "call-p");
+		const refusal = messages.find((m) => m.role === "toolResult" && m.toolCallId === "call-c0");
+		assert.equal((refusal as { isError?: boolean }).isError, true);
+		assert.equal(practiceOutcomes(messages).length, 0);
 	});
 });

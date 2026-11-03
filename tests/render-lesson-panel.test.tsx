@@ -67,6 +67,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			onSubmitThinking={async () => true}
 			onDiscardProblem={() => {}}
 			sessionBusy={false}
+			sideReply={false}
 			compacting={false}
 			composer={composer()}
 			stats={null}
@@ -172,6 +173,7 @@ describe("the Your-turn panel's states", () => {
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => asked.push("problem")}
 				sessionBusy={false}
+				sideReply={false}
 				compacting={false}
 				composer={composer()}
 				stats={null}
@@ -208,7 +210,34 @@ describe("the side question box", () => {
 		assert.match(panel({ ...waiting, requiresReveal: true }), /Check your understanding[\s\S]*data-testid="side-question"/);
 		assert.match(panel({ pending: { tool: "write_code", toolCallId: "w1", input: { question: "Write add.", language: "python" } } }), box);
 		assert.ok(!box.test(panel()));
-		assert.ok(!box.test(panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 })));
+	});
+
+	describe("under an active problem", () => {
+		const problem = { practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 };
+
+		it("sits under the practice dock's Your thinking and Send, behind the same link", () => {
+			const html = panel(problem);
+			assert.match(html, /Your thinking[\s\S]*data-testid="practice-send"[\s\S]*data-testid="side-question"/);
+			const side = html.slice(html.indexOf('data-testid="side-question"'));
+			assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
+			assert.ok(!side.includes("<textarea"));
+		});
+
+		it("while the teacher replies to it, the box holds Stop, the only one", () => {
+			const html = panel({ ...problem, sessionBusy: true, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
+			assert.match(html, /data-testid="practice-send"[^>]*disabled=""/, "the thinking waits");
+			assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
+			assert.equal(html.split('data-testid="stop-turn"').length - 1, 1);
+			assert.match(html.slice(html.indexOf('data-testid="side-question"')), /data-testid="stop-turn"/);
+		});
+
+		it("while the teacher replies to the thinking, Stop stays in the dock and the box stays behind its link", () => {
+			const html = panel({ ...problem, sessionBusy: true, composer: composer({ busy: true }) });
+			assert.equal(html.split('data-testid="stop-turn"').length - 1, 1);
+			const side = html.slice(html.indexOf('data-testid="side-question"'));
+			assert.match(side, /data-testid="side-question-open"/);
+			assert.ok(!side.includes('data-testid="stop-turn"'));
+		});
 	});
 
 	it("waits behind an Ask a side question link, with no em-dash or key hint", () => {
@@ -253,7 +282,7 @@ describe("the side question box", () => {
 		const picked: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "", other: "", text: "" };
 		const submit = /data-testid="question-submit"[^>]*disabled=""/;
 		assert.ok(!submit.test(panel({ ...waiting, initialQuestionDraft: picked })), "an answer is ready to submit");
-		const html = panel({ ...waiting, initialQuestionDraft: picked, composer: composer({ busy: true, value: "why?" }) });
+		const html = panel({ ...waiting, initialQuestionDraft: picked, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
 		assert.match(html, submit);
 		assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
 		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Teacher is writing…</);
@@ -286,6 +315,7 @@ describe("the side question box", () => {
 						onSubmitThinking={async () => true}
 						onDiscardProblem={() => {}}
 						sessionBusy={false}
+						sideReply
 						compacting={false}
 						composer={composer({ busy: true, onStop: () => calls.push("stop") })}
 						stats={null}
@@ -319,6 +349,7 @@ describe("the side question box", () => {
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
 				sessionBusy={false}
+				sideReply={false}
 				compacting={false}
 				composer={composer({ value, canSend: value.trim() !== "", onSend })}
 				stats={null}
@@ -372,6 +403,7 @@ describe("the side question box", () => {
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
 				sessionBusy={false}
+				sideReply={false}
 				compacting={false}
 				composer={composer({ value: canSend ? "why?" : " ", canSend, onSend: () => sent++ })}
 				stats={null}
