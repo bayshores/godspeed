@@ -29,7 +29,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { Value } from "typebox/value";
-import { createFauxCore, fauxAssistantMessage, fauxToolCall, type FauxResponseStep, type ToolCall } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxToolCall, type FauxResponseStep, type ToolCall } from "@earendil-works/pi-ai";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PATHS } from "../src/config.ts";
 import {
@@ -62,6 +62,7 @@ import { runningTurn } from "../src/server/turn-runs.ts";
 import { createTeacherAgent } from "../src/agent/teacher-agent.ts";
 import { projectView as projectNative } from "../src/core/view.ts";
 import type { PiEngine } from "../src/agent/models.ts";
+import { fauxEngine } from "./faux-engine.ts";
 
 /**
  * A fake deliver seam + a runner wired like the chat-handler's, per test:
@@ -128,9 +129,7 @@ function scriptedModel(turns: Array<{ toolCalls?: Array<{ toolCallId: string; to
 		}
 		return fauxAssistantMessage(step.text ?? "");
 	});
-	const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });
-	faux.setResponses(steps);
-	return { model: faux.getModel(), streamFn: faux.streamSimple };
+	return fauxEngine(steps);
 }
 
 // ─── fake headless ───────────────────────────────────────────────────────────

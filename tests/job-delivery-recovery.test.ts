@@ -8,6 +8,7 @@ import { after, afterEach, test } from "node:test";
 import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai";
 import { toLlmMessages, type LhMessage } from "../src/core/native-messages.ts";
 import { buildSubagentSteer, type JobKind, type SteerMessage } from "../src/core/contracts.ts";
+import { advance, advanceUntil, settle, useFakeClock } from "./fake-clock.ts";
 
 // Install isolation before importing any storage/configuration composition.
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lh-job-delivery-"));
@@ -30,11 +31,7 @@ const question = {
 	id: "question-message", role: "assistant", content: [{ type: "toolCall", id: "question-call", name: "quiz", arguments: {} }],
 	api: "openai-completions", provider: "faux", model: "faux", timestamp: 1,
 } as unknown as LhMessage;
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-async function until(predicate: () => boolean): Promise<void> {
-	const end = Date.now() + 8000;
-	while (!predicate()) { assert(Date.now() < end, "fixture condition timed out"); await delay(10); }
-}
+useFakeClock();
 function sweep(): void {
 	const global = globalThis as { __lhWakePipeline?: { lastSweepAt: number } };
 	if (global.__lhWakePipeline) global.__lhWakePipeline.lastSweepAt = 0;
@@ -108,7 +105,7 @@ test("saved question survives absent transcript; runner ends while delivery is s
 	const next = agent(); assert(beginTurn(owner.id)); registerLiveAgent(owner.id, next.value);
 	assert.equal(next.handed.length, 1);
 	persist(owner.id, next.handed); unregisterLiveAgent(owner.id); settleSteers(owner.id, next.handed); endTurn(owner.id);
-	await delivery;
+	await settle(delivery!);
 });
 
 test("missing or blank research question records an honest failure without invoking a model", async () => {
@@ -137,7 +134,7 @@ test("repeated recovery behind a question yields one handed and one durable mark
 	const next = agent(); assert(beginTurn(owner.id)); registerLiveAgent(owner.id, next.value);
 	assert.deepEqual(next.handed.map((message) => message.id), [steer.id]);
 	persist(owner.id, next.handed); unregisterLiveAgent(owner.id); settleSteers(owner.id, next.handed); endTurn(owner.id);
-	await first;
+	await settle(first);
 	assert.equal(wakes, 0);
 	assert.equal(stores.chatStore.getChat(owner.id)!.messages.filter((message) => message.id === steer.id).length, 1);
 	assert.equal(stores.jobStore.getJob(job.id)!.delivery?.status, "delivered");
@@ -155,24 +152,24 @@ for (const refused of [409, 403]) test(`duplicate during a ${refused} wake retai
 		persist(id, input.steers); return 200;
 	});
 	const first = deliverJobResult(steer);
-	await until(() => attempts === 1);
+	await advanceUntil(() => attempts === 1);
 	assert.strictEqual(deliverJobResult(steer), first, "wake cargo is still in the registry");
 	release();
 	if (refused === 403) {
-		await delay(30);
+		await advance(30);
 		const next = agent(); assert(beginTurn(owner.id)); registerLiveAgent(owner.id, next.value);
 		assert.equal(next.handed.length, 1);
 		persist(owner.id, next.handed); unregisterLiveAgent(owner.id); settleSteers(owner.id, next.handed); endTurn(owner.id);
 	}
-	await first;
+	await settle(first);
 	assert.equal(stores.chatStore.getChat(owner.id)!.messages.filter((message) => message.id === steer.id).length, 1);
 });
 
 test("failed start stays quiet across sweeps, then joins a learner run", async () => {
 	const owner = chat(); const { job, steer } = pending(owner.id);
 	let attempts = 0; setTurnRunner(async () => { attempts++; return 503; });
-	const delivery = deliverJobResult(steer); await until(() => attempts === 1); await delay(30);
-	sweep(); sweep(); await delay(900);
+	const delivery = deliverJobResult(steer); await advanceUntil(() => attempts === 1); await advance(30);
+	sweep(); sweep(); await advance(900);
 	assert.equal(attempts, 1);
 	assert.equal(stores.jobStore.getJob(job.id)!.status, "done");
 	assert.equal(stores.jobStore.getJob(job.id)!.error, undefined);
@@ -180,7 +177,7 @@ test("failed start stays quiet across sweeps, then joins a learner run", async (
 	const next = agent(); assert(beginTurn(owner.id)); registerLiveAgent(owner.id, next.value);
 	assert.equal(next.handed.length, 1);
 	persist(owner.id, next.handed); unregisterLiveAgent(owner.id); settleSteers(owner.id, next.handed); endTurn(owner.id);
-	await delivery;
+	await settle(delivery);
 });
 
 test("HTTP acceptance without a saved marker is not delivery completion or a retry trigger", async () => {
@@ -192,13 +189,13 @@ test("HTTP acceptance without a saved marker is not delivery completion or a ret
 		registerLiveAgent(owner.id, accepted.value, false, new Set([steer.id]));
 		return 200;
 	});
-	const delivery = deliverJobResult(steer); await until(() => attempts === 1); await delay(30);
+	const delivery = deliverJobResult(steer); await advanceUntil(() => attempts === 1); await advance(30);
 	assert.equal(stores.jobStore.getJob(job.id)!.delivery?.status, "pending");
 	unregisterLiveAgent(owner.id); endTurn(owner.id); settleSteers(owner.id, [], true, accepted.value);
-	sweep(); await delay(900); assert.equal(attempts, 1);
+	sweep(); await advance(900); assert.equal(attempts, 1);
 	const next = agent(); assert(beginTurn(owner.id)); registerLiveAgent(owner.id, next.value);
 	assert.equal(next.handed.length, 1);
-	persist(owner.id, next.handed); unregisterLiveAgent(owner.id); endTurn(owner.id); await delivery;
+	persist(owner.id, next.handed); unregisterLiveAgent(owner.id); endTurn(owner.id); await settle(delivery);
 });
 
 test("a racing foreground settlement cannot release an outstanding staged wake", async () => {
@@ -229,11 +226,11 @@ test("a racing foreground settlement cannot release an outstanding staged wake",
 		return 200;
 	});
 	const delivery = deliverJobResult(steer);
-	await until(() => started);
+	await advanceUntil(() => started);
 	const foreground = agent(); assert(beginTurn(owner.id)); registerLiveAgent(owner.id, foreground.value);
 	assert.equal(foreground.handed.length, 0, "outstanding wake owns the marker");
 	unregisterLiveAgent(owner.id); endTurn(owner.id); settleSteers(owner.id, [], false, foreground.value);
-	release(); await delivery;
+	release(); await settle(delivery);
 	assert.equal(modelCopies, 1, "one result in the model's initial context");
 	assert.equal(nativeCopies, 1, "no self-steering of staged wake cargo");
 	assert.equal(stores.chatStore.getChat(owner.id)!.messages.filter((message) => message.id === steer.id).length, 1);
@@ -247,7 +244,7 @@ test("canonical save wins even if delivery bookkeeping fails; no marker replay",
 		if (id === job.id && patch.delivery?.status === "delivered") throw new Error("fixture acknowledgement write failure");
 		return update(id, patch);
 	};
-	try { persist(owner.id, [steer]); await delivery; }
+	try { persist(owner.id, [steer]); await settle(delivery); }
 	finally { stores.jobStore.updateJob = update; }
 	let wakes = 0; setTurnRunner(async () => { wakes++; return 500; });
 	sweep();
@@ -323,7 +320,7 @@ test("deleting a session discards its pending deliveries without starting a turn
 	const delivery = deliverJobResult(steer);
 	const outcome = await deleteChatSession(owner.id, "preserve-graph");
 	assert(outcome.ok);
-	await delivery; await delay(450);
+	await settle(delivery); await advance(450);
 	assert.equal(stores.jobStore.getJob(job.id), null);
 	assert.equal(stores.chatStore.getChat(owner.id), null);
 	assert.equal(wakes, 0);

@@ -28,7 +28,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, afterEach, before, describe, it } from "node:test";
-import { createFauxCore, fauxAssistantMessage, fauxText, fauxToolCall, type AssistantMessage, type FauxResponseStep } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxText, fauxToolCall, type AssistantMessage, type FauxResponseStep } from "@earendil-works/pi-ai";
+import { fauxEngine } from "./faux-engine.ts";
+import { advance, advanceUntil, settle, useFakeClock } from "./fake-clock.ts";
 import {
 	accumulateJobUsage,
 	buildAbortSteer,
@@ -169,16 +171,6 @@ after(() => {
 	}
 	researchModelOverride.current = undefined;
 });
-
-/** A scripted pi engine (faux provider): the response queue replaces the
- *  old doStream/doGenerate turn counters. tokenSize is set so every test
- *  string streams as ONE delta — the SSE-body assertions ("Back with the
- *  brief.") read contiguous text. */
-function fauxEngine(steps: FauxResponseStep[]): PiEngine {
-	const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });
-	faux.setResponses(steps);
-	return { model: faux.getModel(), streamFn: faux.streamSimple };
-}
 
 /** A scripted response factory whose model call never resolves until its
  *  abort signal fires (a cancelled provider request); an already-aborted
@@ -900,10 +892,11 @@ describe("researcher agent", () => {
  * (setTurnRunner) — the real wiring (chat-handler's handleChatInput
  * adapter) never fires here, so no teacher model is touched.
  *
- * Timing: the pump polls at 400ms with a 1.5s grace after the gates open —
- * each happy-path test takes ~2s; waitFor tolerates it.
+ * The pump's timers run on the fake clock (tests/fake-clock.ts).
  */
 describe("wake pipeline (src/server/jobs.ts)", () => {
+	useFakeClock();
+
 	/** A chat with a finished job ready for delivery. */
 	function setup(kind: "research" | "demo" = "research"): { chatId: string; jobId: string; steer: SteerMessage } {
 		const chat = chatStore.createChat("Test: wake pipeline");
@@ -932,8 +925,8 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		await deliverJobResult(handoff);
-		await waitFor(() => seen !== undefined, 8000, "handoff wake fired");
+		await settle(deliverJobResult(handoff));
+		await advanceUntil(() => seen !== undefined, "handoff wake fired");
 		const firedHandoff = seen!;
 		assert.equal(firedHandoff.chatId, chat.id);
 		assert.equal(firedHandoff.steers.length, 1);
@@ -952,7 +945,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		await deliverJobResult(handoff);
+		await settle(deliverJobResult(handoff));
 		assert.equal(fired, 0, "already delivered — the pump resolves without firing a wake");
 	});
 
@@ -964,8 +957,8 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		await deliverJobResult(steer);
-		await waitFor(() => jobStore.getJob(jobId)!.status !== "running", 8000, "job flip after delivery");
+		await settle(deliverJobResult(steer));
+		await advanceUntil(() => jobStore.getJob(jobId)!.status !== "running", "job flip after delivery");
 
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "delivered");
@@ -1004,7 +997,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		// would deadlock the test (the pump defers until the gate opens).
 		const delivery = deliverJobResult(steer);
 
-		await delay(300); // the pump parks behind the question
+		await advance(300); // the pump parks behind the question
 		const read = chatStore.getChat;
 		let reads = 0;
 		chatStore.getChat = (id) => {
@@ -1012,7 +1005,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return read(id);
 		};
 		try {
-			await delay(1200);
+			await advance(1200);
 		} finally {
 			chatStore.getChat = read;
 		}
@@ -1037,9 +1030,9 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			} as never,
 		]);
 
-		await waitFor(() => fired > 0, 8000, "wake after the quiz answer");
-		await delivery; // now it resolves — the steer was delivered
-		await waitFor(() => jobStore.getJob(jobId)!.status !== "running", 8000, "job flip after the deferred wake");
+		await advanceUntil(() => fired > 0, "wake after the quiz answer");
+		await settle(delivery); // now it resolves — the steer was delivered
+		await advanceUntil(() => jobStore.getJob(jobId)!.status !== "running", "job flip after the deferred wake");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
 
@@ -1081,7 +1074,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 
 		const delivery = deliverJobResult(steer);
 
-		await delay(1200);
+		await advance(1200);
 		assert.equal(fired, 0, "no wake while the session sits dismissal-paused");
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "pending", "the delivery holds (queued, not lost)");
 
@@ -1092,9 +1085,9 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		chatStore.saveMessages(chatId, afterUser);
 		settleSteers(chatId, afterUser);
 
-		await waitFor(() => fired > 0, 8000, "wake after the pause lifts");
-		await delivery;
-		await waitFor(() => jobStore.getJob(jobId)!.status !== "running", 8000, "job flip after the held wake");
+		await advanceUntil(() => fired > 0, "wake after the pause lifts");
+		await settle(delivery);
+		await advanceUntil(() => jobStore.getJob(jobId)!.status !== "running", "job flip after the held wake");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
 
@@ -1106,9 +1099,9 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return calls === 1 ? 409 : 200;
 		});
 
-		await deliverJobResult(steer);
+		await settle(deliverJobResult(steer));
 		assert.ok(calls >= 2, "409 was retried");
-		await waitFor(() => jobStore.getJob(jobId)!.status !== "running", 8000, "job flip after the retry");
+		await advanceUntil(() => jobStore.getJob(jobId)!.status !== "running", "job flip after the retry");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
 
@@ -1124,7 +1117,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		await deliverJobResult(steer);
+		await settle(deliverJobResult(steer));
 		assert.equal(fired, 0, "no duplicate wake for an already-delivered steer");
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "the job still flips — recovery completes");
 	});
@@ -1152,8 +1145,8 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		registerLiveAgent(chatId, agent as never);
 
 		const delivery = deliverJobResult(steer); // floats — resolves at settlement
-		await waitFor(() => handed.length === 1, 8000, "marker handed to the live agent");
-		await delay(1200);
+		await advanceUntil(() => handed.length === 1, "marker handed to the live agent");
+		await advance(1200);
 		assert.equal(fired, 0, "no wake while the run is live");
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "worker finished before delivery");
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "pending");
@@ -1161,7 +1154,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		// Settlement: the run persisted the injected marker.
 		unregisterLiveAgent(chatId);
 		settleSteers(chatId, [steer as never]);
-		await delivery;
+		await settle(delivery);
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "delivery resolves at settlement");
 		assert.equal(fired, 0, "never needed a wake");
 		endTurn(chatId);
@@ -1180,7 +1173,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		registerLiveAgent(chatId, agent as never);
 
 		const delivery = deliverJobResult(steer);
-		await waitFor(() => handed.length === 1, 8000, "handed");
+		await advanceUntil(() => handed.length === 1, "handed");
 		// The run settles WITHOUT the marker (question stopper exited before
 		// the follow-up poll) — reconcile against the persisted truth.
 		unregisterLiveAgent(chatId);
@@ -1188,7 +1181,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		endTurn(chatId);
 
 		// The marker returned to pending — the pump's idle wake delivers it.
-		await delivery;
+		await settle(delivery);
 		assert.equal(fired, 1, "the stranded marker rode the idle wake");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
@@ -1209,7 +1202,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		registerLiveAgent(chat.id, agent as never);
 
 		const delivery = deliverJobResult(handoff);
-		await delay(1200);
+		await advance(1200);
 		assert.equal(handed.length, 0, "the handoff was NOT handed to the live agent");
 		assert.equal(fired.length, 0, "no wake while the prober's turn streams");
 
@@ -1217,7 +1210,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		unregisterLiveAgent(chat.id);
 		settleSteers(chat.id, []);
 		endTurn(chat.id);
-		await delivery;
+		await settle(delivery);
 		assert.equal(fired.length, 1);
 		assert.equal(fired[0]![0]!.id, handoff.id, "the handoff rode the wake");
 	});
@@ -1248,7 +1241,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 			} as never,
 		]);
 		const delivery = deliverJobResult(steer);
-		await delay(300); // let the pump park behind the dangling question
+		await advance(300); // let the pump park behind the dangling question
 		assert.equal(handed.length, 0, "nothing to hand to — no live agent");
 
 		// The learner answers: the handler registers the answer run's agent
@@ -1264,7 +1257,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		unregisterLiveAgent(chatId);
 		settleSteers(chatId, [steer as never]);
 		endTurn(chatId);
-		await delivery;
+		await settle(delivery);
 		assert.equal(fired, 0, "the parked wake never fired — the run delivered");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
@@ -1294,7 +1287,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 			return 200;
 		});
 
-		await Promise.all([deliverJobResult(steer), deliverJobResult(steer2)]);
+		await settle(Promise.all([deliverJobResult(steer), deliverJobResult(steer2)]));
 		assert.equal(fired.length, 1, "one wake for the whole queue");
 		assert.equal(fired[0]!.length, 2, "both markers ride the same turn");
 		const ids = fired[0]!.map((s) => s.id).sort();
@@ -1308,8 +1301,8 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		let attempts = 0;
 		setTurnRunner(async () => { attempts++; return 500; });
 		const delivery = deliverJobResult(steer);
-		await waitFor(() => attempts === 1, 8000, "failed start attempted");
-		await delay(1000);
+		await advanceUntil(() => attempts === 1, "failed start attempted");
+		await advance(1000);
 		assert.equal(attempts, 1, "no automatic retry loop");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 		assert.equal(jobStore.getJob(jobId)!.error, undefined);
@@ -1321,13 +1314,9 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		unregisterLiveAgent(chatId);
 		settleSteers(chatId, [steer]);
 		endTurn(chatId);
-		await delivery;
+		await settle(delivery);
 	});
 });
-
-function delay(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 // ─── persist id hygiene (the duplicate-empty-key bug) ────────────────────────
 
@@ -1536,6 +1525,8 @@ describe("prompt composition", () => {
 // ─── abort (real kill, cancelled status, teacher told) ───
 
 describe("abort (src/server/jobs.ts abortJob)", () => {
+	useFakeClock();
+
 	/** A hanging model whose call never resolves until its abort signal
 	 *  fires — the real-kill path: the in-flight call itself is killed. */
 	function hangingModel(): PiEngine {
@@ -1605,7 +1596,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 		});
 		try {
 			const settled = runner.runJob(jobId, RESEARCH_INPUT);
-			await waitFor(() => jobStore.getJob(jobId)!.activity === "researching", 8000, "loop started");
+			await advanceUntil(() => jobStore.getJob(jobId)!.activity === "researching", "loop started");
 
 			const outcome = abortJob(jobId);
 			assert.ok(outcome.ok);
@@ -1614,12 +1605,12 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 			assert.equal(killed.error, "Aborted by learner", "abort reads as an error with a reason, not a failure");
 			assert.equal(killed.activity, "aborted");
 
-			await settled; // unwinds — no hang
+			await settle(settled); // unwinds — no hang
 			assert.equal(jobStore.getJob(jobId)!.status, "error", "the runner never overwrites the flip");
 			assert.equal(jobStore.getJob(jobId)!.error, "Aborted by learner");
 			assert.equal(jobStore.getJob(jobId)!.result, undefined, "no result on an aborted job");
 
-			await waitFor(() => fired.length > 0, 8000, "abort wake fired");
+			await advanceUntil(() => fired.length > 0, "abort wake fired");
 			const last = fired[0]!;
 			assert.equal((last.details as { aborted: boolean }).aborted, true);
 			assert.equal(last.id, `steer_${jobId}`);
@@ -1639,9 +1630,9 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 		const runner = createJobRunner({ chatStore, jobStore, deliver: async () => {} });
 		try {
 			const settled = runner.runJob(jobId, RESEARCH_INPUT);
-			await waitFor(() => (jobStore.getJob(jobId)!.usage?.steps ?? 0) === 1, 8000, "first step folded");
+			await advanceUntil(() => (jobStore.getJob(jobId)!.usage?.steps ?? 0) === 1, "first step folded");
 			abortJob(jobId);
-			await settled;
+			await settle(settled);
 			const job = jobStore.getJob(jobId)!;
 			assert.equal(job.status, "error");
 		assert.equal(job.error, "Aborted by learner");
@@ -1685,7 +1676,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 		assert.equal(jobStore.getJob(job.id)!.error, undefined);
 
 		endTurn(chat.id); // gates open — whatever is left in the queue fires
-		await waitFor(() => fired.length > 0, 8000, "wake fired");
+		await advanceUntil(() => fired.length > 0, "wake fired");
 		assert.equal(fired.length, 1, "exactly one result delivery");
 		assert.equal(fired[0]!.customType, "subagent-steer");
 		assert.equal(jobStore.getJob(job.id)!.status, "done");
@@ -1712,6 +1703,8 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 // immediacy by running the sweep on FRESH records.
 
 describe("stale-job recovery sweep (liveness-gated)", () => {
+	useFakeClock();
+
 	/** Reset the sweep's 30s throttle — tests fire it directly, repeatedly. */
 	function resetSweepThrottle(): void {
 		const g = globalThis as { __lhWakePipeline?: { lastSweepAt: number } };
@@ -1781,8 +1774,8 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 		});
 		resetSweepThrottle();
 		recoverStaleJobs();
-		await waitFor(() => fired > 0, 8000, "recovery wake fired");
-		await waitFor(() => jobStore.getJob(jobId)!.status !== "running", 8000, "orphan settled after re-delivery");
+		await advanceUntil(() => fired > 0, "recovery wake fired");
+		await advanceUntil(() => jobStore.getJob(jobId)!.status !== "running", "orphan settled after re-delivery");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
 });
