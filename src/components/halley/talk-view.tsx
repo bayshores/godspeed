@@ -221,9 +221,10 @@ function TalkThread({
 						</div>
 					);
 				})}
-				{busy && (
+				{/* While no agent has taken the message, the panel's head says so. */}
+				{busy && !agentWaiting(agent) && (
 					<p data-testid="talk-busy" className="mt-4 pl-[76px] text-[13px] text-ink-3">
-						{agentWaiting(agent) ? "Waiting for your agent" : "Writing…"}
+						Writing…
 					</p>
 				)}
 				{session.error && !busy && (
