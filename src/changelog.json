@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.29",
+		"date": "2026-11-03",
+		"changes": [
+			"You can ask your teacher something while a practice problem is open, with the same box as under lesson questions, pictures and PDFs included. The problem and your thinking stay put, and asking doesn't count as a hint."
+		]
+	},
+	{
 		"version": "0.5.28",
 		"date": "2026-11-03",
 		"changes": [
