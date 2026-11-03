@@ -9,6 +9,7 @@ import { TopBar } from "@/components/top-bar";
 import { useProgress } from "@/components/use-progress";
 import { GraphCostControl } from "@/components/graph/cost-control.tsx";
 import { displayName } from "@/components/overview/overview-model";
+import { DeadlineStarts } from "@/components/home/deadline-starts";
 import { FactsPicker, useGraphSnapshot } from "@/components/home/facts-picker";
 import { SuggestionList } from "@/components/home/suggestions";
 import { homeSuggestions } from "@/components/home/suggestions-model";
@@ -19,7 +20,8 @@ import { useLessonStep } from "@/components/home/use-lesson-step";
 /**
  * THE START PAGE ("/new"): where every study session starts (the
  * sidebar's Study button and ⌘N open it), in the active class. "Study for
- * <deadline>" for each upcoming deadline, the topic box ("Start from
+ * <deadline>" for each upcoming deadline ("Continue studying for" while
+ * its latest session is unfinished), the topic box ("Start from
  * facts" picks facts from the chain table; Enter or Study starts), then
  * "Suggested for <class>": Continue the latest lesson, Next up (the
  * earliest unstudied file) and Work on next (weak or untested topics).
@@ -74,22 +76,7 @@ export function NewLesson() {
 					style={{ animationDuration: "var(--lh-dur-slow)" }}
 				>
 					<h2 className="font-title text-[34px] font-bold leading-tight text-ink">What do you want to study?</h2>
-					{progress && deadlines.length > 0 && (
-						<div data-testid="home-deadlines" className="mt-5 flex flex-wrap gap-0.5">
-							{deadlines.map((d) => (
-								<button
-									key={d.id}
-									type="button"
-									data-testid="home-study-deadline"
-									disabled={lesson.busy}
-									onClick={() => void studyDeadline(d.id)}
-									className="lh-press bg-tone px-3.5 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-60"
-								>
-									Study for {d.name}
-								</button>
-							))}
-						</div>
-					)}
+					{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busy={lesson.busy} onStudy={(d) => void studyDeadline(d)} />}
 					<div className="mt-2.5">
 						<TopicBox
 							text={topic}

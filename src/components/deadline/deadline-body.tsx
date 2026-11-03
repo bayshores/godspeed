@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import Link from "next/link";
 import { CheckIcon } from "lucide-react";
-import { rampColor, topicStatus, type DeadlineProgress, type PlanDay, type TopicProgress } from "@/core";
+import { deadlineStudyLabel, rampColor, topicStatus, type DeadlineProgress, type PlanDay, type TopicProgress } from "@/core";
 import { clockLabel, deadlineDateLabel, dueLabel, kindLabel } from "@/components/class-deadlines-model";
 import { Countdown } from "@/components/countdown";
 import { isOverdue } from "@/components/deadlines-model";
@@ -376,7 +376,7 @@ function PathCard({
 			{canStart && (
 				// Flush with the card's edges and foot, like the lesson panel's bar.
 				<div className="-mx-[22px] w-[calc(100%+44px)]">
-					<ActionBar testId="deadline-start" label="Study" onClick={onStart} disabled={busy} />
+					<ActionBar testId="deadline-start" label={deadlineStudyLabel(d.continueStudy)} onClick={onStart} disabled={busy} />
 				</div>
 			)}
 		</section>

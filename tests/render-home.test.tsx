@@ -1,8 +1,9 @@
 /**
  * The start page: the topic box ("Start from facts", the white Study
  * button, Enter starts), the "Suggested for <class>" rows (Continue / Next
- * up / Work on next with their buttons and meta) and what every Study
- * start sends.
+ * up / Work on next with their buttons and meta), the Study for each
+ * deadline (Continue studying while its session is unfinished) and what
+ * every Study start sends.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,7 +13,7 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { FileCoverage, LessonProgress, TopicProgress } from "../src/core/index.ts";
+import type { DeadlineProgress, FileCoverage, LessonProgress, TopicProgress } from "../src/core/index.ts";
 import type { Suggestion } from "../src/components/home/suggestions-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -30,6 +31,7 @@ Object.assign(globalThis, {
 
 const { TopicBox, isStartKey } = await import("../src/components/home/topic-box.tsx");
 const { SuggestionList } = await import("../src/components/home/suggestions.tsx");
+const { DeadlineStarts } = await import("../src/components/home/deadline-starts.tsx");
 const { useLessonStart } = await import("../src/components/home/use-lesson-start.ts");
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
@@ -221,6 +223,17 @@ describe("Home: actions", () => {
 		assert.deepEqual(practiced.map((t) => t.id), ["t2"]);
 	});
 
+	it("Study for each deadline, or Continue studying for it with its topics done; a click passes the deadline", async () => {
+		const ddl = (id: string, name: string, over: Partial<DeadlineProgress> = {}) => ({ id, name, ...over }) as DeadlineProgress;
+		const deadlines = [ddl("mid", "Midterm", { continueStudy: { chatId: "chat_1", done: 0, total: 4 } }), ddl("quiz", "Quiz 3")];
+		const clicked: string[] = [];
+		const host = await mount(<DeadlineStarts deadlines={deadlines} busy={false} onStudy={(d) => clicked.push(d.id)} />);
+		const buttons = [...host.querySelectorAll('[data-testid="home-study-deadline"]')] as HTMLButtonElement[];
+		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue studying for Midterm · 0 of 4 topics", "Study for Quiz 3"]);
+		await act(async () => buttons[0]!.click());
+		assert.deepEqual(clicked, ["mid"]);
+	});
+
 	it("busy: the start buttons are disabled", () => {
 		const html = list({ busy: true });
 		assert.match(html, /data-testid="home-study-file"[^>]*disabled/);
@@ -281,7 +294,7 @@ describe("Home: actions", () => {
 			// Failed starts leave the hook free for the next one.
 			let ok = false;
 			const { lesson, sent, pushed } = await harness(() => ok);
-			await act(async () => lesson().studyDeadline("d1"));
+			await act(async () => lesson().studyDeadline({ id: "d1" }));
 			assert.deepEqual(sent.at(-1), { deadlineId: "d1" });
 			await act(async () => lesson().start({ title: " Bayes ", picks: [{ id: "f1", name: "Bayes", statement: "P(A|B)…" }] }));
 			assert.deepEqual(sent.at(-1), { title: "Bayes", graphContext: { propositions: [{ id: "f1", name: "Bayes", statement: "P(A|B)…" }] } });
@@ -290,6 +303,18 @@ describe("Home: actions", () => {
 			assert.deepEqual(sent.at(-1), { topicIds: ["t1", "t2"] });
 			assert.deepEqual(pushed, [`/chat/chat_1?prompt=${encodeURIComponent("Study: Counting, Sets")}`]);
 			assert.ok(sent.every((body) => !("kind" in body)), "every new lesson is a study session");
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
+	it("a deadline with an unfinished session reopens it instead of starting one", async () => {
+		const original = globalThis.fetch;
+		try {
+			const { lesson, sent, pushed } = await harness(() => true);
+			await act(async () => lesson().studyDeadline({ id: "d1", continueStudy: { chatId: "chat_9", done: 1, total: 4 } }));
+			assert.deepEqual(sent, []);
+			assert.deepEqual(pushed, ["/chat/chat_9"]);
 		} finally {
 			globalThis.fetch = original;
 		}

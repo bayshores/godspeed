@@ -68,6 +68,7 @@ export * from "./new-files.ts";
 export * from "./linked-folder.ts";
 export * from "./deadline-plan.ts";
 export * from "./study.ts";
+export * from "./continue-study.ts";
 export type { ClassChange } from "./class-tools.ts";
 export * from "./teaching-areas.ts";
 export * from "./agent-rules.ts";

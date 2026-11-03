@@ -40,7 +40,7 @@ import type { UserSettings } from "./settings.ts";
 
 export interface ChatStore {
 	/** Create a session record (persisted immediately); absent kind = teach. */
-	createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string): ChatRecord;
+	createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string, deadlineId?: string): ChatRecord;
 	/** The full record, or null if unknown id / corrupt file. */
 	getChat(id: string): ChatRecord | null;
 	/** The record file's version, read without parsing it: it changes on

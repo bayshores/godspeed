@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { planStepBar } from "../src/core/plan-step-bar.ts";
+import { planPositionLh, planStepBar, stepPosition } from "../src/core/plan-step-bar.ts";
 import type { QuestionAnswerData } from "../src/core/question-core.ts";
 
 describe("planStepBar", () => {
@@ -23,5 +23,18 @@ describe("planStepBar", () => {
 	it("is empty without a plan", () => {
 		assert.deepEqual(planStepBar(null, []), { steps: [], currentIndex: -1 });
 		assert.equal(planStepBar(tree, []).currentIndex, -1);
+	});
+
+	it("counts the current step's number, or the steps done while none is current", () => {
+		assert.equal(stepPosition([{ status: "visited" }, { status: "current" }, { status: "upcoming" }]), 2);
+		assert.equal(stepPosition([{ status: "visited" }, { status: "upcoming" }]), 1);
+		assert.equal(stepPosition([{ status: "upcoming" }, { status: "upcoming" }]), 0);
+	});
+
+	it("reads the same count off the native record, problem calls included", () => {
+		const call = (name: string, nodeId: string) => ({ role: "assistant", content: [{ type: "toolCall", id: nodeId, name, arguments: { nodeId } }] });
+		assert.deepEqual(planPositionLh(tree, []), { done: 0, total: 3 });
+		assert.deepEqual(planPositionLh(tree, [call("quiz", "a")] as never), { done: 1, total: 3 });
+		assert.deepEqual(planPositionLh(tree, [call("quiz", "a"), call("problem", "c")] as never), { done: 3, total: 3 }, "the plan order, not the call order");
 	});
 });

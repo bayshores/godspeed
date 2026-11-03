@@ -2,7 +2,7 @@ import { memo } from "react";
 import { ChevronDownIcon, GitForkIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { PlanStep, PlanStepBar, StepAnswer } from "@/core";
+import { stepPosition, type PlanStep, type PlanStepBar, type StepAnswer } from "@/core";
 
 const STATUS_WORD: Record<PlanStep["status"], string> = {
 	visited: "Done",
@@ -50,7 +50,7 @@ export const StepBar = memo(function StepBar({
 }) {
 	const { steps, currentIndex } = bar;
 	const current = currentIndex >= 0 ? steps[currentIndex] : undefined;
-	const position = currentIndex >= 0 ? currentIndex + 1 : steps.filter((s) => s.status === "visited").length;
+	const position = stepPosition(steps);
 	return (
 		<div data-testid="plan-step-bar" className="flex min-w-0 items-center gap-3 bg-panel px-3 py-[3px]">
 			<GitForkIcon aria-hidden className="size-3.5 shrink-0 text-ink-3" />

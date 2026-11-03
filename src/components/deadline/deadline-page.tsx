@@ -84,7 +84,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 
 	const { studyDeadline } = lesson;
 	const onStart = useCallback(() => {
-		if (deadline) void studyDeadline(deadline.id);
+		if (deadline) void studyDeadline(deadline);
 	}, [deadline, studyDeadline]);
 	const onAsk = useCallback(() => {
 		if (deadline) askTeacher(coverageMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));

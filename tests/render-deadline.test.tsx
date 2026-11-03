@@ -121,6 +121,10 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-start".*>Study</);
 		assert.ok(!html.includes("Permutations</span><span"), "strong topics stay off the path");
 	});
+	it("an unfinished session from this deadline: Continue studying with its topics done", () => {
+		const html = render(deadline({ continueStudy: { chatId: "chat_1", done: 1, total: 4 } }));
+		assert.match(html, /data-testid="deadline-start".*>Continue studying · 1 of 4 topics</);
+	});
 	it("due today puts everything on today", () => {
 		const html = render(deadline({ date: "2026-11-02", daysUntil: 0, time: "23:00" }));
 		assert.equal(count(html, 'data-testid="deadline-day"'), 1);

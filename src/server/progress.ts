@@ -12,16 +12,20 @@ import { practiceOutcomes, type PracticeOutcome } from "../core/practice-outcome
 import { deadlineStudyTopicIds, factClassOrder, studyTopics, topicStudy, type StudyTopic } from "../core/study.ts";
 import type { GraphContextPick } from "../core/native-messages.ts";
 import { localDay } from "../core/today-note.ts";
+import { planPositionLh } from "../core/plan-step-bar.ts";
+import type { DeadlineSession } from "../core/continue-study.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { topicGroupingRunning } from "./topics.ts";
 
-/** Each lesson's graded answers and practice outcomes while its record
+/** Each lesson's graded answers, practice outcomes and (a Study session
+ *  started from a deadline) its step bar's count while its record
  *  file is unchanged. Progress is re-read after every background update,
  *  and parsing every lesson each time grows with the term. Shared: never mutated. */
 interface LessonReadout {
 	answers: readonly AnsweredQuestion[];
 	outcomes: readonly PracticeOutcome[];
+	steps: { done: number; total: number } | null;
 }
 const readoutCache = new Map<string, { version: string } & LessonReadout>();
 
@@ -32,7 +36,12 @@ function lessonReadout(chatId: string): LessonReadout | null {
 	if (hit?.version === version) return hit;
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) return null;
-	const readout = { version, answers: collectAnswers(chatId, record.messages), outcomes: practiceOutcomes(record.messages) };
+	const readout = {
+		version,
+		answers: collectAnswers(chatId, record.messages),
+		outcomes: practiceOutcomes(record.messages),
+		steps: record.deadlineId && record.tree ? planPositionLh(record.tree, record.messages) : null,
+	};
 	readoutCache.set(chatId, readout);
 	return readout;
 }
@@ -62,12 +71,15 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 	const chats = stores.chatStore.listChats();
 	const known = new Set(chats.map((c) => c.id));
 	for (const id of readoutCache.keys()) if (!known.has(id)) readoutCache.delete(id);
-	const lessons = chats
-		.filter((c) => (c.classId ?? null) === scope)
-		.flatMap((c) => {
-			const readout = lessonReadout(c.id);
-			return readout ? [{ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt, answers: readout.answers }] : [];
-		});
+	const lessons = [];
+	const deadlineSessions: DeadlineSession[] = [];
+	for (const c of chats) {
+		if ((c.classId ?? null) !== scope) continue;
+		const readout = lessonReadout(c.id);
+		if (!readout) continue;
+		lessons.push({ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt, answers: readout.answers });
+		if (c.deadlineId && readout.steps) deadlineSessions.push({ chatId: c.id, deadlineId: c.deadlineId, createdAt: c.createdAt, ...readout.steps });
+	}
 	return deriveProgress({
 		classId: scope,
 		today: opts.today ?? localDay(),
@@ -77,6 +89,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 		files: progressFiles(record),
 		deadlines: record?.deadlines ?? [],
 		lessons,
+		deadlineSessions,
 		grouping: topicGroupingRunning(scope),
 	});
 }

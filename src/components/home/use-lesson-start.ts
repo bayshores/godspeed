@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { GraphContextPick } from "@/core";
+import type { DeadlineProgress, GraphContextPick } from "@/core";
 import { useClasses } from "@/components/class-context";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
@@ -66,8 +66,15 @@ export function useLessonStart() {
 		[post],
 	);
 
-	/** Study for a deadline: the next of today's topics that need work. */
-	const studyDeadline = useCallback((deadlineId: string) => post({ deadlineId }), [post]);
+	/** Study for a deadline: reopens its unfinished session, else starts
+	 *  on the next of today's topics that need work. */
+	const studyDeadline = useCallback(
+		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">) => {
+			if (deadline.continueStudy) router.push(`/chat/${deadline.continueStudy.chatId}`);
+			else return post({ deadlineId: deadline.id });
+		},
+		[post, router],
+	);
 
 	return {
 		start,

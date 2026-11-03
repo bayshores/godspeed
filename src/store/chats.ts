@@ -39,7 +39,7 @@ function chatDir(id: string): string {
  *  phase, busy, pendingQuestion) is already announced by turn-started /
  *  turn-settled, which the sidebar refetches on. Silence here is law,
  *  not oversight. */
-function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string): ChatRecord {
+function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string, deadlineId?: string): ChatRecord {
 	const now = new Date().toISOString();
 	const record: ChatRecord = {
 		id: kind === "talk" ? TALK_CHAT_ID : `${CHAT_ID_PREFIX}${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
@@ -51,6 +51,7 @@ function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: 
 		...(kind ? { kind } : {}),
 		// The lesson's class; ABSENT = "No class".
 		...(classId ? { classId } : {}),
+		...(deadlineId ? { deadlineId } : {}),
 	};
 	writeChat(record);
 	emit("chats-changed", {});

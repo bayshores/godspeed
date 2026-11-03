@@ -1,10 +1,12 @@
 /**
  * The lesson plan's step bar: the plan's steps in learning order, each with
  * its status and the answers to its questions. The lesson UI calls it
- * client-side with its view messages. Pure and browser-safe.
+ * client-side with its view messages; the server reads the same count off
+ * the native record (planPositionLh). Pure and browser-safe.
  */
+import type { LhMessage } from "./native-messages.ts";
 import type { PlanNodeStatus, PlanTree } from "./contracts.ts";
-import { derivedNodeStatus, derivePlanStatuses } from "./contracts.ts";
+import { derivedNodeStatus, derivePlanStatuses, derivePlanStatusesLh } from "./contracts.ts";
 import { answerOutcome, isAnswerData, type AnswerOutcome } from "./progress.ts";
 import { confidenceLevel, type ConfidenceLevel } from "./question-core.ts";
 
@@ -97,4 +99,18 @@ export function planStepBar(tree: PlanTree | null, messages: readonly StepBarMes
 		answers: answers.get(n.id) ?? [],
 	}));
 	return { steps, currentIndex: steps.findIndex((s) => s.status === "current") };
+}
+
+/** The step bar's count ("2 / 4"): the current step's number, or the
+ *  steps done while none is current. */
+export function stepPosition(steps: ReadonlyArray<{ status: PlanNodeStatus }>): number {
+	const current = steps.findIndex((s) => s.status === "current");
+	return current >= 0 ? current + 1 : steps.filter((s) => s.status === "visited").length;
+}
+
+/** The step bar's count and length over the native record. */
+export function planPositionLh(tree: PlanTree, messages: readonly LhMessage[]): { done: number; total: number } {
+	const statuses = derivePlanStatusesLh(tree, messages);
+	const steps = orderedPlanNodes(tree).map((n) => ({ status: derivedNodeStatus(statuses, n.id) }));
+	return { done: stepPosition(steps), total: steps.length };
 }

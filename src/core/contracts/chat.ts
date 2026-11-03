@@ -50,6 +50,9 @@ export interface ChatRecord {
 	 *  ABSENT = "No class" (pre-classes records never migrate; same rule as
 	 *  kind). Decides which graph the lesson's facts are written to. */
 	classId?: string;
+	/** The deadline a Study session was started from; absent for any other
+	 *  start (and on records from before). Its Study button reopens it. */
+	deadlineId?: string;
 	/** The session's plan tree (vision §2) — written by plan tools via saveTree. */
 	tree?: PlanTree;
 	/** Append-only usage log: one entry per model
@@ -234,6 +237,8 @@ export interface ChatSummary {
 	kind: LessonKind;
 	/** The lesson's class — absent = "No class". */
 	classId?: string;
+	/** The deadline a Study session was started from. */
+	deadlineId?: string;
 	messageCount: number;
 	/** The session's current phase, derived from the native transcript (phaseAt3Lh). */
 	phase: Phase3;

@@ -41,6 +41,7 @@ const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { activeProblemOf } = await import("../src/core/native-messages.ts");
 const { composeInstructions } = await import("../src/agent/teacher-agent.ts");
 const { localDay } = await import("../src/core/today-note.ts");
+const { progressFor } = await import("../src/server/progress.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -148,6 +149,36 @@ describe("a study session", () => {
 		assert.equal(second.title, "Study: Sets", "Counting was studied today, so Sets comes first");
 
 		assert.deepEqual(createLesson({ classId: cls.id, deadlineId: "ddl_nope" }), { ok: false, status: 404, code: "deadline_not_found", error: "No such deadline" });
+	});
+
+	it("a deadline's Study reopens its latest session until the step bar reaches its last topic", () => {
+		const cls = seedClass();
+		const files = classStore.getClass(cls.id)!.files!.map((f) => f.id);
+		const deadline = classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: localDay(), fileIds: files });
+		const next = () => progressFor(cls.id)!.deadlines.find((d) => d.id === deadline.id)!.continueStudy;
+		assert.equal(next(), undefined);
+
+		const created = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		assert.ok(created.ok);
+		assert.equal(chatStore.getChat(created.chat.id)!.deadlineId, deadline.id);
+		assert.ok(createLesson({ classId: cls.id, topicIds: ["tpc_sets"] }).ok, "a start on topics never matches");
+		assert.deepEqual(next(), { chatId: created.chat.id, done: 0, total: 2 });
+
+		const tag = (nodeId: string) => {
+			const record = chatStore.getChat(created.chat.id)!;
+			const call = { id: `a_${nodeId}`, role: "assistant", content: [{ type: "toolCall", id: `q_${nodeId}`, name: "quiz", arguments: { nodeId } }], timestamp: 0 };
+			chatStore.saveMessages(created.chat.id, [...record.messages, call] as never);
+		};
+		tag("tpc_count");
+		assert.deepEqual(next(), { chatId: created.chat.id, done: 1, total: 2 });
+		tag("tpc_sets");
+		assert.equal(next(), undefined, "finished: the button starts the next topics again");
+
+		const again = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		assert.ok(again.ok);
+		assert.equal(next()?.chatId, again.chat.id);
+		chatStore.deleteChat(again.chat.id);
+		assert.equal(next(), undefined, "a deleted session no longer matches");
 	});
 
 	it("runs the teacher plus problem and conclude from turn 1, with the same tools every turn", async () => {

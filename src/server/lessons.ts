@@ -11,7 +11,9 @@
  *
  * Message order at birth: [class card] → [graph-context picks] → [study
  * plan] → the learner's first message (sent by the client / the MCP tool).
- * The plan tree is written from the study's topics.
+ * The plan tree is written from the study's topics. A start from a
+ * deadline is recorded on the chat, so that deadline's Study button can
+ * reopen it (core/continue-study.ts).
  */
 
 import { chainsForSelection, formatChainLine } from "../core/chains.ts";
@@ -60,7 +62,7 @@ export function createLesson(input: CreateLessonInput): CreateLessonOutcome {
 	}
 	const start = startOf(input);
 	if ("error" in start) return { ok: false, status: 404, ...start };
-	const chat = stores.chatStore.createChat(titleFromPrompt(start.title), "study", cls?.id);
+	const chat = stores.chatStore.createChat(titleFromPrompt(start.title), "study", cls?.id, "deadlineId" in input ? input.deadlineId : undefined);
 	const messages: LhMessage[] = [];
 	if (cls) messages.push(newClassContextMessage(classCardFor(cls)) as LhMessage);
 	if (start.picks.length > 0) {

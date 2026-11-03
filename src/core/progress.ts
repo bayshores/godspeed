@@ -17,6 +17,7 @@
  */
 import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines } from "./contracts.ts";
+import { continueStudyFor, type ContinueStudy, type DeadlineSession } from "./continue-study.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
 import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
@@ -551,6 +552,8 @@ export interface DeadlineProgress {
 	ready: number | null;
 	/** Its topics, weakest first (untested counted as 0, then by name). */
 	topics: { id: string; name: string; rate: number | null }[];
+	/** The unfinished Study session its Study button reopens (continue-study.ts). */
+	continueStudy?: ContinueStudy;
 }
 
 /** The class-wide view (no deadline picked, or none exists). */
@@ -638,6 +641,8 @@ interface ProgressInput {
 	deadlines: readonly ClassDeadline[];
 	/** The lessons in the class (teach and practice). */
 	lessons: readonly ProgressLessonInput[];
+	/** The class's Study sessions started from a deadline. */
+	deadlineSessions?: readonly DeadlineSession[];
 	/** A topic-grouping run is going right now. */
 	grouping?: boolean;
 }
@@ -756,6 +761,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 		const sources = new Set(d.fileIds.map((id) => sourceOfFile.get(id)).filter((s): s is string => !!s));
 		const covered = grouped.filter((t) => t.members.some((id) => sources.has(bornIn.get(id) ?? "")));
 		const weakest = [...covered].sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0) || a.name.localeCompare(b.name));
+		const next = continueStudyFor(d.id, input.deadlineSessions ?? []);
 		return {
 			id: d.id,
 			kind: d.kind,
@@ -770,6 +776,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 			workOnNext: workOnNext(covered, links),
 			ready: covered.length === 0 ? null : covered.reduce((sum, t) => sum + (t.rate ?? 0), 0) / covered.length,
 			topics: weakest.map((t) => ({ id: t.id, name: t.name, rate: t.rate })),
+			...(next ? { continueStudy: next } : {}),
 		};
 	});
 
