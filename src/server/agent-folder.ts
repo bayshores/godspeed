@@ -174,12 +174,13 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	return agentFolderView(folder);
 }
 
-let refreshed = false;
+// On globalThis: Next can load this module more than once per process.
+const G = globalThis as typeof globalThis & { __lhFolderRefreshed?: boolean };
 
 /** Once per app start: bring an existing folder's files up to this version. */
 export function refreshAgentFolder(): void {
-	if (refreshed) return;
-	refreshed = true;
+	if (G.__lhFolderRefreshed) return;
+	G.__lhFolderRefreshed = true;
 	const folder = agentFolder();
 	if (!agentFolderView(folder).exists) return;
 	try {

@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
-import { ListIcon, SearchIcon, UploadIcon } from "lucide-react";
+import { ListIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 
 const CHROME_BUTTON = "lh-press flex shrink-0 items-center gap-[7px] bg-panel px-2.5 py-2 text-sm text-ink hover:bg-tone disabled:opacity-50";
@@ -47,7 +47,7 @@ export function GraphTopBar({
 				<ImportNotes {...importNotes} />
 			) : (
 				<Link href="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
-					<UploadIcon className="size-3.5" aria-hidden />
+					<PlusIcon className="size-3.5" aria-hidden />
 					Add files
 				</Link>
 			)}
@@ -71,7 +71,7 @@ function ImportNotes({ importing, onImportFiles }: { importing: boolean; onImpor
 				}}
 			/>
 			<button type="button" data-testid="import-notes" disabled={importing} onClick={() => fileRef.current?.click()} className={CHROME_BUTTON}>
-				<UploadIcon className="size-3.5" aria-hidden />
+				<PlusIcon className="size-3.5" aria-hidden />
 				{importing ? "Adding…" : "Add files"}
 			</button>
 		</>
