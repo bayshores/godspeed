@@ -142,7 +142,8 @@ src/
     tools/pdf-read.ts           pdf_info / pdf_search / pdf_extract / web_fetch_pdf (pdf-reader)
     tools/heal.ts               the argument heal every tool runs
     subagents/                  researcher · demo-builder · visual-maker · pdf-reader ·
-                                topic-grouper, extraction pipeline (extractor + merger
+                                topic-grouper, cheat-sheet-writer, extraction pipeline
+                                (extractor + merger
                                 handoff), running graph jobs (extraction-runs.ts),
                                 runner (async protocol), native renderers +
                                 browser-service helper, abort registry
@@ -183,7 +184,8 @@ src/
                                 parameters
   store/                        fs adapters: chats · classes · graph ledgers (+
                                 graph-format) · jobs · settings · prompt-overrides ·
-                                mcp-token · agent-notes · agent-seen · agent-rules
+                                mcp-token · agent-notes · agent-seen · agent-rules ·
+                                cheat-sheets
 electron/                       desktop launcher + security guard (spawns the standalone
                                 server; LH_DATA_DIR; a small set of IPC channels in
                                 preload.cjs; the browser-service for demo checks)
@@ -200,7 +202,8 @@ data/                           runtime state, git-ignored:
                                 graph/ ("No class": nodes/chains/sessions/coverage/
                                 topics ledgers + sources.json, format.json) ·
                                 classes/<id>/ (class.json, files/ with saved texts/
-                                and transcripts/, graph/, search/) · search/ ("No
+                                and transcripts/, graph/, search/, cheat-sheets/
+                                one per deadline) · search/ ("No
                                 class" facts) · jobs/ ·
                                 prompts/ (edited system prompts) · models/ (the
                                 downloaded speech model) · settings.json ·

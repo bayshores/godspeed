@@ -49,6 +49,7 @@ import { clearTurnFailure } from "./turn-runs.ts";
 import { applyClassCard, classFilePath, transcriptPathOf } from "./class-card.ts";
 import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
+import { removeCheatSheet } from "../store/cheat-sheets.ts";
 
 type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
 
@@ -82,6 +83,15 @@ export function listClasses(): ClassSummary[] {
 
 export function getClass(id: string): ClassRecord | null {
 	return stores.classStore.getClass(id);
+}
+
+/** A deadline with its class (deadline ids are unique across classes), or null. */
+export function deadlineWithClass(deadlineId: string): { classId: string; deadline: ClassDeadline } | null {
+	for (const record of stores.classStore.listClassRecords()) {
+		const deadline = record.deadlines?.find((d) => d.id === deadlineId);
+		if (deadline) return { classId: record.id, deadline };
+	}
+	return null;
 }
 
 /** PDF, Word and PowerPoint files: their text is pulled out (and saved). */
@@ -237,6 +247,7 @@ export function updateClassDeadline(classId: string, deadlineId: string, patch: 
 export function removeClassDeadline(classId: string, deadlineId: string): ClassOutcome<null> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
 	if (!stores.classStore.removeDeadline(classId, deadlineId)) return fail(404, "deadline_not_found", `No deadline "${deadlineId}" in this class`);
+	removeCheatSheet(classId, deadlineId);
 	return { ok: true, value: null };
 }
 

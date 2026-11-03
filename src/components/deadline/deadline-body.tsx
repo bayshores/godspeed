@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import Link from "next/link";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, FileTextIcon } from "lucide-react";
 import { deadlineStudyLabel, rampColor, topicStatus, type DeadlineProgress, type PlanDay, type TopicProgress } from "@/core";
 import { clockLabel, deadlineDateLabel, dueLabel, kindLabel } from "@/components/class-deadlines-model";
 import { Countdown } from "@/components/countdown";
@@ -43,6 +43,8 @@ interface DeadlineBodyProps {
 	onAsk: () => void;
 	onAdd: (fileIds: string[]) => void;
 	onLeaveOut: (fileIds: string[]) => void;
+	/** Opens the cheat sheet (its setup the first time). */
+	onCheatSheet: () => void;
 }
 
 const LEGEND: { key: keyof DeadlineProgress["counts"]; label: string; rate: number | null }[] = [
@@ -78,9 +80,20 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 						)}
 					</p>
 				</div>
-				<div data-testid="deadline-ring" className="flex shrink-0 flex-col items-center gap-1.5">
-					<ReadyRing ready={ready} size={88} />
-					<span className="text-[12.5px] text-ink-2">{ready === null ? "Not measured yet" : "ready"}</span>
+				<div className="flex shrink-0 items-start gap-6">
+					<button
+						type="button"
+						data-testid="deadline-cheat-sheet"
+						onClick={props.onCheatSheet}
+						className="lh-press mt-1.5 flex items-center gap-2 px-3.5 py-2 text-sm font-bold text-ink outline outline-1 -outline-offset-1 outline-tone-2 hover:bg-tone"
+					>
+						<FileTextIcon className="size-4 text-ink-2" aria-hidden />
+						Cheat sheet
+					</button>
+					<div data-testid="deadline-ring" className="flex flex-col items-center gap-1.5">
+						<ReadyRing ready={ready} size={88} />
+						<span className="text-[12.5px] text-ink-2">{ready === null ? "Not measured yet" : "ready"}</span>
+					</div>
 				</div>
 			</header>
 

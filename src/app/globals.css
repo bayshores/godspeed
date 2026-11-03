@@ -1348,3 +1348,71 @@ body {
 :root[data-lh-resizing] .sidebar-motion {
 	transition: none;
 }
+
+/* THE CHEAT SHEET PAPER (components/cheat-sheet/paper.tsx): black on
+   white at its own size. Math sits on the line and display math starts
+   at the left, so the measured height is the printed height. */
+.lh-sheet .katex {
+	font-size: 1.05em;
+}
+.lh-sheet .lh-sheet-display .katex-display {
+	margin: 0.1em 0;
+	overflow: visible;
+}
+.lh-sheet .lh-sheet-display .katex-display > .katex {
+	text-align: left;
+}
+.lh-sheet :not(.katex-display) > .katex .katex-base {
+	overflow: visible;
+	padding: 0;
+	margin: 0;
+}
+
+/* Printing the studio prints only the paper: everything that doesn't hold
+   it is gone, everything that does lays out plainly, and each side is
+   one page at its real size (the studio sets @page). */
+@media print {
+	html,
+	body {
+		height: auto !important;
+		overflow: visible !important;
+		background: white !important;
+	}
+	body :not(:has(.lh-print-sheet)):not(.lh-print-sheet):not(.lh-print-sheet *) {
+		display: none !important;
+	}
+	body :has(.lh-print-sheet) {
+		display: block !important;
+		position: static !important;
+		overflow: visible !important;
+		width: auto !important;
+		min-width: 0 !important;
+		height: auto !important;
+		min-height: 0 !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		border: 0 !important;
+		transform: none !important;
+		background: none !important;
+	}
+	.lh-print-sheet {
+		display: block !important;
+	}
+	.lh-sheet-slot {
+		width: auto !important;
+		height: auto !important;
+	}
+	.lh-sheet-side {
+		position: relative !important;
+		transform: none !important;
+		overflow: hidden;
+		break-after: page;
+	}
+	.lh-sheet-side [data-over] {
+		display: none;
+	}
+	.lh-sheet-side * {
+		outline: none !important;
+		box-shadow: none !important;
+	}
+}

@@ -83,6 +83,8 @@ export interface ServerEvents {
 	"rules-changed": { saved?: { text: string; where: { area: string } | { classId: string }; label: string; agent: string } };
 	/** A class's linked folder brought new files (the window shows a notice). */
 	"files-added": { classId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
+	/** A deadline's cheat sheet or its agent request changed. */
+	"cheat-sheet-changed": { deadlineId: string };
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -102,6 +104,7 @@ export const SERVER_EVENT_TYPES = [
 	"compaction-changed",
 	"agent-action",
 	"rules-changed",
+	"cheat-sheet-changed",
 	"files-added",
 ] as const satisfies readonly ServerEventType[];
 

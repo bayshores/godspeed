@@ -89,6 +89,8 @@ declare global {
 			installUpdate?: () => void;
 			/** Opens a new GitHub issue with the app version and OS filled in. */
 			reportBug?: () => void;
+			/** The page as a PDF at its print size, saved where the learner picks: the path, or null. */
+			savePdf?: (name: string) => Promise<string | null>;
 			/** The installed font families, sorted. */
 			listFonts?: () => Promise<string[]>;
 			onOpenSettings?: (cb: (section: string) => void) => () => void;
@@ -96,13 +98,24 @@ declare global {
 	}
 }
 
-const SidebarContext = createContext<{ open: boolean; toggle: () => void }>({
+const SidebarContext = createContext<{ open: boolean; toggle: () => void; fold: (on: boolean) => void }>({
 	open: false,
 	toggle: () => {},
+	fold: () => {},
 });
 
 function useSidebar() {
 	return useContext(SidebarContext);
+}
+
+/** Folds the sidebar away while the calling page is open (the cheat sheet
+ *  studio gives the paper the room). The toggle still opens it. */
+export function useFoldSidebar(): void {
+	const { fold } = useSidebar();
+	useEffect(() => {
+		fold(true);
+		return () => fold(false);
+	}, [fold]);
 }
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
@@ -111,6 +124,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const [narrow, setNarrow] = useState(false);
 	const [mounted, setMounted] = useState(false);
+	const [folded, setFolded] = useState(false);
 
 	useEffect(() => {
 		// Electron shell detection: keys the .lh-electron CSS
@@ -159,12 +173,16 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const toggle = useCallback(() => {
+		if (folded) {
+			setFolded(false);
+			if (open && !narrow) return;
+		}
 		const next = toggledSidebar(open, narrow);
 		localStorage.setItem(STORAGE_KEY, next.open ? "1" : "0");
 		setOpen(next.open);
 		// The resize listener then flips `narrow` and the sidebar appears.
 		if (next.expand) window.lh?.expandWindow();
-	}, [open, narrow]);
+	}, [open, narrow, folded]);
 
 	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
 	// and the context answers on exactly that name — one shared spelling,
@@ -177,7 +195,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, [toggle]);
 
 	return (
-		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
+		<SidebarContext.Provider value={{ open: open && !narrow && !folded, toggle, fold: setFolded }}>
 			{/* transitions gated on mount: no slide-in flash on page load;
 			    motion-safe: reduced motion opens/closes at once */}
 			<div className={cn("flex h-dvh", mounted ? "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]" : "[&_.sidebar-motion]:transition-none")}>{children}</div>

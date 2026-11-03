@@ -34,10 +34,16 @@ export async function runSubmitAgent<T>(opts: {
 	 *  a problem string yields an isError result (invalidInputResult) →
 	 *  the model retries within its turns. null = accept. */
 	validate?: (value: T) => string | null;
+	/** Tools to look things up before submitting (the cheat sheet's rules
+	 *  reader searches the class's files). */
+	lookups?: AgentTool<any>[];
+	/** Model calls allowed; the default only leaves room for retries. */
+	maxTurns?: number;
 }): Promise<T> {
 	let submitted: T | undefined;
 	await runSubagent(
 		[
+			...(opts.lookups ?? []),
 			{
 				name: opts.toolName,
 				label: opts.toolName,
@@ -57,7 +63,7 @@ export async function runSubmitAgent<T>(opts: {
 			engine: opts.engine,
 			systemPrompt: opts.systemPrompt,
 			prompt: opts.prompt,
-			maxTurns: 4, // retry-only: the submit call is the whole deliverable
+			maxTurns: opts.maxTurns ?? 4,
 			abortSignal: opts.signal,
 			taskLabel: opts.taskLabel,
 			onAssistantMessage: (message, step) =>

@@ -7,7 +7,7 @@
  */
 import type { ClassRecord, ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
-import { collectAnswers, deriveProgress, type AnsweredQuestion, type ProgressPayload } from "../core/progress.ts";
+import { collectAnswers, deriveProgress, factsByMessage, factsForAnswer, type AnsweredQuestion, type ProgressPayload } from "../core/progress.ts";
 import { practiceOutcomes, type PracticeOutcome } from "../core/practice-outcomes.ts";
 import { deadlineStudyTopicIds, factClassOrder, studyTopics, topicStudy, type StudyTopic } from "../core/study.ts";
 import type { GraphContextPick } from "../core/native-messages.ts";
@@ -54,6 +54,31 @@ export function hintedProblems(classId: string): { statement: string; at: string
 		.flatMap((c) => lessonReadout(c.id)?.outcomes ?? [])
 		.filter((o) => o.outcome === "solvedWithHints")
 		.map((o) => ({ statement: o.statement, at: o.at }));
+}
+
+/** The class's mistakes: answers given wrong and problems solved only
+ *  with hints, each with the topics its facts are in (the cheat sheet's
+ *  Watch out block). */
+export function classMistakes(classId: string, progress: ProgressPayload): { text: string; kind: "wrong" | "hint"; at: string; topicIds: string[] }[] {
+	const index = factsByMessage(getGraph(graphStoreFor(classId)).nodes);
+	const topicOf = new Map(progress.facts.map((f) => [f.id, f.topicId]));
+	const topicsOf = (factIds: readonly string[]) => [...new Set(factIds.map((id) => topicOf.get(id)).filter((t): t is string => !!t))];
+	return stores.chatStore
+		.listChats()
+		.filter((c) => c.classId === classId)
+		.flatMap((c) => {
+			const readout = lessonReadout(c.id);
+			if (!readout) return [];
+			return [
+				...readout.answers.filter((a) => a.outcome === "wrong").map((a) => ({ text: a.question, kind: "wrong" as const, at: a.answeredAt, topicIds: topicsOf(factsForAnswer(a, index)) })),
+				...readout.outcomes.filter((o) => o.outcome === "solvedWithHints").map((o) => ({ text: o.statement, kind: "hint" as const, at: o.at, topicIds: topicsOf(o.targets) })),
+			];
+		});
+}
+
+/** Each fact's place in the class's order (core/study.ts factClassOrder). */
+export function classOrderFor(classId: string, progress: ProgressPayload): Map<string, number> {
+	return factClassOrder(progress.facts, progressFiles(stores.classStore.getClass(classId)));
 }
 
 /** The class's files with the source id their facts are born under. */
