@@ -296,7 +296,7 @@ function DayMark({ state, open }: { state: DayState; open: boolean }) {
 	if (state === "ready")
 		return (
 			<span aria-hidden className="flex size-3.5 shrink-0 items-center justify-center bg-ans-right">
-				<CheckIcon className="size-2.5 text-black" strokeWidth={3.5} />
+				<CheckIcon className="size-2.5 text-background" strokeWidth={3.5} />
 			</span>
 		);
 	if (state === "failed") return <span aria-hidden className="size-3.5 shrink-0 scale-[0.78] rotate-45 bg-ans-wrong" />;
