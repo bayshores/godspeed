@@ -87,7 +87,13 @@ function writeState(state: FolderState): void {
 }
 
 function agentFolder(): string {
-	return readState().folder ?? path.join(os.homedir(), "godspeed");
+	return readState().folder ?? defaultFolder();
+}
+
+// A dev server keeps its folder inside its own data, so its class list never
+// syncs over the installed app's ~/godspeed shortcuts.
+function defaultFolder(): string {
+	return process.env.NODE_ENV === "development" ? path.join(PATHS.data, "godspeed-folder") : path.join(os.homedir(), "godspeed");
 }
 
 export function agentFolderView(folder = agentFolder()): AgentFolderView {
