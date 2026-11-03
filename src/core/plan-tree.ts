@@ -108,4 +108,4 @@ export function createTree(nodes: PlanNode[], edges: PlanEdge[]): PlanTree {
 }
 
 // No per-node mutation ops: the tree carries structure ONLY, no progress
-// fields (docs/archive/probe-teach-split.md §3). Restructuring is a plan_init rewrite.
+// fields. Restructuring is a plan_init rewrite.

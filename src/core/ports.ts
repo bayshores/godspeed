@@ -1,5 +1,5 @@
 /**
- * Storage ports (the hexagonal seams — vision §1 "storage stays swappable").
+ * Storage ports (the hexagonal seams: storage stays swappable).
  *
  * One port per ENTITY, with domain operations — never one generic
  * key/value interface. Core and the service layer that orbits it code

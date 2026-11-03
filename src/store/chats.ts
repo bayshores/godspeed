@@ -152,13 +152,9 @@ function summarize(record: ChatRecord): ChatSummary | null {
 			// Normalized kind: absent record field reads as teach.
 			kind: summary.kind ?? "teach",
 			messageCount: messages.length,
-			// Record-derived status for the session picker: phase from the
-			// transcript's explicit events (probe_done concluded / first
-			// nodeId-tagged quiz or explain call — docs/archive/probe-teach-split.md §4), pending question
-			// from the native dangling-call scan. Both folds read
-			// the NATIVE record (core/phases.ts phaseAt3Lh +
-			// native-messages.ts danglingQuestionOf). Liveness (busy) is
-			// NOT record-derived — the API route merges it (ChatListItem).
+			// Record-derived status for the session picker (core/phases.ts,
+			// native-messages.ts). Liveness (busy) is NOT record-derived:
+			// the API route merges it (ChatListItem).
 			phase: phaseAt3Lh(messages),
 			pendingQuestion: danglingQuestionOf(messages) !== null,
 			// The cast covers pendingProblem, which the list never sets.
