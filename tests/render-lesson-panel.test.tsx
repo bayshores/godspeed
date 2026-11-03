@@ -102,8 +102,14 @@ describe("the Your-turn panel's states", () => {
 	});
 
 	it("a practice pause turns the bar into Next problem", () => {
-		const html = panel({ composer: composer({ nextProblem: true }) });
+		const html = panel({ composer: composer({ next: "Next problem" }) });
 		assert.match(html, /data-testid="next-problem-button"[\s\S]*?Next problem/);
+	});
+
+	it("a study session's pause says Continue, since the next topic may be taught first", () => {
+		const html = panel({ composer: composer({ next: "Continue" }) });
+		assert.match(html, /data-testid="next-problem-button"[^>]*><span>Continue</);
+		assert.ok(!html.includes("Next problem<"));
 	});
 
 	it("a waiting question fills the panel", () => {

@@ -527,7 +527,7 @@ export function Chat({
 										onSend,
 										onStop: abortInFlightTurn,
 										canSend,
-										nextProblem: nextReady,
+										next: nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined,
 										onNext: sendNext,
 										queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
 										attachments,

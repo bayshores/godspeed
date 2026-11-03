@@ -27,7 +27,7 @@ export function PanelComposer({
 	onSend,
 	onStop,
 	canSend,
-	nextProblem = false,
+	next,
 	onNext,
 	queuedSteers,
 	attachments,
@@ -41,7 +41,10 @@ export function PanelComposer({
 	onSend: () => void;
 	onStop: () => void;
 	canSend: boolean;
-	nextProblem?: boolean;
+	/** The go-ahead button's label in the pause between problems ("Next
+	 *  problem", or "Continue" in a study session, where a topic may be
+	 *  taught first); absent outside that pause. */
+	next?: string;
 	onNext?: () => void;
 	queuedSteers: QueuedSteerLine[];
 	attachments: AttachmentDraft;
@@ -52,12 +55,12 @@ export function PanelComposer({
 	footer?: React.ReactNode;
 }) {
 	const act = () => {
-		const action = enterAction({ busy, canSend, nextProblem, hasFiles: attachments.files.length > 0 });
+		const action = enterAction({ busy, canSend, nextProblem: next !== undefined, hasFiles: attachments.files.length > 0 });
 		if (action === "stop") onStop();
 		else if (action === "send") onSend();
 		else if (action === "next") onNext?.();
 	};
-	const showNext = nextProblem && !busy && !canSend;
+	const showNext = next !== undefined && !busy && !canSend;
 	return (
 		<form
 			data-testid="composer"
@@ -90,7 +93,7 @@ export function PanelComposer({
 							act();
 						}
 					}}
-					placeholder={nextProblem ? "Ask anything, or go on to the next problem." : "Message the teacher…"}
+					placeholder={next !== undefined ? "Ask anything, or go on to the next problem." : "Message the teacher…"}
 					aria-label="Message the teacher"
 					className={cn(PANEL_FIELD, busy ? "mt-4" : "mt-3")}
 				/>
@@ -100,7 +103,7 @@ export function PanelComposer({
 				<AttachButton draft={attachments} />
 				<div className="min-w-0 flex-1">
 					{showNext ? (
-						<ActionBar type="submit" testId="next-problem-button" label="Next problem" />
+						<ActionBar type="submit" testId="next-problem-button" label={next} />
 					) : (
 						<ActionBar
 							type="submit"
