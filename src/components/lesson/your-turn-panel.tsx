@@ -164,6 +164,7 @@ export function YourTurnPanel({
 				initialDraft={initialPracticeDraft}
 				onSaveDraft={onSavePracticeDraft}
 				onDiscard={onDiscardProblem}
+				onStop={composer.onStop}
 				busy={sessionBusy}
 				waitingForAgent={composer.waitingForAgent}
 				compactionRunning={compacting}

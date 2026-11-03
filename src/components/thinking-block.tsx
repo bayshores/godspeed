@@ -52,14 +52,12 @@ function subscribeUserThinking(fn: (open: boolean) => void): () => void {
 }
 
 export function ThinkingBlock({
-	label = "YOUR THINKING",
 	text,
 	testId,
 	dataCommit,
 	defaultOpen = false,
 	inCard = false,
 }: {
-	label?: string;
 	text: string;
 	testId?: string;
 	/** The practice marker's register flag (commit vs nudge). */
@@ -76,12 +74,8 @@ export function ThinkingBlock({
 	// unmounted while closed.
 	const fold = useFold(open);
 	return (
-		/* The rail IS THE MISSING CHARACTERS: the heading sits inside the
-		   rail, and the rail's full width (border + padding) is exactly
-		   three characters of the mono heading font. 'YOUR THINKING' is
-		   three chars shorter than 'AGENT'S THINKING', so with the user row
-		   offset by the rail and the agent row flush, the chevrons line up.
-		   The heading uses the card eyebrows' small mono caps (text-xs). */
+		/* The rail (border + padding, 3ch) offsets the user row against the
+		   agent's flush reasoning rows. */
 		<div
 			data-testid={testId}
 			data-commit={dataCommit === undefined ? undefined : dataCommit ? "true" : "false"}
@@ -104,7 +98,7 @@ export function ThinkingBlock({
 				aria-expanded={open}
 				className="flex w-full items-center gap-2 font-semibold text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
 			>
-				{label}
+				Your thinking
 				<ChevronDownIcon className={cn("size-4 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "rotate-180" : "rotate-0")} />
 			</button>
 			{fold.mounted && (
