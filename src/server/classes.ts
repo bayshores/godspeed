@@ -49,6 +49,7 @@ import { clearTurnFailure } from "./turn-runs.ts";
 import { applyClassCard, classFilePath, transcriptPathOf } from "./class-card.ts";
 import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
+import { removeCheatSheet } from "../store/cheat-sheets.ts";
 
 type ClassOutcome<T> = { ok: true; value: T } | { ok: false; status: number; code: string; error: string };
 
@@ -237,6 +238,7 @@ export function updateClassDeadline(classId: string, deadlineId: string, patch: 
 export function removeClassDeadline(classId: string, deadlineId: string): ClassOutcome<null> {
 	if (!stores.classStore.getClass(classId)) return fail(404, "not_found", "No such class");
 	if (!stores.classStore.removeDeadline(classId, deadlineId)) return fail(404, "deadline_not_found", `No deadline "${deadlineId}" in this class`);
+	removeCheatSheet(classId, deadlineId);
 	return { ok: true, value: null };
 }
 
