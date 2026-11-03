@@ -64,7 +64,7 @@ flowchart TB
 
     subgraph CLASSROOM["CLASSROOM — session engine (owns data/chats)"]
         TURN["turn pipeline — handleChatRequest:<br/>liveness · steer claiming · write-ahead persist · stream"]
-        AGENTS["prober → teacher, or practice agent<br/>(stateless per-turn, built from the record)"]
+        AGENTS["study agent (older lessons: prober → teacher, or practice)<br/>(stateless per-turn, built from the record)"]
         CHATDATA[("chat records<br/>data/chats/*.json")]
     end
 
@@ -120,9 +120,9 @@ src/
   proxy.ts                      Next proxy: desktop-only /api gate
   agent/
     system-prompt.md            base teaching behavior (the methodology)
-    prompts/{prober,teacher,practice,talk,shared}/
+    prompts/{prober,teacher,practice,study,talk,shared}/
                                 composed numbered fragments per role
-    teacher-agent.ts            prober/teacher/practice/talk factories and their system
+    teacher-agent.ts            prober/teacher/practice/study/talk factories and their system
                                 prompts (engine injectable for tests)
     models.ts, agent-bridge.ts  the one engine: every model request becomes a work item
                                 for the outside agent
@@ -130,7 +130,7 @@ src/
                                 ask_user_question, explain, recall, write_code)
     tools/plan.ts               plan_init (author-once mermaid plan, deterministic parser)
     tools/probe.ts              probe_done (probe→teach handoff seam)
-    tools/practice.ts           problem / conclude (practice sessions)
+    tools/practice.ts           problem / conclude (practice and study sessions)
     tools/class.ts              read_class, set_class_note, search_class_files, read_passage
     tools/graph.ts              list_sessions, list_propositions (the gated map readers)
     tools/rules.ts              save_rule
@@ -241,7 +241,7 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 
 **The knowledge graph (two channels, one writer).** The write channel: the extraction pipeline — extractor (LLM: sees the source (the session's teacher prose or a notes chunk) plus its own source's digest (**THE GRAPH SO FAR**: propositions + chains already extracted from this source, ids verbatim), so it references existing ids instead of restating them and leans on established conclusions as premises; fully trusted; its deliverable is core ideas + reasoning chains: premises that jointly entail a conclusion, submitted as chains and stored as chains (`chains.jsonl` is the truth, edges a derived view); it also sees RELATED IDEAS, the ~25 existing ideas the app's local search picks for the part, and lists the ones it re-teaches in `reteaches`) → merger (`mergeFindings`, deterministic: a node per new proposition, a credit line for each re-taught idea, resolves and dedupes chains — identical arguments merge under one `arg_` id; then the chain-simplification pass strips provably redundant derivations, chains whose premises already derive their conclusion through the other kept chains — checkpoints coverage) → topic grouping is scheduled. A source's batches run strictly in order (each extractor continues the digest of every earlier merge). No quiz outcomes or understanding assessments live in the graph; practice sessions read it and write nothing back. Triggered when a chat's **uncovered tokens** (message-view fingerprints, `coverage.jsonl`) cross `graph.extractionChunkTokens` (a settings knob, default 4096, floor 500 — read fresh per turn); failure checkpoints nothing, the next trigger re-runs. The same pipeline serves the **notes front door** (`POST /api/graph/import` and the `import_notes` MCP tool: any `*.md`/`*.txt` becomes a source; a "No class" re-import is processed again and adds to that source) and class study files (a changed or removed class file has its old facts removed first, then it is read again). The read channel: `GET /api/graph` derives the snapshot from the ledgers — a pure read (`deriveView` turns each chain into an implication node `⟹` with premise→implication→conclusion arrows, so two arguments for one conclusion stay two). The `/graph` page is a **topic map**: the topic grouper (`src/agent/subagents/topic-grouper.ts`, scheduled by `src/server/topics.ts`) groups facts into topics saved in `topics.jsonl`, and `src/components/graph/layout.ts` places them in columns by prerequisite depth and draws only direct arrows. Nothing about the layout is stored. Scores, coverage and "Work on next" come from `GET /api/progress` (`src/core/progress.ts`), derived from lesson answers. Clusters are **birth-session groupings**: a node joins the cluster of the session that birthed it (a chat, or an imported notes file as a file-kind session), derived at read. The chain table groups chains by them. The teacher reaches the graph on its own terms through the gated prober tools (`list_sessions` / `list_propositions`, the `agent.graphTools` setting) — there is no automatic context injection.
 
-**Practice sessions.** Practice is a lesson kind (`kind: "practice"`). The learner starts one from New lesson → Practice (`/new?mode=practice`), from "Practice these N" / "Practice this topic" on the topic map, or with "Start from facts" on the New lesson screen (the chain table in select mode). `createLesson` (`src/server/lessons.ts`) writes the picked facts into a `graph-context` marker using `chainsForSelection` (`src/core/chains.ts`): a chain is included when every member is picked, and other picked facts stand alone. The practice agent poses problems with `problem` and ends with `conclude` (`src/agent/tools/practice.ts`; instructions in `src/agent/prompts/practice/`). The learner's work is saved as `practice-thinking` markers. Practice sessions are never extracted and never write to the graph.
+**Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from the sidebar's Study button (`/new`), a deadline page, the topic map, Home's suggestions or the Overview; `start_lesson` over MCP does too. `createLesson` (`src/server/lessons.ts`) writes the picked facts into a `graph-context` marker (`chainsForSelection`, `src/core/chains.ts`), then a `study-context` marker with the session's topics in class order and each topic's mode (teach, problems or check, from `src/core/study.ts`), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`src/agent/tools/practice.ts`), with no prober; instructions in `src/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
 
 ## Testing
 

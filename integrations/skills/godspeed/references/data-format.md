@@ -62,7 +62,7 @@ Each `chats/*.json` file is an object with:
 | --- | --- |
 | `id`, `title` | Stable session identity and user-visible name |
 | `createdAt`, `updatedAt` | ISO date strings for the session, not a date for every idea |
-| `kind` | `teach` or `practice`; absent means `teach` |
+| `kind` | `study`, `talk`, or (older lessons) `teach` or `practice`; absent means `teach` |
 | `version` | Format stamp; absent means v1 |
 | `messages` | Complete stored chronological history, including custom app markers |
 | `tree` | Optional session plan: nodes, prerequisite edges, revision number |
