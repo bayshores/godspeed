@@ -42,7 +42,7 @@ export function practiceOutcomes(messages: readonly LhMessage[]): PracticeOutcom
 		}
 		const outcome = call.args.outcome;
 		if (!open || typeof outcome !== "string" || !OUTCOMES.has(outcome)) continue;
-		const targets = Array.isArray(open.args.target) ? open.args.target.filter((t): t is string => typeof t === "string") : [];
+		const targets = Array.isArray(open.args.target) ? [...new Set(open.args.target.filter((t): t is string => typeof t === "string"))] : [];
 		out.push({
 			messageId: open.messageId,
 			problemCallId: open.id,

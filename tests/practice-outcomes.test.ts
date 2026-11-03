@@ -60,4 +60,15 @@ describe("practice outcomes", () => {
 		assert.deepEqual(factsForAnswer(answers[0]!, index), ["n_a"], "a problem's own targets come first");
 		assert.deepEqual(factsForAnswer({ ...answers[0]!, factIds: undefined }, index), ["n_other"]);
 	});
+
+	it("count a target named twice once (an id and its name both normalize to the id)", () => {
+		clock = 0;
+		const messages = [
+			call("m1", "p1", "problem", { statement: "Problem 1", target: ["n_a", "n_a", "n_b"] }),
+			done("p1", "problem"),
+			call("c1", "k1", "conclude", { outcome: "solved" }),
+			done("k1", "conclude"),
+		];
+		assert.deepEqual(practiceOutcomes(messages)[0]!.targets, ["n_a", "n_b"]);
+	});
 });
