@@ -85,10 +85,7 @@ function GraphScreenBody() {
 						query={query}
 						studying={study.busy}
 						studyError={study.error}
-						onStudy={(ids) => {
-							const topics = ids.map((id) => data.topics.find((t) => t.id === id)).filter((t) => t !== undefined);
-							study.studyTopics(topics, data.facts);
-						}}
+						onStudy={(ids) => void study.studyTopics(ids)}
 					/>
 				) : progress.error ? (
 					<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="m-auto" />

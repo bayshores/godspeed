@@ -9,10 +9,13 @@ import {
 	deadlineStudyTopicIds,
 	factClassOrder,
 	FREE_TOPIC_ID,
+	MAX_STUDY_FACTS,
 	studyContextText,
 	studyMode,
 	studyPlanTree,
+	studyTitle,
 	studyTopics,
+	topicStudy,
 } from "../src/core/study.ts";
 import { firstPhase, phaseAt3Lh, phaseTimeline } from "../src/core/phases.ts";
 import { derivePlanStatusesLh } from "../src/core/contracts.ts";
@@ -87,6 +90,67 @@ describe("studyTopics", () => {
 		]);
 		// Picks that are no longer in the graph count as none.
 		assert.equal(studyTopics({ factIds: ["gone"], topics: TOPICS, classOrder: new Map(), freeTopic: "x" })[0]!.id, FREE_TOPIC_ID);
+	});
+});
+
+describe("topicStudy", () => {
+	/** A topic with `size` facts born in class file `rank`. */
+	function build(spec: { id: string; size: number; rank: number; status: "untested" | "weak" | "shaky" | "strong" }[]) {
+		const topics = spec.map((s) => ({ id: s.id, name: s.id.toUpperCase(), status: s.status, members: Array.from({ length: s.size }, (_, i) => `${s.id}_${i}`) }));
+		const facts = topics.flatMap((t) => t.members.map((id) => ({ id, name: id, statement: `${id} holds`, topicId: t.id, born: null, inLessons: false, answers: [] })));
+		const classOrder = new Map(spec.flatMap((s, i) => topics[i]!.members.map((id) => [id, s.rank] as const)));
+		return { topics, facts, classOrder };
+	}
+	const ids = (topics: { id: string }[]) => topics.map((t) => t.id);
+
+	it("fills whole topics in class order up to 64 facts, listed in class order", () => {
+		const input = build([
+			{ id: "a", size: 30, rank: 2, status: "weak" },
+			{ id: "b", size: 30, rank: 0, status: "untested" },
+			{ id: "c", size: 10, rank: 1, status: "strong" },
+		]);
+		const topics = topicStudy({ ...input, topicIds: ["a", "b", "c"] });
+		assert.deepEqual(ids(topics), ["b", "c"], "a would pass 64 facts, so it waits");
+		assert.deepEqual(topics.map((t) => t.factIds.length), [30, 10], "never half a topic");
+		assert.equal(studyTitle(topics), "Study: B, C");
+	});
+
+	it("always keeps one topic; a topic over 64 facts keeps its first 64, the ones to fix first", () => {
+		const input = build([{ id: "big", size: 80, rank: 0, status: "weak" }, { id: "next", size: 1, rank: 1, status: "weak" }]);
+		input.facts.find((f) => f.id === "big_79")!.answers = [{ chatId: "c", toolCallId: "q", outcome: "wrong", answeredAt: "" }] as never;
+		const [only, ...rest] = topicStudy({ ...input, topicIds: ["big", "next"] });
+		assert.equal(rest.length, 0);
+		assert.equal(only!.factIds.length, MAX_STUDY_FACTS);
+		assert.equal(only!.factIds[0], "big_79", "a missed fact first");
+	});
+
+	it("a deadline start takes not-strong topics not studied today first, then studied today, then strong", () => {
+		const input = build([
+			{ id: "t1", size: 20, rank: 3, status: "untested" },
+			{ id: "t2", size: 20, rank: 0, status: "weak" },
+			{ id: "t3", size: 20, rank: 1, status: "strong" },
+			{ id: "t4", size: 20, rank: 2, status: "shaky" },
+		]);
+		const topics = topicStudy({ ...input, topicIds: ["t1", "t2", "t3", "t4"], studiedToday: new Set(["t2"]) });
+		assert.deepEqual(ids(topics), ["t2", "t4", "t1"], "t4, t1, then t2 fill it; listed in class order; strong t3 waits");
+		assert.deepEqual(topics.map((t) => t.mode), ["problems", "problems", "teach"]);
+	});
+
+	it("each deadline Study click moves on to the next topics", () => {
+		const input = build(Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, size: 30, rank: i, status: "untested" as const })));
+		const topicIds = input.topics.map((t) => t.id);
+		const first = topicStudy({ ...input, topicIds, studiedToday: new Set() });
+		assert.deepEqual(ids(first), ["t0", "t1"]);
+		const second = topicStudy({ ...input, topicIds, studiedToday: new Set(ids(first)) });
+		assert.deepEqual(ids(second), ["t2", "t3"]);
+		const all = topicStudy({ ...input, topicIds, studiedToday: new Set(topicIds) });
+		assert.deepEqual(ids(all), ["t0", "t1"], "every topic studied today: back to class order");
+	});
+
+	it("drops unknown topics and repeats", () => {
+		const input = build([{ id: "a", size: 2, rank: 0, status: "weak" }]);
+		assert.deepEqual(ids(topicStudy({ ...input, topicIds: ["a", "gone", "a"] })), ["a"]);
+		assert.deepEqual(topicStudy({ ...input, topicIds: ["gone"] }), []);
 	});
 });
 

@@ -245,8 +245,10 @@ describe("Home: actions", () => {
 			return null;
 		}
 		globalThis.fetch = (async (_url: string, init: RequestInit) => {
-			sent.push(JSON.parse(String(init.body)));
-			return ok() ? Response.json({ id: "chat_1" }) : Response.json({ error: "boom" }, { status: 500 });
+			const body = JSON.parse(String(init.body));
+			sent.push(body);
+			// The server titles a start on topics or a deadline.
+			return ok() ? Response.json({ id: "chat_1", title: body.title ?? "Study: Counting, Sets" }) : Response.json({ error: "boom" }, { status: 500 });
 		}) as typeof fetch;
 		await mount(
 			<AppRouterContext.Provider value={router}>
@@ -273,22 +275,20 @@ describe("Home: actions", () => {
 		}
 	});
 
-	it("studying topics sends their facts as picks; a deadline studies today's topics, or its name when it has none", async () => {
+	it("studying topics or a deadline sends their ids, and the server's title is the first message", async () => {
 		const original = globalThis.fetch;
 		try {
-			const facts = [
-				{ id: "f1", name: "Bayes", statement: "P(A|B)…", topicId: "t1", born: null, inLessons: false, answers: [] },
-				{ id: "f2", name: "Linearity", statement: "E[X+Y]…", topicId: "t2", born: null, inLessons: false, answers: [] },
-			];
-			const topics = [{ ...WEAK, members: ["f1"] }, { ...UNTESTED, members: ["f2"] }];
-			const { lesson, sent } = await harness(() => false);
-			await act(async () => lesson().studyTopics([topics[0]!], facts));
-			assert.deepEqual(sent.at(-1), { title: "Study: Conditional probability", graphContext: { propositions: [{ id: "f1", name: "Bayes", statement: "P(A|B)…" }] } });
-			const deadline = { id: "d1", name: "Midterm", date: "2026-11-10", topics: [{ id: "t1", name: WEAK.name, rate: 0.33 }, { id: "t2", name: UNTESTED.name, rate: null }] };
-			await act(async () => lesson().studyDeadline({ today: "2026-11-03", topics, facts }, deadline as never));
-			assert.equal(sent.at(-1)!.title, "Study: Conditional probability", "one day per topic: today is the weakest");
-			await act(async () => lesson().studyDeadline({ today: "2026-11-03", topics, facts }, { ...deadline, topics: [] } as never));
-			assert.deepEqual(sent.at(-1), { title: "Study for Midterm" });
+			// Failed starts leave the hook free for the next one.
+			let ok = false;
+			const { lesson, sent, pushed } = await harness(() => ok);
+			await act(async () => lesson().studyDeadline("d1"));
+			assert.deepEqual(sent.at(-1), { deadlineId: "d1" });
+			await act(async () => lesson().start({ title: " Bayes ", picks: [{ id: "f1", name: "Bayes", statement: "P(A|B)…" }] }));
+			assert.deepEqual(sent.at(-1), { title: "Bayes", graphContext: { propositions: [{ id: "f1", name: "Bayes", statement: "P(A|B)…" }] } });
+			ok = true;
+			await act(async () => lesson().studyTopics(["t1", "t2"]));
+			assert.deepEqual(sent.at(-1), { topicIds: ["t1", "t2"] });
+			assert.deepEqual(pushed, [`/chat/chat_1?prompt=${encodeURIComponent("Study: Counting, Sets")}`]);
 			assert.ok(sent.every((body) => !("kind" in body)), "every new lesson is a study session");
 		} finally {
 			globalThis.fetch = original;

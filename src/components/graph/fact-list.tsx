@@ -8,12 +8,11 @@
  */
 import { memo, useCallback, useRef, useState, type MouseEvent } from "react";
 import { CheckIcon, ChevronRightIcon, MinusIcon, XIcon } from "lucide-react";
-import type { AnswerOutcome, FactProgress } from "@/core";
+import { factMark, type AnswerOutcome, type FactProgress } from "@/core";
 import { MenuShell } from "@/components/menu-shell";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { DeleteNodeDialog } from "@/components/delete-node-dialog";
 import { InlineMath } from "@/components/overview/inline-math";
-import { factMark } from "./derive.ts";
 import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 const FACTS_SHOWN = 4;
@@ -21,7 +20,7 @@ const FACTS_SHOWN = 4;
 export function FactList({
 	facts,
 }: {
-	/** Already in display order (derive.ts topicFacts). */
+	/** Already in display order (core topicFacts). */
 	facts: readonly FactProgress[];
 }) {
 	const [showAll, setShowAll] = useState(false);

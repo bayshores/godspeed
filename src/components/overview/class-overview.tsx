@@ -18,8 +18,7 @@ import { OverviewBody } from "./overview-body";
  * dialog); the body reads the active class's progress (useProgress).
  *
  * The runway's rings open each deadline's page; "Most needed" → Study
- * starts a study session on that topic (useLessonStart: the topic's facts
- * are its opening picks, in the active class).
+ * starts a study session on that topic (useLessonStart, in the active class).
  */
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
@@ -40,13 +39,7 @@ export function ClassOverview() {
 	const current = data && data.classId === active ? data : null;
 
 	const { studyTopics } = lesson;
-	const study = useCallback(
-		(topicId: string) => {
-			const topic = current?.topics.find((t) => t.id === topicId);
-			if (topic) studyTopics([topic], current?.facts ?? []);
-		},
-		[current, studyTopics],
-	);
+	const study = useCallback((topicId: string) => void studyTopics([topicId]), [studyTopics]);
 
 	return (
 		<div className="flex h-full flex-col">

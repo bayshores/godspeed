@@ -373,6 +373,22 @@ export interface FactProgress {
 	answers: AnswerRef[];
 }
 
+/** A fact's mark: its latest answer's outcome, or null when untested. */
+export function factMark(f: Pick<FactProgress, "answers">): AnswerOutcome | null {
+	return f.answers.length === 0 ? null : f.answers[f.answers.length - 1]!.outcome;
+}
+
+const MARK_ORDER: Record<string, number> = { wrong: 0, dontKnow: 1, right: 2, none: 3 };
+
+/** A topic's facts, the ones to fix first: latest answer wrong, then
+ *  "I don't know", then right, then untested; ties by name. */
+export function topicFacts(facts: readonly FactProgress[], topic: Pick<TopicProgress, "members">): FactProgress[] {
+	const members = new Set(topic.members);
+	return facts
+		.filter((f) => members.has(f.id))
+		.sort((a, b) => MARK_ORDER[factMark(a) ?? "none"]! - MARK_ORDER[factMark(b) ?? "none"]! || a.name.localeCompare(b.name));
+}
+
 /** A provenance point from a lesson (not a notes/file source). */
 const fromLesson = (p: ProvenancePoint) => !p.chatId.startsWith("src_");
 

@@ -40,6 +40,7 @@ const bridge = await import("../src/agent/agent-bridge.ts");
 const { ensureMcpToken } = await import("../src/store/mcp-token.ts");
 const { activeProblemOf } = await import("../src/core/native-messages.ts");
 const { composeInstructions } = await import("../src/agent/teacher-agent.ts");
+const { localDay } = await import("../src/core/today-note.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -108,6 +109,45 @@ describe("a study session", () => {
 		const record = chatStore.getChat(created.chat.id)!;
 		assert.match(record.messages.at(-1)!.content as string, /1\. Bayes' rule — node topic, teach \(never tested\), no facts/);
 		assert.deepEqual(record.tree?.nodes, [{ id: "topic", title: "Bayes' rule" }]);
+	});
+
+	it("a start on topics or a deadline picks whole topics up to 64 facts and titles the session after them; each deadline click moves on", () => {
+		// Counting (class day 1) has 40 facts, Sets (class day 2) 30: both don't fit in one session.
+		const cls = classStore.createClass({ name: "CSE 29" });
+		const file = (id: string, name: string) => ({ id, origin: "copied" as const, name, path: `x/${name}`, kind: "study" as const, contentFp: "", status: "ready" as const, addedAt: "2026-10-26T00:00:00.000Z" });
+		const counting = file("f_cccccccccccc", "2026-09-25 Counting.pdf");
+		const sets = file("f_dddddddddddd", "2026-10-02 Sets.pdf");
+		classStore.saveFiles(cls.id, [sets, counting]);
+		const store = graphStoreFor(cls.id);
+		const facts = (prefix: string, count: number, src: string) =>
+			Array.from({ length: count }, (_, i) => {
+				const id = `${prefix}${i}`;
+				store.appendNode({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-26T00:00:00.000Z", provenance: [{ chatId: src, messageId: "" }] });
+				return id;
+			});
+		const countIds = facts("c", 40, sourceIdFor(cls.id, counting.id));
+		const setIds = facts("s", 30, sourceIdFor(cls.id, sets.id));
+		store.appendTopics({ at: "2026-10-26T00:00:00.000Z", topics: [{ id: "tpc_sets", name: "Sets", members: setIds }, { id: "tpc_count", name: "Counting", members: countIds }] });
+		const deadline = classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: localDay(), fileIds: [counting.id, sets.id] });
+
+		const graph = createLesson({ classId: cls.id, topicIds: ["tpc_sets", "tpc_count"] });
+		assert.ok(graph.ok);
+		assert.equal(graph.title, "Study: Counting", "class order first; Sets would pass 64 facts");
+		const record = chatStore.getChat(graph.chat.id)!;
+		const picks = record.messages[1]!;
+		assert.ok(picks.role === "custom" && picks.customType === "graph-context");
+		assert.equal((picks.details as { propositions: unknown[] }).propositions.length, 40, "the whole topic, as graph-context picks");
+		chatStore.deleteChat(graph.chat.id);
+
+		const first = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		assert.ok(first.ok);
+		assert.equal(first.title, "Study: Counting");
+		assert.deepEqual(chatStore.getChat(first.chat.id)!.tree?.nodes.map((n) => n.id), ["tpc_count"]);
+		const second = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		assert.ok(second.ok);
+		assert.equal(second.title, "Study: Sets", "Counting was studied today, so Sets comes first");
+
+		assert.deepEqual(createLesson({ classId: cls.id, deadlineId: "ddl_nope" }), { ok: false, status: 404, code: "deadline_not_found", error: "No such deadline" });
 	});
 
 	it("runs the teacher plus problem and conclude from turn 1, with the same tools every turn", async () => {

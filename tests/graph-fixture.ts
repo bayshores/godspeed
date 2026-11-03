@@ -30,7 +30,7 @@ export function answers(spec: string, level?: ConfidenceLevel): AnswerRef[] {
 	});
 }
 
-export function topic(id: string, name: string, column: number, members: string[], refs: AnswerRef[], overconfident = false): TopicProgress {
+function topic(id: string, name: string, column: number, members: string[], refs: AnswerRef[], overconfident = false): TopicProgress {
 	const t = tally(refs);
 	return {
 		id,

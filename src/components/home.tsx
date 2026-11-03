@@ -52,8 +52,7 @@ export function NewLesson() {
 	const { start, studyTopics, studyDeadline } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks });
 	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
-	const facts = progress?.facts;
-	const studyTopic = useCallback((t: TopicProgress) => studyTopics([t], facts ?? []), [studyTopics, facts]);
+	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
 
 	const deadlines = useMemo(() => (progress?.deadlines ?? []).filter((d) => d.daysUntil >= 0 && !d.done), [progress]);
 	const suggestions = useMemo(() => homeSuggestions(progress), [progress]);
@@ -83,7 +82,7 @@ export function NewLesson() {
 									type="button"
 									data-testid="home-study-deadline"
 									disabled={lesson.busy}
-									onClick={() => studyDeadline(progress, d)}
+									onClick={() => void studyDeadline(d.id)}
 									className="lh-press bg-tone px-3.5 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-60"
 								>
 									Study for {d.name}

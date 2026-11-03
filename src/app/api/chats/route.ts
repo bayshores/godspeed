@@ -28,30 +28,37 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; classId?: unknown };
+	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; classId?: unknown; topicIds?: unknown; deadlineId?: unknown };
 	const title = typeof body.title === "string" ? body.title : "";
 	// The lesson's class (absent/"none" = No class).
 	const classId = parseClassScope(typeof body.classId === "string" ? body.classId : undefined);
 	if (classId === undefined) return Response.json({ error: "bad classId" }, { status: 400 });
+	// Every new lesson is a study session (src/server/lessons.ts). A start
+	// on topics or a deadline gets its topics and title from the server.
+	const created =
+		typeof body.deadlineId === "string"
+			? createLesson({ classId, deadlineId: body.deadlineId })
+			: Array.isArray(body.topicIds)
+				? createLesson({ classId, topicIds: body.topicIds.filter((id): id is string => typeof id === "string") })
+				: createLesson({ classId, title, picks: picksOf(body.graphContext) });
+	if (!created.ok) return Response.json({ error: created.error, code: created.code }, { status: created.status });
+	return Response.json({ id: created.chat.id, title: created.title });
+}
+
+function picksOf(graphContext: unknown): GraphContextPick[] {
 	// The session's map context: the picked
 	// propositions ride the CREATION as a graph-context marker (a separate
 	// custom message BEFORE the learner's first user message), carrying
 	// the picks plus the reasoning chains among them (src/server/lessons.ts).
-	const rawPicks = (body.graphContext as { propositions?: unknown } | undefined)?.propositions;
-	const picks: GraphContextPick[] = Array.isArray(rawPicks)
-		? rawPicks
-				.filter(
-					(p): p is GraphContextPick =>
-						typeof p === "object" &&
-						p !== null &&
-						typeof (p as GraphContextPick).id === "string" &&
-						typeof (p as GraphContextPick).name === "string" &&
-						typeof (p as GraphContextPick).statement === "string",
-				)
-				.slice(0, 64)
+	const rawPicks = (graphContext as { propositions?: unknown } | undefined)?.propositions;
+	return Array.isArray(rawPicks)
+		? rawPicks.filter(
+				(p): p is GraphContextPick =>
+					typeof p === "object" &&
+					p !== null &&
+					typeof (p as GraphContextPick).id === "string" &&
+					typeof (p as GraphContextPick).name === "string" &&
+					typeof (p as GraphContextPick).statement === "string",
+			)
 		: [];
-	// Every new lesson is a study session (src/server/lessons.ts).
-	const created = createLesson({ title, classId, picks });
-	if (!created.ok) return Response.json({ error: created.error, code: created.code }, { status: created.status });
-	return Response.json({ id: created.chat.id, title: created.chat.title });
 }

@@ -11,7 +11,7 @@
  * The topics become the study context the agent reads and the plan the
  * step bar shows (one node per topic). Pure and browser-safe.
  */
-import type { DeadlineProgress, TopicStatus } from "./progress.ts";
+import { topicFacts, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
 import type { PlanTree } from "./contracts.ts";
 import { planDays } from "./deadline-plan.ts";
 import { dateInName } from "./file-series.ts";
@@ -75,22 +75,75 @@ export function studyTopics(input: {
 }): StudyTopic[] {
 	const topicOf = new Map<string, (typeof input.topics)[number]>();
 	for (const t of input.topics) for (const id of t.members) topicOf.set(id, t);
-	const groups = new Map<string, { topic: (typeof input.topics)[number]; factIds: string[]; rank: number }>();
+	const groups = new Map<string, StudyTopic>();
 	for (const id of input.factIds) {
 		const topic = topicOf.get(id);
 		if (!topic) continue;
-		const rank = input.classOrder.get(id) ?? Infinity;
 		const group = groups.get(topic.id);
-		if (!group) groups.set(topic.id, { topic, factIds: [id], rank });
-		else if (!group.factIds.includes(id)) {
-			group.factIds.push(id);
-			group.rank = Math.min(group.rank, rank);
-		}
+		if (!group) groups.set(topic.id, { id: topic.id, name: topic.name, mode: studyMode(topic.status), factIds: [id] });
+		else if (!group.factIds.includes(id)) group.factIds.push(id);
 	}
 	if (groups.size === 0) return [{ id: FREE_TOPIC_ID, name: input.freeTopic, mode: "teach", factIds: [] }];
-	return [...groups.values()]
+	return inClassOrder([...groups.values()], input.classOrder);
+}
+
+/** Topics sorted by their earliest fact's place in the class; facts from
+ *  no class file go last and ties keep their order. */
+function inClassOrder(topics: readonly StudyTopic[], classOrder: ReadonlyMap<string, number>): StudyTopic[] {
+	const rank = (t: StudyTopic) => Math.min(Infinity, ...t.factIds.map((id) => classOrder.get(id) ?? Infinity));
+	return topics
+		.map((t) => ({ t, rank: rank(t) }))
 		.sort((a, b) => a.rank - b.rank)
-		.map((g) => ({ id: g.topic.id, name: g.topic.name, mode: studyMode(g.topic.status), factIds: g.factIds }));
+		.map((r) => r.t);
+}
+
+/** A session holds at most this many facts. */
+export const MAX_STUDY_FACTS = 64;
+
+/**
+ * A session on class topics (a Study start on topics or on a deadline):
+ * each topic with its facts, the ones to fix first. Whole topics fill the
+ * session until the next one would pass MAX_STUDY_FACTS facts (always at
+ * least one; one bigger than that keeps its first MAX_STUDY_FACTS facts),
+ * and the kept ones are listed in class order.
+ *
+ * Topics fill in class order. A deadline start passes `studiedToday`, so
+ * each Study click moves on: first the topics that are not strong and
+ * were not studied today, then not strong but studied today, then strong,
+ * each group in class order.
+ */
+export function topicStudy(input: {
+	topicIds: readonly string[];
+	topics: readonly Pick<TopicProgress, "id" | "name" | "members" | "status">[];
+	facts: readonly FactProgress[];
+	classOrder: ReadonlyMap<string, number>;
+	/** Deadline starts: the topics that are plan nodes of today's study sessions. */
+	studiedToday?: ReadonlySet<string>;
+}): StudyTopic[] {
+	const byId = new Map(input.topics.map((t) => [t.id, t]));
+	const candidates = inClassOrder(
+		[...new Set(input.topicIds)].flatMap((id) => {
+			const t = byId.get(id);
+			return t ? [{ id: t.id, name: t.name, mode: studyMode(t.status), factIds: topicFacts(input.facts, t).map((f) => f.id) }] : [];
+		}),
+		input.classOrder,
+	);
+	const today = input.studiedToday;
+	// "check" is exactly the strong topics.
+	const tier = (t: StudyTopic) => (!today ? 0 : t.mode === "check" ? 2 : today.has(t.id) ? 1 : 0);
+	const kept = new Set<StudyTopic>();
+	let count = 0;
+	for (const t of [...candidates].sort((a, b) => tier(a) - tier(b))) {
+		if (kept.size > 0 && count + t.factIds.length > MAX_STUDY_FACTS) break;
+		kept.add(t);
+		count += t.factIds.length;
+	}
+	return candidates.filter((t) => kept.has(t)).map((t) => ({ ...t, factIds: t.factIds.slice(0, MAX_STUDY_FACTS) }));
+}
+
+/** A Study start's title and first message on class topics. */
+export function studyTitle(topics: readonly Pick<StudyTopic, "name">[]): string {
+	return `Study: ${topics.map((t) => t.name).join(", ")}`;
 }
 
 const MODE_NOTE: Record<StudyMode, string> = {

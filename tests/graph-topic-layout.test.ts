@@ -1,7 +1,7 @@
 /**
  * The topic Graph's pure parts: the map layout
- * (src/components/graph/layout.ts), the panels' helpers (derive.ts) and the
- * practice picks (practice.ts).
+ * (src/components/graph/layout.ts) and the panels' helpers (derive.ts, and
+ * the fact order from core/progress.ts).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -21,17 +21,15 @@ import {
 	defaultDeadlineId,
 	deadlineFilesText,
 	pickableDeadlines,
-	factMark,
 	neighbors,
 	readinessBlocks,
 	reasonText,
 	searchMatches,
 	statusLine,
 	takeaway,
-	topicFacts,
 } from "../src/components/graph/derive.ts";
-import { MAX_PICKS, studyPicks, studyTitle } from "../src/components/home/study-start-model.ts";
-import { answers, fact, fixture, topic } from "./graph-fixture.ts";
+import { factMark, topicFacts } from "../src/core/progress.ts";
+import { answers, fact, fixture } from "./graph-fixture.ts";
 
 describe("ringDiameter", () => {
 	it("grows with the fact count like the design (6 → 33, 18 → 51) and is clamped", () => {
@@ -209,28 +207,5 @@ describe("panel helpers", () => {
 		assert.equal(searchMatches("  ", data.topics, data.facts), null);
 		assert.deepEqual([...searchMatches("variance", data.topics, data.facts)!].sort(), ["t-mini", "t-var"]);
 		assert.deepEqual([...searchMatches("ATTENTION weights", data.topics, data.facts)!], ["t-attn"]);
-	});
-});
-
-describe("study picks", () => {
-	const data = fixture();
-	const byId = new Map(data.topics.map((t) => [t.id, t]));
-
-	it("takes each topic's facts, weakest first, in topic order", () => {
-		const picks = studyPicks([byId.get("t-var")!, byId.get("t-mini")!], data.facts);
-		assert.equal(picks.length, 8);
-		assert.equal(picks[2]!.name, "Minibatch gradient is unbiased");
-		assert.deepEqual(Object.keys(picks[0]!).sort(), ["id", "name", "statement"]);
-	});
-
-	it("caps at the server's 64 picks", () => {
-		const members = Array.from({ length: 80 }, (_, i) => `m${i}`);
-		const big = topic("big", "Big", 0, members, []);
-		const facts = members.map((id) => fact(id, "big", id));
-		assert.equal(studyPicks([big], facts).length, MAX_PICKS);
-	});
-
-	it("titles the lesson after the topics", () => {
-		assert.equal(studyTitle([{ name: "Variance" }, { name: "Momentum" }]), "Study: Variance, Momentum");
 	});
 });

@@ -2,13 +2,15 @@
  * PROGRESS — the server half of GET /api/progress: reads one class scope's
  * graph, topic snapshot, files, deadlines and lessons, and hands them to the
  * pure derivation (core/progress.ts deriveProgress). A study session's
- * topics derive from the same read. Nothing is written.
+ * topics, and which ones a Study start picks, derive from the same read.
+ * Nothing is written.
  */
 import type { ClassRecord, ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
 import { collectAnswers, deriveProgress, type AnsweredQuestion, type ProgressPayload } from "../core/progress.ts";
 import { practiceOutcomes, type PracticeOutcome } from "../core/practice-outcomes.ts";
-import { factClassOrder, studyTopics, type StudyTopic } from "../core/study.ts";
+import { deadlineStudyTopicIds, factClassOrder, studyTopics, topicStudy, type StudyTopic } from "../core/study.ts";
+import type { GraphContextPick } from "../core/native-messages.ts";
 import { localDay } from "../core/today-note.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -90,4 +92,50 @@ export function studyTopicsFor(scope: ClassScope, factIds: readonly string[], fr
 		classOrder: progress ? factClassOrder(progress.facts, progressFiles(record)) : new Map(),
 		freeTopic,
 	});
+}
+
+/** A study session on class topics: its topics (core/study.ts topicStudy)
+ *  and their facts as the graph-context picks. */
+interface TopicStudy {
+	topics: StudyTopic[];
+	picks: GraphContextPick[];
+}
+
+function topicStudyIn(scope: ClassScope, progress: ProgressPayload, topicIds: readonly string[], studiedToday?: ReadonlySet<string>): TopicStudy {
+	const record = scope === null ? null : stores.classStore.getClass(scope);
+	const topics = topicStudy({ topicIds, topics: progress.topics, facts: progress.facts, classOrder: factClassOrder(progress.facts, progressFiles(record)), studiedToday });
+	const factById = new Map(progress.facts.map((f) => [f.id, f]));
+	const picks = topics.flatMap((t) =>
+		t.factIds.map((id) => {
+			const f = factById.get(id)!;
+			return { id, name: f.name, statement: f.statement };
+		}),
+	);
+	return { topics, picks };
+}
+
+/** A Study start on some of the class's topics. */
+export function topicStudyFor(scope: ClassScope, topicIds: readonly string[]): TopicStudy {
+	const progress = progressFor(scope);
+	return progress ? topicStudyIn(scope, progress, topicIds) : { topics: [], picks: [] };
+}
+
+/** A Study start on a deadline: its topics for today (deadlineStudyTopicIds),
+ *  the next ones that need work first. Null when the class has no such deadline. */
+export function deadlineStudyFor(classId: string, deadlineId: string): (TopicStudy & { name: string }) | null {
+	const progress = progressFor(classId);
+	const deadline = progress?.deadlines.find((d) => d.id === deadlineId);
+	if (!progress || !deadline) return null;
+	const studied = studiedOn(classId, progress.today);
+	return { name: deadline.name, ...topicStudyIn(classId, progress, deadlineStudyTopicIds(progress.today, deadline), studied) };
+}
+
+/** The plan nodes of the class's study sessions created on `day` (the learner's local day). */
+function studiedOn(classId: string, day: string): Set<string> {
+	const ids = new Set<string>();
+	for (const c of stores.chatStore.listChats()) {
+		if (c.kind !== "study" || c.classId !== classId || localDay(Date.parse(c.createdAt)) !== day) continue;
+		for (const node of stores.chatStore.getChat(c.id)?.tree?.nodes ?? []) ids.add(node.id);
+	}
+	return ids;
 }

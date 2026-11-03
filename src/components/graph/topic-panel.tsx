@@ -5,9 +5,9 @@
  */
 import { memo, useMemo } from "react";
 import { XIcon } from "lucide-react";
-import type { FactProgress, TopicLink, TopicProgress } from "@/core";
+import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/core";
 import { Hint } from "@/components/ui/hint";
-import { neighbors, PANEL_ANSWER_COLOR, takeaway, topicFacts } from "./derive.ts";
+import { neighbors, PANEL_ANSWER_COLOR, takeaway } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
 import { StudyBar, SIDE_PANEL, StatusMark } from "./where-panel.tsx";
 

@@ -1,6 +1,6 @@
 /**
  * Pure helpers for the topic Graph's panels and map: status colors, score
- * lines, the topic takeaway, fact order, the deadline picker's choices and
+ * lines, the topic takeaway, the deadline picker's choices and
  * default, search matches. Browser-safe, unit-tested.
  */
 import {
@@ -73,22 +73,6 @@ export function takeaway(t: Pick<TopicProgress, "right" | "answered" | "answers"
 	const sure = sureMisses(t.answers);
 	if (sure === 0) return base;
 	return `${base} On ${sure} of the misses you picked 4 or 5, so you felt sure.`;
-}
-
-/** A fact's mark: its latest answer's outcome, or null when untested. */
-export function factMark(f: Pick<FactProgress, "answers">): AnswerOutcome | null {
-	return f.answers.length === 0 ? null : f.answers[f.answers.length - 1]!.outcome;
-}
-
-const MARK_ORDER: Record<string, number> = { wrong: 0, dontKnow: 1, right: 2, none: 3 };
-
-/** A topic's facts, the ones to fix first: latest answer wrong, then
- *  "I don't know", then right, then untested; ties by name. */
-export function topicFacts(facts: readonly FactProgress[], topic: Pick<TopicProgress, "members">): FactProgress[] {
-	const members = new Set(topic.members);
-	return facts
-		.filter((f) => members.has(f.id))
-		.sort((a, b) => MARK_ORDER[factMark(a) ?? "none"]! - MARK_ORDER[factMark(b) ?? "none"]! || a.name.localeCompare(b.name));
 }
 
 /** "Needs first" (arrows in) and "Leads to" (arrows out) for a topic,
