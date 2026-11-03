@@ -17,7 +17,7 @@
  * result lands on the part that asked it, even turns later); a group's id is
  * its FIRST assistant message's id. A question answered after side questions
  * is the exception: its answered card moves to where the answer happened,
- * right above the teacher's reaction.
+ * right above the teacher's reaction, leaving a "moved" part where it was asked.
  *
  * Plan blocks: a plan-block marker has no message of its own — its data part
  * splices into the preceding assistant group, IN FLOW right after the last
@@ -280,6 +280,9 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 					}
 					if (sideHeld.has(block.id) && answered.has(block.id)) {
 						movedParts.set(block.id, part);
+						// A trace where it was asked: nothing renders, but the
+						// phase fold still finds teaching starting here.
+						rest.push({ type: part.type, toolCallId: block.id, input: block.arguments, state: "moved" });
 						continue;
 					}
 					rest.push(part);
