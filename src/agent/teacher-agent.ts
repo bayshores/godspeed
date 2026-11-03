@@ -7,11 +7,16 @@ import { effectivePromptSegments } from "./prompt-segments.ts";
 import {
 	askUserQuestionTool,
 	createProberTools,
+	createStudyTools,
 	createTeacherTools,
 	type ProberToolContext,
 	type TeacherToolContext,
 } from "./tools.ts";
 import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
+
+/** What a study session's tools close over: the teacher's context plus the
+ *  graph the problem targets validate against. */
+type StudyToolContext = TeacherToolContext & Pick<PracticeToolContext, "graphNodes">;
 import { talkTools } from "./tools/talk.ts";
 import type { ClassActions } from "../core/class-tools.ts";
 import { healToolRecord } from "./tools/heal.ts";
@@ -21,12 +26,13 @@ import { switchedOffToolsNote, TOGGLEABLE_TOOLS, type EnabledTools, type Togglea
 import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
- * The four agents: the PROBER, the TEACHER, PRACTICE and TALK (the
- * teacher's panel, outside lessons). A lesson's
+ * The agents: STUDY (every new session), the PROBER and the TEACHER (older
+ * teach lessons), PRACTICE (older practice sessions) and TALK (the
+ * teacher's panel, outside lessons). A teach lesson's
  * prober and teacher share one transcript with different prompts and tool
  * sets; the chat-handler constructs ONE per request off the transcript's
- * seam (probe_done = teacher), and a practice session builds PRACTICE from
- * turn 1. The engine is stateless per turn: the persisted record is the
+ * seam (probe_done = teacher), and study and practice sessions build their
+ * agent from turn 1. The engine is stateless per turn: the persisted record is the
  * source of truth, the agent is rebuilt from it every POST and discarded at
  * turn end.
  *
@@ -50,7 +56,7 @@ import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts
 
 /** Which agent's prompt directory to compose. Practice composes its own
  *  directory plus a curated shared set (see prompt-segments.ts). */
-type AgentKind = "prober" | "teacher" | "practice" | "talk";
+export type AgentKind = "prober" | "teacher" | "practice" | "study" | "talk";
 
 /** The switchable tools each agent's factory carries (tools.ts,
  *  tools/practice.ts): demos and figures are teacher-only. */
@@ -58,6 +64,7 @@ const AGENT_SWITCHES: Record<AgentKind, readonly ToggleableTool[]> = {
 	prober: ["research", "pdf"],
 	teacher: TOGGLEABLE_TOOLS,
 	practice: ["research", "pdf"],
+	study: TOGGLEABLE_TOOLS,
 	talk: [],
 };
 
@@ -129,7 +136,7 @@ function makeQuestionStopper(kind: AgentKind) {
 			context.message.content
 				.filter((c) => c.type === "toolCall" && c.name !== undefined && (
 					isQuestionTool(c.name) ||
-					(kind === "practice" && c.name === PRACTICE_PROBLEM_TOOL)
+					((kind === "practice" || kind === "study") && c.name === PRACTICE_PROBLEM_TOOL)
 				))
 				.map((c) => c.id!),
 		);
@@ -142,12 +149,12 @@ function makeQuestionStopper(kind: AgentKind) {
 	};
 }
 
-/** A side turn keeps the question tools but refuses them: an unchanged tool
- *  list keeps the outside agent's conversation a cheap delta instead of a
- *  full resend. */
+/** A side turn keeps the question tools (and a study's problem) but
+ *  refuses them: an unchanged tool list keeps the outside agent's
+ *  conversation a cheap delta instead of a full resend. */
 function sideTurnTools(tools: AgentTool<any, any>[]): AgentTool<any, any>[] {
 	return tools.map((t) =>
-		isQuestionTool(t.name)
+		isQuestionTool(t.name) || t.name === PRACTICE_PROBLEM_TOOL
 			? { ...t, execute: async () => ({ content: [{ type: "text" as const, text: SIDE_TURN_REFUSAL }], isError: true, details: undefined }) }
 			: t,
 	);
@@ -271,6 +278,17 @@ export function createPracticeAgent(ctx: PracticeToolContext, opts: AgentBuildOp
 }
 
 /**
+ * STUDY (every new session): the teacher from turn 1, with no prober (the
+ * app writes the plan and the study context at birth), plus practice's
+ * problem and conclude. The tool list is the same every turn, so the
+ * outside agent keeps getting small deltas. A clean problem pose ends the
+ * run, as in practice.
+ */
+export function createStudyAgent(ctx: StudyToolContext, opts: AgentBuildOptions = {}) {
+	return baseAgentOptions("study", opts, Object.values(opts.tools ?? createStudyTools(ctx, opts.toolToggles)));
+}
+
+/**
  * TALK (the teacher's panel): one ongoing chat outside any lesson, for
  * setting up classes, files and deadlines and quick questions. Its tools
  * are the class actions (tools/talk.ts); no question or teaching tools.
@@ -282,6 +300,7 @@ export function createTalkAgent(actions: ClassActions, opts: AgentBuildOptions =
 type ProberAgent = ReturnType<typeof createProberAgent>;
 type TeacherAgent = ReturnType<typeof createTeacherAgent>;
 type PracticeAgent = ReturnType<typeof createPracticeAgent>;
+type StudyAgent = ReturnType<typeof createStudyAgent>;
 type TalkAgent = ReturnType<typeof createTalkAgent>;
-export type TeachingAgent = ProberAgent | TeacherAgent | PracticeAgent | TalkAgent;
+export type TeachingAgent = ProberAgent | TeacherAgent | PracticeAgent | StudyAgent | TalkAgent;
 

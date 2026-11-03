@@ -5,7 +5,7 @@
  * (a request from godspeed in Talk). Never under tests: scripted chats are
  * fixtures.
  */
-import { TALK_CHAT_ID } from "../core/contracts.ts";
+import { extractsFacts, TALK_CHAT_ID } from "../core/contracts.ts";
 import { coverageOf } from "../core/coverage.ts";
 import { askedDeadlineIds, coverageRequest, unlinkedDeadlines } from "../core/deadline-requests.ts";
 import { localDay } from "../core/today-note.ts";
@@ -26,8 +26,7 @@ function catchUpLessons(now: number): void {
 	const archived = new Set(stores.classStore.listClasses().filter((c) => c.archived).map((c) => c.id));
 	for (const { id } of stores.chatStore.listChats()) {
 		const record = stores.chatStore.getChat(id);
-		// Practice and Talk carry a kind and write no facts; a lesson has none.
-		if (!record || record.kind || (record.classId && archived.has(record.classId)) || isTurnRunning(id)) continue;
+		if (!record || !extractsFacts(record.kind) || (record.classId && archived.has(record.classId)) || isTurnRunning(id)) continue;
 		const graphStore = graphStoreFor(record.classId ?? null);
 		if (coverageOf(record.messages, graphStore.readCoverage(), id).uncoveredTokens === 0) continue;
 		const idleFor = now - Date.parse(record.updatedAt);

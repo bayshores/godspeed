@@ -397,7 +397,7 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"list_lessons",
 		{
 			title: "List lessons",
-			description: "List the learner's lessons and practice sessions, newest first, each with its class. total says how many match.",
+			description: "List the learner's lessons, newest first, each with its class and kind (study; older ones teach or practice). total says how many match.",
 			inputSchema: z.object({
 				class_id: z.string().optional().describe('Only the lessons of this class (from list_classes), or "none" for lessons without a class. Leave it out for all lessons.'),
 				limit: z.number().int().min(1).max(200).optional().describe("Most lessons to return (default 20)."),
@@ -532,26 +532,21 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"start_lesson",
 		{
 			title: "Start a lesson",
-			description: "Start a new lesson (or practice session) in godspeed taught by you (the outside agent). The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. Then call wait_for_work to teach it; the learner follows along in the godspeed window.",
+			description: "Start a new study session in godspeed taught by you (the outside agent): you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. Then call wait_for_work to teach it; the learner follows along in the godspeed window.",
 			inputSchema: z.object({
-				topic: z.string().min(1).describe("What the learner wants to understand (or practice), in their words."),
+				topic: z.string().min(1).describe("What the learner wants to study, in their words."),
 				class_id: CLASS_ID_ARG,
-				kind: z.enum(["teach", "practice"]).optional().describe('"teach" (default) or "practice".'),
 			}),
 			annotations: ADDS,
 		},
-		async ({ topic, class_id, kind }) => {
+		async ({ topic, class_id }) => {
 			const arg = classArg(class_id);
 			if ("error" in arg) return failure(arg.error);
 			const scope = arg.scope;
 			if (scope && stores.classStore.getClass(scope)?.archived) {
 				return failure("This class is archived. Ask the learner to unarchive it in Edit class first.");
 			}
-			const created = createLesson({
-				title: topic,
-				kind: kind === "practice" ? "practice" : undefined,
-				classId: scope,
-			});
+			const created = createLesson({ title: topic, classId: scope });
 			if (!created.ok) return failure(created.error);
 			const chat = created.chat;
 			noteAgentAction(caller, { label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });

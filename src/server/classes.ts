@@ -30,7 +30,7 @@ import * as path from "node:path";
 import { NotesImportError } from "../agent/subagents/extraction.ts";
 import { extractionStatuses, abortExtraction } from "../agent/subagents/extraction-runs.ts";
 import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem, FolderStatus, SkippedFiles } from "../core/contracts.ts";
-import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, FILE_NOT_FOUND, isRecordingFile, isTranscriptFile, parseClassScope, safeName, SUPPORTED_CLASS_FILE_EXTENSIONS } from "../core/contracts.ts";
+import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, extractsFacts, FILE_NOT_FOUND, isRecordingFile, isTranscriptFile, parseClassScope, safeName, SUPPORTED_CLASS_FILE_EXTENSIONS } from "../core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../core/ports.ts";
 import { emit } from "../core/events.ts";
@@ -986,9 +986,9 @@ export async function moveChatToClass(chatId: string, target: ClassScope): Promi
 	deleteChatTraces(graphStoreFor(from), chatId, "delete-nodes");
 	stores.chatStore.setChatClass(chatId, target);
 	applyClassCard(chatId, target === null ? null : stores.classStore.getClass(target));
-	// Rebuild in the new graph (teaching lessons only — practice writes
-	// nothing). Fire-and-forget like the post-turn trigger.
-	if (record.kind !== "practice" && effectiveSettings().graph.enabled && process.env.NODE_ENV !== "test") {
+	// Rebuild in the new graph (practice writes nothing). Fire-and-forget
+	// like the post-turn trigger.
+	if (extractsFacts(record.kind) && effectiveSettings().graph.enabled && process.env.NODE_ENV !== "test") {
 		void extraction.runExtraction(chatId).catch((err: unknown) => console.info(`[classes] rebuild after move skipped for ${chatId}:`, err instanceof Error ? err.message : err));
 	}
 	return { ok: true, value: { classId: target } };

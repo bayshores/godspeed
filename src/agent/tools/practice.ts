@@ -69,7 +69,7 @@ interface PracticeGate {
 
 /** Seed the turn's gate from the record (result-aware activeProblemOf —
  *  only a cleanly-posed problem counts). */
-export function createPracticeGate(ctx: PracticeToolContext): PracticeGate {
+export function createPracticeGate(ctx: Pick<PracticeToolContext, "chatId" | "chatStore">): PracticeGate {
 	const record = ctx.chatStore.getChat(ctx.chatId);
 	return { problemActive: record ? activeProblemOf(record.messages) !== null : false };
 }
@@ -163,6 +163,41 @@ export function problemTool(
 			return problemResult();
 		},
 	};
+}
+
+/** A study session's problem also names the plan node it is about, so
+ *  the step bar follows problems the way it follows quizzes. */
+const studyProblemInputObject = Type.Object({
+	...problemInputObject.properties,
+	nodeId: Type.String({ description: "REQUIRED — the topic this problem is about: a node id from the [Study plan]." }),
+});
+
+function studyProblemTool(
+	gate: PracticeGate,
+	graphNodes: PracticeToolContext["graphNodes"],
+	nodeIdProblem: (nodeId: string) => string | null,
+): AgentTool<typeof studyProblemInputObject> {
+	const pose = problemTool(gate, graphNodes);
+	return {
+		...pose,
+		parameters: studyProblemInputObject,
+		// The pose's target normalization passes nodeId through untouched.
+		prepareArguments: pose.prepareArguments as AgentTool<typeof studyProblemInputObject>["prepareArguments"],
+		execute: async (toolCallId, input, signal, onUpdate) => {
+			const problem = nodeIdProblem(input.nodeId);
+			if (problem) return invalidInputResult("problem", [problem]);
+			return pose.execute(toolCallId, input, signal, onUpdate);
+		},
+	};
+}
+
+/** A study session's problem and conclude, sharing one turn gate. */
+export function studyProblemTools(
+	ctx: Pick<PracticeToolContext, "chatId" | "chatStore" | "graphNodes">,
+	nodeIdProblem: (nodeId: string) => string | null,
+): Record<string, AgentTool<any>> {
+	const gate = createPracticeGate(ctx);
+	return { problem: studyProblemTool(gate, ctx.graphNodes, nodeIdProblem), conclude: concludeTool(gate) };
 }
 
 // ─── conclude: the end of a problem ──────────────────────────────────────────

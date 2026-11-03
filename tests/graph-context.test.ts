@@ -123,7 +123,6 @@ describe("POST /api/chats — graphContext becomes message[0]", () => {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				title: "drill me on logic",
-				kind: "practice",
 				graphContext: { propositions: PICKS },
 			}),
 		}));
@@ -131,7 +130,7 @@ describe("POST /api/chats — graphContext becomes message[0]", () => {
 		const { id } = (await res.json()) as { id: string };
 
 		const record = chatStore.getChat(id)!;
-		assert.equal(record.messages.length, 1, "the marker is message[0], alone until the first turn");
+		assert.deepEqual(record.messages.map((m) => (m as { customType?: string }).customType), ["graph-context", "study-context"], "the marker is message[0], then the study plan, until the first turn");
 		const m = record.messages[0] as { role: string; customType: string; content: string };
 		assert.equal(m.role, "custom");
 		assert.equal(m.customType, "graph-context");
@@ -157,14 +156,14 @@ describe("POST /api/chats — graphContext becomes message[0]", () => {
 		const res = await POST(new Request("http://test/api/chats", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ title: "t", kind: "practice", graphContext: { propositions } }),
+			body: JSON.stringify({ title: "t", graphContext: { propositions } }),
 		}));
 		const { id } = (await res.json()) as { id: string };
 		const m = chatStore.getChat(id)!.messages[0] as { content: string };
 		assert.equal(m.content.split("Premise one, Premise two → Conclusion").length - 1, 1);
 	});
 
-	it("no picks (or malformed) → no marker, an empty record as before", async () => {
+	it("no picks (or malformed) → no marker, just the study plan", async () => {
 		for (const body of [{ title: "t" }, { title: "t", graphContext: { propositions: "junk" } }]) {
 			const res = await POST(new Request("http://test/api/chats", {
 				method: "POST",
@@ -172,7 +171,7 @@ describe("POST /api/chats — graphContext becomes message[0]", () => {
 				body: JSON.stringify(body),
 			}));
 			const { id } = (await res.json()) as { id: string };
-			assert.equal(chatStore.getChat(id)!.messages.length, 0);
+			assert.deepEqual(chatStore.getChat(id)!.messages.map((m) => (m as { customType?: string }).customType), ["study-context"]);
 		}
 	});
 });

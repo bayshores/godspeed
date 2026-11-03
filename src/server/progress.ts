@@ -1,12 +1,14 @@
 /**
  * PROGRESS — the server half of GET /api/progress: reads one class scope's
  * graph, topic snapshot, files, deadlines and lessons, and hands them to the
- * pure derivation (core/progress.ts deriveProgress). Nothing is written.
+ * pure derivation (core/progress.ts deriveProgress). A study session's
+ * topics derive from the same read. Nothing is written.
  */
-import type { ClassScope } from "../core/contracts.ts";
+import type { ClassRecord, ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
 import { collectAnswers, deriveProgress, type AnsweredQuestion, type ProgressPayload } from "../core/progress.ts";
 import { practiceOutcomes, type PracticeOutcome } from "../core/practice-outcomes.ts";
+import { factClassOrder, studyTopics, type StudyTopic } from "../core/study.ts";
 import { localDay } from "../core/today-note.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
@@ -33,14 +35,19 @@ function lessonReadout(chatId: string): LessonReadout | null {
 	return readout;
 }
 
-/** The class's practice problems the learner solved only with hints. */
+/** The class's problems (practice and study) the learner solved only with hints. */
 export function hintedProblems(classId: string): { statement: string; at: string }[] {
 	return stores.chatStore
 		.listChats()
-		.filter((c) => c.classId === classId && c.kind === "practice")
+		.filter((c) => c.classId === classId)
 		.flatMap((c) => lessonReadout(c.id)?.outcomes ?? [])
 		.filter((o) => o.outcome === "solvedWithHints")
 		.map((o) => ({ statement: o.statement, at: o.at }));
+}
+
+/** The class's files with the source id their facts are born under. */
+function progressFiles(record: ClassRecord | null) {
+	return (record?.files ?? []).map((f) => ({ id: f.id, name: f.name, kind: f.kind, sourceId: f.sourceId ?? sourceIdFor(record!.id, f.id) }));
 }
 
 /** Everything the Overview and the Graph page need for one scope. Returns
@@ -65,9 +72,22 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 		facts: graph.nodes,
 		chains: graph.chains,
 		topics: store.readTopics(),
-		files: (record?.files ?? []).map((f) => ({ id: f.id, name: f.name, kind: f.kind, sourceId: f.sourceId ?? sourceIdFor(record!.id, f.id) })),
+		files: progressFiles(record),
 		deadlines: record?.deadlines ?? [],
 		lessons,
 		grouping: topicGroupingRunning(scope),
+	});
+}
+
+/** A study session's topics from its picked facts: grouped by class topic,
+ *  in class order, each with its mode (core/study.ts). */
+export function studyTopicsFor(scope: ClassScope, factIds: readonly string[], freeTopic: string): StudyTopic[] {
+	const progress = factIds.length > 0 ? progressFor(scope) : null;
+	const record = scope === null ? null : stores.classStore.getClass(scope);
+	return studyTopics({
+		factIds,
+		topics: progress?.topics ?? [],
+		classOrder: progress ? factClassOrder(progress.facts, progressFiles(record)) : new Map(),
+		freeTopic,
 	});
 }

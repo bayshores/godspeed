@@ -12,14 +12,16 @@
  * SEGMENTS: the shared base (src/agent/system-prompt.md), then every
  * numeric-prefix *.md fragment in the agent's own directory (sorted by
  * filename), then the shared/ fragments as a trailing appendix. Practice
- * skips the base and takes only PRACTICE_SHARED_FRAGMENTS. An
- * override keyed to a segment the source no longer ships stops composing
- * automatically.
+ * skips the base and takes only PRACTICE_SHARED_FRAGMENTS. Study takes the
+ * teacher's whole prompt plus STUDY_PRACTICE_FRAGMENTS and its own
+ * fragment. An override keyed to a segment the source no longer ships
+ * stops composing automatically.
  *
  * OVERRIDES: override files mirror the source layout under
  * config.PROMPTS_OVERRIDE_DIR — "system-prompt.md" at the root,
- * "shared/<file>", "teacher/<file>" / "prober/<file>" / "practice/<file>". A saved file is the
- * learner's version and is used in place of the source.
+ * "shared/<file>", "teacher/<file>" / "prober/<file>" / "practice/<file>" /
+ * "study/<file>". A saved file is the learner's version and is used in
+ * place of the source.
  */
 
 import fs from "node:fs";
@@ -50,20 +52,36 @@ function readPromptOverride(segmentPath: string): string | null {
 	}
 }
 
+/** The practice fragments a STUDY session composes: the hint and
+ *  claimed-answer rules its problems run on. */
+const STUDY_PRACTICE_FRAGMENTS = ["20-hints.md"];
+
+type Segment = { path: string; shared: boolean; file: string };
+
+/** One agent directory's fragments, sorted (optionally only some). */
+function directoryFragments(dir: PromptAgent, only?: readonly string[]): Segment[] {
+	const full = path.join(PROMPTS_DIR, dir);
+	if (!fs.existsSync(full)) return [];
+	return fs
+		.readdirSync(full)
+		.filter((f) => FRAGMENT_RE.test(f) && (only === undefined || only.includes(f)))
+		.sort()
+		.map((f) => ({ path: `${dir}/${f}`, shared: false, file: path.join(full, f) }));
+}
+
 /** List the SOURCE segments for one agent, in composition order: the
  *  agent's job and method lead, the shared mechanics are an appendix. */
-function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: boolean; file: string }> {
+function listSourceSegments(agent: PromptAgent): Segment[] {
 	// Practice and Talk skip the teaching base (their 00-base.md plays that
 	// role) and take only a curated shared appendix.
-	const segments: Array<{ path: string; shared: boolean; file: string }> = agent === "practice" || agent === "talk" ? [] : [
+	const segments: Segment[] = agent === "practice" || agent === "talk" ? [] : [
 		{ path: "system-prompt.md", shared: true, file: PATHS.teacherPrompt },
 	];
-	const dir = path.join(PROMPTS_DIR, agent);
-	if (fs.existsSync(dir)) {
-		const fragments = fs.readdirSync(dir).filter((f) => FRAGMENT_RE.test(f)).sort();
-		for (const f of fragments) {
-			segments.push({ path: `${agent}/${f}`, shared: false, file: path.join(dir, f) });
-		}
+	// Study is the teacher plus practice's hint rules plus its own fragment.
+	if (agent === "study") {
+		segments.push(...directoryFragments("teacher"), ...directoryFragments("practice", STUDY_PRACTICE_FRAGMENTS), ...directoryFragments("study"));
+	} else {
+		segments.push(...directoryFragments(agent));
 	}
 	const sharedDir = path.join(PROMPTS_DIR, "shared");
 	if (fs.existsSync(sharedDir)) {
@@ -98,10 +116,10 @@ export function effectivePromptSegments(agent: PromptAgent): PromptSegmentInfo[]
 	});
 }
 
-/** Every known segment path across all three agents (route validation). */
+/** Every known segment path across the lesson agents (route validation). */
 export function allSegmentPaths(): string[] {
 	const paths = new Set<string>();
-	for (const agent of ["prober", "teacher", "practice"] as const) {
+	for (const agent of ["prober", "teacher", "practice", "study"] as const) {
 		for (const segment of listSourceSegments(agent)) paths.add(segment.path);
 	}
 	return [...paths].sort();

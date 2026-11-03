@@ -247,7 +247,10 @@ describe("the practice agent", () => {
 // ── persistent nudges (shipped defaults, no model calls) ──────────────────────
 
 describe("persistent practice nudges", () => {
-	const doctrine = readFileSync(new URL("../src/agent/prompts/practice/10-doctrine.md", import.meta.url), "utf8");
+	// The doctrine and its hint rules (a study session composes the hint rules too).
+	const doctrine = ["10-doctrine.md", "20-hints.md"]
+		.map((file) => readFileSync(new URL(`../src/agent/prompts/practice/${file}`, import.meta.url), "utf8"))
+		.join("\n\n");
 	const normalizeWhitespace = (text: string) => text.replace(/\s+/g, " ").trim();
 	const approvedParagraphs = [
 		"- When a nudge does not land, reassess where the learner is stuck and offer only the next necessary piece of information. Do not jump to the full solution. Tentative answers, questions, and thinking aloud remain work in progress.",

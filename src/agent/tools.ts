@@ -29,6 +29,7 @@ import { lsTool } from "./tools/ls.ts";
 import { findTool } from "./tools/find.ts";
 import { grepTool } from "./tools/grep.ts";
 import { healToolRecord } from "./tools/heal.ts";
+import { studyProblemTools, type PracticeToolContext } from "./tools/practice.ts";
 import type { GraphStore } from "../core/ports.ts";
 
 
@@ -398,7 +399,7 @@ function nodeIdProblem(ctx: Pick<PlanToolContext, "chatId" | "chatStore">, nodeI
 		return (
 			`nodeId "${nodeId}" matches no node in this session's plan map. ` +
 			(known.length > 0
-				? `Copy one of your plan_init slugs exactly (${known.slice(0, 5).join(", ")}${known.length > 5 ? ", …" : ""}).`
+				? `Copy one of the plan's node ids exactly (${known.slice(0, 5).join(", ")}${known.length > 5 ? ", …" : ""}).`
 				: "No plan map exists yet — call plan_init before posing quizzes.")
 		);
 	}
@@ -461,6 +462,18 @@ function withoutMechanics(enabled?: EnabledTools): EnabledTools | undefined {
 	if (!enabled) return undefined;
 	const { explain: _e, quiz: _q, ...rest } = enabled;
 	return rest;
+}
+
+/** A study session's registry: the teacher's tools plus practice's
+ *  problem and conclude, the problem naming its plan node like a quiz. */
+export function createStudyTools(
+	ctx: TeacherToolContext & Pick<PracticeToolContext, "graphNodes">,
+	enabled?: EnabledTools,
+): Record<string, AgentTool<any>> {
+	return healToolRecord({
+		...createTeacherTools(ctx, enabled),
+		...studyProblemTools(ctx, (nodeId) => nodeIdProblem(ctx, nodeId)),
+	});
 }
 
 /** Per-request teacher tool registry: teach questions (validated nodeId) +

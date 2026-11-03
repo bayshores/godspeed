@@ -2,9 +2,11 @@ import type { Usage } from "@earendil-works/pi-ai";
 import {
 	createPracticeAgent,
 	createProberAgent,
+	createStudyAgent,
 	createTalkAgent,
 	createTeacherAgent,
 	type AgentBuildOptions,
+	type AgentKind,
 	type TeachingAgent,
 } from "../agent/teacher-agent.ts";
 import { agentEngine } from "../agent/models.ts";
@@ -26,6 +28,7 @@ import { collectToolCallIds } from "./pi/call-ids.ts";
 import { allGraphScopes, effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 import { classCardFor } from "./class-card.ts";
 import type { ClassSearch } from "../agent/tools/class.ts";
+import type { TeacherToolContext } from "../agent/tools.ts";
 import { readPassage, searchClassFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { graphToolsEnabled } from "../core/settings-resolution.ts";
@@ -48,7 +51,7 @@ import {
 	parseChatInput,
 	type TurnInput,
 } from "../core/input-events.ts";
-import { steerDelivered } from "../core/contracts.ts";
+import { extractsFacts, steerDelivered } from "../core/contracts.ts";
 import type { AttachmentPart } from "../core/attachments.ts";
 import { storeAttachments } from "./attachments.ts";
 import { saveRuleByAgent } from "./agent-rules.ts";
@@ -103,8 +106,10 @@ function lessonClassRules(classId: string | undefined): { name: string; rules: s
  *  the settle kick. The prompt estimate uses the agent the next turn builds. */
 function compactionDeps(record: ChatRecord): CompactionDeps {
 	const engine = agentEngine();
-	const kind = record.kind === "practice" || record.kind === "talk" ? record.kind : hasProbeDone(record.messages) ? "teach" : "probe";
-	const agentKind = kind === "practice" || kind === "talk" ? kind : kind === "teach" ? "teacher" : "prober";
+	const agentKind: AgentKind =
+		record.kind === "practice" || record.kind === "talk" || record.kind === "study" ? record.kind : hasProbeDone(record.messages) ? "teacher" : "prober";
+	// The summary's wording: a study session teaches.
+	const kind = agentKind === "teacher" || agentKind === "study" ? "teach" : agentKind === "prober" ? "probe" : agentKind;
 	return {
 		chatStore: stores.chatStore,
 		engine,
@@ -369,6 +374,14 @@ export async function handleChatInput(
 			if (!saved.ok) return saved.error;
 			return { saved: true, rule: saved.rule, for: saved.for, where, note: "Saved. The learner sees it in the chat and can undo or edit it." };
 		};
+		const teacherContext: TeacherToolContext = {
+			chatId,
+			chatStore: stores.chatStore,
+			jobStore: stores.jobStore,
+			spawn: (job, input) => void jobRunner.runJob(job.id, input),
+			...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+			saveRule,
+		};
 		const constructed: TeachingAgent = buildAgent
 			? buildAgent({ ...agentOpts, teaching })
 			: record.kind === "talk"
@@ -401,18 +414,12 @@ export async function handleChatInput(
 						},
 						agentOpts,
 					)
+				: record.kind === "study"
+				? // STUDY: the teacher from turn 1 plus problem/conclude; problem
+					// targets validate against the lesson's own class graph.
+					createStudyAgent({ ...teacherContext, graphNodes: () => graphStoreFor(lessonScope).readNodes() }, agentOpts)
 				: teaching
-				? createTeacherAgent(
-						{
-							chatId,
-							chatStore: stores.chatStore,
-							jobStore: stores.jobStore,
-							spawn: (job, input) => void jobRunner.runJob(job.id, input),
-							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
-							saveRule,
-						},
-						agentOpts,
-					)
+				? createTeacherAgent(teacherContext, agentOpts)
 				: createProberAgent(
 						{
 							chatId,
@@ -514,8 +521,8 @@ export async function handleChatInput(
 				// extraction — dies with the master switch.
 				// PRACTICE: practice sessions write nothing —
 				// no extraction, no graph, no coverage (the session itself
-				// is the deliverable).
-				if (record.kind !== "practice" && record.kind !== "talk" && effective.graph.enabled) {
+				// is the deliverable). Study teaches, so it extracts.
+				if (extractsFacts(record.kind) && effective.graph.enabled) {
 					// Fresh per-turn read of the graph section's chunk budget: the
 					// trigger compares against it and the pipeline's batches share it.
 					triggerExtraction(
