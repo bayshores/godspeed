@@ -7,16 +7,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { PATHS } from "../config.ts";
 import { cleanNoteText, NOTE_MAX_CHARS, NOTES_MAX, parseAgentNotes, type AgentNote } from "../core/agent-notes.ts";
+import { setAsideCorrupt } from "./set-aside.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
 const NOTES_FILE = path.join(PATHS.data, "agent-notes.json");
 const VERSION = 1;
 
-/** Oldest first. A missing or unreadable file reads as no notes. */
+/** Oldest first. A missing file reads as no notes; a broken one is set aside. */
 export function listAgentNotes(): AgentNote[] {
 	try {
 		return parseAgentNotes(JSON.parse(fs.readFileSync(NOTES_FILE, "utf8")));
-	} catch {
+	} catch (err) {
+		if (err instanceof SyntaxError) setAsideCorrupt(NOTES_FILE);
 		return [];
 	}
 }

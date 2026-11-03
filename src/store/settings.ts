@@ -24,6 +24,7 @@ import {
 } from "../core/settings.ts";
 import type { SettingsStore } from "../core/ports.ts";
 import { promptOverrides } from "./prompt-overrides.ts";
+import { setAsideCorrupt } from "./set-aside.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
 /** The persisted record, or null when none exists (first boot). Runs the
@@ -39,12 +40,12 @@ export function readSettings(): UserSettings | null {
 	try {
 		parsed = JSON.parse(raw);
 	} catch {
-		setAsideCorrupt();
+		setAsideCorrupt(SETTINGS_FILE);
 		return null; // corrupt: kept aside, factory defaults from here on
 	}
 	const record = sanitizeUserSettings(parsed);
 	if (!record) {
-		setAsideCorrupt();
+		setAsideCorrupt(SETTINGS_FILE);
 		return null; // not an object: kept aside, factory defaults from here on
 	}
 	// Unknown NEWER versions pass through untouched (the sanitizer preserved unknowns).
@@ -53,15 +54,6 @@ export function readSettings(): UserSettings | null {
 	return record;
 }
 
-/** Callers treat null as first boot and write a fresh record, so a broken file
- *  is renamed first: the learner's original stays next to it to fix by hand. */
-function setAsideCorrupt(): void {
-	try {
-		fs.renameSync(SETTINGS_FILE, `${SETTINGS_FILE}.corrupt-${Date.now()}`);
-	} catch {
-		// never throws: the read still answers null
-	}
-}
 
 /** v1 → v2: the summarize threshold's default dropped from 150k to 40k tokens, so a
  *  record still holding the old default takes the new one. True when the file needs

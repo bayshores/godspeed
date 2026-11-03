@@ -59,6 +59,15 @@ async function instructions(client = "claude-code"): Promise<string> {
 describe("agent memory", () => {
 	beforeEach(() => fs.rmSync(NOTES_FILE, { force: true }));
 
+	it("a broken notes file is kept aside, so the next note doesn't overwrite it", async () => {
+		fs.mkdirSync(path.dirname(NOTES_FILE), { recursive: true });
+		fs.writeFileSync(NOTES_FILE, '{"version":1,"notes":[{"id":"note_1"');
+		assert.equal((await call("remember", { text: "Likes worked examples." })).error, false);
+		const aside = fs.readdirSync(path.dirname(NOTES_FILE)).filter((f) => f.startsWith("agent-notes.json.corrupt-"));
+		assert.equal(aside.length, 1);
+		assert.equal(fs.readFileSync(path.join(path.dirname(NOTES_FILE), aside[0]!), "utf8"), '{"version":1,"notes":[{"id":"note_1"');
+	});
+
 	it("a saved note shows up in the next agent's instructions, and forget removes it", async () => {
 		const classId = (await call("create_class", { name: "CSE 29", icon: "cpu", description: "Discrete math.", signature: { kind: "math", value: "x" } })).body.class.id as string;
 		const saved = await call("remember", { text: "CSE 29 exam is done.", class_id: classId });
