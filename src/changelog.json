@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.28",
+		"date": "2026-11-03",
+		"changes": [
+			"Cheat sheets. When an exam lets you bring one, click Cheat sheet on its deadline page. Your agent reads the rules from your syllabus, you check them, and it writes a sheet that puts your past mistakes and weak topics first and leaves out what you already know cold.",
+			"The sheet shows at its real size with a note beside each block saying why it's there, and a meter shows if it still fits. Click a block to tighten it, redo it or ask for a change, then print it or save it as a PDF."
+		]
+	},
+	{
 		"version": "0.5.27",
 		"date": "2026-11-03",
 		"changes": [
