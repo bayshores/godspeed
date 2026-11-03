@@ -88,6 +88,7 @@ export interface LhMarkerMessage {
 	customType:
 		| "graph-context"
 		| "class-context"
+		| "study-context"
 		| "today-context"
 		| "probe-handoff"
 		| "subagent-steer"
@@ -381,6 +382,20 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 		content: lines.join("\n"),
 		display: true,
 		details: { propositions: picks, chains },
+		timestamp: Date.now(),
+	};
+}
+
+/** A study session's topics with their modes (core/study.ts
+ *  studyContextText), for the model only: the step bar shows the topics. */
+export function newStudyContextMessage(text: string): LhMarkerMessage {
+	return {
+		id: newMessageId(),
+		role: "custom",
+		customType: "study-context",
+		content: text,
+		display: false,
+		details: null,
 		timestamp: Date.now(),
 	};
 }

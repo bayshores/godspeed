@@ -62,7 +62,7 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "toggle-sidebar", label: "Toggle sidebar", scope: "global", binding: "mod+b" },
 	{ id: "sessions-search", label: "Search lessons", scope: "global", binding: "mod+shift+f" },
 	{ id: "jump-graph", label: "Go to Graph", scope: "global", binding: "mod+g" },
-	{ id: "new-session", label: "New lesson", scope: "global", binding: "mod+n" },
+	{ id: "new-session", label: "Study", scope: "global", binding: "mod+n" },
 	{ id: "rename-session", label: "Rename lesson", scope: "chat", binding: "f2" },
 	{ id: "toggle-user-thinking", label: "Toggle all your thinking", scope: "chat", binding: "mod+t" },
 	// Mod+F is surface-scoped: graph node search and session text Find share

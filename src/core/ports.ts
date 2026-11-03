@@ -11,6 +11,7 @@
 
 import type { LhMessage } from "./native-messages.ts";
 import type {
+	ChatKind,
 	ChatRecord,
 	ChatSummary,
 	GraphChain,
@@ -38,9 +39,8 @@ import type { UserSettings } from "./settings.ts";
 // ─── ChatStore — the session record's home (data/chats) ─────────────────────
 
 export interface ChatStore {
-	/** Create a session record (persisted immediately); kind "practice"
-	 *  marks a practice session (absent = teach, the default). */
-	createChat(title: string, kind?: "practice" | "talk", classId?: string): ChatRecord;
+	/** Create a session record (persisted immediately); absent kind = teach. */
+	createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string): ChatRecord;
 	/** The full record, or null if unknown id / corrupt file. */
 	getChat(id: string): ChatRecord | null;
 	/** The record file's version, read without parsing it: it changes on

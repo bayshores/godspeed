@@ -125,11 +125,17 @@ export function teachStepIndex(
 	return -1;
 }
 
+/** Where a session's phase fold starts: a study session has no probe and
+ *  no plan to write, so it teaches from its first message. */
+export function firstPhase(kind: string | undefined): Phase3 {
+	return kind === "study" ? "teach" : "probe";
+}
+
 /** The phase at every message index, in one forward fold (the transcript
  *  dividers render one per boundary). */
-export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
+export function phaseTimeline(messages: readonly PhaseMessage[], start: Phase3 = "probe"): Phase3[] {
 	const out: Phase3[] = [];
-	let phase: Phase3 = "probe";
+	let phase = start;
 	for (let i = 0; i < messages.length; i++) {
 		phase = advance(phase, messages[i]?.parts);
 		out.push(phase);
@@ -143,8 +149,8 @@ export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
  *  toolResult; plan→teach at the assistant message carrying the first
  *  nodeId-tagged quiz CALL (mirrors the view fold — same seam, native
  *  shape). */
-export function phaseAt3Lh(messages: readonly LhMessage[]): Phase3 {
-	let phase: Phase3 = "probe";
+export function phaseAt3Lh(messages: readonly LhMessage[], start: Phase3 = "probe"): Phase3 {
+	let phase = start;
 	for (const m of messages) {
 		const role = (m as { role?: string }).role;
 		if (role === "toolResult") {

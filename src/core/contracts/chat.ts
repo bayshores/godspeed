@@ -9,12 +9,22 @@ import type { EmissionStats } from "./graph.ts";
 
 // ─── Chat records (the session store's on-disk format) ───────────────────────
 
-/** The session's kind: "teach" is
- *  the default and ABSENT on pre-practice records (no migration — absence
- *  reads as teach); "practice" marks an adaptive-practice session — the
- *  practice agent, its two tools, no extraction, no graph writes; "talk" is
- *  the one Talk chat in the teacher's panel (TALK_CHAT_ID), never a lesson. */
-type ChatKind = "teach" | "practice" | "talk";
+/** The session's kind. "study" is every new session: the teacher plus
+ *  the practice tools, per topic (core/study.ts). "teach" (prober then
+ *  teacher; ABSENT on old records, absence reads as teach) and "practice"
+ *  (the practice agent, its two tools, no extraction) are older sessions
+ *  that keep working as they were. "talk" is the one Talk chat in the
+ *  teacher's panel (TALK_CHAT_ID), never a lesson. */
+export type ChatKind = "teach" | "practice" | "study" | "talk";
+
+/** A lesson's kind: every kind but Talk. */
+export type LessonKind = Exclude<ChatKind, "talk">;
+
+/** Whether a session's teaching is saved to the class graph: teach and
+ *  study lessons are, practice and Talk are not. */
+export function extractsFacts(kind: ChatKind | undefined): boolean {
+	return kind !== "practice" && kind !== "talk";
+}
 
 /** Every lesson id starts with this (store/chats.ts makes them). The
  *  outside-agent bridge uses it to tell lesson work from background jobs. */
@@ -221,7 +231,7 @@ export interface ChatSummary {
 	updatedAt: string;
 	/** Normalized kind (absent record field reads as teach). The Talk chat
 	 *  is never listed. */
-	kind: Exclude<ChatKind, "talk">;
+	kind: LessonKind;
 	/** The lesson's class — absent = "No class". */
 	classId?: string;
 	messageCount: number;
@@ -229,8 +239,7 @@ export interface ChatSummary {
 	phase: Phase3;
 	/** An unanswered quiz/ask question is waiting for the learner. */
 	pendingQuestion: boolean;
-	/** Practice sessions: a posed problem with no conclude —
-	 *  the sidebar meta's "Problem waiting". Absent on teaching sessions. */
+	/** A posed problem with no conclude is waiting for the learner. */
 	pendingProblem: boolean;
 }
 

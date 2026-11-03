@@ -87,11 +87,14 @@ function statusesFromTags(tree: PlanTree, tags: Iterable<unknown>): DerivedPlanS
 	return { current: runs.at(-1) ?? null, visited: new Set(runs.slice(0, -1)) };
 }
 
-/** Either quizzing tool (quiz/explain) tags position. */
+/** The tools whose calls tag position: either quizzing tool, and a study
+ *  session's problems (practice problems carry no nodeId). */
+const TAGGING_TOOLS = new Set(["quiz", "explain", "problem"]);
+
 function* partTags(messages: readonly PartsCarrier[]): Generator<unknown> {
 	for (const m of messages) {
 		for (const part of m.parts) {
-			if (part.type === "tool-quiz" || part.type === "tool-explain") yield (part.input as { nodeId?: unknown } | undefined)?.nodeId;
+			if (part.type.startsWith("tool-") && TAGGING_TOOLS.has(part.type.slice(5))) yield (part.input as { nodeId?: unknown } | undefined)?.nodeId;
 		}
 	}
 }
@@ -100,7 +103,7 @@ export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarri
 	return statusesFromTags(tree, partTags(messages));
 }
 
-/** The native record's quiz/explain CALLS, in any state: a dangling call
+/** The native record's tagging CALLS, in any state: a dangling call
  *  still moves position, and results feed nothing. */
 function* nativeTags(messages: readonly LhMessage[]): Generator<unknown> {
 	for (const m of messages) {
@@ -108,7 +111,7 @@ function* nativeTags(messages: readonly LhMessage[]): Generator<unknown> {
 		const content = (m as { content?: unknown }).content;
 		if (!Array.isArray(content)) continue;
 		for (const block of content as Array<{ type?: string; name?: string; arguments?: unknown }>) {
-			if (block.type === "toolCall" && (block.name === "quiz" || block.name === "explain")) yield (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
+			if (block.type === "toolCall" && block.name !== undefined && TAGGING_TOOLS.has(block.name)) yield (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
 		}
 	}
 }

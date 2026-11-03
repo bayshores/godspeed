@@ -15,7 +15,7 @@
  * Pure and browser-safe: no node builtins. The server assembles the inputs
  * (src/server/progress.ts → GET /api/progress).
  */
-import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
+import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines } from "./contracts.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
@@ -430,7 +430,7 @@ function nextUpFile(coverage: readonly FileCoverage[]): FileCoverage | null {
 interface ProgressLessonInput {
 	id: string;
 	title: string;
-	kind?: "teach" | "practice";
+	kind?: LessonKind;
 	updatedAt: string;
 	/** The lesson's graded answers (collectAnswers). */
 	answers: readonly AnsweredQuestion[];
@@ -439,7 +439,7 @@ interface ProgressLessonInput {
 export interface LessonProgress {
 	chatId: string;
 	title: string;
-	kind: "teach" | "practice";
+	kind: LessonKind;
 	updatedAt: string;
 	/** Every graded answer, in order. */
 	answers: AnswerRef[];
@@ -720,7 +720,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 			return {
 				chatId: l.id,
 				title: l.title,
-				kind: l.kind === "practice" ? ("practice" as const) : ("teach" as const),
+				kind: l.kind ?? "teach",
 				updatedAt: l.updatedAt,
 				answers: answers.map(refOf),
 				right: counts.right,

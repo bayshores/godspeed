@@ -546,7 +546,9 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		}
 		case "today-context":
-			// The [Today] note is for the model only: nothing on screen.
+		case "study-context":
+			// The [Today] note and the study plan are for the model only:
+			// nothing on screen (the step bar shows a study's topics).
 			return;
 		case "app-request": {
 			// godspeed's own request in Talk: a line from the app, not the learner.
