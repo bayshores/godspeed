@@ -16,8 +16,8 @@
  *             continuations, job-settle re-syncs: the record ends at an
  *             answered question with no teacher reaction yet).
  *   side    — a side question: the learner asks the teacher something
- *             (text, files or both) while a question waits, which stays
- *             open around it.
+ *             (text, files or both) while a question or practice problem
+ *             waits, which stays open around it.
  *
  * Server-originated delivery (the wake pipeline's steers) is NOT a client
  * input — the handler accepts it on the same path (TurnInput) so every
@@ -255,8 +255,8 @@ export function inputAppends(
 		case "continue":
 			return dismissalConclusion(record);
 		case "side":
-			if (!danglingQuestionOf(record.messages)) {
-				throw new ChatInputError("side input requires a waiting question");
+			if (!danglingQuestionOf(record.messages) && !activeProblemOf(record.messages)) {
+				throw new ChatInputError("side input requires a waiting question or problem");
 			}
 			return [newSideQuestion(input.text, attachments)];
 		case "thinking": {

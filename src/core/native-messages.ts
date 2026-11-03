@@ -60,6 +60,12 @@ export const SIDE_PENDING_TEXT =
 /** How that later answer (or skip) reaches the model, at its own place. */
 export const SIDE_ANSWER_LEAD = "The learner answered your open question: ";
 
+/** A side question asked while a problem is active starts with this: the
+ *  problem already has its result, so the question itself says the problem
+ *  stays open. */
+export const SIDE_PROBLEM_LEAD =
+	"Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. ";
+
 /** SIDE_ANSWER_LEAD, naming the question when its message asked several:
  *  out of place, the answer no longer sits next to its own call. */
 function sideAnswerLead(asker: LhMessage, callId: string): string {
@@ -190,8 +196,9 @@ export function newUserMessage(text: string, attachments: readonly AttachmentPar
 }
 
 /** A side question: the learner asks the teacher something while a
- *  question waits, with files like any learner message. The question stays
- *  open around it (danglingQuestionOf). */
+ *  question or problem waits, with files like any learner message. The
+ *  question stays open around it (danglingQuestionOf), as does the problem
+ *  (activeProblemOf). */
 export function newSideQuestion(text: string, attachments: readonly AttachmentPart[] = []): LhMessage & UserMessage {
 	return { ...newUserMessage(text, attachments), side: true };
 }
@@ -260,11 +267,34 @@ export function sideHeldQuestions(messages: readonly LhMessage[]): Map<string, {
 	return held;
 }
 
-/** Does this turn answer a side question: the learner's newest message is
- *  one and the question it was asked around is still open? */
+/** Does this turn answer a side question: the newest input (a learner
+ *  message, their thinking, a job result) is one, and the question or
+ *  problem it was asked around is still open? */
 export function isSideTurn(messages: readonly LhMessage[]): boolean {
-	const learner = messages.findLast((m) => m.role === "user");
-	return learner !== undefined && isSideQuestion(learner) && danglingQuestionOf(messages) !== null;
+	const input = messages.findLast((m) => m.role === "user" || (m.role === "custom" && !isBookkeeping(m)));
+	return input !== undefined && isSideQuestion(input) && (danglingQuestionOf(messages) !== null || activeProblemOf(messages) !== null);
+}
+
+/** The indexes of side questions asked around an active problem with no
+ *  question waiting: the model reads SIDE_PROBLEM_LEAD before each. Read
+ *  from the messages before each one, so earlier model views never change. */
+function problemSideQuestions(messages: readonly LhMessage[]): Set<number> {
+	const out = new Set<number>();
+	messages.forEach((m, i) => {
+		if (!isSideQuestion(m)) return;
+		const before = messages.slice(0, i);
+		if (danglingQuestionOf(before) === null && activeProblemOf(before) !== null) out.add(i);
+	});
+	return out;
+}
+
+/** A side question's content with SIDE_PROBLEM_LEAD in front. */
+function withProblemLead(content: UserMessage["content"]): UserMessage["content"] {
+	if (typeof content === "string") return SIDE_PROBLEM_LEAD + content;
+	const [first, ...rest] = content;
+	return first?.type === "text"
+		? [{ ...first, text: SIDE_PROBLEM_LEAD + first.text }, ...rest]
+		: [{ type: "text", text: SIDE_PROBLEM_LEAD.trimEnd() }, ...content];
 }
 
 /** A steered user message (mid-turn composer steering):
@@ -808,6 +838,9 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 	// its call, and the learner's later answer arrives where it happened, as
 	// their message. The earlier model view stays a prefix of the next one.
 	const sideHeld = sideHeldQuestions(lhMessages);
+	// A side question around a problem: the problem's result is already
+	// there, so the question carries the lead instead.
+	const problemSides = problemSideQuestions(lhMessages);
 	for (let i = leading ? Math.max(start, 1) : start; i < messages.length; i++) {
 		const m = messages[i]!;
 		const role = (m as { role?: string }).role;
@@ -840,6 +873,10 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 		}
 		// Strip the record fields: the wire carries the native shape only.
 		const { id: _id, side: _side, ...native } = m as LhMessage & { side?: true };
+		if (problemSides.has(i)) {
+			out.push({ ...(native as UserMessage), content: withProblemLead((native as UserMessage).content) });
+			continue;
+		}
 		out.push(native as Message);
 		// Dangling-call synthesis: an assistant message whose toolCalls have
 		// no results in the remaining tail (abort mid-question) — the

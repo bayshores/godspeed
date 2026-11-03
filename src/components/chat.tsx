@@ -25,6 +25,7 @@ import {
 	dismissedAnswer,
 	findPendingToolCall,
 	firstPhase,
+	isSideTurn,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
@@ -339,10 +340,12 @@ export function Chat({
 
 	// A running turn never gates the box: Enter while busy STEERS it (text
 	// only, so waiting files hold the send). A waiting question or problem
-	// owns the panel; compaction gates sends. Under a waiting question the
-	// box asks a side question, never while the teacher replies.
+	// owns the panel; compaction gates sends. Under a waiting question or
+	// problem the box asks a side question, never while the teacher replies.
 	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: activeProblem !== null, compacting });
-	const canSend = pending
+	const sideOpen = pending !== null || activeProblem !== null;
+	const sideReply = busy && sideOpen && isSideTurn(nativeMessages);
+	const canSend = sideOpen
 		? (text.trim().length > 0 || hasFiles) && !busy && !compacting
 		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
 
@@ -377,14 +380,14 @@ export function Chat({
 
 	/* STEER VS SEND: a send while a turn runs (ours or
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
-	 * falls back to exactly that). Under a waiting question it is a side
-	 * question. */
+	 * falls back to exactly that). Under a waiting question or problem it is
+	 * a side question. */
 	const onSend = () => {
 		if (compacting) return;
 		const t = textRef.current.trim();
 		const files = attachments.files.map((f) => f.attachment);
 		// A steer of the running turn is text only.
-		if (busy && !pending) {
+		if (busy && !sideOpen) {
 			if (!t || files.length > 0) return;
 			editText("");
 			void steer(t).then((sent) => {
@@ -396,7 +399,7 @@ export function Chat({
 		const drafts = attachments.files;
 		editText("");
 		attachments.clear();
-		void send({ type: pending ? "side" : "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
+		void send({ type: sideOpen ? "side" : "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
 			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
 			attachments.restore(drafts);
@@ -457,7 +460,7 @@ export function Chat({
 		if (!error) return;
 		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(nativeMessages) });
 		if (action.type === "send-box") onSend();
-		else if (action.type === "resend") void send({ type: pending ? "side" : "text", text: action.text });
+		else if (action.type === "resend") void send({ type: sideOpen ? "side" : "text", text: action.text });
 		else if (action.type === "continue") void send({ type: "continue" });
 		else {
 			clearError();
@@ -515,6 +518,7 @@ export function Chat({
 									onSubmitThinking={submitThinking}
 									onDiscardProblem={() => setAbortAsk("problem")}
 									sessionBusy={sessionBusy}
+									sideReply={sideReply}
 									compacting={compacting}
 									composer={{
 										busy,

@@ -21,9 +21,9 @@ const PANEL_WIDTH = { initial: 440, min: 340, max: 720 };
  * - a teach-phase check waiting behind "Check your understanding" (the
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
- * - under either of those, a side question box (the message box in
- *   compact form);
  * - an active practice problem (PracticeDock);
+ * - under any of those, a side question box (the message box in compact
+ *   form), which holds Stop while the teacher answers it;
  * - otherwise the message box (PanelComposer), under the last graded
  *   answer's result.
  * The lesson's stats row sits at the foot of every state.
@@ -44,6 +44,7 @@ export function YourTurnPanel({
 	onSubmitThinking,
 	onDiscardProblem,
 	sessionBusy,
+	sideReply,
 	compacting,
 	composer,
 	stats,
@@ -67,6 +68,8 @@ export function YourTurnPanel({
 	onDiscardProblem: () => void;
 	/** This view's turn is running: a practice send now would be dropped. */
 	sessionBusy: boolean;
+	/** The running turn answers a side question. */
+	sideReply: boolean;
 	compacting: boolean;
 	/** The message-box state's props (everything but the stats footer). */
 	composer: Omit<React.ComponentProps<typeof PanelComposer>, "footer">;
@@ -164,7 +167,7 @@ export function YourTurnPanel({
 				initialDraft={initialPracticeDraft}
 				onSaveDraft={onSavePracticeDraft}
 				onDiscard={onDiscardProblem}
-				onStop={composer.onStop}
+				onStop={sideReply ? undefined : composer.onStop}
 				busy={sessionBusy}
 				waitingForAgent={composer.waitingForAgent}
 				compactionRunning={compacting}
@@ -190,7 +193,7 @@ export function YourTurnPanel({
 				{body}
 			</div>
 			{/* Outside the keyed state, so opening the check keeps what's typed. */}
-			{pending && <SideQuestionBox busy={composer.busy} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} attachments={composer.attachments} />}
+			{(pending || practice) && <SideQuestionBox busy={sideReply} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} attachments={composer.attachments} />}
 		</aside>
 	);
 }

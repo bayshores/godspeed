@@ -23,7 +23,7 @@ import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../core/question-core.ts";
 import { isQuestionTool } from "../core/pending.ts";
 import { switchedOffToolsNote, TOGGLEABLE_TOOLS, type EnabledTools, type ToggleableTool } from "../core/tool-switches.ts";
-import { toLlmMessages, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
+import { toLlmMessages, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL } from "../core/native-messages.ts";
 
 /**
  * The agents: STUDY (every new session), the PROBER and the TEACHER (older
@@ -106,8 +106,8 @@ export interface AgentBuildOptions {
 	/** Native conversation identity: the existing persisted chat id, reused
 	 * across reconstructed prober, teacher, and practice Agents. */
 	chatId?: string;
-	/** The turn answers a side question: a question is already waiting, so
-	 *  the question tools refuse (sideTurnTools). */
+	/** The turn answers a side question: a question or problem is already
+	 *  waiting, so the question and problem tools refuse (sideTurnTools). */
 	sideTurn?: boolean;
 }
 
@@ -149,18 +149,18 @@ function makeQuestionStopper(kind: AgentKind) {
 	};
 }
 
-/** A side turn keeps the question tools (and a study's problem) but
- *  refuses them: an unchanged tool list keeps the outside agent's
- *  conversation a cheap delta instead of a full resend. */
+/** A side turn keeps the question tools, problem and conclude but refuses
+ *  them: an unchanged tool list keeps the outside agent's conversation a
+ *  cheap delta instead of a full resend. */
 function sideTurnTools(tools: AgentTool<any, any>[]): AgentTool<any, any>[] {
 	return tools.map((t) =>
-		isQuestionTool(t.name) || t.name === PRACTICE_PROBLEM_TOOL
+		isQuestionTool(t.name) || t.name === PRACTICE_PROBLEM_TOOL || t.name === PRACTICE_CONCLUDE_TOOL
 			? { ...t, execute: async () => ({ content: [{ type: "text" as const, text: SIDE_TURN_REFUSAL }], isError: true, details: undefined }) }
 			: t,
 	);
 }
 
-const SIDE_TURN_REFUSAL = "A question is already waiting for the learner. Answer the side question in text instead.";
+const SIDE_TURN_REFUSAL = "A question or problem is already waiting for the learner. Answer the side question in text instead.";
 
 function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: AgentTool<any, any>[]) {
 	// The handler always injects the engine; the outside agent is the fallback.

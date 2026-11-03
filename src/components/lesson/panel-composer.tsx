@@ -117,8 +117,9 @@ export function PanelComposer({
 }
 
 /**
- * The message box in compact form, under a waiting question: the learner
- * asks the teacher something on the side and the question stays. Pictures
+ * The message box in compact form, under a waiting question or practice
+ * problem: the learner asks the teacher something on the side and the
+ * question or problem stays. Pictures
  * and PDFs wait above it as in the message box; while the teacher replies,
  * Send becomes Stop. It waits behind an "Ask a side question" link so the
  * question gets the room, and stays open while there's a draft or a reply.
