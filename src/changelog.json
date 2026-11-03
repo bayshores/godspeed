@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.5.21",
+		"date": "2026-11-02",
+		"changes": [
+			"Short lessons now count toward being ready. What a lesson taught gets saved to your graph once it sits for 5 minutes, not only after a long stretch, so the questions you answered show up on your deadlines.",
+			"Lessons that were never saved get caught up as soon as your agent connects.",
+			"When a deadline has nothing linked, godspeed asks your agent to work out what's on it from your files, by itself. You'll see that request in Talk, from godspeed, not you."
+		]
+	},
+	{
 		"version": "0.5.20",
 		"date": "2026-11-02",
 		"changes": [

@@ -3,7 +3,7 @@
  *  GET  — the class's deadlines, soonest due first
  *  POST — add one { kind, name, date: "YYYY-MM-DD", time?: "HH:MM", fileIds?: string[] }
  */
-import { addClassDeadline, listClassDeadlines } from "@/server";
+import { addClassDeadline, askAboutNewDeadlines, listClassDeadlines } from "@/server";
 import { isClassId, type DeadlineKind } from "@/core";
 
 export const dynamic = "force-dynamic";
@@ -30,5 +30,7 @@ export async function POST(req: Request, { params }: Ctx) {
 		...(body.fileIds !== undefined ? { fileIds: body.fileIds as string[] } : {}),
 	});
 	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
+	// Nothing linked: the agent works out what it covers.
+	if (outcome.value.fileIds.length === 0) askAboutNewDeadlines();
 	return Response.json({ deadline: outcome.value }, { status: 201 });
 }

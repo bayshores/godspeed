@@ -45,6 +45,10 @@ const { waitingNotice } = await import("../src/components/agent-status.tsx");
 const { ActivitySection } = await import("../src/components/activity-dock.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../src/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../src/server/settings-body.ts");
+const { ServerEventsProvider } = await import("../src/components/server-events.tsx");
+const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+/** The panel listens for server events, as in the window. */
+const inEvents = (node: React.ReactNode) => <ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>;
 
 let host: HTMLElement | null = null;
 let root: Root | null = null;
@@ -57,7 +61,7 @@ function mount(node: React.ReactNode): HTMLElement {
 	host = document.createElement("div");
 	document.body.appendChild(host);
 	root = createRoot(host);
-	act(() => root!.render(node));
+	act(() => root!.render(inEvents(node)));
 	return host;
 }
 
@@ -287,7 +291,7 @@ describe("the Follow chip", () => {
 	});
 	it("a new line lifts the old one out", () => {
 		const el = mount(<FollowChipView following name="Halley" doing={reading} onFollow={() => {}} offer={null} onGo={() => {}} />);
-		act(() => root!.render(<FollowChipView following name="Halley" doing={{ text: "Adding HW 5", working: true }} onFollow={() => {}} offer={null} onGo={() => {}} />));
+		act(() => root!.render(inEvents(<FollowChipView following name="Halley" doing={{ text: "Adding HW 5", working: true }} onFollow={() => {}} offer={null} onGo={() => {}} />)));
 		assert.equal(el.querySelector(".lh-swap-out")?.textContent, "Reading 06_Counting.pdf");
 		assert.equal(el.querySelector("[data-testid='follow-doing'] .lh-swap-in")?.textContent, "Adding HW 5");
 	});

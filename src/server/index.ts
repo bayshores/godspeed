@@ -48,3 +48,4 @@ export { handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } 
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";
 export { agentSavedRules, editRule, removeRule } from "./agent-rules.ts";
 export { clearTalk, openTalk } from "./talk.ts";
+export { askAboutNewDeadlines } from "./agent-catch-up.ts";

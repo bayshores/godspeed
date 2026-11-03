@@ -49,6 +49,7 @@ import { CLASS_ICONS, parseClassScope, safeName, SIGNATURE_MAX, type ClassIcon, 
 import { CLASS_ARG_TEXT, CLASS_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, type ToolOutcome } from "../core/class-tools.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { handleChatInput } from "./chat-handler.ts";
+import { catchUpForAgent } from "./agent-catch-up.ts";
 import { extraction } from "./extraction.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { addCopiedFile, AGENT_FILE_READING_REFUSAL, replaceCopiedFile, unlinkFolder } from "./classes.ts";
@@ -316,7 +317,11 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
 			const agent = agentIdOf(ctx.mcpReq._meta);
 			stayOn(agent, lesson_id);
-			const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent, signal });
+			// Waiting counts the agent as working at once, so what godspeed queues
+			// for it now (catch-up) reaches this same wait.
+			const waiting = waitForWork(waitMs(timeout_seconds), { full: full_context, conversation: lesson_id, andBackground: true, agent, signal });
+			catchUpForAgent();
+			const view = await waiting;
 			return view ? workResult(view) : result(idle(caller));
 		},
 	);

@@ -24,6 +24,7 @@ import { planBlocksFor } from "../core/plan-blocks.ts";
 import { coverageOf } from "../core/coverage.ts";
 import type { ChatStore, GraphStore } from "../core/ports.ts";
 import type { ExtractionPipeline } from "../agent/subagents/extraction.ts";
+import { isTurnRunning } from "./turn-liveness.ts";
 
 /** Distinguish a failed canonical save from later bookkeeping failures. */
 export class TurnPersistenceError extends Error {
@@ -92,7 +93,8 @@ export function persistTurn(
 /**
  * The graph write channel (vision §1 construction): the extraction pipeline
  * (extractor → merger — the sole graph writer) runs ASYNC once a
- * chat's UNCOVERED transcript tokens reach the chunk budget. Coverage reads
+ * chat's UNCOVERED transcript tokens reach the chunk budget (less than
+ * that waits for the lesson to sit idle). Coverage reads
  * through the projection of the native record. Fire-and-forget — never blocks the turn;
  * failures are logged by the pipeline and leave coverage untouched, so the
  * next trigger (or the manual extract button) re-runs what's left.
@@ -112,11 +114,32 @@ export function triggerExtraction(
 		const record = deps.chatStore.getChat(chatId);
 		if (!record) return;
 		const covered = coverageOf(record.messages, deps.graphStore.readCoverage(), chatId);
-		if (covered.uncoveredTokens < chunkTokens) return;
-		void extraction.runExtraction(chatId).catch((err) => {
-			console.error(`[chat ${chatId}] extraction pipeline failed:`, err);
-		});
+		const timers = leftoverTimers();
+		clearTimeout(timers.get(chatId));
+		timers.delete(chatId);
+		if (covered.uncoveredTokens === 0) return;
+		const run = () =>
+			void extraction.runExtraction(chatId).catch((err) => {
+				console.error(`[chat ${chatId}] extraction pipeline failed:`, err);
+			});
+		if (covered.uncoveredTokens >= chunkTokens) return run();
+		// Less than a chunk: extract it once the lesson sits idle, so a short
+		// lesson's answers still count. A newer turn resets the wait.
+		const timer = setTimeout(() => {
+			timers.delete(chatId);
+			if (!isTurnRunning(chatId)) run();
+		}, LEFTOVER_IDLE_MS);
+		timer.unref?.();
+		timers.set(chatId, timer);
 	} catch (err) {
 		console.error(`[chat ${chatId}] extraction trigger failed:`, err);
 	}
+}
+
+/** How long a lesson sits idle before its last stretch (under a chunk) is extracted. */
+export const LEFTOVER_IDLE_MS = 5 * 60_000;
+
+function leftoverTimers(): Map<string, ReturnType<typeof setTimeout>> {
+	const g = globalThis as typeof globalThis & { __lhLeftoverTimers?: Map<string, ReturnType<typeof setTimeout>> };
+	return (g.__lhLeftoverTimers ??= new Map());
 }

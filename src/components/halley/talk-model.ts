@@ -1,12 +1,14 @@
 /**
- * The Talk thread as rows: the learner's messages, the teacher's replies,
- * and one row per change a tool made (from its result's details).
+ * The Talk thread as rows: the learner's messages, godspeed's own
+ * requests, the teacher's replies, and one row per change a tool made
+ * (from its result's details).
  */
-import type { AgentAction, ClassChange, LhViewMessage } from "@/core";
+import type { AgentAction, AppRequestDeadline, ClassChange, LhViewMessage } from "@/core";
 
 type TalkRow =
 	| { kind: "you"; id: string; text: string }
 	| { kind: "teacher"; id: string; text: string }
+	| { kind: "app"; id: string; deadlines: AppRequestDeadline[] }
 	| { kind: "change"; id: string; change: ClassChange };
 
 function changesOf(output: unknown): ClassChange[] {
@@ -20,6 +22,8 @@ export function talkRows(messages: readonly LhViewMessage[]): TalkRow[] {
 		m.parts.forEach((part, i) => {
 			const id = `${m.id}-${i}`;
 			if (part.type === "text" && part.text?.trim()) rows.push({ kind: m.role === "user" ? "you" : "teacher", id, text: part.text });
+			else if (part.type === "data-app-request")
+				rows.push({ kind: "app", id, deadlines: (part.data as { deadlines: AppRequestDeadline[] }).deadlines });
 			else if (m.role === "assistant" && part.type.startsWith("tool-"))
 				changesOf(part.output).forEach((change, n) => rows.push({ kind: "change", id: `${id}-${n}`, change }));
 		});
@@ -27,11 +31,23 @@ export function talkRows(messages: readonly LhViewMessage[]): TalkRow[] {
 	return rows;
 }
 
+/** Who a row is from (a change row belongs to the teacher). */
+export function speakerOf(row: TalkRow): "you" | "app" | "teacher" {
+	return row.kind === "you" || row.kind === "app" ? row.kind : "teacher";
+}
+
 /** Whether a row starts a new speaker's turn, so the script shows the name
- *  in the margin once per turn (a change row belongs to the teacher). */
+ *  in the margin once per turn. */
 export function startsTurn(rows: readonly TalkRow[], index: number): boolean {
-	const who = (row: TalkRow | undefined) => (row ? (row.kind === "you" ? "you" : "teacher") : null);
-	return who(rows[index]) !== who(rows[index - 1]);
+	const prev = rows[index - 1];
+	return !prev || speakerOf(rows[index]!) !== speakerOf(prev);
+}
+
+/** "Asked Marco to work out what's on Midterm (CSE 21) from your files." */
+export function appRequestText(teacher: string, deadlines: readonly AppRequestDeadline[]): string {
+	const names = deadlines.map((d) => `${d.name} (${d.className})`);
+	const list = names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+	return `Asked ${teacher} to work out what's on ${list} from your files.`;
 }
 
 /** The recorded action behind a change row (newest first), so a click can

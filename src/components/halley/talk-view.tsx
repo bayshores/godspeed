@@ -7,8 +7,9 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { agentWaiting, type AgentStatus } from "@/components/agent-status";
 import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
+import { useServerEvent } from "@/components/server-events";
 import { useChatSession } from "@/components/session";
-import { actionFor, startsTurn, talkRows } from "./talk-model";
+import { actionFor, appRequestText, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { pastLabel } from "./tour";
 
 interface TalkChat {
@@ -118,6 +119,12 @@ function TalkThread({
 		endRef.current?.scrollIntoView({ block: "end" });
 	}, [rows.length, session.status]);
 
+	// A turn godspeed started by itself (a request it made): show it as it runs.
+	const { resumeStream } = session;
+	useServerEvent("turn-started", (p) => {
+		if (p.chatId === chat.id && !busy) resumeStream();
+	});
+
 	const { send: sendMessage } = session;
 	const sendText = useCallback(
 		(message: string) => {
@@ -165,12 +172,19 @@ function TalkThread({
 				)}
 				{rows.map((row, i) => {
 					const first = startsTurn(rows, i);
-					const who = first ? (row.kind === "you" ? "You" : name) : "";
+					const speaker = speakerOf(row);
+					const who = first ? (speaker === "you" ? "You" : speaker === "app" ? "godspeed" : name) : "";
 					let body: React.ReactNode;
 					if (row.kind === "you")
 						body = (
 							<p data-testid="talk-you" className="text-[14px] leading-5 whitespace-pre-wrap break-words text-ink">
 								{row.text}
+							</p>
+						);
+					else if (row.kind === "app")
+						body = (
+							<p data-testid="talk-app" className="text-[14px] leading-5 text-ink-2">
+								{appRequestText(name, row.deadlines)}
 							</p>
 						);
 					else if (row.kind === "teacher")

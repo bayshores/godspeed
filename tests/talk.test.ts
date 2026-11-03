@@ -32,7 +32,7 @@ const { openTalk, clearTalk } = await import("../src/server/talk.ts");
 const { classActions } = await import("../src/server/class-actions.ts");
 const { clearAgentActions, recentAgentActions } = await import("../src/server/agent-actions.ts");
 const { talkTools } = await import("../src/agent/tools/talk.ts");
-const { actionFor, talkRows } = await import("../src/components/halley/talk-model.ts");
+const { actionFor, appRequestText, speakerOf, startsTurn, talkRows } = await import("../src/components/halley/talk-model.ts");
 const { composeInstructions } = await import("../src/agent/teacher-agent.ts");
 const { buildCompactionPrompt } = await import("../src/core/compaction.ts");
 type ClassActions = import("../src/core/class-tools.ts").ClassActions;
@@ -62,6 +62,7 @@ describe("the Talk rows", () => {
 	it("your messages, the teacher's replies, and one row per change", () => {
 		const rows = talkRows([
 			{ id: "u1", role: "user", parts: [{ type: "text", text: "Add CSE 21" }] },
+			{ id: "g1", role: "user", parts: [{ type: "data-app-request", id: "ar_g1", data: { deadlines: [{ id: "d1", name: "Midterm", className: "CSE 21" }] } }] },
 			{
 				id: "a1",
 				role: "assistant",
@@ -74,13 +75,27 @@ describe("the Talk rows", () => {
 			},
 		] as never);
 		assert.deepEqual(
-			rows.map((r) => [r.kind, r.kind === "change" ? r.change.label : r.text]),
+			rows.map((r) => [r.kind, r.kind === "change" ? r.change.label : r.kind === "app" ? r.deadlines[0]!.name : r.text]),
 			[
 				["you", "Add CSE 21"],
+				["app", "Midterm"],
 				["change", "Creating CSE 21"],
 				["teacher", "Done, CSE 21 is set up."],
 			],
 		);
+	});
+	it("godspeed's own requests are their own speaker, and say what was asked", () => {
+		const rows = talkRows([
+			{ id: "u1", role: "user", parts: [{ type: "text", text: "hi" }] },
+			{ id: "g1", role: "user", parts: [{ type: "data-app-request", id: "ar_g1", data: { deadlines: [] } }] },
+			{ id: "a1", role: "assistant", parts: [{ type: "text", text: "On it." }] },
+		] as never);
+		assert.deepEqual(rows.map(speakerOf), ["you", "app", "teacher"]);
+		assert.deepEqual(rows.map((_, i) => startsTurn(rows, i)), [true, true, true]);
+		const one = [{ id: "d1", name: "Midterm", className: "CSE 21" }];
+		assert.equal(appRequestText("Marco", one), "Asked Marco to work out what's on Midterm (CSE 21) from your files.");
+		const three = [...one, { id: "d2", name: "HW 5", className: "CSE 21" }, { id: "d3", name: "Final", className: "CSE 29" }];
+		assert.equal(appRequestText("Marco", three), "Asked Marco to work out what's on Midterm (CSE 21), HW 5 (CSE 21) and Final (CSE 29) from your files.");
 	});
 	it("a change row opens its recorded action while it is still recent", () => {
 		const action: AgentAction = { id: "x", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Creating CSE 21", classId: "c", target: null, page: "/class" };

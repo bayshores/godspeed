@@ -96,7 +96,8 @@ export interface LhMarkerMessage {
 		| "practice-thinking"
 		| "practice-next"
 		| "problem-dismissed"
-		| "compaction";
+		| "compaction"
+		| "app-request";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
 	/** Model-facing files after the text: a thinking submission's pictures and PDF notes. */
@@ -436,6 +437,28 @@ export function newTodayContextMessage(text: string, day: string): LhMarkerMessa
 		content: text,
 		display: false,
 		details: { day },
+		timestamp: Date.now(),
+	};
+}
+
+/** A deadline an app request asks about. */
+export interface AppRequestDeadline {
+	id: string;
+	name: string;
+	className: string;
+}
+
+/** A request godspeed makes in Talk by itself, not the learner (work out
+ *  what deadlines with nothing linked cover). `details.deadlines` is what
+ *  the Talk row shows, and lets the app ask about each deadline once. */
+export function newAppRequestMessage(text: string, deadlines: readonly AppRequestDeadline[]): LhMarkerMessage {
+	return {
+		id: newMessageId(),
+		role: "custom",
+		customType: "app-request",
+		content: `[From godspeed, not the learner] ${text}`,
+		display: true,
+		details: { deadlines: [...deadlines] },
 		timestamp: Date.now(),
 	};
 }
