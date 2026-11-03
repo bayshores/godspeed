@@ -22,10 +22,12 @@ LEARNING_TOOLS = QUESTION_TOOLS | {"problem", "conclude", "probe_done", "plan_in
 OPERATION_TOOLS = {
     "read", "ls", "grep", "find", "bash", "write", "edit", "list_sessions",
     "list_propositions", "get_session", "get_proposition", "search", "web_search", "web_fetch",
+    "read_class", "search_class_files", "read_passage", "work_plan",
 }
 MARKERS = {
     "graph-context", "probe-handoff", "subagent-steer", "subagent-abort", "plan-block",
     "practice-thinking", "practice-next", "problem-dismissed", "compaction",
+    "class-context", "today-context", "app-request",
 }
 ACCOUNTING = {
     "provider", "api", "model", "usage", "stopReason", "thinkingSignature",
