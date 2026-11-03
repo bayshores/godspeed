@@ -415,6 +415,19 @@ body {
 	overflow-y: hidden;
 }
 
+/* Inline math: a piece too wide to break scrolls too, since message
+ * bodies hide overflow. Each base is the unbreakable run, so lines still
+ * wrap between them; baseline-source keeps the scroller on the text line,
+ * and padding offset by margin keeps glyph overhang from being clipped. */
+:not(.katex-display) > .katex .katex-base {
+	max-width: 100%;
+	overflow-x: auto;
+	overflow-y: hidden;
+	baseline-source: last;
+	padding: 0.5em 0.2em;
+	margin: -0.5em -0.2em;
+}
+
 /* ============================================================
  * Chrome melt — tables and code blocks are not boxes: blocks read as
  * part of the message. These rules override

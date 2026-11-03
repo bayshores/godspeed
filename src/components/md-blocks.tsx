@@ -38,8 +38,7 @@ import { blurAfterPointerClick } from "@/components/focus-hygiene";
 import { CopyButton } from "@/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/components/session-overlay";
 import { Hint } from "@/components/ui/hint";
-import { useAppearance } from "@/components/settings/appearance";
-import { wantsDarkText } from "@/core";
+import { useLightBackground } from "@/components/settings/appearance";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
 
@@ -86,8 +85,8 @@ export function codeSource(children: ReactNode): string {
 	return "";
 }
 
-/** Mermaid, in the message flow: the bare chart (dark theme, rendered via
- *  the app's own plugin — src/components/mermaid-render.ts), the hover corner
+/** Mermaid, in the message flow: the bare chart (themed for the background,
+ *  rendered via the app's own plugin — src/components/mermaid-render.ts), the hover corner
  *  with copy + expand, the house error fallback. No container chrome, no
  *  zoom pill — the zoom/pan home is the session overlay. While the fence is
  *  still streaming (the trailing open fence), a quiet skeleton instead of a
@@ -98,6 +97,7 @@ function MermaidInline({ chart }: { chart: string }) {
 	const [attempt, setAttempt] = useState(0);
 	const overlay = useSessionMermaid();
 	const incomplete = useIsCodeFenceIncomplete();
+	const light = useLightBackground();
 	// The font-parity cap: the house CSS
 	// (`max-width: 100% !important`) overrides mermaid's own natural-size cap,
 	// so a chart would otherwise stretch to the full column and render its
@@ -120,7 +120,7 @@ function MermaidInline({ chart }: { chart: string }) {
 		let cancelled = false;
 		setSvg(null);
 		setError(null);
-		renderMermaid(chart)
+		renderMermaid(chart, light)
 			.then((s) => {
 				if (!cancelled) setSvg(s);
 			})
@@ -130,7 +130,7 @@ function MermaidInline({ chart }: { chart: string }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [chart, attempt, incomplete]);
+	}, [chart, attempt, incomplete, light]);
 
 	if (incomplete || (svg === null && error === null)) {
 		return (
@@ -189,8 +189,7 @@ const LIGHT_TOKENS = "[&_[style*='--sdm-c']]:text-(--sdm-c)!";
  *  (data-streamdown="code-block"…). */
 function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const incomplete = useIsCodeFenceIncomplete();
-	const { background } = useAppearance().appearance;
-	const light = background !== null && wantsDarkText(background);
+	const light = useLightBackground();
 	const { children, className, node, ...rest } = props;
 
 	// Inline code: no data-block (the pre handler stamps block fences only).

@@ -3,6 +3,7 @@ import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/components/pan-zoom-viewport";
 import { renderMermaid } from "@/components/mermaid-render";
+import { useLightBackground } from "@/components/settings/appearance";
 import { MermaidError } from "@/components/mermaid-error";
 import { Hint } from "@/components/ui/hint";
 import { SvgImage } from "@/components/artifacts/svg-image";
@@ -84,6 +85,7 @@ export function MermaidOverlay({
 	const [svg, setSvg] = useState<string | null>(rawSvg ?? null);
 	const [error, setError] = useState<string | null>(null);
 	const [attempt, setAttempt] = useState(0);
+	const light = useLightBackground();
 	useEffect(() => {
 		if (rawSvg !== undefined) {
 			setSvg(rawSvg);
@@ -94,7 +96,7 @@ export function MermaidOverlay({
 		let cancelled = false;
 		setSvg(null);
 		setError(null);
-		renderMermaid(chart)
+		renderMermaid(chart, light)
 			.then((s) => {
 				if (!cancelled) setSvg(s);
 			})
@@ -104,7 +106,7 @@ export function MermaidOverlay({
 		return () => {
 			cancelled = true;
 		};
-	}, [rawSvg, chart, attempt]);
+	}, [rawSvg, chart, attempt, light]);
 
 	// Esc closes, claimed at the document level: one Esc, one action; the window chain
 	// (abort) never fires under a surfaced layer.

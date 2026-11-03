@@ -16,6 +16,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MessageResponse } from "../src/components/ai-elements/message.tsx";
+import { Reasoning, ReasoningTrigger } from "../src/components/ai-elements/reasoning.tsx";
 import { QuestionDock } from "../src/components/question-dock.tsx";
 import { ProbeDoneCard } from "../src/components/artifacts/probe-done-card.tsx";
 import { DispatchCard } from "../src/components/artifacts/dispatch-card.tsx";
@@ -288,6 +289,11 @@ describe("render smoke tests", () => {
 		assert.ok(html.includes('data-testid="answered-other"'), "the Other answer is a row");
 		assert.match(html, /shaky on applications/, "the typed words render");
 		assert.ok(html.indexOf("answered-said") < html.indexOf("answered-other"), "inside the answer list");
+	});
+
+	it("the agent's settled thinking is labeled in sentence case, like the learner's", () => {
+		const html = renderToStaticMarkup(<Reasoning isStreaming={false}><ReasoningTrigger /></Reasoning>);
+		assert.match(html, /Agent’s thinking/);
 	});
 
 	it("AnsweredCard promotes the learner's thinking to a first-class block", () => {

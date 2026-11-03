@@ -195,6 +195,14 @@ describe("the panel", () => {
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
+	it("a Talk message no agent has taken says it waits once, in the head", async () => {
+		talkChat = { id: "chat_talk", turnInFlight: true, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
+		const el = mount(panel({ agent: { connected: false, teaching: false, pendingWork: 1, claimedLessons: [] } }));
+		await settle();
+		assert.ok(el.querySelector("[data-testid='talk-you']"), "the thread is open");
+		assert.equal(el.textContent!.split("Waiting for your agent").length - 1, 1);
+		talkChat = null;
+	});
 	it("Now shows what it is doing, and hides while it is idle", () => {
 		assert.match(onActivity().querySelector("[data-testid='halley-now']")?.textContent ?? "", /^Reading syllabus\.pdf2 of 5$/);
 		act(() => root?.unmount());

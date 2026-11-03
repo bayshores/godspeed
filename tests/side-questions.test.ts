@@ -29,9 +29,11 @@ const {
 	newSideQuestion,
 	newUserMessage,
 	parseChatInput,
+	phaseTimeline,
 	projectView,
 	SIDE_ANSWER_LEAD,
 	SIDE_PENDING_TEXT,
+	teachStepIndex,
 	toLlmMessages,
 } = await import("../src/core/index.ts");
 type LhMessage = import("../src/core/index.ts").LhMessage;
@@ -87,6 +89,13 @@ describe("the open question survives side questions (danglingQuestionOf)", () =>
 		const record = [...start, newSideQuestion("why?"), reply("a2", "Because.")];
 		assert.equal(findPendingToolCall(projectView(record))?.toolCallId, "q1");
 	});
+
+	it("a plain message interrupts it, for the server and the client alike", () => {
+		const sent = [...start, newUserMessage("hi")];
+		assert.equal(danglingQuestionOf(sent), null, "before the reply");
+		assert.equal(findPendingToolCall(projectView(sent)), null);
+		assert.equal(findPendingToolCall(projectView([...sent, reply("a2", "Hello.")])), null, "after the reply");
+	});
 });
 
 describe("the lesson view after side questions (projectView)", () => {
@@ -96,13 +105,26 @@ describe("the lesson view after side questions (projectView)", () => {
 
 	it("the answered card shows where the answer happened, above the teacher's reaction", () => {
 		const view = projectView([...asked, answer("q1"), reply("a3", "Right.")]);
-		assert.deepEqual(kinds(view), ["text", "text", "text", "text,tool-quiz,text"]);
+		assert.deepEqual(kinds(view), ["text", "text,tool-quiz", "text", "text,tool-quiz,text"]);
+		assert.equal(view[1]!.parts.find((p) => p.type === "tool-quiz")!.state, "moved", "only a trace stays where it was asked");
 		assert.equal(view[3]!.parts.find((p) => p.type === "tool-quiz")!.state, "output-available");
 	});
 
 	it("while it waits, the question stays in its own place (the panel shows it)", () => {
 		const view = projectView(asked);
 		assert.deepEqual(kinds(view), ["text", "text,tool-quiz", "text", "text"]);
+	});
+
+	it("the Teaching divider stays above the block that asked the first question", () => {
+		const probeDone = assistant("p1", [{ type: "toolCall", id: "pd", name: "probe_done", arguments: {} }]);
+		const probeResult = { ...newAnswerResult("pd", "probe_done", { ok: true }), toolName: "probe_done" } as LhMessage;
+		const record = [newUserMessage("teach me planets"), probeDone, probeResult, newUserMessage("go ahead"), teach, newSideQuestion("why?"), reply("a2", "Because."), answer("q1"), reply("a3", "Right.")];
+		const view = projectView(record);
+		const teachAt = view.findIndex((m) => m.id === "a1");
+		const phases = phaseTimeline(view);
+		assert.equal(phases[teachAt - 1], "plan");
+		assert.equal(phases[teachAt], "teach");
+		assert.equal(teachStepIndex(view[teachAt]!.parts), -1, "the divider sits before the whole block");
 	});
 });
 
