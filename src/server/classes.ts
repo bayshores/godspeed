@@ -62,7 +62,7 @@ const fail = (status: number, code: string, error: string): { ok: false; status:
 /** The extraction_running refusal for the outside agent: the file's reading is a work item
  *  waiting for that same agent, so it only finishes once the agent answers it. */
 export const AGENT_FILE_READING_REFUSAL =
-	"This file is still being turned into facts, and that work waits for you. Answer its work item with wait_for_work (or the waiter), then try again.";
+	"This file is still being turned into facts, and that work waits for you. Get that work item with wait_for_work (or the waiter), answer it, then try again.";
 
 /** The class scope a request names with ?class=<id|none> (absent = No
  *  class). undefined = malformed, or a class that doesn't exist. */

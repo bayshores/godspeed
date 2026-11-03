@@ -334,7 +334,7 @@ export function readPassage(classId: string, ref: PassageRef): string {
 		picked = point === null ? [] : rows.filter((r) => r.fileId === ref.fileId && r.from <= point && point <= r.to);
 		if (picked.length === 0) {
 			const inFile = rows.filter((r) => r.fileId === ref.fileId);
-			if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. File ids come from read_class.`;
+			if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. A file id is the part of a passage id before the ":" (or from read_class with files: true).`;
 			return `No passage of file "${ref.fileId}" at "${ref.range}". Its passages run from "${inFile[0]!.range}" to "${inFile.at(-1)!.range}".`;
 		}
 	}
