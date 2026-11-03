@@ -71,7 +71,8 @@ function getChat(id: string): ChatRecord | null {
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(fs.readFileSync(chatFile(id), "utf-8"));
-	} catch {
+	} catch (err) {
+		if (err instanceof SyntaxError) console.error(`[chat ${id}] record is not valid JSON; skipping it`);
 		return null;
 	}
 	if (!isRecord(parsed) || !isString(parsed.id) || !isString(parsed.updatedAt) || !Array.isArray(parsed.messages)) {
@@ -113,7 +114,8 @@ function listChats(): ChatSummary[] {
 			.readdirSync(PATHS.chats)
 			.filter((f) => f.endsWith(".json"))
 			.map((f) => f.slice(0, -5));
-		for (const cached of summaryCache.keys()) if (!ids.includes(cached)) summaryCache.delete(cached);
+		const present = new Set(ids);
+		for (const cached of summaryCache.keys()) if (!present.has(cached)) summaryCache.delete(cached);
 		return ids
 			.map((id) => {
 				const version = chatVersion(id);

@@ -196,6 +196,8 @@ export async function deleteClass(id: string): Promise<ClassOutcome<{ lessonIds:
 	stores.classStore.deleteClass(id);
 	forgetGraphStore(id);
 	forgetClassSearch(id);
+	folderScans.delete(id);
+	seenFiles.delete(id);
 	return { ok: true, value: { lessonIds } };
 }
 
@@ -491,7 +493,9 @@ const SETTLE_MS = 30_000;
 export function scanLinkedFolder(classId: string, { linking = false }: { linking?: boolean } = {}): void {
 	const running = triaging.get(classId);
 	if (running) {
-		void running.then(() => scanLinkedFolder(classId, { linking }));
+		void running
+			.then(() => scanLinkedFolder(classId, { linking }))
+			.catch((err: unknown) => console.error(`[classes] folder scan of ${classId} failed:`, err));
 		return;
 	}
 	const record = stores.classStore.getClass(classId);

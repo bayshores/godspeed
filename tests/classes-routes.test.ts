@@ -918,10 +918,19 @@ describe("lessons in classes", () => {
 	it("deleting a class removes its lessons and folder", async () => {
 		const id = await makeClass("Doomed");
 		const lesson = await (await chatsRoute.POST(json("/api/chats", "POST", { title: "Gone", classId: id }))).json();
-		const res = await classRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
-		assert.equal(res.status, 200);
-		assert.deepEqual((await res.json()).lessonIds, [lesson.id]);
-		assert.equal(stores.chatStore.getChat(lesson.id), null);
-		assert.equal(fs.existsSync(path.join(TMP_DATA, "classes", id)), false);
+		const folder = fs.mkdtempSync(path.join(os.tmpdir(), "lh-classes-doomed-"));
+		try {
+			await folderRoute.PUT(json("/x", "PUT", { path: folder }), ctx({ id }));
+			assert.notEqual(server.folderStatusOf(id).checkedAt, null);
+			const res = await classRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
+			assert.equal(res.status, 200);
+			assert.deepEqual((await res.json()).lessonIds, [lesson.id]);
+			assert.equal(stores.chatStore.getChat(lesson.id), null);
+			assert.equal(fs.existsSync(path.join(TMP_DATA, "classes", id)), false);
+			assert.equal(fs.existsSync(folder), true, "a linked folder is never touched");
+			assert.equal(server.folderStatusOf(id).checkedAt, null, "its folder scan is forgotten");
+		} finally {
+			fs.rmSync(folder, { recursive: true, force: true });
+		}
 	});
 });
