@@ -519,7 +519,7 @@ export async function handleChatInput(
 					// Fresh per-turn read of the graph section's chunk budget: the
 					// trigger compares against it and the pipeline's batches share it.
 					triggerExtraction(
-						{ chatStore: stores.chatStore, graphStore: graphStoreFor(record.classId ?? null) },
+						{ chatStore: stores.chatStore, graphStore: graphStoreFor(record.classId ?? null), graphOn: () => effectiveSettings().graph.enabled },
 						extraction,
 						chatId,
 						effective.graph.extractionChunkTokens,

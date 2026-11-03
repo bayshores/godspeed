@@ -18,7 +18,7 @@ function teacher(id: string, text: string): LhMessage {
 
 /** A lesson record plus its coverage ledger, and an extraction that records each run. */
 function fixture(messages: LhMessage[]) {
-	const state = { messages, coverage: [] as CoverageEntry[], deleted: false };
+	const state = { messages, coverage: [] as CoverageEntry[], deleted: false, graphOn: true };
 	const chatStore = { getChat: (id: string) => (id === CHAT && !state.deleted ? { id, messages: state.messages } : null) } as unknown as ChatStore;
 	const graphStore = { readCoverage: () => state.coverage } as unknown as GraphStore;
 	const calls: string[] = [];
@@ -31,7 +31,7 @@ function fixture(messages: LhMessage[]) {
 	const coverAll = () => {
 		state.coverage = coverageSlots(state.messages).map((s) => ({ chatId: CHAT, fp: s.fp, tokens: s.tokens, foldedAt: "" }));
 	};
-	return { state, deps: { chatStore, graphStore }, extraction, calls, coverAll };
+	return { state, deps: { chatStore, graphStore, graphOn: () => state.graphOn }, extraction, calls, coverAll };
 }
 
 describe("the leftover idle timer", () => {
@@ -49,6 +49,14 @@ describe("the leftover idle timer", () => {
 		assert.deepEqual(f.calls, []);
 		mock.timers.tick(1);
 		assert.deepEqual(f.calls, [CHAT]);
+	});
+
+	it("does nothing when the knowledge graph was switched off during the wait", () => {
+		const f = fixture([teacher("m1", "A short answer.")]);
+		extractWhenIdle(f.deps, f.extraction, CHAT, LEFTOVER_IDLE_MS);
+		f.state.graphOn = false;
+		mock.timers.tick(LEFTOVER_IDLE_MS);
+		assert.deepEqual(f.calls, []);
 	});
 
 	it("waits again while the lesson's extraction is still running, then sweeps what landed meanwhile", () => {

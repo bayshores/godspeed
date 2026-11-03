@@ -31,7 +31,7 @@ function catchUpLessons(now: number): void {
 		const graphStore = graphStoreFor(record.classId ?? null);
 		if (coverageOf(record.messages, graphStore.readCoverage(), id).uncoveredTokens === 0) continue;
 		const idleFor = now - Date.parse(record.updatedAt);
-		if (idleFor < LEFTOVER_IDLE_MS) extractWhenIdle({ chatStore: stores.chatStore, graphStore }, extraction, id, LEFTOVER_IDLE_MS - idleFor);
+		if (idleFor < LEFTOVER_IDLE_MS) extractWhenIdle({ chatStore: stores.chatStore, graphStore, graphOn: () => effectiveSettings().graph.enabled }, extraction, id, LEFTOVER_IDLE_MS - idleFor);
 		else void extraction.runExtraction(id).catch((err: unknown) => console.error(`[catch-up] extraction failed for ${id}:`, err));
 	}
 }

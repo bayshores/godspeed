@@ -105,7 +105,7 @@ export function persistTurn(
  * knowledge (the pipeline itself is tested directly with mock models).
  */
 export function triggerExtraction(
-	deps: { chatStore: ChatStore; graphStore: GraphStore },
+	deps: LeftoverDeps,
 	extraction: ExtractionPipeline,
 	chatId: string,
 	chunkTokens: number,
@@ -123,11 +123,18 @@ export function triggerExtraction(
 	}
 }
 
+interface LeftoverDeps {
+	chatStore: ChatStore;
+	graphStore: GraphStore;
+	/** Read when the wait ends: the knowledge graph may be switched off by then. */
+	graphOn: () => boolean;
+}
+
 /** Extract what the lesson has left after `delayMs`, unless a newer call
  *  resets the wait. A turn or an extraction still going pushes it back
  *  (a run already going would ignore the request). */
 export function extractWhenIdle(
-	deps: { chatStore: ChatStore; graphStore: GraphStore },
+	deps: LeftoverDeps,
 	extraction: ExtractionPipeline,
 	chatId: string,
 	delayMs: number,
@@ -137,6 +144,7 @@ export function extractWhenIdle(
 	const timer = setTimeout(() => {
 		timers.delete(chatId);
 		try {
+			if (!deps.graphOn()) return;
 			if (isTurnRunning(chatId) || runs().inFlight.has(chatId)) return extractWhenIdle(deps, extraction, chatId, LEFTOVER_IDLE_MS);
 			if (uncoveredTokens(deps, chatId) > 0) runExtraction(extraction, chatId);
 		} catch (err) {
