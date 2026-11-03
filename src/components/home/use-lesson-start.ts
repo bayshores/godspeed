@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { DeadlineProgress, GraphContextPick } from "@/core";
+import type { ChatAttachment, DeadlineProgress, GraphContextPick } from "@/core";
 import { useClasses } from "@/components/class-context";
+import { holdStartFiles } from "@/components/lesson/start-files";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
@@ -18,8 +19,9 @@ type StartBody =
  * Graph, the Overview) goes through here, in the active class. The lesson
  * runs on the outside agent; with no agent connected it waits in the agent
  * queue (the lesson shows "Waiting for your agent"). The session's title,
- * as the server returns it, is its first message. A start that fails sets
- * `error` for the screen to show.
+ * as the server returns it, is its first message, with any pictures and
+ * PDFs added to the topic. A start that fails sets `error` for the screen
+ * to show.
  */
 export function useLessonStart() {
 	const router = useRouter();
@@ -28,7 +30,7 @@ export function useLessonStart() {
 	const [error, setError] = useState<string | null>(null);
 
 	const post = useCallback(
-		async (body: StartBody) => {
+		async (body: StartBody, files: readonly ChatAttachment[] = []) => {
 			if (busy) return;
 			setBusy(true);
 			setError(null);
@@ -40,6 +42,7 @@ export function useLessonStart() {
 				});
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const { id, title } = (await res.json()) as { id: string; title: string };
+				holdStartFiles(id, files);
 				router.push(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 			} catch {
 				setBusy(false);
@@ -49,11 +52,11 @@ export function useLessonStart() {
 		[busy, active, router],
 	);
 
-	/** Study a typed topic, with any facts picked for it. */
+	/** Study a typed topic, with any facts picked for it and any files added. */
 	const start = useCallback(
-		(req: { title: string; picks?: readonly GraphContextPick[] }) => {
+		(req: { title: string; picks?: readonly GraphContextPick[]; files?: readonly ChatAttachment[] }) => {
 			const title = req.title.trim();
-			if (title) return post({ title, ...(req.picks && req.picks.length > 0 ? { graphContext: { propositions: req.picks } } : {}) });
+			if (title) return post({ title, ...(req.picks && req.picks.length > 0 ? { graphContext: { propositions: req.picks } } : {}) }, req.files);
 		},
 		[post],
 	);

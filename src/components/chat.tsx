@@ -50,6 +50,7 @@ import { LessonTopBar } from "@/components/lesson/lesson-top-bar";
 import { ReadingPane } from "@/components/lesson/reading-pane";
 import { YourTurnPanel } from "@/components/lesson/your-turn-panel";
 import { useAttachmentDraft } from "@/components/lesson/attachment-tray";
+import { takeStartFiles } from "@/components/lesson/start-files";
 import { useHalley, useHalleyLesson } from "@/components/halley/halley-provider";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
@@ -108,18 +109,20 @@ export function Chat({
 	const [arrivalsLive, setArrivalsLive] = useState(false);
 	useEffect(() => setArrivalsLive(true), []);
 
-	// A new lesson with a topic sends its first message exactly once. The
-	// topic then leaves the address, which a remount with the first render's
-	// props (a cached page, a code reload) checks, so it can't send it again.
+	// A new lesson with a topic sends its first message exactly once, with
+	// any files added on the start page. The topic then leaves the address,
+	// which a remount with the first render's props (a cached page, a code
+	// reload) checks, so it can't send it again.
 	const sentInitial = useRef(false);
 	useEffect(() => {
 		const inAddress = new URLSearchParams(window.location.search).has("prompt");
 		if (!sentInitial.current && inAddress && initialPromptOwed(initialMessages, initialPrompt)) {
 			sentInitial.current = true;
-			void send({ type: "text", text: initialPrompt! });
+			const files = takeStartFiles(chatId);
+			void send({ type: "text", text: initialPrompt!, ...(files.length > 0 ? { attachments: [...files] } : {}) });
 			window.history.replaceState(null, "", window.location.pathname);
 		}
-	}, [initialPrompt, initialMessages, send]);
+	}, [chatId, initialPrompt, initialMessages, send]);
 
 	// Mount continuation: a record ending on a fulfilled tool (a job result
 	// landed with no client open) resumes the lesson — once, and never while

@@ -16,6 +16,7 @@ import { homeSuggestions } from "@/components/home/suggestions-model";
 import { TopicBox } from "@/components/home/topic-box";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { useLessonStep } from "@/components/home/use-lesson-step";
+import { useAttachmentDraft } from "@/components/lesson/attachment-tray";
 
 /**
  * THE START PAGE ("/new"): where every study session starts (the
@@ -39,6 +40,7 @@ export function NewLesson() {
 	 * write, so a closure never sees a stale draft. */
 	const topicRef = useRef("");
 	const [picks, setPicks] = useState<GraphContextPick[]>([]);
+	const attachments = useAttachmentDraft();
 	const [pickerOpen, setPickerOpen] = useState(false);
 	// Picks belong to one class's graph — switching class clears them.
 	useEffect(() => setPicks([]), [activeClassId]);
@@ -52,7 +54,7 @@ export function NewLesson() {
 	useRiseOnChange(viewRef, activeClassId);
 
 	const { start, studyTopics, studyDeadline } = lesson;
-	const startTopic = () => void start({ title: topicRef.current, picks });
+	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
 	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
 	const studyTopic = useCallback((t: TopicProgress) => void studyTopics([t.id]), [studyTopics]);
 
@@ -91,6 +93,7 @@ export function NewLesson() {
 							canPick={(snapshot?.propositions.length ?? 0) > 0}
 							onOpenPicker={() => setPickerOpen(true)}
 							onClearPicks={() => setPicks([])}
+							attachments={attachments}
 						/>
 						<NoAgentLine className="mt-3" />
 						{lesson.error && (

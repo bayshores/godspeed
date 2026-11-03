@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { PlusIcon, XIcon } from "lucide-react";
+import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "@/components/lesson/attachment-tray";
 
 /** Enter starts the lesson; Shift+Enter is a new line, and an IME
  *  composition's Enter only confirms the text. */
@@ -10,7 +11,9 @@ export function isStartKey(e: { key: string; shiftKey: boolean; isComposing?: bo
 /**
  * The topic box: the learner's topic, then "Start from facts" (opens the
  * fact picker; with picks it shows the count and a clear button) and the
- * white Study button. Enter starts, Shift+Enter is a new line.
+ * white Study button. Enter starts, Shift+Enter is a new line. Pictures
+ * and PDFs (paste, drop or the picture button) wait above the topic, as in
+ * the lesson box, and go with the first message.
  */
 export function TopicBox({
 	text,
@@ -22,6 +25,7 @@ export function TopicBox({
 	canPick,
 	onOpenPicker,
 	onClearPicks,
+	attachments,
 }: {
 	text: string;
 	onText: (text: string) => void;
@@ -34,6 +38,7 @@ export function TopicBox({
 	canPick: boolean;
 	onOpenPicker: () => void;
 	onClearPicks: () => void;
+	attachments: AttachmentDraft;
 }) {
 	const empty = !text.trim();
 	return (
@@ -45,7 +50,11 @@ export function TopicBox({
 				if (empty) inputRef?.current?.focus();
 				else onStart();
 			}}
+			{...attachmentInputProps(attachments)}
 		>
+			<div className="px-[18px]">
+				<AttachmentTray draft={attachments} />
+			</div>
 			<textarea
 				ref={inputRef}
 				data-testid="home-topic-input"
@@ -93,15 +102,18 @@ export function TopicBox({
 						</button>
 					)}
 				</div>
-				<button
-					type="submit"
-					data-testid="home-start"
-					aria-disabled={empty || busy}
-					disabled={busy}
-					className="lh-press flex shrink-0 items-center gap-2 bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
-				>
-					Study
-				</button>
+				<div className="flex shrink-0 items-end">
+					<AttachButton draft={attachments} />
+					<button
+						type="submit"
+						data-testid="home-start"
+						aria-disabled={empty || busy}
+						disabled={busy}
+						className="lh-press flex shrink-0 items-center gap-2 self-stretch bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
+					>
+						Study
+					</button>
+				</div>
 			</div>
 		</form>
 	);

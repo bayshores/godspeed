@@ -33,6 +33,8 @@ const { TopicBox, isStartKey } = await import("../src/components/home/topic-box.
 const { SuggestionList } = await import("../src/components/home/suggestions.tsx");
 const { DeadlineStarts } = await import("../src/components/home/deadline-starts.tsx");
 const { useLessonStart } = await import("../src/components/home/use-lesson-start.ts");
+const { takeStartFiles } = await import("../src/components/lesson/start-files.ts");
+const NO_FILES = { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {}, restore: () => {} };
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
@@ -101,6 +103,7 @@ function box(props: Partial<React.ComponentProps<typeof TopicBox>> = {}) {
 			canPick
 			onOpenPicker={() => {}}
 			onClearPicks={() => {}}
+			attachments={NO_FILES}
 			{...props}
 		/>,
 	);
@@ -133,6 +136,16 @@ describe("Home: the topic box", () => {
 
 	it("no facts in the class: Start from facts is disabled", () => {
 		assert.match(box({ canPick: false }), /data-testid="facts-picks-chip"[^>]*disabled/);
+	});
+
+	it("takes pictures and PDFs like the lesson box: a picture button beside Study and the files above the topic", () => {
+		const empty = box();
+		assert.match(empty, /aria-label="Add pictures or PDFs"/);
+		assert.ok(empty.indexOf('data-testid="attach-button"') < empty.indexOf('data-testid="home-start"'), "beside Study, before it");
+		assert.doesNotMatch(empty, /attachment-tray/);
+		const html = box({ attachments: { ...NO_FILES, files: [{ id: "f1", attachment: { name: "hw4.png", mimeType: "image/png", data: "QUJD" } }] } });
+		assert.ok(html.indexOf('data-testid="attachment-tray"') < html.indexOf("<textarea"), "the files wait above the topic");
+		assert.match(html, /aria-label="Remove hw4\.png"/);
 	});
 });
 
@@ -303,6 +316,20 @@ describe("Home: actions", () => {
 			assert.deepEqual(sent.at(-1), { topicIds: ["t1", "t2"] });
 			assert.deepEqual(pushed, [`/chat/chat_1?prompt=${encodeURIComponent("Study: Counting, Sets")}`]);
 			assert.ok(sent.every((body) => !("kind" in body)), "every new lesson is a study session");
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
+	it("a typed topic's files wait for the new session's first message, never in the request", async () => {
+		const original = globalThis.fetch;
+		try {
+			const { lesson, sent } = await harness(() => true);
+			const files = [{ name: "hw4.png", mimeType: "image/png", data: "QUJD" }];
+			await act(async () => lesson().start({ title: "Induction", files }));
+			assert.deepEqual(sent.at(-1), { title: "Induction" });
+			assert.deepEqual(takeStartFiles("chat_1"), files);
+			assert.deepEqual(takeStartFiles("chat_1"), [], "handed over once");
 		} finally {
 			globalThis.fetch = original;
 		}
