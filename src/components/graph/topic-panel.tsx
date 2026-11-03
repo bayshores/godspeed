@@ -111,7 +111,7 @@ const ChipColumn = memo(function ChipColumn({
 					className="lh-press flex w-full items-center gap-[7px] bg-tone px-[9px] py-[7px] text-left text-[13px] text-ink hover:bg-tone-2"
 				>
 					<StatusMark status={t.status} size="size-[9px]" round />
-					<span className="truncate">{t.name}</span>
+					<span title={t.name} className="truncate">{t.name}</span>
 				</button>
 			))}
 		</div>

@@ -77,8 +77,8 @@ function DueSoonRow({
 				<DoneBox size={13} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
 			</span>
 			<span className="flex min-w-0 flex-1 flex-col">
-				<span className="truncate text-[14px] leading-5 text-ink">{d.name}</span>
-				<span className="truncate text-[12px] leading-4 text-ink-2">
+				<span title={d.name} className="truncate text-[14px] leading-5 text-ink">{d.name}</span>
+				<span title={d.className} className="truncate text-[12px] leading-4 text-ink-2">
 					{d.className} · {sidebarWhenLabel(d, today)}
 				</span>
 			</span>

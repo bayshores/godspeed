@@ -56,7 +56,7 @@ export function ClassSwitcher() {
 						<CircleDashedIcon className="size-[17px]" aria-hidden />
 					</span>
 				)}
-				<span className={cn("min-w-0 flex-1 truncate text-[15px] font-bold", activeClass ? "text-ink" : "text-ink-2")}>{name}</span>
+				<span title={name} className={cn("min-w-0 flex-1 truncate text-[15px] font-bold", activeClass ? "text-ink" : "text-ink-2")}>{name}</span>
 				<ChevronsUpDownIcon className="size-4 shrink-0 text-ink-2" aria-hidden />
 			</button>
 
@@ -71,7 +71,7 @@ export function ClassSwitcher() {
 				{current.map((c) => (
 					<button role="menuitem" key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={row}>
 						<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-2" />
-						<span className="min-w-0 flex-1 truncate">{c.name}</span>
+						<span title={c.name} className="min-w-0 flex-1 truncate">{c.name}</span>
 						{active === c.id && <CheckIcon className="size-3.5" />}
 					</button>
 				))}
@@ -99,7 +99,7 @@ export function ClassSwitcher() {
 								{archived.map((c) => (
 									<button role="menuitem" key={c.id} type="button" data-testid={`class-option-${c.id}`} onClick={() => pick(c.id)} className={cn(row, "pl-5 text-ink-2")}>
 										<ClassIcon icon={c.icon} className="size-4 shrink-0 text-ink-3" />
-										<span className="min-w-0 flex-1 truncate">{c.name}</span>
+										<span title={c.name} className="min-w-0 flex-1 truncate">{c.name}</span>
 										{active === c.id && <CheckIcon className="size-3.5" />}
 									</button>
 								))}

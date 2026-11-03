@@ -145,7 +145,7 @@ function Stop({
 				{mark}
 			</div>
 			<div className="mt-3 flex w-[120px] flex-col items-center gap-0.5 text-center">
-				<span className="w-full truncate text-[14.5px] leading-5 font-bold text-ink">{name}</span>
+				<span title={name} className="w-full truncate text-[14.5px] leading-5 font-bold text-ink">{name}</span>
 				<span className="w-full truncate text-[12.5px] leading-[18px] text-ink-2">{meta}</span>
 			</div>
 		</div>
@@ -193,7 +193,7 @@ function RingTipBody({ deadline: d }: { deadline: DeadlineProgress }) {
 					{d.topics.map((t) => (
 						<span key={t.id} className="flex items-center gap-2">
 							<span className="size-2.5 shrink-0" style={{ background: rampColor(t.rate) }} aria-hidden />
-							<span className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
+							<span title={t.name} className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
 							<span className="shrink-0 font-mono tabular-nums">{t.rate === null ? "not tested" : `${percent(t.rate)}% right`}</span>
 						</span>
 					))}
@@ -207,7 +207,7 @@ function MostNeededRow({ needed, busy, onLearn }: { needed: MostNeeded; busy: bo
 	return (
 		<div data-testid="runway-most-needed" className="flex w-full items-center gap-3 border-t border-tone-2 pt-3">
 			<span className="shrink-0 text-[13.5px] font-bold text-ink-2">Most needed</span>
-			<span className="min-w-0 shrink truncate text-[15.5px] font-bold text-ink">{needed.name}</span>
+			<span title={needed.name} className="min-w-0 shrink truncate text-[15.5px] font-bold text-ink">{needed.name}</span>
 			<span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-3">on {joinAnd(needed.deadlines)}</span>
 			<button
 				type="button"

@@ -150,7 +150,7 @@ function DeadlinePicker({
 				className="lh-press flex w-full items-center gap-2 bg-tone px-2.5 py-2 text-left text-sm font-bold text-ink hover:bg-tone-2"
 			>
 				<CalendarIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
-				<span className="min-w-0 flex-1 truncate">{deadline.name}</span>
+				<span title={deadline.name} className="min-w-0 flex-1 truncate">{deadline.name}</span>
 				<ChevronDownIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
 			</button>
 			<MenuShell open={open} anchorRef={anchorRef} testid="deadline-picker-menu" preferredSide="down" align="left" menuClass={PICKER_MENU_CLASS}>
@@ -274,7 +274,7 @@ const NextRow = memo(function NextRow({
 				<span className="flex min-w-0 flex-col gap-[3px]">
 					<span className="flex items-center gap-[7px]">
 						<StatusMark status={item.status} size="size-[9px]" round />
-						<span className="truncate text-[14.5px] font-bold text-ink">{item.name}</span>
+						<span title={item.name} className="truncate text-[14.5px] font-bold text-ink">{item.name}</span>
 					</span>
 					<span className="text-[12.5px] font-bold" style={{ color: color ?? "var(--color-ink-2)" }}>
 						{topic ? statusLine(topic) : ""}
