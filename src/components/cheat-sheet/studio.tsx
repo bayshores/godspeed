@@ -10,7 +10,6 @@ import {
 	WATCH_OUT,
 	dayLabel,
 	fitFixes,
-	fitLabel,
 	leftOutTopics,
 	overflowLines,
 	plannedBlocks,
@@ -22,7 +21,6 @@ import {
 	type FitFix,
 } from "@/core";
 import { useAgentStatus } from "@/components/agent-status";
-import { BrailleSpinner } from "@/components/braille-spinner";
 import { useClasses } from "@/components/class-context";
 import { LoadFailed } from "@/components/load-failed";
 import { useFoldSidebar } from "@/components/sidebar";
@@ -32,7 +30,7 @@ import { AskPanel, BlockToolbar } from "./block-tools";
 import { Paper, paperGeometry, type PaperItem, type PaperLayout } from "./paper";
 import { Rail } from "./rail";
 import { SetupDialog } from "./setup-dialog";
-import { NoAgent, PaperCard } from "./studio-states";
+import { NoAgent, PaperCard, StudioStatus } from "./studio-states";
 import { useCheatSheet } from "./use-cheat-sheet";
 
 /** The margins beside the paper, where each block's reason sits. */
@@ -156,7 +154,8 @@ function Studio({
 	const busyIds = useMemo(() => new Set(run?.blockIds ?? []), [run]);
 
 	const hasBlocks = view.sheet.blocks.length > 0;
-	const noAgent = !!agent && !agent.connected && !agent.teaching && !hasBlocks;
+	const agentGone = !!agent && !agent.connected && !agent.teaching;
+	const noAgent = agentGone && !hasBlocks;
 	const showPaper = view.sheet.rules.allowed && (hasBlocks || run?.kind === "make") && !noAgent;
 	const fits = !layout || layout.packing.overflow === 0;
 	const overLines = layout ? overflowLines(layout.packing.overflow, layout.lineHeight) : 0;
@@ -201,7 +200,7 @@ function Studio({
 					</Link>
 					<span className="shrink-0 font-bold text-ink">Cheat sheet</span>
 				</nav>
-				<StudioStatus view={view} agentName={agentName} planned={planned.length} fits={fits} fill={layout?.packing.fill ?? 0} showMeter={showPaper && hasBlocks && !!layout} onStop={() => void post({ action: "stop" })} />
+				<StudioStatus view={view} agentName={agentName} agentGone={agentGone} planned={planned.length} fits={fits} fill={layout?.packing.fill ?? 0} showMeter={showPaper && hasBlocks && !!layout} onStop={() => void post({ action: "stop" })} />
 				{savePdf && (
 					<button
 						type="button"
@@ -338,60 +337,5 @@ function Note({ text, color, y, align, over }: { text: string; color: string; y:
 			{!over && <span className="size-2 shrink-0" style={{ background: color }} aria-hidden />}
 			<span className="min-w-0 truncate">{text}</span>
 		</p>
-	);
-}
-
-/** The top bar's middle: what the agent is doing, or whether it fits. */
-function StudioStatus({
-	view,
-	agentName,
-	planned,
-	fits,
-	fill,
-	showMeter,
-	onStop,
-}: {
-	view: CheatSheetView;
-	agentName: string;
-	planned: number;
-	fits: boolean;
-	fill: number;
-	showMeter: boolean;
-	onStop: () => void;
-}) {
-	const run = view.running;
-	if (run) {
-		const what =
-			run.kind === "make"
-				? `${agentName} is writing your sheet`
-				: run.topicId
-					? `${agentName} is adding a block`
-					: `${agentName} is changing ${run.blockIds.length === 1 ? "a block" : `${run.blockIds.length} blocks`}`;
-		return (
-			<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
-				<BrailleSpinner className="h-3.5 text-ink" />
-				<span className="font-bold text-ink">{what}</span>
-				{run.kind === "make" && <span className="text-ink-3">{planned} blocks</span>}
-				<button type="button" onClick={onStop} className="lh-press font-bold text-ink-2 hover:text-ink">
-					Stop
-				</button>
-			</div>
-		);
-	}
-	if (!showMeter)
-		return (
-			<span data-testid="cheat-sheet-status" className="shrink-0 text-sm text-ink-2">
-				{view.sheet.blocks.length === 0 ? "Not made yet" : ""}
-			</span>
-		);
-	const percent = Math.round(fill * 100);
-	return (
-		<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
-			<span className={cn("font-bold", fits ? "text-ink" : "text-ans-wrong")}>{fitLabel(view.sheet.rules.paper, fits)}</span>
-			<span className="relative h-1.5 w-[140px] bg-tone-2" role="meter" aria-label="How full the paper is" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
-				<span className="absolute inset-y-0 left-0" style={{ width: `${Math.min(100, percent)}%`, background: fits ? "var(--lh-ramp-5)" : "var(--lh-ramp-1)" }} />
-			</span>
-			<span className="w-10 font-mono text-[12.5px] text-ink-2 tabular-nums">{percent}%</span>
-		</div>
 	);
 }

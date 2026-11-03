@@ -2,7 +2,7 @@
  * The cheat sheet's screens: the setup (where the rules came from, the
  * paper choices, what goes on it, Make), the studio's rail (rules, banned
  * kinds, the fixes when it runs long, the left-out topics) and a block's
- * lines with real KaTeX.
+ * lines with real KaTeX, and the top bar's status while a request runs or waits.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -19,6 +19,7 @@ Object.assign(globalThis, { window: dom.window, document: dom.document, self: gl
 const { SetupBody } = await import("../src/components/cheat-sheet/setup-dialog.tsx");
 const { Rail } = await import("../src/components/cheat-sheet/rail.tsx");
 const { SheetLines } = await import("../src/components/cheat-sheet/paper.tsx");
+const { StudioStatus } = await import("../src/components/cheat-sheet/studio-states.tsx");
 
 const topics: SheetTopic[] = [
 	{ id: "a", name: "Counting", status: "weak", mistakes: 3 },
@@ -104,6 +105,21 @@ describe("the studio rail", () => {
 		assert.match(html, /About 4 lines don&#x27;t fit.*Pick one:.*Tighten the 3 longest blocks.*Use Small text.*Leave out Sums/);
 		assert.match(rail({ leftOut: [] }), /Nothing right now/);
 		assert.match(rail({ sheet: { ...newCheatSheet("d", "t"), rules: { ...DEFAULT_RULES, allowed: false }, prefs: DEFAULT_PREFS } }), /Not allowed for this one/);
+	});
+});
+
+describe("the studio's status", () => {
+	const status = (v: CheatSheetView, agentGone: boolean) =>
+		renderToStaticMarkup(<StudioStatus view={v} agentName="Claude Code" agentGone={agentGone} planned={4} fits fill={0.5} showMeter={false} onStop={() => {}} />);
+
+	it("says what the agent is changing, or that none is connected to do it, with Stop either way", () => {
+		const tighten = view({ running: { kind: "change", blockIds: ["b1"] } });
+		assert.match(status(tighten, false), /braille[\s\S]*Claude Code is changing a block/);
+		const waiting = status(tighten, true);
+		assert.match(waiting, />No agent connected</);
+		assert.doesNotMatch(waiting, /is changing|braille/i, "no endless spinner");
+		assert.match(waiting, />Stop</);
+		assert.match(status(view({ running: { kind: "change", blockIds: [], topicId: "c" } }), true), />No agent connected</, "Add waits the same way");
 	});
 });
 
