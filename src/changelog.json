@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.26",
+		"date": "2026-11-03",
+		"changes": [
+			"Studying for a deadline picks up where you left off. When your last Study session for it isn't finished, the button says \"Continue studying for Midterm · 1 of 4 topics\" and opens that session. Once it's done, the button starts the next topics."
+		]
+	},
+	{
 		"version": "0.5.25",
 		"date": "2026-11-03",
 		"changes": [
