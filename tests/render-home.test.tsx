@@ -335,6 +335,21 @@ describe("Home: actions", () => {
 		}
 	});
 
+	it("picked facts with nothing typed start too, and the server titles the session; with neither nothing starts", async () => {
+		const original = globalThis.fetch;
+		try {
+			const { lesson, sent, pushed } = await harness(() => true);
+			await act(async () => lesson().start({ title: "  " }));
+			assert.deepEqual(sent, []);
+			const pick = { id: "f1", name: "Bayes", statement: "P(A|B)…" };
+			await act(async () => lesson().start({ title: " ", picks: [pick] }));
+			assert.deepEqual(sent, [{ title: "", graphContext: { propositions: [pick] } }]);
+			assert.equal(pushed.length, 1);
+		} finally {
+			globalThis.fetch = original;
+		}
+	});
+
 	it("a deadline with an unfinished session reopens it instead of starting one", async () => {
 		const original = globalThis.fetch;
 		try {

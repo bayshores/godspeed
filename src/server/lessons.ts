@@ -5,9 +5,10 @@
  * session.
  *
  * A start names a typed topic (its title, with any facts picked for it),
- * some of the class's topics, or a deadline. On topics or a deadline this
- * picks the session's topics and writes its title, which the caller sends
- * as the first message.
+ * picked facts alone, some of the class's topics, or a deadline. On
+ * picked facts alone, topics or a deadline this picks the session's
+ * topics and writes its title, which the caller sends as the first
+ * message.
  *
  * Message order at birth: [class card] → [graph-context picks] → [study
  * plan] → the learner's first message (sent by the client / the MCP tool).
@@ -95,10 +96,12 @@ function startOf(input: CreateLessonInput): Start | NotFound {
 		if (deadline.topics.length === 0) return typed(input.classId, `Study for ${deadline.name}`, []);
 		return { title: studyTitle(deadline.topics), picks: deadline.picks, topics: deadline.topics };
 	}
-	return typed(input.classId, input.title || "Untitled session", (input.picks ?? []).slice(0, MAX_STUDY_FACTS));
+	return typed(input.classId, input.title.trim(), (input.picks ?? []).slice(0, MAX_STUDY_FACTS));
 }
 
-/** A typed topic: its picked facts grouped into topics, or the one topic it names. */
+/** A typed topic: its picked facts grouped into topics, or the one topic
+ *  it names. Picked facts with nothing typed are titled after their topics. */
 function typed(classId: ClassScope, title: string, picks: GraphContextPick[]): Start {
-	return { title, picks, topics: studyTopicsFor(classId, picks.map((p) => p.id), titleFromPrompt(title)) };
+	const topics = studyTopicsFor(classId, picks.map((p) => p.id), titleFromPrompt(title || "Untitled session"));
+	return { title: title || (picks.length > 0 ? studyTitle(topics) : "Untitled session"), picks, topics };
 }

@@ -105,6 +105,22 @@ describe("a study session", () => {
 		assert.deepEqual(record.tree?.nodes.map((n) => n.id), ["tpc_count", "tpc_sets"]);
 	});
 
+	it("picked facts with nothing typed are titled after their topics, in class order", () => {
+		const cls = seedClass();
+		const created = createLesson({
+			title: "",
+			classId: cls.id,
+			picks: [{ id: "n_sets", name: "n_sets", statement: "n_sets holds" }, { id: "n_count", name: "n_count", statement: "n_count holds" }],
+		});
+		assert.ok(created.ok);
+		assert.equal(created.title, "Study: Counting, Sets");
+		assert.equal(created.chat.title, "Study: Counting, Sets");
+		assert.deepEqual(created.chat.tree?.nodes.map((n) => n.id), ["tpc_count", "tpc_sets"]);
+		const untitled = createLesson({ title: " ", classId: null });
+		assert.ok(untitled.ok);
+		assert.equal(untitled.title, "Untitled session", "nothing typed or picked keeps the floor");
+	});
+
 	it("a typed topic with no facts is one teach topic", () => {
 		const created = createLesson({ title: "Bayes' rule", classId: null });
 		assert.ok(created.ok);

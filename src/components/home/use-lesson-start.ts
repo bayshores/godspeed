@@ -7,8 +7,9 @@ import { holdStartFiles } from "@/components/lesson/start-files";
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
 /** What a start sends POST /api/chats: a typed topic (its title and any
- *  facts picked for it), some class topics, or a deadline. On topics or a
- *  deadline the server picks the session's topics and writes its title. */
+ *  facts picked for it), some class topics, or a deadline. On picked
+ *  facts with no title, topics or a deadline the server picks the
+ *  session's topics and writes its title. */
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
@@ -52,11 +53,13 @@ export function useLessonStart() {
 		[busy, active, router],
 	);
 
-	/** Study a typed topic, with any facts picked for it and any files added. */
+	/** Study a typed topic, with any facts picked for it and any files added,
+	 *  or the picked facts alone. */
 	const start = useCallback(
 		(req: { title: string; picks?: readonly GraphContextPick[]; files?: readonly ChatAttachment[] }) => {
 			const title = req.title.trim();
-			if (title) return post({ title, ...(req.picks && req.picks.length > 0 ? { graphContext: { propositions: req.picks } } : {}) }, req.files);
+			const picks = req.picks ?? [];
+			if (title || picks.length > 0) return post({ title, ...(picks.length > 0 ? { graphContext: { propositions: picks } } : {}) }, req.files);
 		},
 		[post],
 	);
