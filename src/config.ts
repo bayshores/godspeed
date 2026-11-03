@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 export const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 /**
- * LH_DATA_DIR moves every mutable record (chats, graph ledgers, the
- * embedding model cache). The desktop app points it at userData because the
+ * LH_DATA_DIR moves every mutable record (chats, classes, graph ledgers,
+ * the speech model). The desktop app points it at userData because the
  * .app bundle is read-only. Unset, it is the repo's data/. Read-only assets
  * (prompts) stay under ROOT because they ship inside the bundle.
  */
@@ -19,7 +19,7 @@ export const PATHS = {
 	/** Teacher system prompt — the agent's instructions (src/agent/). */
 	teacherPrompt: path.join(ROOT, "src", "agent", "system-prompt.md"),
 	data: DATA_ROOT,
-	/** Chat sessions (AI SDK UIMessage transcripts, one JSON file per chat). */
+	/** Lessons (pi's own message records, one JSON file per chat). */
 	chats: path.join(DATA_ROOT, "chats"),
 	graph: path.join(DATA_ROOT, "graph"),
 	/** One folder per class:
@@ -49,9 +49,8 @@ export interface GraphFiles {
 	nodes: string;
 	chains: string;
 	sessions: string;
-	/** Per-message extraction coverage (contracts/graph.ts CoverageEntry;
-	 *  the checkpoint's replacement for chat extractions — notes keep
-	 *  sessions.jsonl, whole-file as they are). */
+	/** Per-message extraction coverage (contracts/graph.ts CoverageEntry);
+	 *  notes keep sessions.jsonl, whole-file as they are. */
 	coverage: string;
 	/** Notes-import bookkeeping (NOT a ledger): one JSON map, src-id →
 	 *  NotesSource record (contracts/graph.ts) — the file path + import time
