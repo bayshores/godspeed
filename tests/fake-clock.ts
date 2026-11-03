@@ -22,10 +22,18 @@ export async function advance(ms: number): Promise<void> {
 	}
 }
 
+/** Steps fake time until `cond` holds. Past `limitMs` of fake time it stops
+ *  ticking and only yields, for up to 10 s of real time: real I/O on a slow
+ *  machine can lag far behind a fast fake clock. */
 export async function advanceUntil(cond: () => boolean, what = "condition", limitMs = 30_000): Promise<void> {
+	const realStart = performance.now();
 	for (let t = 0; !cond(); t += STEP_MS) {
-		if (t > limitMs) throw new Error(`timeout waiting for ${what}`);
-		await advance(STEP_MS);
+		if (t <= limitMs) {
+			await advance(STEP_MS);
+			continue;
+		}
+		if (performance.now() - realStart > 10_000) throw new Error(`timeout waiting for ${what}`);
+		await new Promise((resolve) => setImmediate(resolve));
 	}
 }
 
