@@ -43,7 +43,6 @@ export function YourTurnPanel({
 	onSavePracticeDraft,
 	onSubmitThinking,
 	onDiscardProblem,
-	sessionBusy,
 	sideReply,
 	compacting,
 	composer,
@@ -66,8 +65,6 @@ export function YourTurnPanel({
 	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** Opens the discard confirm for the active problem. */
 	onDiscardProblem: () => void;
-	/** This view's turn is running: a practice send now would be dropped. */
-	sessionBusy: boolean;
 	/** The running turn answers a side question. */
 	sideReply: boolean;
 	compacting: boolean;
@@ -168,7 +165,7 @@ export function YourTurnPanel({
 				onSaveDraft={onSavePracticeDraft}
 				onDiscard={onDiscardProblem}
 				onStop={sideReply ? undefined : composer.onStop}
-				busy={sessionBusy}
+				busy={composer.busy}
 				waitingForAgent={composer.waitingForAgent}
 				compactionRunning={compacting}
 				footer={footer}

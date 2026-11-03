@@ -148,10 +148,8 @@ export function Chat({
 	const drafts = useLessonDrafts(chatId, nativeMessages, activeProblemId);
 	const { saveComposer, saveQuestion, saveProblem } = drafts;
 
-	// This view's own turn: send() drops input while it runs. A wake turn
-	// (turnInFlight alone) still takes sends; they wait it out.
-	const sessionBusy = status === "submitted" || status === "streaming";
-	const busy = sessionBusy || turnInFlight;
+	// A turn runs: this view's own, or one the app started (a wake).
+	const busy = status === "submitted" || status === "streaming" || turnInFlight;
 	// The turn is waiting on the outside agent and none is connected: say so
 	// in the composer (it starts by itself once the agent connects).
 	const agentStatus = useAgentStatus();
@@ -520,7 +518,6 @@ export function Chat({
 									}}
 									onSubmitThinking={submitThinking}
 									onDiscardProblem={() => setAbortAsk("problem")}
-									sessionBusy={sessionBusy}
 									sideReply={sideReply}
 									compacting={compacting}
 									composer={{

@@ -66,8 +66,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			onSavePracticeDraft={() => {}}
 			onSubmitThinking={async () => true}
 			onDiscardProblem={() => {}}
-			sessionBusy={false}
-			sideReply={false}
+						sideReply={false}
 			compacting={false}
 			composer={composer()}
 			stats={null}
@@ -172,8 +171,7 @@ describe("the Your-turn panel's states", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => asked.push("problem")}
-				sessionBusy={false}
-				sideReply={false}
+								sideReply={false}
 				compacting={false}
 				composer={composer()}
 				stats={null}
@@ -224,15 +222,15 @@ describe("the side question box", () => {
 		});
 
 		it("while the teacher replies to it, the box holds Stop, the only one", () => {
-			const html = panel({ ...problem, sessionBusy: true, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
+			const html = panel({ ...problem, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
 			assert.match(html, /data-testid="practice-send"[^>]*disabled=""/, "the thinking waits");
 			assert.match(html, /<textarea[^>]*disabled=""[^>]*placeholder="Ask the teacher something"/);
 			assert.equal(html.split('data-testid="stop-turn"').length - 1, 1);
 			assert.match(html.slice(html.indexOf('data-testid="side-question"')), /data-testid="stop-turn"/);
 		});
 
-		it("while the teacher replies to the thinking, Stop stays in the dock and the box stays behind its link", () => {
-			const html = panel({ ...problem, sessionBusy: true, composer: composer({ busy: true }) });
+		it("while the teacher replies to the thinking or a turn the app started, Stop stays in the dock and the box stays behind its link", () => {
+			const html = panel({ ...problem, composer: composer({ busy: true }) });
 			assert.equal(html.split('data-testid="stop-turn"').length - 1, 1);
 			const side = html.slice(html.indexOf('data-testid="side-question"'));
 			assert.match(side, /data-testid="side-question-open"/);
@@ -314,8 +312,7 @@ describe("the side question box", () => {
 						onSavePracticeDraft={() => {}}
 						onSubmitThinking={async () => true}
 						onDiscardProblem={() => {}}
-						sessionBusy={false}
-						sideReply
+												sideReply
 						compacting={false}
 						composer={composer({ busy: true, onStop: () => calls.push("stop") })}
 						stats={null}
@@ -348,8 +345,7 @@ describe("the side question box", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
-				sessionBusy={false}
-				sideReply={false}
+								sideReply={false}
 				compacting={false}
 				composer={composer({ value, canSend: value.trim() !== "", onSend })}
 				stats={null}
@@ -402,8 +398,7 @@ describe("the side question box", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
-				sessionBusy={false}
-				sideReply={false}
+								sideReply={false}
 				compacting={false}
 				composer={composer({ value: canSend ? "why?" : " ", canSend, onSend: () => sent++ })}
 				stats={null}
