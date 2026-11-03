@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.5.25",
+		"date": "2026-11-03",
+		"changes": [
+			"New lesson and Practice are now one Study button. Pick a deadline (\"Study for Midterm\") or type any topic, and your teacher decides for each topic: one you've never been tested on gets a short explanation with a worked example first, then a problem. A weak one goes straight to problems with hints, and a strong one gets one quick check.",
+			"Studying for a deadline takes about four topics at a time in the order your class covered them. Click it again and it moves on to the next topics that still need work.",
+			"Your old lessons and practice sessions work like before, and the sidebar now shows when a practice problem is waiting for you."
+		]
+	},
+	{
 		"version": "0.5.24",
 		"date": "2026-11-03",
 		"changes": [
