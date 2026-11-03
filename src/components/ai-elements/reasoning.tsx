@@ -123,7 +123,7 @@ export const ReasoningTrigger = memo(
             It is the placeholder spinner's size, so the handoff is seamless. */}
         {isStreaming && <BrailleSpinner label="Thinking" />}
         {/* A static settled label, pairing with the learner's "Your thinking" rows. */}
-        {isStreaming ? <Shimmer>Thinking...</Shimmer> : <p>AGENT’S THINKING</p>}
+        {isStreaming ? <Shimmer>Thinking...</Shimmer> : <p>Agent’s thinking</p>}
         <ChevronDownIcon
           className={cn(
             "size-4 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)",
