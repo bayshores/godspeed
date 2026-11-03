@@ -113,12 +113,12 @@ describe("the deadline page", () => {
 		assert.match(html, /Every class day before the exam is on it or left out\./);
 		assert.match(html, /1 left out · Show/);
 	});
-	it("path: weakest first from today, the deadline day last, Start today", () => {
+	it("path: weakest first from today, the deadline day last, Study", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-day"'), 3);
 		assert.match(html, />Today<.*Inclusion–exclusion.*2 of 5 right/);
 		assert.match(html, /data-testid="deadline-day-due".*Midterm · 7:00 PM/);
-		assert.match(html, /data-testid="deadline-start".*Start today/);
+		assert.match(html, /data-testid="deadline-start".*>Study</);
 		assert.ok(!html.includes("Permutations</span><span"), "strong topics stay off the path");
 	});
 	it("due today puts everything on today", () => {
@@ -146,14 +146,14 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-ring".*>–<.*Not measured yet/);
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
 	});
-	it("every topic strong: practice them all", () => {
+	it("every topic strong: study them all", () => {
 		const strong = TOPICS.map((t) => ({ ...t, rate: 0.95 }));
 		const html = render(deadline({ topics: strong }));
 		assert.match(html, /Every topic is strong/);
-		assert.match(html, /data-testid="deadline-start".*Practice all its topics/);
+		assert.match(html, /Study them to keep it that way\.[^]*data-testid="deadline-start".*>Study</);
 	});
 	it("material loading shows a plain box; a failed start says so", () => {
-		const html = render(deadline(), { material: null, startError: "Couldn't start practice. Try again." });
+		const html = render(deadline(), { material: null, startError: "Couldn't start the lesson. Try again." });
 		assert.ok(!html.includes("deadline-material-summary"));
 		assert.match(html, /data-testid="deadline-start-error"/);
 	});

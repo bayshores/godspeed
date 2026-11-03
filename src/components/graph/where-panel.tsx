@@ -2,7 +2,7 @@
  * The right panel with nothing selected — "Where you're at": the deadline
  * picker and countdown, one block per topic the deadline covers (strong
  * first), the strong / shaky / weak / not tested counts, the "Work on next"
- * list and "Practice these N". With no open deadline that has files it
+ * list and "Study these N". With no open deadline that has files it
  * shows the class-wide view.
  */
 import { memo, useCallback, useRef, useState } from "react";
@@ -16,7 +16,7 @@ import { Tip } from "@/components/ui/tooltip";
 import { countdownText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
 import { MENU_ITEM_CLASS } from "./menu.tsx";
 
-/** "Work on next" shows this many (the design's "Practice these 4"). */
+/** "Work on next" shows this many (the design's "Study these 4"). */
 const WORK_ON_NEXT_LIMIT = 4;
 
 const HEAD = "text-[13px] font-bold text-ink-3";
@@ -30,11 +30,11 @@ export function WherePanel({
 	deadlineId,
 	onDeadlineChange,
 	onSelectTopic,
-	onPractice,
+	onStudy,
 	onHide,
 	slideIn,
-	practicing,
-	practiceError,
+	studying,
+	studyError,
 }: {
 	data: Pick<ProgressPayload, "deadlines" | "overall" | "topics">;
 	deadlineId: string | null;
@@ -44,10 +44,10 @@ export function WherePanel({
 	/** Slides in (shown again after hiding). */
 	slideIn: boolean;
 	onSelectTopic: (id: string) => void;
-	onPractice: (topicIds: string[]) => void;
-	practicing: boolean;
-	/** Why the last practice didn't start (shown under the button). */
-	practiceError: string | null;
+	onStudy: (topicIds: string[]) => void;
+	studying: boolean;
+	/** Why the last Study start failed (shown under the button). */
+	studyError: string | null;
 }) {
 	const pickable = pickableDeadlines(data.deadlines);
 	const deadline = pickable.find((d) => d.id === deadlineId) ?? null;
@@ -94,12 +94,12 @@ export function WherePanel({
 				)}
 			</div>
 			{next.length > 0 && (
-				<PracticeBar
-					testid="practice-these"
-					label={`Practice these ${next.length}`}
-					busy={practicing}
-					error={practiceError}
-					onClick={() => onPractice(next.map((n) => n.topicId))}
+				<StudyBar
+					testid="study-these"
+					label={`Study these ${next.length}`}
+					busy={studying}
+					error={studyError}
+					onClick={() => onStudy(next.map((n) => n.topicId))}
 				/>
 			)}
 		</aside>
@@ -288,7 +288,7 @@ const NextRow = memo(function NextRow({
 
 /** The panel's full-width white bottom button, with why the last start
  *  failed under it. */
-export function PracticeBar({
+export function StudyBar({
 	label,
 	onClick,
 	busy,
@@ -316,7 +316,7 @@ export function PracticeBar({
 				{label}
 			</button>
 			{error && (
-				<p role="alert" data-testid="practice-start-error" className="shrink-0 px-5 py-2 text-[13px] text-ans-wrong">
+				<p role="alert" data-testid="study-start-error" className="shrink-0 px-5 py-2 text-[13px] text-ans-wrong">
 					{error}
 				</p>
 			)}

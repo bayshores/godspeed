@@ -1,8 +1,8 @@
 /**
- * Home: the Teach/Practice switch, the topic box
- * ("Start from facts", the white "Start lesson ↵", Enter starts) and the
- * "Suggested for <class>" rows (Continue / Next up / Work on next with
- * their buttons and meta).
+ * The start page: the topic box ("Start from facts", the white Study
+ * button, Enter starts), the "Suggested for <class>" rows (Continue / Next
+ * up / Work on next with their buttons and meta) and what every Study
+ * start sends.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -28,10 +28,9 @@ Object.assign(globalThis, {
 	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
-const { ModeSwitch, TopicBox, isStartKey } = await import("../src/components/home/topic-box.tsx");
+const { TopicBox, isStartKey } = await import("../src/components/home/topic-box.tsx");
 const { SuggestionList } = await import("../src/components/home/suggestions.tsx");
 const { useLessonStart } = await import("../src/components/home/use-lesson-start.ts");
-const { usePracticeStart } = await import("../src/components/graph/practice.ts");
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
@@ -82,8 +81,8 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 			suggestions={SUGGESTIONS}
 			step={{ position: 1, total: 11 }}
 			busy={false}
-			onLearn={() => {}}
-			onPractice={() => {}}
+			onStudyFile={() => {}}
+			onStudyTopic={() => {}}
 			{...props}
 		/>,
 	);
@@ -92,7 +91,6 @@ function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) 
 function box(props: Partial<React.ComponentProps<typeof TopicBox>> = {}) {
 	return renderToStaticMarkup(
 		<TopicBox
-			mode="teach"
 			text=""
 			onText={() => {}}
 			onStart={() => {}}
@@ -115,30 +113,24 @@ function row(html: string, testid: string): string {
 
 // ─── static ─────────────────────────────────────────────────────────────────
 
-describe("Home: mode switch and topic box", () => {
-	it("Teach and Practice; the selected one is the white block", () => {
-		const html = renderToStaticMarkup(<ModeSwitch mode="teach" onMode={() => {}} />);
-		assert.match(html, /data-testid="home-mode-teach"[^>]*aria-pressed="true"[^>]*class="[^"]*bg-ink text-background/);
-		assert.match(html, /data-testid="home-mode-practice"[^>]*aria-pressed="false"/);
-	});
-
-	it("the box: the placeholder, Start from facts and the white Start lesson", () => {
+describe("Home: the topic box", () => {
+	it("the box: the placeholder, Start from facts and the white Study", () => {
 		const html = box();
 		assert.ok(html.includes("A topic, a homework method, or a question you&#x27;re stuck on…"));
+		assert.ok(html.includes('aria-label="What do you want to study?"'));
 		assert.ok(html.includes("Start from facts"));
-		assert.match(html, /data-testid="home-start"[^>]*class="[^"]*bg-ink[^"]*text-background/);
-		assert.ok(html.includes("Start lesson"));
-		assert.doesNotMatch(html, /practice-props-clear/);
+		assert.match(html, /data-testid="home-start"[^>]*class="[^"]*bg-ink[^"]*text-background[^"]*"[^>]*>Study</);
+		assert.doesNotMatch(html, /facts-picks-clear/);
 	});
 
 	it("picked facts: the count and a clear button", () => {
 		const html = box({ picks: 3 });
 		assert.match(html, /<span class="font-mono tabular-nums">3<\/span> facts picked/);
-		assert.ok(html.includes('data-testid="practice-props-clear"'));
+		assert.ok(html.includes('data-testid="facts-picks-clear"'));
 	});
 
 	it("no facts in the class: Start from facts is disabled", () => {
-		assert.match(box({ canPick: false }), /data-testid="practice-props-chip"[^>]*disabled/);
+		assert.match(box({ canPick: false }), /data-testid="facts-picks-chip"[^>]*disabled/);
 	});
 });
 
@@ -170,13 +162,13 @@ describe("Home: suggestions", () => {
 		assert.doesNotMatch(row(list({ step: null }), "home-suggestion-continue"), /step /);
 	});
 
-	it("Next up: no dot, the file name without its extension, the fact count, Learn this", () => {
+	it("Next up: no dot, the file name without its extension, the fact count, Study", () => {
 		const html = row(list(), "home-suggestion-next-up");
 		assert.ok(html.includes("Rosen 6.2 — Probability theory<"));
 		assert.doesNotMatch(html, /\.pdf/);
 		assert.doesNotMatch(html, /rounded-full/);
 		assert.match(html, /<span class="font-mono tabular-nums">22<\/span> facts/);
-		assert.ok(html.includes("Learn this"));
+		assert.match(html, /data-testid="home-study-file"[^>]*>Study</);
 	});
 
 	it("Work on next: the status color dot, right / answered, or untested on the gray dot", () => {
@@ -209,7 +201,7 @@ describe("Home: actions", () => {
 		return host;
 	}
 
-	it("Learn this and Practice call back with the file and the topic", async () => {
+	it("Study calls back with the file or the topic", async () => {
 		const learned: FileCoverage[] = [];
 		const practiced: TopicProgress[] = [];
 		const host = await mount(
@@ -218,12 +210,12 @@ describe("Home: actions", () => {
 				suggestions={SUGGESTIONS}
 				step={null}
 				busy={false}
-				onLearn={(f) => learned.push(f)}
-				onPractice={(t) => practiced.push(t)}
+				onStudyFile={(f) => learned.push(f)}
+				onStudyTopic={(t) => practiced.push(t)}
 			/>,
 		);
-		await act(async () => (host.querySelector('[data-testid="home-learn-this"]') as HTMLButtonElement).click());
-		const practice = host.querySelectorAll('[data-testid="home-practice-topic"]');
+		await act(async () => (host.querySelector('[data-testid="home-study-file"]') as HTMLButtonElement).click());
+		const practice = host.querySelectorAll('[data-testid="home-study-topic"]');
 		await act(async () => (practice[1] as HTMLButtonElement).click());
 		assert.deepEqual(learned.map((f) => f.fileId), ["f4"]);
 		assert.deepEqual(practiced.map((t) => t.id), ["t2"]);
@@ -231,8 +223,8 @@ describe("Home: actions", () => {
 
 	it("busy: the start buttons are disabled", () => {
 		const html = list({ busy: true });
-		assert.match(html, /data-testid="home-learn-this"[^>]*disabled/);
-		assert.match(html, /data-testid="home-practice-topic"[^>]*disabled/);
+		assert.match(html, /data-testid="home-study-file"[^>]*disabled/);
+		assert.match(html, /data-testid="home-study-topic"[^>]*disabled/);
 	});
 
 	it("Enter starts; Shift+Enter and an IME composition's Enter don't", () => {
@@ -242,70 +234,65 @@ describe("Home: actions", () => {
 		assert.equal(isStartKey({ key: "a", shiftKey: false }), false);
 	});
 
-	it("a lesson or practice that can't start says so, and a retry clears it", async () => {
+	/** Mounts useLessonStart; every start's request body lands in `sent`. */
+	async function harness(ok: () => boolean) {
 		const pushed: string[] = [];
+		const sent: Record<string, unknown>[] = [];
 		const router = { push: (href: string) => pushed.push(href) } as unknown as React.ContextType<typeof AppRouterContext>;
-		let lesson!: ReturnType<typeof useLessonStart>;
-		let practice!: ReturnType<typeof usePracticeStart>;
+		const lesson: { current?: ReturnType<typeof useLessonStart> } = {};
 		function Harness() {
-			lesson = useLessonStart();
-			practice = usePracticeStart();
+			lesson.current = useLessonStart();
 			return null;
 		}
+		globalThis.fetch = (async (_url: string, init: RequestInit) => {
+			sent.push(JSON.parse(String(init.body)));
+			return ok() ? Response.json({ id: "chat_1" }) : Response.json({ error: "boom" }, { status: 500 });
+		}) as typeof fetch;
+		await mount(
+			<AppRouterContext.Provider value={router}>
+				<Harness />
+			</AppRouterContext.Provider>,
+		);
+		return { lesson: () => lesson.current!, pushed, sent };
+	}
+
+	it("a start that fails says so, and a retry clears it", async () => {
 		const original = globalThis.fetch;
 		let ok = false;
-		globalThis.fetch = (async () => (ok ? Response.json({ id: "chat_1" }) : Response.json({ error: "boom" }, { status: 500 }))) as typeof fetch;
 		try {
-			await mount(
-				<AppRouterContext.Provider value={router}>
-					<Harness />
-				</AppRouterContext.Provider>,
-			);
-			await act(async () => lesson.start({ title: "Induction" }));
-			assert.equal(lesson.error, "Couldn't start the lesson. Try again.");
-			assert.equal(lesson.busy, false);
-			await act(async () => lesson.practiceTopic(WEAK, []));
-			assert.equal(lesson.error, "Couldn't start practice. Try again.", "practice: the same pattern");
-			await act(async () => practice.start([WEAK], []));
-			assert.equal(practice.error, "Couldn't start practice. Try again.");
+			const { lesson, pushed } = await harness(() => ok);
+			await act(async () => lesson().start({ title: "Induction" }));
+			assert.equal(lesson().error, "Couldn't start the lesson. Try again.");
+			assert.equal(lesson().busy, false);
 			ok = true;
-			await act(async () => lesson.start({ title: "Induction" }));
-			assert.equal(lesson.error, null);
+			await act(async () => lesson().start({ title: "Induction" }));
+			assert.equal(lesson().error, null);
 			assert.deepEqual(pushed, ["/chat/chat_1?prompt=Induction"]);
 		} finally {
 			globalThis.fetch = original;
 		}
 	});
 
-	it("a start shows the error of whichever start ran last (the Overview's Learn this and rings)", async () => {
-		const router = { push: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
-		let lesson!: ReturnType<typeof useLessonStart>;
-		function Harness() {
-			lesson = useLessonStart();
-			return null;
-		}
+	it("studying topics sends their facts as picks; a deadline studies today's topics, or its name when it has none", async () => {
 		const original = globalThis.fetch;
-		globalThis.fetch = (async () => Response.json({ error: "boom" }, { status: 500 })) as typeof fetch;
 		try {
-			await mount(
-				<AppRouterContext.Provider value={router}>
-					<Harness />
-				</AppRouterContext.Provider>,
-			);
-			await act(async () => lesson.start({ title: "Induction" }));
-			await act(async () => lesson.start({ title: "Practice: Induction", kind: "practice" }));
-			assert.equal(lesson.error, "Couldn't start practice. Try again.");
-			await act(async () => lesson.start({ title: "Induction" }));
-			assert.equal(lesson.error, "Couldn't start the lesson. Try again.");
+			const facts = [
+				{ id: "f1", name: "Bayes", statement: "P(A|B)…", topicId: "t1", born: null, inLessons: false, answers: [] },
+				{ id: "f2", name: "Linearity", statement: "E[X+Y]…", topicId: "t2", born: null, inLessons: false, answers: [] },
+			];
+			const topics = [{ ...WEAK, members: ["f1"] }, { ...UNTESTED, members: ["f2"] }];
+			const { lesson, sent } = await harness(() => false);
+			await act(async () => lesson().studyTopics([topics[0]!], facts));
+			assert.deepEqual(sent.at(-1), { title: "Study: Conditional probability", graphContext: { propositions: [{ id: "f1", name: "Bayes", statement: "P(A|B)…" }] } });
+			const deadline = { id: "d1", name: "Midterm", date: "2026-11-10", topics: [{ id: "t1", name: WEAK.name, rate: 0.33 }, { id: "t2", name: UNTESTED.name, rate: null }] };
+			await act(async () => lesson().studyDeadline({ today: "2026-11-03", topics, facts }, deadline as never));
+			assert.equal(sent.at(-1)!.title, "Study: Conditional probability", "one day per topic: today is the weakest");
+			await act(async () => lesson().studyDeadline({ today: "2026-11-03", topics, facts }, { ...deadline, topics: [] } as never));
+			assert.deepEqual(sent.at(-1), { title: "Study for Midterm" });
+			assert.ok(sent.every((body) => !("kind" in body)), "every new lesson is a study session");
 		} finally {
 			globalThis.fetch = original;
 		}
 	});
-
-	it("the mode switch reports the picked mode", async () => {
-		const picked: string[] = [];
-		const host = await mount(<ModeSwitch mode="teach" onMode={(m) => picked.push(m)} />);
-		await act(async () => (host.querySelector('[data-testid="home-mode-practice"]') as HTMLButtonElement).click());
-		assert.deepEqual(picked, ["practice"]);
-	});
 });
+

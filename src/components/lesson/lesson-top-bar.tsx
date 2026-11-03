@@ -3,7 +3,7 @@ import { SidebarToggle } from "@/components/sidebar";
 import { FollowChip } from "@/components/halley/follow-chip";
 import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
-import { kbdEventForAction, type PlanStepBar } from "@/core";
+import { kbdEventForAction, type LessonKind, type PlanStepBar } from "@/core";
 import type { PracticeProgress } from "./practice-progress";
 import { StepBar } from "./step-bar";
 import type { useTitleRename } from "./use-title-rename";
@@ -11,7 +11,7 @@ import type { useTitleRename } from "./use-title-rename";
 /**
  * THE LESSON TOP BAR: a 56px window-drag band
  * over the reading pane and the Your-turn panel.
- * - Teaching with a plan: the plan step bar.
+ * - Teaching or studying with a plan: the plan step bar.
  * - Practice: the lesson name, one block per problem and "2 of 3 solved".
  * - Before a plan exists: the lesson name.
  * The name is renamed in place (click or F2); the search icon opens Find.
@@ -24,7 +24,7 @@ export function LessonTopBar({
 	onJump,
 	onOpenPlan,
 }: {
-	kind: "teach" | "practice";
+	kind: LessonKind;
 	rename: ReturnType<typeof useTitleRename>;
 	bar: PlanStepBar | null;
 	practice: PracticeProgress | null;

@@ -23,16 +23,16 @@ function Num({ children }: { children: ReactNode }) {
 
 /**
  * "Suggested for <class>": Continue (the latest lesson, Open), Next up
- * (the earliest unstudied file, Learn this) and Work on next (topics,
- * Practice). Renders nothing when there is nothing to suggest.
+ * (the earliest unstudied file, Study) and Work on next (topics,
+ * Study). Renders nothing when there is nothing to suggest.
  */
 export const SuggestionList = memo(function SuggestionList({
 	classLabel: label,
 	suggestions,
 	step,
 	busy,
-	onLearn,
-	onPractice,
+	onStudyFile,
+	onStudyTopic,
 }: {
 	/** The class's name; null = no class. */
 	classLabel: string | null;
@@ -40,8 +40,8 @@ export const SuggestionList = memo(function SuggestionList({
 	/** The Continue lesson's plan position, once read. */
 	step: LessonStep | null;
 	busy: boolean;
-	onLearn: (file: FileCoverage) => void;
-	onPractice: (topic: TopicProgress) => void;
+	onStudyFile: (file: FileCoverage) => void;
+	onStudyTopic: (topic: TopicProgress) => void;
 }) {
 	if (suggestions.length === 0) return null;
 	return (
@@ -49,7 +49,7 @@ export const SuggestionList = memo(function SuggestionList({
 			<h2 className="text-[13px] font-bold text-ink-3">{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			<ul className="flex w-full flex-col gap-0.5">
 				{suggestions.map((s) => (
-					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onLearn={onLearn} onPractice={onPractice} />
+					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} />
 				))}
 			</ul>
 		</section>
@@ -60,14 +60,14 @@ const SuggestionRow = memo(function SuggestionRow({
 	suggestion: s,
 	step,
 	busy,
-	onLearn,
-	onPractice,
+	onStudyFile,
+	onStudyTopic,
 }: {
 	suggestion: Suggestion;
 	step: LessonStep | null;
 	busy: boolean;
-	onLearn: (file: FileCoverage) => void;
-	onPractice: (topic: TopicProgress) => void;
+	onStudyFile: (file: FileCoverage) => void;
+	onStudyTopic: (topic: TopicProgress) => void;
 }) {
 	/** null = no dot; otherwise a class and/or a color. */
 	let dot: { className?: string; color?: string } | null;
@@ -102,8 +102,8 @@ const SuggestionRow = memo(function SuggestionRow({
 			</>
 		);
 		action = (
-			<button type="button" data-testid="home-learn-this" disabled={busy} onClick={() => onLearn(s.file)} className={ACTION}>
-				Learn this
+			<button type="button" data-testid="home-study-file" disabled={busy} onClick={() => onStudyFile(s.file)} className={ACTION}>
+				Study
 				<ArrowRightIcon aria-hidden className="size-[13px]" />
 			</button>
 		);
@@ -122,12 +122,12 @@ const SuggestionRow = memo(function SuggestionRow({
 		action = (
 			<button
 				type="button"
-				data-testid="home-practice-topic"
+				data-testid="home-study-topic"
 				disabled={busy}
-				onClick={() => onPractice(s.topic)}
+				onClick={() => onStudyTopic(s.topic)}
 				className={ACTION}
 			>
-				Practice
+				Study
 				<ArrowRightIcon aria-hidden className="size-[13px]" />
 			</button>
 		);

@@ -74,7 +74,7 @@ export function ReadingPane({
 			<ConversationContent className="min-h-full gap-0 p-0">
 				<div data-session-find-root="" className="lh-reading flex w-full max-w-[744px] flex-1 flex-col gap-4 px-[52px] pt-6 pb-24">
 					{messages.length === 0 && !busy && (
-						<ConversationEmptyState title="New lesson" description="The teacher will start with a few questions to see what you already know." />
+						<ConversationEmptyState title="New lesson" description="" />
 					)}
 					{messages.map((m, mi) => (
 						<MessageRow

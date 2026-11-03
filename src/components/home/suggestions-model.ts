@@ -12,6 +12,7 @@
 import type {
 	DeadlineProgress,
 	FileCoverage,
+	LessonKind,
 	LessonProgress,
 	LhMessage,
 	PlanTree,
@@ -71,7 +72,7 @@ export interface LessonStep {
 
 /** The slice of GET /api/chats/:id the step needs. */
 export interface LessonStepRecord {
-	kind?: "teach" | "practice";
+	kind?: LessonKind;
 	tree?: PlanTree | null;
 	messages: readonly LhMessage[];
 }

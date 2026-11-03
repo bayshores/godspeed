@@ -4,7 +4,7 @@
  * the countdown, "All" to Home, hidden when nothing is open, the done
  * click), Coming up (groups, rows, covers + ready bar, the class chip, the
  * countdown column, the empty states) and a class block (facts, Next due,
- * Continue or New lesson, Open class).
+ * Continue or Study, Open class).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -382,7 +382,7 @@ describe("Class block", () => {
 		assert.ok(!html.includes("class-block-new-lesson"));
 	});
 
-	it("no lessons yet: New lesson instead of Continue", () => {
+	it("no lessons yet: Study instead of Continue", () => {
 		const html = block({ progress: { facts: FACTS, lessons: [], files: STUDY_FILES } });
 		assert.ok(html.includes('data-testid="class-block-new-lesson"'));
 		assert.ok(!html.includes("class-block-continue"));

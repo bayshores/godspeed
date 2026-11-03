@@ -17,7 +17,7 @@ import { LazyChainTableOverlay as ChainTableOverlay } from "@/components/chain-t
 import { LoadFailed } from "@/components/load-failed";
 import { NotesImportErrors, useNotesImport } from "@/components/notes-import";
 import { GraphTopBar } from "./graph-top-bar.tsx";
-import { usePracticeStart } from "./practice.ts";
+import { useLessonStart } from "@/components/home/use-lesson-start";
 
 // The map and its panels (with d3-zoom) load in their own chunk once the
 // progress data has arrived.
@@ -63,7 +63,7 @@ function GraphScreenBody() {
 
 	const refreshActivity = useActivity().refresh;
 	const notesImport = useNotesImport({ onStart: refreshActivity, onFinish: refresh });
-	const practice = usePracticeStart();
+	const study = useLessonStart();
 
 	const data = progress.data;
 	const hasFacts = (data?.facts.length ?? 0) > 0;
@@ -83,11 +83,11 @@ function GraphScreenBody() {
 					<GraphBody
 						data={data}
 						query={query}
-						practicing={practice.busy}
-						practiceError={practice.error}
-						onPractice={(ids) => {
+						studying={study.busy}
+						studyError={study.error}
+						onStudy={(ids) => {
 							const topics = ids.map((id) => data.topics.find((t) => t.id === id)).filter((t) => t !== undefined);
-							void practice.start(topics, data.facts);
+							study.studyTopics(topics, data.facts);
 						}}
 					/>
 				) : progress.error ? (

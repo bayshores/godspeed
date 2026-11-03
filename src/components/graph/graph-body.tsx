@@ -31,16 +31,16 @@ function ShowPanelRail({ onShow }: { onShow: () => void }) {
 export function GraphBody({
 	data,
 	query,
-	practicing,
-	practiceError,
-	onPractice,
+	studying,
+	studyError,
+	onStudy,
 	initialSelected = null,
 }: {
 	data: ProgressPayload;
 	query: string;
-	practicing: boolean;
-	practiceError: string | null;
-	onPractice: (topicIds: string[]) => void;
+	studying: boolean;
+	studyError: string | null;
+	onStudy: (topicIds: string[]) => void;
 	initialSelected?: string | null;
 }) {
 	const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
@@ -92,9 +92,9 @@ export function GraphBody({
 					facts={data.facts}
 					onClose={() => setSelectedId(null)}
 					onSelectTopic={setSelectedId}
-					onPractice={onPractice}
-					practicing={practicing}
-					practiceError={practiceError}
+					onStudy={onStudy}
+					studying={studying}
+					studyError={studyError}
 				/>
 			) : (
 				<WherePanel
@@ -104,9 +104,9 @@ export function GraphBody({
 					deadlineId={deadlineId}
 					onDeadlineChange={setDeadlinePick}
 					onSelectTopic={setSelectedId}
-					onPractice={onPractice}
-					practicing={practicing}
-					practiceError={practiceError}
+					onStudy={onStudy}
+					studying={studying}
+					studyError={studyError}
 				/>
 			)}
 		</>

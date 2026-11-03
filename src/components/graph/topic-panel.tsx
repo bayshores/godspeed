@@ -1,7 +1,7 @@
 /**
  * The right panel with a topic selected: its name (CMU), its answers as
  * blocks with a one-line takeaway, "Needs first" / "Leads to" chips (each
- * opens that topic), its facts, and "Practice this topic".
+ * opens that topic), its facts, and "Study this topic".
  */
 import { memo, useMemo } from "react";
 import { XIcon } from "lucide-react";
@@ -9,7 +9,7 @@ import type { FactProgress, TopicLink, TopicProgress } from "@/core";
 import { Hint } from "@/components/ui/hint";
 import { neighbors, PANEL_ANSWER_COLOR, takeaway, topicFacts } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
-import { PracticeBar, SIDE_PANEL, StatusMark } from "./where-panel.tsx";
+import { StudyBar, SIDE_PANEL, StatusMark } from "./where-panel.tsx";
 
 /** At most this many answer blocks (the newest). */
 const MAX_BLOCKS = 40;
@@ -23,9 +23,9 @@ export function TopicPanel({
 	facts,
 	onClose,
 	onSelectTopic,
-	onPractice,
-	practicing,
-	practiceError,
+	onStudy,
+	studying,
+	studyError,
 }: {
 	topic: TopicProgress;
 	topics: readonly TopicProgress[];
@@ -33,10 +33,10 @@ export function TopicPanel({
 	facts: readonly FactProgress[];
 	onClose: () => void;
 	onSelectTopic: (id: string) => void;
-	onPractice: (topicIds: string[]) => void;
-	practicing: boolean;
-	/** Why the last practice didn't start (shown under the button). */
-	practiceError: string | null;
+	onStudy: (topicIds: string[]) => void;
+	studying: boolean;
+	/** Why the last Study start failed (shown under the button). */
+	studyError: string | null;
 }) {
 	const byId = useMemo(() => new Map(topics.map((t) => [t.id, t])), [topics]);
 	const { needs, leadsTo } = useMemo(() => neighbors(topic.id, [...links], byId), [topic.id, links, byId]);
@@ -79,7 +79,7 @@ export function TopicPanel({
 				<div className="h-1.5" />
 				<FactList key={topic.id} facts={list} />
 			</div>
-			<PracticeBar testid="practice-topic" label="Practice this topic" busy={practicing} error={practiceError} onClick={() => onPractice([topic.id])} />
+			<StudyBar testid="study-topic" label="Study this topic" busy={studying} error={studyError} onClick={() => onStudy([topic.id])} />
 		</aside>
 	);
 }

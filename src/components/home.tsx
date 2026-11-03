@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import type { FileCoverage, GraphContextPick, GraphCostSummary, TopicProgress } from "@/core";
 import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { classQuery, useClasses } from "@/components/class-context";
@@ -13,15 +12,15 @@ import { displayName } from "@/components/overview/overview-model";
 import { FactsPicker, useGraphSnapshot } from "@/components/home/facts-picker";
 import { SuggestionList } from "@/components/home/suggestions";
 import { homeSuggestions } from "@/components/home/suggestions-model";
-import { ModeSwitch, TopicBox, type HomeMode } from "@/components/home/topic-box";
+import { TopicBox } from "@/components/home/topic-box";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { useLessonStep } from "@/components/home/use-lesson-step";
 
 /**
- * NEW LESSON ("/new"): where new lessons start
- * (the sidebar's New lesson and Practice buttons and ⌘N open it), in the
- * active class. Teach / Practice, the topic box ("Start from facts" picks facts
- * from the chain table; Enter or the start button starts), then
+ * THE START PAGE ("/new"): where every study session starts (the
+ * sidebar's Study button and ⌘N open it), in the active class. "Study for
+ * <deadline>" for each upcoming deadline, the topic box ("Start from
+ * facts" picks facts from the chain table; Enter or Study starts), then
  * "Suggested for <class>": Continue the latest lesson, Next up (the
  * earliest unstudied file) and Work on next (weak or untested topics).
  * The top bar keeps the graph-cost control.
@@ -37,13 +36,6 @@ export function NewLesson() {
 	/* The topic MIRROR: the start reads the ref, kept current at every
 	 * write, so a closure never sees a stale draft. */
 	const topicRef = useRef("");
-	// The mode lives in the URL ("/new?mode=practice" is the sidebar's
-	// Practice button), so the sidebar always lands on the right one; the
-	// switch rewrites it in place (no navigation, no history entry).
-	const mode: HomeMode = useSearchParams().get("mode") === "practice" ? "practice" : "teach";
-	const setMode = useCallback((m: HomeMode) => {
-		window.history.replaceState(null, "", m === "practice" ? "/new?mode=practice" : "/new");
-	}, []);
 	const [picks, setPicks] = useState<GraphContextPick[]>([]);
 	const [pickerOpen, setPickerOpen] = useState(false);
 	// Picks belong to one class's graph — switching class clears them.
@@ -57,12 +49,13 @@ export function NewLesson() {
 	const viewRef = useRef<HTMLDivElement>(null);
 	useRiseOnChange(viewRef, activeClassId);
 
-	const { start, practiceTopic } = lesson;
-	const startTopic = () => void start({ title: topicRef.current, kind: mode, picks });
-	const learn = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
+	const { start, studyTopics, studyDeadline } = lesson;
+	const startTopic = () => void start({ title: topicRef.current, picks });
+	const studyFile = useCallback((file: FileCoverage) => void start({ title: displayName(file.name) }), [start]);
 	const facts = progress?.facts;
-	const practice = useCallback((t: TopicProgress) => void practiceTopic(t, facts ?? []), [practiceTopic, facts]);
+	const studyTopic = useCallback((t: TopicProgress) => studyTopics([t], facts ?? []), [studyTopics, facts]);
 
+	const deadlines = useMemo(() => (progress?.deadlines ?? []).filter((d) => d.daysUntil >= 0 && !d.done), [progress]);
 	const suggestions = useMemo(() => homeSuggestions(progress), [progress]);
 	const latest = progress?.lessons[0] ?? null;
 	const step = useLessonStep(latest?.chatId ?? null, latest?.updatedAt ?? null);
@@ -70,7 +63,7 @@ export function NewLesson() {
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
 			<TopBar>
-				<h1 className="text-[15px] font-bold text-ink">{mode === "practice" ? "Practice" : "New lesson"}</h1>
+				<h1 className="text-[15px] font-bold text-ink">Study</h1>
 				<div className="flex-1" />
 				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
 			</TopBar>
@@ -81,15 +74,25 @@ export function NewLesson() {
 					className="mx-auto flex w-full max-w-[712px] flex-col px-4 pb-16 pt-[92px]"
 					style={{ animationDuration: "var(--lh-dur-slow)" }}
 				>
-					<h2 className="font-title text-[34px] font-bold leading-tight text-ink">
-						{mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
-					</h2>
-					<div className="mt-5">
-						<ModeSwitch mode={mode} onMode={setMode} />
-					</div>
+					<h2 className="font-title text-[34px] font-bold leading-tight text-ink">What do you want to study?</h2>
+					{progress && deadlines.length > 0 && (
+						<div data-testid="home-deadlines" className="mt-5 flex flex-wrap gap-0.5">
+							{deadlines.map((d) => (
+								<button
+									key={d.id}
+									type="button"
+									data-testid="home-study-deadline"
+									disabled={lesson.busy}
+									onClick={() => studyDeadline(progress, d)}
+									className="lh-press bg-tone px-3.5 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-60"
+								>
+									Study for {d.name}
+								</button>
+							))}
+						</div>
+					)}
 					<div className="mt-2.5">
 						<TopicBox
-							mode={mode}
 							text={topic}
 							onText={(t) => {
 								topicRef.current = t;
@@ -117,8 +120,8 @@ export function NewLesson() {
 							suggestions={suggestions}
 							step={step}
 							busy={lesson.busy}
-							onLearn={learn}
-							onPractice={practice}
+							onStudyFile={studyFile}
+							onStudyTopic={studyTopic}
 						/>
 					</div>
 				</div>

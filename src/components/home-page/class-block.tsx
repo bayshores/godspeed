@@ -90,7 +90,7 @@ export const ClassBlock = memo(function ClassBlock({
 						className="lh-press flex min-w-0 flex-1 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-background hover:bg-ink-max"
 					>
 						<PlusIcon className="size-3.5 shrink-0" aria-hidden />
-						New lesson
+						Study
 					</button>
 				)}
 				<button

@@ -124,7 +124,7 @@ describe("session-scoped overlays", () => {
 	});
 
 	it("the plan popup is session-scoped the same way, and its chart is hidden until the first fit (no top-left flash)", () => {
-		const html = renderToStaticMarkup(<PlanPopup messages={[]} onClose={() => {}} />);
+		const html = renderToStaticMarkup(<PlanPopup tree={null} messages={[]} onClose={() => {}} />);
 		assert.match(html, /data-testid="plan-popup"/);
 		assert.match(html, /class="absolute inset-0[^"]*z-40/, "absolute inset-0 z-40 — scoped, not fullscreen");
 		assert.ok(html.includes("bg-background/80"), "80% background");

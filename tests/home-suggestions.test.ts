@@ -178,4 +178,11 @@ describe("lessonStep (the Continue row's step N / M)", () => {
 		const expected = bar.currentIndex >= 0 ? bar.currentIndex + 1 : bar.steps.filter((s) => s.status === "visited").length;
 		assert.deepEqual(step, { position: expected, total: 3 });
 	});
+
+	it("a study session's problems move its step like quizzes do", () => {
+		const messages = [
+			{ id: "a1", role: "assistant", content: [{ type: "toolCall", id: "p1", name: "problem", arguments: { nodeId: "n2" } }], timestamp: 0 },
+		] as unknown as Parameters<typeof lessonStep>[0]["messages"];
+		assert.deepEqual(lessonStep({ kind: "study", tree, messages }), { position: 2, total: 3 });
+	});
 });

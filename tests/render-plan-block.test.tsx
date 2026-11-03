@@ -12,7 +12,7 @@ import {
 	nodeWidth,
 	estimateLineWidth,
 } from "../src/components/plan-block-model.ts";
-import type { PopupMessage } from "../src/components/plan-latest.ts";
+import { latestTree, type PopupMessage } from "../src/components/plan-latest.ts";
 import type { PlanBlockData, PlanTree } from "../src/core/contracts.ts";
 
 // Plan blocks: the pure layered layout, the frozen-snapshot rendering
@@ -214,7 +214,7 @@ describe("plan popup (live derivation)", () => {
 	}
 
 	it("derives statuses at click time: latest tagged call → current, earlier → visited (glowing)", () => {
-		const html = renderToStaticMarkup(<PlanPopup messages={messages()} onClose={() => {}} />);
+		const html = renderToStaticMarkup(<PlanPopup tree={latestTree(messages())} messages={messages()} onClose={() => {}} />);
 		assert.match(html, /data-testid="plan-popup"/);
 		assert.match(html, /data-testid="plan-node-a" data-status="visited"/);
 		assert.match(html, /data-testid="plan-node-b" data-status="current"/);
@@ -256,7 +256,7 @@ describe("plan popup (live derivation)", () => {
 			{ parts: [{ type: "tool-quiz", state: "output-available", input: { nodeId: "y" }, output: { correct: true } }] },
 			{ parts: [{ type: "tool-quiz", state: "output-available", input: { nodeId: "z" }, output: { correct: true } }] },
 		];
-		const html = renderToStaticMarkup(<PlanPopup messages={msgs} onClose={() => {}} />);
+		const html = renderToStaticMarkup(<PlanPopup tree={latestTree(msgs)} messages={msgs} onClose={() => {}} />);
 		assert.match(html, /data-testid="plan-node-x" data-status="upcoming"/);
 		assert.match(html, /data-testid="plan-node-y" data-status="visited"/);
 		assert.match(html, /data-testid="plan-node-z" data-status="current"/);
@@ -271,7 +271,7 @@ describe("plan popup (live derivation)", () => {
 	});
 
 	it("renders the empty state when the session has no plan", () => {
-		const html = renderToStaticMarkup(<PlanPopup messages={[{ parts: [] }]} onClose={() => {}} />);
+		const html = renderToStaticMarkup(<PlanPopup tree={null} messages={[{ parts: [] }]} onClose={() => {}} />);
 		assert.match(html, /No plan in this session yet\./);
 	});
 });

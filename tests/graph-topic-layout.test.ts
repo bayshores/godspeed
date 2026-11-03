@@ -30,7 +30,7 @@ import {
 	takeaway,
 	topicFacts,
 } from "../src/components/graph/derive.ts";
-import { MAX_PICKS, practicePicks, practiceTitle } from "../src/components/graph/practice.ts";
+import { MAX_PICKS, studyPicks, studyTitle } from "../src/components/home/study-start-model.ts";
 import { answers, fact, fixture, topic } from "./graph-fixture.ts";
 
 describe("ringDiameter", () => {
@@ -212,12 +212,12 @@ describe("panel helpers", () => {
 	});
 });
 
-describe("practice picks", () => {
+describe("study picks", () => {
 	const data = fixture();
 	const byId = new Map(data.topics.map((t) => [t.id, t]));
 
 	it("takes each topic's facts, weakest first, in topic order", () => {
-		const picks = practicePicks([byId.get("t-var")!, byId.get("t-mini")!], data.facts);
+		const picks = studyPicks([byId.get("t-var")!, byId.get("t-mini")!], data.facts);
 		assert.equal(picks.length, 8);
 		assert.equal(picks[2]!.name, "Minibatch gradient is unbiased");
 		assert.deepEqual(Object.keys(picks[0]!).sort(), ["id", "name", "statement"]);
@@ -227,10 +227,10 @@ describe("practice picks", () => {
 		const members = Array.from({ length: 80 }, (_, i) => `m${i}`);
 		const big = topic("big", "Big", 0, members, []);
 		const facts = members.map((id) => fact(id, "big", id));
-		assert.equal(practicePicks([big], facts).length, MAX_PICKS);
+		assert.equal(studyPicks([big], facts).length, MAX_PICKS);
 	});
 
 	it("titles the lesson after the topics", () => {
-		assert.equal(practiceTitle([{ name: "Variance" }, { name: "Momentum" }]), "Practice: Variance, Momentum");
+		assert.equal(studyTitle([{ name: "Variance" }, { name: "Momentum" }]), "Study: Variance, Momentum");
 	});
 });

@@ -61,9 +61,9 @@ describe("SessionRow", () => {
 		assert.ok(html.includes('<span class="sr-only">Waiting for your answer</span>'), "screen readers still hear it");
 	});
 
-	it("a practice lesson with a posed problem also waits; a teaching lesson's stale problem flag does not", () => {
+	it("a lesson with a posed problem also waits, whatever its kind", () => {
 		assert.ok(render(item({ kind: "practice", pendingProblem: true })).includes("session-waiting-dot"));
-		assert.ok(!render(item({ kind: "teach", pendingProblem: true })).includes("session-waiting-dot"));
+		assert.ok(render(item({ kind: "study", pendingProblem: true })).includes("session-waiting-dot"));
 	});
 
 	it("a working lesson (turn in flight) shows the braille spinner and no dot", () => {

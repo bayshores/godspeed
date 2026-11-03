@@ -462,8 +462,10 @@ describe("the reading pane's waiting and error states", () => {
 		assert.ok(!html.includes("Something went wrong"));
 	});
 
-	it("an empty lesson says the teacher starts by seeing what you already know", () => {
-		assert.match(pane({ busy: false, status: "ready" }), /see what you already know/);
+	it("an empty lesson says it is new, with no promise of a probe", () => {
+		const html = pane({ busy: false, status: "ready" });
+		assert.match(html, />New lesson</);
+		assert.doesNotMatch(html, /see what you already know/);
 	});
 });
 

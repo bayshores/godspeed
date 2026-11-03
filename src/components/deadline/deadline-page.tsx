@@ -4,14 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilIcon } from "lucide-react";
-import { DEFAULT_TEACHER_NAME, planDays, type TopicProgress } from "@/core";
+import { DEFAULT_TEACHER_NAME, planDays } from "@/core";
 import { useClasses } from "@/components/class-context";
 import { ClassDialog } from "@/components/class-dialog";
 import { dueLabel } from "@/components/class-deadlines-model";
 import { useMinute } from "@/components/countdown";
 import { useClassRecord } from "@/components/files/class-files-api";
 import { useHalley } from "@/components/halley/halley-provider";
-import { practicePicks, practiceTitle } from "@/components/graph/practice";
 import { askTeacher } from "@/components/halley/ask-teacher";
 import { useLessonStart } from "@/components/home/use-lesson-start";
 import { LoadFailed } from "@/components/load-failed";
@@ -24,7 +23,7 @@ import { coverageMessage, deadlineMaterial } from "./deadline-model";
  * A deadline's page, opened from its ring on the Overview or its row in
  * Coming up. The page makes the deadline's class the active one (Coming up
  * lists every class); switching class afterwards goes to that class's
- * Overview. Start practices today's topics (all its topics once every one
+ * Overview. Study works on today's topics (all its topics once every one
  * is strong).
  */
 export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlineId: string }) {
@@ -83,13 +82,10 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 	);
 	const plan = useMemo(() => (current && deadline ? planDays(current.today, deadline.date, deadline.topics) : []), [current, deadline]);
 
-	const { start } = lesson;
+	const { studyDeadline } = lesson;
 	const onStart = useCallback(() => {
-		if (!current || !deadline) return;
-		const ids = plan.length > 0 ? plan[0]!.topics.map((t) => t.id) : deadline.topics.map((t) => t.id);
-		const topics = ids.map((id) => current.topics.find((t) => t.id === id)).filter((t): t is TopicProgress => !!t);
-		if (topics.length > 0) void start({ title: practiceTitle(topics), kind: "practice", picks: practicePicks(topics, current.facts) });
-	}, [current, deadline, plan, start]);
+		if (current && deadline) studyDeadline(current, deadline);
+	}, [current, deadline, studyDeadline]);
 	const onAsk = useCallback(() => {
 		if (deadline) askTeacher(coverageMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
 	}, [deadline, activeClass?.name]);

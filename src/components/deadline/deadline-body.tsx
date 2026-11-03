@@ -31,7 +31,7 @@ interface DeadlineBodyProps {
 	plan: readonly PlanDay[];
 	nowMs: number;
 	busy: boolean;
-	/** Why the last practice didn't start. */
+	/** Why the last Study start failed. */
 	startError: string | null;
 	onStart: () => void;
 	onEditClass: () => void;
@@ -376,7 +376,7 @@ function PathCard({
 			{canStart && (
 				// Flush with the card's edges and foot, like the lesson panel's bar.
 				<div className="-mx-[22px] w-[calc(100%+44px)]">
-					<ActionBar testId="deadline-start" label={plan.length > 0 ? "Start today" : "Practice all its topics"} onClick={onStart} disabled={busy} />
+					<ActionBar testId="deadline-start" label="Study" onClick={onStart} disabled={busy} />
 				</div>
 			)}
 		</section>
@@ -387,7 +387,7 @@ function PathCard({
  *  says done or past). */
 function pathNote(d: DeadlineProgress, hasPlan: boolean, allStrong: boolean, m: Material | null): string {
 	if (hasPlan) return d.daysUntil === 0 ? "Due today, so everything that needs work is on today." : "Topics that need work, weakest first.";
-	if (allStrong) return "Every topic is strong. Practice them to keep it that way.";
+	if (allStrong) return "Every topic is strong. Study them to keep it that way.";
 	if (d.files.length === 0) return "A plan shows up once it knows what's on it.";
 	if (m && m.reading > 0) return "Its files are still being read. The plan shows up once their facts are built.";
 	return "Its files have no facts yet, so there is nothing to plan. Course info files never make facts.";

@@ -2,10 +2,10 @@ import { useEffect, useId, useMemo } from "react";
 import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/components/pan-zoom-viewport";
-import type { PlanBlockData, PlanNodeStatus } from "@/core";
+import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/core";
 import { derivedNodeStatus, derivePlanStatuses } from "@/core";
 import { Hint } from "@/components/ui/hint";
-import { latestTree, type PopupMessage } from "@/components/plan-latest";
+import type { PopupMessage } from "@/components/plan-latest";
 import { ARROW_HEAD, blockLayout, edgePathD, HEAD_H, HEAD_W, LINE_H, NODE_H, NODE_W_MIN, STROKE_W, wrapTitle, type LayoutNode } from "@/components/plan-block-model";
 import { useDialogFocus } from "@/components/use-dialog-focus";
 
@@ -310,9 +310,9 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 const POPUP_PAD = GLOW_REACH;
 
 /**
- * The full plan, live: latest tree + statuses derived at click time. Esc,
- * backdrop click, or the X close it; drag pans, wheel zooms to the cursor,
- * the zoom floor is the fit (panning locks at it — nothing to move).
+ * The full plan, live: the lesson's plan + statuses derived at click
+ * time. Esc, backdrop click, or the X close it; drag pans, wheel zooms to
+ * the cursor, the zoom floor is the fit (panning locks at it — nothing to move).
  *
  * Session-scoped: it mounts absolute inside the chat page's session-area
  * div (chat.tsx), below the 60px drag bar and right of the sidebar, so the
@@ -320,17 +320,19 @@ const POPUP_PAD = GLOW_REACH;
  * Surface 80% + blur: the transcript ghosts through.
  */
 export function PlanPopup({
+	tree,
 	messages,
 	onClose,
 	state = "open",
 }: {
+	/** The lesson's plan (the same one its step bar shows). */
+	tree: PlanTree | null;
 	messages: readonly PopupMessage[];
 	onClose: () => void;
 	/** Fade state: the caller keeps the popup mounted through its exit
 	 *  with usePresence. */
 	state?: "open" | "closed";
 }) {
-	const tree = useMemo(() => latestTree(messages), [messages]);
 	const statuses = useMemo(
 		() => (tree ? derivePlanStatuses(tree, messages as Parameters<typeof derivePlanStatuses>[1]) : null),
 		[tree, messages],

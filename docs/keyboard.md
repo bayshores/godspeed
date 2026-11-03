@@ -55,7 +55,7 @@ the keys.
 | Toggle sidebar | ⌘B | `src/components/sidebar.tsx` |
 | Search lessons | ⌘⇧F | `src/components/sidebar/lessons-section.tsx`. In the search field ↑/↓ walk the results and Enter opens one (the first match if none is picked) |
 | Go to Graph | ⌘G | `keyboard-shortcuts.tsx`, goes to `/graph` |
-| New lesson | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
+| Study | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
 | Rename lesson | F2 | `src/components/lesson/use-title-rename.ts` |
 | Toggle all your thinking | ⌘T | `src/components/chat.tsx` |
 | Find | ⌘F | the open page: topic search on `/graph` (`src/components/graph/graph-top-bar.tsx`), text Find in a lesson (`src/components/session-find.tsx`) |

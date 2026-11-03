@@ -24,7 +24,7 @@ export const OverviewBody = memo(function OverviewBody({
 	nowMs,
 	busy,
 	startError,
-	onLearn,
+	onStudy,
 	onAddSignature,
 	pickClass,
 	onAddDeadline,
@@ -42,8 +42,8 @@ export const OverviewBody = memo(function OverviewBody({
 	busy: boolean;
 	/** Why the last lesson didn't start (shown in the runway). */
 	startError: string | null;
-	/** "Most needed" → Learn this. */
-	onLearn: (topicId: string) => void;
+	/** "Most needed" → Study. */
+	onStudy: (topicId: string) => void;
 	/** The cover's "Add a signature" (opens Edit class). */
 	onAddSignature?: () => void;
 	/** Under the No class title: the classes to switch to. */
@@ -75,7 +75,7 @@ export const OverviewBody = memo(function OverviewBody({
 						nowMs={nowMs}
 						busy={busy}
 						startError={startError}
-						onLearn={onLearn}
+						onStudy={onStudy}
 						onAddDeadline={onAddDeadline}
 					/>
 				)}

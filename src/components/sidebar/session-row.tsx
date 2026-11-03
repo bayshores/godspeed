@@ -43,10 +43,9 @@ export function longAgo(iso: string, now = new Date()): string {
 	return `on ${localDay(new Date(iso))}`;
 }
 
-/** The lesson waits for the learner: an open question, or (practice) a
- *  posed problem. */
+/** The lesson waits for the learner: an open question or a posed problem. */
 export function lessonWaiting(chat: ChatListItem): boolean {
-	return chat.pendingQuestion || ((chat.kind ?? "teach") === "practice" && chat.pendingProblem);
+	return chat.pendingQuestion || chat.pendingProblem;
 }
 
 /** The meta line's text. */

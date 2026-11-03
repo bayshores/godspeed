@@ -15,7 +15,7 @@ import { CARD, CARD_TITLE } from "./styles";
  * their ready % (empty with "–" when nothing is covered). A 2px line joins
  * the stops through their centers, stopping 10px short of each, with the
  * days between them above it. Hover a ring: its topics, weakest first;
- * click: the deadline's page. Below: "Most needed" with Learn this. With
+ * click: the deadline's page. Below: "Most needed" with Study. With
  * no deadlines: one line and Add deadline.
  */
 
@@ -32,18 +32,18 @@ export const RunwayCard = memo(function RunwayCard({
 	nowMs,
 	busy,
 	startError,
-	onLearn,
+	onStudy,
 	onAddDeadline,
 }: {
 	deadlines: readonly DeadlineProgress[];
 	/** The learner's day, YYYY-MM-DD. */
 	today: string;
 	nowMs: number;
-	/** A lesson is starting (Learn this). */
+	/** A lesson is starting (Study). */
 	busy: boolean;
 	/** Why the last lesson didn't start. */
 	startError: string | null;
-	onLearn: (topicId: string) => void;
+	onStudy: (topicId: string) => void;
 	/** Opens Edit class with a new deadline row. */
 	onAddDeadline?: () => void;
 }) {
@@ -111,7 +111,7 @@ export const RunwayCard = memo(function RunwayCard({
 				</div>
 			</div>
 
-			{needed && <MostNeededRow needed={needed} busy={busy} onLearn={onLearn} />}
+			{needed && <MostNeededRow needed={needed} busy={busy} onStudy={onStudy} />}
 			{startError && (
 				<p role="alert" data-testid="runway-start-error" className="text-[13px] text-ans-wrong">
 					{startError}
@@ -203,7 +203,7 @@ function RingTipBody({ deadline: d }: { deadline: DeadlineProgress }) {
 	);
 }
 
-function MostNeededRow({ needed, busy, onLearn }: { needed: MostNeeded; busy: boolean; onLearn: (topicId: string) => void }) {
+function MostNeededRow({ needed, busy, onStudy }: { needed: MostNeeded; busy: boolean; onStudy: (topicId: string) => void }) {
 	return (
 		<div data-testid="runway-most-needed" className="flex w-full items-center gap-3 border-t border-tone-2 pt-3">
 			<span className="shrink-0 text-[13.5px] font-bold text-ink-2">Most needed</span>
@@ -211,12 +211,12 @@ function MostNeededRow({ needed, busy, onLearn }: { needed: MostNeeded; busy: bo
 			<span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-3">on {joinAnd(needed.deadlines)}</span>
 			<button
 				type="button"
-				data-testid="runway-learn-this"
+				data-testid="runway-study"
 				disabled={busy}
-				onClick={() => onLearn(needed.topicId)}
+				onClick={() => onStudy(needed.topicId)}
 				className="lh-press flex shrink-0 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 			>
-				Learn this
+				Study
 				<ArrowRightIcon className="size-3.5" aria-hidden />
 			</button>
 		</div>

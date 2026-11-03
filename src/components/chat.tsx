@@ -24,13 +24,16 @@ import {
 	answerOutcome,
 	dismissedAnswer,
 	findPendingToolCall,
+	firstPhase,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
 	questionNeedsReveal,
 	toolQuestionKind,
 	type ChatAttachment,
+	type LessonKind,
 	type LhMessage,
+	type PlanTree,
 	type QuestionAnswerData,
 } from "@/core";
 import { escAbortTarget, initialPromptOwed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/components/lesson/chat-helpers";
@@ -66,14 +69,19 @@ export function Chat({
 	initiallyInFlight,
 	initiallyCompacting = false,
 	kind = "teach",
+	initialTree,
 }: {
 	chatId: string;
 	title: string;
 	initialMessages: LhMessage[];
 	/** Memory-only settlement notice supplied on reopening. */
 	initialError?: string;
-	/** Practice lessons show their problems instead of a plan. */
-	kind?: "teach" | "practice";
+	/** Practice lessons show their problems instead of a plan; study
+	 *  lessons start teaching at once, with problems too. */
+	kind?: LessonKind;
+	/** The record's plan: the step bar's plan until a plan_init call
+	 *  writes a newer one (a study session's plan has no such call). */
+	initialTree?: PlanTree;
 	initialPrompt?: string;
 	/** A teacher turn is running server-side with no client attached. */
 	initiallyInFlight?: boolean;
@@ -185,8 +193,8 @@ export function Chat({
 	};
 
 	// The phase at every message (the teach seam) and the current phase.
-	const phases = useMemo(() => phaseTimeline(messages), [messages]);
-	const phase = phases.at(-1) ?? "probe";
+	const phases = useMemo(() => phaseTimeline(messages, firstPhase(kind)), [messages, kind]);
+	const phase = phases.at(-1) ?? firstPhase(kind);
 	// A teach-phase check waits behind "Check your understanding".
 	const requiresReveal = pending !== null && questionNeedsReveal(pending.tool, pending.input, phase);
 
@@ -338,19 +346,18 @@ export function Chat({
 		? text.trim().length > 0 && !busy && !compacting
 		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
 
-	/* THE PRACTICE PAUSE: between problems, once a problem
-	 * has ever been posed — Enter on an empty box (or anywhere) asks for the
-	 * next one. */
+	/* THE PRACTICE PAUSE (practice and study): between problems, once a
+	 * problem has ever been posed — Enter on an empty box (or anywhere)
+	 * asks for the next one. */
 	const posedAny = useMemo(
 		() =>
-			kind === "practice" &&
 			nativeMessages.some(
 				(m) =>
 					(m as { role?: string }).role === "assistant" &&
 					Array.isArray((m as { content?: unknown[] }).content) &&
 					(m as { content: Array<{ type?: string; name?: string }> }).content.some((b) => b.type === "toolCall" && b.name === "problem"),
 			),
-		[kind, nativeMessages],
+		[nativeMessages],
 	);
 	const nextReady = posedAny && !pending && !activeProblem && !compacting && !busy;
 	const sendNext = useCallback(() => {
@@ -409,14 +416,15 @@ export function Chat({
 	};
 
 	// ── the top bar's data ──
-	const planTree = useMemo(() => latestTree(messages), [messages]);
+	const planTree = useMemo(() => latestTree(messages) ?? initialTree ?? null, [messages, initialTree]);
 	const freshBar = useMemo(() => (kind === "practice" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const barKey = freshBar ? JSON.stringify(freshBar) : "";
 	const stepBar = useMemo(() => freshBar, [barKey]);
 	const stepIdsKey = stepBar ? stepBar.steps.map((s) => s.id).join("\n") : "";
 	const stepNumbers = useMemo(() => new Map(stepBar?.steps.map((s, i) => [s.id, i + 1]) ?? []), [stepIdsKey]);
-	const practice = useMemo(() => (kind === "practice" ? practiceProgress(messages, activeProblem !== null) : null), [kind, messages, activeProblem]);
+	// Problem numbers (and practice's top bar blocks).
+	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
 	const practiceKey = practice ? JSON.stringify(practice) : "";
 	const stablePractice = useMemo(() => practice, [practiceKey]);
 
@@ -545,7 +553,7 @@ export function Chat({
 										<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
 									</div>
 								)}
-								{planPresence.mounted && <PlanPopup messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
+								{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
 								<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
 							</div>
 						</div>

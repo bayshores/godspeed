@@ -98,7 +98,7 @@ function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) 
 			nowMs={NOW}
 			busy={false}
 			startError={null}
-			onLearn={() => {}}
+			onStudy={() => {}}
 			{...props}
 		/>,
 	);
@@ -305,7 +305,7 @@ describe("Ready for what's due", () => {
 		const row = section(renderRunway(), "runway-most-needed", "</button>");
 		assert.match(row, />Convexity</);
 		assert.match(row, /on HW 5 and Midterm 2/);
-		assert.match(row, /data-testid="runway-learn-this"/);
+		assert.match(row, /data-testid="runway-study"/);
 	});
 
 	it("No class or loading: no runway", () => {
@@ -428,7 +428,7 @@ afterEach(async () => {
 });
 
 describe("runway clicks", () => {
-	async function mount(onLearn: (id: string) => void) {
+	async function mount(onStudy: (id: string) => void) {
 		host = document.createElement("div");
 		document.body.appendChild(host);
 		root = createRoot(host);
@@ -442,7 +442,7 @@ describe("runway clicks", () => {
 					nowMs={NOW}
 					busy={false}
 					startError={null}
-					onLearn={onLearn}
+					onStudy={onStudy}
 				/>,
 			);
 		});
@@ -455,23 +455,23 @@ describe("runway clicks", () => {
 		assert.match(tag(html, "runway-ring-d3"), /href="\/class\/deadline\/d3"/);
 	});
 
-	it("Learn this starts a lesson on the Most needed topic", async () => {
+	it("Study starts a lesson on the Most needed topic", async () => {
 		const learned: string[] = [];
 		const el = await mount((id) => learned.push(id));
-		await act(async () => (el.querySelector('[data-testid="runway-learn-this"]') as HTMLButtonElement).click());
+		await act(async () => (el.querySelector('[data-testid="runway-study"]') as HTMLButtonElement).click());
 		assert.deepEqual(learned, ["t1"]);
 	});
 
-	it("a practice or lesson that didn't start says so under Learn this", () => {
+	it("a lesson that didn't start says so under Study", () => {
 		const html = renderRunway(DEADLINES, { startError: "Couldn't start the lesson. Try again." });
-		const after = html.slice(html.indexOf('data-testid="runway-learn-this"'));
+		const after = html.slice(html.indexOf('data-testid="runway-study"'));
 		assert.match(after, /data-testid="runway-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 		assert.ok(!renderRunway(DEADLINES).includes("runway-start-error"));
 	});
 
-	it("Learn this is disabled while a lesson is starting; the rings still open their pages", () => {
+	it("Study is disabled while a lesson is starting; the rings still open their pages", () => {
 		const html = renderRunway(DEADLINES, { busy: true });
-		assert.match(tag(html, "runway-learn-this"), /disabled=""/);
+		assert.match(tag(html, "runway-study"), /disabled=""/);
 		assert.doesNotMatch(tag(html, "runway-ring-d1"), /disabled/);
 	});
 });

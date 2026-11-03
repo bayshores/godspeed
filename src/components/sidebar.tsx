@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
+import { PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { SettingsDialogProvider } from "@/components/settings/settings-dialog-provider.tsx";
 import { RuleNotice } from "@/components/rule-notice";
@@ -230,15 +230,15 @@ export function SidebarToggle() {
 /** The sidebar's width (drag its border line to change it). */
 const SIDEBAR_WIDTH = { initial: 256, min: 200, max: 360 };
 
-/** The sidebar's two buttons: tone blocks, 13.5px bold. */
-const NEW_BUTTON =
-	"lh-press flex flex-1 items-center justify-center gap-[7px] bg-tone py-[9px] text-[13.5px] font-bold text-ink hover:bg-tone-2";
+/** The sidebar's Study button: a full-width tone block, 13.5px bold. */
+const STUDY_BUTTON =
+	"lh-press flex w-full items-center justify-center gap-[7px] bg-tone py-[9px] text-[13.5px] font-bold text-ink hover:bg-tone-2";
 
 /**
  * THE SIDEBAR (the same on every screen): the window row (traffic
  * lights + close), Home, the class switcher, the class nav (Overview /
- * Graph / Files), "New lesson" and "Practice", Due soon, the lessons, and
- * the footer (outside agent · jobs, settings).
+ * Graph / Files), "Study", Due soon, the lessons, and the footer
+ * (outside agent · jobs, settings).
  */
 function SessionsSidebar() {
 	const { open, toggle } = useSidebar();
@@ -279,17 +279,11 @@ function SessionsSidebar() {
 
 				<ClassNav pathname={pathname} hasClass={activeClass !== null} fileCount={activeClass?.fileCount ?? 0} unseenFiles={unseenFiles} />
 
-				{/* New lessons start on the New lesson screen ("/new"), in Teach or Practice mode. */}
-				<div className="flex w-full gap-0.5">
-					<Link href="/new" data-testid="new-session" className={NEW_BUTTON}>
-						<PlusIcon className="size-3.5" aria-hidden />
-						New lesson
-					</Link>
-					<Link href="/new?mode=practice" data-testid="new-session-practice" className={NEW_BUTTON}>
-						<DumbbellIcon className="size-3.5" aria-hidden />
-						Practice
-					</Link>
-				</div>
+				{/* New lessons start on the start page ("/new"). */}
+				<Link href="/new" data-testid="new-session" className={STUDY_BUTTON}>
+					<PlusIcon className="size-3.5" aria-hidden />
+					Study
+				</Link>
 
 				<DueSoon deadlines={due.deadlines} leaving={due.leaving} onDone={due.markDone} />
 

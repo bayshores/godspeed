@@ -1,13 +1,5 @@
 import type { RefObject } from "react";
-import { BookOpenIcon, DumbbellIcon, PlusIcon, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-export type HomeMode = "teach" | "practice";
-
-const MODES: { mode: HomeMode; label: string; Icon: typeof BookOpenIcon }[] = [
-	{ mode: "teach", label: "Teach", Icon: BookOpenIcon },
-	{ mode: "practice", label: "Practice", Icon: DumbbellIcon },
-];
+import { PlusIcon, XIcon } from "lucide-react";
 
 /** Enter starts the lesson; Shift+Enter is a new line, and an IME
  *  composition's Enter only confirms the text. */
@@ -15,38 +7,12 @@ export function isStartKey(e: { key: string; shiftKey: boolean; isComposing?: bo
 	return e.key === "Enter" && !e.shiftKey && !e.isComposing;
 }
 
-/** Teach / Practice: the selected mode is the white block. */
-export function ModeSwitch({ mode, onMode }: { mode: HomeMode; onMode: (m: HomeMode) => void }) {
-	return (
-		<div data-testid="home-mode-switch" role="group" aria-label="Lesson type" className="flex gap-0.5">
-			{MODES.map(({ mode: m, label, Icon }) => (
-				<button
-					key={m}
-					type="button"
-					data-testid={`home-mode-${m}`}
-					aria-pressed={mode === m}
-					onClick={() => onMode(m)}
-					className={cn(
-						"lh-press flex items-center gap-[7px] px-3.5 py-2 text-[13.5px] font-bold",
-						mode === m ? "bg-ink text-background" : "bg-tone text-ink-2 hover:text-ink",
-					)}
-				>
-					<Icon aria-hidden className="size-3.5" />
-					{label}
-				</button>
-			))}
-		</div>
-	);
-}
-
 /**
  * The topic box: the learner's topic, then "Start from facts" (opens the
  * fact picker; with picks it shows the count and a clear button) and the
- * white start button ("Start lesson", or "Start practice" in Practice).
- * Enter starts, Shift+Enter is a new line.
+ * white Study button. Enter starts, Shift+Enter is a new line.
  */
 export function TopicBox({
-	mode,
 	text,
 	onText,
 	onStart,
@@ -57,7 +23,6 @@ export function TopicBox({
 	onOpenPicker,
 	onClearPicks,
 }: {
-	mode: HomeMode;
 	text: string;
 	onText: (text: string) => void;
 	onStart: () => void;
@@ -84,7 +49,7 @@ export function TopicBox({
 			<textarea
 				ref={inputRef}
 				data-testid="home-topic-input"
-				aria-label={mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
+				aria-label="What do you want to study?"
 				value={text}
 				onChange={(e) => onText(e.target.value)}
 				onKeyDown={(e) => {
@@ -93,11 +58,7 @@ export function TopicBox({
 						if (!empty) onStart();
 					}
 				}}
-				placeholder={
-					mode === "practice"
-						? "A topic or a kind of problem to drill…"
-						: "A topic, a homework method, or a question you're stuck on…"
-				}
+				placeholder="A topic, a homework method, or a question you're stuck on…"
 				autoFocus
 				rows={2}
 				className="field-sizing-content lh-input max-h-60 min-h-[86px] w-full resize-none bg-transparent px-[18px] py-4 text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
@@ -106,7 +67,7 @@ export function TopicBox({
 				<div className="flex min-w-0 items-center gap-1">
 					<button
 						type="button"
-						data-testid="practice-props-chip"
+						data-testid="facts-picks-chip"
 						disabled={!canPick && picks === 0}
 						onClick={onOpenPicker}
 						className="lh-press flex items-center gap-1.5 py-1 text-[13.5px] text-ink-2 hover:text-ink disabled:opacity-50 disabled:hover:text-ink-2"
@@ -123,7 +84,7 @@ export function TopicBox({
 					{picks > 0 && (
 						<button
 							type="button"
-							data-testid="practice-props-clear"
+							data-testid="facts-picks-clear"
 							aria-label="Clear picked facts"
 							onClick={onClearPicks}
 							className="lh-press lh-fade flex size-6 items-center justify-center text-ink-3 hover:text-ink"
@@ -139,7 +100,7 @@ export function TopicBox({
 					disabled={busy}
 					className="lh-press flex shrink-0 items-center gap-2 bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
 				>
-					{mode === "practice" ? "Start practice" : "Start lesson"}
+					Study
 				</button>
 			</div>
 		</form>
