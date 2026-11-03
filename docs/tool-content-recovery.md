@@ -28,7 +28,7 @@ Recovered double-dollar display framing puts the formula and closing fence on th
 
 Inside math, a control character can be the result of JSON consuming the start of a command: TAB + `ext` instead of `\text`, for example. Recovery reconstructs a command only if the control character plus the **complete following alphabetic word** names a known KaTeX command. All supported occurrences recover in one projection.
 
-The owner-approved typical-model-authoring policy is:
+The policy for typical model-authored LaTeX:
 
 - **Inline math:** recover recognized prefixes, including physical LF + `u` to `\nu`, and TAB + `o` to `\to`. There is no word-length cutoff.
 - **Display math:** keep physical LF and CRLF as source formatting; recover recognized non-newline prefixes.

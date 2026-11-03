@@ -1,5 +1,5 @@
 /**
- * Phase derivation (docs/archive/probe-teach-split.md §4) — EXPLICIT EVENTS, never
+ * Phase derivation: EXPLICIT EVENTS, never
  * occupancy. The first boundary is a transcript event; the second is
  * INFERRED:
  *

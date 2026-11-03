@@ -120,9 +120,9 @@ src/
   proxy.ts                      Next proxy: desktop-only /api gate
   agent/
     system-prompt.md            base teaching behavior (the methodology)
-    prompts/{prober,teacher,practice,shared}/
+    prompts/{prober,teacher,practice,talk,shared}/
                                 composed numbered fragments per role
-    teacher-agent.ts            prober/teacher/practice factories and their system
+    teacher-agent.ts            prober/teacher/practice/talk factories and their system
                                 prompts (engine injectable for tests)
     models.ts, agent-bridge.ts  the one engine: every model request becomes a work item
                                 for the outside agent
@@ -134,10 +134,13 @@ src/
     tools/class.ts              read_class, set_class_note, search_class_files, read_passage
     tools/graph.ts              list_sessions, list_propositions (the gated map readers)
     tools/rules.ts              save_rule
+    tools/talk.ts               the Talk chat's class tools (no deletes)
     tools/{read,ls,find,grep}.ts  the learner-file tools
     tools/work-plan.ts          work_plan (the plan shown while the teacher works)
     tools/jobs.ts               research / demo / visual / pdf tool surfaces
     tools/web.ts                web_fetch (researcher only)
+    tools/pdf-read.ts           pdf_info / pdf_search / pdf_extract / web_fetch_pdf (pdf-reader)
+    tools/heal.ts               the argument heal every tool runs
     subagents/                  researcher · demo-builder · visual-maker · pdf-reader ·
                                 topic-grouper, extraction pipeline (extractor + merger
                                 handoff), running graph jobs (extraction-runs.ts),
@@ -149,6 +152,13 @@ src/
   server/agent-memory.ts       the "Where you left off" briefing + the notes list
   server/classes.ts            class files, linked folders (scanned every 60 s), lesson
                                moves, cascade delete
+  server/class-files.ts        a class file → text (PDF on a worker thread, Office,
+                               captions) and the linked-folder walk
+  server/transcribe.ts         recordings → text with whisper.cpp
+  server/search-index.ts       class file and fact search (local embedding model on a
+                               worker thread + BM25)
+  server/lessons.ts            lesson birth (class card, picked facts)
+  server/talk.ts               the Talk chat outside lessons
   server/attachments.ts        pictures and PDFs on learner messages
   server/turn-service.ts       turn seams: persist · extraction trigger
   server/jobs.ts               the wake pipeline: serialized per-chat steer delivery,
@@ -189,7 +199,9 @@ data/                           runtime state, git-ignored:
                                 chats/ (+ chats/<id>/ attached PDFs) ·
                                 graph/ ("No class": nodes/chains/sessions/coverage/
                                 topics ledgers + sources.json, format.json) ·
-                                classes/<id>/ (class.json, files/, graph/) · jobs/ ·
+                                classes/<id>/ (class.json, files/ with saved texts/
+                                and transcripts/, graph/, search/) · search/ ("No
+                                class" facts) · jobs/ ·
                                 prompts/ (edited system prompts) · models/ (the
                                 downloaded speech model) · settings.json ·
                                 mcp-token · mcp-endpoint.json (desktop only) ·
@@ -242,10 +254,6 @@ All deterministic, no LLM, no network (engines are injected — pi-ai's faux pro
 5. **Golden fixtures** (`tests/fixtures/golden-data/`) — a REAL data dir (real records produced by the app, never hand-edited), copied to a temp dir and read through the production paths via the `LH_DATA_DIR` seam. Pins that real data parses, flattens to a legal LLM wire, derives the graph end-to-end, covers every custom-marker kind, and that reads never write. **The fixture law:** an intentional on-disk format change updates the fixtures in the same commit — see the fixture README.
 
 Run `npm run check` before calling a change done: typecheck, tests, lint and knip must all pass.
-
-## Lineage
-
-The teaching methodology comes from an Obsidian-based POC (its `knowledge graph design.md` was the original epistemic-model source, since amended — see the amendments table in [vision.md](vision.md)). The harness was originally built on the pi agent SDK, pivoted to standalone Next.js + the Vercel AI SDK, later swapped its LLM engine back to pi-ai ([archive/pi-engine-swap.md](archive/pi-engine-swap.md)), and now stores pi's own message shapes with no AI SDK left. godspeed is a fork of LearnHarness that replaced built-in model sign-ins with outside agents over MCP.
 
 ## Data
 

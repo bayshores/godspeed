@@ -175,14 +175,17 @@ export function syncShortcutsSafely(folder: string, opts?: { clear?: boolean }):
 	}
 }
 
-let unsubscribe: (() => void) | null = null;
+// On globalThis: the root layout and the folder route are separate module
+// instances under Next, and two watchers would sync every change twice.
+const G = globalThis as typeof globalThis & { __lhShortcutWatch?: boolean };
 
 /** Re-sync about 2 s after classes change (a burst of changes syncs once).
  *  `folder` is read on each sync, so moving the folder needs no restart. */
 export function watchShortcuts(folder: () => string | null): void {
-	if (unsubscribe) return;
+	if (G.__lhShortcutWatch) return;
+	G.__lhShortcutWatch = true;
 	let timer: ReturnType<typeof setTimeout> | null = null;
-	unsubscribe = subscribe((e) => {
+	subscribe((e) => {
 		if (e.type !== "classes-changed") return;
 		if (timer) clearTimeout(timer);
 		timer = setTimeout(() => {

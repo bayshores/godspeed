@@ -107,7 +107,8 @@ function getClass(id: string): ClassRecord | null {
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(fs.readFileSync(recordFile(id), "utf-8"));
-	} catch {
+	} catch (err) {
+		if (err instanceof SyntaxError) console.error(`[class ${id}] class.json is not valid JSON; skipping the class`);
 		return null;
 	}
 	if (!isRecord(parsed)) return null;

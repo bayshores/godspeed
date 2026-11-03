@@ -71,7 +71,8 @@ function getChat(id: string): ChatRecord | null {
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(fs.readFileSync(chatFile(id), "utf-8"));
-	} catch {
+	} catch (err) {
+		if (err instanceof SyntaxError) console.error(`[chat ${id}] record is not valid JSON; skipping it`);
 		return null;
 	}
 	if (!isRecord(parsed) || !isString(parsed.id) || !isString(parsed.updatedAt) || !Array.isArray(parsed.messages)) {
@@ -113,7 +114,8 @@ function listChats(): ChatSummary[] {
 			.readdirSync(PATHS.chats)
 			.filter((f) => f.endsWith(".json"))
 			.map((f) => f.slice(0, -5));
-		for (const cached of summaryCache.keys()) if (!ids.includes(cached)) summaryCache.delete(cached);
+		const present = new Set(ids);
+		for (const cached of summaryCache.keys()) if (!present.has(cached)) summaryCache.delete(cached);
 		return ids
 			.map((id) => {
 				const version = chatVersion(id);
@@ -150,13 +152,9 @@ function summarize(record: ChatRecord): ChatSummary | null {
 			// Normalized kind: absent record field reads as teach.
 			kind: summary.kind ?? "teach",
 			messageCount: messages.length,
-			// Record-derived status for the session picker: phase from the
-			// transcript's explicit events (probe_done concluded / first
-			// nodeId-tagged quiz or explain call — docs/archive/probe-teach-split.md §4), pending question
-			// from the native dangling-call scan. Both folds read
-			// the NATIVE record (core/phases.ts phaseAt3Lh +
-			// native-messages.ts danglingQuestionOf). Liveness (busy) is
-			// NOT record-derived — the API route merges it (ChatListItem).
+			// Record-derived status for the session picker (core/phases.ts,
+			// native-messages.ts). Liveness (busy) is NOT record-derived:
+			// the API route merges it (ChatListItem).
 			phase: phaseAt3Lh(messages),
 			pendingQuestion: danglingQuestionOf(messages) !== null,
 			// The cast covers pendingProblem, which the list never sets.
