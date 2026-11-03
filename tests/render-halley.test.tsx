@@ -267,6 +267,40 @@ describe("the panel", () => {
 			talkChat = null;
 		}
 	});
+	it("a failed Talk reply offers Try again, which sends the last message again, as in the lesson", async () => {
+		talkCalls.length = 0;
+		talkChat = { id: "chat_talk", turnInFlight: false, turnError: "The model is overloaded", messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
+		const el = mount(panel());
+		await settle();
+		assert.match(el.querySelector("[data-testid='talk-failed']")?.textContent ?? "", /The model is overloaded/);
+		await act(async () => (el.querySelector("[data-testid='talk-retry']") as HTMLElement).click());
+		await settle();
+		assert.equal(talkCalls.filter((c) => c.startsWith("POST /api/chat ") && c.includes("add my midterm")).length, 1);
+		talkChat = null;
+	});
+	it("Esc in Talk stops a running reply on the server and leaves the panel open", async () => {
+		talkCalls.length = 0;
+		talkChat = { id: "chat_talk", turnInFlight: true, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
+		const el = mount(panel());
+		await settle();
+		const closes: string[] = [];
+		const onDocKey = () => closes.push("panel");
+		document.addEventListener("keydown", onDocKey);
+		try {
+			// On the Stop bar (a text field's keys take React's input polyfill here).
+			const field = el.querySelector("[data-testid='talk-stop']") as HTMLElement;
+			const esc = new window.Event("keydown", { bubbles: true });
+			Object.defineProperty(esc, "key", { value: "Escape" });
+			await act(async () => field.dispatchEvent(esc));
+			await settle();
+			assert.ok(talkCalls.includes('POST /api/activity/abort {"kind":"turn","id":"chat_talk"}'));
+			assert.deepEqual(closes, [], "the panel's Esc never sees it");
+			assert.ok(el.querySelector("[data-testid='talk-send']"), "Stop is Send again");
+		} finally {
+			document.removeEventListener("keydown", onDocKey);
+			talkChat = null;
+		}
+	});
 	it("the agent line matches the footer, and shows the waiting notice while work waits", () => {
 		const idle = { connected: false, teaching: false, pendingWork: 0, claimedLessons: [] };
 		assert.equal(agentLine(idle), "No agent connected");

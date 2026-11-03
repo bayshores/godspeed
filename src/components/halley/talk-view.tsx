@@ -8,6 +8,7 @@ import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { agentWaiting, type AgentStatus } from "@/components/agent-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
+import { lastLearnerText, lessonError, retryAction } from "@/components/lesson/lesson-error-model";
 import { MessageAttachments } from "@/components/lesson/message-attachments";
 import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
 import { useLessonDrafts } from "@/components/lesson/use-lesson-drafts";
@@ -195,6 +196,33 @@ function TalkThread({
 		sendText(message, drafts);
 	};
 
+	// Try again, as in the lesson: send the box again, send the last message
+	// again, run a failed reply again, or read the chat again.
+	const retry = () => {
+		if (!session.error) return;
+		const action = retryAction(lessonError(session.error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(session.nativeMessages) });
+		if (action.type === "send-box") send();
+		else if (action.type === "resend") sendText(action.text);
+		else if (action.type === "continue") void sendMessage({ type: "continue" });
+		else {
+			session.clearError();
+			resumeStream();
+		}
+	};
+
+	// Stop (and Esc anywhere in Talk) ends the reply on the server too, as
+	// in the lesson; the view alone would only stop watching it.
+	const stopReply = () => {
+		session.stop();
+		void fetch("/api/activity/abort", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ kind: "turn", id: chat.id }),
+		}).catch(() => {
+			/* transient: the turn settles on its own */
+		});
+	};
+
 	const clear = () => {
 		setClearError(null);
 		fetch("/api/talk", { method: "DELETE" })
@@ -205,7 +233,17 @@ function TalkThread({
 	const margin = "w-16 shrink-0 truncate pt-px text-[12.5px] font-bold text-ink-3";
 
 	return (
-		<div data-testid="talk" className="flex min-h-0 flex-1 flex-col">
+		<div
+			data-testid="talk"
+			className="flex min-h-0 flex-1 flex-col"
+			// Claimed before the panel's own Esc (which closes it) and the box's.
+			onKeyDownCapture={(e) => {
+				if (e.key !== "Escape" || !busy) return;
+				e.preventDefault();
+				e.stopPropagation();
+				stopReply();
+			}}
+		>
 			<div data-testid="talk-thread" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
 				{rows.length === 0 && (
 					<p data-testid="talk-empty" className="text-[14px] leading-5 text-ink-2">
@@ -276,7 +314,10 @@ function TalkThread({
 				)}
 				{session.error && !busy && (
 					<p data-testid="talk-failed" className="mt-4 pl-[76px] text-[13px] text-ink-2">
-						{session.error.message}
+						{session.error.message}{" "}
+						<button type="button" data-testid="talk-retry" className="lh-press font-bold text-ink underline underline-offset-2" onClick={retry}>
+							Try again
+						</button>
 					</p>
 				)}
 				{clearError && (
@@ -304,7 +345,7 @@ function TalkThread({
 					<AttachButton draft={attachments} />
 					<div className="min-w-0 flex-1">
 						{busy ? (
-							<ActionBar testId="talk-stop" waiting onClick={session.stop} label={<span className="flex items-center gap-2"><SquareIcon aria-hidden className="size-3.5" />Stop</span>} />
+							<ActionBar testId="talk-stop" waiting onClick={stopReply} label={<span className="flex items-center gap-2"><SquareIcon aria-hidden className="size-3.5" />Stop</span>} />
 						) : (
 							<ActionBar testId="talk-send" onClick={send} disabled={!text.trim() && attachments.files.length === 0} label="Send" />
 						)}
