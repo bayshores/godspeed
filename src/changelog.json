@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.24",
+		"date": "2026-11-03",
+		"changes": [
+			"The last answers of a short lesson now always reach your graph, even when the app restarts soon after or a save is already running. A practice problem that names an idea twice counts once for it.",
+			"Code, diagrams and Edit class are readable on the Paper and White backgrounds, and math that's too wide scrolls instead of getting cut off.",
+			"Sending a message while a question is open closes that question, the same way your teacher sees it. After a side question the Teaching line stays where it was.",
+			"A new lesson's topic is sent only once, practice problems have a Stop button while your teacher writes, and the thinking box keeps its size in a short window.",
+			"Names that get cut off show in full when you hover them, the sidebar no longer slides in every time the app opens, and a link to a removed lesson or deadline shows a page with Go Home.",
+			"File groups aren't named after small words like \"and\" anymore, Save problems in Edit class scroll into view, and your agent's notes are kept if their file ever breaks."
+		]
+	},
+	{
 		"version": "0.5.23",
 		"date": "2026-11-02",
 		"changes": [
