@@ -116,7 +116,7 @@ export function PracticeDock({
 				>
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
-				<div data-testid="practice-thinking-field" className="mt-5 flex min-h-0 flex-1 flex-col">
+				<div data-testid="practice-thinking-field" className="mt-5 flex flex-1 flex-col">
 					<FieldLabel>Your thinking</FieldLabel>
 					<AttachmentTray draft={attachments} />
 					<MathBox

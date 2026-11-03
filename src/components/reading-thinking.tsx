@@ -20,7 +20,7 @@ export function ReadingThinkingField({
 	onOpen?: () => void;
 }) {
 	return (
-		<div data-testid="reading-thinking-field" className="flex min-h-0 flex-1 flex-col">
+		<div data-testid="reading-thinking-field" className="flex flex-1 flex-col">
 			<FieldLabel>Thinking while reading</FieldLabel>
 			<MathBox
 				value={value}

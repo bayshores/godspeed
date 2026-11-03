@@ -130,7 +130,7 @@ export function YourTurnPanel({
 							</HeaderChip>
 						}
 					/>
-					<div className="mt-3 flex min-h-0 flex-1 flex-col">
+					<div className="mt-3 flex flex-1 flex-col">
 						<ReadingThinkingField value={readingThinking} onChange={onReadingThinking} onOpen={() => revealRef.current()} />
 					</div>
 					{footer}
