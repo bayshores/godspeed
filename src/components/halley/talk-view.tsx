@@ -14,7 +14,7 @@ import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
 import { useLessonDrafts } from "@/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/components/server-events";
 import { useChatSession } from "@/components/session";
-import { actionFor, appRequestText, speakerOf, startsTurn, talkRows } from "./talk-model";
+import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { pastLabel } from "./tour";
 
 /** The files waiting in the Talk box, kept for this app run (they are too
@@ -175,14 +175,14 @@ function TalkThread({
 		[sendMessage, restore, editText],
 	);
 
-	// A message asked from elsewhere: sent now, or left in the box while the
-	// teacher is still replying. Each ask is handled once, after the saved
-	// draft is read.
+	// A message asked from elsewhere: sent now, or left in the box after the
+	// learner's own text while the teacher is still replying. Each ask is
+	// handled once, after the saved draft is read.
 	const handled = useRef<number | null>(null);
 	useEffect(() => {
 		if (!ask || !draftsLoaded || handled.current === ask.id) return;
 		handled.current = ask.id;
-		if (busy) editText(ask.text);
+		if (busy) editText(draftWithAsk(textRef.current, ask.text));
 		else sendText(ask.text);
 		onAsked?.(ask.id);
 	}, [ask, busy, draftsLoaded, sendText, editText, onAsked]);

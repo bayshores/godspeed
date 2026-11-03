@@ -61,3 +61,9 @@ export function appRequestText(teacher: string, deadlines: readonly AppRequestDe
 export function actionFor(change: ClassChange, recent: readonly AgentAction[]): AgentAction | null {
 	return recent.find((a) => a.label === change.label && a.page === change.page) ?? null;
 }
+
+/** A message asked from elsewhere while the teacher replies waits after the
+ *  learner's unsent text, a blank line between. */
+export function draftWithAsk(draft: string, ask: string): string {
+	return draft.trim() ? `${draft.trimEnd()}\n\n${ask}` : ask;
+}

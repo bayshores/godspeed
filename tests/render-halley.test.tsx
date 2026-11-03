@@ -38,7 +38,7 @@ const { HALLEY_MOODS } = await import("../src/components/halley/mood.ts");
 const { HalleyPanel, agentLine } = await import("../src/components/halley/halley-panel.tsx");
 const { dockPush, dockWidth } = await import("../src/components/halley/dock-model.ts");
 const { clearOfDock } = await import("../src/components/halley/geometry.ts");
-const { startsTurn } = await import("../src/components/halley/talk-model.ts");
+const { draftWithAsk, startsTurn } = await import("../src/components/halley/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../src/components/halley/ask-teacher.ts");
 const { FollowChipView } = await import("../src/components/halley/follow-chip.tsx");
 const { waitingNotice } = await import("../src/components/agent-status.tsx");
@@ -264,6 +264,23 @@ describe("the panel", () => {
 		} finally {
 			delete g.localStorage;
 			delete g.FileReader;
+			talkChat = null;
+		}
+	});
+	it("a message asked while the teacher replies waits after the learner's own text, never over it", async () => {
+		assert.equal(draftWithAsk("", "Check again"), "Check again");
+		assert.equal(draftWithAsk("  ", "Check again"), "Check again");
+		assert.equal(draftWithAsk("my note\n", "Check again"), "my note\n\nCheck again");
+		const store = new Map([["lh:lesson-draft:chat_talk", JSON.stringify({ composer: "my note", questions: {}, problems: {} })]]);
+		const g = globalThis as Record<string, unknown>;
+		g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
+		try {
+			talkChat = { id: "chat_talk", turnInFlight: true, messages: [] };
+			const el = mount(panel({ ask: { id: 3, text: "Check again" } }));
+			await settle();
+			assert.equal((el.querySelector("[data-testid='talk-box'] textarea") as HTMLTextAreaElement).value, "my note\n\nCheck again");
+		} finally {
+			delete g.localStorage;
 			talkChat = null;
 		}
 	});
