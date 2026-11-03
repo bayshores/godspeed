@@ -34,7 +34,7 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { answeredCallIds, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
+import { answeredCallIds, interruptedQuestions, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
 import { isQuestionTool } from "./pending.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
@@ -149,6 +149,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	// wait here for their result's place.
 	const sideHeld = sideHeldQuestions(messages);
 	const answered = answeredCallIds(messages);
+	const interrupted = interruptedQuestions(messages);
 	const movedParts = new Map<string, LhViewPart>();
 
 	const lastAssistant = (): LhViewMessage | undefined => {
@@ -278,6 +279,8 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 						part.problemInput = input;
 						part.reveal = typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
 					}
+					// A plain message after it closed it, as the model was told.
+					if (interrupted.has(block.id) && part.state === "input-available") part.state = "interrupted";
 					if (sideHeld.has(block.id) && answered.has(block.id)) {
 						movedParts.set(block.id, part);
 						// A trace where it was asked: nothing renders, but the

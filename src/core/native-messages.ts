@@ -198,6 +198,28 @@ function isSideQuestion(m: LhMessage): boolean {
 	return m.role === "user" && m.side === true;
 }
 
+function isPlainLearnerMessage(m: LhMessage): boolean {
+	return m.role === "user" && m.side !== true;
+}
+
+/** Question calls a plain learner message came after before any answer:
+ *  the model got the interrupted result, so they no longer wait. */
+export function interruptedQuestions(messages: readonly LhMessage[]): Set<string> {
+	const waiting = new Set<string>();
+	const out = new Set<string>();
+	for (const m of messages) {
+		if (m.role === "assistant") {
+			for (const block of m.content) if (block.type === "toolCall" && isQuestionTool(block.name)) waiting.add(block.id);
+		} else if (m.role === "toolResult") {
+			waiting.delete(m.toolCallId);
+		} else if (isPlainLearnerMessage(m)) {
+			for (const id of waiting) out.add(id);
+			waiting.clear();
+		}
+	}
+	return out;
+}
+
 /** A plan block or compaction marker: bookkeeping that lands between a
  *  question and the next learner message without being part of either. */
 function isBookkeeping(m: LhMessage): boolean {
@@ -833,12 +855,14 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
  *  NEWEST assistant message's FIRST question-tool call with no result in
  *  the tail — one question at a time, the dock's subject. A reply to a
  *  side question passes the look on to the messages before that side
- *  question, so the question it was asked around stays open. */
+ *  question, so the question it was asked around stays open. A plain
+ *  learner message closes it: the model gets the interrupted result. */
 export function danglingQuestionOf(
 	messages: readonly LhMessage[],
 ): { toolCallId: string; tool: string; input: unknown } | null {
 	for (let mi = messages.length - 1; mi >= 0; mi--) {
 		const m = messages[mi]!;
+		if (isPlainLearnerMessage(m)) return null;
 		if (m.role !== "assistant") continue;
 		const answered = resultIdsFrom(messages.slice(mi + 1));
 		for (const block of m.content) {

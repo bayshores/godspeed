@@ -89,6 +89,13 @@ describe("the open question survives side questions (danglingQuestionOf)", () =>
 		const record = [...start, newSideQuestion("why?"), reply("a2", "Because.")];
 		assert.equal(findPendingToolCall(projectView(record))?.toolCallId, "q1");
 	});
+
+	it("a plain message interrupts it, for the server and the client alike", () => {
+		const sent = [...start, newUserMessage("hi")];
+		assert.equal(danglingQuestionOf(sent), null, "before the reply");
+		assert.equal(findPendingToolCall(projectView(sent)), null);
+		assert.equal(findPendingToolCall(projectView([...sent, reply("a2", "Hello.")])), null, "after the reply");
+	});
 });
 
 describe("the lesson view after side questions (projectView)", () => {
