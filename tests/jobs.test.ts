@@ -27,9 +27,10 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, afterEach, before, beforeEach, describe, it, mock } from "node:test";
+import { after, afterEach, before, describe, it } from "node:test";
 import { fauxAssistantMessage, fauxText, fauxToolCall, type AssistantMessage, type FauxResponseStep } from "@earendil-works/pi-ai";
 import { fauxEngine } from "./faux-engine.ts";
+import { advance, advanceUntil, settle, useFakeClock } from "./fake-clock.ts";
 import {
 	accumulateJobUsage,
 	buildAbortSteer,
@@ -891,39 +892,10 @@ describe("researcher agent", () => {
  * (setTurnRunner) — the real wiring (chat-handler's handleChatInput
  * adapter) never fires here, so no teacher model is touched.
  *
- * Timing: the pump waits on fixed timers (400 ms polls, a 750 ms grace after
- * the gates open, a 409 backoff ramp). These tests run them on node:test's
- * fake setTimeout and step time by hand, so events happen in the same order
- * without seconds of real waiting.
+ * The pump's timers run on the fake clock (tests/fake-clock.ts).
  */
-const CLOCK_STEP_MS = 25;
-
-/** Moves fake time forward, letting promise callbacks run after each step. */
-async function advance(ms: number): Promise<void> {
-	for (let t = 0; t < ms; t += CLOCK_STEP_MS) {
-		mock.timers.tick(CLOCK_STEP_MS);
-		await new Promise((resolve) => setImmediate(resolve));
-	}
-}
-
-async function advanceUntil(cond: () => boolean, what: string, limitMs = 30_000): Promise<void> {
-	for (let t = 0; !cond(); t += CLOCK_STEP_MS) {
-		if (t > limitMs) throw new Error(`timeout waiting for ${what}`);
-		await advance(CLOCK_STEP_MS);
-	}
-}
-
-/** Awaits a promise whose work waits on the fake clock. */
-async function settle<T>(promise: Promise<T>): Promise<T> {
-	let done = false;
-	promise.then(() => (done = true), () => (done = true));
-	await advanceUntil(() => done, "the promise to settle");
-	return promise;
-}
-
 describe("wake pipeline (src/server/jobs.ts)", () => {
-	beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
-	afterEach(() => mock.timers.reset());
+	useFakeClock();
 
 	/** A chat with a finished job ready for delivery. */
 	function setup(kind: "research" | "demo" = "research"): { chatId: string; jobId: string; steer: SteerMessage } {
@@ -1553,8 +1525,7 @@ describe("prompt composition", () => {
 // ─── abort (real kill, cancelled status, teacher told) ───
 
 describe("abort (src/server/jobs.ts abortJob)", () => {
-	beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
-	afterEach(() => mock.timers.reset());
+	useFakeClock();
 
 	/** A hanging model whose call never resolves until its abort signal
 	 *  fires — the real-kill path: the in-flight call itself is killed. */
@@ -1732,8 +1703,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 // immediacy by running the sweep on FRESH records.
 
 describe("stale-job recovery sweep (liveness-gated)", () => {
-	beforeEach(() => mock.timers.enable({ apis: ["setTimeout"] }));
-	afterEach(() => mock.timers.reset());
+	useFakeClock();
 
 	/** Reset the sweep's 30s throttle — tests fire it directly, repeatedly. */
 	function resetSweepThrottle(): void {
