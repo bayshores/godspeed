@@ -7,12 +7,18 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { agentWaiting, type AgentStatus } from "@/components/agent-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/components/lesson/attachment-tray";
+import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import { MessageAttachments } from "@/components/lesson/message-attachments";
 import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
+import { useLessonDrafts } from "@/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/components/server-events";
 import { useChatSession } from "@/components/session";
 import { actionFor, appRequestText, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { pastLabel } from "./tour";
+
+/** The files waiting in the Talk box, kept for this app run (they are too
+ *  big for storage, as in the lesson box). */
+let keptFiles: AttachmentDraft["files"] = [];
 
 interface TalkChat {
 	id: string;
@@ -111,8 +117,34 @@ function TalkThread({
 	onCleared: () => void;
 }) {
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
+	// Unsent text is saved like the lesson box's; waiting files stay in
+	// memory while the tab or the panel is closed.
+	const drafts = useLessonDrafts(chat.id, session.nativeMessages, null);
+	const { saveComposer } = drafts;
+	const draftsLoaded = drafts.draft !== null;
+	const draftRef = useRef(drafts.draft);
+	draftRef.current = drafts.draft;
 	const [text, setText] = useState("");
-	const attachments = useAttachmentDraft();
+	const textRef = useRef("");
+	const editText = useCallback(
+		(v: string) => {
+			textRef.current = v;
+			setText(v);
+			saveComposer(v);
+		},
+		[saveComposer],
+	);
+	useEffect(() => {
+		const saved = draftRef.current?.composer;
+		if (draftsLoaded && saved) {
+			textRef.current = saved;
+			setText(saved);
+		}
+	}, [draftsLoaded]);
+	const attachments = useAttachmentDraft(keptFiles);
+	useEffect(() => {
+		keptFiles = attachments.files;
+	}, [attachments.files]);
 	const [clearError, setClearError] = useState<string | null>(null);
 	const busy = session.status === "submitted" || session.status === "streaming";
 	const rows = talkRows(session.messages);
@@ -135,29 +167,30 @@ function TalkThread({
 			const files = drafts.map((f) => f.attachment);
 			void sendMessage({ type: "text", text: message, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
 				if (sent) return;
-				setText(message);
+				editText(restoreUnsent(message, textRef.current));
 				restore(drafts);
 			});
 		},
-		[sendMessage, restore],
+		[sendMessage, restore, editText],
 	);
 
 	// A message asked from elsewhere: sent now, or left in the box while the
-	// teacher is still replying. Each ask is handled once.
+	// teacher is still replying. Each ask is handled once, after the saved
+	// draft is read.
 	const handled = useRef<number | null>(null);
 	useEffect(() => {
-		if (!ask || handled.current === ask.id) return;
+		if (!ask || !draftsLoaded || handled.current === ask.id) return;
 		handled.current = ask.id;
-		if (busy) setText(ask.text);
+		if (busy) editText(ask.text);
 		else sendText(ask.text);
 		onAsked?.(ask.id);
-	}, [ask, busy, sendText, onAsked]);
+	}, [ask, busy, draftsLoaded, sendText, editText, onAsked]);
 
 	const send = () => {
 		const message = text.trim();
 		const drafts = attachments.files;
 		if ((!message && drafts.length === 0) || busy) return;
-		setText("");
+		editText("");
 		attachments.clear();
 		sendText(message, drafts);
 	};
@@ -261,7 +294,7 @@ function TalkThread({
 				<textarea
 					rows={2}
 					value={text}
-					onChange={(e) => setText(e.target.value)}
+					onChange={(e) => editText(e.target.value)}
 					onKeyDown={(e) => fieldKeys(e, send)}
 					placeholder={`Tell ${name} what to set up, or ask about your classes`}
 					aria-label={`Message ${name}`}

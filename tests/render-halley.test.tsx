@@ -114,6 +114,12 @@ describe("the panel", () => {
 		act(async () => {
 			for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
 		});
+	/** Types like the learner: React's own change handler (this file loads
+	 *  react-dom before the DOM exists, so input events don't reach it). */
+	const typeIn = (field: HTMLTextAreaElement, value: string) => {
+		const props = Object.entries(field).find(([k]) => k.startsWith("__reactProps"))?.[1] as { onChange: (e: unknown) => void };
+		props.onChange({ target: { value } });
+	};
 	const onActivity = (over: Parameters<typeof panel>[0] = {}) => {
 		const el = mount(panel(over));
 		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
@@ -221,6 +227,45 @@ describe("the panel", () => {
 		assert.equal((busy.querySelector("textarea") as HTMLTextAreaElement).value, "Check again");
 		assert.deepEqual(asked, [1, 2]);
 		talkChat = null;
+	});
+	it("Talk keeps its unsent text like the lesson box, and its waiting files while the tab is closed", async () => {
+		const store = new Map<string, string>();
+		const g = globalThis as Record<string, unknown>;
+		g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
+		g.FileReader = class {
+			result: string | null = null;
+			onload: (() => void) | null = null;
+			readAsDataURL() {
+				this.result = "data:image/png;base64,QUJD";
+				setTimeout(() => this.onload?.(), 0);
+			}
+		};
+		try {
+			talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
+			const el = mount(panel());
+			await settle();
+			const box = () => el.querySelector("[data-testid='talk-box'] textarea") as HTMLTextAreaElement;
+			await act(async () => typeIn(box(), "add my lab"));
+			await act(async () => {
+				const paste = new window.Event("paste", { bubbles: true });
+				Object.defineProperty(paste, "clipboardData", { value: { files: [new File(["x"], "lab.png", { type: "image/png" })] } });
+				box().dispatchEvent(paste);
+			});
+			await settle();
+			assert.ok(el.querySelector("[data-testid='draft-image']"));
+			assert.match(store.get("lh:lesson-draft:chat_talk") ?? "", /"composer":"add my lab"/);
+
+			act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
+			act(() => (el.querySelector("[data-testid='halley-tab-talk']") as HTMLElement).click());
+			await settle();
+			assert.equal(box().value, "add my lab");
+			assert.ok(el.querySelector("[data-testid='draft-image']"), "the picture still waits");
+			act(() => (el.querySelector("[aria-label='Remove lab.png']") as HTMLElement).click());
+		} finally {
+			delete g.localStorage;
+			delete g.FileReader;
+			talkChat = null;
+		}
 	});
 	it("the agent line matches the footer, and shows the waiting notice while work waits", () => {
 		const idle = { connected: false, teaching: false, pendingWork: 0, claimedLessons: [] };

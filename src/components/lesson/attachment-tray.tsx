@@ -40,11 +40,12 @@ function readBase64(file: File): Promise<string> {
 	});
 }
 
-export function useAttachmentDraft(): AttachmentDraft {
-	const [files, setFiles] = useState<DraftFile[]>([]);
+/** `kept`: files an earlier mount of the same box still held. */
+export function useAttachmentDraft(kept: readonly DraftFile[] = []): AttachmentDraft {
+	const [files, setFiles] = useState<DraftFile[]>(() => [...kept]);
 	const [error, setError] = useState<string | null>(null);
 	// Files still being read count toward the limit; a clear drops reads in flight.
-	const countRef = useRef(0);
+	const countRef = useRef(kept.length);
 	const generationRef = useRef(0);
 
 	const add = useCallback((incoming: readonly File[]) => {

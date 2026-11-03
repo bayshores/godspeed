@@ -13,10 +13,10 @@ import {
 } from "./lesson-drafts-model";
 
 /**
- * The lesson's unsent drafts, saved to localStorage on every change. The
- * draft is null until the stored copy is read after mount (the page is
- * server-rendered, so the first render can't see storage); saves before
- * then are ignored. Storage can be missing or full: the draft still lives
+ * The lesson's unsent drafts (and Talk's text), saved to localStorage on
+ * every change. The draft is null until the stored copy is read after
+ * mount (the page is server-rendered, so the first render can't see
+ * storage); saves before then are ignored. Storage can be missing or full: the draft still lives
  * in memory for this visit.
  */
 export function useLessonDrafts(chatId: string, record: readonly LhMessage[], activeProblemId: string | null) {
