@@ -90,7 +90,8 @@ export const problemInputObject = Type.Object({
 			minItems: 1,
 			description:
 				"The proposition id(s) this problem exercises, from the session context's [id] list — include when " +
-				"the material is in the map; OMIT entirely when it is not (a topic session poses untagged problems). " +
+				"the material is in the map (the outcome counts toward the learner's readiness for them); OMIT entirely " +
+				"when it is not (a topic session poses untagged problems). " +
 				"Names are normalized to ids at the seam; an unknown proposition is rejected.",
 		}),
 	),

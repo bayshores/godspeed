@@ -21,6 +21,7 @@ import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
 import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
 import { birthSessionOf } from "./session-clusters.ts";
+import { practiceOutcomes, type ConcludeOutcome } from "./practice-outcomes.ts";
 import { resolveTopics } from "./topics.ts";
 
 // ─── the color ramp + statuses ──────────────────────────────────────────────
@@ -55,7 +56,7 @@ export function topicStatus(rate: number | null): TopicStatus {
 
 export type AnswerOutcome = "right" | "wrong" | "dontKnow";
 
-/** One graded quiz/probe answer from a lesson. */
+/** One graded answer from a lesson: a quiz or probe answer, or a practice problem's outcome. */
 export interface AnsweredQuestion {
 	chatId: string;
 	/** The assistant message that asked (holds the quiz tool call). */
@@ -65,8 +66,10 @@ export interface AnsweredQuestion {
 	 *  teaching prose came a step before the quiz call). */
 	contextMessageIds: string[];
 	toolCallId: string;
-	/** "quiz" (teach) or "probe" (probe phase). */
+	/** "quiz" (teach), "probe" (probe phase) or "problem" (practice). */
 	tool: string;
+	/** The facts it names itself (a practice problem's targets). */
+	factIds?: string[];
 	/** The plan node the quiz is about (teach quizzes). */
 	nodeId?: string;
 	questionType?: string;
@@ -102,7 +105,11 @@ export function isAnswerData(v: unknown): v is QuestionAnswerData {
 	return typeof v === "object" && v !== null && typeof (v as { kind?: unknown }).kind === "string";
 }
 
-/** Every graded quiz/probe answer in one lesson, in transcript order. */
+/** A practice outcome as an answer: solved is right, giving up or moving
+ *  on is wrong; solved with hints counts neither way. */
+const PRACTICE_OUTCOME: Partial<Record<ConcludeOutcome, AnswerOutcome>> = { solved: "right", movedOn: "wrong", surrendered: "wrong" };
+
+/** Every graded quiz/probe answer in one lesson, in transcript order, then its practice problems' outcomes. */
 export function collectAnswers(chatId: string, messages: readonly LhMessage[]): AnsweredQuestion[] {
 	const calls = new Map<string, { messageId: string; context: string[]; tool: string; args: Record<string, unknown> }>();
 	const out: AnsweredQuestion[] = [];
@@ -159,6 +166,21 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 			answeredAt: ad.answeredAt ?? "",
 		});
 	}
+	for (const p of practiceOutcomes(messages)) {
+		const outcome = PRACTICE_OUTCOME[p.outcome];
+		if (!outcome) continue;
+		out.push({
+			chatId,
+			messageId: p.messageId,
+			contextMessageIds: [],
+			toolCallId: p.problemCallId,
+			tool: "problem",
+			...(p.targets.length > 0 ? { factIds: p.targets } : {}),
+			question: p.statement,
+			outcome,
+			answeredAt: p.at,
+		});
+	}
 	return out;
 }
 
@@ -179,10 +201,11 @@ export function factsByMessage(facts: ReadonlyArray<{ id: string; provenance: Pr
 	return index;
 }
 
-/** The facts an answer counts for: those made from the message that asked
- *  it; when that message made none, the nearest earlier teacher message of
- *  the same turn that did. */
-export function factsForAnswer(answer: Pick<AnsweredQuestion, "chatId" | "messageId" | "contextMessageIds">, index: ReadonlyMap<string, string[]>): string[] {
+/** The facts an answer counts for: the ones it names itself; else those
+ *  made from (or tested at) the message that asked it; when that message
+ *  has none, the nearest earlier teacher message of the same turn that does. */
+export function factsForAnswer(answer: Pick<AnsweredQuestion, "chatId" | "messageId" | "contextMessageIds" | "factIds">, index: ReadonlyMap<string, string[]>): string[] {
+	if (answer.factIds?.length) return answer.factIds;
 	for (const messageId of [answer.messageId, ...answer.contextMessageIds]) {
 		const hit = index.get(pointKey(answer.chatId, messageId));
 		if (hit && hit.length > 0) return hit;

@@ -6,26 +6,41 @@
 import type { ClassScope } from "../core/contracts.ts";
 import { getGraph } from "../core/graph.ts";
 import { collectAnswers, deriveProgress, type AnsweredQuestion, type ProgressPayload } from "../core/progress.ts";
+import { practiceOutcomes, type PracticeOutcome } from "../core/practice-outcomes.ts";
 import { localDay } from "../core/today-note.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { topicGroupingRunning } from "./topics.ts";
 
-/** Each lesson's graded answers while its record file is unchanged.
- *  Progress is re-read after every background update, and parsing every
- *  lesson each time grows with the term. Answers are shared: never mutated. */
-const answersCache = new Map<string, { version: string; answers: readonly AnsweredQuestion[] }>();
+/** Each lesson's graded answers and practice outcomes while its record
+ *  file is unchanged. Progress is re-read after every background update,
+ *  and parsing every lesson each time grows with the term. Shared: never mutated. */
+interface LessonReadout {
+	answers: readonly AnsweredQuestion[];
+	outcomes: readonly PracticeOutcome[];
+}
+const readoutCache = new Map<string, { version: string } & LessonReadout>();
 
-function lessonAnswers(chatId: string): readonly AnsweredQuestion[] | null {
+function lessonReadout(chatId: string): LessonReadout | null {
 	const version = stores.chatStore.chatVersion(chatId);
 	if (version === null) return null;
-	const hit = answersCache.get(chatId);
-	if (hit?.version === version) return hit.answers;
+	const hit = readoutCache.get(chatId);
+	if (hit?.version === version) return hit;
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) return null;
-	const answers = collectAnswers(chatId, record.messages);
-	answersCache.set(chatId, { version, answers });
-	return answers;
+	const readout = { version, answers: collectAnswers(chatId, record.messages), outcomes: practiceOutcomes(record.messages) };
+	readoutCache.set(chatId, readout);
+	return readout;
+}
+
+/** The class's practice problems the learner solved only with hints. */
+export function hintedProblems(classId: string): { statement: string; at: string }[] {
+	return stores.chatStore
+		.listChats()
+		.filter((c) => c.classId === classId && c.kind === "practice")
+		.flatMap((c) => lessonReadout(c.id)?.outcomes ?? [])
+		.filter((o) => o.outcome === "solvedWithHints")
+		.map((o) => ({ statement: o.statement, at: o.at }));
 }
 
 /** Everything the Overview and the Graph page need for one scope. Returns
@@ -37,12 +52,12 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 	const graph = getGraph(store);
 	const chats = stores.chatStore.listChats();
 	const known = new Set(chats.map((c) => c.id));
-	for (const id of answersCache.keys()) if (!known.has(id)) answersCache.delete(id);
+	for (const id of readoutCache.keys()) if (!known.has(id)) readoutCache.delete(id);
 	const lessons = chats
 		.filter((c) => (c.classId ?? null) === scope)
 		.flatMap((c) => {
-			const answers = lessonAnswers(c.id);
-			return answers ? [{ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt, answers }] : [];
+			const readout = lessonReadout(c.id);
+			return readout ? [{ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt, answers: readout.answers }] : [];
 		});
 	return deriveProgress({
 		classId: scope,

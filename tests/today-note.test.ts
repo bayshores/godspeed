@@ -66,6 +66,27 @@ const BOARD_TEXT = [
 ].join("\n");
 
 describe("[Today] note text", () => {
+	it("lists the practice problems solved only with hints, newest first, for two weeks", () => {
+		const long = `Count the ${"very ".repeat(40)}long strings.`;
+		const cls: TodayNoteClass = {
+			deadlines: [],
+			files: [],
+			hinted: [
+				{ statement: "Old one", at: "2026-10-01T12:00:00Z" },
+				{ statement: "How many  anagrams\n of BANANA?", at: "2026-10-27T18:00:00Z" },
+				{ statement: long, at: "2026-10-28T18:00:00Z" },
+			],
+		};
+		const text = todayNoteText({ now: NOW, timeZone: TZ, cls });
+		const lines = text.split("\n");
+		assert.equal(lines[2], "Practice problems the learner solved only with hints (last 14 days), worth coming back to:");
+		assert.match(lines[3]!, /^- "Count the very .*…" \(Wed Oct 28\)$/);
+		assert.equal(lines[3]!.length, '- "'.length + 140 + '" (Wed Oct 28)'.length);
+		assert.equal(lines[4], '- "How many anagrams of BANANA?" (Tue Oct 27)');
+		assert.equal(lines.length, 5, "the old one is past two weeks");
+		assert.notEqual(deadlinePartOf(text), deadlinePartOf(todayNoteText({ now: NOW, timeZone: TZ, cls: { deadlines: [], files: [] } })), "a new hinted problem refreshes the note");
+	});
+
 	it("matches board 4 exactly (overdue first, done left out, exam without 'due', more than 4 files)", () => {
 		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: BOARD }), BOARD_TEXT);
 	});

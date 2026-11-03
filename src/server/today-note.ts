@@ -7,18 +7,19 @@
 import type { ChatRecord } from "../core/contracts.ts";
 import type { LhMarkerMessage, LhMessage } from "../core/native-messages.ts";
 import { todayNoteText, todayNoteToAppend, wallClock, type TodayNoteClass } from "../core/today-note.ts";
+import { hintedProblems } from "./progress.ts";
 import { stores } from "./stores.ts";
 
 export function localTimeZone(): string {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-/** The class part of the note. Archived classes show no deadlines. */
+/** The class part of the note. Archived classes show none. */
 function noteClass(classId: string | undefined): TodayNoteClass | null {
 	if (!classId) return null;
 	const cls = stores.classStore.getClass(classId);
 	if (!cls || cls.archived) return null;
-	return { deadlines: cls.deadlines ?? [], files: cls.files };
+	return { deadlines: cls.deadlines ?? [], files: cls.files, hinted: hintedProblems(classId) };
 }
 
 /** The current note text for a lesson in `classId` (or no class). */

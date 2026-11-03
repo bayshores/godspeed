@@ -1,10 +1,11 @@
 /**
  * THE [Today] NOTE: a hidden lesson message that
  * tells the agent today's date, time and time zone, then the class's open
- * deadlines and the files added in the last few days (course info apart, so
- * the teacher knows it can read it). It is appended (never rewritten) right before the learner's
- * message when the lesson has none yet, the day changed, the deadline or
- * new-files part changed, or a compaction cut the last one out of the model's view.
+ * deadlines, the files added in the last few days (course info apart, so
+ * the teacher knows it can read it), and the practice problems the learner
+ * needed hints on lately. It is appended (never rewritten) right before the learner's
+ * message when the lesson has none yet, the day changed, the part after the
+ * date changed, or a compaction cut the last one out of the model's view.
  *
  * Pure: `now` and `timeZone` are inputs so tests are deterministic.
  */
@@ -19,12 +20,19 @@ import { newTodayContextMessage, type LhMarkerMessage, type LhMessage } from "./
 export interface TodayNoteClass {
 	deadlines: readonly ClassDeadline[];
 	files: readonly { id: string; name: string; addedAt?: string; kind?: "study" | "info" }[];
+	/** The class's practice problems solved with hints. */
+	hinted?: readonly { statement: string; at: string }[];
 }
 
 /** Most file names on a Covers line before "and N more". */
 const MAX_COVERS = 4;
 /** Most new files listed by name. */
 const MAX_NEW_FILES = 5;
+/** Hinted problems from this many days back, at most MAX_HINTED of them. */
+const HINTED_DAYS = 14;
+const MAX_HINTED = 3;
+/** A hinted problem's statement is cut to this many characters. */
+const HINTED_CHARS = 140;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -111,7 +119,8 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 	const head = `[Today] ${dayLabel(clock.day)} ${year}, ${clockLabel(clock.time)} (${timeZoneLabel(now, timeZone)})`;
 	const open = (cls?.deadlines ?? []).filter((d) => !d.done).slice().sort(compareDeadlines);
 	const fresh = newFilesPart(cls?.files ?? [], now);
-	if (open.length === 0) return fresh ? [head, "", fresh].join("\n") : head;
+	const hinted = hintedPart(cls?.hinted ?? [], now, timeZone);
+	if (open.length === 0) return [head, fresh, hinted].filter((part) => part !== null).join("\n\n");
 
 	const nowStamp = `${clock.day}T${clock.time}`;
 	const dueStamp = (d: ClassDeadline) => {
@@ -136,7 +145,25 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 		push(`- ${d.name} (${d.kind}), ${d.kind === "exam" ? "" : "due "}${whenLabel(d)}, ${rel}.`, d);
 	}
 	if (fresh) lines.push("", fresh);
+	if (hinted) lines.push("", hinted);
 	return lines.join("\n");
+}
+
+/** The practice problems the learner needed hints on lately, newest first; null when none. */
+function hintedPart(hinted: NonNullable<TodayNoteClass["hinted"]>, now: Date, timeZone: string): string | null {
+	const recent = hinted
+		.filter((h) => now.getTime() - Date.parse(h.at) <= HINTED_DAYS * 86_400_000)
+		.sort((a, b) => b.at.localeCompare(a.at))
+		.slice(0, MAX_HINTED);
+	if (recent.length === 0) return null;
+	const short = (text: string) => {
+		const line = text.replace(/\s+/g, " ").trim();
+		return line.length <= HINTED_CHARS ? line : `${line.slice(0, HINTED_CHARS - 1)}…`;
+	};
+	return [
+		`Practice problems the learner solved only with hints (last ${HINTED_DAYS} days), worth coming back to:`,
+		...recent.map((h) => `- "${short(h.statement)}" (${dayLabel(wallClock(new Date(h.at), timeZone).day)})`),
+	].join("\n");
 }
 
 /** The new files, newest first: "New files (last 3 days): a, b, and 4 more"
@@ -154,7 +181,7 @@ function newFilesPart(files: TodayNoteClass["files"], now: Date): string | null 
 	return lines.length > 0 ? lines.join("\n") : null;
 }
 
-/** Everything after the [Today] line: deadlines and new files ("" when neither). */
+/** Everything after the [Today] line: deadlines, new files and hinted problems ("" when none). */
 export function deadlinePartOf(text: string): string {
 	const at = text.indexOf("\n");
 	return at < 0 ? "" : text.slice(at + 1);

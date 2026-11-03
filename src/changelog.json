@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.23",
+		"date": "2026-11-02",
+		"changes": [
+			"Practice now counts toward being ready. A problem you solve counts as right for the ideas it uses, and one you give up on or skip counts as wrong.",
+			"Problems you solve with hints don't move your percentage either way, but your teacher sees them for two weeks so it can bring them back."
+		]
+	},
+	{
 		"version": "0.5.22",
 		"date": "2026-11-02",
 		"changes": [
