@@ -305,6 +305,8 @@ function waitUntilUp(url, child, tries = 600) {
 				done = true;
 				resolve();
 			});
+			// A probe the server accepted but never answered is retried, not waited on forever.
+			req.setTimeout(2000, () => req.destroy(new Error("probe timed out")));
 			req.on("error", () => {
 				if (done) return;
 				if (n > 0) return void setTimeout(() => attempt(n - 1), 50);
