@@ -132,8 +132,11 @@ describe("DispatchCard — failed jobs", () => {
 	});
 
 	it("a finished worker reads finished, independently of delivery", () => {
-		const html = renderToStaticMarkup(inJobs([job({ status: "done", error: undefined })]));
-		assert.ok(html.includes("finished"));
+		for (const status of ["pending", "delivered"] as const) {
+			const html = renderToStaticMarkup(inJobs([job({ status: "done", error: undefined, delivery: { kind: "result", status } })]));
+			assert.ok(html.includes("finished"), status);
+			assert.ok(!html.includes("text-ans-wrong"), status);
+		}
 	});
 });
 
