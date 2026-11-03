@@ -12,11 +12,11 @@ import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../core/events.ts";
 import type { ChatStore } from "../core/ports.ts";
-import type { ChatRecord, ChatSummary, ExtractionRunUsage, PlanTree, TurnUsage } from "../core/contracts.ts";
+import type { ChatKind, ChatRecord, ChatSummary, ExtractionRunUsage, PlanTree, TurnUsage } from "../core/contracts.ts";
 import { CHAT_ID_PREFIX, CURRENT_CHAT_VERSION, TALK_CHAT_ID } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
-import { danglingQuestionOf } from "../core/native-messages.ts";
-import { phaseAt3Lh } from "../core/phases.ts";
+import { activeProblemOf, danglingQuestionOf } from "../core/native-messages.ts";
+import { firstPhase, phaseAt3Lh } from "../core/phases.ts";
 import { isRecord, isString } from "./guards.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
@@ -39,7 +39,7 @@ function chatDir(id: string): string {
  *  phase, busy, pendingQuestion) is already announced by turn-started /
  *  turn-settled, which the sidebar refetches on. Silence here is law,
  *  not oversight. */
-function createChat(title: string, kind?: "practice" | "talk", classId?: string): ChatRecord {
+function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string): ChatRecord {
 	const now = new Date().toISOString();
 	const record: ChatRecord = {
 		id: kind === "talk" ? TALK_CHAT_ID : `${CHAT_ID_PREFIX}${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
@@ -47,8 +47,7 @@ function createChat(title: string, kind?: "practice" | "talk", classId?: string)
 		createdAt: now,
 		updatedAt: now,
 		messages: [],
-		// Practice sessions carry the marker; teach stays ABSENT (absence
-		// reads as teach — pre-practice records never migrate).
+		// Teach stays ABSENT (absence reads as teach; old records never migrate).
 		...(kind ? { kind } : {}),
 		// The lesson's class; ABSENT = "No class".
 		...(classId ? { classId } : {}),
@@ -155,9 +154,9 @@ function summarize(record: ChatRecord): ChatSummary | null {
 			// Record-derived status for the session picker (core/phases.ts,
 			// native-messages.ts). Liveness (busy) is NOT record-derived:
 			// the API route merges it (ChatListItem).
-			phase: phaseAt3Lh(messages),
+			phase: phaseAt3Lh(messages, firstPhase(record.kind)),
 			pendingQuestion: danglingQuestionOf(messages) !== null,
-			// The cast covers pendingProblem, which the list never sets.
+			pendingProblem: activeProblemOf(messages) !== null,
 		} as ChatSummary;
 	} catch (err) {
 		console.error(`[chat ${summary.id}] summary projection failed:`, err);
