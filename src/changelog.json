@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.27",
+		"date": "2026-11-03",
+		"changes": [
+			"You can add pictures and PDFs in Talk and in the box for asking your teacher something while a question is open, the same way as in a lesson. Drag them in or paste them too."
+		]
+	},
+	{
 		"version": "0.5.26",
 		"date": "2026-11-03",
 		"changes": [
