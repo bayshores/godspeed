@@ -60,6 +60,10 @@ describe("file series", () => {
 		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));
 		assert.deepEqual(s.map((x) => x.label), ["Rosen · Probability"]);
 	});
+	it("small words two titles happen to share stay out of the label", () => {
+		const { series: s } = groupFileSeries(named(["Lecture 01 Sets and functions.pdf", "Lecture 02 Proofs go on and on.pdf"]));
+		assert.deepEqual(s.map((x) => x.label), ["Lecture"]);
+	});
 	it("an 8-digit date is a date, not a series number", () => {
 		const { series: s, other } = groupFileSeries(named(["29-fa26-l0.pdf", "29-fa26-l1.pdf", "29-fa26-l2.pdf", "20260924-rq-answers.pdf", "20260928-rq-answers.pdf"]));
 		assert.deepEqual(s.map((x) => [x.label, x.items.map((i) => i.number)]), [["Numbered", [0, 1, 2]]]);

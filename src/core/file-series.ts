@@ -81,13 +81,16 @@ function candidates(name: string): Candidate[] {
 	return out;
 }
 
+// Shared by chance, so they name nothing ("Sets and functions", "Proofs go on and on").
+const SMALL_WORDS = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "is", "of", "on", "or", "the", "to", "vs", "with"]);
+
 function labelFor(members: Candidate[]): string {
 	// A prefix of name codes only ("29-fa26-l") makes no label.
 	const headWords = words(members[0]!.prefix);
 	const head = headWords.some((w) => !/\d/.test(w) && w.length > 1) ? headWords.join(" ") : "";
 	// Words every member's remainder shares, e.g. "Discussion".
 	const sets = members.map((c) => new Set(words(c.remainder).map((w) => w.toLowerCase())));
-	const shared = words(members[0]!.remainder).filter((w) => sets.every((s) => s.has(w.toLowerCase())));
+	const shared = words(members[0]!.remainder).filter((w) => !SMALL_WORDS.has(w.toLowerCase()) && sets.every((s) => s.has(w.toLowerCase())));
 	const tail = shared.filter((w, i) => shared.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i).join(" ");
 	if (!head) return tail || "Numbered";
 	return tail ? `${head} · ${tail}` : head;
