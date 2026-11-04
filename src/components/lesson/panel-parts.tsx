@@ -92,20 +92,6 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
  *  the field has focus. */
 export const FIELD_EDGE = "border border-tone-2 focus-within:border-ink-2 bg-background text-[16px]! leading-6! text-ink";
 
-/** The panel fields' keys: Esc stays in the field (it must not abort the
- *  turn); Enter submits, Shift+Enter is a newline, ⌘/Ctrl+Enter submits. */
-export function fieldKeys(e: React.KeyboardEvent<HTMLTextAreaElement>, submit: () => void) {
-	if (e.key === "Escape") {
-		e.preventDefault();
-		e.stopPropagation();
-		return;
-	}
-	if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
-		e.preventDefault();
-		submit();
-	}
-}
-
 /** The full-width action bar at the panel's foot: white for the main
  *  action, gray while it waits ("Send when ready"). */
 export function ActionBar({
