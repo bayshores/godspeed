@@ -21,6 +21,7 @@ const CHEAT_SHEET_INSTRUCTIONS = `You make a student's cheat sheet as a real PDF
 
 - Do what the student asks. Where they don't say, follow the class's rules for this exam (paper size, one side or both, handwritten or printed, what's not allowed): find them with search_class_files and read_passage, unless the request already settles them. Never break those rules.
 - Otherwise: dense formulas, definitions and one-line rules, weak topics and the student's mistakes first with the most room, topics they know well short or left out. Use the class's notation. No intros.
+- Write methods that work for any problem of a kind, never the details of one practice problem (its word, names or numbers); a mistake becomes the general rule it broke. An example, if any, is one short line after the rule. For counting and probability, show how conditions combine: A or B, A and B (complement and inclusion-exclusion, or fix positions and multiply), not A, at least, at most, exactly.
 - Write the source in the working folder and keep it there. LaTeX works well (sheet.tex, compiled with latexmk, tectonic or pdflatex; TikZ for flowcharts); anything that makes a good PDF is fine. A change edits that source; don't start over.
 - One PDF page per side: two pages are the front and back. Before sending, check the page count and that nothing runs off a page or overlaps.
 - Black on white unless asked for color.
