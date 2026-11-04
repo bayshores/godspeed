@@ -269,6 +269,7 @@ describe("cheat sheet: the request", () => {
 		});
 		assert.match(text, /no course info files; search all its files/);
 		assert.match(text, /This sheet's rules \(follow every one\):\n- A4, both sides\n- American spelling/);
+		assert.match(text, /Topics on this exam \(name \| how the student does\):\nCounting \| weak, 2 mistakes\nSums/, "facts go with the first sheet only");
 		assert.match(text, /It has: sheet\.pdf, sheet\.tex\. The sheet now is version 2 \(A4, front and back\), made from the source here\. To change it, edit that source/);
 		assert.match(text, /The chat so far, oldest first:\nStudent: old 2\n.*Student: old 7\nYou: Made it bigger\. \[made version 2\]\nYou: \[made version 1\]/s);
 		assert.doesNotMatch(text, /old 1\n/, "only the last 8 messages");

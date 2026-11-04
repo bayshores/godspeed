@@ -125,7 +125,7 @@ export function SheetChat({
 		} else onClearPointed();
 	};
 
-	const margin = "w-14 shrink-0 truncate pt-px text-[12.5px] font-bold text-ink-3";
+	const margin = "w-20 shrink-0 truncate pt-px text-[12.5px] font-bold text-ink-3";
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
 
 	return (
@@ -190,7 +190,7 @@ export function SheetChat({
 						value={text}
 						onChange={setText}
 						onEnter={() => void send()}
-						placeholder={view.sheet.versions.length > 0 ? `Ask ${agentName} about the sheet, or what to change` : "What do you want on your cheat sheet?"}
+						placeholder={view.sheet.versions.length > 0 ? "Ask about the sheet, or say what to change" : "What do you want on your cheat sheet?"}
 						ariaLabel={`Message ${agentName} about the cheat sheet`}
 					/>
 				</div>

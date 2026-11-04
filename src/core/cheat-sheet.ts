@@ -488,7 +488,8 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 	const topic = (t: RequestTopic) =>
 		[
 			`${t.name} | ${STATUS_WORDS[t.status]}${t.mistakes > 0 ? `, ${t.mistakes} ${t.mistakes === 1 ? "mistake" : "mistakes"}` : ""}`,
-			...t.facts.map((f) => `  - ${f.name}: ${oneLine(f.statement, 140)}`),
+			// Facts go with the first sheet only: after that the sheet holds them, and each message stays short.
+			...(current ? [] : t.facts.map((f) => `  - ${f.name}: ${oneLine(f.statement, 140)}`)),
 		].join("\n");
 	const mistake = (m: SheetMistake) => `- ${m.kind === "hint" ? "needed hints" : "answered wrong"} (${names.get(m.topicId) ?? m.topicId}): "${m.text}"`;
 	const m = r.message;
@@ -501,7 +502,7 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 			.filter(Boolean)
 			.join("\n"),
 		r.rules.length > 0 ? `This sheet's rules (follow every one):\n${r.rules.map((x) => `- ${x.text}`).join("\n")}` : "",
-		r.topics.length > 0 ? `Topics on this exam (name | how the student does), with some of the class's facts:\n${r.topics.map(topic).join("\n")}` : "",
+		r.topics.length > 0 ? `Topics on this exam (name | how the student does)${current ? "" : ", with some of the class's facts"}:\n${r.topics.map(topic).join("\n")}` : "",
 		r.mistakes.length > 0 ? `Mistakes from practice:\n${r.mistakes.map(mistake).join("\n")}` : "",
 		folderText(r, current),
 		earlierText(r.earlier),
