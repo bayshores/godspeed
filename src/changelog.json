@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.32",
+		"date": "2026-11-03",
+		"changes": [
+			"Cheat sheets are made from a prompt now. Say what you want, like both sides of A4 with a flowchart for any problem, and your agent lays it out, reading your syllabus for the rules and putting your weak topics and mistakes first. Ask for changes the same way, and if a page runs over, one click makes it fit."
+		]
+	},
+	{
 		"version": "0.5.31",
 		"date": "2026-11-03",
 		"changes": [
