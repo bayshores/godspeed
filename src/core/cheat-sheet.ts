@@ -83,7 +83,11 @@ export interface CheatSheetPrefs {
 	textSize: CheatSheetTextSize;
 	columns: 2 | 3;
 	ink: CheatSheetInk;
+	/** The learner's own words for the agent ("use my professor's notation"). */
+	instructions: string;
 }
+
+export const INSTRUCTIONS_MAX = 600;
 
 // ─── blocks and the record ──────────────────────────────────────────────────
 
@@ -129,6 +133,7 @@ export const DEFAULT_PREFS: CheatSheetPrefs = {
 	textSize: "medium",
 	columns: 2,
 	ink: "black",
+	instructions: "",
 };
 
 export function newCheatSheet(deadlineId: string, now: string): CheatSheet {
@@ -182,6 +187,7 @@ export function mergePrefs(base: CheatSheetPrefs, raw: unknown): CheatSheetPrefs
 		textSize: oneOf(TEXT_SIZE_IDS, raw.textSize) ? raw.textSize : base.textSize,
 		columns: raw.columns === 2 || raw.columns === 3 ? raw.columns : base.columns,
 		ink: oneOf(["black", "color"] as const, raw.ink) ? raw.ink : base.ink,
+		instructions: isString(raw.instructions) ? raw.instructions.trim().slice(0, INSTRUCTIONS_MAX) : base.instructions,
 	};
 }
 

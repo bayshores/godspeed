@@ -237,6 +237,7 @@ function Studio({
 					onPrefs={changePrefs}
 					onFix={onFix}
 					onAdd={(topicId) => void post({ action: "add", topicId })}
+					onRemake={hasBlocks ? () => void post({ action: "make", rules: view.sheet.rules, prefs }) : undefined}
 				/>
 				<div ref={stage} className="min-w-0 flex-1 overflow-auto" onClick={() => setSelected(null)}>
 					{(failed ?? view.error) && (

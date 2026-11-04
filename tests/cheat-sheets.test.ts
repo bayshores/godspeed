@@ -109,7 +109,7 @@ describe("cheat sheets", () => {
 			["write_cheat_sheet", { blocks: [block("tpc_nope", "Nope")] }],
 			["write_cheat_sheet", { blocks: [block("tpc_prob", "Probability"), block("watch_out", "Watch out", { reason: "Missed once" }), block("tpc_count", "Counting", { why: "You used n^r." })] }],
 		);
-		const made = sheets.makeCheatSheet(classId, deadlineId, { rules: { banned: ["Worked examples"] }, prefs: { content: ["formulas", "mistakes", "examples"] } });
+		const made = sheets.makeCheatSheet(classId, deadlineId, { rules: { banned: ["Worked examples"] }, prefs: { content: ["formulas", "mistakes", "examples"], instructions: "Put Bayes' rule first" } });
 		assert.ok(made.ok);
 		assert.equal(view(classId, deadlineId).running?.kind, "make");
 		await sheets.cheatSheetIdle(deadlineId);
@@ -124,6 +124,7 @@ describe("cheat sheets", () => {
 		assert.match(prompt, /About the class: Discrete math/);
 		assert.match(prompt, /On it: formulas, your mistakes\n/, "examples are banned");
 		assert.match(prompt, /Not allowed: Worked examples/);
+		assert.match(prompt, /The student's own instructions: Put Bayes' rule first/);
 		assert.match(prompt, /tpc_count \| Counting \| weak, 1 mistake \| about \d+ lines\n {2}- Permutations: P\(n,k\)/);
 		assert.match(prompt, /answered wrong \(Counting\): "How many 5-letter strings use each letter once\?"/);
 		assert.doesNotMatch(prompt, /tpc_sum/, "a strong topic stays off");

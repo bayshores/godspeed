@@ -200,6 +200,7 @@ function request(ctx: Context, sheet: CheatSheet, topics: readonly SheetTopic[],
 		input: {
 			title: `${ctx.className} ${ctx.deadline.name}`,
 			classNotes: ctx.classNotes,
+			instructions: sheet.prefs.instructions,
 			date: ctx.deadline.date,
 			rules: sheet.rules,
 			content,

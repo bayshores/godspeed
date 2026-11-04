@@ -62,6 +62,7 @@ describe("the cheat sheet setup", () => {
 		assert.match(html, /Left out: the 1 topic you know cold/);
 		assert.match(html, /From Syllabus\.pdf, page 3/);
 		assert.match(html, /data-testid="cheat-sheet-make"[^>]*>Make my cheat sheet</);
+		assert.match(html, /Your instructions<\/span><textarea data-testid="cheat-sheet-instructions"[^>]*maxLength="600"[^>]*placeholder="Optional\. Like: use my professor/);
 		assert.doesNotMatch(html, /—/, "no em-dashes");
 	});
 
@@ -71,6 +72,7 @@ describe("the cheat sheet setup", () => {
 		const html = setup(view(), { ...DEFAULT_RULES, allowed: false });
 		assert.match(html, /doesn&#x27;t allow a cheat sheet/);
 		assert.match(html, /data-testid="cheat-sheet-make"[^>]*disabled/);
+		assert.doesNotMatch(html, /cheat-sheet-instructions/, "nothing to instruct");
 		const made = view({ sheet: { ...newCheatSheet("ddl_1", "t"), blocks: [{ id: "x", topicId: "a", title: "Counting", body: "b", reason: "r" }] } });
 		assert.match(setup(made), />Make it again</);
 	});
@@ -100,6 +102,10 @@ describe("the studio rail", () => {
 		assert.match(html, /Left out: you know it.*Sum and product rules.*Add/);
 		assert.match(html, /aria-checked="true"[^>]*>Medium</);
 		assert.doesNotMatch(html, /cheat-sheet-fixes/);
+		assert.match(html, /Your instructions.*data-testid="cheat-sheet-rail-instructions"/);
+		assert.doesNotMatch(html, /cheat-sheet-remake/, "the setup makes the first sheet");
+		assert.match(rail({ onRemake: () => {} }), /data-testid="cheat-sheet-remake"[^>]*>Remake sheet<.*Pinned blocks stay\./);
+		assert.match(rail({ onRemake: () => {}, busy: true }), /data-testid="cheat-sheet-remake" disabled=""/);
 	});
 
 	it("offers the fixes when the sheet runs long", () => {

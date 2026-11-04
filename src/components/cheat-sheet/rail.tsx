@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { BanIcon, CheckIcon, FileIcon, PenLineIcon, PrinterIcon } from "lucide-react";
 import {
 	CHEAT_SHEET_CONTENT,
+	INSTRUCTIONS_MAX,
 	PAPERS,
 	STATUS_COLOR,
 	TEXT_SIZES,
@@ -14,10 +15,12 @@ import {
 } from "@/core";
 import { cn } from "@/lib/utils";
 import { Segmented } from "./segmented";
+import { INSTRUCTIONS_PLACEHOLDER } from "./setup-dialog";
 
 /**
- * The studio's settings rail: the rules (Edit opens the setup), what goes
- * on it, text size, columns, ink, and the topics left out. When the sheet
+ * The studio's settings rail: the rules (Edit opens the setup), your
+ * instructions with Remake sheet, what goes on it, text size, columns, ink,
+ * and the topics left out. When the sheet
  * runs long, three ways to make it fit sit on top.
  */
 export function Rail({
@@ -30,6 +33,7 @@ export function Rail({
 	onPrefs,
 	onFix,
 	onAdd,
+	onRemake,
 }: {
 	sheet: CheatSheet;
 	leftOut: readonly SheetTopic[];
@@ -42,6 +46,8 @@ export function Rail({
 	onPrefs: (prefs: Partial<CheatSheetPrefs>) => void;
 	onFix: (fix: FitFix) => void;
 	onAdd: (topicId: string) => void;
+	/** Absent before the first sheet (the setup makes that one). */
+	onRemake?: () => void;
 }) {
 	const { rules, prefs } = sheet;
 	const banned = bannedContent(rules.banned);
@@ -93,6 +99,26 @@ export function Rail({
 					</>
 				)}
 			</Group>
+
+			{rules.allowed && (
+				<Group label="Your instructions">
+					<Instructions saved={prefs.instructions} onSave={(instructions) => onPrefs({ instructions })} />
+					{onRemake && (
+						<>
+							<button
+								type="button"
+								data-testid="cheat-sheet-remake"
+								disabled={busy}
+								onClick={onRemake}
+								className="lh-press mt-1 bg-tone px-2.5 py-2 text-left text-[13px] font-bold text-ink hover:bg-tone-2 disabled:opacity-60"
+							>
+								Remake sheet
+							</button>
+							<p className="text-[12.5px] text-ink-3">Uses your instructions and choices. Pinned blocks stay.</p>
+						</>
+					)}
+				</Group>
+			)}
 
 			<Group label="What goes on it">
 				{CHEAT_SHEET_CONTENT.map((c) => {
@@ -174,6 +200,27 @@ export function Rail({
 				)}
 			</div>
 		</aside>
+	);
+}
+
+/** The learner's own words for the agent, saved when the field is left. */
+function Instructions({ saved, onSave }: { saved: string; onSave: (text: string) => void }) {
+	const [text, setText] = useState(saved);
+	useEffect(() => setText(saved), [saved]);
+	return (
+		<textarea
+			data-testid="cheat-sheet-rail-instructions"
+			aria-label="Your instructions"
+			rows={4}
+			maxLength={INSTRUCTIONS_MAX}
+			value={text}
+			onChange={(e) => setText(e.target.value)}
+			onBlur={() => {
+				if (text.trim() !== saved) onSave(text.trim());
+			}}
+			placeholder={INSTRUCTIONS_PLACEHOLDER}
+			className="resize-none border border-edge bg-background px-3 py-2 text-[13.5px] leading-5 text-ink outline-none placeholder:text-ink-3 focus:border-ink"
+		/>
 	);
 }
 

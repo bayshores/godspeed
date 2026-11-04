@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PlusIcon, XIcon } from "lucide-react";
 import {
 	CHEAT_SHEET_PAPERS,
+	INSTRUCTIONS_MAX,
 	PAPERS,
 	STATUS_COLOR,
 	planLines,
@@ -126,6 +127,8 @@ function introLine(view: CheatSheetView, agentName: string | undefined, agentAwa
 
 const LABEL = "text-[13px] font-bold text-ink-2";
 
+export const INSTRUCTIONS_PLACEHOLDER = "Optional. Like: use my professor's notation, put Bayes' rule first, skip what's on the formula sheet.";
+
 /** The dialog's body: pure, for render tests. */
 export function SetupBody({
 	view,
@@ -242,6 +245,21 @@ export function SetupBody({
 					</ul>
 				)}
 			</div>
+
+			{rules.allowed && !nothing && (
+				<label className="flex flex-col gap-2.5">
+					<span className={LABEL}>Your instructions</span>
+					<textarea
+						data-testid="cheat-sheet-instructions"
+						rows={2}
+						maxLength={INSTRUCTIONS_MAX}
+						value={prefs.instructions}
+						onChange={(e) => onChange({ rules, prefs: { ...prefs, instructions: e.target.value } })}
+						placeholder={INSTRUCTIONS_PLACEHOLDER}
+						className="resize-none border border-edge bg-background px-3 py-2 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-3 focus:border-ink"
+					/>
+				</label>
+			)}
 
 			{error && (
 				<p role="alert" className="text-[13px] text-ans-wrong">

@@ -20,6 +20,7 @@ import type { PiEngine } from "../models.ts";
 import {
 	CHEAT_SHEET_CONTENT,
 	CHEAT_SHEET_PAPERS,
+	INSTRUCTIONS_MAX,
 	PAPERS,
 	TEXT_SIZES,
 	WATCH_OUT,
@@ -40,6 +41,7 @@ const CHEAT_SHEET_INSTRUCTIONS = `You write a student's cheat sheet: the notes t
 - Only the kinds of content listed under "On it", never anything under "Not allowed".
 - body: markdown lines, math in $...$, "- " for a short list. No headings, tables or code.
 - title: the topic's name, or "Watch out". reason: 2 to 5 words the student sees beside the block, from the data ("Missed twice", "Shaky", "Not tested yet", "Needed a hint"). why: one sentence on what the block focuses on and why. Plain words, no em-dashes.
+- The student's own instructions come before these defaults (what goes first, what to leave out, how much room), but never over the class's rules.
 - Asked to change blocks: return only those, each with its block_id.`;
 
 const CHEAT_SHEET_RULES_INSTRUCTIONS = `You find a class's cheat sheet rules for one exam in the class's own files: whether a sheet of notes is allowed, the paper (letter one side, letter both sides, a 3 × 5 index card, A4), handwritten or printed, and anything not allowed on it. Search with search_class_files, open what you need with read_passage, then submit once with set_cheat_sheet_rules. Report only what the files say; found is false when they say nothing. source: the file name and page, like "Syllabus.pdf, page 3".`;
@@ -80,6 +82,8 @@ interface SheetRequest {
 	title: string;
 	/** The learner's words about the class (notation, textbook). */
 	classNotes: string;
+	/** The learner's own words for this sheet. */
+	instructions: string;
 	date: string;
 	rules: CheatSheetRules;
 	content: CheatSheetContent[];
@@ -112,6 +116,7 @@ function sheetHeader(r: SheetRequest): string {
 		`Paper: ${paper.label} (${paper.size}), ${WRITING_WORDS[r.rules.writing]}, ${TEXT_SIZES[r.textSize].label.toLowerCase()} text, ${r.columns} columns of about ${r.linesPerColumn} lines${paper.sides === 2 ? " on each side" : ""}.`,
 		`On it: ${onIt.join(", ") || "formulas"}`,
 		r.rules.banned.length > 0 ? `Not allowed: ${r.rules.banned.join("; ")}` : "",
+		r.instructions ? `The student's own instructions: ${oneLine(r.instructions, INSTRUCTIONS_MAX)}` : "",
 	]
 		.filter(Boolean)
 		.join("\n");

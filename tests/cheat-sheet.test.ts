@@ -53,6 +53,9 @@ describe("cheat sheet: the saved record", () => {
 		assert.equal(mergeRules(rules, { source: null }).source, undefined);
 		const prefs = mergePrefs(DEFAULT_PREFS, { content: ["examples", "formulas", "nonsense"], columns: 4, ink: "color" });
 		assert.deepEqual(prefs, { ...DEFAULT_PREFS, content: ["formulas", "examples"], ink: "color" });
+		assert.equal(mergePrefs(prefs, { instructions: "  use my prof's notation " }).instructions, "use my prof's notation");
+		assert.equal(mergePrefs(prefs, { instructions: "x".repeat(700) }).instructions.length, 600);
+		assert.equal(mergePrefs(prefs, { instructions: 3 }).instructions, "", "an older record has none");
 	});
 
 	it("cleans banned items to short single lines, at most 8", () => {
