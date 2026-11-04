@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.33",
+		"date": "2026-11-03",
+		"changes": [
+			"Cheat sheets are real PDFs now. Your agent makes the file itself (LaTeX works great) in a folder it keeps, so changes edit the same sheet, and godspeed shows that exact PDF. Print and Save as PDF use the same file.",
+			"The cheat sheet studio is a canvas you can drag around and zoom, with Zoom to fit. Your last few versions sit next to the new one so you can compare them."
+		]
+	},
+	{
 		"version": "0.5.32",
 		"date": "2026-11-03",
 		"changes": [
