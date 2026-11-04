@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.31",
+		"date": "2026-11-03",
+		"changes": [
+			"Cheat sheets take your own instructions, like \"put Bayes' rule first\" or \"use my professor's notation\". Write them when you set it up or in the studio, and Remake sheet makes it again with them. Pinned blocks stay."
+		]
+	},
+	{
 		"version": "0.5.30",
 		"date": "2026-11-03",
 		"changes": [
