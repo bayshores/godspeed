@@ -132,6 +132,8 @@ describe("Home: the topic box", () => {
 		const html = box({ picks: 3 });
 		assert.match(html, /<span class="font-mono tabular-nums">3<\/span> facts picked/);
 		assert.ok(html.includes('data-testid="facts-picks-clear"'));
+		assert.match(html, /data-testid="home-start" aria-disabled="false"/, "picks alone can start Study");
+		assert.match(box(), /data-testid="home-start" aria-disabled="true"/);
 	});
 
 	it("no facts in the class: Start from facts is disabled", () => {

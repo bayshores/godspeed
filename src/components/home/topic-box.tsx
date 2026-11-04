@@ -40,7 +40,7 @@ export function TopicBox({
 	onClearPicks: () => void;
 	attachments: AttachmentDraft;
 }) {
-	const empty = !text.trim();
+	const empty = !text.trim() && picks === 0;
 	return (
 		<form
 			data-testid="home-topic-box"
