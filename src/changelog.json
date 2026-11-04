@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.30",
+		"date": "2026-11-03",
+		"changes": [
+			"You can add pictures and PDFs to your answers, to the start page's topic box, and to Talk. Files you add wait for you if you leave and come back.",
+			"The lesson box, the side question box and Talk format math as you type.",
+			"Picking facts on the start page is enough to start studying, no topic needed.",
+			"Talk keeps what you typed, offers Try again when a reply fails, and Stop or Esc actually stops the reply.",
+			"Stop shows in the practice box whenever the teacher is working, and study sessions say Continue instead of Next problem.",
+			"The cheat sheet says when no agent is connected instead of spinning, and its change box sends on Enter."
+		]
+	},
+	{
 		"version": "0.5.29",
 		"date": "2026-11-03",
 		"changes": [
