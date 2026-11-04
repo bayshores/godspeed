@@ -210,7 +210,7 @@ const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
 /** An input's files: absent, or 1 to MAX_ATTACHMENTS well-formed files the
  *  composer would have accepted. Anything else is a 400. */
-function parseAttachments(raw: unknown): ChatAttachment[] | undefined {
+export function parseAttachments(raw: unknown): ChatAttachment[] | undefined {
 	if (raw === undefined) return undefined;
 	if (!Array.isArray(raw) || raw.length === 0) throw new ChatInputError("attachments must be a non-empty list");
 	if (raw.length > MAX_ATTACHMENTS) throw new ChatInputError(TOO_MANY_REFUSAL);

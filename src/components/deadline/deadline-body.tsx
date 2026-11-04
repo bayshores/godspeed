@@ -43,7 +43,7 @@ interface DeadlineBodyProps {
 	onAsk: () => void;
 	onAdd: (fileIds: string[]) => void;
 	onLeaveOut: (fileIds: string[]) => void;
-	/** Opens the cheat sheet (its setup the first time). */
+	/** Opens the cheat sheet studio. */
 	onCheatSheet: () => void;
 }
 

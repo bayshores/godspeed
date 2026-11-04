@@ -49,4 +49,5 @@ export { agentNotesView, removeAgentNote } from "./agent-memory.ts";
 export { agentSavedRules, editRule, removeRule } from "./agent-rules.ts";
 export { clearTalk, openTalk } from "./talk.ts";
 export { askAboutNewDeadlines } from "./agent-catch-up.ts";
-export { changeCheatSheetBlocks, cheatSheetView, editCheatSheetBlocks, makeCheatSheet, readCheatSheetRules, saveCheatSheet, stopCheatSheet, type BlockEdit } from "./cheat-sheets.ts";
+export { askCheatSheet, cheatSheetView, retryCheatSheet, stopCheatSheet } from "./cheat-sheets.ts";
+export { katexAsset } from "./katex-assets.ts";

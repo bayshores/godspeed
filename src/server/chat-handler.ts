@@ -167,7 +167,7 @@ export async function handleChatInput(
 	let attachments: AttachmentPart[] = [];
 	if ("attachments" in input && input.attachments) {
 		try {
-			attachments = await storeAttachments(chatId, input.attachments);
+			attachments = await storeAttachments(input.attachments, (fileName, bytes) => stores.chatStore.saveAttachment(chatId, fileName, bytes));
 		} catch (err) {
 			if (err instanceof ChatInputError) return Response.json({ error: err.message }, { status: 400 });
 			throw err;

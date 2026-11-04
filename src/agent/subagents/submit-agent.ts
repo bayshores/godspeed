@@ -6,7 +6,7 @@
  * applies at the capture.
  */
 
-import type { Usage } from "@earendil-works/pi-ai";
+import type { Usage, UserMessage } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { TSchema } from "typebox";
 import { invalidInputResult, toToolResult } from "../tool-execute.ts";
@@ -22,7 +22,7 @@ export async function runSubmitAgent<T>(opts: {
 	 *  applied to the schema-valid raw input at the submit seam. */
 	fill: (input: any) => T;
 	systemPrompt: string;
-	prompt: string;
+	prompt: UserMessage["content"];
 	engine: PiEngine | undefined;
 	signal: AbortSignal | undefined;
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void;
@@ -34,8 +34,8 @@ export async function runSubmitAgent<T>(opts: {
 	 *  a problem string yields an isError result (invalidInputResult) →
 	 *  the model retries within its turns. null = accept. */
 	validate?: (value: T) => string | null;
-	/** Tools to look things up before submitting (the cheat sheet's rules
-	 *  reader searches the class's files). */
+	/** Tools to look things up before submitting (the cheat sheet writer
+	 *  searches the class's files for its rules). */
 	lookups?: AgentTool<any>[];
 	/** Model calls allowed; the default only leaves room for retries. */
 	maxTurns?: number;

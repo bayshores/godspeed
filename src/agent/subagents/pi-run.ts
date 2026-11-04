@@ -1,6 +1,6 @@
 import type { AgentEvent, AgentMessage, AgentTool } from "@earendil-works/pi-agent-core";
 import { loadAgentCore, loadedAgentCore } from "../engine-load.ts";
-import type { AssistantMessage, ToolResultMessage, Usage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, ToolResultMessage, Usage, UserMessage } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
 import { APP_IDENTITY, agentEngine, type PiEngine } from "../models.ts";
 import { forgetConversation, labelConversation } from "../agent-bridge.ts";
@@ -20,7 +20,8 @@ interface SubagentRunOptions {
 	/** The runner's or a test's engine; without one, the outside agent runs it. */
 	engine?: PiEngine;
 	systemPrompt: string;
-	prompt: string;
+	/** Text, or text with pictures (a cheat sheet prompt's files). */
+	prompt: UserMessage["content"];
 	/** Max model calls (a safety net). */
 	maxTurns: number;
 	/** Abort mid-model-call (the real-kill semantics). */

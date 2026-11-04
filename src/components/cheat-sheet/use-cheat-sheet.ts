@@ -4,8 +4,8 @@ import { jsonInit, send } from "@/components/files/class-files-api";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 
 /** A deadline's cheat sheet (GET …/cheat-sheet), read again whenever the
- *  server says it changed; `act` posts one action, `save` the rules and
- *  choices. Each returns the error line, or null. */
+ *  server says it changed; `act` posts one action and returns the error
+ *  line, or null. */
 export function useCheatSheet(classId: string, deadlineId: string) {
 	const url = `/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}/cheat-sheet`;
 	const [view, setView] = useState<CheatSheetView | null>(null);
@@ -33,13 +33,8 @@ export function useCheatSheet(classId: string, deadlineId: string) {
 	useServerResync(() => void reload());
 
 	const act = useCallback(async (body: Record<string, unknown>) => (await send(url, jsonInit("POST", body))).error, [url]);
-	const save = useCallback(async (patch: { rules?: unknown; prefs?: unknown }) => {
-		const { error } = await send(url, jsonInit("PUT", patch));
-		await reload();
-		return error;
-	}, [url, reload]);
 
-	return { view, loadError, reload, act, save };
+	return { view, loadError, reload, act };
 }
 
 /** The studio's address for a deadline. */

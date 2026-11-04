@@ -10,26 +10,29 @@ import {
 	type ChatAttachment,
 } from "../core/attachments.ts";
 import { ChatInputError } from "../core/input-events.ts";
-import { stores } from "./stores.ts";
 
 /**
- * Turn a message's files into the parts the record stores: each picture
- * resized and re-encoded inline, each PDF saved beside the lesson with a
- * note naming its path. A file that isn't what it claims is a 400.
+ * Turn a message's files into the parts the agent reads: each picture
+ * resized and re-encoded inline, each PDF saved by `savePdf` (beside the
+ * lesson, or the cheat sheet) with a note naming its path. A file that
+ * isn't what it claims is a 400.
  */
-export async function storeAttachments(chatId: string, attachments: readonly ChatAttachment[]): Promise<AttachmentPart[]> {
+export async function storeAttachments(
+	attachments: readonly ChatAttachment[],
+	savePdf: (fileName: string, bytes: Uint8Array) => string,
+): Promise<AttachmentPart[]> {
 	const parts: AttachmentPart[] = [];
 	for (const attachment of attachments) {
 		const bytes = Buffer.from(attachment.data, "base64");
-		parts.push(isPdfType(attachment.mimeType) ? savePdf(chatId, attachment.name, bytes) : await normalizeImage(attachment.name, bytes));
+		parts.push(isPdfType(attachment.mimeType) ? pdfPart(attachment.name, bytes, savePdf) : await normalizeImage(attachment.name, bytes));
 	}
 	return parts;
 }
 
-function savePdf(chatId: string, name: string, bytes: Buffer): AttachmentPart {
+function pdfPart(name: string, bytes: Buffer, savePdf: (fileName: string, bytes: Uint8Array) => string): AttachmentPart {
 	if (bytes.subarray(0, 5).toString("latin1") !== "%PDF-") throw new ChatInputError(`${name} is not a PDF.`);
 	const hash = createHash("sha256").update(bytes).digest("hex");
-	return pdfNote(name, stores.chatStore.saveAttachment(chatId, pdfFileName(name, hash), bytes));
+	return pdfNote(name, savePdf(pdfFileName(name, hash), bytes));
 }
 
 /** Upright, at most MAX_IMAGE_SIDE on the long side (never enlarged); a

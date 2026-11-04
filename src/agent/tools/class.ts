@@ -92,7 +92,7 @@ function noteTools(setNote: (text: string) => string): Record<string, AgentTool<
 	};
 }
 
-/** search_class_files and read_passage (also the cheat sheet's rules reader). */
+/** search_class_files and read_passage (also the cheat sheet writer). */
 export function searchTools(search: ClassSearch): Record<string, AgentTool<any>> {
 	return {
 		search_class_files: {
