@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.35",
+		"date": "2026-11-04",
+		"changes": [
+			"Each cheat sheet has its own chat. Ask your agent what something on the sheet means, or tell it what to change, and it answers or makes a new version. It looks over every page and checks the formulas against your class before sending.",
+			"Point at the sheet. Drag a box over the part that confuses you and it goes with your message as a picture.",
+			"Things you say should always hold, like A4 both sides or no slang, are saved as rules for that sheet. You can see them and remove them.",
+			"Open your cheat sheet right next to a lesson, study or practice session with the Cheat sheet button. Questions you ask there include the problem you're on.",
+			"A newer PDF in the sheet's folder, say from editing it outside godspeed, shows up as a new version."
+		]
+	},
+	{
 		"version": "0.5.34",
 		"date": "2026-11-03",
 		"changes": [
