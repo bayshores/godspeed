@@ -1,14 +1,14 @@
 import { memo } from "react";
 import Link from "next/link";
-import { FilesIcon, HouseIcon, LayoutGridIcon, WaypointsIcon, type LucideIcon } from "lucide-react";
+import { FilesIcon, HouseIcon, LayoutGridIcon, NotebookPenIcon, WaypointsIcon, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * THE CLASS NAV: Overview / Graph / Files for the
- * active class. Files shows the class's file count (and a dot while a
- * folder scan found files the learner hasn't seen) and is hidden under
- * "No class" (there are no class files then); Overview and Graph still
- * apply to the lessons without a class.
+ * THE CLASS NAV: Overview / Graph / Files / Cheat sheets for the active
+ * class. Files shows the class's file count (and a dot while a folder
+ * scan found files the learner hasn't seen). Files and Cheat sheets are
+ * hidden under "No class" (it has no files or deadlines); Overview and
+ * Graph still apply to the lessons without a class.
  */
 
 interface NavItem {
@@ -22,7 +22,11 @@ const CLASS_NAV: readonly NavItem[] = [
 	{ href: "/class", label: "Overview", icon: LayoutGridIcon, testid: "nav-overview" },
 	{ href: "/graph", label: "Graph", icon: WaypointsIcon, testid: "nav-graph" },
 	{ href: "/class/files", label: "Files", icon: FilesIcon, testid: "nav-files" },
+	{ href: "/class/cheat-sheets", label: "Cheat sheets", icon: NotebookPenIcon, testid: "nav-cheat-sheets" },
 ];
+
+/** Rows that need a class. */
+const CLASS_ONLY = new Set(["/class/files", "/class/cheat-sheets"]);
 
 /** The nav row a path belongs to (exact match; lessons and home match none). */
 export function activeNavHref(pathname: string): string | null {
@@ -69,7 +73,7 @@ export const ClassNav = memo(function ClassNav({
 	return (
 		<nav aria-label="Class" className="flex w-full flex-col gap-0.5">
 			{CLASS_NAV.map((item) => {
-				if (item.href === "/class/files" && !hasClass) return null;
+				if (CLASS_ONLY.has(item.href) && !hasClass) return null;
 				const active = item.href === activeHref;
 				const Icon = item.icon;
 				return (

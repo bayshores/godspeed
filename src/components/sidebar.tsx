@@ -89,8 +89,6 @@ declare global {
 			installUpdate?: () => void;
 			/** Opens a new GitHub issue with the app version and OS filled in. */
 			reportBug?: () => void;
-			/** A copy of a PDF, saved where the learner picks: the path, or null. */
-			savePdf?: (name: string, bytes: Uint8Array) => Promise<string | null>;
 			/** The installed font families, sorted. */
 			listFonts?: () => Promise<string[]>;
 			onOpenSettings?: (cb: (section: string) => void) => () => void;

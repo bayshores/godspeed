@@ -20,7 +20,7 @@ function pdfjs(): Promise<typeof import("pdfjs-dist")> {
 }
 
 /** A PDF's bytes, as the server keeps them. */
-export async function pdfBytes(url: string): Promise<Uint8Array> {
+async function pdfBytes(url: string): Promise<Uint8Array> {
 	const res = await fetch(url);
 	if (!res.ok) throw new Error(`Couldn't load the PDF (${res.status}).`);
 	return new Uint8Array(await res.arrayBuffer());

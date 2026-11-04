@@ -93,7 +93,7 @@ export function clockLabel(time: string): string {
 }
 
 /** "Fri Oct 30 11:59 PM", or just "Fri Oct 30" when the deadline has no time. */
-export function whenLabel(d: ClassDeadline): string {
+export function whenLabel(d: Pick<ClassDeadline, "date" | "time">): string {
 	return d.time ? `${dayLabel(d.date)} ${clockLabel(d.time)}` : dayLabel(d.date);
 }
 

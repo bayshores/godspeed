@@ -41,10 +41,6 @@
  *
  *   window.lh.pathForFile(file) — a dropped File's path on disk.
  *
- *   window.lh.savePdf(name, bytes) — a copy of a PDF (the cheat sheet),
- *   saved where the learner picks; resolves to the path, or null when
- *   cancelled.
- *
  *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
  *   subscribes after a window is reopened. Browser builds have no bridge.
  *
@@ -69,7 +65,6 @@ contextBridge.exposeInMainWorld("lh", {
 	// dropped folder). Path only — no file access crosses the bridge.
 	pathForFile: (file) => webUtils.getPathForFile(file),
 	expandWindow: () => ipcRenderer.send("lh:expand-window"),
-	savePdf: (name, bytes) => ipcRenderer.invoke("lh:save-pdf", name, bytes),
 	onZoom: (cb) => {
 		const listener = (_event, factor) => cb(factor);
 		ipcRenderer.on("lh:zoom", listener);

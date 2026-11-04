@@ -23,17 +23,20 @@ import {
 	mistakeCounts,
 	newCheatSheet,
 	sheetFolderName,
+	sheetCards,
 	sheetMistakes,
 	withPrompt,
 	withVersion,
 	type CheatSheet,
 	type CheatSheetView,
+	type ClassSheetsView,
 	type RequestTopic,
 	type SheetMistake,
 } from "../core/cheat-sheet.ts";
 import { emit } from "../core/events.ts";
 import { ChatInputError } from "../core/input-events.ts";
 import { topicFacts, topicStatus } from "../core/progress.ts";
+import { localDay } from "../core/today-note.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";
 import { searchTools } from "../agent/tools/class.ts";
 import { writeSheet } from "../agent/subagents/cheat-sheet-writer.ts";
@@ -221,7 +224,7 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 		.then((pdf) => {
 			const at = new Date().toISOString();
 			const asked = withPrompt(sheetNow(ctx), { text: ask.text, at, ...(ask.files.length > 0 ? { files: ask.files } : {}) });
-			const next = withVersion(asked, { prompt: ask.text, at, pages: pdf.pages });
+			const next = withVersion(asked, { prompt: ask.text, at, pages: pdf.pages, file: pdf.file });
 			saveSheetPdf(ctx.classId, id, currentVersion(next.sheet)!.n, pdf.bytes);
 			writeCheatSheet(ctx.classId, next.sheet);
 			removeSheetPdfs(ctx.classId, id, next.dropped);
@@ -236,6 +239,40 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 			changed(id);
 		});
 	return { ok: true, value: null };
+}
+
+/** Show in Finder: where a version's PDF is in the sheet's working folder.
+ *  The agent's file while it is still that version, else godspeed's copy
+ *  written there as "cheat sheet v<n>.pdf". */
+export function sheetPdfFile(classId: string, deadlineId: string, n: number): Outcome<string> {
+	const saved = readCheatSheet(classId, deadlineId);
+	const version = saved && saved !== "newer" ? saved.versions.find((v) => v.n === n) : null;
+	const bytes = saved && saved !== "newer" && version ? cheatSheetPdf(classId, deadlineId, n) : null;
+	if (!saved || saved === "newer" || !version || !bytes || !saved.folder) return fail(404, "No such cheat sheet");
+	const same = (file: string) => {
+		try {
+			return fs.readFileSync(file).equals(bytes);
+		} catch {
+			return false;
+		}
+	};
+	if (version.file && same(version.file)) return { ok: true, value: version.file };
+	const dir = path.join(cheatSheetsDir(), saved.folder);
+	const copy = path.join(dir, `cheat sheet v${n}.pdf`);
+	if (!same(copy)) {
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(copy, bytes);
+	}
+	return { ok: true, value: copy };
+}
+
+/** GET the class's Cheat sheets page: each deadline and where its sheet is. */
+export function classSheetsView(classId: string): Outcome<ClassSheetsView> {
+	const record = stores.classStore.getClass(classId);
+	if (!record) return fail(404, "No such class");
+	const runs = state().runs;
+	const cards = sheetCards(record.deadlines ?? [], (id) => readCheatSheet(classId, id), (id) => runs.has(id), localDay());
+	return { ok: true, value: { className: record.name, cards } };
 }
 
 /** A version's PDF, as the agent made it; null when there is none. */

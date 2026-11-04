@@ -49,5 +49,5 @@ export async function takeSheetPdf(folder: string, pdfPath: string): Promise<Tak
 	} catch (err) {
 		return `The PDF can't be read: ${err instanceof Error ? err.message : String(err)}`;
 	}
-	return pdfProblem({ bytes: bytes.length, head, pages }) ?? { bytes, pages };
+	return pdfProblem({ bytes: bytes.length, head, pages }) ?? { bytes, pages, file };
 }

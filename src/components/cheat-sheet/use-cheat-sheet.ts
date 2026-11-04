@@ -7,7 +7,7 @@ import { useServerEvent, useServerResync } from "@/components/server-events";
  *  server says it changed; `act` posts one action and returns the error
  *  line, or null. */
 export function useCheatSheet(classId: string, deadlineId: string) {
-	const url = `/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}/cheat-sheet`;
+	const url = sheetApiPath(classId, deadlineId);
 	const [view, setView] = useState<CheatSheetView | null>(null);
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const request = useRef(0);
@@ -37,9 +37,32 @@ export function useCheatSheet(classId: string, deadlineId: string) {
 	return { view, loadError, reload, act };
 }
 
+function sheetApiPath(classId: string, deadlineId: string): string {
+	return `/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}/cheat-sheet`;
+}
+
 /** Version n of a sheet's PDF. */
 export function sheetPdfPath(classId: string, deadlineId: string, n: number): string {
-	return `/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}/cheat-sheet/pdf/${n}`;
+	return `${sheetApiPath(classId, deadlineId)}/pdf/${n}`;
+}
+
+/** Show in Finder (desktop): the version's PDF in the sheet's working
+ *  folder. Resolves to the error line, or null. */
+export async function showSheetPdf(classId: string, deadlineId: string, n: number): Promise<string | null> {
+	const show = window.lh?.showInFolder;
+	if (!show) return null;
+	const { error, body } = await send(sheetApiPath(classId, deadlineId), jsonInit("POST", { action: "file", n }));
+	if (error) return error;
+	await show((body as { path: string }).path);
+	return null;
+}
+
+/** What Make it again asks for a sheet an older godspeed made. */
+const REMAKE = "Make my cheat sheet again from what I asked before.";
+
+/** Make it again: resolves to the error line, or null once it started. */
+export async function remakeSheet(classId: string, deadlineId: string): Promise<string | null> {
+	return (await send(sheetApiPath(classId, deadlineId), jsonInit("POST", { action: "ask", text: REMAKE }))).error;
 }
 
 /** The studio's address for a deadline. */

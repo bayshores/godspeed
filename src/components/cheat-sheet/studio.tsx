@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, DownloadIcon, PrinterIcon } from "lucide-react";
+import { ArrowLeftIcon, DownloadIcon, FolderOpenIcon, PrinterIcon } from "lucide-react";
 import { currentVersion, type ChatAttachment, type CheatSheetView, type SheetVersion } from "@/core";
 import { NoAgentLine } from "@/components/agent-folder/no-agent-line";
 import { useAgentStatus } from "@/components/agent-status";
@@ -11,15 +11,14 @@ import { useClasses } from "@/components/class-context";
 import { LoadFailed } from "@/components/load-failed";
 import { useFoldSidebar } from "@/components/sidebar";
 import { TopBar } from "@/components/top-bar";
-import { pdfBytes } from "./pdf";
+import { fileBrowserName } from "@/components/files/files-model";
 import { printPdf } from "./print-pdf";
 import { PromptBox, PromptHistory } from "./prompt-box";
 import { SheetCanvas } from "./sheet-canvas";
 import { OlderSheet, StudioStatus } from "./studio-states";
-import { sheetPdfPath, useCheatSheet } from "./use-cheat-sheet";
+import { remakeSheet, sheetPdfPath, showSheetPdf, useCheatSheet } from "./use-cheat-sheet";
 
 const NEWER = "A newer godspeed saved this cheat sheet. Update godspeed to change it.";
-const REMAKE = "Make my cheat sheet again from what I asked before.";
 /** The floating panel's width and its gap from the canvas's edges. */
 const PANEL_W = 340;
 const PANEL_GAP = 16;
@@ -93,7 +92,7 @@ function Studio({
 		[act],
 	);
 	const post = (body: Record<string, unknown>) => void act(body).then(setFailed);
-	const savePdf = typeof window !== "undefined" ? window.lh?.savePdf : undefined;
+	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
 	const print = () => {
 		if (!currentUrl) return;
 		setPrinting(true);
@@ -118,7 +117,7 @@ function Studio({
 	const box = (label: string, placeholder: string) => (
 		<PromptBox deadlineId={deadlineId} label={label} placeholder={placeholder} running={run?.prompt ?? null} disabled={view.newer} onSend={ask} onStop={() => post({ action: "stop" })} />
 	);
-	const saveClass = "lh-press flex items-center gap-2 bg-panel px-3 py-[7px] text-sm text-ink hover:bg-tone";
+	const fileClass = "lh-press flex items-center gap-2 bg-panel px-3 py-[7px] text-sm text-ink hover:bg-tone";
 
 	return (
 		<>
@@ -133,25 +132,22 @@ function Studio({
 					<span className="shrink-0 font-bold text-ink">Cheat sheet</span>
 				</nav>
 				<StudioStatus view={view} agentName={agentName} agentGone={agentGone} onStop={() => post({ action: "stop" })} />
-				{currentUrl &&
-					(savePdf ? (
+				{current &&
+					currentUrl &&
+					(desktop ? (
 						<button
 							type="button"
-							data-testid="cheat-sheet-save-pdf"
-							onClick={() =>
-								void pdfBytes(currentUrl)
-									.then((bytes) => savePdf(fileName, bytes))
-									.catch((err: unknown) => setFailed(`Couldn't save: ${err instanceof Error ? err.message : String(err)}`))
-							}
-							className={saveClass}
+							data-testid="cheat-sheet-show-file"
+							onClick={() => void showSheetPdf(classId, deadlineId, current.n).then(setFailed)}
+							className={fileClass}
 						>
-							<DownloadIcon className="size-4" aria-hidden />
-							Save as PDF
+							<FolderOpenIcon className="size-4" aria-hidden />
+							Show in {fileBrowserName(window.lh?.platform)}
 						</button>
 					) : (
-						<a data-testid="cheat-sheet-save-pdf" href={currentUrl} download={`${fileName}.pdf`} className={saveClass}>
+						<a data-testid="cheat-sheet-download" href={currentUrl} download={`${fileName}.pdf`} className={fileClass}>
 							<DownloadIcon className="size-4" aria-hidden />
-							Save as PDF
+							Download PDF
 						</a>
 					))}
 				<button
@@ -190,7 +186,7 @@ function Studio({
 							<h2 className="font-title text-[34px] leading-tight font-bold text-ink">What do you want on your cheat sheet?</h2>
 							<p className="text-[15px] text-ink-2">{agentName} reads your class&apos;s rules in the syllabus, puts your weak topics and mistakes first, and makes it as a PDF.</p>
 						</div>
-						{view.sheet.olderFormat && !run && <OlderSheet onRemake={() => void ask(REMAKE, []).then(setFailed)} />}
+						{view.sheet.olderFormat && !run && <OlderSheet onRemake={() => void remakeSheet(classId, deadlineId).then(setFailed)} />}
 						{history}
 						<div className="flex flex-col gap-3">
 							{box("Make", "For example, both sides of A4 with every formula so far and a flowchart for any counting problem")}

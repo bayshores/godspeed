@@ -6,6 +6,7 @@
  * prompt that made it) and what the learner asked, oldest first. Pure and
  * browser-safe.
  */
+import type { ClassDeadline, DeadlineKind } from "./contracts.ts";
 import type { TopicStatus } from "./progress.ts";
 import { safeEntryName } from "./class-shortcuts.ts";
 
@@ -25,6 +26,8 @@ export interface SheetVersion {
 	prompt: string;
 	at: string;
 	pages: SheetPage[];
+	/** Where the agent made it, for Show in Finder. */
+	file?: string;
 }
 
 /** One thing the learner asked for. */
@@ -120,7 +123,7 @@ function readPrompt(v: unknown): CheatSheetPrompt | null {
 function readVersion(v: unknown): SheetVersion | null {
 	if (!isObject(v) || !isNumber(v.n) || !isString(v.prompt) || !isString(v.at) || !Array.isArray(v.pages)) return null;
 	const pages = v.pages.filter((p): p is SheetPage => isObject(p) && isNumber(p.widthPt) && isNumber(p.heightPt)).map((p) => ({ widthPt: p.widthPt, heightPt: p.heightPt }));
-	return pages.length > 0 ? { n: v.n, prompt: v.prompt, at: v.at, pages } : null;
+	return pages.length > 0 ? { n: v.n, prompt: v.prompt, at: v.at, pages, ...(isString(v.file) ? { file: v.file } : {}) } : null;
 }
 
 const list = <T>(v: unknown, read: (x: unknown) => T | null): T[] => (Array.isArray(v) ? v.map(read).filter((x): x is T => x !== null) : []);
@@ -331,6 +334,58 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 	]
 		.filter(Boolean)
 		.join("\n\n");
+}
+
+// ─── a class's cheat sheets ─────────────────────────────────────────────────
+
+/** Where a deadline's sheet is: made, being made, made in an older format
+ *  (or by a newer godspeed), or not there. */
+type SheetStatus = "made" | "making" | "older" | "newer" | "none";
+
+/** One deadline on the class's Cheat sheets page. */
+export interface SheetCard {
+	deadlineId: string;
+	name: string;
+	kind: DeadlineKind;
+	date: string;
+	time?: string;
+	/** Done, or its day has gone by. */
+	past: boolean;
+	status: SheetStatus;
+	/** The newest version, for its preview (also while a change is made). */
+	version: SheetVersion | null;
+}
+
+/** GET /api/classes/<id>/cheat-sheets. */
+export interface ClassSheetsView {
+	className: string;
+	cards: SheetCard[];
+}
+
+/** Every deadline of the class with its sheet: upcoming soonest first, then
+ *  past ones, latest first. */
+export function sheetCards(
+	deadlines: readonly ClassDeadline[],
+	sheetOf: (deadlineId: string) => CheatSheet | "newer" | null,
+	running: (deadlineId: string) => boolean,
+	today: string,
+): SheetCard[] {
+	const cards = deadlines.map((d): SheetCard => {
+		const sheet = sheetOf(d.id);
+		const version = sheet && sheet !== "newer" ? currentVersion(sheet) : null;
+		const status: SheetStatus = running(d.id)
+			? "making"
+			: sheet === "newer"
+				? "newer"
+				: version
+					? "made"
+					: sheet?.olderFormat
+						? "older"
+						: "none";
+		return { deadlineId: d.id, name: d.name, kind: d.kind, date: d.date, ...(d.time ? { time: d.time } : {}), past: d.done || d.date < today, status, version };
+	});
+	const when = (c: SheetCard) => `${c.date} ${c.time ?? "23:59"}`;
+	return [...cards.filter((c) => !c.past).sort((a, b) => when(a).localeCompare(when(b))), ...cards.filter((c) => c.past).sort((a, b) => when(b).localeCompare(when(a)))];
 }
 
 // ─── what the studio reads ──────────────────────────────────────────────────

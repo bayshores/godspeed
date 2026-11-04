@@ -36,6 +36,8 @@ type WriteSubmit = Static<typeof writeSchema>;
 export interface TakenPdf {
 	bytes: Uint8Array;
 	pages: SheetPage[];
+	/** Its real path, in the working folder. */
+	file: string;
 }
 
 /** Make a sheet, or change one. Throws when the agent never sends a usable PDF. */

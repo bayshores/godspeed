@@ -5,8 +5,9 @@
  *    { action: "ask", text, attachments? }   make the sheet, or change it, as asked
  *    { action: "retry" }                     send the failed request again
  *    { action: "stop" }                      stop the agent's request
+ *    { action: "file", n }                   → { path }: version n's PDF in the working folder (Show in Finder)
  */
-import { askCheatSheet, cheatSheetView, retryCheatSheet, stopCheatSheet } from "@/server";
+import { askCheatSheet, cheatSheetView, retryCheatSheet, sheetPdfFile, stopCheatSheet } from "@/server";
 import { ChatInputError, isClassId, parseAttachments } from "@/core";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,11 @@ export async function POST(req: Request, { params }: Ctx) {
 		}
 		case "retry":
 			return reply(retryCheatSheet(id, deadlineId));
+		case "file": {
+			if (typeof body.n !== "number") return bad("Give n.");
+			const file = sheetPdfFile(id, deadlineId, body.n);
+			return file.ok ? Response.json({ path: file.value }) : Response.json({ error: file.error }, { status: file.status });
+		}
 		case "stop":
 			stopCheatSheet(deadlineId);
 			return Response.json({ ok: true });

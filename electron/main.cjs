@@ -853,23 +853,6 @@ async function main() {
 		if (!fromAppWindow(event)) throw untrusted();
 		return openAgentTerminal(folder, agent);
 	});
-	// The cheat sheet's Save as PDF: a copy of the PDF the agent made (the
-	// page sends its bytes), saved where the learner picks. Only a PDF of
-	// at most 25 MB is written. Resolves to the saved path, or null when
-	// cancelled.
-	ipcMain.handle("lh:save-pdf", async (event, name, bytes) => {
-		if (!fromAppWindow(event)) throw untrusted();
-		const pdf = bytes instanceof Uint8Array ? Buffer.from(bytes) : null;
-		if (!pdf || pdf.length > 25 * 1024 * 1024 || pdf.subarray(0, 5).toString("latin1") !== "%PDF-") throw new Error("Not a PDF.");
-		const base = typeof name === "string" ? name.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 120) : "";
-		const result = await dialog.showSaveDialog(BrowserWindow.fromWebContents(event.sender), {
-			defaultPath: path.join(app.getPath("downloads"), `${base || "Cheat sheet"}.pdf`),
-			filters: [{ name: "PDF", extensions: ["pdf"] }],
-		});
-		if (result.canceled || !result.filePath) return null;
-		await fs.promises.writeFile(result.filePath, pdf);
-		return result.filePath;
-	});
 	// The renderer's first paint can race did-finish-load, so it asks for
 	// the current factor itself (mirrors "lh:zoom" pushes).
 	ipcMain.handle("lh:zoom:get", (event) => {
