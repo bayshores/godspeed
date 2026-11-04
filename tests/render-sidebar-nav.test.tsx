@@ -47,12 +47,15 @@ describe("HomeRow", () => {
 	});
 });
 
-describe("ClassNav — Overview / Graph / Files", () => {
-	it("routes: Overview → /class, Graph → /graph, Files → /class/files", () => {
+describe("ClassNav — Overview / Graph / Files / Cheat sheets", () => {
+	it("routes: Overview → /class, Graph → /graph, Files → /class/files, Cheat sheets → /class/cheat-sheets", () => {
 		const html = nav("/");
 		assert.match(tag(html, "nav-overview"), /href="\/class"/);
 		assert.match(tag(html, "nav-graph"), /href="\/graph"/);
 		assert.match(tag(html, "nav-files"), /href="\/class\/files"/);
+		assert.match(tag(html, "nav-cheat-sheets"), /href="\/class\/cheat-sheets"/);
+		assert.match(html, /nav-files[\s\S]*nav-cheat-sheets/, "below Files");
+		assert.equal(activeNavHref("/class/cheat-sheets"), "/class/cheat-sheets");
 	});
 
 	it("the current page's row is active (tone block, bold, aria-current); the others are not", () => {
@@ -91,12 +94,13 @@ describe("ClassNav — Overview / Graph / Files", () => {
 		assert.equal(hasUnseenFiles(undefined, null, now), false);
 	});
 
-	it("No class: Overview and Graph stay, Files (and its count) are hidden", () => {
+	it("No class: Overview and Graph stay, Files (and its count) and Cheat sheets are hidden", () => {
 		const html = nav("/class", false, 0);
 		assert.ok(html.includes('data-testid="nav-overview"'));
 		assert.ok(html.includes('data-testid="nav-graph"'));
 		assert.ok(!html.includes('data-testid="nav-files"'));
 		assert.ok(!html.includes("nav-files-count"));
+		assert.ok(!html.includes('data-testid="nav-cheat-sheets"'));
 	});
 });
 

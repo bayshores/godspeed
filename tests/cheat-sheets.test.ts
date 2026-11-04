@@ -28,6 +28,7 @@ const { removeClassDeadline, sourceIdFor } = await import("../src/server/classes
 const sheets = await import("../src/server/cheat-sheets.ts");
 const route = await import("../src/app/api/classes/[id]/deadlines/[deadlineId]/cheat-sheet/route.ts");
 const pdfRoute = await import("../src/app/api/classes/[id]/deadlines/[deadlineId]/cheat-sheet/pdf/[n]/route.ts");
+const classRoute = await import("../src/app/api/classes/[id]/cheat-sheets/route.ts");
 import type { LhMessage } from "../src/core/native-messages.ts";
 import type { CheatSheetView } from "../src/core/cheat-sheet.ts";
 
@@ -287,6 +288,26 @@ describe("cheat sheets", () => {
 		assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 3);
 	});
 
+	it("lists the class's deadlines with where each sheet is, through its route", async () => {
+		const { classId, deadlineId } = seed();
+		const later = classStore.addDeadline(classId, { kind: "homework", name: "HW 9", date: "2099-01-01", fileIds: [] });
+		const cards = async () => {
+			const res = await classRoute.GET(new Request("http://localhost/x"), { params: Promise.resolve({ id: classId }) });
+			assert.equal(res.status, 200);
+			return ((await res.json()) as { cards: Array<{ deadlineId: string; status: string; version: { n: number } | null }> }).cards;
+		};
+		assert.deepEqual((await cards()).map((c) => c.status), ["none", "none"]);
+		assert.deepEqual(new Set((await cards()).map((c) => c.deadlineId)), new Set([deadlineId, later.id]));
+		agent(made());
+		assert.ok((await sheets.askCheatSheet(classId, deadlineId, { text: "A4" })).ok);
+		assert.equal((await cards()).find((c) => c.deadlineId === deadlineId)!.status, "making");
+		await sheets.cheatSheetIdle(deadlineId);
+		const done = (await cards()).find((c) => c.deadlineId === deadlineId)!;
+		assert.deepEqual([done.status, done.version!.n], ["made", 1]);
+		assert.equal((await cards()).find((c) => c.deadlineId === later.id)!.status, "none");
+		assert.equal((await classRoute.GET(new Request("http://localhost/x"), { params: Promise.resolve({ id: "cls_missing_00000000" }) })).status, 404);
+	});
+
 	it("answers through the routes, refuses bad requests, serves each version's PDF, and goes with its deadline", async () => {
 		const { classId, deadlineId } = seed();
 		const r = routeFor(classId, deadlineId);
@@ -306,6 +327,17 @@ describe("cheat sheets", () => {
 		assert.deepEqual([pdf.status, pdf.headers.get("content-type")], [200, "application/pdf"]);
 		assert.deepEqual(Buffer.from(await pdf.arrayBuffer()), pdfOf([A4, A4]));
 		for (const n of ["2", "0", "01", "x", "../1"]) assert.equal((await r.pdf(n)).status, 404, n);
+
+		// Show in Finder: the agent's own file while it is still this version, else godspeed's copy beside it.
+		const fileOf = async (n: number) => ((await (await r.post({ action: "file", n })).json()) as { path: string }).path;
+		const folder = path.join(FOLDER, "cheat-sheets", view(classId, deadlineId).sheet.folder!);
+		assert.equal(await fileOf(1), fs.realpathSync(path.join(folder, "sheet.pdf")));
+		fs.writeFileSync(path.join(folder, "sheet.pdf"), pdfOf([A4]));
+		const copy = await fileOf(1);
+		assert.equal(copy, path.join(folder, "cheat sheet v1.pdf"));
+		assert.deepEqual(fs.readFileSync(copy), pdfOf([A4, A4]));
+		assert.equal((await r.post({ action: "file", n: 2 })).status, 404);
+		assert.equal((await r.post({ action: "file" })).status, 400);
 		const file = path.join(sheetDir(classId), `${deadlineId}.json`);
 		assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 3);
 		const files = path.join(sheetDir(classId), `${deadlineId}-files`);

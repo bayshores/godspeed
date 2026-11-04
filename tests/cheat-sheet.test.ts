@@ -16,6 +16,7 @@ import {
 	pageSizeLabel,
 	parseCheatSheet,
 	pdfProblem,
+	sheetCards,
 	sheetFolderName,
 	sheetMistakes,
 	withPrompt,
@@ -163,6 +164,36 @@ describe("cheat sheet: the request", () => {
 			["probability", "E[X^2] for a die", "hint"],
 		]);
 		assert.deepEqual([...mistakeCounts(answers, ["counting", "probability"])], [["counting", 2], ["probability", 1]]);
+	});
+});
+
+describe("cheat sheet: a class's cheat sheets", () => {
+	const deadline = (id: string, date: string, over: Record<string, unknown> = {}) => ({ id, kind: "exam" as const, name: id, date, fileIds: [], done: false, ...over });
+	const made = { ...newCheatSheet("d", "t"), versions: [{ n: 2, prompt: "A4", at: "t", pages: [A4] }] };
+
+	it("lists upcoming deadlines soonest first, then past ones latest first, each with where its sheet is", () => {
+		const deadlines = [
+			deadline("later", "2026-11-20"),
+			deadline("old", "2026-10-01"),
+			deadline("soon", "2026-11-05", { time: "09:00" }),
+			deadline("done", "2026-11-30", { done: true }),
+			deadline("soon2", "2026-11-05"),
+			deadline("older", "2026-10-10"),
+		];
+		const sheets: Record<string, CheatSheet | "newer"> = { soon: made, later: { ...newCheatSheet("later", "t"), olderFormat: true }, old: made, older: "newer" };
+		const cards = sheetCards(deadlines, (id) => sheets[id] ?? null, (id) => id === "old" || id === "soon2", "2026-11-04");
+		assert.deepEqual(
+			cards.map((c) => [c.deadlineId, c.past, c.status, c.version?.n ?? null]),
+			[
+				["soon", false, "made", 2],
+				["soon2", false, "making", null],
+				["later", false, "older", null],
+				["done", true, "none", null],
+				["older", true, "newer", null],
+				["old", true, "making", 2],
+			],
+		);
+		assert.equal(cards[0]!.time, "09:00");
 	});
 });
 

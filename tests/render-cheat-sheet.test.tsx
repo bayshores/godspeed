@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import { newCheatSheet, type CheatSheetView, type SheetVersion } from "../src/core/index.ts";
+import { newCheatSheet, type CheatSheetView, type SheetCard, type SheetVersion } from "../src/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, self: globalThis });
@@ -20,6 +20,7 @@ Object.assign(globalThis, { window: dom.window, document: dom.document, self: gl
 const { OlderSheet, StudioStatus } = await import("../src/components/cheat-sheet/studio-states.tsx");
 const { PromptBox, PromptHistory } = await import("../src/components/cheat-sheet/prompt-box.tsx");
 const { SheetCanvas } = await import("../src/components/cheat-sheet/sheet-canvas.tsx");
+const { SheetCardView } = await import("../src/components/cheat-sheet/class-sheets.tsx");
 
 const A4 = { widthPt: 595.28, heightPt: 841.89 };
 const versions: SheetVersion[] = [
@@ -92,6 +93,37 @@ describe("the canvas", () => {
 		const bar = /data-testid="cheat-sheet-zoom"[\s\S]*$/.exec(html)![0];
 		assert.deepEqual([...bar.matchAll(/aria-label="([^"]+)"/g)].map((m) => m[1]), ["Zoom out", "Zoom to 100%", "Zoom in", "Zoom to fit"]);
 		assert.match(bar, />100%</);
+	});
+});
+
+describe("a class's cheat sheet cards", () => {
+	const card = (over: Partial<SheetCard> = {}): SheetCard => ({ deadlineId: "ddl_1", name: "Midterm", kind: "exam", date: "2026-11-04", time: "09:00", past: false, status: "none", version: null, ...over });
+	const render = (c: SheetCard, show: { label: string; run: () => void } | null = null) =>
+		renderToStaticMarkup(<SheetCardView card={c} classId="cls_1" agentName="Claude Code" onRemake={() => {}} show={show} />);
+
+	it("a made sheet: its first page's preview from the real PDF, its paper and when it was made, opening the studio", () => {
+		const html = render(card({ status: "made", version: versions[1]! }));
+		assert.match(html, /href="\/class\/deadline\/ddl_1\/cheat-sheet"/);
+		assert.match(html, /data-testid="cheat-sheet-thumb"[^>]*style="width:134px;height:190px"/);
+		assert.match(html, /Midterm<\/h3>.*Exam · Wed Nov 4 9:00 AM/);
+		assert.match(html, /A4, front and back · made Nov 3/);
+		assert.doesNotMatch(html, /cheat-sheet-show-file/, "no file browser in a plain browser");
+		assert.match(render(card({ status: "made", version: versions[1]! }), { label: "Show in Finder", run: () => {} }), /data-testid="cheat-sheet-show-file"[^>]*>Show in Finder/);
+	});
+
+	it("being made: the working state, over the last version's preview when there is one", () => {
+		assert.match(render(card({ status: "making" })), /Claude Code is making it/);
+		const changing = render(card({ status: "making", version: versions[0]! }));
+		assert.match(changing, /Claude Code is changing it/);
+		assert.match(changing, /cheat-sheet-thumb/);
+	});
+
+	it("an older sheet says so with Make it again; none says so with Make one; a newer one asks for an update", () => {
+		const older = render(card({ status: "older" }));
+		assert.match(older, /Made by an older godspeed.*data-testid="cheat-sheet-remake"[^>]*>Make it again/);
+		assert.doesNotMatch(older, /cheat-sheet-thumb/);
+		assert.match(render(card()), /No cheat sheet yet.*data-testid="cheat-sheet-make"[^>]*>Make one/);
+		assert.match(render(card({ status: "newer" })), /Update godspeed to see it/);
 	});
 });
 
