@@ -1,8 +1,9 @@
 /**
  * The cheat sheet studio's parts: the top bar's status (working, waiting
- * for an agent, the paper and what runs over), what the learner asked
- * with Try again, the pages in sandboxed frames, and the prompt box
- * (Enter sends, a refused send keeps the text, Stop puts the prompt back).
+ * for an agent, the paper), the older-sheet notice, what the learner asked
+ * with Try again, the canvas (each version's pages as labeled artboards,
+ * newest first, and the zoom toolbar), and the prompt box (Enter sends, a
+ * refused send keeps the text, Stop puts the prompt back).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -11,16 +12,20 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import { newCheatSheet, type CheatSheetDoc, type CheatSheetView } from "../src/core/index.ts";
+import { newCheatSheet, type CheatSheetView, type SheetVersion } from "../src/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, self: globalThis });
 
-const { StudioStatus } = await import("../src/components/cheat-sheet/studio-states.tsx");
+const { OlderSheet, StudioStatus } = await import("../src/components/cheat-sheet/studio-states.tsx");
 const { PromptBox, PromptHistory } = await import("../src/components/cheat-sheet/prompt-box.tsx");
-const { SheetPages } = await import("../src/components/cheat-sheet/sheet-pages.tsx");
+const { SheetCanvas } = await import("../src/components/cheat-sheet/sheet-canvas.tsx");
 
-const doc: CheatSheetDoc = { widthIn: 8.27, heightIn: 11.69, css: "", pages: ["<p>front $x^2$</p>", "<p onclick='x()'>back</p><script>bad()</script>"] };
+const A4 = { widthPt: 595.28, heightPt: 841.89 };
+const versions: SheetVersion[] = [
+	{ n: 1, prompt: "A4", at: "2026-11-03T10:00:00.000Z", pages: [A4] },
+	{ n: 2, prompt: "double sided, and a flowchart", at: "2026-11-03T11:00:00.000Z", pages: [A4, A4] },
+];
 
 const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 	className: "CSE 21",
@@ -32,24 +37,24 @@ const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 	...over,
 });
 
-const status = (v: CheatSheetView, over: number[] = [], agentGone = false) =>
-	renderToStaticMarkup(<StudioStatus view={v} agentName="Claude Code" agentGone={agentGone} over={over} onStop={() => {}} />);
+const status = (v: CheatSheetView, agentGone = false) => renderToStaticMarkup(<StudioStatus view={v} agentName="Claude Code" agentGone={agentGone} onStop={() => {}} />);
 
 describe("the studio's status", () => {
 	it("says what the agent is doing, or that none is connected, with Stop", () => {
-		assert.match(status(view({ running: { kind: "make", prompt: "A4" } })), /Claude Code is writing your sheet.*Stop/);
+		assert.match(status(view({ running: { kind: "make", prompt: "A4" } })), /Claude Code is making your sheet.*Stop/);
 		assert.match(status(view({ running: { kind: "change", prompt: "bigger" } })), /Claude Code is changing your sheet/);
-		const waiting = status(view({ running: { kind: "make", prompt: "A4" } }), [], true);
+		const waiting = status(view({ running: { kind: "make", prompt: "A4" } }), true);
 		assert.match(waiting, /No agent connected.*Stop/);
-		assert.doesNotMatch(waiting, /writing/);
+		assert.doesNotMatch(waiting, /making/);
 	});
 
-	it("names the paper, and the pages that run over", () => {
+	it("names the newest version's paper", () => {
 		assert.match(status(view()), /Not made yet/);
-		const made = view({ sheet: { ...newCheatSheet("ddl_1", "t"), doc } });
-		assert.match(status(made), /A4, front and back/);
-		assert.doesNotMatch(status(made), /runs over/);
-		assert.match(status(made, [2]), /Page 2 runs over/);
+		assert.match(status(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })), /A4, front and back/);
+	});
+
+	it("says an older sheet can't be shown, with one button to make it again", () => {
+		assert.match(renderToStaticMarkup(<OlderSheet onRemake={() => {}} />), /made by an older godspeed.*data-testid="cheat-sheet-remake"[^>]*>Make it again/);
 	});
 });
 
@@ -70,18 +75,23 @@ describe("what the learner asked", () => {
 	});
 });
 
-describe("the pages", () => {
-	it("shows each page in a frame with no scripts, its HTML cleaned and math rendered, captioned Front and Back", () => {
-		const html = renderToStaticMarkup(<SheetPages doc={doc} onOverflow={() => {}} />);
-		const frames = html.match(/<iframe[^>]*>/g)!;
-		assert.equal(frames.length, 2);
-		for (const f of frames) {
-			assert.match(f, /sandbox="allow-same-origin"/);
-			assert.match(f, /style="width:793\.92px;height:1122\.24px"/);
-		}
-		assert.match(frames[0]!, /srcDoc="[^"]*class=&quot;katex/);
-		assert.doesNotMatch(frames[1]!, /onclick|bad\(\)/);
-		assert.match(html, /Front<\/figcaption>[\s\S]*Back<\/figcaption>/);
+describe("the canvas", () => {
+	const html = renderToStaticMarkup(<SheetCanvas versions={versions} pdfUrl={(n) => `/pdf/${n}`} labelFor={(v, newest) => `${newest ? "Current" : "Earlier"} · ${v.prompt}`} inset={372} />);
+
+	it("puts every version's pages on the canvas at their size, newest first, each labeled", () => {
+		const pages = html.match(/data-testid="cheat-sheet-page"[^>]*style="[^"]*"/g)!;
+		assert.equal(pages.length, 3);
+		assert.match(pages[0]!, /left:0;top:0;width:793\.7\d*px;height:1122\.5\d*px/);
+		assert.match(pages[1]!, /left:841\.7\d*px/);
+		const labels = [...html.matchAll(/data-testid="cheat-sheet-version"[^>]*>([^<]*)</g)].map((m) => m[1]);
+		assert.deepEqual(labels, ["Current · double sided, and a flowchart", "Earlier · A4"]);
+		assert.match(html, />Front<\/p>.*>Back<\/p>.*>Page 1<\/p>/);
+	});
+
+	it("has zoom out, the zoom (back to 100%), zoom in and Zoom to fit, all clickable", () => {
+		const bar = /data-testid="cheat-sheet-zoom"[\s\S]*$/.exec(html)![0];
+		assert.deepEqual([...bar.matchAll(/aria-label="([^"]+)"/g)].map((m) => m[1]), ["Zoom out", "Zoom to 100%", "Zoom in", "Zoom to fit"]);
+		assert.match(bar, />100%</);
 	});
 });
 

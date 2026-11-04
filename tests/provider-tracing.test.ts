@@ -47,9 +47,11 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			"src/server/workers/**/*",
 			"src/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
-			// KaTeX's stylesheet and fonts for the cheat sheet's pages, read by path.
-			"node_modules/katex/dist/katex.min.css",
-			"node_modules/katex/dist/fonts/*.woff2",
+			// pdf.js's browser worker and data for the cheat sheet studio, read by path.
+			"node_modules/pdfjs-dist/build/pdf.worker.min.mjs",
+			"node_modules/pdfjs-dist/cmaps/**/*",
+			"node_modules/pdfjs-dist/iccs/**/*",
+			"node_modules/pdfjs-dist/wasm/**/*",
 			"node_modules/@napi-rs/canvas-*/**/*",
 			"node_modules/@resvg/resvg-js-*/**/*",
 			// Class search: onnxruntime-node, loaded by createRequire; this platform's binding only.
