@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.34",
+		"date": "2026-11-03",
+		"changes": [
+			"Each class has a Cheat sheets page in the sidebar. It shows every deadline, coming up first, with a preview of its sheet, or Make one when there isn't a sheet yet.",
+			"Show in Finder replaces Save as PDF, since your sheet is already a PDF on your computer."
+		]
+	},
+	{
 		"version": "0.5.33",
 		"date": "2026-11-03",
 		"changes": [
