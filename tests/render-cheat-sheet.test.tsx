@@ -1,9 +1,8 @@
 /**
- * The cheat sheet's screens: the setup (where the rules came from, the
- * paper choices, what goes on it, Make), the studio's rail (rules, banned
- * kinds, the fixes when it runs long, the left-out topics) and a block's
- * lines with real KaTeX, the top bar's status while a request runs or
- * waits, and the box that asks for a change to a block.
+ * The cheat sheet studio's parts: the top bar's status (working, waiting
+ * for an agent, the paper and what runs over), what the learner asked
+ * with Try again, the pages in sandboxed frames, and the prompt box
+ * (Enter sends, a refused send keeps the text, Stop puts the prompt back).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,172 +11,129 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import { DEFAULT_PREFS, DEFAULT_RULES, newCheatSheet, type CheatSheetView, type SheetTopic } from "../src/core/index.ts";
+import { newCheatSheet, type CheatSheetDoc, type CheatSheetView } from "../src/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, self: globalThis });
 
-const { SetupBody } = await import("../src/components/cheat-sheet/setup-dialog.tsx");
-const { Rail } = await import("../src/components/cheat-sheet/rail.tsx");
-const { SheetLines } = await import("../src/components/cheat-sheet/paper.tsx");
 const { StudioStatus } = await import("../src/components/cheat-sheet/studio-states.tsx");
-const { AskPanel } = await import("../src/components/cheat-sheet/block-tools.tsx");
+const { PromptBox, PromptHistory } = await import("../src/components/cheat-sheet/prompt-box.tsx");
+const { SheetPages } = await import("../src/components/cheat-sheet/sheet-pages.tsx");
 
-const topics: SheetTopic[] = [
-	{ id: "a", name: "Counting", status: "weak", mistakes: 3 },
-	{ id: "b", name: "Probability", status: "shaky", mistakes: 0 },
-	{ id: "c", name: "Sums", status: "untested", mistakes: 0 },
-	{ id: "d", name: "Sum and product rules", status: "strong", mistakes: 0 },
-];
+const doc: CheatSheetDoc = { widthIn: 8.27, heightIn: 11.69, css: "", pages: ["<p>front $x^2$</p>", "<p onclick='x()'>back</p><script>bad()</script>"] };
 
 const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 	className: "CSE 21",
 	deadlineName: "Midterm",
 	date: "2026-11-04",
 	sheet: newCheatSheet("ddl_1", "t"),
-	saved: false,
-	topics,
-	mistakes: 3,
 	running: null,
-	readingRules: false,
 	error: null,
 	...over,
 });
 
-const setup = (v: CheatSheetView, rules = v.sheet.rules, away = false) =>
-	renderToStaticMarkup(
-		<SetupBody view={v} rules={rules} prefs={v.sheet.prefs} agentName="Claude Code" agentAway={away} busy={false} error={null} onChange={() => {}} onClose={() => {}} onMake={() => {}} />,
-	);
-
-describe("the cheat sheet setup", () => {
-	it("says where the rules came from and offers the four papers, the plan and Make", () => {
-		const read = view({ sheet: { ...newCheatSheet("ddl_1", "t"), rules: { ...DEFAULT_RULES, banned: ["Worked examples"], source: "Syllabus.pdf, page 3" }, rulesRead: true } });
-		const html = setup(read);
-		assert.match(html, /Make a cheat sheet for the Midterm/);
-		assert.match(html, /Claude Code read these rules in your syllabus\. Check them and you&#x27;re done here\./);
-		assert.equal(html.split('role="radio" aria-checked="true" data-testid="cheat-sheet-paper-letter"').length, 2);
-		assert.match(html, /Letter, both sides.*Index card.*A4/);
-		assert.match(html, /Worked examples/);
-		assert.match(html, /First: your 3 mistakes from practice and your weak topic</);
-		assert.match(html, /Left out: the 1 topic you know cold/);
-		assert.match(html, /From Syllabus\.pdf, page 3/);
-		assert.match(html, /data-testid="cheat-sheet-make"[^>]*>Make my cheat sheet</);
-		assert.match(html, /Your instructions<\/span><textarea data-testid="cheat-sheet-instructions"[^>]*maxLength="600"[^>]*placeholder="Optional\. Like: use my professor/);
-		assert.doesNotMatch(html, /—/, "no em-dashes");
-	});
-
-	it("shows the reading, refuses to make what isn't allowed, and makes it again once made", () => {
-		assert.match(setup(view({ readingRules: true })), /Claude Code is reading your syllabus for the rules/);
-		assert.match(setup(view({ readingRules: true }), DEFAULT_RULES, true), /Claude Code will read your syllabus for the rules once it connects/);
-		const html = setup(view(), { ...DEFAULT_RULES, allowed: false });
-		assert.match(html, /doesn&#x27;t allow a cheat sheet/);
-		assert.match(html, /data-testid="cheat-sheet-make"[^>]*disabled/);
-		assert.doesNotMatch(html, /cheat-sheet-instructions/, "nothing to instruct");
-		const made = view({ sheet: { ...newCheatSheet("ddl_1", "t"), blocks: [{ id: "x", topicId: "a", title: "Counting", body: "b", reason: "r" }] } });
-		assert.match(setup(made), />Make it again</);
-	});
-});
-
-describe("the studio rail", () => {
-	const rail = (over: Partial<React.ComponentProps<typeof Rail>> = {}) =>
-		renderToStaticMarkup(
-			<Rail
-				sheet={{ ...newCheatSheet("ddl_1", "t"), rules: { ...DEFAULT_RULES, banned: ["Worked examples"] } }}
-				leftOut={[topics[3]!]}
-				fixes={[]}
-				overLines={0}
-				busy={false}
-				onEditRules={() => {}}
-				onPrefs={() => {}}
-				onFix={() => {}}
-				onAdd={() => {}}
-				{...over}
-			/>,
-		);
-
-	it("lists the rules, greys out a banned kind and the topics known cold", () => {
-		const html = rail();
-		assert.match(html, /Letter, one side.*Printed.*No worked examples/);
-		assert.match(html, /disabled=""[^>]*\/>.*Examples<\/span><span[^>]*>not allowed/);
-		assert.match(html, /Left out: you know it.*Sum and product rules.*Add/);
-		assert.match(html, /aria-checked="true"[^>]*>Medium</);
-		assert.doesNotMatch(html, /cheat-sheet-fixes/);
-		assert.match(html, /Your instructions.*data-testid="cheat-sheet-rail-instructions"/);
-		assert.doesNotMatch(html, /cheat-sheet-remake/, "the setup makes the first sheet");
-		assert.match(rail({ onRemake: () => {} }), /data-testid="cheat-sheet-remake"[^>]*>Remake sheet<.*Pinned blocks stay\./);
-		assert.match(rail({ onRemake: () => {}, busy: true }), /data-testid="cheat-sheet-remake" disabled=""/);
-	});
-
-	it("offers the fixes when the sheet runs long", () => {
-		const html = rail({ overLines: 4, fixes: [{ kind: "tighten", blockIds: ["x"], label: "Tighten the 3 longest blocks" }, { kind: "small-text", label: "Use Small text" }, { kind: "leave-out", blockId: "y", label: "Leave out Sums" }] });
-		assert.match(html, /About 4 lines don&#x27;t fit.*Pick one:.*Tighten the 3 longest blocks.*Use Small text.*Leave out Sums/);
-		assert.match(rail({ leftOut: [] }), /Nothing right now/);
-		assert.match(rail({ sheet: { ...newCheatSheet("d", "t"), rules: { ...DEFAULT_RULES, allowed: false }, prefs: DEFAULT_PREFS } }), /Not allowed for this one/);
-	});
-});
+const status = (v: CheatSheetView, over: number[] = [], agentGone = false) =>
+	renderToStaticMarkup(<StudioStatus view={v} agentName="Claude Code" agentGone={agentGone} over={over} onStop={() => {}} />);
 
 describe("the studio's status", () => {
-	const status = (v: CheatSheetView, agentGone: boolean) =>
-		renderToStaticMarkup(<StudioStatus view={v} agentName="Claude Code" agentGone={agentGone} planned={4} fits fill={0.5} showMeter={false} onStop={() => {}} />);
+	it("says what the agent is doing, or that none is connected, with Stop", () => {
+		assert.match(status(view({ running: { kind: "make", prompt: "A4" } })), /Claude Code is writing your sheet.*Stop/);
+		assert.match(status(view({ running: { kind: "change", prompt: "bigger" } })), /Claude Code is changing your sheet/);
+		const waiting = status(view({ running: { kind: "make", prompt: "A4" } }), [], true);
+		assert.match(waiting, /No agent connected.*Stop/);
+		assert.doesNotMatch(waiting, /writing/);
+	});
 
-	it("says what the agent is changing, or that none is connected to do it, with Stop either way", () => {
-		const tighten = view({ running: { kind: "change", blockIds: ["b1"] } });
-		assert.match(status(tighten, false), /braille[\s\S]*Claude Code is changing a block/);
-		const waiting = status(tighten, true);
-		assert.match(waiting, />No agent connected</);
-		assert.doesNotMatch(waiting, /is changing|braille/i, "no endless spinner");
-		assert.match(waiting, />Stop</);
-		assert.match(status(view({ running: { kind: "change", blockIds: [], topicId: "c" } }), true), />No agent connected</, "Add waits the same way");
+	it("names the paper, and the pages that run over", () => {
+		assert.match(status(view()), /Not made yet/);
+		const made = view({ sheet: { ...newCheatSheet("ddl_1", "t"), doc } });
+		assert.match(status(made), /A4, front and back/);
+		assert.doesNotMatch(status(made), /runs over/);
+		assert.match(status(made, [2]), /Page 2 runs over/);
 	});
 });
 
-describe("a block's lines", () => {
-	it("renders text, bold, bullets, steps and display math with KaTeX", () => {
-		const html = renderToStaticMarkup(<SheetLines body={"**Bayes:** $P(A \\mid B)$\n- one\n2. two\n$$\\sum_{k=0}^n \\binom{n}{k} = 2^n$$"} />);
-		assert.match(html, /<strong[^>]*>Bayes:<\/strong>/);
-		assert.match(html, /class="katex"/);
-		assert.match(html, /•<\/span><span><span>one/);
-		assert.match(html, /2\.<\/span>/);
-		assert.match(html, /lh-sheet-display.*katex-display/);
+describe("what the learner asked", () => {
+	const history = (over: Partial<React.ComponentProps<typeof PromptHistory>> = {}) =>
+		renderToStaticMarkup(<PromptHistory prompts={[{ text: "A4 please", at: "t", files: ["notes.pdf"] }]} running={null} error={null} agentName="Claude Code" waiting={false} onRetry={() => {}} {...over} />);
+
+	it("lists each prompt with its files, then the one the agent is on", () => {
+		const html = history({ running: "and a flowchart" });
+		assert.match(html, /A4 please.*With notes\.pdf/);
+		assert.match(html, /and a flowchart.*Claude Code is on it/);
+		assert.match(history({ running: "x", waiting: true }), /Waiting for an agent/);
+	});
+
+	it("says why the last one failed, with Try again", () => {
+		assert.match(history({ error: "the agent never sent the cheat sheet" }), /Claude Code couldn&#x27;t finish that\..*the agent never sent the cheat sheet.*Try again/);
+		assert.equal(renderToStaticMarkup(<PromptHistory prompts={[]} running={null} error={null} agentName="x" waiting={false} onRetry={() => {}} />), "");
 	});
 });
 
-describe("asking for a change to a block", () => {
-	const block = { id: "blk_1", topicId: "a", title: "Counting", body: "", reason: "Missed twice" };
+describe("the pages", () => {
+	it("shows each page in a frame with no scripts, its HTML cleaned and math rendered, captioned Front and Back", () => {
+		const html = renderToStaticMarkup(<SheetPages doc={doc} onOverflow={() => {}} />);
+		const frames = html.match(/<iframe[^>]*>/g)!;
+		assert.equal(frames.length, 2);
+		for (const f of frames) {
+			assert.match(f, /sandbox="allow-same-origin"/);
+			assert.match(f, /style="width:793\.92px;height:1122\.24px"/);
+		}
+		assert.match(frames[0]!, /srcDoc="[^"]*class=&quot;katex/);
+		assert.doesNotMatch(frames[1]!, /onclick|bad\(\)/);
+		assert.match(html, /Front<\/figcaption>[\s\S]*Back<\/figcaption>/);
+	});
+});
 
-	async function mountAsk(onAsk: (text: string) => Promise<string | null>) {
+describe("the prompt box", () => {
+	async function mount(props: Partial<React.ComponentProps<typeof PromptBox>> & Pick<React.ComponentProps<typeof PromptBox>, "onSend">) {
 		Object.assign(globalThis, { Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, Node: dom.window.Node, IS_REACT_ACT_ENVIRONMENT: true });
 		const { createRoot } = await import("react-dom/client");
 		const host = document.createElement("div");
 		document.body.appendChild(host);
 		const root = createRoot(host);
-		await act(async () => root.render(<AskPanel block={block} color="red" busy={false} onAsk={onAsk} />));
-		const field = host.querySelector("textarea")!;
+		const render = (over: Partial<React.ComponentProps<typeof PromptBox>> = {}) =>
+			act(async () => root.render(<PromptBox deadlineId="ddl_box" label="Make" placeholder="What do you want?" running={null} onStop={() => {}} {...props} {...over} />));
+		await render();
+		const field = () => host.querySelector("textarea")!;
 		// The box's own handlers: linkedom's text field events don't reach React here.
-		const props = () => Object.entries(field).find(([k]) => k.startsWith("__reactProps"))![1] as { onChange: (e: unknown) => void; onKeyDown: (e: unknown) => void };
-		const type = (value: string) => act(async () => props().onChange({ target: { value } }));
-		const key = (k: string, shiftKey = false) =>
-			act(async () => props().onKeyDown({ key: k, shiftKey, metaKey: false, ctrlKey: false, preventDefault() {}, stopPropagation() {} }));
-		return { field, type, key, done: () => act(async () => root.unmount()) };
+		const handlers = () => Object.entries(field()).find(([k]) => k.startsWith("__reactProps"))![1] as { onChange: (e: unknown) => void; onKeyDown: (e: unknown) => void };
+		const type = (value: string) => act(async () => handlers().onChange({ target: { value } }));
+		const key = (k: string, shiftKey = false) => act(async () => handlers().onKeyDown({ key: k, shiftKey, nativeEvent: { isComposing: false }, preventDefault() {} }));
+		return { host, field, type, key, render, done: () => act(async () => root.unmount()) };
 	}
 
-	it("Enter sends, Shift+Enter doesn't; the text clears only once the request went through", async () => {
-		const asked: string[] = [];
-		let answer: string | null = "Couldn't reach the agent.";
-		const box = await mountAsk(async (text) => {
-			asked.push(text);
-			return answer;
+	it("Enter sends, Shift+Enter doesn't; a refused send keeps the text and says why", async () => {
+		const sent: string[] = [];
+		let answer: string | null = "Your agent is still working on this cheat sheet.";
+		const box = await mount({
+			onSend: async (text) => {
+				sent.push(text);
+				return answer;
+			},
 		});
-		await box.type("shorter please");
+		await box.type("double sided A4");
 		await box.key("Enter", true);
-		assert.deepEqual(asked, []);
+		assert.deepEqual(sent, []);
 		await box.key("Enter");
-		assert.deepEqual(asked, ["shorter please"]);
-		assert.equal(box.field.value, "shorter please", "a failed request keeps the text");
+		assert.deepEqual(sent, ["double sided A4"]);
+		assert.equal(box.field().value, "double sided A4");
+		assert.match(box.host.innerHTML, /role="alert"[^>]*>Your agent is still working/);
 		answer = null;
 		await box.key("Enter");
-		assert.deepEqual(asked, ["shorter please", "shorter please"]);
-		assert.equal(box.field.value, "");
+		assert.equal(box.field().value, "");
+		await box.done();
+	});
+
+	it("shows Stop while the agent works, which puts the prompt back in an empty box", async () => {
+		let stopped = 0;
+		const box = await mount({ onSend: async () => null, running: "a flowchart for any problem", onStop: () => stopped++ });
+		const stop = box.host.querySelector<HTMLButtonElement>('[data-testid="cheat-sheet-stop"]')!;
+		assert.ok(stop);
+		assert.equal(box.host.querySelector('[data-testid="cheat-sheet-send"]'), null);
+		await act(async () => (Object.entries(stop).find(([k]) => k.startsWith("__reactProps"))![1] as { onClick: () => void }).onClick());
+		assert.equal(stopped, 1);
+		assert.equal(box.field().value, "a flowchart for any problem");
 		await box.done();
 	});
 });

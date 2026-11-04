@@ -31,7 +31,7 @@ const noise = (width: number, height: number) =>
 	sharp(randomBytes(width * height * 3), { raw: { width, height, channels: 3 } });
 
 async function store(name: string, mimeType: string, bytes: Buffer) {
-	const [part] = await storeAttachments(chat.id, [{ name, mimeType, data: bytes.toString("base64") }]);
+	const [part] = await storeAttachments([{ name, mimeType, data: bytes.toString("base64") }], (fileName, data) => chatStore.saveAttachment(chat.id, fileName, data));
 	return part!;
 }
 
@@ -102,7 +102,7 @@ describe("storeAttachments: PDFs", () => {
 
 	it("deleting the lesson deletes its folder", async () => {
 		const other = chatStore.createChat("Delete fixture");
-		const [part] = await storeAttachments(other.id, [{ name: "a.pdf", mimeType: "application/pdf", data: bytes.toString("base64") }]);
+		const [part] = await storeAttachments([{ name: "a.pdf", mimeType: "application/pdf", data: bytes.toString("base64") }], (fileName, data) => chatStore.saveAttachment(other.id, fileName, data));
 		const saved = pdfNoteOf((part as { text: string }).text)!.path;
 		assert.ok(fs.existsSync(saved));
 		assert.ok(chatStore.deleteChat(other.id));

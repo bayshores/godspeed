@@ -1,9 +1,9 @@
 /**
- * CHEAT SHEETS end to end against a scripted agent: the view (topics in
- * class order with status and mistakes), making a sheet (the request's
- * contents, a retry on a bad topic id, Watch out first), pinning and
- * tightening a block, adding a left-out topic back, reading the rules
- * once, the routes' refusals, and removing the deadline.
+ * CHEAT SHEETS end to end against a scripted agent: making a sheet from a
+ * prompt (the request's contents, a retry on a bad page size), changing
+ * it (the current sheet goes along), Try again after a failure, pictures
+ * and PDFs with a prompt, an old block sheet shown as a document, the
+ * route's refusals, and removing the deadline.
  * Isolated LH_DATA_DIR (set before any config-loading import).
  */
 import assert from "node:assert/strict";
@@ -11,7 +11,8 @@ import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
-import { createFauxCore, fauxAssistantMessage, fauxToolCall, type ToolCall } from "@earendil-works/pi-ai";
+import { createFauxCore, fauxAssistantMessage, fauxText, fauxToolCall, type ToolCall } from "@earendil-works/pi-ai";
+import sharp from "sharp";
 
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-cheat-sheets-"));
 process.env.LH_DATA_DIR = TMP_DATA;
@@ -30,15 +31,17 @@ after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
 });
 
-/** A faux agent answering each request with the next tool call; records each request's prompt. */
-function agent(...calls: Array<[string, unknown]>) {
+/** A faux agent answering each request with the next tool call (or, for
+ *  a string, just that text); records each request's prompt. */
+function agent(...calls: Array<[string, unknown] | string>) {
 	const faux = createFauxCore({});
 	const prompts: string[] = [];
 	faux.setResponses(
-		calls.map(([name, args]) => (ctx: { messages: Array<{ role: string; content: unknown }> }) => {
+		calls.map((call) => (ctx: { messages: Array<{ role: string; content: unknown }> }) => {
 			const first = ctx.messages.find((m) => m.role === "user");
 			prompts.push(typeof first?.content === "string" ? first.content : JSON.stringify(first?.content));
-			return fauxAssistantMessage([fauxToolCall(name, args as ToolCall["arguments"])], { stopReason: "toolUse" });
+			if (typeof call === "string") return fauxAssistantMessage([fauxText(call)], { stopReason: "stop" });
+			return fauxAssistantMessage([fauxToolCall(call[0], call[1] as ToolCall["arguments"])], { stopReason: "toolUse" });
 		}),
 	);
 	sheets.cheatSheetSeams.engine = { model: faux.getModel(), streamFn: faux.streamSimple };
@@ -91,110 +94,135 @@ const view = (classId: string, deadlineId: string): CheatSheetView => {
 	return v.value;
 };
 
-const block = (topic_id: string, title: string, extra: Record<string, unknown> = {}) => ({ topic_id, title, body: `$x$ for ${title}`, reason: "Shaky", ...extra });
+
+const sheet = (pages: string[], over: Record<string, unknown> = {}) => ({ width_in: 8.27, height_in: 11.69, css: "body { padding: 0.3in }", pages, ...over });
+
+const routeFor = (classId: string, deadlineId: string) => {
+	const url = `http://localhost/api/classes/${classId}/deadlines/${deadlineId}/cheat-sheet`;
+	const params = { params: Promise.resolve({ id: classId, deadlineId }) };
+	return { post: (body: unknown) => route.POST(new Request(url, { method: "POST", body: JSON.stringify(body) }), params), get: () => route.GET(new Request(url), params) };
+};
 
 describe("cheat sheets", () => {
-	it("shows the deadline's topics with status and mistakes, and a sheet of defaults", () => {
+	it("starts with no sheet and nothing asked", () => {
 		const { classId, deadlineId } = seed();
 		const v = view(classId, deadlineId);
-		assert.deepEqual(v.topics.map((t) => [t.id, t.status, t.mistakes]), [["tpc_count", "weak", 1], ["tpc_prob", "untested", 0], ["tpc_sum", "strong", 0]]);
-		assert.equal(v.mistakes, 1);
-		assert.equal(v.saved, false);
-		assert.deepEqual([v.sheet.rules.paper, v.sheet.prefs.textSize, v.sheet.blocks], ["letter", "medium", []]);
+		assert.deepEqual([v.className, v.deadlineName, v.date], ["CSE 21", "Midterm", "2026-11-04"]);
+		assert.deepEqual([v.sheet.doc, v.sheet.prompts, v.running, v.error], [null, [], null, null]);
 	});
 
-	it("makes a sheet in one request: weak and untested topics, mistakes, rules; strong ones left out", async () => {
+	it("makes a sheet from a prompt in one request, sent back once for a bad page size", async () => {
 		const { classId, deadlineId } = seed();
-		const prompts = agent(
-			["write_cheat_sheet", { blocks: [block("tpc_nope", "Nope")] }],
-			["write_cheat_sheet", { blocks: [block("tpc_prob", "Probability"), block("watch_out", "Watch out", { reason: "Missed once" }), block("tpc_count", "Counting", { why: "You used n^r." })] }],
-		);
-		const made = sheets.makeCheatSheet(classId, deadlineId, { rules: { banned: ["Worked examples"] }, prefs: { content: ["formulas", "mistakes", "examples"], instructions: "Put Bayes' rule first" } });
-		assert.ok(made.ok);
-		assert.equal(view(classId, deadlineId).running?.kind, "make");
+		const prompts = agent(["write_cheat_sheet", sheet(["<p>x</p>"], { width_in: 30 })], ["write_cheat_sheet", sheet(["<p>front $x$</p>", "<p>back</p>"])]);
+		const asked = await sheets.askCheatSheet(classId, deadlineId, { text: "  double sided A4, and a flowchart  " });
+		assert.ok(asked.ok);
+		assert.deepEqual(view(classId, deadlineId).running, { kind: "make", prompt: "double sided A4, and a flowchart" });
 		await sheets.cheatSheetIdle(deadlineId);
 		const v = view(classId, deadlineId);
 		assert.equal(v.error, null);
-		assert.deepEqual(v.sheet.blocks.map((b) => b.title), ["Watch out", "Counting", "Probability"]);
-		assert.equal(v.sheet.blocks[1]!.why, "You used n^r.");
-		assert.ok(v.sheet.confirmedAt);
-		assert.deepEqual(v.sheet.rules.banned, ["Worked examples"]);
+		assert.deepEqual(v.sheet.doc, { widthIn: 8.27, heightIn: 11.69, css: "body { padding: 0.3in }", pages: ["<p>front $x$</p>", "<p>back</p>"] });
+		assert.deepEqual(v.sheet.prompts.map((p) => p.text), ["double sided A4, and a flowchart"]);
 		const prompt = prompts[0]!;
-		assert.match(prompt, /Exam: CSE 21 Midterm on 2026-11-04/);
-		assert.match(prompt, /About the class: Discrete math/);
-		assert.match(prompt, /On it: formulas, your mistakes\n/, "examples are banned");
-		assert.match(prompt, /Not allowed: Worked examples/);
-		assert.match(prompt, /The student's own instructions: Put Bayes' rule first/);
-		assert.match(prompt, /tpc_count \| Counting \| weak, 1 mistake \| about \d+ lines\n {2}- Permutations: P\(n,k\)/);
+		assert.match(prompt, /^Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: Discrete math/);
+		assert.match(prompt, /no course info files; search all its files/);
+		assert.match(prompt, /The student asks:\ndouble sided A4, and a flowchart/);
+		assert.match(prompt, /Counting \| weak, 1 mistake\n {2}- Permutations: P\(n,k\)/);
+		assert.match(prompt, /Sums \| knows it well/);
 		assert.match(prompt, /answered wrong \(Counting\): "How many 5-letter strings use each letter once\?"/);
-		assert.doesNotMatch(prompt, /tpc_sum/, "a strong topic stays off");
-		assert.equal(prompts.length, 2, "an unknown topic id is sent back once");
+		assert.doesNotMatch(prompt, /current sheet/);
+		assert.equal(prompts.length, 2, "a bad page size is sent back once");
 	});
 
-	it("tightens one block in place, keeps it pinned, and adds a left-out topic back in class order", async () => {
+	it("changes the sheet as asked: the current sheet and what was asked before go along", async () => {
 		const { classId, deadlineId } = seed();
-		agent(["write_cheat_sheet", { blocks: [block("tpc_count", "Counting"), block("tpc_prob", "Probability")] }]);
-		assert.ok(sheets.makeCheatSheet(classId, deadlineId, {}).ok);
+		agent(["write_cheat_sheet", sheet(["<p>one</p>"])]);
+		assert.ok((await sheets.askCheatSheet(classId, deadlineId, { text: "A4" })).ok);
 		await sheets.cheatSheetIdle(deadlineId);
-		const [counting] = view(classId, deadlineId).sheet.blocks;
-		assert.ok(sheets.editCheatSheetBlocks(classId, deadlineId, { kind: "pin", blockId: counting!.id, pinned: true }).ok);
-
-		const prompts = agent(
-			["write_cheat_sheet", { blocks: [block("tpc_count", "Counting", { body: "short" })] }],
-			["write_cheat_sheet", { blocks: [block("tpc_count", "Counting", { block_id: counting!.id, body: "short" })] }],
-			["write_cheat_sheet", { blocks: [block("tpc_sum", "Sums", { reason: "You know it" })] }],
-		);
-		assert.ok(sheets.changeCheatSheetBlocks(classId, deadlineId, { how: "tighten", blockIds: [counting!.id] }).ok);
-		assert.equal(sheets.changeCheatSheetBlocks(classId, deadlineId, { how: "redo", blockIds: [counting!.id] }).ok, false, "one request at a time");
+		const prompts = agent(["write_cheat_sheet", sheet(["<p>one</p>", "<p>two</p>"])]);
+		assert.ok((await sheets.askCheatSheet(classId, deadlineId, { text: "use the back too" })).ok);
+		assert.equal(view(classId, deadlineId).running?.kind, "change");
+		assert.equal((await sheets.askCheatSheet(classId, deadlineId, { text: "again" })).ok, false, "one request at a time");
 		await sheets.cheatSheetIdle(deadlineId);
-		assert.match(prompts[0]!, /Change this block\. Make each shorter/);
-		assert.match(prompts[0]!, new RegExp(`block_id ${counting!.id} \\| topic_id tpc_count`));
-		const tightened = view(classId, deadlineId).sheet.blocks[0]!;
-		assert.deepEqual([tightened.id, tightened.body, tightened.pinned], [counting!.id, "short", true]);
-
-		assert.ok(sheets.changeCheatSheetBlocks(classId, deadlineId, { how: "add", topicId: "tpc_sum" }).ok);
-		await sheets.cheatSheetIdle(deadlineId);
-		assert.match(prompts[2]!, /Add topic_id tpc_sum/);
-		assert.deepEqual(view(classId, deadlineId).sheet.blocks.map((b) => b.topicId), ["tpc_count", "tpc_prob", "tpc_sum"]);
-
-		const prob = view(classId, deadlineId).sheet.blocks[1]!;
-		assert.ok(sheets.editCheatSheetBlocks(classId, deadlineId, { kind: "move", blockId: prob.id, before: null }).ok);
-		assert.deepEqual(view(classId, deadlineId).sheet.blocks.map((b) => b.topicId), ["tpc_count", "tpc_sum", "tpc_prob"]);
-		assert.ok(sheets.editCheatSheetBlocks(classId, deadlineId, { kind: "remove", blockId: prob.id }).ok);
-		assert.equal(view(classId, deadlineId).sheet.blocks.length, 2);
-	});
-
-	it("reads the rules once when the setup opens, until the learner confirms", async () => {
-		const { classId, deadlineId } = seed();
-		const prompts = agent(["set_cheat_sheet_rules", { found: true, paper: "index-card", writing: "by-hand", banned: ["Worked examples"], source: "Syllabus.pdf, page 3" }]);
-		assert.ok(sheets.readCheatSheetRules(classId, deadlineId).ok);
-		assert.equal(view(classId, deadlineId).readingRules, true);
-		await sheets.cheatSheetIdle(deadlineId);
+		assert.match(prompts[0]!, /What they asked before, oldest first:\n- A4/);
+		assert.match(prompts[0]!, /The current sheet \(send the whole sheet back, changed as asked\):[\s\S]*Page 1:\n<p>one<\/p>/);
 		const v = view(classId, deadlineId);
-		assert.deepEqual(v.sheet.rules, { allowed: true, paper: "index-card", writing: "by-hand", banned: ["Worked examples"], source: "Syllabus.pdf, page 3" });
-		assert.equal(v.sheet.rulesRead, true);
-		assert.match(prompts[0]!, /Exam: CSE 21 Midterm on 2026-11-04/);
-		assert.ok(sheets.readCheatSheetRules(classId, deadlineId).ok);
-		assert.equal(view(classId, deadlineId).readingRules, false, "never asked twice");
+		assert.equal(v.sheet.doc!.pages.length, 2);
+		assert.deepEqual(v.sheet.prompts.map((p) => p.text), ["A4", "use the back too"]);
 	});
 
-	it("answers through the route, refuses a sheet the class doesn't allow, and goes with its deadline", async () => {
+	it("says why a request failed, and Try again sends it as it was", async () => {
 		const { classId, deadlineId } = seed();
-		const url = `http://localhost/api/classes/${classId}/deadlines/${deadlineId}/cheat-sheet`;
-		const params = { params: Promise.resolve({ id: classId, deadlineId }) };
-		const put = await route.PUT(new Request(url, { method: "PUT", body: JSON.stringify({ rules: { allowed: false }, prefs: { columns: 3 } }) }), params);
-		assert.equal(put.status, 200);
-		const got = (await (await route.GET(new Request(url), params)).json()) as CheatSheetView;
-		assert.deepEqual([got.saved, got.sheet.rules.allowed, got.sheet.prefs.columns], [true, false, 3]);
-		const make = await route.POST(new Request(url, { method: "POST", body: JSON.stringify({ action: "make" }) }), params);
-		assert.equal(make.status, 400);
-		assert.equal((await route.POST(new Request(url, { method: "POST", body: JSON.stringify({ action: "change", how: "shout", blockIds: ["b"] }) }), params)).status, 400);
-		assert.equal((await route.GET(new Request(url), { params: Promise.resolve({ id: classId, deadlineId: "ddl_missing" }) })).status, 404);
+		agent(...Array.from({ length: 10 }, () => "I can't"));
+		assert.ok((await sheets.askCheatSheet(classId, deadlineId, { text: "index card" })).ok);
+		await sheets.cheatSheetIdle(deadlineId);
+		assert.equal(view(classId, deadlineId).error, "the agent never sent the cheat sheet");
+		assert.equal(view(classId, deadlineId).sheet.prompts.length, 0, "only a written sheet keeps its prompt");
+		const prompts = agent(["write_cheat_sheet", sheet(["<p>card</p>"], { width_in: 5, height_in: 3 })]);
+		assert.ok(sheets.retryCheatSheet(classId, deadlineId).ok);
+		await sheets.cheatSheetIdle(deadlineId);
+		assert.match(prompts[0]!, /The student asks:\nindex card/);
+		const v = view(classId, deadlineId);
+		assert.deepEqual([v.error, v.sheet.doc!.widthIn, v.sheet.prompts.map((p) => p.text)], [null, 5, ["index card"]]);
+		assert.equal(sheets.retryCheatSheet(classId, deadlineId).ok, false, "nothing failed");
+	});
 
+	it("sends pictures to the agent and saves PDFs beside the sheet for it to read", async () => {
+		const { classId, deadlineId } = seed();
+		const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: { r: 0, g: 0, b: 0 } } }).png().toBuffer();
+		const pdf = Buffer.from("%PDF-1.4\n%%EOF\n");
+		const prompts = agent(["write_cheat_sheet", sheet(["<p>x</p>"])]);
+		const asked = await sheets.askCheatSheet(classId, deadlineId, {
+			text: "",
+			attachments: [
+				{ name: "formulas.png", mimeType: "image/png", data: png.toString("base64") },
+				{ name: "Practice exam.pdf", mimeType: "application/pdf", data: pdf.toString("base64") },
+			],
+		});
+		assert.ok(asked.ok);
+		await sheets.cheatSheetIdle(deadlineId);
+		const content = JSON.parse(prompts[0]!) as Array<{ type: string; text?: string }>;
+		assert.match(content[0]!.text!, /The student asks:\nUse the files I sent\./);
+		assert.equal(content[1]!.type, "image");
+		assert.match(content[2]!.text!, /\[Attached PDF\] Practice exam\.pdf\nPath: .*cheat-sheets\/ddl_\w+-files\/\w+-Practice exam\.pdf/);
+		const [first] = view(classId, deadlineId).sheet.prompts;
+		assert.deepEqual([first!.text, first!.files], ["", ["formulas.png", "Practice exam.pdf"]]);
+		const refused = await sheets.askCheatSheet(classId, deadlineId, { text: "x", attachments: [{ name: "fake.pdf", mimeType: "application/pdf", data: Buffer.from("hello").toString("base64") }] });
+		assert.deepEqual(refused, { ok: false, status: 400, error: "fake.pdf is not a PDF." });
+	});
+
+	it("shows an old block sheet as a document, its instructions as the first prompt", () => {
+		const { classId, deadlineId } = seed();
 		const file = path.join(TMP_DATA, "classes", classId, "cheat-sheets", `${deadlineId}.json`);
-		assert.ok(fs.existsSync(file));
-		assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 1);
+		fs.mkdirSync(path.dirname(file), { recursive: true });
+		const blocks = [{ id: "blk_1", topicId: "tpc_count", title: "Counting", body: "- $n^k$", reason: "Weak" }];
+		fs.writeFileSync(file, JSON.stringify({ version: 1, deadlineId, rules: { paper: "letter-both" }, prefs: { instructions: "both sides" }, blocks, updatedAt: "t" }));
+		const v = view(classId, deadlineId);
+		assert.deepEqual([v.sheet.doc!.widthIn, v.sheet.doc!.pages.length], [8.5, 2]);
+		assert.match(v.sheet.doc!.pages[0]!, /<h3>Counting<\/h3><ul><li>\\\(n\^k\\\)<\/li><\/ul>/);
+		assert.deepEqual(v.sheet.prompts.map((p) => p.text), ["both sides"]);
+	});
+
+	it("answers through the route, refuses bad requests, saves version 2, and goes with its deadline", async () => {
+		const { classId, deadlineId } = seed();
+		const r = routeFor(classId, deadlineId);
+		assert.equal((await r.get()).status, 200);
+		assert.equal((await r.post({ action: "ask", text: "  " })).status, 400);
+		assert.equal((await r.post({ action: "ask" })).status, 400);
+		assert.equal((await r.post({ action: "ask", text: "x", attachments: [{ name: "a.png", mimeType: "image/png", data: "%%%" }] })).status, 400);
+		assert.equal((await r.post({ action: "shout" })).status, 400);
+		assert.equal((await r.post({ action: "retry" })).status, 409);
+		assert.equal((await route.GET(new Request("http://localhost/x"), { params: Promise.resolve({ id: classId, deadlineId: "ddl_missing" }) })).status, 404);
+
+		agent(["write_cheat_sheet", sheet(["<p>x</p>"])]);
+		assert.equal((await r.post({ action: "ask", text: "A4" })).status, 200);
+		await sheets.cheatSheetIdle(deadlineId);
+		assert.equal((await r.post({ action: "stop" })).status, 200);
+		const file = path.join(TMP_DATA, "classes", classId, "cheat-sheets", `${deadlineId}.json`);
+		assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 2);
+		const files = path.join(TMP_DATA, "classes", classId, "cheat-sheets", `${deadlineId}-files`);
+		fs.mkdirSync(files, { recursive: true });
 		assert.ok(removeClassDeadline(classId, deadlineId).ok);
 		assert.equal(fs.existsSync(file), false);
+		assert.equal(fs.existsSync(files), false);
 	});
 });
