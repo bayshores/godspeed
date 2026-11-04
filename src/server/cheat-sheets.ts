@@ -2,36 +2,47 @@
  * CHEAT SHEETS — the one writer of a deadline's cheat sheet
  * (store/cheat-sheets.ts) and the requests behind it.
  *
- * Every prompt is a background work item on the single-submit seam
- * (agent/subagents/cheat-sheet-writer.ts), like the topic grouper: a
- * one-off that hands back the whole sheet, not a conversation, so it stays
- * out of the Talk chat. The agent makes a PDF in the sheet's working
+ * Each message in a sheet's chat is a background work item on the
+ * single-submit seam (agent/subagents/cheat-sheet-writer.ts), like the
+ * topic grouper: one request that carries the sheet's context and the last
+ * few messages, so it stays out of the Talk chat and the lessons. The
+ * agent answers, and may make or change the PDF in the sheet's working
  * folder (the godspeed folder's cheat-sheets/<class deadline>/, so its
  * source is there for the next change); the PDF is copied into the app's
- * data, so nothing here depends on that folder afterwards. One request at
- * a time per sheet. Each change goes out as "cheat-sheet-changed"; the
- * studio fetches the view again.
+ * data, so nothing here depends on that folder afterwards. A PDF changed
+ * in that folder outside godspeed comes in as a new version when the sheet
+ * is opened. One request at a time per sheet. Each change goes out as
+ * "cheat-sheet-changed"; the studio fetches the view again.
  */
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { UserMessage } from "@earendil-works/pi-ai";
-import type { AttachmentPart, ChatAttachment } from "../core/attachments.ts";
+import { isPdfType, pdfFileName, pdfNote, pdfNoteOf, type AttachmentPart, type ChatAttachment } from "../core/attachments.ts";
 import {
 	PROMPT_MAX,
 	cheatSheetRequestText,
 	currentVersion,
 	mistakeCounts,
 	newCheatSheet,
+	newerFolderPdf,
+	regionProblem,
 	sheetFolderName,
 	sheetCards,
 	sheetMistakes,
-	withPrompt,
+	withMessage,
+	withRules,
 	withVersion,
+	withoutRule,
 	type CheatSheet,
 	type CheatSheetView,
 	type ClassSheetsView,
 	type RequestTopic,
+	type SheetAbout,
+	type SheetFile,
 	type SheetMistake,
+	type SheetRegion,
+	type YouMessage,
 } from "../core/cheat-sheet.ts";
 import { emit } from "../core/events.ts";
 import { ChatInputError } from "../core/input-events.ts";
@@ -39,9 +50,9 @@ import { topicFacts, topicStatus } from "../core/progress.ts";
 import { localDay } from "../core/today-note.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";
 import { searchTools } from "../agent/tools/class.ts";
-import { writeSheet } from "../agent/subagents/cheat-sheet-writer.ts";
+import { replyOnSheet } from "../agent/subagents/cheat-sheet-writer.ts";
 import { uniqueName } from "../core/class-shortcuts.ts";
-import { readCheatSheet, readSheetPdf, removeSheetPdfs, saveCheatSheetFile, saveSheetPdf, writeCheatSheet } from "../store/cheat-sheets.ts";
+import { readCheatSheet, readCheatSheetFile, readSheetPdf, removeSheetPdfs, saveCheatSheetFile, saveSheetPdf, writeCheatSheet } from "../store/cheat-sheets.ts";
 import { cheatSheetsDir } from "./agent-folder.ts";
 import { takeSheetPdf } from "./cheat-sheet-pdf.ts";
 import { storeAttachments } from "./attachments.ts";
@@ -54,30 +65,22 @@ export const cheatSheetSeams: { engine?: PiEngine } = {};
 
 /** Facts sent per topic, to keep the request short. */
 const FACTS_PER_TOPIC = 5;
-
-/** A prompt as sent: the learner's words and their files, ready for the agent. */
-interface Ask {
-	text: string;
-	files: string[];
-	parts: AttachmentPart[];
-}
-
-interface Running {
-	kind: "make" | "change";
-	ask: Ask;
-	controller: AbortController;
-}
+/** The longest problem or work text a message carries from a session. */
+const ABOUT_MAX = 4000;
 
 interface SheetState {
-	runs: Map<string, Running>;
-	/** The last failed request and why, for Try again. */
-	failed: Map<string, { ask: Ask; error: string }>;
+	/** The message each sheet's agent is answering. */
+	runs: Map<string, { messageId: string; controller: AbortController }>;
+	/** The message the last request failed on and why, for Try again. */
+	failed: Map<string, { messageId: string; error: string }>;
+	/** Folder PDFs already looked at ("<path> <mtime>"), so each is read once. */
+	folderSeen: Set<string>;
 }
 
 /** globalThis: Next can load this module more than once. */
 function state(): SheetState {
 	const g = globalThis as typeof globalThis & { __lhCheatSheets?: SheetState };
-	return (g.__lhCheatSheets ??= { runs: new Map(), failed: new Map() });
+	return (g.__lhCheatSheets ??= { runs: new Map(), failed: new Map(), folderSeen: new Set() });
 }
 
 type Outcome<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
@@ -87,6 +90,7 @@ const fail = (status: number, error: string): { ok: false; status: number; error
 const changed = (deadlineId: string) => emit("cheat-sheet-changed", { deadlineId });
 
 const NEWER = "A newer godspeed saved this cheat sheet. Update godspeed to change it.";
+const BUSY = "Your agent is still answering your last message about this sheet.";
 
 /** Everything one request needs: the class, the deadline, its topics. */
 interface Context {
@@ -146,13 +150,17 @@ function sheetNow(ctx: Context): CheatSheet {
 	return now && now !== "newer" ? now : newCheatSheet(ctx.deadline.id, new Date().toISOString());
 }
 
-/** GET: the studio's view. */
-export function cheatSheetView(classId: string, deadlineId: string): Outcome<CheatSheetView> {
-	const got = contextFor(classId, deadlineId);
+/** GET: the view the studio and the sheet beside a session show, after
+ *  taking a newer PDF from the working folder. */
+export async function cheatSheetView(classId: string, deadlineId: string): Promise<Outcome<CheatSheetView>> {
+	let got = contextFor(classId, deadlineId);
+	if (!got.ok) return got;
+	if (await takeFolderPdf(got.value)) got = contextFor(classId, deadlineId);
 	if (!got.ok) return got;
 	const ctx = got.value;
 	const s = state();
 	const run = s.runs.get(deadlineId);
+	const failed = s.failed.get(deadlineId);
 	return {
 		ok: true,
 		value: {
@@ -160,11 +168,52 @@ export function cheatSheetView(classId: string, deadlineId: string): Outcome<Che
 			deadlineName: ctx.deadline.name,
 			date: ctx.deadline.date,
 			sheet: ctx.saved && ctx.saved !== "newer" ? ctx.saved : newCheatSheet(deadlineId, new Date().toISOString()),
-			running: run ? { kind: run.kind, prompt: run.ask.text } : null,
-			error: s.failed.get(deadlineId)?.error ?? null,
+			running: run ? { messageId: run.messageId } : null,
+			error: failed ? { messageId: failed.messageId, text: failed.error } : null,
 			...(ctx.saved === "newer" ? { newer: true as const } : {}),
 		},
 	};
+}
+
+/**
+ * A PDF in the working folder newer than the current version (the learner
+ * changed the sheet outside godspeed, say in their agent's own chat) is
+ * kept as a new version, after the same checks as one the agent sends.
+ * Not while the agent works on the sheet; each file is looked at once.
+ * True when a version was added.
+ */
+async function takeFolderPdf(ctx: Context): Promise<boolean> {
+	const s = state();
+	const sheet = ctx.saved;
+	if (!sheet || sheet === "newer" || !sheet.folder || s.runs.has(ctx.deadline.id)) return false;
+	const dir = path.join(cheatSheetsDir(), sheet.folder);
+	let files: { name: string; mtimeMs: number }[];
+	try {
+		files = fs.readdirSync(dir).flatMap((n) => {
+			const stat = fs.statSync(path.join(dir, n), { throwIfNoEntry: false });
+			return stat?.isFile() ? [{ name: n, mtimeMs: stat.mtimeMs }] : [];
+		});
+	} catch {
+		return false;
+	}
+	const pick = newerFolderPdf(files, currentVersion(sheet));
+	const mtime = files.find((f) => f.name === pick)?.mtimeMs;
+	const key = `${dir}/${pick} ${mtime}`;
+	if (!pick || s.folderSeen.has(key)) return false;
+	s.folderSeen.add(key);
+	const pdf = await takeSheetPdf(dir, pick);
+	if (typeof pdf === "string") {
+		console.warn(`[cheat-sheet ${ctx.deadline.id}] ${pick} in the working folder can't be the sheet: ${pdf}`);
+		return false;
+	}
+	const now = sheetNow(ctx);
+	const latest = currentVersion(now);
+	if (latest && readSheetPdf(ctx.classId, ctx.deadline.id, latest.n)?.equals(pdf.bytes)) return false;
+	const next = withVersion(now, { prompt: "", at: new Date().toISOString(), pages: pdf.pages, file: pdf.file, fromFolder: true });
+	saveSheetPdf(ctx.classId, ctx.deadline.id, currentVersion(next.sheet)!.n, pdf.bytes);
+	writeCheatSheet(ctx.classId, next.sheet);
+	removeSheetPdfs(ctx.classId, ctx.deadline.id, next.dropped);
+	return true;
 }
 
 function engine(): PiEngine {
@@ -184,13 +233,27 @@ function workingFolder(ctx: Context, sheet: CheatSheet): { sheet: CheatSheet; pa
 	return { sheet: sheet.folder ? sheet : { ...sheet, folder: name }, path: dir, files };
 }
 
-/** Run one request: the agent makes the whole sheet as a PDF (a new one,
- *  or the current one changed), kept as the newest version with the
- *  prompt. Refused while another runs; its end is announced. */
-function startRun(ctx: Context, ask: Ask): Outcome<null> {
+const PICTURE_TYPES: Record<string, string> = { png: "image/png", jpg: "image/jpeg" };
+
+/** A message's files as the agent reads them: pictures inline, PDFs as a
+ *  note naming their path. Files that are gone are left out. */
+function filesForAgent(classId: string, deadlineId: string, files: readonly SheetFile[]): AttachmentPart[] {
+	return files.flatMap((f): AttachmentPart[] => {
+		const saved = f.file ? readCheatSheetFile(classId, deadlineId, f.file) : null;
+		if (!saved) return [];
+		if (/\.pdf$/i.test(f.file!)) return [pdfNote(f.name, saved.path)];
+		const mimeType = PICTURE_TYPES[f.file!.split(".").pop()!] ?? "image/png";
+		return [{ type: "image", data: saved.bytes.toString("base64"), mimeType }];
+	});
+}
+
+/** Run one request: the agent answers the message, maybe with a new PDF
+ *  (kept as the newest version) and rules. Refused while another runs;
+ *  its end is announced. */
+function startRun(ctx: Context, messageId: string): Outcome<null> {
 	const s = state();
 	const id = ctx.deadline.id;
-	if (s.runs.has(id)) return fail(409, "Your agent is still working on this cheat sheet.");
+	if (s.runs.has(id)) return fail(409, BUSY);
 	if (ctx.saved === "newer") return fail(409, NEWER);
 	let folder: ReturnType<typeof workingFolder>;
 	try {
@@ -200,9 +263,11 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 	}
 	// Saved now, so a retry or a renamed deadline keeps the same folder.
 	if (folder.sheet.folder !== ctx.saved?.folder) writeCheatSheet(ctx.classId, folder.sheet);
-	const current = currentVersion(folder.sheet);
+	const index = folder.sheet.messages.findIndex((m) => m.id === messageId);
+	const message = folder.sheet.messages[index];
+	if (!message || message.role !== "you") return fail(409, "That message is gone.");
 	const controller = new AbortController();
-	s.runs.set(id, { kind: current ? "change" : "make", ask, controller });
+	s.runs.set(id, { messageId, controller });
 	s.failed.delete(id);
 	changed(id);
 	const text = cheatSheetRequestText({
@@ -210,29 +275,45 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 		date: ctx.deadline.date,
 		classNotes: ctx.classNotes,
 		infoFiles: ctx.infoFiles,
-		prompt: ask.text || "Use the files I sent.",
-		earlier: folder.sheet.prompts,
+		rules: folder.sheet.rules,
 		topics: ctx.topics,
 		mistakes: ctx.mistakes,
 		folder: { path: folder.path, files: folder.files },
-		current,
+		versions: folder.sheet.versions,
+		earlier: folder.sheet.messages.slice(0, index),
+		message,
 	});
-	const prompt: UserMessage["content"] = ask.parts.length > 0 ? [{ type: "text", text }, ...ask.parts] : text;
+	const parts = filesForAgent(ctx.classId, id, message.files ?? []);
+	const prompt: UserMessage["content"] = parts.length > 0 ? [{ type: "text", text }, ...parts] : text;
 	const lookups = Object.values(searchTools({ searchFiles: (query, limit) => searchClassFiles(ctx.classId, query, limit), readPassage: (ref) => readPassage(ctx.classId, ref) }));
 	const takePdf = (pdfPath: string) => takeSheetPdf(folder.path, pdfPath);
-	void writeSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, takePdf, engine: engine(), signal: controller.signal })
-		.then((pdf) => {
+	void replyOnSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, takePdf, engine: engine(), signal: controller.signal })
+		.then((reply) => {
 			const at = new Date().toISOString();
-			const asked = withPrompt(sheetNow(ctx), { text: ask.text, at, ...(ask.files.length > 0 ? { files: ask.files } : {}) });
-			const next = withVersion(asked, { prompt: ask.text, at, pages: pdf.pages, file: pdf.file });
-			saveSheetPdf(ctx.classId, id, currentVersion(next.sheet)!.n, pdf.bytes);
-			writeCheatSheet(ctx.classId, next.sheet);
-			removeSheetPdfs(ctx.classId, id, next.dropped);
+			let sheet = sheetNow(ctx);
+			let version: number | undefined;
+			if (reply.pdf) {
+				const next = withVersion(sheet, { prompt: message.text, at, pages: reply.pdf.pages, file: reply.pdf.file });
+				version = currentVersion(next.sheet)!.n;
+				saveSheetPdf(ctx.classId, id, version, reply.pdf.bytes);
+				removeSheetPdfs(ctx.classId, id, next.dropped);
+				sheet = next.sheet;
+			}
+			const kept = withRules(sheet, reply.rules, at);
+			sheet = withMessage(kept.sheet, {
+				id: randomUUID(),
+				role: "agent",
+				text: reply.text,
+				at,
+				...(version ? { version } : {}),
+				...(kept.added.length > 0 ? { rules: kept.added } : {}),
+			});
+			writeCheatSheet(ctx.classId, { ...sheet, updatedAt: at });
 		})
 		.catch((err: unknown) => {
 			if (controller.signal.aborted) return;
 			console.error(`[cheat-sheet ${id}] request failed:`, err);
-			s.failed.set(id, { ask, error: err instanceof Error ? err.message : "the request failed" });
+			s.failed.set(id, { messageId, error: err instanceof Error ? err.message : "the request failed" });
 		})
 		.finally(() => {
 			s.runs.delete(id);
@@ -242,7 +323,7 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 }
 
 /** Show in Finder: where a version's PDF is in the sheet's working folder.
- *  The agent's file while it is still that version, else godspeed's copy
+ *  Its own file while it is still that version, else godspeed's copy
  *  written there as "cheat sheet v<n>.pdf". */
 export function sheetPdfFile(classId: string, deadlineId: string, n: number): Outcome<string> {
 	const saved = readCheatSheet(classId, deadlineId);
@@ -280,37 +361,93 @@ export function cheatSheetPdf(classId: string, deadlineId: string, n: number): B
 	return stores.classStore.getClass(classId)?.deadlines?.some((d) => d.id === deadlineId) ? readSheetPdf(classId, deadlineId, n) : null;
 }
 
-/** A prompt from the studio: make the sheet, or change it. Pictures go to
- *  the agent as pictures, PDFs are saved beside the sheet for it to read. */
-export async function askCheatSheet(classId: string, deadlineId: string, input: { text: string; attachments?: readonly ChatAttachment[] }): Promise<Outcome<null>> {
+/** A picture or PDF sent in the sheet's chat, with its type; null when there is none. */
+export function cheatSheetFile(classId: string, deadlineId: string, file: string): { bytes: Buffer; type: string } | null {
+	const known = stores.classStore.getClass(classId)?.deadlines?.some((d) => d.id === deadlineId);
+	const saved = known ? readCheatSheetFile(classId, deadlineId, file) : null;
+	if (!saved) return null;
+	return { bytes: saved.bytes, type: /\.pdf$/i.test(file) ? "application/pdf" : (PICTURE_TYPES[file.split(".").pop()!] ?? "application/octet-stream") };
+}
+
+/** Keep a message's files beside the sheet: pictures resized as the
+ *  lessons keep them, PDFs as sent. */
+async function keepFiles(classId: string, deadlineId: string, attachments: readonly ChatAttachment[]): Promise<SheetFile[]> {
+	const parts = await storeAttachments(attachments, (fileName, bytes) => saveCheatSheetFile(classId, deadlineId, fileName, bytes));
+	return parts.map((part, i) => {
+		const name = attachments[i]!.name;
+		if (part.type === "text") return { name, file: path.basename(pdfNoteOf(part.text)?.path ?? "") };
+		const bytes = Buffer.from(part.data, "base64");
+		const hash = createHash("sha256").update(bytes).digest("hex");
+		// Named like a kept PDF (content hash, cleaned name), with the picture's own type.
+		const file = pdfFileName(name.replace(/\.\w+$/, ""), hash).replace(/\.pdf$/, part.mimeType === "image/png" ? ".png" : ".jpg");
+		saveCheatSheetFile(classId, deadlineId, file, bytes);
+		return { name, file };
+	});
+}
+
+/** A message in the sheet's chat, from the studio or the sheet beside a
+ *  session: kept, then the agent answers it. Pictures go to the agent as
+ *  pictures (a region's picture first), PDFs as a note with their path. */
+export async function askCheatSheet(
+	classId: string,
+	deadlineId: string,
+	input: { text: string; attachments?: readonly ChatAttachment[]; region?: SheetRegion; about?: SheetAbout },
+): Promise<Outcome<null>> {
 	const text = input.text.trim();
 	const attachments = input.attachments ?? [];
-	if (!text && attachments.length === 0) return fail(400, "Say what you want on it.");
+	if (!text && attachments.length === 0) return fail(400, "Say what you want to ask or change.");
 	if (text.length > PROMPT_MAX) return fail(400, `Keep it under ${PROMPT_MAX} characters.`);
+	if (attachments.some((a) => !isPdfType(a.mimeType) && !a.mimeType.startsWith("image/"))) return fail(400, "Send pictures or PDFs.");
 	const got = contextFor(classId, deadlineId);
 	if (!got.ok) return got;
-	if (state().runs.has(deadlineId)) return fail(409, "Your agent is still working on this cheat sheet.");
-	let parts: AttachmentPart[];
+	if (got.value.saved === "newer") return fail(409, NEWER);
+	if (state().runs.has(deadlineId)) return fail(409, BUSY);
+	const sheet = sheetNow(got.value);
+	const regionWrong = input.region ? regionProblem(input.region, sheet.versions) : null;
+	if (regionWrong) return fail(400, regionWrong);
+	let files: SheetFile[];
 	try {
-		parts = await storeAttachments(attachments, (fileName, bytes) => saveCheatSheetFile(classId, deadlineId, fileName, bytes));
+		files = await keepFiles(classId, deadlineId, attachments);
 	} catch (err) {
 		if (err instanceof ChatInputError) return fail(400, err.message);
 		throw err;
 	}
-	return startRun(got.value, { text, files: attachments.map((a) => a.name), parts });
+	const about = input.about && { ...input.about, text: input.about.text.slice(0, ABOUT_MAX), ...(input.about.work ? { work: input.about.work.slice(0, ABOUT_MAX) } : {}) };
+	const message: YouMessage = {
+		id: randomUUID(),
+		role: "you",
+		text,
+		at: new Date().toISOString(),
+		...(files.length > 0 ? { files } : {}),
+		...(input.region ? { region: input.region } : {}),
+		...(about ? { about } : {}),
+	};
+	writeCheatSheet(classId, withMessage(sheet, message));
+	return startRun({ ...got.value, saved: readCheatSheet(classId, deadlineId) }, message.id);
 }
 
-/** Try again: the request that failed, sent again as it was. */
+/** Try again: the message the last request failed on, sent again. */
 export function retryCheatSheet(classId: string, deadlineId: string): Outcome<null> {
 	const failed = state().failed.get(deadlineId);
 	if (!failed) return fail(409, "Nothing to try again.");
 	const got = contextFor(classId, deadlineId);
-	return got.ok ? startRun(got.value, failed.ask) : got;
+	return got.ok ? startRun(got.value, failed.messageId) : got;
 }
 
 /** Stop the request the agent is working on. */
 export function stopCheatSheet(deadlineId: string): void {
 	state().runs.get(deadlineId)?.controller.abort();
+}
+
+/** Delete one of the sheet's rules. */
+export function removeSheetRule(classId: string, deadlineId: string, text: string): Outcome<null> {
+	const got = contextFor(classId, deadlineId);
+	if (!got.ok) return got;
+	if (got.value.saved === "newer") return fail(409, NEWER);
+	const sheet = sheetNow(got.value);
+	writeCheatSheet(classId, withoutRule(sheet, text));
+	changed(deadlineId);
+	return { ok: true, value: null };
 }
 
 /** Resolves when no request for the sheet is going (tests). */

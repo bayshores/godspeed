@@ -1,14 +1,16 @@
 /**
  * THE CHEAT SHEET: the notes a class lets the learner bring to a deadline,
  * one per deadline. The agent makes it as a real PDF with its own tools,
- * from the learner's own words, keeping its source in a working folder so
- * a change edits it. godspeed keeps the last few versions (each with the
- * prompt that made it) and what the learner asked, oldest first. Pure and
- * browser-safe.
+ * keeping its source in a working folder so a change edits it. The sheet
+ * has a chat: each message from the learner is one request, which the
+ * agent answers, and may answer by changing the sheet too. godspeed keeps
+ * the last few versions, the chat and the sheet's rules (what should
+ * always hold for it). Pure and browser-safe.
  */
 import type { ClassDeadline, DeadlineKind } from "./contracts.ts";
 import type { TopicStatus } from "./progress.ts";
 import { safeEntryName } from "./class-shortcuts.ts";
+import { RULE_MAX_CHARS, RULES_MAX, oneLine as cleanLine } from "./teaching-areas.ts";
 
 // ─── the record ─────────────────────────────────────────────────────────────
 
@@ -18,32 +20,79 @@ export interface SheetPage {
 	heightPt: number;
 }
 
-/** One PDF the agent sent, saved as v<n>.pdf. */
+/** One PDF of the sheet, saved as v<n>.pdf. */
 export interface SheetVersion {
 	/** Counts up from 1 and is never reused. */
 	n: number;
-	/** What the learner asked for it ("" when they only sent files). */
+	/** The message it was made for ("" when there were only files). */
 	prompt: string;
 	at: string;
 	pages: SheetPage[];
-	/** Where the agent made it, for Show in Finder. */
+	/** Where it was made, for Show in Finder. */
+	file?: string;
+	/** Found newer in the working folder: made outside godspeed. */
+	fromFolder?: true;
+}
+
+/** A picture or PDF sent with a message. */
+export interface SheetFile {
+	name: string;
+	/** Its saved copy beside the sheet; absent on asks older godspeeds kept. */
 	file?: string;
 }
 
-/** One thing the learner asked for. */
-export interface CheatSheetPrompt {
+/** A box the learner drew on a page: fractions of the page's width and
+ *  height from its top left corner. */
+export interface SheetRegion {
+	/** The version, and its page from 1. */
+	n: number;
+	page: number;
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+/** The problem or question the learner is on in a session, sent along
+ *  from the sheet beside it. */
+export interface SheetAbout {
+	kind: "problem" | "question";
+	/** The session's title. */
+	session: string;
+	text: string;
+	/** What they have written for it so far. */
+	work?: string;
+}
+
+/** One message in the sheet's chat. */
+export type SheetMessage =
+	| { id: string; role: "you"; text: string; at: string; files?: SheetFile[]; region?: SheetRegion; about?: SheetAbout }
+	| {
+			id: string;
+			role: "agent";
+			text: string;
+			at: string;
+			/** The version this reply made. */
+			version?: number;
+			/** Rules this reply saved. */
+			rules?: string[];
+	  };
+
+export type YouMessage = Extract<SheetMessage, { role: "you" }>;
+
+/** Something that should always hold for this sheet ("A4, both sides"). */
+export interface SheetRule {
 	text: string;
 	at: string;
-	/** The names of the pictures and PDFs sent with it. */
-	files?: string[];
 }
 
 export interface CheatSheet {
 	deadlineId: string;
 	/** Oldest first, the last VERSIONS_KEPT. */
 	versions: SheetVersion[];
-	/** Oldest first, the last PROMPTS_KEPT. */
-	prompts: CheatSheetPrompt[];
+	/** The chat, oldest first, the last MESSAGES_KEPT. */
+	messages: SheetMessage[];
+	rules: SheetRule[];
 	/** The working folder's name under the godspeed folder's cheat-sheets/,
 	 *  picked at the first request so a renamed deadline keeps its source. */
 	folder?: string;
@@ -52,9 +101,10 @@ export interface CheatSheet {
 	updatedAt: string;
 }
 
-/** The record format this build writes, stamped as "version" (2 was the
- *  HTML sheet, 1 the fixed-option block sheet). */
-export const CHEAT_SHEET_FORMAT = 3;
+/** The record format this build writes, stamped as "version" (3 kept the
+ *  learner's asks without replies, 2 was the HTML sheet, 1 the
+ *  fixed-option block sheet). */
+export const CHEAT_SHEET_FORMAT = 4;
 
 /** Smallest and largest page side, in inches. */
 const PAGE_MIN_IN = 2;
@@ -62,17 +112,35 @@ const PAGE_MAX_IN = 17;
 export const MAX_PAGES = 4;
 const PDF_MAX_BYTES = 20 * 1024 * 1024;
 export const PROMPT_MAX = 2000;
-const PROMPTS_KEPT = 20;
+const MESSAGES_KEPT = 100;
 /** Versions kept on the canvas: enough to compare, few enough to stay light. */
 const VERSIONS_KEPT = 5;
 
 export function newCheatSheet(deadlineId: string, now: string): CheatSheet {
-	return { deadlineId, versions: [], prompts: [], updatedAt: now };
+	return { deadlineId, versions: [], messages: [], rules: [], updatedAt: now };
 }
 
-/** The sheet with one more prompt kept. */
-export function withPrompt(sheet: CheatSheet, prompt: CheatSheetPrompt): CheatSheet {
-	return { ...sheet, prompts: [...sheet.prompts, prompt].slice(-PROMPTS_KEPT) };
+/** The sheet with one more message in its chat. */
+export function withMessage(sheet: CheatSheet, message: SheetMessage): CheatSheet {
+	return { ...sheet, messages: [...sheet.messages, message].slice(-MESSAGES_KEPT) };
+}
+
+/** The sheet with new rules kept (cleaned, each once, at most RULES_MAX),
+ *  and the ones that were new. */
+export function withRules(sheet: CheatSheet, texts: readonly string[], at: string): { sheet: CheatSheet; added: string[] } {
+	const have = new Set(sheet.rules.map((r) => r.text.toLowerCase()));
+	const added: string[] = [];
+	for (const raw of texts) {
+		const text = cleanLine(raw, RULE_MAX_CHARS);
+		if (!text || have.has(text.toLowerCase()) || sheet.rules.length + added.length >= RULES_MAX) continue;
+		have.add(text.toLowerCase());
+		added.push(text);
+	}
+	return { sheet: added.length > 0 ? { ...sheet, rules: [...sheet.rules, ...added.map((text) => ({ text, at }))] } : sheet, added };
+}
+
+export function withoutRule(sheet: CheatSheet, text: string): CheatSheet {
+	return { ...sheet, rules: sheet.rules.filter((r) => r.text !== text) };
 }
 
 /** The newest version, or null before the first. */
@@ -108,53 +176,130 @@ export function sheetFolderName(className: string, deadlineName: string): string
 	return safeEntryName(`${className} ${deadlineName}`);
 }
 
+/** The copies Show in Finder writes into the working folder. */
+const SHOWN_COPY = /^cheat sheet v\d+\.pdf$/i;
+
+/** The PDF in the working folder that is newer than the current version
+ *  (the learner changed the sheet outside godspeed), or null: the newest
+ *  PDF there, when it was written after the current version was kept. */
+export function newerFolderPdf(files: ReadonlyArray<{ name: string; mtimeMs: number }>, current: Pick<SheetVersion, "at"> | null): string | null {
+	const newest = files.filter((f) => /\.pdf$/i.test(f.name) && !SHOWN_COPY.test(f.name)).sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+	if (!newest) return null;
+	return !current || newest.mtimeMs > Date.parse(current.at) ? newest.name : null;
+}
+
+// ─── pointing at the sheet ──────────────────────────────────────────────────
+
+/** Why a box isn't on a kept version's page, or null. */
+export function regionProblem(r: SheetRegion, versions: readonly SheetVersion[]): string | null {
+	const v = versions.find((x) => x.n === r.n);
+	if (!v || !Number.isInteger(r.page) || r.page < 1 || r.page > v.pages.length) return "That version of the sheet is gone. Point at it again.";
+	const fractions = [r.x, r.y, r.w, r.h].every((k) => Number.isFinite(k) && k >= 0 && k <= 1);
+	return fractions && r.w > 0 && r.h > 0 && r.x + r.w <= 1.001 && r.y + r.h <= 1.001 ? null : "That box isn't on the page.";
+}
+
+const pct = (f: number) => `${Math.round(f * 100)}%`;
+
+/** "page 1 (the front), from 10% to 40% across and 20% to 35% down". */
+export function regionText(r: SheetRegion, pages: number): string {
+	const side = pages === 2 ? ` (the ${r.page === 1 ? "front" : "back"})` : "";
+	return `page ${r.page}${side}, from ${pct(r.x)} to ${pct(r.x + r.w)} across and ${pct(r.y)} to ${pct(r.y + r.h)} down`;
+}
+
 // ─── reading a saved record ─────────────────────────────────────────────────
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isString = (v: unknown): v is string => typeof v === "string";
 const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
-function readPrompt(v: unknown): CheatSheetPrompt | null {
-	if (!isObject(v) || !isString(v.text) || !isString(v.at)) return null;
-	const files = Array.isArray(v.files) ? v.files.filter(isString) : [];
-	return { text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}) };
-}
+const list = <T>(v: unknown, read: (x: unknown) => T | null): T[] => (Array.isArray(v) ? v.map(read).filter((x): x is T => x !== null) : []);
 
 function readVersion(v: unknown): SheetVersion | null {
 	if (!isObject(v) || !isNumber(v.n) || !isString(v.prompt) || !isString(v.at) || !Array.isArray(v.pages)) return null;
 	const pages = v.pages.filter((p): p is SheetPage => isObject(p) && isNumber(p.widthPt) && isNumber(p.heightPt)).map((p) => ({ widthPt: p.widthPt, heightPt: p.heightPt }));
-	return pages.length > 0 ? { n: v.n, prompt: v.prompt, at: v.at, pages, ...(isString(v.file) ? { file: v.file } : {}) } : null;
+	if (pages.length === 0) return null;
+	return { n: v.n, prompt: v.prompt, at: v.at, pages, ...(isString(v.file) ? { file: v.file } : {}), ...(v.fromFolder === true ? { fromFolder: true as const } : {}) };
 }
 
-const list = <T>(v: unknown, read: (x: unknown) => T | null): T[] => (Array.isArray(v) ? v.map(read).filter((x): x is T => x !== null) : []);
+/** A file: format 4 keeps { name, file }, format 3 only the name. */
+function readFile(v: unknown): SheetFile | null {
+	if (isString(v)) return { name: v };
+	return isObject(v) && isString(v.name) ? { name: v.name, ...(isString(v.file) ? { file: v.file } : {}) } : null;
+}
 
-/** Version 1's instructions, kept as its first prompt. */
-function blockSheetPrompts(raw: Record<string, unknown>, updatedAt: string): CheatSheetPrompt[] {
+/** A region as sent or saved, or undefined when it isn't one. */
+export function sheetRegionOf(v: unknown): SheetRegion | undefined {
+	if (!isObject(v)) return undefined;
+	const { n, page, x, y, w, h } = v;
+	return isNumber(n) && isNumber(page) && isNumber(x) && isNumber(y) && isNumber(w) && isNumber(h) ? { n, page, x, y, w, h } : undefined;
+}
+
+/** A session's problem or question as sent or saved, or undefined. */
+export function sheetAboutOf(v: unknown): SheetAbout | undefined {
+	if (!isObject(v) || (v.kind !== "problem" && v.kind !== "question") || !isString(v.session) || !isString(v.text)) return undefined;
+	return { kind: v.kind, session: v.session, text: v.text, ...(isString(v.work) ? { work: v.work } : {}) };
+}
+
+function readMessage(v: unknown): SheetMessage | null {
+	if (!isObject(v) || !isString(v.id) || !isString(v.text) || !isString(v.at)) return null;
+	if (v.role === "you") {
+		const files = list(v.files, readFile);
+		const region = sheetRegionOf(v.region);
+		const about = sheetAboutOf(v.about);
+		return { id: v.id, role: "you", text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}), ...(region ? { region } : {}), ...(about ? { about } : {}) };
+	}
+	if (v.role !== "agent") return null;
+	const rules = Array.isArray(v.rules) ? v.rules.filter(isString) : [];
+	return { id: v.id, role: "agent", text: v.text, at: v.at, ...(isNumber(v.version) ? { version: v.version } : {}), ...(rules.length > 0 ? { rules } : {}) };
+}
+
+function readRule(v: unknown): SheetRule | null {
+	return isObject(v) && isString(v.text) && isString(v.at) ? { text: v.text, at: v.at } : null;
+}
+
+/** What formats 2 and 3 kept of the learner's asks, as the chat's first
+ *  messages: each ask, then the version made for it (kept at the same
+ *  moment). */
+function askedBefore(prompts: unknown, versions: readonly SheetVersion[]): SheetMessage[] {
+	const asks = list(prompts, (v) => (isObject(v) && isString(v.text) && isString(v.at) ? { text: v.text, at: v.at, files: list(v.files, readFile) } : null));
+	return asks.flatMap((p, i): SheetMessage[] => {
+		const made = versions.find((v) => v.at === p.at);
+		return [
+			{ id: `asked-${i}`, role: "you", text: p.text, at: p.at, ...(p.files.length > 0 ? { files: p.files } : {}) },
+			...(made ? [{ id: `made-${i}`, role: "agent" as const, text: "", at: p.at, version: made.n }] : []),
+		];
+	});
+}
+
+/** Format 1's instructions, kept as its first message. */
+function blockSheetAsks(raw: Record<string, unknown>, updatedAt: string): SheetMessage[] {
 	const prefs = isObject(raw.prefs) ? raw.prefs : {};
 	const text = isString(prefs.instructions) ? prefs.instructions.trim() : "";
-	return text ? [{ text, at: isString(raw.confirmedAt) ? raw.confirmedAt : updatedAt }] : [];
+	return text ? [{ id: "asked-0", role: "you", text, at: isString(raw.confirmedAt) ? raw.confirmedAt : updatedAt }] : [];
 }
 
 /**
  * A saved record: null when it isn't one, "newer" when a newer build wrote
- * it. An HTML sheet (version 2) or block sheet (version 1) can't become a
- * PDF without the agent: its prompts stay and it is marked olderFormat
- * when it had a sheet.
+ * it. Format 3's asks become the chat's first messages. An HTML sheet
+ * (format 2) or block sheet (format 1) can't become a PDF without the
+ * agent: its asks stay and it is marked olderFormat when it had a sheet.
  */
 export function parseCheatSheet(raw: unknown): CheatSheet | "newer" | null {
 	if (!isObject(raw) || !isString(raw.deadlineId)) return null;
 	if (isNumber(raw.version) && raw.version > CHEAT_SHEET_FORMAT) return "newer";
 	const updatedAt = isString(raw.updatedAt) ? raw.updatedAt : new Date(0).toISOString();
 	const deadlineId = raw.deadlineId;
-	if (raw.version === 2) return { deadlineId, versions: [], prompts: list(raw.prompts, readPrompt), ...(raw.doc ? { olderFormat: true as const } : {}), updatedAt };
-	if (raw.version !== CHEAT_SHEET_FORMAT) {
+	if (raw.version === 2) return { deadlineId, versions: [], messages: askedBefore(raw.prompts, []), rules: [], ...(raw.doc ? { olderFormat: true as const } : {}), updatedAt };
+	if (raw.version !== 3 && raw.version !== CHEAT_SHEET_FORMAT) {
 		const made = Array.isArray(raw.blocks) && raw.blocks.length > 0;
-		return { deadlineId, versions: [], prompts: blockSheetPrompts(raw, updatedAt), ...(made ? { olderFormat: true as const } : {}), updatedAt };
+		return { deadlineId, versions: [], messages: blockSheetAsks(raw, updatedAt), rules: [], ...(made ? { olderFormat: true as const } : {}), updatedAt };
 	}
+	const versions = list(raw.versions, readVersion);
 	return {
 		deadlineId,
-		versions: list(raw.versions, readVersion),
-		prompts: list(raw.prompts, readPrompt),
+		versions,
+		messages: raw.version === 3 ? askedBefore(raw.prompts, versions) : list(raw.messages, readMessage),
+		rules: list(raw.rules, readRule),
 		...(isString(raw.folder) && raw.folder ? { folder: raw.folder } : {}),
 		...(raw.olderFormat === true ? { olderFormat: true as const } : {}),
 		updatedAt,
@@ -265,17 +410,17 @@ interface CheatSheetRequest {
 	classNotes: string;
 	/** The class's course info files (syllabus, policies). */
 	infoFiles: readonly string[];
-	/** What the learner asks now. */
-	prompt: string;
-	/** What they asked before, oldest first. */
-	earlier: readonly CheatSheetPrompt[];
+	rules: readonly SheetRule[];
 	/** The deadline's topics in class order. */
 	topics: readonly RequestTopic[];
 	mistakes: readonly SheetMistake[];
 	/** The working folder's absolute path, and what is in it now. */
 	folder: { path: string; files: readonly string[] };
-	/** The sheet to change, or null for a new one. */
-	current: SheetVersion | null;
+	/** Every kept version, oldest first (the newest is the sheet now). */
+	versions: readonly SheetVersion[];
+	/** The chat before this message, oldest first. */
+	earlier: readonly SheetMessage[];
+	message: YouMessage;
 }
 
 const STATUS_WORDS: Record<TopicStatus, string> = { weak: "weak", shaky: "shaky", untested: "not tested yet", strong: "knows it well" };
@@ -289,6 +434,10 @@ function oneLine(text: string, max: number): string {
 const INFO_FILES_NAMED = 8;
 /** Most working folder files named in a request. */
 const FOLDER_FILES_NAMED = 12;
+/** The chat a request carries: its last few messages, each cut short. */
+const EARLIER_SENT = 8;
+const EARLIER_CHARS = 500;
+const ABOUT_CHARS = 1500;
 
 function namedList(names: readonly string[], max: number): string {
 	const rest = names.length - max;
@@ -299,25 +448,50 @@ function infoFileList(files: readonly string[]): string {
 	return namedList([...files].sort((a, b) => Number(/syllabus|polic/i.test(b)) - Number(/syllabus|polic/i.test(a))), INFO_FILES_NAMED);
 }
 
-function folderText(r: CheatSheetRequest): string {
+function folderText(r: CheatSheetRequest, current: SheetVersion | null): string {
 	const files = r.folder.files.length > 0 ? `It has: ${namedList(r.folder.files, FOLDER_FILES_NAMED)}.` : "It is empty.";
-	if (!r.current) return `Working folder: ${r.folder.path}\n${files} Keep the sheet's source here so later changes can edit it.`;
-	return [
-		`Working folder: ${r.folder.path}`,
-		`${files} The current sheet is the last PDF you made here (${pageSizeLabel(r.current.pages)}). Change its source as asked and send the new PDF; keep the rest as it is.`,
-	].join("\n");
+	if (!current) return `Working folder: ${r.folder.path}\n${files} There is no sheet yet. Keep its source here so later changes can edit it.`;
+	return `Working folder: ${r.folder.path}\n${files} The sheet now is version ${current.n} (${pageSizeLabel(current.pages)}), made from the source here. To change it, edit that source and keep the rest as it is.`;
 }
 
-/** The request's text: the ask, the exam, the topics with readiness and
- *  facts, the mistakes, and the working folder. */
+function earlierText(messages: readonly SheetMessage[]): string {
+	const lines = messages.slice(-EARLIER_SENT).map((m) => {
+		if (m.role === "you") return `Student: ${oneLine(m.text, EARLIER_CHARS) || "(files only)"}`;
+		return `You: ${[oneLine(m.text, EARLIER_CHARS), m.version ? `[made version ${m.version}]` : ""].filter(Boolean).join(" ")}`;
+	});
+	return lines.length > 0 ? `The chat so far, oldest first:\n${lines.join("\n")}` : "";
+}
+
+function aboutText(a: SheetAbout): string {
+	const what = a.kind === "problem" ? "problem" : "question";
+	return [
+		`The student is on this ${what} in their session "${a.session}", with the sheet open beside it:`,
+		oneLine(a.text, ABOUT_CHARS),
+		a.work?.trim() ? `What they have written for it so far:\n${a.work.trim().slice(0, ABOUT_CHARS)}` : "",
+	]
+		.filter(Boolean)
+		.join("\n");
+}
+
+function regionLine(r: SheetRegion, versions: readonly SheetVersion[], current: SheetVersion | null): string {
+	const v = versions.find((x) => x.n === r.n);
+	const older = current && r.n !== current.n ? ` That is an older version; the sheet now is version ${current.n}.` : "";
+	return `They pointed at version ${r.n}, ${regionText(r, v?.pages.length ?? 1)}. The first picture shows that part.${older}`;
+}
+
+/** The request's text: the exam, the sheet's rules, the topics with
+ *  readiness and facts, the mistakes, the working folder, the chat so far,
+ *  what the learner is on and points at, and their message last. */
 export function cheatSheetRequestText(r: CheatSheetRequest): string {
 	const names = new Map(r.topics.map((t) => [t.id, t.name]));
+	const current = r.versions[r.versions.length - 1] ?? null;
 	const topic = (t: RequestTopic) =>
 		[
 			`${t.name} | ${STATUS_WORDS[t.status]}${t.mistakes > 0 ? `, ${t.mistakes} ${t.mistakes === 1 ? "mistake" : "mistakes"}` : ""}`,
 			...t.facts.map((f) => `  - ${f.name}: ${oneLine(f.statement, 140)}`),
 		].join("\n");
 	const mistake = (m: SheetMistake) => `- ${m.kind === "hint" ? "needed hints" : "answered wrong"} (${names.get(m.topicId) ?? m.topicId}): "${m.text}"`;
+	const m = r.message;
 	return [
 		[
 			`Cheat sheet for: ${r.title} on ${r.date}`,
@@ -326,11 +500,14 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 		]
 			.filter(Boolean)
 			.join("\n"),
-		`The student asks:\n${r.prompt.trim()}`,
-		r.earlier.length > 0 ? `What they asked before, oldest first:\n${r.earlier.map((p) => `- ${oneLine(p.text, 300)}`).join("\n")}` : "",
+		r.rules.length > 0 ? `This sheet's rules (follow every one):\n${r.rules.map((x) => `- ${x.text}`).join("\n")}` : "",
 		r.topics.length > 0 ? `Topics on this exam (name | how the student does), with some of the class's facts:\n${r.topics.map(topic).join("\n")}` : "",
 		r.mistakes.length > 0 ? `Mistakes from practice:\n${r.mistakes.map(mistake).join("\n")}` : "",
-		folderText(r),
+		folderText(r, current),
+		earlierText(r.earlier),
+		m.about ? aboutText(m.about) : "",
+		m.region ? regionLine(m.region, r.versions, current) : "",
+		`The student says:\n${m.text.trim() || "(no words, only the files)"}`,
 	]
 		.filter(Boolean)
 		.join("\n\n");
@@ -338,8 +515,8 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 
 // ─── a class's cheat sheets ─────────────────────────────────────────────────
 
-/** Where a deadline's sheet is: made, being made, made in an older format
- *  (or by a newer godspeed), or not there. */
+/** Where a deadline's sheet is: made, the agent on it, made in an older
+ *  format (or by a newer godspeed), or not there. */
 type SheetStatus = "made" | "making" | "older" | "newer" | "none";
 
 /** One deadline on the class's Cheat sheets page. */
@@ -352,7 +529,7 @@ export interface SheetCard {
 	/** Done, or its day has gone by. */
 	past: boolean;
 	status: SheetStatus;
-	/** The newest version, for its preview (also while a change is made). */
+	/** The newest version, for its preview (also while the agent is on it). */
 	version: SheetVersion | null;
 }
 
@@ -390,17 +567,18 @@ export function sheetCards(
 
 // ─── what the studio reads ──────────────────────────────────────────────────
 
-/** GET …/cheat-sheet: everything the studio shows. */
+/** GET …/cheat-sheet: everything the studio and the sheet beside a
+ *  session show. */
 export interface CheatSheetView {
 	className: string;
 	deadlineName: string;
 	/** The due day, YYYY-MM-DD. */
 	date: string;
 	sheet: CheatSheet;
-	/** The request the agent is working on: a first sheet or a change. */
-	running: { kind: "make" | "change"; prompt: string } | null;
-	/** Why the last request failed (Try again sends it again). */
-	error: string | null;
+	/** The message the agent is answering. */
+	running: { messageId: string } | null;
+	/** The message the last request failed on and why (Try again sends it again). */
+	error: { messageId: string; text: string } | null;
 	/** A newer godspeed saved it: shown, never changed. */
 	newer?: true;
 }

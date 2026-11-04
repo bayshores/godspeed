@@ -1,7 +1,7 @@
 /**
  * data/classes/<id>/cheat-sheets/<deadline id>.json: one deadline's cheat
- * sheet (core/cheat-sheet.ts), and beside it <deadline id>-files/, the PDFs
- * sent with its prompts, and <deadline id>-versions/v<n>.pdf, the sheets
+ * sheet (core/cheat-sheet.ts), and beside it <deadline id>-files/, the
+ * pictures and PDFs sent in its chat, and <deadline id>-versions/v<n>.pdf, the sheets
  * the agent made. Written only by server/cheat-sheets.ts, stamped with its
  * format; a class's delete takes its folder with it.
  */
@@ -52,12 +52,27 @@ export function writeCheatSheet(classId: string, sheet: CheatSheet): void {
 	writeFileAtomic(sheetFile(classId, sheet.deadlineId), JSON.stringify({ version: CHEAT_SHEET_FORMAT, ...sheet }, null, "\t"));
 }
 
-/** A PDF sent with a prompt, saved for the agent to read; returns its path. */
+function sheetFilePath(classId: string, deadlineId: string, fileName: string): string {
+	if (fileName !== path.basename(fileName) || fileName.startsWith(".")) throw new Error(`Invalid file name: ${fileName}`);
+	return path.join(filesDir(classId, deadlineId), fileName);
+}
+
+/** A picture or PDF sent with a message, kept for the chat and the agent;
+ *  returns its path. */
 export function saveCheatSheetFile(classId: string, deadlineId: string, fileName: string, data: Uint8Array): string {
-	if (fileName !== path.basename(fileName)) throw new Error(`Invalid file name: ${fileName}`);
-	const file = path.join(filesDir(classId, deadlineId), fileName);
+	const file = sheetFilePath(classId, deadlineId, fileName);
 	writeFileAtomic(file, data);
 	return file;
+}
+
+/** A file sent with a message, or null when it is gone. */
+export function readCheatSheetFile(classId: string, deadlineId: string, fileName: string): { path: string; bytes: Buffer } | null {
+	try {
+		const file = sheetFilePath(classId, deadlineId, fileName);
+		return { path: file, bytes: fs.readFileSync(file) };
+	} catch {
+		return null;
+	}
 }
 
 /** A version's PDF, kept as the agent made it. */

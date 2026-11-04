@@ -1,11 +1,12 @@
 /**
- * THE CHEAT SHEET WRITER: one short request on the single-submit seam
- * (runSubmitAgent), so the connected agent gets it as one labeled work
- * item ("Cheat sheet · CSE 21 Midterm"). The agent may look up the class's
- * rules in its files (search_class_files, read_passage), makes the sheet
- * as a PDF with its own tools in the sheet's working folder, and sends its
- * path with one write_cheat_sheet call: a new sheet, or the current one
- * changed as the learner asked.
+ * THE CHEAT SHEET WRITER: one message of a sheet's chat as one short
+ * request on the single-submit seam (runSubmitAgent), so the connected
+ * agent gets it as one labeled work item ("Cheat sheet · CSE 21 Midterm").
+ * The agent may look things up in the class's files (search_class_files,
+ * read_passage), makes or changes the PDF with its own tools in the
+ * sheet's working folder, and answers with one sheet_reply call: its
+ * words, and the new PDF's path and any rules the learner set when there
+ * are some.
  *
  * Only the model talks here; what the app sends and keeps, and how a PDF
  * is checked and taken, is server/cheat-sheets.ts.
@@ -15,22 +16,27 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { UserMessage } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../models.ts";
 import { MAX_PAGES, type SheetPage } from "../../core/cheat-sheet.ts";
+import { RULE_MAX_CHARS } from "../../core/teaching-areas.ts";
 import { runSubmitAgent } from "./submit-agent.ts";
 
-const CHEAT_SHEET_INSTRUCTIONS = `You make a student's cheat sheet as a real PDF: the notes their class lets them bring into one exam. You get what the student asks, the exam's topics with how well they know each, their mistakes in practice, some of the class's facts and a working folder. Make the PDF with your own tools and send it with one write_cheat_sheet call.
+const CHEAT_SHEET_INSTRUCTIONS = `You help a student with their cheat sheet: the notes their class lets them bring into one exam, a real PDF you make in a working folder. Each request is one message from the student about it, with the exam, its topics, their mistakes, the sheet's rules and the chat so far. Reply with one sheet_reply call.
 
-- Do what the student asks. Where they don't say, follow the class's rules for this exam (paper size, one side or both, handwritten or printed, what's not allowed): find them with search_class_files and read_passage, unless the request already settles them. Never break those rules.
-- Otherwise: dense formulas, definitions and one-line rules, weak topics and the student's mistakes first with the most room, topics they know well short or left out. Use the class's notation. No intros.
-- Write methods that work for any problem of a kind, never the details of one practice problem (its word, names or numbers); a mistake becomes the general rule it broke. An example, if any, is one short line after the rule. For counting and probability, show how conditions combine: A or B, A and B (complement and inclusion-exclusion, or fix positions and multiply), not A, at least, at most, exactly.
-- Write the source in the working folder and keep it there. LaTeX works well (sheet.tex, compiled with latexmk, tectonic or pdflatex; TikZ for flowcharts); anything that makes a good PDF is fine. A change edits that source; don't start over.
-- One PDF page per side: two pages are the front and back. Before sending, check the page count and that nothing runs off a page or overlaps.
-- Black on white unless asked for color.
-- Plain words, no em-dashes.`;
+- A question ("what does pool mean?"): answer it in plain words in text and leave the sheet alone. If the sheet's wording caused the confusion, also fix the sheet.
+- A change, or something on the sheet that is wrong or would confuse a beginner: edit the source in the working folder, compile it, check it (below) and send the PDF as pdf_path, with a short note in text of what changed.
+- When the student says something that should hold for every later change ("A4, both sides", "no slang"), put it in new_rules, one short line each. Follow every one of the sheet's rules.
+- Write for a beginner who barely studied: plain words, no slang, no notation the class doesn't use. Methods that work for any problem of a kind, never one practice problem's details. A mistake becomes the rule it broke. Where one part depends on another, say where to look ("see card 4").
+- Where the sheet's rules don't settle the class's rules for this exam (paper size, sides, what's allowed), find them with search_class_files and read_passage. Never break them.
+- Keep the source in the working folder (LaTeX works well: sheet.tex with latexmk, tectonic or pdflatex). A change edits it; don't start over. One PDF page per side. Black on white unless asked. No em-dashes.
+- Before sending a PDF, check it: count the pages and check their size (pdfinfo); render each page to an image (pdftoppm -r 60 -png) and look at every one; nothing runs off a page, overlaps or is too small to read; every formula and method agrees with the class's material. Fix what you find first.`;
 
-const writeSchema = Type.Object({
-	pdf_path: Type.String({ minLength: 1, description: `The finished PDF, inside the working folder (absolute, or relative to it). 1 to ${MAX_PAGES} pages.` }),
+const replySchema = Type.Object({
+	text: Type.String({ minLength: 1, description: "Your answer to the student, in markdown with $LaTeX$ math. When you changed the sheet, say what changed in a line or two." }),
+	pdf_path: Type.Optional(Type.String({ minLength: 1, description: `Only when you made or changed the sheet: the new PDF, inside the working folder (absolute, or relative to it). 1 to ${MAX_PAGES} pages.` })),
+	new_rules: Type.Optional(
+		Type.Array(Type.String({ minLength: 1, maxLength: RULE_MAX_CHARS }), { description: "Requirements the student just set that should hold for every later change of this sheet, one short line each." }),
+	),
 });
-type WriteSubmit = Static<typeof writeSchema>;
+type ReplySubmit = Static<typeof replySchema>;
 
 /** A PDF godspeed checked and read. */
 export interface TakenPdf {
@@ -40,8 +46,16 @@ export interface TakenPdf {
 	file: string;
 }
 
-/** Make a sheet, or change one. Throws when the agent never sends a usable PDF. */
-export async function writeSheet(input: {
+/** The agent's answer to one message. */
+interface SheetReply {
+	text: string;
+	pdf: TakenPdf | null;
+	rules: string[];
+}
+
+/** Answer one message about the sheet. Throws when the agent never sends a
+ *  usable reply. */
+export async function replyOnSheet(input: {
 	/** "CSE 21 Midterm": the work item's label. */
 	title: string;
 	/** The request (core cheatSheetRequestText), with the learner's pictures. */
@@ -51,18 +65,20 @@ export async function writeSheet(input: {
 	takePdf: (path: string) => Promise<TakenPdf | string>;
 	engine: PiEngine | undefined;
 	signal?: AbortSignal;
-}): Promise<TakenPdf> {
-	let taken: TakenPdf | undefined;
-	await runSubmitAgent<{ path: string }>({
-		toolName: "write_cheat_sheet",
-		toolDescription: "Send the finished cheat sheet: the path of the PDF you made.",
-		parameters: writeSchema,
-		fill: (raw: WriteSubmit) => ({ path: raw.pdf_path }),
+}): Promise<SheetReply> {
+	let pdf: TakenPdf | null = null;
+	const reply = await runSubmitAgent<{ text: string; path?: string; rules: string[] }>({
+		toolName: "sheet_reply",
+		toolDescription: "Answer the student: your words, and the new PDF's path when you made or changed the sheet.",
+		parameters: replySchema,
+		fill: (raw: ReplySubmit) => ({ text: raw.text, ...(raw.pdf_path ? { path: raw.pdf_path } : {}), rules: raw.new_rules ?? [] }),
 		// The PDF is read here, once, so what was checked is what is kept.
 		validate: async ({ path }) => {
+			pdf = null;
+			if (!path) return null;
 			const got = await input.takePdf(path);
 			if (typeof got === "string") return got;
-			taken = got;
+			pdf = got;
 			return null;
 		},
 		systemPrompt: CHEAT_SHEET_INSTRUCTIONS,
@@ -73,8 +89,7 @@ export async function writeSheet(input: {
 		engine: input.engine,
 		signal: input.signal,
 		onStep: () => {},
-		neverSubmitted: "the agent never sent the cheat sheet",
+		neverSubmitted: "the agent never answered",
 	});
-	if (!taken) throw new Error("the agent never sent the cheat sheet");
-	return taken;
+	return { text: reply.text, pdf, rules: reply.rules };
 }
