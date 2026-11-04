@@ -10,7 +10,8 @@ import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft,
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
 import { lastLearnerText, lessonError, retryAction } from "@/components/lesson/lesson-error-model";
 import { MessageAttachments } from "@/components/lesson/message-attachments";
-import { ActionBar, fieldKeys } from "@/components/lesson/panel-parts";
+import { ActionBar } from "@/components/lesson/panel-parts";
+import { MathBox } from "@/components/math-box";
 import { useLessonDrafts } from "@/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/components/server-events";
 import { useChatSession } from "@/components/session";
@@ -325,15 +326,16 @@ function TalkThread({
 				<div className="px-6">
 					<AttachmentTray draft={attachments} />
 				</div>
-				<textarea
-					rows={2}
-					value={text}
-					onChange={(e) => editText(e.target.value)}
-					onKeyDown={(e) => fieldKeys(e, send)}
-					placeholder={`Tell ${name} what to set up, or ask about your classes`}
-					aria-label={`Message ${name}`}
-					className="lh-input block max-h-40 min-h-[76px] w-full resize-none bg-transparent px-6 py-4 text-[14px]! leading-5! text-ink outline-none field-sizing-content placeholder:text-ink-3 focus:inset-ring focus:inset-ring-ink-2"
-				/>
+				<div className="flex min-h-[76px] px-2.5 py-1.5 has-[.cm-focused]:inset-ring has-[.cm-focused]:inset-ring-ink-2">
+					<MathBox
+						compact
+						value={text}
+						onChange={editText}
+						onEnter={send}
+						placeholder={`Tell ${name} what to set up, or ask about your classes`}
+						ariaLabel={`Message ${name}`}
+					/>
+				</div>
 				<div className="flex items-stretch">
 					<AttachButton draft={attachments} />
 					<div className="min-w-0 flex-1">

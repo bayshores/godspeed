@@ -12,9 +12,11 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
+import { mathBoxView, stubCodeMirrorDom } from "./math-box-dom.ts";
 import type { AgentAction } from "../src/core/events.ts";
 
 const dom = parseHTML("<html><body></body></html>");
+stubCodeMirrorDom(dom);
 Object.assign(globalThis, {
 	window: dom.window,
 	document: dom.document,
@@ -114,12 +116,7 @@ describe("the panel", () => {
 		act(async () => {
 			for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
 		});
-	/** Types like the learner: React's own change handler (this file loads
-	 *  react-dom before the DOM exists, so input events don't reach it). */
-	const typeIn = (field: HTMLTextAreaElement, value: string) => {
-		const props = Object.entries(field).find(([k]) => k.startsWith("__reactProps"))?.[1] as { onChange: (e: unknown) => void };
-		props.onChange({ target: { value } });
-	};
+	const talkText = async (el: HTMLElement) => (await mathBoxView(el, `Message Halley`)).state.doc.toString();
 	const onActivity = (over: Parameters<typeof panel>[0] = {}) => {
 		const el = mount(panel(over));
 		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
@@ -224,7 +221,7 @@ describe("the panel", () => {
 		talkChat = { id: "chat_talk", turnInFlight: true, messages: [] };
 		const busy = mount(panel({ ask: { id: 2, text: "Check again" }, onAsked: (id) => asked.push(id) }));
 		await settle();
-		assert.equal((busy.querySelector("textarea") as HTMLTextAreaElement).value, "Check again");
+		assert.equal(await talkText(busy), "Check again");
 		assert.deepEqual(asked, [1, 2]);
 		talkChat = null;
 	});
@@ -244,12 +241,12 @@ describe("the panel", () => {
 			talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
 			const el = mount(panel());
 			await settle();
-			const box = () => el.querySelector("[data-testid='talk-box'] textarea") as HTMLTextAreaElement;
-			await act(async () => typeIn(box(), "add my lab"));
+			const view = await mathBoxView(el, "Message Halley");
+			await act(async () => view.dispatch({ changes: { from: 0, insert: "add my lab" } }));
 			await act(async () => {
 				const paste = new window.Event("paste", { bubbles: true });
 				Object.defineProperty(paste, "clipboardData", { value: { files: [new File(["x"], "lab.png", { type: "image/png" })] } });
-				box().dispatchEvent(paste);
+				el.querySelector("[data-testid='talk-box']")!.dispatchEvent(paste);
 			});
 			await settle();
 			assert.ok(el.querySelector("[data-testid='draft-image']"));
@@ -258,7 +255,7 @@ describe("the panel", () => {
 			act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
 			act(() => (el.querySelector("[data-testid='halley-tab-talk']") as HTMLElement).click());
 			await settle();
-			assert.equal(box().value, "add my lab");
+			assert.equal(await talkText(el), "add my lab");
 			assert.ok(el.querySelector("[data-testid='draft-image']"), "the picture still waits");
 			act(() => (el.querySelector("[aria-label='Remove lab.png']") as HTMLElement).click());
 		} finally {
@@ -278,7 +275,7 @@ describe("the panel", () => {
 			talkChat = { id: "chat_talk", turnInFlight: true, messages: [] };
 			const el = mount(panel({ ask: { id: 3, text: "Check again" } }));
 			await settle();
-			assert.equal((el.querySelector("[data-testid='talk-box'] textarea") as HTMLTextAreaElement).value, "my note\n\nCheck again");
+			assert.equal(await talkText(el), "my note\n\nCheck again");
 		} finally {
 			delete g.localStorage;
 			talkChat = null;
