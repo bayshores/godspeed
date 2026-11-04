@@ -32,8 +32,9 @@ export async function runSubmitAgent<T>(opts: {
 	/** Semantic validation at the submit seam: the value is schema-valid
 	 *  but may violate a PIPELINE law (coverage, echo-equality). Returning
 	 *  a problem string yields an isError result (invalidInputResult) →
-	 *  the model retries within its turns. null = accept. */
-	validate?: (value: T) => string | null;
+	 *  the model retries within its turns. null = accept. May read files
+	 *  (the cheat sheet's PDF). */
+	validate?: (value: T) => string | null | Promise<string | null>;
 	/** Tools to look things up before submitting (the cheat sheet writer
 	 *  searches the class's files for its rules). */
 	lookups?: AgentTool<any>[];
@@ -52,7 +53,7 @@ export async function runSubmitAgent<T>(opts: {
 				prepareArguments: (args) => healEncodedArguments(args, opts.parameters) as never,
 				execute: async (_toolCallId, input) => {
 					const value = opts.fill(input);
-					const problem = opts.validate?.(value) ?? null;
+					const problem = (await opts.validate?.(value)) ?? null;
 					if (problem) return invalidInputResult(opts.toolName, [problem]);
 					submitted = value;
 					return toToolResult(submitted);

@@ -1349,10 +1349,12 @@ body {
 	transition: none;
 }
 
-/* Printing the cheat sheet studio prints only its pages
-   (components/cheat-sheet/sheet-pages.tsx): everything that doesn't hold
-   them is gone, everything that does lays out plainly, and each page is
-   one sheet of paper at its real size (the studio sets @page). */
+/* Printing a cheat sheet prints only its pages: the studio adds them to
+   the body as pictures at the PDF's own size, one per sheet of paper, and
+   sets @page (components/cheat-sheet/print-pdf.ts). */
+.lh-print-sheet {
+	display: none;
+}
 @media print {
 	html,
 	body {
@@ -1360,47 +1362,18 @@ body {
 		overflow: visible !important;
 		background: white !important;
 	}
-	body :not(:has(.lh-print-sheet)):not(.lh-print-sheet):not(.lh-print-sheet *) {
+	body:has(> .lh-print-sheet) > :not(.lh-print-sheet) {
 		display: none !important;
-	}
-	body :has(.lh-print-sheet) {
-		display: block !important;
-		position: static !important;
-		overflow: visible !important;
-		width: auto !important;
-		min-width: 0 !important;
-		height: auto !important;
-		min-height: 0 !important;
-		margin: 0 !important;
-		padding: 0 !important;
-		border: 0 !important;
-		transform: none !important;
-		background: none !important;
 	}
 	.lh-print-sheet {
 		display: block !important;
-		max-width: none !important;
-		padding: 0 !important;
 	}
-	.lh-sheet-slot,
-	.lh-sheet-frame {
-		display: block !important;
-		width: auto !important;
-		height: auto !important;
-		margin: 0 !important;
-	}
-	.lh-sheet-slot {
+	.lh-print-sheet img {
+		display: block;
 		break-after: page;
 	}
-	.lh-sheet-slot:last-child {
+	.lh-print-sheet img:last-child {
 		break-after: auto;
 	}
-	.lh-sheet-page {
-		position: relative !important;
-		transform: none !important;
-		outline: none !important;
-	}
-	.lh-sheet-caption {
-		display: none !important;
-	}
 }
+

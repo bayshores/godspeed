@@ -62,6 +62,12 @@ export function classShortcutDir(classId: string): string | null {
 	return dir && fs.existsSync(dir) ? dir : null;
 }
 
+/** Where cheat sheets' working folders go: the agent keeps each sheet's
+ *  source there between requests. */
+export function cheatSheetsDir(): string {
+	return path.join(agentFolder(), "cheat-sheets");
+}
+
 /** A folder that can't be used, in words for the learner. */
 export class AgentFolderError extends Error {}
 

@@ -1,23 +1,30 @@
 /**
  * THE CHEAT SHEET: the notes a class lets the learner bring to a deadline,
- * one per deadline. The agent writes it as a document from the learner's
- * own words: a page size it picks and an HTML body per page (two pages
- * are the front and back), laid out however the request asks. What the
- * learner asked is kept, oldest first. Pure and browser-safe.
+ * one per deadline. The agent makes it as a real PDF with its own tools,
+ * from the learner's own words, keeping its source in a working folder so
+ * a change edits it. godspeed keeps the last few versions (each with the
+ * prompt that made it) and what the learner asked, oldest first. Pure and
+ * browser-safe.
  */
 import type { TopicStatus } from "./progress.ts";
-import { sheetText, type SheetPiece } from "./sheet-text.ts";
+import { safeEntryName } from "./class-shortcuts.ts";
 
 // ─── the record ─────────────────────────────────────────────────────────────
 
-export interface CheatSheetDoc {
-	/** The page size in inches, as the agent chose it. */
-	widthIn: number;
-	heightIn: number;
-	/** CSS shared by every page. */
-	css: string;
-	/** Each page's HTML body, in order. */
-	pages: string[];
+/** A page's size in PDF points (72 to the inch). */
+export interface SheetPage {
+	widthPt: number;
+	heightPt: number;
+}
+
+/** One PDF the agent sent, saved as v<n>.pdf. */
+export interface SheetVersion {
+	/** Counts up from 1 and is never reused. */
+	n: number;
+	/** What the learner asked for it ("" when they only sent files). */
+	prompt: string;
+	at: string;
+	pages: SheetPage[];
 }
 
 /** One thing the learner asked for. */
@@ -30,37 +37,34 @@ export interface CheatSheetPrompt {
 
 export interface CheatSheet {
 	deadlineId: string;
-	/** Null until the agent writes the first one. */
-	doc: CheatSheetDoc | null;
+	/** Oldest first, the last VERSIONS_KEPT. */
+	versions: SheetVersion[];
 	/** Oldest first, the last PROMPTS_KEPT. */
 	prompts: CheatSheetPrompt[];
+	/** The working folder's name under the godspeed folder's cheat-sheets/,
+	 *  picked at the first request so a renamed deadline keeps its source. */
+	folder?: string;
+	/** An older godspeed made a sheet here that this one can't show. */
+	olderFormat?: true;
 	updatedAt: string;
 }
 
-/** The record format this build writes (1 was the fixed-option block sheet). */
-export const CHEAT_SHEET_VERSION = 2;
+/** The record format this build writes, stamped as "version" (2 was the
+ *  HTML sheet, 1 the fixed-option block sheet). */
+export const CHEAT_SHEET_FORMAT = 3;
 
 /** Smallest and largest page side, in inches. */
-export const PAGE_MIN_IN = 2;
-export const PAGE_MAX_IN = 17;
+const PAGE_MIN_IN = 2;
+const PAGE_MAX_IN = 17;
 export const MAX_PAGES = 4;
-/** The whole document (pages and CSS), in characters. */
-export const DOC_MAX_CHARS = 200_000;
+const PDF_MAX_BYTES = 20 * 1024 * 1024;
 export const PROMPT_MAX = 2000;
 const PROMPTS_KEPT = 20;
+/** Versions kept on the canvas: enough to compare, few enough to stay light. */
+const VERSIONS_KEPT = 5;
 
 export function newCheatSheet(deadlineId: string, now: string): CheatSheet {
-	return { deadlineId, doc: null, prompts: [], updatedAt: now };
-}
-
-/** Why a written document can't be used, or null. */
-export function docProblem(doc: CheatSheetDoc): string | null {
-	const side = (v: number) => Number.isFinite(v) && v >= PAGE_MIN_IN && v <= PAGE_MAX_IN;
-	if (!side(doc.widthIn) || !side(doc.heightIn)) return `The page size must be between ${PAGE_MIN_IN} and ${PAGE_MAX_IN} inches on each side.`;
-	if (doc.pages.length < 1 || doc.pages.length > MAX_PAGES) return `Send 1 to ${MAX_PAGES} pages.`;
-	if (doc.pages.some((p) => !p.trim())) return "A page is empty.";
-	const size = doc.css.length + doc.pages.reduce((n, p) => n + p.length, 0);
-	return size > DOC_MAX_CHARS ? `The sheet is ${size} characters; keep it under ${DOC_MAX_CHARS}.` : null;
+	return { deadlineId, versions: [], prompts: [], updatedAt: now };
 }
 
 /** The sheet with one more prompt kept. */
@@ -68,16 +72,44 @@ export function withPrompt(sheet: CheatSheet, prompt: CheatSheetPrompt): CheatSh
 	return { ...sheet, prompts: [...sheet.prompts, prompt].slice(-PROMPTS_KEPT) };
 }
 
+/** The newest version, or null before the first. */
+export function currentVersion(sheet: Pick<CheatSheet, "versions">): SheetVersion | null {
+	return sheet.versions[sheet.versions.length - 1] ?? null;
+}
+
+/** The sheet with a new version as its newest, and the numbers of the
+ *  versions that no longer fit (their files go). */
+export function withVersion(sheet: CheatSheet, v: Omit<SheetVersion, "n">): { sheet: CheatSheet; dropped: number[] } {
+	const n = (currentVersion(sheet)?.n ?? 0) + 1;
+	const all = [...sheet.versions, { ...v, n }];
+	const { olderFormat: _gone, ...rest } = sheet;
+	return {
+		sheet: { ...rest, versions: all.slice(-VERSIONS_KEPT), updatedAt: v.at },
+		dropped: all.slice(0, -VERSIONS_KEPT).map((x) => x.n),
+	};
+}
+
+/** Why a PDF the agent sent can't be the sheet, or null. Checks what it
+ *  is given: the size alone before the file is read, then the rest. */
+export function pdfProblem(pdf: { bytes: number; head?: string; pages?: readonly SheetPage[] }): string | null {
+	if (pdf.bytes > PDF_MAX_BYTES) return `The PDF is ${Math.ceil(pdf.bytes / 1024 / 1024)} MB; keep it under ${PDF_MAX_BYTES / 1024 / 1024} MB.`;
+	if (pdf.head !== undefined && !pdf.head.startsWith("%PDF-")) return "That file is not a PDF.";
+	if (!pdf.pages) return null;
+	if (pdf.pages.length < 1 || pdf.pages.length > MAX_PAGES) return `The PDF has ${pdf.pages.length} pages; a cheat sheet has 1 to ${MAX_PAGES}.`;
+	const side = (pt: number) => Number.isFinite(pt) && pt >= PAGE_MIN_IN * 72 && pt <= PAGE_MAX_IN * 72;
+	return pdf.pages.every((p) => side(p.widthPt) && side(p.heightPt)) ? null : `Each page must be between ${PAGE_MIN_IN} and ${PAGE_MAX_IN} inches on each side.`;
+}
+
+/** The working folder's name: "CSE 21 Midterm", safe on every OS. */
+export function sheetFolderName(className: string, deadlineName: string): string {
+	return safeEntryName(`${className} ${deadlineName}`);
+}
+
 // ─── reading a saved record ─────────────────────────────────────────────────
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isString = (v: unknown): v is string => typeof v === "string";
-
-function readDoc(v: unknown): CheatSheetDoc | null {
-	if (!isObject(v) || typeof v.widthIn !== "number" || typeof v.heightIn !== "number" || !Array.isArray(v.pages)) return null;
-	const doc = { widthIn: v.widthIn, heightIn: v.heightIn, css: isString(v.css) ? v.css : "", pages: v.pages.filter(isString) };
-	return docProblem(doc) ? null : doc;
-}
+const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 function readPrompt(v: unknown): CheatSheetPrompt | null {
 	if (!isObject(v) || !isString(v.text) || !isString(v.at)) return null;
@@ -85,102 +117,48 @@ function readPrompt(v: unknown): CheatSheetPrompt | null {
 	return { text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}) };
 }
 
-/** A saved record: null when it isn't one, "newer" when a newer build wrote
- *  it. A version 1 block sheet comes back as a document. */
+function readVersion(v: unknown): SheetVersion | null {
+	if (!isObject(v) || !isNumber(v.n) || !isString(v.prompt) || !isString(v.at) || !Array.isArray(v.pages)) return null;
+	const pages = v.pages.filter((p): p is SheetPage => isObject(p) && isNumber(p.widthPt) && isNumber(p.heightPt)).map((p) => ({ widthPt: p.widthPt, heightPt: p.heightPt }));
+	return pages.length > 0 ? { n: v.n, prompt: v.prompt, at: v.at, pages } : null;
+}
+
+const list = <T>(v: unknown, read: (x: unknown) => T | null): T[] => (Array.isArray(v) ? v.map(read).filter((x): x is T => x !== null) : []);
+
+/** Version 1's instructions, kept as its first prompt. */
+function blockSheetPrompts(raw: Record<string, unknown>, updatedAt: string): CheatSheetPrompt[] {
+	const prefs = isObject(raw.prefs) ? raw.prefs : {};
+	const text = isString(prefs.instructions) ? prefs.instructions.trim() : "";
+	return text ? [{ text, at: isString(raw.confirmedAt) ? raw.confirmedAt : updatedAt }] : [];
+}
+
+/**
+ * A saved record: null when it isn't one, "newer" when a newer build wrote
+ * it. An HTML sheet (version 2) or block sheet (version 1) can't become a
+ * PDF without the agent: its prompts stay and it is marked olderFormat
+ * when it had a sheet.
+ */
 export function parseCheatSheet(raw: unknown): CheatSheet | "newer" | null {
 	if (!isObject(raw) || !isString(raw.deadlineId)) return null;
-	if (typeof raw.version === "number" && raw.version > CHEAT_SHEET_VERSION) return "newer";
+	if (isNumber(raw.version) && raw.version > CHEAT_SHEET_FORMAT) return "newer";
 	const updatedAt = isString(raw.updatedAt) ? raw.updatedAt : new Date(0).toISOString();
-	if (raw.version !== CHEAT_SHEET_VERSION) return upgradeBlockSheet(raw, raw.deadlineId, updatedAt);
-	return {
-		deadlineId: raw.deadlineId,
-		doc: readDoc(raw.doc),
-		prompts: Array.isArray(raw.prompts) ? raw.prompts.map(readPrompt).filter((p): p is CheatSheetPrompt => p !== null) : [],
-		updatedAt,
-	};
-}
-
-// ─── the version 1 block sheet ──────────────────────────────────────────────
-
-/** Version 1's papers: the size and how many sides. */
-const OLD_PAPERS: Record<string, { widthIn: number; heightIn: number; pages: number; marginIn: number }> = {
-	letter: { widthIn: 8.5, heightIn: 11, pages: 1, marginIn: 0.4 },
-	"letter-both": { widthIn: 8.5, heightIn: 11, pages: 2, marginIn: 0.4 },
-	"index-card": { widthIn: 5, heightIn: 3, pages: 1, marginIn: 0.15 },
-	a4: { widthIn: 8.27, heightIn: 11.69, pages: 1, marginIn: 0.4 },
-};
-const OLD_TEXT_PT: Record<string, number> = { small: 7, medium: 8.5, large: 11 };
-
-const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-function piecesHtml(pieces: readonly SheetPiece[]): string {
-	return pieces.map((p) => (p.kind === "math" ? `\\(${escapeHtml(p.tex)}\\)` : p.bold ? `<b>${escapeHtml(p.text)}</b>` : escapeHtml(p.text))).join("");
-}
-
-/** A block's markdown lines as HTML, its math left for the page to render. */
-function blockHtml(title: string, body: string, boxed: boolean): string {
-	const out: string[] = [];
-	let list: string[] = [];
-	const flush = () => {
-		if (list.length > 0) out.push(`<ul>${list.join("")}</ul>`);
-		list = [];
-	};
-	for (const line of sheetText(body)) {
-		if (line.kind === "bullet") {
-			list.push(`<li>${piecesHtml(line.pieces)}</li>`);
-			continue;
-		}
-		flush();
-		if (line.kind === "display") out.push(`<div>\\[${escapeHtml(line.tex)}\\]</div>`);
-		else out.push(`<p>${line.kind === "step" ? `${escapeHtml(line.marker ?? "")} ` : ""}${piecesHtml(line.pieces)}</p>`);
+	const deadlineId = raw.deadlineId;
+	if (raw.version === 2) return { deadlineId, versions: [], prompts: list(raw.prompts, readPrompt), ...(raw.doc ? { olderFormat: true as const } : {}), updatedAt };
+	if (raw.version !== CHEAT_SHEET_FORMAT) {
+		const made = Array.isArray(raw.blocks) && raw.blocks.length > 0;
+		return { deadlineId, versions: [], prompts: blockSheetPrompts(raw, updatedAt), ...(made ? { olderFormat: true as const } : {}), updatedAt };
 	}
-	flush();
-	return `<section${boxed ? ' class="box"' : ""}><h3>${escapeHtml(title)}</h3>${out.join("")}</section>`;
-}
-
-/** Version 1 to a document: its paper's size, one page per side, the
- *  blocks as titled sections in its columns and text size, shared out over
- *  the pages by length. Its instructions become the first prompt. */
-function upgradeBlockSheet(raw: Record<string, unknown>, deadlineId: string, updatedAt: string): CheatSheet {
-	const rules = isObject(raw.rules) ? raw.rules : {};
-	const prefs = isObject(raw.prefs) ? raw.prefs : {};
-	const paper = OLD_PAPERS[isString(rules.paper) ? rules.paper : ""] ?? OLD_PAPERS.letter!;
-	const blocks = (Array.isArray(raw.blocks) ? raw.blocks : []).filter(
-		(b): b is { title: string; body: string; topicId?: unknown } => isObject(b) && isString(b.title) && isString(b.body),
-	);
-	const instructions = isString(prefs.instructions) ? prefs.instructions.trim() : "";
-	const prompts: CheatSheetPrompt[] = instructions ? [{ text: instructions, at: isString(raw.confirmedAt) ? raw.confirmedAt : updatedAt }] : [];
-	if (blocks.length === 0) return { deadlineId, doc: null, prompts, updatedAt };
-
-	const total = blocks.reduce((n, b) => n + b.body.length, 0);
-	const pages: string[][] = Array.from({ length: paper.pages }, () => []);
-	let seen = 0;
-	for (const b of blocks) {
-		const page = Math.min(paper.pages - 1, Math.floor((seen / Math.max(1, total)) * paper.pages));
-		pages[page]!.push(blockHtml(b.title, b.body, b.topicId === "watch_out"));
-		seen += b.body.length;
-	}
-	const pt = OLD_TEXT_PT[isString(prefs.textSize) ? prefs.textSize : ""] ?? OLD_TEXT_PT.medium!;
-	const columns = prefs.columns === 3 ? 3 : 2;
-	const leading = rules.writing === "by-hand" ? 1.6 : 1.25;
-	const css = [
-		`body { padding: ${paper.marginIn}in; font: ${pt}pt/${leading} Georgia, serif; }`,
-		`.cols { column-count: ${columns}; column-gap: 0.2in; }`,
-		"section { break-inside: avoid; margin: 0 0 0.6em; }",
-		"section.box { border: 1px solid #000; padding: 0.3em 0.5em; }",
-		"h3 { margin: 0; font-size: 1.08em; }",
-		"p, ul { margin: 0; }",
-		"ul { padding-left: 1.1em; }",
-	].join("\n");
 	return {
 		deadlineId,
-		doc: { widthIn: paper.widthIn, heightIn: paper.heightIn, css, pages: pages.map((p) => `<div class="cols">${p.join("")}</div>`) },
-		prompts,
+		versions: list(raw.versions, readVersion),
+		prompts: list(raw.prompts, readPrompt),
+		...(isString(raw.folder) && raw.folder ? { folder: raw.folder } : {}),
+		...(raw.olderFormat === true ? { olderFormat: true as const } : {}),
 		updatedAt,
 	};
 }
 
-// ─── the page size and the fit ──────────────────────────────────────────────
+// ─── the page size ──────────────────────────────────────────────────────────
 
 /** Paper sizes by name, upright; a card reads the same either way. */
 const NAMED_SIZES: { name: string; w: number; h: number; card?: true }[] = [
@@ -194,46 +172,24 @@ const NAMED_SIZES: { name: string; w: number; h: number; card?: true }[] = [
 
 const near = (a: number, b: number) => Math.abs(a - b) < 0.06;
 
-/** "A4, front and back", "Letter sideways, one side", "6 × 9 in, 3 pages". */
-export function pageSizeLabel(doc: Pick<CheatSheetDoc, "widthIn" | "heightIn" | "pages">): string {
-	const upright = NAMED_SIZES.find((s) => near(s.w, doc.widthIn) && near(s.h, doc.heightIn));
-	const turned = NAMED_SIZES.find((s) => near(s.h, doc.widthIn) && near(s.w, doc.heightIn));
+/** "A4, front and back", "Letter sideways, one side", "6 × 9 in, 3 pages"
+ *  (named by the first page). */
+export function pageSizeLabel(pages: readonly SheetPage[]): string {
+	const first = pages[0];
+	if (!first) return "";
+	const w = first.widthPt / 72;
+	const h = first.heightPt / 72;
+	const upright = NAMED_SIZES.find((s) => near(s.w, w) && near(s.h, h));
+	const turned = NAMED_SIZES.find((s) => near(s.h, w) && near(s.w, h));
 	const inches = (v: number) => String(Math.round(v * 100) / 100);
-	const size = upright ? upright.name : turned ? (turned.card ? turned.name : `${turned.name} sideways`) : `${inches(doc.widthIn)} × ${inches(doc.heightIn)} in`;
-	const n = doc.pages.length;
+	const size = upright ? upright.name : turned ? (turned.card ? turned.name : `${turned.name} sideways`) : `${inches(w)} × ${inches(h)} in`;
+	const n = pages.length;
 	return `${size}, ${n === 1 ? "one side" : n === 2 ? "front and back" : `${n} pages`}`;
 }
 
-/** The CSS @page size. */
-export function pageSizeCss(doc: Pick<CheatSheetDoc, "widthIn" | "heightIn">): string {
-	return `${doc.widthIn}in ${doc.heightIn}in`;
-}
-
-/** A rendered page's sizes, in CSS pixels. */
-interface PageMeasure {
-	scrollWidth: number;
-	scrollHeight: number;
-	clientWidth: number;
-	clientHeight: number;
-}
-
-/** Something runs off the page (a pixel or two of rounding is not). */
-export function runsOver(m: PageMeasure): boolean {
-	return m.scrollHeight > m.clientHeight + 2 || m.scrollWidth > m.clientWidth + 2;
-}
-
-const pageList = (pages: readonly number[]) => (pages.length === 1 ? `Page ${pages[0]}` : `Pages ${pages.slice(0, -1).join(", ")} and ${pages[pages.length - 1]}`);
-
-/** "Page 2 runs over", "Pages 1 and 2 run over" (pages counted from 1). */
-export function overflowLine(over: readonly number[], pageCount: number): string {
-	if (pageCount === 1) return "The page runs over";
-	return `${pageList(over)} ${over.length === 1 ? "runs" : "run"} over`;
-}
-
-/** What Make it fit asks for. */
-export function fitPrompt(over: readonly number[], pageCount: number): string {
-	const which = pageCount === 1 ? "The page runs over" : `${pageList(over)} ${over.length === 1 ? "runs" : "run"} over`;
-	return `${which}. Make everything fit on its page without making the text too small to read.`;
+/** The label above a page: "Front" and "Back" for two, else its number. */
+export function pageCaption(index: number, pages: number): string {
+	return pages === 2 ? (index === 0 ? "Front" : "Back") : `Page ${index + 1}`;
 }
 
 // ─── what the request says ──────────────────────────────────────────────────
@@ -313,8 +269,10 @@ interface CheatSheetRequest {
 	/** The deadline's topics in class order. */
 	topics: readonly RequestTopic[];
 	mistakes: readonly SheetMistake[];
+	/** The working folder's absolute path, and what is in it now. */
+	folder: { path: string; files: readonly string[] };
 	/** The sheet to change, or null for a new one. */
-	current: CheatSheetDoc | null;
+	current: SheetVersion | null;
 }
 
 const STATUS_WORDS: Record<TopicStatus, string> = { weak: "weak", shaky: "shaky", untested: "not tested yet", strong: "knows it well" };
@@ -326,15 +284,29 @@ function oneLine(text: string, max: number): string {
 
 /** Most info files named in a request: the syllabus first, the rest counted. */
 const INFO_FILES_NAMED = 8;
+/** Most working folder files named in a request. */
+const FOLDER_FILES_NAMED = 12;
+
+function namedList(names: readonly string[], max: number): string {
+	const rest = names.length - max;
+	return `${names.slice(0, max).join(", ")}${rest > 0 ? `, and ${rest} more` : ""}`;
+}
 
 function infoFileList(files: readonly string[]): string {
-	const ranked = [...files].sort((a, b) => Number(/syllabus|polic/i.test(b)) - Number(/syllabus|polic/i.test(a)));
-	const rest = ranked.length - INFO_FILES_NAMED;
-	return `${ranked.slice(0, INFO_FILES_NAMED).join(", ")}${rest > 0 ? `, and ${rest} more` : ""}`;
+	return namedList([...files].sort((a, b) => Number(/syllabus|polic/i.test(b)) - Number(/syllabus|polic/i.test(a))), INFO_FILES_NAMED);
+}
+
+function folderText(r: CheatSheetRequest): string {
+	const files = r.folder.files.length > 0 ? `It has: ${namedList(r.folder.files, FOLDER_FILES_NAMED)}.` : "It is empty.";
+	if (!r.current) return `Working folder: ${r.folder.path}\n${files} Keep the sheet's source here so later changes can edit it.`;
+	return [
+		`Working folder: ${r.folder.path}`,
+		`${files} The current sheet is the last PDF you made here (${pageSizeLabel(r.current.pages)}). Change its source as asked and send the new PDF; keep the rest as it is.`,
+	].join("\n");
 }
 
 /** The request's text: the ask, the exam, the topics with readiness and
- *  facts, the mistakes, and the current sheet when it is a change. */
+ *  facts, the mistakes, and the working folder. */
 export function cheatSheetRequestText(r: CheatSheetRequest): string {
 	const names = new Map(r.topics.map((t) => [t.id, t.name]));
 	const topic = (t: RequestTopic) =>
@@ -343,16 +315,6 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 			...t.facts.map((f) => `  - ${f.name}: ${oneLine(f.statement, 140)}`),
 		].join("\n");
 	const mistake = (m: SheetMistake) => `- ${m.kind === "hint" ? "needed hints" : "answered wrong"} (${names.get(m.topicId) ?? m.topicId}): "${m.text}"`;
-	const current = r.current
-		? [
-				`The current sheet (send the whole sheet back, changed as asked):`,
-				`Page size: ${r.current.widthIn} × ${r.current.heightIn} in`,
-				r.current.css.trim() ? `CSS:\n${r.current.css.trim()}` : "",
-				...r.current.pages.map((p, i) => `Page ${i + 1}:\n${p.trim()}`),
-			]
-				.filter(Boolean)
-				.join("\n\n")
-		: "";
 	return [
 		[
 			`Cheat sheet for: ${r.title} on ${r.date}`,
@@ -365,7 +327,7 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 		r.earlier.length > 0 ? `What they asked before, oldest first:\n${r.earlier.map((p) => `- ${oneLine(p.text, 300)}`).join("\n")}` : "",
 		r.topics.length > 0 ? `Topics on this exam (name | how the student does), with some of the class's facts:\n${r.topics.map(topic).join("\n")}` : "",
 		r.mistakes.length > 0 ? `Mistakes from practice:\n${r.mistakes.map(mistake).join("\n")}` : "",
-		current,
+		folderText(r),
 	]
 		.filter(Boolean)
 		.join("\n\n");

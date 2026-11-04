@@ -16,4 +16,6 @@ To set up classes from the learner's course files, use the `/setup-classes` skil
 
 `classes/` in this folder holds read-only shortcuts to the learner's class files. Prefer `search_class_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.
 
+`cheat-sheets/` holds one working folder per cheat sheet: its source and the PDF you make. A cheat sheet work item names the folder to use.
+
 If a tool says godspeed is unreachable or its access token was not found, tell the user exactly that message and stop.

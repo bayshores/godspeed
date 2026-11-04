@@ -70,7 +70,6 @@ export * from "./deadline-plan.ts";
 export * from "./study.ts";
 export * from "./continue-study.ts";
 export * from "./cheat-sheet.ts";
-export * from "./cheat-sheet-page.ts";
 export type { ClassChange } from "./class-tools.ts";
 export * from "./teaching-areas.ts";
 export * from "./agent-rules.ts";

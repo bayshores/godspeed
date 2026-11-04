@@ -152,13 +152,13 @@ export function PromptHistory({
 		<ol data-testid="cheat-sheet-history" className={cn("flex flex-col gap-3", className)}>
 			{prompts.map((p, i) => (
 				<li key={`${p.at}-${i}`} data-testid="cheat-sheet-asked" className="flex flex-col gap-0.5">
-					<p className="text-[14px] leading-snug whitespace-pre-wrap text-ink">{p.text || "(files only)"}</p>
+					<p className="text-[14px] leading-snug whitespace-pre-wrap wrap-anywhere text-ink">{p.text || "(files only)"}</p>
 					{p.files && <p className="truncate text-[12.5px] text-ink-3">With {p.files.join(", ")}</p>}
 				</li>
 			))}
 			{running !== null && (
 				<li data-testid="cheat-sheet-asking" className="flex flex-col gap-1">
-					{running && <p className="text-[14px] leading-snug whitespace-pre-wrap text-ink-2">{running}</p>}
+					{running && <p className="text-[14px] leading-snug whitespace-pre-wrap wrap-anywhere text-ink-2">{running}</p>}
 					<p className="flex items-center gap-2 text-[13px] text-ink-3">
 						<BrailleSpinner className="h-3 text-ink-3" />
 						{waiting ? "Waiting for an agent" : `${agentName} is on it`}

@@ -2,57 +2,66 @@
  * THE CHEAT SHEET WRITER: one short request on the single-submit seam
  * (runSubmitAgent), so the connected agent gets it as one labeled work
  * item ("Cheat sheet · CSE 21 Midterm"). The agent may look up the class's
- * rules in its files (search_class_files, read_passage), then sends the
- * whole sheet with one write_cheat_sheet call: a new one, or the current
- * one changed as the learner asked.
+ * rules in its files (search_class_files, read_passage), makes the sheet
+ * as a PDF with its own tools in the sheet's working folder, and sends its
+ * path with one write_cheat_sheet call: a new sheet, or the current one
+ * changed as the learner asked.
  *
- * Only the model talks here; what the app sends and keeps is
- * server/cheat-sheets.ts.
+ * Only the model talks here; what the app sends and keeps, and how a PDF
+ * is checked and taken, is server/cheat-sheets.ts.
  */
 import { Type, type Static } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { UserMessage } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../models.ts";
-import { DOC_MAX_CHARS, MAX_PAGES, PAGE_MAX_IN, PAGE_MIN_IN, docProblem, type CheatSheetDoc } from "../../core/cheat-sheet.ts";
+import { MAX_PAGES, type SheetPage } from "../../core/cheat-sheet.ts";
 import { runSubmitAgent } from "./submit-agent.ts";
 
-const CHEAT_SHEET_INSTRUCTIONS = `You make a student's cheat sheet: the notes their class lets them bring into one exam. You get what the student asks, the exam's topics with how well they know each, their mistakes in practice and some of the class's facts. Send the whole sheet with one write_cheat_sheet call.
+const CHEAT_SHEET_INSTRUCTIONS = `You make a student's cheat sheet as a real PDF: the notes their class lets them bring into one exam. You get what the student asks, the exam's topics with how well they know each, their mistakes in practice, some of the class's facts and a working folder. Make the PDF with your own tools and send it with one write_cheat_sheet call.
 
-- Do what the student asks. Where they don't say, follow the class's rules for this exam (paper size, one side or both, handwritten or printed, what's not allowed): find them with search_class_files and read_passage, unless the request or the current sheet already settles them. Never break those rules.
+- Do what the student asks. Where they don't say, follow the class's rules for this exam (paper size, one side or both, handwritten or printed, what's not allowed): find them with search_class_files and read_passage, unless the request already settles them. Never break those rules.
 - Otherwise: dense formulas, definitions and one-line rules, weak topics and the student's mistakes first with the most room, topics they know well short or left out. Use the class's notation. No intros.
-- You pick the page size in inches (letter 8.5 x 11, A4 8.27 x 11.69, a 3 x 5 card is 5 x 3) and write each page as an HTML body; two pages are the front and back. Lay it out with your css: columns, text size, boxes. Fit everything inside its page; the app shows the student a page that runs over.
-- Black ink on white unless asked for color. Math in $...$ and $$...$$ (LaTeX, rendered for you); \\$ is a dollar sign. Flowcharts and diagrams as inline SVG or HTML boxes. No scripts, links, outside images or fonts.
-- Asked to change a sheet: you get the current one. Send it back whole, changed only as asked.
+- Write the source in the working folder and keep it there. LaTeX works well (sheet.tex, compiled with latexmk, tectonic or pdflatex; TikZ for flowcharts); anything that makes a good PDF is fine. A change edits that source; don't start over.
+- One PDF page per side: two pages are the front and back. Before sending, check the page count and that nothing runs off a page or overlaps.
+- Black on white unless asked for color.
 - Plain words, no em-dashes.`;
 
 const writeSchema = Type.Object({
-	width_in: Type.Number({ minimum: PAGE_MIN_IN, maximum: PAGE_MAX_IN, description: "Page width in inches." }),
-	height_in: Type.Number({ minimum: PAGE_MIN_IN, maximum: PAGE_MAX_IN, description: "Page height in inches." }),
-	css: Type.Optional(Type.String({ description: "CSS for every page (body is the page)." })),
-	pages: Type.Array(Type.String({ minLength: 1 }), {
-		minItems: 1,
-		maxItems: MAX_PAGES,
-		description: `Each page's HTML body, in order; two pages are the front and back. All of it under ${DOC_MAX_CHARS} characters.`,
-	}),
+	pdf_path: Type.String({ minLength: 1, description: `The finished PDF, inside the working folder (absolute, or relative to it). 1 to ${MAX_PAGES} pages.` }),
 });
 type WriteSubmit = Static<typeof writeSchema>;
 
-/** Write a sheet, or change one. Throws when the agent never sends it. */
+/** A PDF godspeed checked and read. */
+export interface TakenPdf {
+	bytes: Uint8Array;
+	pages: SheetPage[];
+}
+
+/** Make a sheet, or change one. Throws when the agent never sends a usable PDF. */
 export async function writeSheet(input: {
 	/** "CSE 21 Midterm": the work item's label. */
 	title: string;
 	/** The request (core cheatSheetRequestText), with the learner's pictures. */
 	prompt: UserMessage["content"];
 	lookups: AgentTool<any>[];
+	/** Checks and reads the PDF at a path: it, or why it can't be used. */
+	takePdf: (path: string) => Promise<TakenPdf | string>;
 	engine: PiEngine | undefined;
 	signal?: AbortSignal;
-}): Promise<CheatSheetDoc> {
-	return runSubmitAgent<CheatSheetDoc>({
+}): Promise<TakenPdf> {
+	let taken: TakenPdf | undefined;
+	await runSubmitAgent<{ path: string }>({
 		toolName: "write_cheat_sheet",
-		toolDescription: "Send the whole cheat sheet: the page size and each page's HTML.",
+		toolDescription: "Send the finished cheat sheet: the path of the PDF you made.",
 		parameters: writeSchema,
-		fill: (raw: WriteSubmit): CheatSheetDoc => ({ widthIn: raw.width_in, heightIn: raw.height_in, css: raw.css ?? "", pages: raw.pages }),
-		validate: docProblem,
+		fill: (raw: WriteSubmit) => ({ path: raw.pdf_path }),
+		// The PDF is read here, once, so what was checked is what is kept.
+		validate: async ({ path }) => {
+			const got = await input.takePdf(path);
+			if (typeof got === "string") return got;
+			taken = got;
+			return null;
+		},
 		systemPrompt: CHEAT_SHEET_INSTRUCTIONS,
 		prompt: input.prompt,
 		lookups: input.lookups,
@@ -63,4 +72,6 @@ export async function writeSheet(input: {
 		onStep: () => {},
 		neverSubmitted: "the agent never sent the cheat sheet",
 	});
+	if (!taken) throw new Error("the agent never sent the cheat sheet");
+	return taken;
 }

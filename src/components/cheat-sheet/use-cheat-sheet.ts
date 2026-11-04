@@ -37,6 +37,11 @@ export function useCheatSheet(classId: string, deadlineId: string) {
 	return { view, loadError, reload, act };
 }
 
+/** Version n of a sheet's PDF. */
+export function sheetPdfPath(classId: string, deadlineId: string, n: number): string {
+	return `/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}/cheat-sheet/pdf/${n}`;
+}
+
 /** The studio's address for a deadline. */
 export function studioPath(deadlineId: string): string {
 	return `/class/deadline/${encodeURIComponent(deadlineId)}/cheat-sheet`;

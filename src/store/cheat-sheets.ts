@@ -1,14 +1,15 @@
 /**
  * data/classes/<id>/cheat-sheets/<deadline id>.json: one deadline's cheat
  * sheet (core/cheat-sheet.ts), and beside it <deadline id>-files/, the PDFs
- * sent with its prompts. Written only by server/cheat-sheets.ts, stamped
- * with its version; a class's delete takes its folder with it.
+ * sent with its prompts, and <deadline id>-versions/v<n>.pdf, the sheets
+ * the agent made. Written only by server/cheat-sheets.ts, stamped with its
+ * format; a class's delete takes its folder with it.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { PATHS } from "../config.ts";
 import { isClassId } from "../core/contracts.ts";
-import { CHEAT_SHEET_VERSION, parseCheatSheet, type CheatSheet } from "../core/cheat-sheet.ts";
+import { CHEAT_SHEET_FORMAT, parseCheatSheet, type CheatSheet } from "../core/cheat-sheet.ts";
 import { setAsideCorrupt } from "./set-aside.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
@@ -19,6 +20,15 @@ function sheetFile(classId: string, deadlineId: string): string {
 
 function filesDir(classId: string, deadlineId: string): string {
 	return sheetFile(classId, deadlineId).replace(/\.json$/, "-files");
+}
+
+function versionsDir(classId: string, deadlineId: string): string {
+	return sheetFile(classId, deadlineId).replace(/\.json$/, "-versions");
+}
+
+function versionFile(classId: string, deadlineId: string, n: number): string {
+	if (!Number.isSafeInteger(n) || n < 1) throw new Error(`Invalid cheat sheet version: ${n}`);
+	return path.join(versionsDir(classId, deadlineId), `v${n}.pdf`);
 }
 
 /** The saved sheet; null when there is none, "newer" when a newer build saved it. */
@@ -39,7 +49,7 @@ export function readCheatSheet(classId: string, deadlineId: string): CheatSheet 
 }
 
 export function writeCheatSheet(classId: string, sheet: CheatSheet): void {
-	writeFileAtomic(sheetFile(classId, sheet.deadlineId), JSON.stringify({ version: CHEAT_SHEET_VERSION, ...sheet }, null, "\t"));
+	writeFileAtomic(sheetFile(classId, sheet.deadlineId), JSON.stringify({ version: CHEAT_SHEET_FORMAT, ...sheet }, null, "\t"));
 }
 
 /** A PDF sent with a prompt, saved for the agent to read; returns its path. */
@@ -50,7 +60,26 @@ export function saveCheatSheetFile(classId: string, deadlineId: string, fileName
 	return file;
 }
 
+/** A version's PDF, kept as the agent made it. */
+export function saveSheetPdf(classId: string, deadlineId: string, n: number, data: Uint8Array): void {
+	writeFileAtomic(versionFile(classId, deadlineId, n), data);
+}
+
+/** A version's PDF, or null when it is gone. */
+export function readSheetPdf(classId: string, deadlineId: string, n: number): Buffer | null {
+	try {
+		return fs.readFileSync(versionFile(classId, deadlineId, n));
+	} catch {
+		return null;
+	}
+}
+
+export function removeSheetPdfs(classId: string, deadlineId: string, ns: readonly number[]): void {
+	for (const n of ns) fs.rmSync(versionFile(classId, deadlineId, n), { force: true });
+}
+
 export function removeCheatSheet(classId: string, deadlineId: string): void {
 	fs.rmSync(sheetFile(classId, deadlineId), { force: true });
 	fs.rmSync(filesDir(classId, deadlineId), { recursive: true, force: true });
+	fs.rmSync(versionsDir(classId, deadlineId), { recursive: true, force: true });
 }

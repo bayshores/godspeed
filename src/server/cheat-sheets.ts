@@ -5,18 +5,27 @@
  * Every prompt is a background work item on the single-submit seam
  * (agent/subagents/cheat-sheet-writer.ts), like the topic grouper: a
  * one-off that hands back the whole sheet, not a conversation, so it stays
- * out of the Talk chat. One request at a time per sheet. Each change goes
- * out as "cheat-sheet-changed"; the studio fetches the view again.
+ * out of the Talk chat. The agent makes a PDF in the sheet's working
+ * folder (the godspeed folder's cheat-sheets/<class deadline>/, so its
+ * source is there for the next change); the PDF is copied into the app's
+ * data, so nothing here depends on that folder afterwards. One request at
+ * a time per sheet. Each change goes out as "cheat-sheet-changed"; the
+ * studio fetches the view again.
  */
+import fs from "node:fs";
+import path from "node:path";
 import type { UserMessage } from "@earendil-works/pi-ai";
 import type { AttachmentPart, ChatAttachment } from "../core/attachments.ts";
 import {
 	PROMPT_MAX,
 	cheatSheetRequestText,
+	currentVersion,
 	mistakeCounts,
 	newCheatSheet,
+	sheetFolderName,
 	sheetMistakes,
 	withPrompt,
+	withVersion,
 	type CheatSheet,
 	type CheatSheetView,
 	type RequestTopic,
@@ -28,7 +37,10 @@ import { topicFacts, topicStatus } from "../core/progress.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";
 import { searchTools } from "../agent/tools/class.ts";
 import { writeSheet } from "../agent/subagents/cheat-sheet-writer.ts";
-import { readCheatSheet, saveCheatSheetFile, writeCheatSheet } from "../store/cheat-sheets.ts";
+import { uniqueName } from "../core/class-shortcuts.ts";
+import { readCheatSheet, readSheetPdf, removeSheetPdfs, saveCheatSheetFile, saveSheetPdf, writeCheatSheet } from "../store/cheat-sheets.ts";
+import { cheatSheetsDir } from "./agent-folder.ts";
+import { takeSheetPdf } from "./cheat-sheet-pdf.ts";
 import { storeAttachments } from "./attachments.ts";
 import { classMistakes, classOrderFor, progressFor } from "./progress.ts";
 import { readPassage, searchClassFiles } from "./search-index.ts";
@@ -156,17 +168,38 @@ function engine(): PiEngine {
 	return cheatSheetSeams.engine ?? agentEngine();
 }
 
-/** Run one request: the agent writes the whole sheet (a new one, or the
- *  current one changed), saved with the prompt. Refused while another
- *  runs; its end is announced. */
+/** The sheet's working folder, made if missing: the one it was given at
+ *  its first request, else a new one named for the class and deadline. */
+function workingFolder(ctx: Context, sheet: CheatSheet): { sheet: CheatSheet; path: string; files: string[] } {
+	const root = cheatSheetsDir();
+	fs.mkdirSync(root, { recursive: true });
+	const taken = new Set(fs.readdirSync(root).map((n) => n.toLowerCase()));
+	const name = sheet.folder ?? uniqueName(sheetFolderName(ctx.className, ctx.deadline.name), taken);
+	const dir = path.join(root, name);
+	fs.mkdirSync(dir, { recursive: true });
+	const files = fs.readdirSync(dir).filter((n) => !n.startsWith(".")).sort();
+	return { sheet: sheet.folder ? sheet : { ...sheet, folder: name }, path: dir, files };
+}
+
+/** Run one request: the agent makes the whole sheet as a PDF (a new one,
+ *  or the current one changed), kept as the newest version with the
+ *  prompt. Refused while another runs; its end is announced. */
 function startRun(ctx: Context, ask: Ask): Outcome<null> {
 	const s = state();
 	const id = ctx.deadline.id;
 	if (s.runs.has(id)) return fail(409, "Your agent is still working on this cheat sheet.");
 	if (ctx.saved === "newer") return fail(409, NEWER);
-	const sheet = sheetNow(ctx);
+	let folder: ReturnType<typeof workingFolder>;
+	try {
+		folder = workingFolder(ctx, sheetNow(ctx));
+	} catch (err) {
+		return fail(500, `Couldn't make the cheat sheet's folder: ${(err as Error).message}`);
+	}
+	// Saved now, so a retry or a renamed deadline keeps the same folder.
+	if (folder.sheet.folder !== ctx.saved?.folder) writeCheatSheet(ctx.classId, folder.sheet);
+	const current = currentVersion(folder.sheet);
 	const controller = new AbortController();
-	s.runs.set(id, { kind: sheet.doc ? "change" : "make", ask, controller });
+	s.runs.set(id, { kind: current ? "change" : "make", ask, controller });
 	s.failed.delete(id);
 	changed(id);
 	const text = cheatSheetRequestText({
@@ -175,18 +208,23 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 		classNotes: ctx.classNotes,
 		infoFiles: ctx.infoFiles,
 		prompt: ask.text || "Use the files I sent.",
-		earlier: sheet.prompts,
+		earlier: folder.sheet.prompts,
 		topics: ctx.topics,
 		mistakes: ctx.mistakes,
-		current: sheet.doc,
+		folder: { path: folder.path, files: folder.files },
+		current,
 	});
 	const prompt: UserMessage["content"] = ask.parts.length > 0 ? [{ type: "text", text }, ...ask.parts] : text;
 	const lookups = Object.values(searchTools({ searchFiles: (query, limit) => searchClassFiles(ctx.classId, query, limit), readPassage: (ref) => readPassage(ctx.classId, ref) }));
-	void writeSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, engine: engine(), signal: controller.signal })
-		.then((doc) => {
-			const now = sheetNow(ctx);
+	const takePdf = (pdfPath: string) => takeSheetPdf(folder.path, pdfPath);
+	void writeSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, takePdf, engine: engine(), signal: controller.signal })
+		.then((pdf) => {
 			const at = new Date().toISOString();
-			writeCheatSheet(ctx.classId, { ...withPrompt(now, { text: ask.text, at, ...(ask.files.length > 0 ? { files: ask.files } : {}) }), doc, updatedAt: at });
+			const asked = withPrompt(sheetNow(ctx), { text: ask.text, at, ...(ask.files.length > 0 ? { files: ask.files } : {}) });
+			const next = withVersion(asked, { prompt: ask.text, at, pages: pdf.pages });
+			saveSheetPdf(ctx.classId, id, currentVersion(next.sheet)!.n, pdf.bytes);
+			writeCheatSheet(ctx.classId, next.sheet);
+			removeSheetPdfs(ctx.classId, id, next.dropped);
 		})
 		.catch((err: unknown) => {
 			if (controller.signal.aborted) return;
@@ -198,6 +236,11 @@ function startRun(ctx: Context, ask: Ask): Outcome<null> {
 			changed(id);
 		});
 	return { ok: true, value: null };
+}
+
+/** A version's PDF, as the agent made it; null when there is none. */
+export function cheatSheetPdf(classId: string, deadlineId: string, n: number): Buffer | null {
+	return stores.classStore.getClass(classId)?.deadlines?.some((d) => d.id === deadlineId) ? readSheetPdf(classId, deadlineId, n) : null;
 }
 
 /** A prompt from the studio: make the sheet, or change it. Pictures go to

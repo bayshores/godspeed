@@ -49,10 +49,12 @@ const nextConfig: NextConfig = {
 			// The godspeed folder's files, copied there at runtime (src/server/agent-folder.ts).
 			"src/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
-			// KaTeX's stylesheet and fonts, served to the cheat sheet's pages
-			// by path (src/server/katex-assets.ts).
-			"node_modules/katex/dist/katex.min.css",
-			"node_modules/katex/dist/fonts/*.woff2",
+			// pdf.js's browser worker and its data, served to the cheat sheet
+			// studio by path (src/server/pdfjs-assets.ts).
+			"node_modules/pdfjs-dist/build/pdf.worker.min.mjs",
+			"node_modules/pdfjs-dist/cmaps/**/*",
+			"node_modules/pdfjs-dist/iccs/**/*",
+			"node_modules/pdfjs-dist/wasm/**/*",
 			// pdf_render paints via @napi-rs/canvas. Its
 			// platform binary (@napi-rs/canvas-<platform>-<arch>) is a dynamic
 			// optional-dep require the tracer cannot see. Builds run per-OS and

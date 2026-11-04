@@ -1,27 +1,24 @@
-import { overflowLine, pageSizeLabel, type CheatSheetView } from "@/core";
+import { currentVersion, pageSizeLabel, type CheatSheetView } from "@/core";
 import { BrailleSpinner } from "@/components/braille-spinner";
 
 const NO_AGENT = "No agent connected";
 
 /** The top bar's middle: what the agent is doing (or that none is
- *  connected to do it), else the paper and whether it all fits. */
+ *  connected to do it), else the paper. */
 export function StudioStatus({
 	view,
 	agentName,
 	agentGone,
-	over,
 	onStop,
 }: {
 	view: CheatSheetView;
 	agentName: string;
 	/** No agent connected: a request waits for one instead of running. */
 	agentGone: boolean;
-	/** The pages that run over, counted from 1. */
-	over: readonly number[];
 	onStop: () => void;
 }) {
 	const run = view.running;
-	const doc = view.sheet.doc;
+	const current = currentVersion(view.sheet);
 	if (run)
 		return (
 			<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
@@ -30,7 +27,7 @@ export function StudioStatus({
 				) : (
 					<>
 						<BrailleSpinner className="h-3.5 text-ink" />
-						<span className="font-bold text-ink">{run.kind === "make" ? `${agentName} is writing your sheet` : `${agentName} is changing your sheet`}</span>
+						<span className="font-bold text-ink">{run.kind === "make" ? `${agentName} is making your sheet` : `${agentName} is changing your sheet`}</span>
 					</>
 				)}
 				<button type="button" onClick={onStop} className="lh-press font-bold text-ink-2 hover:text-ink">
@@ -38,21 +35,22 @@ export function StudioStatus({
 				</button>
 			</div>
 		);
-	if (!doc)
-		return (
-			<span data-testid="cheat-sheet-status" className="shrink-0 text-sm text-ink-2">
-				Not made yet
-			</span>
-		);
 	return (
-		<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
-			<span className="text-ink-2">{pageSizeLabel(doc)}</span>
-			{over.length > 0 && (
-				<span className="flex items-center gap-2 font-bold text-ans-wrong">
-					<span className="size-2 shrink-0 bg-(--lh-ramp-1)" aria-hidden />
-					{overflowLine(over, doc.pages.length)}
-				</span>
-			)}
+		<span data-testid="cheat-sheet-status" className="shrink-0 text-sm text-ink-2">
+			{current ? pageSizeLabel(current.pages) : "Not made yet"}
+		</span>
+	);
+}
+
+/** A sheet an older godspeed made (HTML or blocks) can't become a PDF
+ *  without the agent: one click asks for it again. */
+export function OlderSheet({ onRemake }: { onRemake: () => void }) {
+	return (
+		<div data-testid="cheat-sheet-older" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 text-sm text-ink-2 outline outline-1 -outline-offset-1 outline-tone-2">
+			<span>Your sheet was made by an older godspeed and can&apos;t be shown anymore.</span>
+			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-press bg-tone px-2.5 py-1.5 font-bold text-ink hover:bg-tone-2">
+				Make it again
+			</button>
 		</div>
 	);
 }
