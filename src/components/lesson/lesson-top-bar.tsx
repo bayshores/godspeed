@@ -1,4 +1,4 @@
-import { DumbbellIcon, SearchIcon } from "lucide-react";
+import { DumbbellIcon, FileTextIcon, SearchIcon } from "lucide-react";
 import { SidebarToggle } from "@/components/sidebar";
 import { FollowChip } from "@/components/halley/follow-chip";
 import { Hint } from "@/components/ui/hint";
@@ -14,7 +14,8 @@ import type { useTitleRename } from "./use-title-rename";
  * - Teaching or studying with a plan: the plan step bar.
  * - Practice: the lesson name, one block per problem and "2 of 3 solved".
  * - Before a plan exists: the lesson name.
- * The name is renamed in place (click or F2); the search icon opens Find.
+ * The name is renamed in place (click or F2); Cheat sheet opens the sheet
+ * beside the session; the search icon opens Find.
  */
 export function LessonTopBar({
 	kind,
@@ -23,6 +24,7 @@ export function LessonTopBar({
 	practice,
 	onJump,
 	onOpenPlan,
+	sheet,
 }: {
 	kind: LessonKind;
 	rename: ReturnType<typeof useTitleRename>;
@@ -30,6 +32,8 @@ export function LessonTopBar({
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
 	onOpenPlan: () => void;
+	/** The cheat sheet beside the session (a session in a class). */
+	sheet?: { open: boolean; onToggle: () => void };
 }) {
 	const { renaming } = rename;
 	return (
@@ -62,6 +66,21 @@ export function LessonTopBar({
 					<TitleButton rename={rename} />
 				)}
 			</div>
+			{sheet && (
+				<button
+					type="button"
+					data-testid="lesson-cheat-sheet"
+					aria-pressed={sheet.open}
+					onClick={sheet.onToggle}
+					className={cn(
+						"lh-no-drag lh-press flex h-8 shrink-0 items-center gap-2 px-3 text-[13px] font-bold",
+						sheet.open ? "bg-ink text-background hover:bg-ink-max" : "bg-tone text-ink hover:bg-tone-2",
+					)}
+				>
+					<FileTextIcon aria-hidden className="size-4" />
+					Cheat sheet
+				</button>
+			)}
 			<Hint label="Find" side="bottom">
 				<button
 					type="button"

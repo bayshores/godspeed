@@ -1,4 +1,4 @@
-import { currentVersion, pageSizeLabel, type CheatSheetView } from "@/core";
+import { currentVersion, pageSizeLabel, type CheatSheetView, type SheetVersion } from "@/core";
 import { BrailleSpinner } from "@/components/braille-spinner";
 
 const NO_AGENT = "No agent connected";
@@ -17,9 +17,8 @@ export function StudioStatus({
 	agentGone: boolean;
 	onStop: () => void;
 }) {
-	const run = view.running;
 	const current = currentVersion(view.sheet);
-	if (run)
+	if (view.running)
 		return (
 			<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
 				{agentGone ? (
@@ -27,7 +26,7 @@ export function StudioStatus({
 				) : (
 					<>
 						<BrailleSpinner className="h-3.5 text-ink" />
-						<span className="font-bold text-ink">{run.kind === "make" ? `${agentName} is making your sheet` : `${agentName} is changing your sheet`}</span>
+						<span className="font-bold text-ink">{current ? `${agentName} is on your message` : `${agentName} is making your sheet`}</span>
 					</>
 				)}
 				<button type="button" onClick={onStop} className="lh-press font-bold text-ink-2 hover:text-ink">
@@ -53,4 +52,18 @@ export function OlderSheet({ onRemake }: { onRemake: () => void }) {
 			</button>
 		</div>
 	);
+}
+
+const when = (at: string) => new Date(at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+/** The line above a version on the canvas. */
+export function versionLabel(v: SheetVersion, newest: boolean): string {
+	return `${newest ? "Current" : when(v.at)} · ${v.fromFolder ? "From the working folder" : v.prompt || "From the files you sent"}`;
+}
+
+/** What an empty chat says, before and after the sheet is made. */
+export function emptyChatLine(agentName: string, made: boolean): string {
+	return made
+		? `Ask ${agentName} anything about the sheet, point at a part that confuses you, or say what to change.`
+		: `Say what you want on it: the paper, one side or both, what to put first. ${agentName} reads your class's rules in the syllabus, puts your weak topics and mistakes first, and makes it as a PDF.`;
 }

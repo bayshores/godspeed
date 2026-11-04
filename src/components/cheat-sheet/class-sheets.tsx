@@ -1,21 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { FileTextIcon } from "lucide-react";
-import { pageSizeLabel, whenLabel, type ClassSheetsView, type SheetCard } from "@/core";
+import { pageSizeLabel, whenLabel, type SheetCard } from "@/core";
 import { useAgentStatus } from "@/components/agent-status";
 import { BrailleSpinner } from "@/components/braille-spinner";
 import { useClasses } from "@/components/class-context";
 import { kindLabel } from "@/components/class-deadlines-model";
-import { send } from "@/components/files/class-files-api";
 import { LoadFailed } from "@/components/load-failed";
 import { PickClass } from "@/components/pick-class";
-import { useServerEvent, useServerResync } from "@/components/server-events";
 import { TopBar } from "@/components/top-bar";
 import { PdfThumb } from "./pdf-thumb";
 import { fileBrowserName } from "@/components/files/files-model";
-import { remakeSheet, sheetPdfPath, showSheetPdf, studioPath } from "./use-cheat-sheet";
+import { remakeSheet, sheetPdfPath, showSheetPdf, studioPath, useClassSheets } from "./use-cheat-sheet";
 
 /** The preview's box: the first page fits inside it. */
 const THUMB_W = 150;
@@ -155,7 +153,7 @@ function Status({ card, agentName, onRemake }: { card: SheetCard; agentName: str
 			return (
 				<span className="flex items-center gap-2 font-bold text-ink">
 					<BrailleSpinner className="h-3 text-ink" />
-					{card.version ? `${agentName} is changing it` : `${agentName} is making it`}
+					{card.version ? `${agentName} is on it` : `${agentName} is making it`}
 				</span>
 			);
 		case "older":
@@ -181,25 +179,3 @@ function Status({ card, agentName, onRemake }: { card: SheetCard; agentName: str
 	}
 }
 
-/** The class's cards, read again whenever a sheet or the class changes. */
-function useClassSheets(classId: string | null) {
-	const [view, setView] = useState<ClassSheetsView | null>(null);
-	const [failed, setFailed] = useState(false);
-	const request = useRef(0);
-	const reload = useCallback(async () => {
-		const id = ++request.current;
-		if (!classId) return setView(null);
-		const { error, body } = await send(`/api/classes/${encodeURIComponent(classId)}/cheat-sheets`, { method: "GET" });
-		if (id !== request.current) return;
-		setFailed(!!error);
-		if (!error) setView(body as ClassSheetsView);
-	}, [classId]);
-	useEffect(() => {
-		setView(null);
-		void reload();
-	}, [reload]);
-	useServerEvent("cheat-sheet-changed", () => void reload());
-	useServerEvent("classes-changed", () => void reload());
-	useServerResync(() => void reload());
-	return { view, failed, reload };
-}

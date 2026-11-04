@@ -5,7 +5,14 @@
  * point p at p × zoom + (x, y). Pure: the canvas component only feeds it
  * pointer and wheel numbers.
  */
-import { pageCaption, type SheetVersion } from "@/core";
+import { pageCaption, type ChatAttachment, type SheetRegion, type SheetVersion } from "@/core";
+
+/** A part of a page the learner drew a box around, ready to send. */
+export interface Pointed {
+	region: SheetRegion;
+	/** The part drawn as a picture, sent first with the message. */
+	picture: ChatAttachment;
+}
 
 export interface Camera {
 	x: number;
@@ -47,19 +54,61 @@ const STEPS = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6, 8];
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 /** Newest version first, left to right; each version's pages side by side,
- *  tops lined up. */
-export function artboards(versions: readonly Pick<SheetVersion, "n" | "pages">[]): ArtboardGroup[] {
+ *  tops lined up, or one under another (`stacked`, for a narrow view). */
+export function artboards(versions: readonly Pick<SheetVersion, "n" | "pages">[], stacked = false): ArtboardGroup[] {
 	let x = 0;
 	return [...versions].reverse().map((v) => {
+		let y = 0;
 		const pages = v.pages.map((p, i) => {
 			const w = p.widthPt * PX_PER_PT;
-			const board: Artboard = { n: v.n, page: i, label: pageCaption(i, v.pages.length), x, y: 0, w, h: p.heightPt * PX_PER_PT };
-			x += w + PAGE_GAP;
+			const h = p.heightPt * PX_PER_PT;
+			const board: Artboard = { n: v.n, page: i, label: pageCaption(i, v.pages.length), x, y, w, h };
+			if (stacked) y += h + PAGE_GAP;
+			else x += w + PAGE_GAP;
 			return board;
 		});
-		x += GROUP_GAP - PAGE_GAP;
-		return { n: v.n, box: bounds(pages)!, pages };
+		const box = bounds(pages)!;
+		x = box.x + box.w + GROUP_GAP;
+		return { n: v.n, box, pages };
 	});
+}
+
+/** The camera that fills the view's width with `box`, its top in view
+ *  (the sheet beside a session reads like a page). */
+export function fitWidthCamera(box: Rect, view: Rect, pad = 16): Camera {
+	const zoom = clampZoom((view.w - 2 * pad) / box.w);
+	return { zoom, x: view.x + (view.w - box.w * zoom) / 2 - box.x * zoom, y: view.y + pad - box.y * zoom };
+}
+
+/** The world point under a screen point. */
+export function toWorld(cam: Camera, p: { x: number; y: number }): { x: number; y: number } {
+	return { x: (p.x - cam.x) / cam.zoom, y: (p.y - cam.y) / cam.zoom };
+}
+
+/** The smallest box worth pointing at, in CSS pixels at 100%. */
+const MIN_POINT = 8;
+
+/** The box dragged between two world points on a page, as fractions of
+ *  the page (cut to its edges), or null when it misses the page or is too
+ *  small to mean anything. */
+export function pageRegion(a: { x: number; y: number }, b: { x: number; y: number }, page: Rect): { x: number; y: number; w: number; h: number } | null {
+	const left = Math.max(page.x, Math.min(a.x, b.x));
+	const top = Math.max(page.y, Math.min(a.y, b.y));
+	const right = Math.min(page.x + page.w, Math.max(a.x, b.x));
+	const bottom = Math.min(page.y + page.h, Math.max(a.y, b.y));
+	if (right - left < MIN_POINT || bottom - top < MIN_POINT) return null;
+	return { x: (left - page.x) / page.w, y: (top - page.y) / page.h, w: (right - left) / page.w, h: (bottom - top) / page.h };
+}
+
+/** The page a world point is on, or null. */
+export function pageAt(boards: readonly Artboard[], p: { x: number; y: number }): Artboard | null {
+	return boards.find((b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) ?? null;
+}
+
+/** Device pixels per CSS pixel for a pointed-at part's picture: about
+ *  1400 pixels on its long side, sharp enough to read small print. */
+export function regionScale(cssW: number, cssH: number): number {
+	return Math.min(4, Math.max(1.5, 1400 / Math.max(cssW, cssH, 1)));
 }
 
 /** The rectangle around several, or null for none. */

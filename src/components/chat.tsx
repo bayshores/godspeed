@@ -51,6 +51,8 @@ import { YourTurnPanel } from "@/components/lesson/your-turn-panel";
 import { useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/components/lesson/start-files";
 import { useHalley, useHalleyLesson } from "@/components/halley/halley-provider";
+import { SheetDock, useSheetDock } from "@/components/cheat-sheet/sheet-dock";
+import { sessionAbout } from "@/components/cheat-sheet/dock-model";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = dynamic(() => import("@/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
@@ -71,9 +73,15 @@ export function Chat({
 	initiallyCompacting = false,
 	kind = "teach",
 	initialTree,
+	classId,
+	deadlineId,
 }: {
 	chatId: string;
 	title: string;
+	/** The session's class and the deadline it was started from: the
+	 *  cheat sheet beside it shows that deadline's sheet. */
+	classId?: string;
+	deadlineId?: string;
 	initialMessages: LhMessage[];
 	/** Memory-only settlement notice supplied on reopening. */
 	initialError?: string;
@@ -461,93 +469,121 @@ export function Chat({
 		[],
 	);
 
+	// The cheat sheet beside the session; a message from it takes the problem or question the learner is on.
+	const sheet = useSheetDock(chatId);
+	const problemWork = activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined;
+	const sheetAbout = useMemo(
+		() => sessionAbout({ session: rename.title, problem: activeProblem?.input, work: problemWork, question: pending?.input }),
+		[rename.title, activeProblem, problemWork, pending],
+	);
+
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
 			<SessionMermaidContext.Provider value={mermaidActions}>
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
-						<div className="flex h-dvh min-w-0 flex-1 flex-col">
-							<LessonTopBar kind={kind} rename={rename} bar={stepBar} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
-							<SessionFind scopeRef={sessionFindScopeRef} scrollContextRef={scrollContextRef} />
-							<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col min-[1100px]:flex-row">
-								<ReadingPane
-									messages={messages}
-									phases={phases}
-									status={status}
-									busy={busy}
-									turnInFlight={turnInFlight}
-									compacting={compacting}
-									waitingForAgent={waitingForAgent}
-									error={error}
-									onRetry={retry}
-									arrivalsLive={arrivalsLive}
-									arrive={arrive}
+						<div className="flex h-dvh min-w-0 flex-1">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<LessonTopBar
+									kind={kind}
+									rename={rename}
+									bar={stepBar}
+									practice={stablePractice}
+									onJump={jumpToAnswer}
 									onOpenPlan={openPlan}
-									scrollContextRef={scrollContextRef}
+									sheet={classId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
 								/>
-								<YourTurnPanel
-									// Remounts once the saved drafts are read, so the forms start from them.
-									key={draftsLoaded ? "drafts" : "loading"}
-									pending={pending}
-									requiresReveal={requiresReveal}
-									initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
-									onSaveQuestionDraft={(form) => {
-										if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
-									}}
-									onSubmitAnswer={onSubmitAnswer}
-									onSkipQuestion={() => setAbortAsk("question")}
-									readingThinking={readingThinking}
-									onReadingThinking={editReadingThinking}
-									practice={activeProblem}
-									practiceNumber={stablePractice?.currentNumber ?? null}
-									initialPracticeDraft={activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined}
-									onSavePracticeDraft={(t) => {
-										if (activeProblemId) saveProblem(activeProblemId, t);
-									}}
-									onSubmitThinking={submitThinking}
-									onDiscardProblem={() => setAbortAsk("problem")}
-									sideReply={sideReply}
-									compacting={compacting}
-									composer={{
-										busy,
-										value: text,
-										onChange: editText,
-										onSend,
-										onStop: abortInFlightTurn,
-										canSend,
-										next: nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined,
-										onNext: sendNext,
-										queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
-										attachments,
-										waitingForAgent,
-										notice:
-											stuck ? (
-												<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
-													Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
-													<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
-														{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
-													</button>
-												</p>
-											) : undefined,
-									}}
-									stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
-								/>
+								<SessionFind scopeRef={sessionFindScopeRef} scrollContextRef={scrollContextRef} />
+								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col min-[1100px]:flex-row">
+									<ReadingPane
+										messages={messages}
+										phases={phases}
+										status={status}
+										busy={busy}
+										turnInFlight={turnInFlight}
+										compacting={compacting}
+										waitingForAgent={waitingForAgent}
+										error={error}
+										onRetry={retry}
+										arrivalsLive={arrivalsLive}
+										arrive={arrive}
+										onOpenPlan={openPlan}
+										scrollContextRef={scrollContextRef}
+									/>
+									<YourTurnPanel
+										// Remounts once the saved drafts are read, so the forms start from them.
+										key={draftsLoaded ? "drafts" : "loading"}
+										pending={pending}
+										requiresReveal={requiresReveal}
+										initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+										onSaveQuestionDraft={(form) => {
+											if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
+										}}
+										onSubmitAnswer={onSubmitAnswer}
+										onSkipQuestion={() => setAbortAsk("question")}
+										readingThinking={readingThinking}
+										onReadingThinking={editReadingThinking}
+										practice={activeProblem}
+										practiceNumber={stablePractice?.currentNumber ?? null}
+										initialPracticeDraft={activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined}
+										onSavePracticeDraft={(t) => {
+											if (activeProblemId) saveProblem(activeProblemId, t);
+										}}
+										onSubmitThinking={submitThinking}
+										onDiscardProblem={() => setAbortAsk("problem")}
+										sideReply={sideReply}
+										compacting={compacting}
+										composer={{
+											busy,
+											value: text,
+											onChange: editText,
+											onSend,
+											onStop: abortInFlightTurn,
+											canSend,
+											next: nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined,
+											onNext: sendNext,
+											queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
+											attachments,
+											waitingForAgent,
+											notice:
+												stuck ? (
+													<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
+														Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
+														<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
+															{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
+														</button>
+													</p>
+												) : undefined,
+										}}
+										stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
+									/>
 
-								{/* The session-scoped focuses: absolute over the lesson area, below
-								    the top bar; each fades out through usePresence. */}
-								{mermaidPresence.mounted && lastMermaidRef.current !== null && (
-									<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
-										<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
-									</div>
-								)}
-								{figurePresence.mounted && lastFigureRef.current !== null && (
-									<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
-										<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
-									</div>
-								)}
-								{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
-								<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
+									{/* The session-scoped focuses: absolute over the lesson area, below
+									    the top bar; each fades out through usePresence. */}
+									{mermaidPresence.mounted && lastMermaidRef.current !== null && (
+										<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
+											<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
+										</div>
+									)}
+									{figurePresence.mounted && lastFigureRef.current !== null && (
+										<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
+											<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
+										</div>
+									)}
+									{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
+									<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
+								</div>
 							</div>
+							{classId && sheet.state.open && (
+								<SheetDock
+									classId={classId}
+									sessionDeadlineId={deadlineId}
+									picked={sheet.state.deadlineId}
+									onPick={(id) => sheet.update({ deadlineId: id })}
+									about={sheetAbout}
+									onClose={() => sheet.update({ open: false })}
+								/>
+							)}
 						</div>
 					</LessonStepsContext.Provider>
 				</JobsContext.Provider>
