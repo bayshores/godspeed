@@ -80,7 +80,7 @@ describe("the Your-turn panel's states", () => {
 	it("no question waiting: the message box with Send", () => {
 		const html = panel();
 		assert.match(html, /data-mode="chat"/);
-		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Your turn</);
+		assert.ok(!html.includes("panel-status"), "no header while it is simply the learner's turn");
 		assert.match(html, /data-testid="composer"[\s\S]*data-testid="math-box"[\s\S]*>Message the teacher…</, "the writing box, where math formats as you type");
 		assert.match(html, /data-testid="composer-send"[^>]*disabled[\s\S]*?>Send</, "Send waits for text");
 		assert.ok(!html.includes("stop-turn"), "no Stop while idle");
@@ -128,6 +128,46 @@ describe("the Your-turn panel's states", () => {
 		assert.match(html, /data-testid="reading-thinking-field"/);
 		assert.ok(!html.includes("Which planet is closest"), "the question stays hidden until opened");
 		assert.ok(!html.includes('data-testid="question-dock"'));
+	});
+
+	it("shows no small labels over the question panel's boxes, which keep their accessible names", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const render = (over: Partial<React.ComponentProps<typeof YourTurnPanel>>) => (
+			<YourTurnPanel
+				pending={null}
+				requiresReveal={false}
+				onSaveQuestionDraft={() => {}}
+				onSubmitAnswer={async () => true}
+				onSkipQuestion={() => {}}
+				readingThinking=""
+				onReadingThinking={() => {}}
+				practice={null}
+				practiceNumber={null}
+				onSavePracticeDraft={() => {}}
+				onSubmitThinking={async () => true}
+				onDiscardProblem={() => {}}
+				sideReply={false}
+				compacting={false}
+				composer={composer()}
+				stats={null}
+				{...over}
+			/>
+		);
+		try {
+			await act(async () => root.render(render({ pending: { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "check" } }, requiresReveal: true })));
+			await mathBoxView(host, "Thinking while reading");
+			const shown = host.textContent ?? "";
+			assert.ok(!shown.includes("Your turn"), "no Your turn header");
+			assert.ok(!shown.includes("Thinking while reading"), "the box's placeholder says it");
+			await act(async () => root.render(render({ pending: { tool: "quiz", toolCallId: "q2", input: quizInput } })));
+			await mathBoxView(host, "Your thinking");
+			assert.ok(!(host.textContent ?? "").includes("Your thinking"), "no label over the thinking box");
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+		}
 	});
 
 	it("an active practice problem fills the panel with its number", () => {
@@ -199,7 +239,7 @@ describe("the Your-turn panel's states", () => {
 
 	it("while the turn waits for an agent the header says so instead of Teacher is writing", () => {
 		const html = panel({ composer: composer({ busy: true, waitingForAgent: true }) });
-		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Waiting for your agent</);
+		assert.match(html, /data-testid="panel-status"[^>]*>Waiting for your agent</);
 		assert.ok(!html.includes("Teacher is writing"));
 		assert.match(html, /data-testid="stop-turn"/, "Stop stays");
 	});
@@ -274,7 +314,7 @@ describe("the side question box", () => {
 
 		it("sits under the practice dock's Your thinking and Send, behind the same link", () => {
 			const html = panel(problem);
-			assert.match(html, /Your thinking[\s\S]*data-testid="practice-send"[\s\S]*data-testid="side-question"/);
+			assert.match(html, /data-testid="practice-thinking-field"[\s\S]*data-testid="practice-send"[\s\S]*data-testid="side-question"/);
 			const side = html.slice(html.indexOf('data-testid="side-question"'));
 			assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
 			assert.ok(!side.includes('data-testid="math-box"'));
@@ -340,12 +380,12 @@ describe("the side question box", () => {
 		assert.ok(!submit.test(panel({ ...waiting, initialQuestionDraft: picked })), "an answer is ready to submit");
 		const html = panel({ ...waiting, initialQuestionDraft: picked, sideReply: true, composer: composer({ busy: true, value: "why?" }) });
 		assert.match(html, submit);
-		assert.match(html, /data-testid="panel-eyebrow"[^>]*>Teacher is writing…</);
+		assert.match(html, /data-testid="panel-status"[^>]*>Teacher is writing…</);
 		const side = html.slice(html.indexOf('data-testid="side-question"'));
 		assert.match(side, /data-testid="stop-turn"/);
 		assert.ok(!side.includes('data-testid="side-question-send"'));
 		const waitingForAgent = panel({ ...waiting, requiresReveal: true, composer: composer({ busy: true, waitingForAgent: true }) });
-		assert.match(waitingForAgent, /data-testid="panel-eyebrow"[^>]*>Waiting for your agent</, "the check behind its reveal too");
+		assert.match(waitingForAgent, /data-testid="panel-status"[^>]*>Waiting for your agent</, "the check behind its reveal too");
 	});
 
 	it("Stop ends the side reply alone, with no skip", async () => {

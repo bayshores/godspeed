@@ -146,10 +146,10 @@ describe("render smoke tests", () => {
 		assert.match(html, /Which planet is closest to the sun\?/);
 		assert.match(html, /Mercury/);
 		assert.match(html, /I don&#x27;t know|I don't know/);
-		// The learner's voice: a labeled "Your thinking" composer-twin lives
-		// INSIDE the dock — never called optional, inviting the dump.
+		// The learner's voice: a "Your thinking" composer-twin lives INSIDE
+		// the dock, its placeholder in place of a label, never called optional.
 		assert.ok(html.includes('data-testid="thinking-field"'), "thinking field present");
-		assert.match(html, /Your thinking/, "labeled as the learner's voice");
+		assert.doesNotMatch(html, /Your thinking/, "no label over the box");
 		assert.match(html, /Why this answer\? Whatever comes to mind/, "placeholder invites, not apologizes");
 		assert.ok(!html.includes("optional"), "the field is never called optional");
 		assert.match(html, /Submit answer/, "send becomes Submit answer");
@@ -186,7 +186,7 @@ describe("render smoke tests", () => {
 		assert.ok(html.includes('role="radio"'), "Other row keeps the option role");
 		assert.match(html, /aria-checked="false"/, "circle starts unfilled");
 		assert.ok(html.includes('data-testid="thinking-field"'), "thinking field coexists with Other");
-		assert.match(html, /Your thinking/, "ask select-mode also gets the learner's voice");
+		assert.match(html, /data-testid="thinking-field"[\s\S]*Why this answer\?/, "ask select-mode also gets the learner's voice");
 	});
 
 	it("multi-select ask renders checkbox rows and the select-all hint", () => {
@@ -240,7 +240,7 @@ describe("render smoke tests", () => {
 			input: { question: "Explain the chain rule in your own words." } as never,
 		});
 		assert.ok(html.includes('data-testid="answer-field"'), "text mode is the answer field");
-		assert.match(html, /Your answer/, "labeled as the answer");
+		assert.match(html, /data-testid="answer-field"[\s\S]*Type your answer…/, "the placeholder names the answer");
 		assert.ok(!html.includes('data-testid="thinking-field"'), "no thinking field in text mode (v1)");
 		assert.ok(!html.includes("⌘/Ctrl"), "no dump shortcut hint — Enter already submits");
 	});

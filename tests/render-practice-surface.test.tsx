@@ -1,7 +1,7 @@
 /**
  * THE PRACTICE SURFACE — SSR render pins (the render-suite discipline:
  * pure bodies, renderToStaticMarkup, testids). The dock (the active
- * problem replaces the composer: statement above, "Your thinking"
+ * problem replaces the composer: statement above, the thinking
  * field below with ONE Send (Enter sends, Shift+Enter is a newline)),
  * the transcript cards (the
  * problem's compact-expandable statement — commitment NEVER renders;
@@ -49,9 +49,8 @@ describe("PracticeDock", () => {
 			/>,
 		);
 		assert.match(html, /Show that the sum is even\./);
-		assert.match(html, /Your turn/);
 		assert.match(html, /data-testid="problem-number"[\s\S]*?Problem 3/, "the problem's number");
-		assert.match(html, /Your thinking/);
+		assert.match(html, /data-testid="practice-thinking-field"[\s\S]*Work here, think out loud\./, "the thinking box, its placeholder in place of a label");
 		assert.match(html, /data-testid="practice-send"[^>]*disabled/, "Send starts disabled (empty field)");
 		assert.match(html, />Send</);
 		assert.ok(!html.includes("practice-nudge") && !html.includes("practice-commit"), "the two-lane buttons are gone");
@@ -70,8 +69,8 @@ describe("PracticeDock", () => {
 		const header = (busy: boolean, waitingForAgent: boolean) =>
 			renderToStaticMarkup(
 				<PracticeDock problemCallId="call_p1" input={{ statement: "S" }} onSubmit={async () => true} busy={busy} waitingForAgent={waitingForAgent} />,
-			).match(/data-testid="panel-eyebrow"[^>]*>([^<]*)</)?.[1];
-		assert.equal(header(false, false), "Your turn");
+			).match(/data-testid="panel-status"[^>]*>([^<]*)</)?.[1];
+		assert.equal(header(false, false), "", "nothing while it is the learner's turn");
 		assert.equal(header(true, false), "Teacher is writing…");
 		assert.equal(header(true, true), "Waiting for your agent");
 	});
