@@ -5,7 +5,7 @@ import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-stee
 import { cn } from "@/lib/utils";
 import { ActionBar, PanelBody, PanelHeader, StopButton, ToneButton } from "./panel-parts";
 import { MathBox } from "@/components/math-box";
-import { TurnEyebrow } from "./turn-eyebrow";
+import { TurnStatus } from "./turn-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
 
 /**
@@ -75,7 +75,7 @@ export function PanelComposer({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
+					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 					right={busy && <StopButton onStop={onStop} />}
 				/>
 				{notice && <div className="pt-3">{notice}</div>}

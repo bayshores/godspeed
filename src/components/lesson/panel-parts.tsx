@@ -1,5 +1,6 @@
 import { SquareIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /**
  * The Your-turn panel's shared pieces: every
@@ -14,12 +15,14 @@ export function PanelBody({ children, className }: { children: React.ReactNode; 
 	);
 }
 
-/** "Your turn" (or "<teacher> is writing…") with an optional chip right. */
-export function PanelHeader({ eyebrow, right }: { eyebrow: React.ReactNode; right?: React.ReactNode }) {
+/** The status while a turn runs ("<teacher> is writing…") with an
+ *  optional chip right; nothing when the learner's turn has neither. */
+export function PanelHeader({ status, right }: { status?: React.ReactNode; right?: React.ReactNode }) {
+	if (!status && !right) return null;
 	return (
 		<div className="flex shrink-0 items-center justify-between gap-3">
-			<div data-testid="panel-eyebrow" className="text-[13px] font-bold text-ink-3">
-				{eyebrow}
+			<div data-testid="panel-status" className={LABEL_TEXT}>
+				{status}
 			</div>
 			{right}
 		</div>
@@ -76,15 +79,10 @@ export function skipExit(onSkip: (() => void) | undefined) {
  *  not a box, so it never reads as a button beside Skip question. */
 export function KindChip({ children, testId }: { children: React.ReactNode; testId?: string }) {
 	return (
-		<span data-testid={testId} className="flex shrink-0 items-center gap-1.5 text-[13px] font-bold text-ink-2">
+		<span data-testid={testId} className={cn("flex shrink-0 items-center gap-1.5", LABEL_TEXT)}>
 			{children}
 		</span>
 	);
-}
-
-/** A field's bold label ("Your thinking"). */
-export function FieldLabel({ children }: { children: React.ReactNode }) {
-	return <div className="shrink-0 pb-2 text-sm font-bold text-ink-2">{children}</div>;
 }
 
 /** A writing field's look: black with a visible edge, so it reads as a

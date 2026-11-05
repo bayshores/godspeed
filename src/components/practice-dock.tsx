@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { useEnterSubmits } from "@/components/enter-submits";
-import { ActionBar, FieldLabel, HeaderChip, KindChip, PanelBody, PanelHeader, StopButton } from "@/components/lesson/panel-parts";
-import { TurnEyebrow } from "@/components/lesson/turn-eyebrow";
+import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, StopButton } from "@/components/lesson/panel-parts";
+import { TurnStatus } from "@/components/lesson/turn-status";
 import { MathBox } from "@/components/math-box";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/components/lesson/chat-helpers";
@@ -102,7 +102,7 @@ export function PracticeDock({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
+					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={onDiscard && { label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
 							{busy && onStop && <StopButton onStop={onStop} />}
@@ -121,7 +121,6 @@ export function PracticeDock({
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
 				<div data-testid="practice-thinking-field" className="mt-5 flex flex-1 flex-col">
-					<FieldLabel>Your thinking</FieldLabel>
 					<AttachmentTray draft={attachments} />
 					<MathBox
 						value={thinking}

@@ -4,8 +4,8 @@ import { useEnterSubmits } from "@/components/enter-submits";
 import { cn } from "@/lib/utils";
 import { buildCodeAnswer, codeLanguage, type ChatAttachment, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/core";
 import { CodeEditor } from "./code-editor";
-import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "./panel-parts";
-import { TurnEyebrow } from "./turn-eyebrow";
+import { ActionBar, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "./panel-parts";
+import { TurnStatus } from "./turn-status";
 import { MathBox } from "@/components/math-box";
 
 /** The task in lesson prose, 18px in the full text color (the question
@@ -83,7 +83,7 @@ export function CodeQuestion({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
+					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
 							<KindChip testId="question-kind">Code</KindChip>
@@ -119,7 +119,6 @@ export function CodeQuestion({
 					<span className="text-[15px]">I don't know</span>
 				</button>
 				<div className="mt-[18px] flex flex-1 flex-col" data-testid="thinking-field">
-					<FieldLabel>Your thinking</FieldLabel>
 					<MathBox
 						value={thinking}
 						onChange={setThinking}

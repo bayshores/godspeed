@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { MessageResponse, ToolContentResponse } from "@/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/core";
 import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput, questionKindLabel } from "@/core";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** Lesson prose at a given size/leading/color (the markdown renderer reads
  *  these variables). */
@@ -101,7 +102,7 @@ export function AnsweredCard({
 			<div data-testid="answered-card" className="flex flex-col gap-2 bg-panel px-4 py-3.5 text-card-foreground">
 				<div className="flex items-center gap-2.5 text-[13px]">
 					{isQuiz && <ResultChip answer={answer} />}
-					<span data-testid="answer-kind" className="font-bold text-ink-3">
+					<span data-testid="answer-kind" className={LABEL_TEXT}>
 						{questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType)}
 						{step !== undefined && ` · step ${step}`}
 					</span>

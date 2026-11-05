@@ -3,8 +3,8 @@ import { CheckIcon, LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { ConfidenceMeter, ConfidenceSquares } from "@/components/confidence-meter";
-import { ActionBar, FieldLabel, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "@/components/lesson/panel-parts";
-import { TurnEyebrow } from "@/components/lesson/turn-eyebrow";
+import { ActionBar, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "@/components/lesson/panel-parts";
+import { TurnStatus } from "@/components/lesson/turn-status";
 import { MathBox } from "@/components/math-box";
 import { InlineMath } from "@/components/overview/inline-math";
 import { PickedRow } from "@/components/lesson/picked-row";
@@ -104,7 +104,7 @@ export function QuestionDock(props: QuestionDockProps) {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>
-					<PanelHeader eyebrow={<TurnEyebrow busy={props.busy ?? false} waitingForAgent={props.waitingForAgent ?? false} />} />
+					<PanelHeader status={props.busy && <TurnStatus waitingForAgent={props.waitingForAgent ?? false} />} />
 					<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
 						This question came through broken. Skip it and the teacher will ask again.
 					</div>
@@ -397,7 +397,7 @@ function QuestionDockForm({
 		>
 			<PanelBody>
 				<PanelHeader
-					eyebrow={<TurnEyebrow busy={busy} waitingForAgent={waitingForAgent} />}
+					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
 							<KindChip testId="question-kind">
@@ -564,7 +564,6 @@ function QuestionDockForm({
 				)}
 
 				<div className="mt-[18px] flex flex-1 flex-col" data-testid={qd.mode === "text" ? "answer-field" : "thinking-field"}>
-					<FieldLabel>{qd.mode === "text" ? "Your answer" : "Your thinking"}</FieldLabel>
 					{takesFiles && <AttachmentTray draft={attachments} />}
 					{qd.mode === "text" ? (
 						<MathBox

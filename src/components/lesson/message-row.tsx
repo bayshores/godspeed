@@ -31,6 +31,7 @@ import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 // A plan diagram (and dagre, its layout engine) loads only for lessons
 // that have one; server rendering keeps it in the first paint.
@@ -102,7 +103,6 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 				data-testid="user-message"
 				className={cn("my-2 w-full border-l-2 border-tone-2 bg-panel py-2 pl-4 pr-4 font-ui text-sm", arrive(`${mi}`))}
 			>
-				<div className="text-[13px] font-bold text-ink-3">You</div>
 				{text && <div className="lh-prose whitespace-pre-wrap text-ink">{text}</div>}
 				<MessageAttachments parts={m.parts} />
 			</div>
@@ -154,7 +154,7 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 			return <ThinkingCard data={part.data as PracticeThinkingData} />;
 		case "data-practice-next":
 			return (
-				<div data-testid="practice-next-line" className="my-4 flex items-center justify-center gap-1.5 font-ui text-xs font-bold text-ink-3">
+				<div data-testid="practice-next-line" className={cn("my-4 flex items-center justify-center gap-1.5 font-ui", LABEL_TEXT)}>
 					<ArrowRightIcon className="size-3" />
 					Next problem
 				</div>

@@ -1,4 +1,3 @@
-import { FieldLabel } from "@/components/lesson/panel-parts";
 import { MathBox } from "@/components/math-box";
 
 /**
@@ -21,7 +20,6 @@ export function ReadingThinkingField({
 }) {
 	return (
 		<div data-testid="reading-thinking-field" className="flex flex-1 flex-col">
-			<FieldLabel>Thinking while reading</FieldLabel>
 			<MathBox
 				value={value}
 				onChange={onChange}

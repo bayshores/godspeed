@@ -18,6 +18,8 @@ import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { lessonError } from "./lesson-error-model";
 import { MessageRow } from "./message-row";
+import { LABEL_TEXT } from "@/components/ui/label-text";
+import { cn } from "@/lib/utils";
 
 /**
  * THE READING PANE: the lesson as one
@@ -93,7 +95,7 @@ export function ReadingPane({
 					{/* Compaction holds the model gate: a visible session-wide state,
 					    never at the same time as the Thinking placeholder. */}
 					{compacting && (
-						<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-[13px] font-bold text-ink-3">
+						<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
 							<BrailleSpinner label="Summarizing the lesson" />
 							<Shimmer>Summarizing the lesson…</Shimmer>
 						</ArrivalRow>
@@ -108,7 +110,7 @@ export function ReadingPane({
 					)}
 					{waitingForAgent ? (
 						<ArrivalRow live={arrivalsLive} as="div" className="flex flex-col items-start gap-1 font-ui text-[13px]">
-							<span data-testid="lesson-waiting" className="font-bold text-ink-2">
+							<span data-testid="lesson-waiting" className={LABEL_TEXT}>
 								Waiting for your agent
 							</span>
 							<span className="text-ink-3">{teachStep(agentStatusName)}</span>
@@ -124,7 +126,7 @@ export function ReadingPane({
 					) : (
 						!showWork &&
 						(status === "submitted" || turnInFlight) && (
-							<ArrivalRow live={arrivalsLive} className="flex items-center gap-2 font-ui text-[13px] font-bold text-ink-3">
+							<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
 								<BrailleSpinner label="Thinking" />
 								<Shimmer>Thinking…</Shimmer>
 							</ArrivalRow>
