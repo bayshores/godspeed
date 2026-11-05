@@ -4,6 +4,7 @@ import { DoneBox } from "@/components/done-box";
 import { dueSoon, sidebarWhenLabel, type OpenDeadline } from "@/components/deadlines-model";
 import { localDay } from "@/core";
 import { cn } from "@/lib/utils";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /**
  * DUE SOON (sidebar): the 4 most urgent
@@ -31,7 +32,7 @@ export const DueSoon = memo(function DueSoon({
 	const today = localDay(fixedNow ?? minute ?? Date.now());
 	return (
 		<section data-testid="due-soon" aria-label="Due soon" className="flex w-full flex-col">
-			<span className="px-2.5 pt-1 text-[13px] font-bold text-ink-3">Due soon</span>
+			<span className={cn("px-2.5 pt-1", LABEL_TEXT)}>Due soon</span>
 			<ul className="mt-2 flex w-full flex-col gap-px">
 				{rows.map((d) => (
 					<DueSoonRow

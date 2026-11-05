@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { SIGNATURE_MAX, type SignatureKind } from "@/core";
 import { SignatureText } from "@/components/overview/class-cover";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /**
  * Edit class's Signature field: the kind (Math / Code / Text), the one
@@ -17,14 +18,12 @@ export const ClassSignatureField = memo(function ClassSignatureField({
 	kind,
 	value,
 	disabled,
-	labelClass,
 	fieldClass,
 	onChange,
 }: {
 	kind: SignatureKind;
 	value: string;
 	disabled: boolean;
-	labelClass: string;
 	fieldClass: string;
 	onChange: (kind: SignatureKind, value: string) => void;
 }) {
@@ -32,7 +31,7 @@ export const ClassSignatureField = memo(function ClassSignatureField({
 	const trimmed = value.trim();
 	return (
 		<div className="mt-2.5 flex flex-col gap-1.5">
-			<span className={labelClass}>Signature</span>
+			<span className={LABEL_TEXT}>Signature</span>
 			<div className="flex gap-2">
 				<select
 					data-testid="class-signature-kind"

@@ -10,6 +10,7 @@ import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 import { Hint } from "@/components/ui/hint";
 import type { ChangelogEntry } from "@/core";
 import { useDialogFocus } from "@/components/use-dialog-focus";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** "2026-10-27" → "Oct 27, 2026" (fixed locale and zone: no hydration drift). */
 export function formatChangelogDate(date: string): string {
@@ -74,7 +75,7 @@ export function WhatsNewDialog({
 				<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5">
 					{entries.map((entry) => (
 						<section key={entry.version} data-testid="whats-new-entry" className="flex flex-col gap-2">
-							<p className="text-[13px] font-bold text-ink-2">
+							<p className={LABEL_TEXT}>
 								{single ? formatChangelogDate(entry.date) : `${entry.version} · ${formatChangelogDate(entry.date)}`}
 							</p>
 							<ul className="flex flex-col gap-1.5">

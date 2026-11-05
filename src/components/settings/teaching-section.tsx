@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { Toggle } from "./controls.tsx";
 import { InstructionsPanel } from "./instructions-panel.tsx";
 import { areaParts, composeGraphTools, composeQuizStyle, composeRules, composeTool } from "./teaching-model.ts";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 type Icon = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
@@ -142,7 +143,7 @@ export function TeachingSection({
 							<div className="flex min-w-0 flex-1 flex-col gap-3 py-[18px] pr-[18px]">
 								{controls[area.id]}
 								<div className="flex flex-col gap-[7px]">
-									<p className="text-xs font-bold text-ink-3">Your rules</p>
+									<p className={LABEL_TEXT}>Your rules</p>
 									<RuleChips
 										rules={rules}
 										onChange={(next) => onSectionChange(composeRules(agent, area.id, next))}
@@ -197,7 +198,7 @@ function SwitchRow({
 function QuizStyle({ free, onPick }: { free: boolean; onPick: (style: "choice" | "free") => void }) {
 	return (
 		<div className="flex flex-col gap-[7px]">
-			<p className="text-xs font-bold text-ink-3">Quiz style</p>
+			<p className={LABEL_TEXT}>Quiz style</p>
 			<div role="radiogroup" aria-label="Quiz style" className="flex gap-[3px] bg-background p-[3px]">
 				{(
 					[

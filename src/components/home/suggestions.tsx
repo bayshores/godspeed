@@ -6,6 +6,7 @@ import { InlineMath } from "@/components/overview/inline-math";
 import { displayName, lessonHref } from "@/components/overview/overview-model";
 import { STATUS_COLOR } from "@/components/graph/derive";
 import { suggestionKey, type LessonStep, type Suggestion } from "./suggestions-model";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 const ACTION =
 	"lh-press flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-[13.5px] font-bold text-ink outline outline-1 -outline-offset-1 outline-tone-2 hover:bg-tone-2 disabled:opacity-60";
@@ -46,7 +47,7 @@ export const SuggestionList = memo(function SuggestionList({
 	if (suggestions.length === 0) return null;
 	return (
 		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col gap-2.5">
-			<h2 className="text-[13px] font-bold text-ink-3">{label ? `Suggested for ${label}` : "Suggested"}</h2>
+			<h2 className={LABEL_TEXT}>{label ? `Suggested for ${label}` : "Suggested"}</h2>
 			<ul className="flex w-full flex-col gap-0.5">
 				{suggestions.map((s) => (
 					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} />
@@ -157,7 +158,7 @@ function Row({
 				style={dot?.color ? { background: dot.color } : undefined}
 			/>
 			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<span className="text-[12.5px] font-bold text-ink-3">{KIND_LABEL[kind]}</span>
+				<span className={LABEL_TEXT}>{KIND_LABEL[kind]}</span>
 				<span className="truncate text-[15px] font-bold text-ink">
 					<InlineMath text={title} />
 				</span>

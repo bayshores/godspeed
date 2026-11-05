@@ -12,6 +12,7 @@ import { MathBox } from "@/components/math-box";
 import { cn } from "@/lib/utils";
 import type { Pointed } from "./canvas-model";
 import { sheetFilePath } from "./use-cheat-sheet";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** "the back of version 3", "page 1 of version 2". */
 export function pointedLabel(region: SheetRegion, pages: number): string {
@@ -125,7 +126,7 @@ export function SheetChat({
 		} else onClearPointed();
 	};
 
-	const margin = "w-20 shrink-0 truncate pt-px text-[12.5px] font-bold text-ink-3";
+	const margin = cn("w-20 shrink-0 truncate", LABEL_TEXT);
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
 
 	return (

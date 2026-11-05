@@ -10,6 +10,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Tip } from "@/components/ui/tooltip";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** A section block: the dialog's head shows the
  *  section's title, so the block is just its groups and rows. */
@@ -42,7 +43,7 @@ export function SettingsGroup({
 }) {
 	return (
 		<div data-testid={testid} className="mt-[22px] first:mt-0">
-			<p className="pb-2 text-[13px] font-bold text-ink-3">{label}</p>
+			<p className={cn("pb-2", LABEL_TEXT)}>{label}</p>
 			<div className="flex flex-col gap-0.5 [&>p]:py-1.5">{children}</div>
 		</div>
 	);

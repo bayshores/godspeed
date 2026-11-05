@@ -11,6 +11,7 @@ import { CARD, CARD_TITLE } from "@/components/overview/styles";
 import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { materialSummary, rightLabel, shortDate, type ClassDay, type DayState, type Material } from "./deadline-model";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the name, when,
@@ -221,7 +222,7 @@ function CoversCard({
 					<div className="flex w-full flex-col">
 						{m.weeks.map((w) => (
 							<div key={w.number} data-testid="deadline-week" className="flex w-full gap-4 border-t border-tone-2 py-2.5">
-								<span className="w-14 shrink-0 pt-px text-[12.5px] font-bold text-ink-3">Week {w.number}</span>
+								<span className={cn("w-16 shrink-0", LABEL_TEXT)}>Week {w.number}</span>
 								<ul className="flex min-w-0 flex-1 flex-col gap-1.5">
 									{w.days.map((day) => (
 										<DayRow key={day.key} day={day} />
@@ -231,7 +232,7 @@ function CoversCard({
 						))}
 						{m.undated.length > 0 && (
 							<div data-testid="deadline-undated" className="flex w-full gap-4 border-t border-tone-2 py-2.5">
-								<span className="w-14 shrink-0 pt-px text-[12.5px] font-bold text-ink-3">Other</span>
+								<span className={cn("w-16 shrink-0", LABEL_TEXT)}>Other</span>
 								<ul className="flex min-w-0 flex-1 flex-col gap-1.5">
 									{m.undated.map((day) => (
 										<DayRow key={day.key} day={day} />
@@ -243,7 +244,7 @@ function CoversCard({
 					{m.notIncluded.length > 0 ? (
 						<div data-testid="deadline-not-included" className="flex w-full flex-col gap-2 bg-[color-mix(in_oklab,var(--lh-ramp-2)_9%,transparent)] px-3.5 py-3">
 							<div className="flex items-center justify-between gap-4">
-								<p className={cn("text-[13.5px] font-bold", WARN)}>Not on it, but {before}</p>
+								<p className={cn(LABEL_TEXT, WARN)}>Not on it, but {before}</p>
 								{m.notIncluded.length > 1 && (
 									<button type="button" disabled={saving} onClick={() => onLeaveOut(m.notIncluded.flatMap((x) => x.fileIds))} className={cn(TEXT_BUTTON, "font-normal text-ink-2")}>
 										Leave all out

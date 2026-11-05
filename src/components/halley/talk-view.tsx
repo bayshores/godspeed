@@ -17,6 +17,8 @@ import { useServerEvent } from "@/components/server-events";
 import { useChatSession } from "@/components/session";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { pastLabel } from "./tour";
+import { LABEL_TEXT } from "@/components/ui/label-text";
+import { cn } from "@/lib/utils";
 
 interface TalkChat {
 	id: string;
@@ -224,7 +226,7 @@ function TalkThread({
 			.catch(() => setClearError("Couldn't clear the chat."));
 	};
 
-	const margin = "w-16 shrink-0 truncate pt-px text-[12.5px] font-bold text-ink-3";
+	const margin = cn("w-16 shrink-0 truncate", LABEL_TEXT);
 
 	return (
 		<div

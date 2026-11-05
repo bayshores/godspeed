@@ -12,6 +12,7 @@ import { RenameRow, SessionRow } from "@/components/sidebar/session-row";
 import { LessonMenu } from "@/components/sidebar/lesson-menu";
 import { useLessonList } from "@/components/sidebar/use-lesson-list";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /**
  * THE LESSONS SECTION: the "Lessons" heading with its search toggle, the
@@ -180,7 +181,7 @@ export function LessonsSection({
 	return (
 		<div className="flex min-h-0 w-full flex-1 flex-col">
 			<div className="flex w-full items-center justify-between px-2.5 pt-1">
-				<span className="text-[13px] font-bold text-ink-3">Lessons</span>
+				<span className={LABEL_TEXT}>Lessons</span>
 				<Hint label="Search lessons" side="right">
 					<button
 						type="button"

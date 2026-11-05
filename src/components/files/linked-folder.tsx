@@ -6,6 +6,7 @@ import { Tip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { folderStatusLine, skippedLines } from "./folder-status-model";
 import { useMenuDismiss } from "@/components/use-menu-dismiss";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** What the box says about each folder problem. */
 const PROBLEM_LINE: Record<FolderProblem, string> = {
@@ -92,7 +93,7 @@ export function LinkedFolderChip({
 				preferredSide="down"
 				menuClass="lh-popup flex w-[300px] flex-col gap-2 px-[13px] py-[11px]"
 			>
-				<div className="text-sm font-bold text-ink">Linked folder</div>
+				<div className={LABEL_TEXT}>Linked folder</div>
 				<div className="break-all font-mono text-xs leading-[1.4] text-ink-2">{path}</div>
 				{problem ? (
 					<div data-testid="class-folder-problem" className="text-[12.5px] text-ans-wrong">

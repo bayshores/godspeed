@@ -11,6 +11,7 @@ import { displayName } from "@/components/overview/overview-model";
 import { deadlineHref, percent } from "@/components/overview/runway-model";
 import { CARD, CARD_TITLE } from "@/components/overview/styles";
 import { cn } from "@/lib/utils";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /**
  * COMING UP (Home): every open deadline
@@ -77,7 +78,7 @@ export const ComingUp = memo(function ComingUp({
 				<div className="flex w-full flex-col gap-5">
 					{groups.map((g) => (
 						<div key={g.key} data-testid={`coming-up-group-${g.key}`} className="flex w-full flex-col gap-2">
-							<h3 className={cn("text-[13px] font-bold", g.overdue ? "text-ans-wrong" : "text-ink-2")}>{g.label}</h3>
+							<h3 className={cn(LABEL_TEXT, g.overdue && "text-ans-wrong")}>{g.label}</h3>
 							<ul className="flex w-full flex-col gap-0.5">
 								{g.items.map((d) => (
 									<ComingUpRow

@@ -14,6 +14,7 @@ import { TopBar } from "@/components/top-bar";
 import { PdfThumb } from "./pdf-thumb";
 import { fileBrowserName } from "@/components/files/files-model";
 import { remakeSheet, sheetPdfPath, showSheetPdf, studioPath, useClassSheets } from "./use-cheat-sheet";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** The preview's box: the first page fits inside it. */
 const THUMB_W = 150;
@@ -41,7 +42,7 @@ export function ClassSheetsPage() {
 	const section = (title: string, cards: readonly SheetCard[]) =>
 		cards.length > 0 && (
 			<section className="flex flex-col gap-3">
-				<h2 className="text-[13px] font-bold text-ink-2">{title}</h2>
+				<h2 className={LABEL_TEXT}>{title}</h2>
 				<div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
 					{cards.map((c) => (
 						<SheetCardView

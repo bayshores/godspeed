@@ -25,6 +25,8 @@ import {
 	type KeyAction,
 } from "@/core";
 import { SettingsRow } from "./controls.tsx";
+import { LABEL_TEXT } from "@/components/ui/label-text";
+import { cn } from "@/lib/utils";
 
 /** The overrides map after ONE change (pure — exported for tests):
  *  binding null = reset the action to its default (key removed). */
@@ -93,7 +95,7 @@ export function KeyboardSection() {
 				if (!actions.length) return null;
 				return (
 					<div key={scope} data-testid={`kbd-scope-${scope}`} className="mt-[22px] first:mt-0">
-						<p className="pb-2 text-[13px] font-bold text-ink-3">{label}</p>
+						<p className={cn("pb-2", LABEL_TEXT)}>{label}</p>
 						<div className="flex flex-col gap-0.5">
 							{actions.map((def) => {
 								const effective = overrides[def.id] ?? def.binding;

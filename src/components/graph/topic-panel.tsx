@@ -10,11 +10,11 @@ import { Hint } from "@/components/ui/hint";
 import { neighbors, PANEL_ANSWER_COLOR, takeaway } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
 import { StudyBar, SIDE_PANEL, StatusMark } from "./where-panel.tsx";
+import { LABEL_TEXT } from "@/components/ui/label-text";
+import { cn } from "@/lib/utils";
 
 /** At most this many answer blocks (the newest). */
 const MAX_BLOCKS = 40;
-
-const HEAD = "text-[13px] font-bold text-ink-3";
 
 export function TopicPanel({
 	topic,
@@ -75,7 +75,7 @@ export function TopicPanel({
 						<ChipColumn label="Leads to" empty="Nothing yet" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
 					</div>
 				)}
-				<h3 className={`mt-4 ${HEAD}`}>Facts in this topic · {list.length}</h3>
+				<h3 className={cn("mt-4", LABEL_TEXT)}>Facts in this topic · {list.length}</h3>
 				<div className="h-1.5" />
 				<FactList key={topic.id} facts={list} />
 			</div>
@@ -100,7 +100,7 @@ const ChipColumn = memo(function ChipColumn({
 }) {
 	return (
 		<div className="flex min-w-0 flex-1 flex-col gap-1" data-testid={testid}>
-			<span className="text-[13px] font-bold text-ink-3">{label}</span>
+			<span className={LABEL_TEXT}>{label}</span>
 			{topics.length === 0 && <span className="text-[13px] text-ink-2">{empty}</span>}
 			{topics.map((t) => (
 				<button

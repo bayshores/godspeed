@@ -14,6 +14,7 @@ import { useAppearance } from "./appearance.tsx";
 import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette } from "./appearance-model.ts";
 import { FontMenuList } from "./font-menu";
 import { SettingsGroup, Slider, Toggle } from "./controls.tsx";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** The factory reading family (unset = this). */
 export const DEFAULT_READING_FONT = "Source Sans 3";
@@ -161,7 +162,7 @@ export function AppearanceSection({
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<p className="text-[13px] font-bold text-ink-3">{label}</p>
+			<p className={LABEL_TEXT}>{label}</p>
 			{children}
 		</div>
 	);
@@ -217,7 +218,7 @@ function InkSwatch({ color, label, on, onPick }: { color: string; label: string;
 function Preview() {
 	return (
 		<div className="min-w-0 flex-1 self-start border border-tone-2 bg-background px-5 py-[18px]" data-testid="appearance-preview">
-			<p className="pb-2 text-[11.5px] font-bold text-ink-3">Preview</p>
+			<p className={cn("pb-2", LABEL_TEXT)}>Preview</p>
 			<h4 className="font-title pb-2 text-[22px] leading-tight text-ink">Why a derivative is a slope</h4>
 			<div className="lh-prose flex flex-col gap-2.5">
 				<p>

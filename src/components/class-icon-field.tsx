@@ -2,6 +2,7 @@ import { memo } from "react";
 import { CLASS_ICONS, type ClassIcon as ClassIconName } from "@/core";
 import { ClassIcon } from "@/components/class-icon";
 import { cn } from "@/lib/utils";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** Edit class's Icon field: the subject icons in a grid, the picked one outlined. */
 
@@ -10,17 +11,15 @@ const NAMES = Object.keys(CLASS_ICONS) as ClassIconName[];
 export const ClassIconField = memo(function ClassIconField({
 	icon,
 	disabled,
-	labelClass,
 	onChange,
 }: {
 	icon: ClassIconName | undefined;
 	disabled: boolean;
-	labelClass: string;
 	onChange: (icon: ClassIconName) => void;
 }) {
 	return (
 		<div className="mt-2.5 flex flex-col gap-1.5">
-			<span className={labelClass}>Icon</span>
+			<span className={LABEL_TEXT}>Icon</span>
 			<div role="radiogroup" aria-label="Icon" data-testid="class-icon" className="grid grid-cols-8 gap-2">
 				{NAMES.map((name) => {
 					const picked = name === icon;

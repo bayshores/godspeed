@@ -7,6 +7,8 @@ import { Tip } from "@/components/ui/tooltip";
 import { ReadyRing } from "./ready-ring";
 import { deadlineHref, gapLabel, joinAnd, mostNeeded, percent, ringMeta, ringTitle, runwayStops, stopMeta, upcomingDeadlines, type MostNeeded } from "./runway-model";
 import { CARD, CARD_TITLE } from "./styles";
+import { LABEL_TEXT } from "@/components/ui/label-text";
+import { cn } from "@/lib/utils";
 
 /**
  * "READY FOR WHAT'S DUE" (Class Overview): a runway from Today through
@@ -206,7 +208,7 @@ function RingTipBody({ deadline: d }: { deadline: DeadlineProgress }) {
 function MostNeededRow({ needed, busy, onStudy }: { needed: MostNeeded; busy: boolean; onStudy: (topicId: string) => void }) {
 	return (
 		<div data-testid="runway-most-needed" className="flex w-full items-center gap-3 border-t border-tone-2 pt-3">
-			<span className="shrink-0 text-[13.5px] font-bold text-ink-2">Most needed</span>
+			<span className={cn("shrink-0", LABEL_TEXT)}>Most needed</span>
 			<span title={needed.name} className="min-w-0 shrink truncate text-[15.5px] font-bold text-ink">{needed.name}</span>
 			<span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-3">on {joinAnd(needed.deadlines)}</span>
 			<button

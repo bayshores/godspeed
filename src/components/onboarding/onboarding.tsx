@@ -26,6 +26,7 @@ import { CLASS_FILE_ACCEPT } from "@/components/files/files-model";
 import { showFocusRingAfterTab } from "@/components/focus-hygiene";
 import { cn } from "@/lib/utils";
 import { Constellation, type ConstellationMode } from "./constellation";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 type Step = "intro" | "agent" | "class" | "done";
 
@@ -312,7 +313,7 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 	const summary = pickedLabel(picked);
 	return (
 		<StepColumn at={2} title="Add your first class" sub="Each class gets its own lessons and knowledge graph. You can add more later.">
-			<label className="mt-8 text-[13px] font-bold text-ink-2" htmlFor="onboarding-class-name">
+			<label className={cn("mt-8", LABEL_TEXT)} htmlFor="onboarding-class-name">
 				Class name
 			</label>
 			<input
@@ -324,7 +325,7 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 				placeholder="e.g. CSE 21: Discrete Math"
 				className="mt-2 border border-edge bg-panel px-4 py-3 text-[15px] text-ink outline-none placeholder:text-ink-3 focus:border-ink"
 			/>
-			<span className="mt-7 text-[13px] font-bold text-ink-2">Notes and slides (optional)</span>
+			<span className={cn("mt-7", LABEL_TEXT)}>Notes and slides (optional)</span>
 			<input
 				ref={fileInput}
 				type="file"

@@ -14,6 +14,8 @@ import { zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from "d3-zo
 import { RAMP_COLORS, type TopicLink, type TopicProgress } from "@/core";
 import { fitTransform, layoutKey, layoutTopics, MAX_SCALE, MIN_SCALE, type PlacedLink } from "./layout.ts";
 import { FADED_OPACITY, TopicNode, inkAlpha } from "./topic-node.tsx";
+import { LABEL_TEXT } from "@/components/ui/label-text";
+import { cn } from "@/lib/utils";
 
 interface TopicMapProps {
 	topics: readonly TopicProgress[];
@@ -150,8 +152,8 @@ export function TopicMap({ topics, links, inClass, focus, selectedId, onSelect }
 				</p>
 			) : (
 				<>
-					<span className="pointer-events-none absolute left-6 top-[22px] text-[12.5px] font-bold text-ink-3">Foundations</span>
-					<span className="pointer-events-none absolute right-6 top-[22px] text-[12.5px] font-bold text-ink-3">Advanced →</span>
+					<span className={cn("pointer-events-none absolute left-6 top-[22px]", LABEL_TEXT)}>Foundations</span>
+					<span className={cn("pointer-events-none absolute right-6 top-[22px]", LABEL_TEXT)}>Advanced →</span>
 					<MapLegend />
 				</>
 			)}

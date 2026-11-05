@@ -34,7 +34,7 @@ export function GraphTopBar({
 	}, []);
 	return (
 		<TopBar>
-			<h1 className="text-sm font-bold text-ink">Graph</h1>
+			<h1 className="text-[15px] font-bold text-ink">Graph</h1>
 			<div className="flex-1" />
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
 			{hasFacts && (

@@ -27,6 +27,7 @@ import { ClassIconField } from "@/components/class-icon-field";
 import { forgetLessonDraft } from "@/components/lesson/use-lesson-drafts";
 import { LoadFailed } from "@/components/load-failed";
 import { useDialogFocus } from "@/components/use-dialog-focus";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** `deadline`: open with that deadline's row open and in view, or "new"
  *  for a new row ready to fill (Home's Add deadline). */
@@ -53,7 +54,6 @@ type MotionState = "open" | "closed";
 /** The class's own fields as the Edit class dialog sends them. */
 type ClassFields = { name: string; description: string; signature: ClassSignature | null; icon?: ClassIcon; rules: string[] };
 
-const LABEL = "text-[13px] font-bold text-ink-2";
 const FIELD =
 	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-edge placeholder:text-ink-3 focus:border-ink";
 
@@ -309,7 +309,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 					) : (
 						<>
 							<label className="flex flex-col gap-1.5">
-								<span className={LABEL}>Name</span>
+								<span className={LABEL_TEXT}>Name</span>
 								<input
 									type="text"
 									data-testid="class-name"
@@ -322,7 +322,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								/>
 							</label>
 							<label className="mt-2.5 flex flex-col gap-1.5">
-								<span className={LABEL}>Description</span>
+								<span className={LABEL_TEXT}>Description</span>
 								<textarea
 									data-testid="class-description"
 									value={description}
@@ -336,14 +336,13 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 						</>
 					)}
 
-					{mode.kind === "edit" && record && <ClassIconField icon={icon} disabled={busy} labelClass={LABEL} onChange={setIcon} />}
+					{mode.kind === "edit" && record && <ClassIconField icon={icon} disabled={busy} onChange={setIcon} />}
 
 					{mode.kind === "edit" && record && (
 						<ClassSignatureField
 							kind={signature.kind}
 							value={signature.value}
 							disabled={busy}
-							labelClass={LABEL}
 							fieldClass={FIELD}
 							onChange={(kind, value) => setSignature({ kind, value })}
 						/>
@@ -352,7 +351,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 					{mode.kind === "edit" && record && (
 						<div className="mt-2.5 flex flex-col gap-2">
 							<span className="flex items-baseline justify-between gap-3">
-								<span className={LABEL}>Rules for this class</span>
+								<span className={LABEL_TEXT}>Rules for this class</span>
 								<span className="text-xs text-ink-2">Added to your rules in every {record.name} lesson</span>
 							</span>
 							<RuleChips rules={rules} onChange={setRules} testid="class-rules" saved={record ? savedTimes(savedRules, { classId: record.id }) : {}} teacherName={teacherName} />

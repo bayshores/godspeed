@@ -140,7 +140,7 @@ function RowState({
 			);
 		case "failed": {
 			const label = (
-				<span data-testid={`class-file-status-${fileId}`} tabIndex={state.error ? 0 : undefined} className="text-[13px] font-bold text-ans-wrong outline-none">
+				<span data-testid={`class-file-status-${fileId}`} tabIndex={state.error ? 0 : undefined} className="text-[13px] text-ans-wrong outline-none">
 					{state.label}
 				</span>
 			);

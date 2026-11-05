@@ -15,11 +15,10 @@ import { useMenuDismiss } from "@/components/use-menu-dismiss";
 import { Tip } from "@/components/ui/tooltip";
 import { countdownText, deadlineFilesText, pickableDeadlines, readinessBlocks, reasonText, STATUS_COLOR, statusLine } from "./derive.ts";
 import { MENU_ITEM_CLASS } from "./menu.tsx";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 /** "Work on next" shows this many (the design's "Study these 4"). */
 const WORK_ON_NEXT_LIMIT = 4;
-
-const HEAD = "text-[13px] font-bold text-ink-3";
 
 /** The map's right panel (this one and the topic's): up to 400 wide,
  *  narrower in a narrow window so the map keeps room. */
@@ -64,7 +63,7 @@ export function WherePanel({
 						{deadline ? (
 							<DeadlinePicker deadlines={pickable} deadline={deadline} onChange={onDeadlineChange} />
 						) : (
-							<h2 className={HEAD}>Where you&apos;re at</h2>
+							<h2 className={LABEL_TEXT}>Where you&apos;re at</h2>
 						)}
 					</div>
 					<HidePanelButton onHide={onHide} />
@@ -73,7 +72,7 @@ export function WherePanel({
 					<>
 						<Countdown deadline={deadline} />
 						<div className="h-[18px]" />
-						<h2 className={HEAD}>Where you&apos;re at</h2>
+						<h2 className={LABEL_TEXT}>Where you&apos;re at</h2>
 					</>
 				)}
 				<div className="h-2" />
@@ -83,7 +82,7 @@ export function WherePanel({
 				{next.length > 0 && (
 					<>
 						<div className="h-6" />
-						<h2 className={HEAD}>Work on next</h2>
+						<h2 className={LABEL_TEXT}>Work on next</h2>
 						<div className="h-2" />
 						<ol className="flex flex-col gap-0.5" data-testid="work-on-next">
 							{next.map((item, i) => (

@@ -3,6 +3,7 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon, SearchIcon, XIcon 
 import type { ClassFile, DeadlineKind } from "@/core";
 import { cn } from "@/lib/utils";
 import { dueLabel, FILE_FILTER_FROM, filesLabel, filterFiles, KIND_OPTIONS, kindLabel, toggleFile, type DeadlineDraft } from "./class-deadlines-model";
+import { LABEL_TEXT } from "@/components/ui/label-text";
 
 type DraftPatch = Partial<Pick<DeadlineDraft, "kind" | "name" | "date" | "time" | "fileIds" | "done">>;
 
@@ -38,7 +39,7 @@ export function DeadlinesEditor({
 	return (
 		<section data-testid="class-deadlines" className="flex flex-col gap-1.5">
 			<div className="flex items-center justify-between">
-				<span className="text-[13px] font-bold text-ink-2">Deadlines</span>
+				<span className={LABEL_TEXT}>Deadlines</span>
 				<button
 					type="button"
 					data-testid="class-add-deadline"
@@ -182,7 +183,7 @@ const DeadlineRow = memo(function DeadlineRow({
 			{shown.length > 0 && (
 				<div className="flex flex-col gap-1.5 border-t border-tone-2 pt-2.5">
 					<div className="flex items-center gap-3">
-						<span className="flex-1 text-[13px] font-bold text-ink-2">Files this covers</span>
+						<span className={cn("flex-1", LABEL_TEXT)}>Files this covers</span>
 						{shown.length >= FILE_FILTER_FROM && (
 							<label className="flex w-[180px] items-center gap-1.5 border border-edge bg-background px-2 py-1 focus-within:border-ink">
 								<SearchIcon className="size-3 shrink-0 text-ink-3" aria-hidden />
