@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.36",
+		"date": "2026-11-04",
+		"changes": [
+			"Cleaner screens. The small bold labels like Your turn and Thinking while reading are gone, and the section names that stay are plain text at normal size."
+		]
+	},
+	{
 		"version": "0.5.35",
 		"date": "2026-11-04",
 		"changes": [
