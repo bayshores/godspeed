@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ChevronDownIcon, GitForkIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { stepPosition, type PlanStep, type PlanStepBar, type StepAnswer } from "@/shared/core";
@@ -33,10 +33,10 @@ export function jumpTarget(step: PlanStep): string | null {
 }
 
 /**
- * THE PLAN STEP BAR: one small block per plan
- * step — gray when done, white and wide for the current step, dark when
- * upcoming — then "11 / 14", the step name and a chevron that opens the
- * full plan map. Hovering (or focusing) a step shows its answers; clicking
+ * THE PLAN STEP BAR: the step name and a chevron that opens the full plan
+ * map. A plan with several steps also shows one small block per step
+ * (gray when done, white for the current one, dark when upcoming) and
+ * "11 of 14". Hovering (or focusing) a block shows its answers; clicking
  * a done step scrolls back to it.
  */
 export const StepBar = memo(function StepBar({
@@ -52,28 +52,31 @@ export const StepBar = memo(function StepBar({
 	const current = currentIndex >= 0 ? steps[currentIndex] : undefined;
 	const position = stepPosition(steps);
 	return (
-		<div data-testid="plan-step-bar" className="flex min-w-0 items-center gap-3 bg-panel px-3 py-[3px]">
-			<GitForkIcon aria-hidden className="size-3.5 shrink-0 text-ink-3" />
-			<TooltipProvider>
-				<div className="flex shrink-0 items-center gap-[3px]" role="list" aria-label="Plan steps">
-					{steps.map((step, i) => (
-						<StepBlock key={step.id} step={step} number={i + 1} onJump={onJump} />
-					))}
-				</div>
-			</TooltipProvider>
+		<div data-testid="plan-step-bar" className="flex min-w-0 items-center gap-3">
 			<button
 				type="button"
 				data-testid="plan-step-open"
 				onClick={onOpenPlan}
 				aria-label="Open the plan map"
-				className="lh-press flex min-w-0 items-center gap-1.5 py-1 text-left"
+				className="lh-no-drag lh-press flex min-w-0 items-center gap-1.5 py-1 text-left"
 			>
-				<span data-testid="plan-step-count" className="shrink-0 font-mono text-[12.5px] text-ink-3 tabular-nums">
-					{position} / {steps.length}
-				</span>
-				<span className="min-w-0 truncate text-[13.5px] font-bold text-ink" title={current?.title}>{current?.title ?? "Plan"}</span>
-				<ChevronDownIcon aria-hidden className="size-3.5 shrink-0 text-ink-2" />
+				<span className="min-w-0 truncate text-[15px] font-bold text-ink" title={current?.title}>{current?.title ?? "Plan"}</span>
+				<ChevronDownIcon aria-hidden className="size-4 shrink-0 text-ink-2" />
 			</button>
+			{steps.length > 1 && (
+				<>
+					<TooltipProvider>
+						<div className="lh-no-drag flex shrink-0 items-center gap-[3px]" role="list" aria-label="Plan steps">
+							{steps.map((step, i) => (
+								<StepBlock key={step.id} step={step} number={i + 1} onJump={onJump} />
+							))}
+						</div>
+					</TooltipProvider>
+					<span data-testid="plan-step-count" className="shrink-0 text-[15px] text-ink-2 tabular-nums">
+						{position} of {steps.length}
+					</span>
+				</>
+			)}
 		</div>
 	);
 });
@@ -97,7 +100,7 @@ function StepBlock({ step, number, onJump }: { step: PlanStep; number: number; o
 						aria-hidden
 						className={cn(
 							"block transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-							step.status === "current" ? "h-2.5 w-[22px] bg-ink" : "h-1.5 w-2.5",
+							step.status === "current" ? "h-1.5 w-2.5 bg-ink" : "h-1.5 w-2.5",
 							step.status === "visited" && "bg-ink-2 group-hover:bg-ink group-focus-visible:bg-ink",
 							step.status === "upcoming" && "bg-tone-2 group-hover:bg-ink-3 group-focus-visible:bg-ink-3",
 						)}

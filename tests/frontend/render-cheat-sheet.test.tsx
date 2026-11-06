@@ -158,13 +158,13 @@ describe("the sheet's chat", () => {
 		assert.match(failed, /according to the cheat sheet.*Claude Code couldn&#x27;t finish that\..*the agent never answered.*Try again/);
 	});
 
-	it("names the part pointed at, and says when a message takes the problem along", () => {
+	it("names the part pointed at; a message still takes the problem along", () => {
 		assert.equal(pointedLabel({ n: 2, page: 1, x: 0, y: 0, w: 1, h: 1 }, 2), "the front of version 2");
 		assert.equal(pointedLabel({ n: 3, page: 3, x: 0, y: 0, w: 1, h: 1 }, 4), "page 3 of version 3");
 		const pointed = { region: { n: 2, page: 2, x: 0, y: 0, w: 1, h: 1 }, picture: { name: "p.png", mimeType: "image/png", data: "QUJD" } };
 		const html = render(chatView, { pointed, about: { kind: "question", session: "Counting", text: "Which?" } });
 		assert.match(html, /data-testid="sheet-pointed-chip".*src="data:image\/png;base64,QUJD".*Pointing at the back of version 2/);
-		assert.match(html, /Your message takes the question you&#x27;re on with it\./);
+		assert.doesNotMatch(html, /sheet-about/, "no line about the question riding along");
 	});
 
 	it("sends the words with the part pointed at first and the problem, keeps a refused message, and stops, retries and removes rules", async () => {
@@ -306,7 +306,7 @@ describe("the cheat sheet beside a session", () => {
 		await settle();
 		assert.ok(asked.some((u) => u.endsWith("/deadlines/ddl_mid/cheat-sheet")), "the session's own deadline");
 		const pick = el.querySelector<HTMLSelectElement>("[data-testid='sheet-dock-pick']")!;
-		assert.deepEqual([...pick.querySelectorAll("option")].map((o) => o.textContent), ["Quiz 3", "Midterm"]);
+		assert.deepEqual([...pick.querySelectorAll("option")].map((o) => o.textContent), ["Cheat sheet for Quiz 3", "Cheat sheet for Midterm"]);
 		assert.ok(el.querySelector("[data-testid='cheat-sheet-canvas']"));
 		assert.ok(el.querySelector("[data-testid='sheet-chat']"));
 		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);

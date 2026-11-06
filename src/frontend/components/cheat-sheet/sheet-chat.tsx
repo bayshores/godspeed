@@ -7,7 +7,7 @@ import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
-import { ActionBar } from "@/frontend/components/lesson/panel-parts";
+import { SendButton } from "@/frontend/components/lesson/panel-parts";
 import { MathBox } from "@/frontend/components/math-box";
 import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
@@ -178,14 +178,9 @@ export function SheetChat({
 						</p>
 					)}
 					{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
-					{about && (
-						<p data-testid="sheet-about" className="truncate pt-3 text-[12.5px] text-ink-3" title={about.text}>
-							Your message takes the {about.kind} you&apos;re on with it.
-						</p>
-					)}
 					<AttachmentTray draft={attachments} />
 				</div>
-				<div className="flex min-h-[64px] px-2.5 py-1.5 has-[.cm-focused]:inset-ring has-[.cm-focused]:inset-ring-ink-2">
+				<div className="m-4 border border-tone-2 bg-background has-[.cm-focused]:border-ink-2">
 					<MathBox
 						compact
 						value={text}
@@ -194,8 +189,8 @@ export function SheetChat({
 						placeholder={view.sheet.versions.length > 0 ? "Ask about the sheet, or say what to change" : "What do you want on your cheat sheet?"}
 						ariaLabel={`Message ${agentName} about the cheat sheet`}
 					/>
+					<ComposerBar attachments={attachments} busy={busy} disabled={nothing || sending || !!view.newer} onSend={() => void send()} onStop={() => post({ action: "stop" })} />
 				</div>
-				<ComposerBar attachments={attachments} busy={busy} disabled={nothing || sending || !!view.newer} onSend={() => void send()} onStop={() => post({ action: "stop" })} />
 			</div>
 		</div>
 	);
@@ -203,25 +198,23 @@ export function SheetChat({
 
 function ComposerBar({ attachments, busy, disabled, onSend, onStop }: { attachments: AttachmentDraft; busy: boolean; disabled: boolean; onSend: () => void; onStop: () => void }) {
 	return (
-		<div className="flex items-stretch">
+		<div className="flex items-center gap-2 p-2">
 			<AttachButton draft={attachments} />
-			<div className="min-w-0 flex-1">
-				{busy ? (
-					<ActionBar
-						testId="sheet-stop"
-						waiting
-						onClick={onStop}
-						label={
-							<span className="flex items-center gap-2">
-								<SquareIcon aria-hidden className="size-3.5" />
-								Stop
-							</span>
-						}
-					/>
-				) : (
-					<ActionBar testId="sheet-send" onClick={onSend} disabled={disabled} label="Send" />
-				)}
-			</div>
+			{busy ? (
+				<SendButton
+					testId="sheet-stop"
+					waiting
+					onClick={onStop}
+					label={
+						<>
+							<SquareIcon aria-hidden className="size-3.5" />
+							Stop
+						</>
+					}
+				/>
+			) : (
+				<SendButton testId="sheet-send" onClick={onSend} disabled={disabled} label="Send" />
+			)}
 		</div>
 	);
 }

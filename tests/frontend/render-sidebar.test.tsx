@@ -47,23 +47,23 @@ describe("SessionRow", () => {
 	it("idle lesson: no dot, no spinner — just the title and how long ago", () => {
 		for (const phase of ["probe", "plan", "teach"] as const) {
 			const html = render(item({ phase }));
-			assert.ok(!html.includes("session-waiting-dot"), "no waiting dot");
+			assert.ok(!html.includes("data-waiting"), "not waiting");
 			assert.ok(!html.includes("braille-spinner"), "idle never shows the spinner");
 		}
 	});
 
-	it("a waiting lesson shows the white square dot instead of any 'Your turn' text", () => {
+	it("a waiting lesson shows its age in full white, no square and no 'Your turn' text", () => {
 		const html = render(item({ phase: "teach", pendingQuestion: true }));
-		assert.match(html, /data-testid="session-waiting-dot"[^>]*class="[^"]*size-1\.5[^"]*bg-ink/, "6×6 white square");
-		assert.doesNotMatch(html, /session-waiting-dot[^>]*rounded/, "square, not round");
+		assert.match(html, /data-waiting="true"[^>]*text-ink"/, "the age in white");
+		assert.ok(!html.includes("session-waiting-dot"), "no square");
 		assert.ok(!html.includes("braille-spinner"), "motion is reserved for working");
-		assert.doesNotMatch(html, /Your turn|Waiting for input/, "the dot replaces the old text");
+		assert.doesNotMatch(html, /Your turn|Waiting for input/);
 		assert.ok(html.includes('<span class="sr-only">Waiting for your answer</span>'), "screen readers still hear it");
 	});
 
 	it("a lesson with a posed problem also waits, whatever its kind", () => {
-		assert.ok(render(item({ kind: "practice", pendingProblem: true })).includes("session-waiting-dot"));
-		assert.ok(render(item({ kind: "study", pendingProblem: true })).includes("session-waiting-dot"));
+		assert.ok(render(item({ kind: "practice", pendingProblem: true })).includes("data-waiting"));
+		assert.ok(render(item({ kind: "study", pendingProblem: true })).includes("data-waiting"));
 	});
 
 	it("a working lesson (turn in flight) shows the braille spinner and no dot", () => {
@@ -71,13 +71,13 @@ describe("SessionRow", () => {
 		assert.ok(html.includes('data-testid="braille-spinner"'), "the spinner");
 		assert.ok((html.match(/class="braille-frame"/g) ?? []).length === 10, "all ten frames");
 		assert.ok(html.includes("Working…"), "working meta");
-		assert.ok(!html.includes("session-waiting-dot"), "working wins over waiting");
+		assert.ok(!html.includes("data-waiting"), "working wins over waiting");
 	});
 
 	it("compacting has priority over waiting", () => {
 		const html = render(item({ compacting: true, pendingQuestion: true }));
-		assert.match(html, /Summarizing the lesson…/);
-		assert.ok(!html.includes("session-waiting-dot"));
+		assert.match(html, /Summarizing…/);
+		assert.ok(!html.includes("data-waiting"));
 	});
 
 	it("the meta line is the short age; the message count stays dropped", () => {

@@ -84,6 +84,7 @@ export function SheetDock({
 	const choices = cards ? sheetChoices(cards.cards) : [];
 	const shown = cards ? (pickSheet(cards.cards, sessionDeadlineId, picked) ?? making) : null;
 	const target = cards ? makeTarget(cards.cards, sessionDeadlineId) : null;
+	const shownName = cards?.cards.find((c) => c.deadlineId === shown)?.name;
 
 	return (
 		<aside data-testid="sheet-dock" aria-label="Cheat sheet" style={{ width }} className="relative flex h-dvh shrink-0 flex-col border-l border-tone-2 bg-panel font-ui">
@@ -107,28 +108,32 @@ export function SheetDock({
 				}}
 			/>
 			<header className="lh-drag flex h-14 shrink-0 items-center gap-3 border-b border-tone-2 pr-3 pl-5">
-				<span className="shrink-0 text-[15px] font-bold text-ink">Cheat sheet</span>
 				{choices.length > 1 && shown ? (
 					<select
 						data-testid="sheet-dock-pick"
 						aria-label="Which cheat sheet"
 						value={shown}
 						onChange={(e) => onPick(e.target.value)}
-						className="lh-no-drag min-w-0 flex-1 truncate border border-tone-2 bg-panel px-2 py-1 text-[13px] text-ink"
+						className="lh-no-drag min-w-0 flex-1 truncate border border-tone-2 bg-panel px-2 py-1 text-[15px] font-bold text-ink"
 					>
 						{choices.map((c) => (
 							<option key={c.deadlineId} value={c.deadlineId}>
-								{c.name}
+								Cheat sheet for {c.name}
 							</option>
 						))}
 					</select>
 				) : (
-					<span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{cards?.cards.find((c) => c.deadlineId === shown)?.name}</span>
+					<span className="min-w-0 flex-1 truncate text-[15px] font-bold text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>
 				)}
 				{shown && (
-					<Link href={studioPath(shown)} data-testid="sheet-dock-studio" className="lh-no-drag lh-press flex shrink-0 items-center gap-1 text-[13px] text-ink-2 hover:text-ink">
-						Open
-						<ArrowUpRightIcon className="size-3.5" aria-hidden />
+					<Link
+						href={studioPath(shown)}
+						data-testid="sheet-dock-studio"
+						aria-label="Open the cheat sheet full size"
+						title="Open full size"
+						className="lh-no-drag lh-press flex size-8 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink"
+					>
+						<ArrowUpRightIcon className="size-4" aria-hidden />
 					</Link>
 				)}
 				<button type="button" data-testid="sheet-dock-close" aria-label="Close the cheat sheet" onClick={onClose} className="lh-no-drag lh-press flex size-8 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink">

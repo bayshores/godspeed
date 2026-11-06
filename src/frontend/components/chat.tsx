@@ -483,7 +483,7 @@ export function Chat({
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
 						<div className="flex h-dvh min-w-0 flex-1">
-							<div className="flex min-w-0 flex-1 flex-col">
+							<div className="@container/lesson flex min-w-0 flex-1 flex-col">
 								<LessonTopBar
 									kind={kind}
 									rename={rename}
@@ -494,7 +494,7 @@ export function Chat({
 									sheet={classId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
 								/>
 								<SessionFind scopeRef={sessionFindScopeRef} scrollContextRef={scrollContextRef} />
-								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col min-[1100px]:flex-row">
+								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col @min-[760px]/lesson:flex-row">
 									<ReadingPane
 										messages={messages}
 										phases={phases}
@@ -524,7 +524,6 @@ export function Chat({
 										readingThinking={readingThinking}
 										onReadingThinking={editReadingThinking}
 										practice={activeProblem}
-										practiceNumber={stablePractice?.currentNumber ?? null}
 										initialPracticeDraft={activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined}
 										onSavePracticeDraft={(t) => {
 											if (activeProblemId) saveProblem(activeProblemId, t);

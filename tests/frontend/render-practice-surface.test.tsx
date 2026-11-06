@@ -39,17 +39,16 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 // ── the dock ─────────────────────────────────────────────────────────────────
 
 describe("PracticeDock", () => {
-	it("the Your-turn panel: statement, problem number, thinking field and Send", () => {
+	it("the Your-turn panel: statement, thinking field and Send", () => {
 		const html = renderToStaticMarkup(
 			<PracticeDock
 				problemCallId="call_p1"
 				input={{ statement: "Show that the sum is even." }}
-				number={3}
 				onSubmit={async () => true}
 			/>,
 		);
 		assert.match(html, /Show that the sum is even\./);
-		assert.match(html, /data-testid="problem-number"[\s\S]*?Problem 3/, "the problem's number");
+		assert.doesNotMatch(html, /problem-number/, "the statement names its own number");
 		assert.match(html, /data-testid="practice-thinking-field"[\s\S]*Work here, think out loud\./, "the thinking box, its placeholder in place of a label");
 		assert.match(html, /data-testid="practice-send"[^>]*disabled/, "Send starts disabled (empty field)");
 		assert.match(html, />Send</);

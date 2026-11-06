@@ -5,22 +5,28 @@ import { usePresence } from "@/frontend/components/presence";
 import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
 import { Hint } from "@/frontend/components/ui/hint";
 
-export function formatContextMeasurement(tokens: number | null, limit: number | null): string {
-	const numerator = tokens === null ? "?" : formatTokens(tokens);
-	return limit === null ? numerator : `${numerator} / ${formatTokens(limit)}`;
+/** The meter shows once the lesson is this full (of where it gets summarized). */
+const SHOW_AT = 0.8;
+
+/** The meter's text once the lesson nears the size where it gets
+ *  summarized ("33k / 40k"); null before that or while either is unknown. */
+export function contextMeter(tokens: number | null, limit: number | null): string | null {
+	if (tokens === null || limit === null || limit <= 0 || tokens < limit * SHOW_AT) return null;
+	return `${formatTokens(tokens)} / ${formatTokens(limit)}`;
 }
 
 /**
  * The lesson's stats bar: the session's context window + usage as one
- * quiet row in the Your-turn panel's footer. Clicking it opens the
- * per-turn detail popover.
+ * quiet row in the Your-turn panel's footer, shown once the lesson is 80%
+ * of the way to being summarized. Clicking it opens the per-turn detail
+ * popover.
  *
  * Lessons run on the outside agent's own plan, so cost reads as the plan's
  * label; missing cost stays "–", never fake zero. Context is a separate
  * completed-conversation measurement, never a money-log/summarizer fold or
  * transcript estimate; its denominator is where the lesson gets summarized
  * (not the agent's own context, which the app can't see).
- * Successful compaction clears it to ?.
+ * Successful compaction clears it, which hides the meter.
  */
 export function StatsBar({
 	turns,
@@ -40,10 +46,11 @@ export function StatsBar({
 	const barRef = useRef<HTMLDivElement>(null);
 	const close = useCallback(() => setOpen(false), []);
 	usePopoverDismiss(barRef, open, close);
-	const contextLabel = formatContextMeasurement(contextTokens, summarizeAt);
+	const contextLabel = contextMeter(contextTokens, summarizeAt);
 	const { unpriced = turns.length, subscription = 0 } = pricing ?? {};
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
 	const costLabel = planCostLabel(providers);
+	if (contextLabel === null) return null;
 
 	return (
 		<div

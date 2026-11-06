@@ -6,13 +6,13 @@ import { cn } from "@/frontend/lib/utils";
 import { localDay, type ChatListItem } from "@/shared/core";
 
 /**
- * ONE LESSON ROW: the title (14.5px), then a short
- * meta line — "now", "5m", "1d", or "Working…" while the teacher writes.
- * A 6×6 white square in front of the meta means the lesson is waiting
- * for the learner's answer; hovering (or focusing) the row then explains
- * it: "Waiting for your answer · Teacher replied 1 day ago". The active
- * lesson sits on the tone block in bold. Hovering shows a ⋯ button that
- * opens the lesson menu, the same menu a right-click opens.
+ * ONE LESSON ROW, one line: the title, then on the right its age ("now",
+ * "5m", "1d") or "Working…" while the teacher writes. A lesson waiting
+ * for the learner's answer shows its age in full white, and hovering (or
+ * focusing) the row explains it: "Waiting for your answer · Teacher
+ * replied 1 day ago". The active lesson sits on the tone block in bold.
+ * Hovering shows a ⋯ button in the age's place that opens the lesson
+ * menu, the same menu a right-click opens.
  */
 
 /** The row's short age: "now", "5m", "3h", "2d", then the ISO date. */
@@ -48,24 +48,21 @@ export function lessonWaiting(chat: ChatListItem): boolean {
 	return chat.pendingQuestion || chat.pendingProblem;
 }
 
-/** The meta line's text. */
+/** The age slot's text. */
 function sessionMeta(chat: ChatListItem): string {
-	if (chat.compacting) return "Summarizing the lesson…";
+	if (chat.compacting) return "Summarizing…";
 	if (chat.busy) return "Working…";
 	return shortAgo(chat.updatedAt);
 }
 
-/** The meta line: spinner while working, the white square while waiting. */
-function MetaLine({ chat }: { chat: ChatListItem }) {
+/** The age on the row's right: a spinner while working, white while waiting. */
+function MetaLine({ chat, className }: { chat: ChatListItem; className?: string }) {
 	const working = chat.busy || chat.compacting;
 	const waiting = !working && lessonWaiting(chat);
 	return (
-		<span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-ink-2">
+		<span data-waiting={waiting || undefined} className={cn("flex shrink-0 items-center gap-1.5 text-[15px]", waiting ? "text-ink" : "text-ink-2", className)}>
 			{working && <BrailleSpinner />}
-			{waiting && (
-				<span data-testid="session-waiting-dot" className="size-1.5 shrink-0 bg-ink" aria-hidden />
-			)}
-			<span className="truncate">{sessionMeta(chat)}</span>
+			<span>{sessionMeta(chat)}</span>
 			{waiting && <span className="sr-only">Waiting for your answer</span>}
 		</span>
 	);
@@ -122,24 +119,15 @@ export const SessionRow = memo(function SessionRow({
 					data-active={active || undefined}
 					aria-current={active ? "page" : undefined}
 					className={cn(
-						"lh-press flex w-full flex-col items-start gap-[3px] px-2.5 py-2 text-left group-hover:bg-tone",
+						"lh-press flex w-full items-center gap-3 px-2.5 py-2 text-left group-hover:bg-tone",
 						active && "bg-tone",
 						fresh && "lh-rise",
 						kbdSelected && !active && "bg-tone/60 ring-1 ring-tone-2 ring-inset",
 					)}
 				>
-					{/* Room for the ⋯ button while it shows, so the title ends before it. */}
-					<span
-						className={cn(
-							"block w-full truncate text-[14.5px] text-ink",
-							active && "font-bold",
-							onMenu && "group-focus-within:pr-7 group-hover:pr-7",
-							menuOpen && "pr-7",
-						)}
-					>
-						{chat.title}
-					</span>
-					<MetaLine chat={chat} />
+					<span className={cn("min-w-0 flex-1 truncate text-[15px] text-ink", active && "font-bold")}>{chat.title}</span>
+					{/* The ⋯ button takes the age's place while it shows. */}
+					<MetaLine chat={chat} className={cn(onMenu && "group-focus-within:invisible group-hover:invisible", menuOpen && "invisible")} />
 				</button>
 			</Tip>
 			{onMenu && (
@@ -164,7 +152,7 @@ export const SessionRow = memo(function SessionRow({
 
 /** The inline rename row: same geometry as SessionRow, the title becomes
  *  a text input — select-all on entry, Enter/blur commits, Esc discards.
- *  The meta line stays so the row never changes height mid-edit. */
+ *  The age stays so the row never changes size mid-edit. */
 export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; onCommit: (next: string) => void; onCancel: () => void }) {
 	const [draft, setDraft] = useState(chat.title);
 	const inputRef = useRef<HTMLInputElement | null>(null);
@@ -176,7 +164,7 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 		}
 	}, []);
 	return (
-		<div data-testid="session-rename-row" className="flex w-full flex-col items-start gap-[3px] bg-tone px-2.5 py-2">
+		<div data-testid="session-rename-row" className="flex w-full items-center gap-3 bg-tone px-2.5 py-2">
 			{/* Borderless and padding-free at the title's exact x: the
 			    underline is the only editing cue (nothing moves). */}
 			<input
@@ -194,7 +182,7 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 				}}
 				aria-label="Rename lesson"
 				data-testid="session-rename-input"
-				className="w-full min-w-0 truncate border-0 border-b border-tone-2 bg-transparent px-0 text-[14.5px] text-ink outline-none"
+				className="min-w-0 flex-1 truncate border-0 border-b border-tone-2 bg-transparent px-0 text-[15px] text-ink outline-none"
 			/>
 			<MetaLine chat={chat} />
 		</div>

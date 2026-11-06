@@ -23,6 +23,7 @@ export function MathBox({
 	ariaLabel,
 	compact = false,
 	autoFocus = false,
+	footer,
 	ref,
 }: {
 	value: string;
@@ -36,6 +37,8 @@ export function MathBox({
 	compact?: boolean;
 	/** Focus once it loads. */
 	autoFocus?: boolean;
+	/** A row inside the box's bottom edge (attach and Send). */
+	footer?: React.ReactNode;
 	ref?: React.Ref<{ focus(): void }>;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
@@ -96,6 +99,7 @@ export function MathBox({
 			)}
 			{/* CodeMirror owns this node's children. */}
 			<div ref={hostRef} className="min-h-0 flex-1" />
+			{footer && <div className="flex shrink-0 items-center gap-2 p-2">{footer}</div>}
 		</div>
 	);
 }

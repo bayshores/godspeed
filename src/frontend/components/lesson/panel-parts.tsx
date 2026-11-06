@@ -3,12 +3,12 @@ import { cn } from "@/frontend/lib/utils";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 /**
- * The Your-turn panel's shared pieces: every
- * state of the right panel — a waiting question, a practice problem, the
- * message box — is a padded content column over a full-width action bar.
+ * The Your-turn panel's shared pieces: every state of the right panel (a
+ * waiting question, a practice problem, the message box) is a padded
+ * content column; a writing box carries its own Send.
  */
 
-/** The scrollable content column above the action bar. */
+/** The panel's scrollable content column. */
 export function PanelBody({ children, className }: { children: React.ReactNode; className?: string }) {
 	return (
 		<div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-6 pb-5", className)}>{children}</div>
@@ -29,16 +29,15 @@ export function PanelHeader({ status, right }: { status?: React.ReactNode; right
 	);
 }
 
-/** A small tone button (Stop, Skip question, Discard problem, a side
- *  question's Send). */
-export function ToneButton({ children, onClick, testId, disabled }: { children: React.ReactNode; onClick: () => void; testId: string; disabled?: boolean }) {
+/** A quiet text button in a panel's header (Stop, Discard problem). */
+function ToneButton({ children, onClick, testId, disabled }: { children: React.ReactNode; onClick: () => void; testId: string; disabled?: boolean }) {
 	return (
 		<button
 			type="button"
 			data-testid={testId}
 			onClick={onClick}
 			disabled={disabled}
-			className="lh-press lh-fade flex shrink-0 items-center gap-1.5 bg-tone px-2 py-[3px] text-[12.5px] font-bold text-ink-2 hover:text-ink disabled:cursor-default disabled:text-ink-3"
+			className="lh-press lh-fade flex shrink-0 items-center gap-1.5 px-2 py-1 text-[15px] text-ink-2 hover:bg-tone hover:text-ink disabled:cursor-default disabled:text-ink-3 disabled:hover:bg-transparent"
 		>
 			{children}
 		</button>
@@ -90,8 +89,42 @@ export function KindChip({ children, testId }: { children: React.ReactNode; test
  *  the field has focus. */
 export const FIELD_EDGE = "border border-tone-2 focus-within:border-ink-2 bg-background text-[16px]! leading-6! text-ink";
 
-/** The full-width action bar at the panel's foot: white for the main
- *  action, gray while it waits ("Send when ready"). */
+/** The send button inside a writing box's bottom edge: white, gray while
+ *  it waits ("Send when ready"). */
+export function SendButton({
+	label,
+	onClick,
+	disabled,
+	waiting = false,
+	testId,
+	type = "button",
+}: {
+	label: React.ReactNode;
+	onClick?: () => void;
+	disabled?: boolean;
+	waiting?: boolean;
+	testId?: string;
+	type?: "button" | "submit";
+}) {
+	return (
+		<button
+			type={type}
+			data-testid={testId}
+			onClick={onClick}
+			disabled={disabled}
+			className={cn(
+				"lh-press ml-auto flex h-9 shrink-0 items-center gap-2 px-4 text-[15px] font-bold transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
+				waiting ? "bg-tone-2 text-ink" : "bg-ink text-background hover:bg-ink-max",
+				"disabled:cursor-default disabled:bg-tone disabled:text-ink-3",
+			)}
+		>
+			{label}
+		</button>
+	);
+}
+
+/** The full-width action bar at the panel's foot, for a panel whose one
+ *  action is not sending a box (Skip question, Check your understanding). */
 export function ActionBar({
 	label,
 	onClick,

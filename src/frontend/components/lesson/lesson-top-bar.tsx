@@ -73,8 +73,8 @@ export function LessonTopBar({
 					aria-pressed={sheet.open}
 					onClick={sheet.onToggle}
 					className={cn(
-						"lh-no-drag lh-press flex h-8 shrink-0 items-center gap-2 px-3 text-[13px] font-bold",
-						sheet.open ? "bg-ink text-background hover:bg-ink-max" : "bg-tone text-ink hover:bg-tone-2",
+						"lh-no-drag lh-press flex h-8 shrink-0 items-center gap-2 px-3 text-[15px] text-ink",
+						sheet.open ? "bg-tone-2 hover:bg-edge" : "bg-tone hover:bg-tone-2",
 					)}
 				>
 					<FileTextIcon aria-hidden className="size-4" />
@@ -134,7 +134,7 @@ function RenameInput({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 }
 
 /** Practice: one block per finished problem (gray solved, dark not),
- *  the active problem white and wide, then the count. */
+ *  the active problem white, then the count. */
 function PracticeBlocks({ progress }: { progress: PracticeProgress }) {
 	return (
 		<div data-testid="practice-progress" className="flex shrink-0 items-center gap-3">
@@ -144,8 +144,8 @@ function PracticeBlocks({ progress }: { progress: PracticeProgress }) {
 						key={i}
 						data-block={b}
 						className={cn(
-							"block",
-							b === "current" ? "h-2.5 w-[22px] bg-ink" : "h-1.5 w-2.5",
+							"block h-1.5 w-2.5",
+							b === "current" && "bg-ink",
 							b === "solved" && "bg-ink-2",
 							b === "missed" && "bg-tone-2",
 						)}
@@ -153,7 +153,7 @@ function PracticeBlocks({ progress }: { progress: PracticeProgress }) {
 				))}
 			</span>
 			{progress.finished > 0 && (
-				<span className="font-mono text-[12.5px] text-ink-3 tabular-nums">
+				<span className="text-[15px] text-ink-2 tabular-nums">
 					{progress.solved} of {progress.finished} solved
 				</span>
 			)}

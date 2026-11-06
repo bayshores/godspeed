@@ -8,9 +8,11 @@ import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 /**
  * DUE SOON (sidebar): the 4 most urgent
- * open deadlines from every class, overdue first. Each row: the done box
- * (red once overdue), the name with "CSE 21 · 5:00 PM" (or "Thu 7:00 PM", "Thu Nov 12") under it, and the
- * live countdown. Hidden while there is nothing open.
+ * open deadlines from every class, overdue first. Each row is one line:
+ * the done box (red once overdue), the name ("CSE 21 Final" when the rows
+ * come from more than one class) and the live countdown; the class and
+ * day ("CSE 21 · Thu 7:00 PM") show on hover. Hidden while there is
+ * nothing open.
  */
 export const DueSoon = memo(function DueSoon({
 	deadlines,
@@ -30,6 +32,7 @@ export const DueSoon = memo(function DueSoon({
 	const rows = dueSoon(deadlines ?? []);
 	if (rows.length === 0) return null;
 	const today = localDay(fixedNow ?? minute ?? Date.now());
+	const manyClasses = new Set(rows.map((d) => d.classId)).size > 1;
 	return (
 		<section data-testid="due-soon" aria-label="Due soon" className="flex w-full flex-col">
 			<span className={cn("px-2.5 pt-1", LABEL_TEXT)}>Due soon</span>
@@ -40,6 +43,7 @@ export const DueSoon = memo(function DueSoon({
 						deadline={d}
 						leaving={leaving.has(d.id)}
 						today={today}
+						withClass={manyClasses}
 						fixedNow={fixedNow}
 						onDone={onDone}
 					/>
@@ -53,6 +57,7 @@ function DueSoonRow({
 	deadline: d,
 	leaving,
 	today,
+	withClass,
 	fixedNow,
 	onDone,
 }: {
@@ -60,6 +65,8 @@ function DueSoonRow({
 	leaving: boolean;
 	/** The local day, "YYYY-MM-DD". */
 	today: string;
+	/** Name the class before the deadline (the rows span several classes). */
+	withClass: boolean;
 	fixedNow?: number;
 	onDone: (d: OpenDeadline) => void;
 }) {
@@ -70,22 +77,17 @@ function DueSoonRow({
 			data-halley-target={`deadline:${d.id}`}
 			data-leaving={leaving || undefined}
 			className={cn(
-				"flex w-full items-start gap-2.5 px-2.5 py-1.5 transition-opacity duration-[var(--lh-dur)] ease-[var(--lh-ease-in)]",
+				"flex w-full items-center gap-2.5 px-2.5 py-1.5 transition-opacity duration-[var(--lh-dur)] ease-[var(--lh-ease-in)]",
 				leaving && "pointer-events-none opacity-0",
 			)}
 		>
-			<span className="flex h-5 shrink-0 items-center">
+			<span className="flex shrink-0 items-center">
 				<DoneBox size={13} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
 			</span>
-			<span className="flex min-w-0 flex-1 flex-col">
-				<span title={d.name} className="truncate text-[14px] leading-5 text-ink">{d.name}</span>
-				<span title={d.className} className="truncate text-[12px] leading-4 text-ink-2">
-					{d.className} · {sidebarWhenLabel(d, today)}
-				</span>
+			<span title={`${d.className} · ${sidebarWhenLabel(d, today)}`} className="min-w-0 flex-1 truncate text-[15px] text-ink">
+				{withClass ? `${d.className} ${d.name}` : d.name}
 			</span>
-			<span className="flex h-5 shrink-0 items-center">
-				<Countdown due={d} now={fixedNow} className="text-[12.5px]" />
-			</span>
+			<Countdown due={d} now={fixedNow} className="shrink-0 text-[15px]" />
 		</li>
 	);
 }

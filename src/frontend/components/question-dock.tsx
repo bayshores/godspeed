@@ -3,7 +3,7 @@ import { CheckIcon, LightbulbIcon } from "lucide-react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ConfidenceMeter, ConfidenceSquares } from "@/frontend/components/confidence-meter";
-import { ActionBar, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "@/frontend/components/lesson/panel-parts";
+import { ActionBar, KindChip, PanelBody, PanelHeader, HeaderChip, SendButton, skipExit } from "@/frontend/components/lesson/panel-parts";
 import { TurnStatus } from "@/frontend/components/lesson/turn-status";
 import { MathBox } from "@/frontend/components/math-box";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
@@ -243,6 +243,18 @@ function QuestionDockForm({
 		qd.mode === "text"
 			? text.trim().length > 0 || hasFiles
 			: sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
+
+	const boxFooter = (
+		<>
+			{takesFiles && <AttachButton draft={attachments} />}
+			<SendButton
+				type="submit"
+				testId="question-submit"
+				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
+				disabled={!canSubmit || compactionRunning || busy}
+			/>
+		</>
+	);
 
 	// Writing with an answer picked folds the list into one row (Change opens it).
 	const [folded, setFolded] = useState(false);
@@ -575,6 +587,7 @@ function QuestionDockForm({
 							onEnter={submit}
 							placeholder="Type your answer…"
 							ariaLabel="Your answer"
+							footer={boxFooter}
 						/>
 					) : (
 						<MathBox
@@ -588,22 +601,12 @@ function QuestionDockForm({
 							onFocus={foldOnWrite}
 							placeholder="Why this answer? Whatever comes to mind."
 							ariaLabel="Your thinking"
+							footer={boxFooter}
 						/>
 					)}
 				</div>
 				{footer}
 			</PanelBody>
-			<div className="flex shrink-0">
-				{takesFiles && <AttachButton draft={attachments} />}
-				<div className="min-w-0 flex-1">
-					<ActionBar
-						type="submit"
-						testId="question-submit"
-						label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-						disabled={!canSubmit || compactionRunning || busy}
-					/>
-				</div>
-			</div>
 		</form>
 	);
 }

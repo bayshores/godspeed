@@ -408,13 +408,14 @@ describe("the panel", () => {
 
 describe("the Follow chip", () => {
 	const reading = { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true };
-	it("following: dark, 'Following <name>', what it's doing, and Stop", () => {
+	it("following: a green dot, 'Following <name>', what it's doing, and a plain Stop; no white block", () => {
 		const follows: boolean[] = [];
 		const el = mount(<FollowChipView following name="Halley" doing={reading} onFollow={(on) => follows.push(on)} offer={null} onGo={() => {}} />);
 		const chip = el.querySelector("[data-testid='follow-chip']")!;
-		assert.match(chip.className, /bg-ink/);
+		assert.doesNotMatch(chip.className, /bg-ink/);
+		assert.match(chip.querySelector("[data-working]")!.className, /bg-\(--lh-ans-right\)/, "the green dot");
 		assert.match(chip.textContent ?? "", /^Following HalleyReading 06_Counting\.pdf3 of 12Stop/);
-		assert.match(chip.querySelector("[data-testid='follow-doing'] .font-mono")!.className, /tabular-nums/, "counts don't jitter");
+		assert.ok(chip.querySelector("[data-testid='follow-doing'] .tabular-nums"), "counts don't jitter");
 		assert.ok(chip.querySelector("[data-working]")?.className.includes("lh-breathe"), "the dot breathes while it works");
 		assert.equal(el.querySelector("[data-testid='follow-stop']")?.getAttribute("aria-label"), "Stop following Halley");
 		act(() => (el.querySelector("[data-testid='follow-stop']") as HTMLElement).click());

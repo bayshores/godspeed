@@ -12,7 +12,7 @@ import { runScopeHandlers, type EditorView } from "@codemirror/view";
 import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { YourTurnPanel } from "../../src/frontend/components/lesson/your-turn-panel.tsx";
+import { YourTurnPanel, fitPanelWidth } from "../../src/frontend/components/lesson/your-turn-panel.tsx";
 import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../../src/frontend/components/lesson/step-bar.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
@@ -28,6 +28,10 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 stubCodeMirrorDom(dom);
 // linkedom has no layout: the walked row's scrollIntoView is a no-op here.
@@ -63,7 +67,6 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			readingThinking=""
 			onReadingThinking={() => {}}
 			practice={null}
-			practiceNumber={null}
 			onSavePracticeDraft={() => {}}
 			onSubmitThinking={async () => true}
 			onDiscardProblem={() => {}}
@@ -109,7 +112,7 @@ describe("the Your-turn panel's states", () => {
 
 	it("a study session's pause says Continue, since the next topic may be taught first", () => {
 		const html = panel({ composer: composer({ next: "Continue" }) });
-		assert.match(html, /data-testid="next-problem-button"[^>]*><span>Continue</);
+		assert.match(html, /data-testid="next-problem-button"[^>]*>Continue</);
 		assert.ok(!html.includes("Next problem<"));
 	});
 
@@ -144,7 +147,6 @@ describe("the Your-turn panel's states", () => {
 				readingThinking=""
 				onReadingThinking={() => {}}
 				practice={null}
-				practiceNumber={null}
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
@@ -170,10 +172,10 @@ describe("the Your-turn panel's states", () => {
 		}
 	});
 
-	it("an active practice problem fills the panel with its number", () => {
-		const html = panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 3 });
+	it("an active practice problem fills the panel; the statement names its own number", () => {
+		const html = panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } });
 		assert.match(html, /data-mode="practice"/);
-		assert.match(html, /Problem 3/);
+		assert.doesNotMatch(html, /problem-number/);
 		assert.match(html, /Find E\[N\]\./);
 	});
 
@@ -181,7 +183,7 @@ describe("the Your-turn panel's states", () => {
 		for (const html of [
 			panel({ composer: composer({ canSend: true, value: "hi" }) }),
 			panel({ pending: { tool: "quiz", toolCallId: "q1", input: quizInput } }),
-			panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 }),
+			panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } }),
 		]) {
 			assert.ok(!html.includes("Enter"), "no Enter label");
 		}
@@ -195,7 +197,7 @@ describe("the Your-turn panel's states", () => {
 	});
 
 	it("an active problem shows Discard problem", () => {
-		const html = panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 2 });
+		const html = panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } });
 		assert.match(html, /data-testid="discard-problem"[^>]*>Discard problem</);
 	});
 
@@ -214,7 +216,6 @@ describe("the Your-turn panel's states", () => {
 				readingThinking=""
 				onReadingThinking={() => {}}
 				practice={null}
-				practiceNumber={null}
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => asked.push("problem")}
@@ -271,7 +272,6 @@ describe("the writing boxes in the lesson box and the side question box", () => 
 							readingThinking=""
 							onReadingThinking={() => {}}
 							practice={null}
-							practiceNumber={null}
 							onSavePracticeDraft={() => {}}
 							onSubmitThinking={async () => true}
 							onDiscardProblem={() => {}}
@@ -310,7 +310,7 @@ describe("the side question box", () => {
 	});
 
 	describe("under an active problem", () => {
-		const problem = { practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, practiceNumber: 1 };
+		const problem = { practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } };
 
 		it("sits under the practice dock's Your thinking and Send, behind the same link", () => {
 			const html = panel(problem);
@@ -405,7 +405,6 @@ describe("the side question box", () => {
 						readingThinking=""
 						onReadingThinking={() => {}}
 						practice={null}
-						practiceNumber={null}
 						onSavePracticeDraft={() => {}}
 						onSubmitThinking={async () => true}
 						onDiscardProblem={() => {}}
@@ -438,7 +437,6 @@ describe("the side question box", () => {
 				readingThinking=""
 				onReadingThinking={() => {}}
 				practice={null}
-				practiceNumber={null}
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
@@ -492,7 +490,6 @@ describe("the side question box", () => {
 				readingThinking=""
 				onReadingThinking={() => {}}
 				practice={null}
-				practiceNumber={null}
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
@@ -628,16 +625,33 @@ const bar: PlanStepBar = {
 	],
 };
 
+describe("the Your-turn panel's width", () => {
+	it("keeps its saved width when there's room, and narrows so the text keeps 420px", () => {
+		assert.equal(fitPanelWidth(440, null), 440, "before the lesson area is measured");
+		assert.equal(fitPanelWidth(440, 1200), 440);
+		assert.equal(fitPanelWidth(720, 1000), 580, "a docked cheat sheet narrows a wide panel");
+		assert.equal(fitPanelWidth(720, 700), 340, "never below the panel's minimum");
+	});
+});
+
 describe("the plan step bar", () => {
 	it("one block per step, the count and the current step's name", () => {
 		const html = renderToStaticMarkup(<StepBar bar={bar} onJump={() => {}} onOpenPlan={() => {}} />);
 		const statuses = [...html.matchAll(/data-testid="plan-step" data-status="(\w+)"/g)].map((m) => m[1]);
 		assert.deepEqual(statuses, ["visited", "current", "upcoming"]);
-		assert.match(html, /data-testid="plan-step-count"[^>]*>2 \/ 3</);
+		assert.match(html, /data-testid="plan-step-count"[^>]*>2 of 3</);
 		assert.match(html, /Gradient as an expectation/);
 		assert.match(html, /data-testid="plan-step-open"/, "the chevron opens the plan map");
-		// The current step is the wide white block.
-		assert.match(html, /data-status="current"[\s\S]*?w-\[22px\] bg-ink/);
+		// The current step is the white block, the same size as the others.
+		assert.match(html, /data-status="current"[\s\S]*?h-1\.5 w-2\.5 bg-ink/);
+	});
+
+	it("a one-step plan shows only its name, no blocks or count", () => {
+		const one: PlanStepBar = { steps: [bar.steps[1]!], currentIndex: 0 };
+		const html = renderToStaticMarkup(<StepBar bar={one} onJump={() => {}} onOpenPlan={() => {}} />);
+		assert.doesNotMatch(html, /data-testid="plan-step"/);
+		assert.doesNotMatch(html, /plan-step-count/);
+		assert.match(html, /Gradient as an expectation/);
 	});
 
 	it("tooltip data: answers as colored blocks and 'n of m right'", () => {
@@ -819,13 +833,11 @@ describe("practiceProgress", () => {
 		assert.deepEqual(p.blocks, ["solved", "missed", "solved", "current"]);
 		assert.equal(p.solved, 2);
 		assert.equal(p.finished, 3);
-		assert.equal(p.currentNumber, 4);
 	});
 
 	it("errored calls never count; no active problem means no current block", () => {
 		const p = practiceProgress([msg({ type: "tool-problem", state: "output-error" }), msg({ type: "tool-conclude", input: { outcome: "solved" } })], false);
 		assert.deepEqual(p.blocks, []);
-		assert.equal(p.currentNumber, null);
 	});
 });
 

@@ -102,7 +102,7 @@ export function TopicBox({
 						</button>
 					)}
 				</div>
-				<div className="flex shrink-0 items-end">
+				<div className="flex shrink-0 items-center gap-1">
 					<AttachButton draft={attachments} />
 					<button
 						type="submit"

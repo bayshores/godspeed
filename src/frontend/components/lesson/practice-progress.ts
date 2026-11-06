@@ -12,8 +12,6 @@ export interface PracticeProgress {
 	blocks: PracticeBlock[];
 	solved: number;
 	finished: number;
-	/** The active problem's 1-based number, or null between problems. */
-	currentNumber: number | null;
 }
 
 const SOLVED = new Set(["solved", "solvedWithHints"]);
@@ -39,5 +37,5 @@ export function practiceProgress(
 	const solved = blocks.filter((b) => b === "solved").length;
 	const finished = blocks.length;
 	if (activeProblem) blocks.push("current");
-	return { blocks, solved, finished, currentNumber: activeProblem ? finished + 1 : null };
+	return { blocks, solved, finished };
 }

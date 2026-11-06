@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
-import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, StopButton } from "@/frontend/components/lesson/panel-parts";
+import { HeaderChip, PanelBody, PanelHeader, SendButton, StopButton } from "@/frontend/components/lesson/panel-parts";
 import { TurnStatus } from "@/frontend/components/lesson/turn-status";
 import { MathBox } from "@/frontend/components/math-box";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -10,8 +10,8 @@ import type { ChatAttachment } from "@/shared/core";
 
 /**
  * THE PRACTICE PANEL: an active problem fills
- * the Your-turn panel — "Your turn" with "Problem 3", the statement, and
- * "Your thinking" with one Send (Enter sends, Shift+Enter is a newline).
+ * the Your-turn panel: the statement (it names its own number) and the
+ * thinking box with one Send (Enter sends, Shift+Enter is a newline).
  * Whether a submission claims an answer is read from the thinking by the
  * agent; one problem may take many submissions, each starting a turn.
  *
@@ -24,8 +24,6 @@ interface PracticeDockProps {
 	problemCallId: string;
 	/** The pose's arguments — only the statement is the learner's. */
 	input: { statement: string };
-	/** The problem's number in this lesson ("Problem 3"). */
-	number?: number | null;
 	/** text and files — POST {type:"thinking"} (one lane). Resolves false
 	 *  when the send was not taken. */
 	onSubmit: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
@@ -50,7 +48,6 @@ interface PracticeDockProps {
 export function PracticeDock({
 	problemCallId,
 	input,
-	number,
 	onSubmit,
 	busy = false,
 	waitingForAgent = false,
@@ -106,9 +103,6 @@ export function PracticeDock({
 					right={
 						<HeaderChip exit={onDiscard && { label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
 							{busy && onStop && <StopButton onStop={onStop} />}
-							<KindChip testId="problem-number">
-								{number ? `Problem ${number}` : "Problem"}
-							</KindChip>
 						</HeaderChip>
 					}
 				/>
@@ -132,21 +126,21 @@ export function PracticeDock({
 						onEnter={submit}
 						placeholder="Work here, think out loud."
 						ariaLabel="Your thinking"
+						footer={
+							<>
+								<AttachButton draft={attachments} />
+								<SendButton
+									type="submit"
+									testId="practice-send"
+									label={compactionRunning ? "Summarizing the lesson…" : "Send"}
+									disabled={empty || compactionRunning || busy}
+								/>
+							</>
+						}
 					/>
 				</div>
 				{footer}
 			</PanelBody>
-			<div className="flex shrink-0">
-				<AttachButton draft={attachments} />
-				<div className="min-w-0 flex-1">
-					<ActionBar
-						type="submit"
-						testId="practice-send"
-						label={compactionRunning ? "Summarizing the lesson…" : "Send"}
-						disabled={empty || compactionRunning || busy}
-					/>
-				</div>
-			</div>
 		</form>
 	);
 }

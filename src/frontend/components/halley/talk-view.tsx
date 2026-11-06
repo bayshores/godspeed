@@ -10,7 +10,7 @@ import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft,
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { MessageAttachments } from "@/frontend/components/lesson/message-attachments";
-import { ActionBar } from "@/frontend/components/lesson/panel-parts";
+import { SendButton } from "@/frontend/components/lesson/panel-parts";
 import { MathBox } from "@/frontend/components/math-box";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/frontend/components/server-events";
@@ -328,36 +328,46 @@ function TalkThread({
 				<div className="px-6">
 					<AttachmentTray draft={attachments} />
 				</div>
-				<div className="flex min-h-[76px] px-2.5 py-1.5 has-[.cm-focused]:inset-ring has-[.cm-focused]:inset-ring-ink-2">
-					<MathBox
-						compact
-						value={text}
-						onChange={editText}
-						onEnter={send}
-						placeholder={`Tell ${name} what to set up, or ask about your classes`}
-						ariaLabel={`Message ${name}`}
-					/>
-				</div>
-				<div className="flex items-stretch">
-					<AttachButton draft={attachments} />
-					<div className="min-w-0 flex-1">
+				<div className="m-4 border border-tone-2 bg-background has-[.cm-focused]:border-ink-2">
+					<div className="flex min-h-[52px]">
+						<MathBox
+							compact
+							value={text}
+							onChange={editText}
+							onEnter={send}
+							placeholder={`Tell ${name} what to set up, or ask about your classes`}
+							ariaLabel={`Message ${name}`}
+						/>
+					</div>
+					<div className="flex items-center gap-2 p-2">
+						<AttachButton draft={attachments} />
+						{rows.length > 0 && (
+							<button
+								type="button"
+								data-testid="talk-clear"
+								disabled={busy}
+								onClick={clear}
+								className="lh-press px-2 py-1 text-[15px] text-ink-2 hover:bg-tone hover:text-ink disabled:opacity-50"
+							>
+								Clear chat
+							</button>
+						)}
 						{busy ? (
-							<ActionBar testId="talk-stop" waiting onClick={stopReply} label={<span className="flex items-center gap-2"><SquareIcon aria-hidden className="size-3.5" />Stop</span>} />
+							<SendButton
+								testId="talk-stop"
+								waiting
+								onClick={stopReply}
+								label={
+									<>
+										<SquareIcon aria-hidden className="size-3.5" />
+										Stop
+									</>
+								}
+							/>
 						) : (
-							<ActionBar testId="talk-send" onClick={send} disabled={!text.trim() && attachments.files.length === 0} label="Send" />
+							<SendButton testId="talk-send" onClick={send} disabled={!text.trim() && attachments.files.length === 0} label="Send" />
 						)}
 					</div>
-					{rows.length > 0 && (
-						<button
-							type="button"
-							data-testid="talk-clear"
-							disabled={busy}
-							onClick={clear}
-							className="lh-press shrink-0 border-l border-tone-2 px-5 text-[13px] text-ink-2 hover:text-ink disabled:opacity-50"
-						>
-							Clear chat
-						</button>
-					)}
 				</div>
 			</div>
 		</div>

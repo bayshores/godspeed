@@ -14,6 +14,17 @@ type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 
 /** The panel's width beside the reading pane (drag its border line). */
 const PANEL_WIDTH = { initial: 440, min: 340, max: 720 };
+/** The reading pane never gets narrower than this beside the panel; with
+ *  less room (a docked cheat sheet, a small window) the panel goes below
+ *  the text instead. Matches the 760px container breakpoints below. */
+const READING_MIN = 420;
+
+/** The panel's shown width: the saved width, narrowed so the reading pane
+ *  keeps READING_MIN of the lesson area's `room`. */
+export function fitPanelWidth(width: number, room: number | null): number {
+	if (room === null) return width;
+	return Math.min(width, Math.max(PANEL_WIDTH.min, room - READING_MIN));
+}
 
 /**
  * THE YOUR-TURN PANEL: always on the right
@@ -38,7 +49,6 @@ export function YourTurnPanel({
 	readingThinking,
 	onReadingThinking,
 	practice,
-	practiceNumber,
 	initialPracticeDraft,
 	onSavePracticeDraft,
 	onSubmitThinking,
@@ -59,7 +69,6 @@ export function YourTurnPanel({
 	readingThinking: string;
 	onReadingThinking: (v: string) => void;
 	practice: { toolCallId: string; input: unknown } | null;
-	practiceNumber: number | null;
 	initialPracticeDraft?: string;
 	onSavePracticeDraft: (thinking: string) => void;
 	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
@@ -72,7 +81,10 @@ export function YourTurnPanel({
 	composer: Omit<React.ComponentProps<typeof PanelComposer>, "footer">;
 	stats: React.ReactNode;
 }) {
-	const [width, setWidth] = usePaneWidth("your-turn", PANEL_WIDTH);
+	const [saved, setWidth] = usePaneWidth("your-turn", PANEL_WIDTH);
+	const asideRef = useRef<HTMLElement>(null);
+	const room = useParentWidth(asideRef);
+	const width = fitPanelWidth(saved, room);
 	// The reveal: false until the learner opens the check. Reset during
 	// render when a new question lands — open at once only when it follows
 	// another question (the reading already happened).
@@ -159,7 +171,6 @@ export function YourTurnPanel({
 			<PracticeDock
 				problemCallId={practice.toolCallId}
 				input={practice.input as { statement: string }}
-				number={practiceNumber}
 				onSubmit={onSubmitThinking}
 				initialDraft={initialPracticeDraft}
 				onSaveDraft={onSavePracticeDraft}
@@ -177,13 +188,14 @@ export function YourTurnPanel({
 
 	return (
 		<aside
+			ref={asideRef}
 			data-testid="your-turn-panel"
 			data-mode={mode.split(":")[0]}
-			className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel max-[1099px]:max-h-[42dvh] max-[1099px]:min-h-[240px] min-[1100px]:w-(--lh-turn-w) min-[1100px]:border-t-0 min-[1100px]:border-l"
+			className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel @max-[759px]/lesson:max-h-[50dvh] @max-[759px]/lesson:min-h-[240px] @min-[760px]/lesson:w-(--lh-turn-w) @min-[760px]/lesson:border-t-0 @min-[760px]/lesson:border-l"
 			style={{ "--lh-turn-w": `${width}px` } as React.CSSProperties}
 		>
-			{/* Side by side only: stacked below 1100px, the panel is full width. */}
-			<div className="contents max-[1099px]:hidden">
+			{/* Side by side only: stacked, the panel is full width. */}
+			<div className="contents @max-[759px]/lesson:hidden">
 				<ResizeHandle paneKey="your-turn" edge="left" width={width} bounds={PANEL_WIDTH} onWidth={setWidth} label="Resize the Your turn panel" />
 			</div>
 			<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
@@ -193,4 +205,17 @@ export function YourTurnPanel({
 			{(pending || practice) && <SideQuestionBox busy={sideReply} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} attachments={composer.attachments} />}
 		</aside>
 	);
+}
+
+/** The width of `ref`'s parent (the lesson area), kept current. */
+function useParentWidth(ref: React.RefObject<HTMLElement | null>): number | null {
+	const [width, setWidth] = useState<number | null>(null);
+	useEffect(() => {
+		const parent = ref.current?.parentElement;
+		if (!parent) return;
+		const ro = new ResizeObserver(() => setWidth(parent.clientWidth));
+		ro.observe(parent);
+		return () => ro.disconnect();
+	}, [ref]);
+	return width;
 }

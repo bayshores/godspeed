@@ -207,7 +207,7 @@ export function AttachButton({ draft }: { draft: AttachmentDraft }) {
 					aria-label="Add pictures or PDFs"
 					data-testid="attach-button"
 					onClick={() => inputRef.current?.click()}
-					className="lh-press flex size-14 shrink-0 items-center justify-center border-r border-tone-2 bg-tone text-ink-2 hover:text-ink"
+					className="lh-press flex size-9 shrink-0 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink"
 				>
 					<ImagePlusIcon aria-hidden className="size-5" />
 				</button>

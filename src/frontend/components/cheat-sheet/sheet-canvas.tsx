@@ -31,8 +31,8 @@ const SETTLE_MS = 150;
 /** Dot grid spacing at 100%, and the closest the dots get on screen. */
 const DOT = 24;
 const DOT_MIN = 12;
-/** Room above the first page in a narrow view, for its labels. */
-const NARROW_TOP = 56;
+/** Room above the first page in a narrow view. */
+const NARROW_TOP = 16;
 
 /**
  * THE CANVAS: every kept version of the sheet laid out as artboards on a
@@ -43,7 +43,8 @@ const NARROW_TOP = 56;
  * with the next message. It starts on the newest version and moves to each
  * new one, and to a version the chat asks for. `inset` is the room the
  * floating panel takes on the right; `narrow` (the sheet beside a session)
- * puts pages one under another and fits their width.
+ * puts pages one under another, fits their width, leaves out the labels
+ * (it shows one version) and keeps the toolbar in a row under the pages.
  */
 export function SheetCanvas({
 	versions,
@@ -167,7 +168,45 @@ export function SheetCanvas({
 	while (dot < DOT_MIN) dot *= 2;
 	const drawnBox = drawn && onScreen(cam, bounds([{ ...drawn.a, w: 0, h: 0 }, { ...drawn.b, w: 0, h: 0 }])!);
 
-	return (
+	const tools = (
+		<>
+			<div data-testid="cheat-sheet-zoom" className="flex items-stretch bg-panel text-sm text-ink outline outline-1 -outline-offset-1 outline-tone-2">
+				<ToolButton label="Zoom out" onClick={() => zoomTo(zoomStep(cam.zoom, -1))}>
+					<MinusIcon className="size-4" aria-hidden />
+				</ToolButton>
+				<ToolButton label="Zoom to 100%" onClick={() => zoomTo(1)} className="w-[60px] justify-center tabular-nums">
+					{zoomLabel(cam.zoom)}
+				</ToolButton>
+				<ToolButton label="Zoom in" onClick={() => zoomTo(zoomStep(cam.zoom, 1))}>
+					<PlusIcon className="size-4" aria-hidden />
+				</ToolButton>
+				<ToolButton label="Zoom to fit" onClick={() => fitTo(narrow ? (newest?.box ?? null) : bounds(groups.map((g) => g.box)))} className="gap-2 border-l border-tone-2 px-3">
+					<ScanIcon className="size-4" aria-hidden />
+					{!narrow && "Zoom to fit"}
+				</ToolButton>
+			</div>
+			{onPoint && (
+				<button
+					type="button"
+					data-testid="cheat-sheet-point"
+					aria-pressed={pointing}
+					onClick={() => {
+						setPointError(null);
+						setPointing((p) => !p);
+					}}
+					className={cn(
+						"lh-press flex h-9 items-center gap-2 px-3 text-sm outline outline-1 -outline-offset-1",
+						pointing ? "bg-ink text-background outline-ink" : "bg-panel text-ink outline-tone-2 hover:bg-tone",
+					)}
+				>
+					<CrosshairIcon className="size-4" aria-hidden />
+					Point at the sheet
+				</button>
+			)}
+		</>
+	);
+
+	const canvas = (
 		<div
 			ref={box}
 			data-testid="cheat-sheet-canvas"
@@ -220,7 +259,7 @@ export function SheetCanvas({
 			<div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.zoom})` }}>
 				{groups.flatMap((g) => g.pages.map((board) => <PdfPage key={`${board.n}-${board.page}`} doc={docs.get(pdfUrl(board.n))} board={board} cam={settled} view={view} />))}
 			</div>
-			{groups.map((g, i) => {
+			{!narrow && groups.map((g, i) => {
 				const at = onScreen(cam, g.box);
 				const v = versions.find((x) => x.n === g.n)!;
 				return (
@@ -256,41 +295,18 @@ export function SheetCanvas({
 					</button>
 				</div>
 			)}
-			<div className="absolute bottom-4 left-4 flex max-w-[calc(100%-32px)] flex-wrap items-end gap-2" onPointerDown={(e) => e.stopPropagation()}>
-				<div data-testid="cheat-sheet-zoom" className="flex items-stretch bg-panel text-sm text-ink outline outline-1 -outline-offset-1 outline-tone-2">
-					<ToolButton label="Zoom out" onClick={() => zoomTo(zoomStep(cam.zoom, -1))}>
-						<MinusIcon className="size-4" aria-hidden />
-					</ToolButton>
-					<ToolButton label="Zoom to 100%" onClick={() => zoomTo(1)} className="w-[60px] justify-center font-mono tabular-nums">
-						{zoomLabel(cam.zoom)}
-					</ToolButton>
-					<ToolButton label="Zoom in" onClick={() => zoomTo(zoomStep(cam.zoom, 1))}>
-						<PlusIcon className="size-4" aria-hidden />
-					</ToolButton>
-					<ToolButton label="Zoom to fit" onClick={() => fitTo(narrow ? (newest?.box ?? null) : bounds(groups.map((g) => g.box)))} className="gap-2 border-l border-tone-2 px-3">
-						<ScanIcon className="size-4" aria-hidden />
-						{!narrow && "Zoom to fit"}
-					</ToolButton>
+			{!narrow && (
+				<div className="absolute bottom-4 left-4 flex max-w-[calc(100%-32px)] flex-wrap items-end gap-2" onPointerDown={(e) => e.stopPropagation()}>
+					{tools}
 				</div>
-				{onPoint && (
-					<button
-						type="button"
-						data-testid="cheat-sheet-point"
-						aria-pressed={pointing}
-						onClick={() => {
-							setPointError(null);
-							setPointing((p) => !p);
-						}}
-						className={cn(
-							"lh-press flex h-9 items-center gap-2 px-3 text-sm outline outline-1 -outline-offset-1",
-							pointing ? "bg-ink text-background outline-ink" : "bg-panel text-ink outline-tone-2 hover:bg-tone",
-						)}
-					>
-						<CrosshairIcon className="size-4" aria-hidden />
-						Point at the sheet
-					</button>
-				)}
-			</div>
+			)}
+		</div>
+	);
+	if (!narrow) return canvas;
+	return (
+		<div className="flex min-h-0 flex-1 flex-col">
+			{canvas}
+			<div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-tone-2 px-3 py-2">{tools}</div>
 		</div>
 	);
 }

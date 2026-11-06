@@ -3,7 +3,7 @@
 /**
  * The top bar's Follow chip, the one Follow control. While an agent is
  * connected:
- *  - Following: dark, "Following Halley", what it's doing right now
+ *  - Following: a green dot, "Following Halley", what it's doing right now
  *    ("Reading 06_Counting.pdf  3 of 12"), and Stop.
  *  - Not following: a quiet "Follow Halley" button, and a fresh change on
  *    another page with its "Go to" button.
@@ -63,8 +63,8 @@ export function FollowChipView({
 		<span
 			data-testid={following ? "follow-chip" : "follow-off"}
 			className={cn(
-				"lh-pop lh-ease-width relative flex h-[35px] shrink-0 overflow-clip font-ui text-[13.5px]",
-				following ? "bg-ink text-background" : "text-ink-2",
+				"lh-pop lh-ease-width relative flex h-[35px] shrink-0 overflow-clip font-ui text-[15px]",
+				following ? "text-ink" : "text-ink-2",
 				className,
 			)}
 			// The focus ring sits 4px outside a button.
@@ -73,12 +73,12 @@ export function FollowChipView({
 			<span ref={innerRef} key={following ? "on" : "off"} className={cn("flex h-full w-max shrink-0 items-center", switched && "lh-swap-in")}>
 				{following ? (
 					<>
-						<Dot working={doing.working} className="ml-2.5 bg-background" />
-						<span className="ml-2 font-bold whitespace-nowrap">Following {name}</span>
-						<span aria-hidden className="mx-2.5 h-3.5 w-px bg-background/25" />
-						<span data-testid="follow-doing" className="flex items-baseline gap-2 text-background/75">
+						<Dot working={doing.working} className="bg-(--lh-ans-right)" />
+						<span className="ml-2 whitespace-nowrap">Following {name}</span>
+						<span aria-hidden className="mx-2.5 h-3.5 w-px bg-tone-2" />
+						<span data-testid="follow-doing" className="flex items-baseline gap-2 text-ink-2">
 							<Swap text={doing.text} className="max-w-[min(300px,26vw)]" />
-							{doing.count && <span className="font-mono text-[12.5px] text-background/55 tabular-nums">{doing.count}</span>}
+							{doing.count && <span className="text-ink-3 tabular-nums">{doing.count}</span>}
 						</span>
 						{/* Room for Stop, which rides the chip's right edge as it eases. */}
 						<span aria-hidden className="w-[62px] shrink-0" />
@@ -89,7 +89,7 @@ export function FollowChipView({
 							type="button"
 							data-testid="follow-start"
 							onClick={() => onFollow(true)}
-							className="lh-press flex h-full items-center gap-2 px-2.5 font-bold whitespace-nowrap hover:bg-tone hover:text-ink"
+							className="lh-press flex h-full items-center gap-2 px-2.5 whitespace-nowrap hover:bg-tone hover:text-ink"
 						>
 							<Dot working={doing.working} className="border border-current" />
 							Follow {name}
@@ -101,7 +101,7 @@ export function FollowChipView({
 									type="button"
 									data-testid="follow-go"
 									onClick={() => onGo(offer)}
-									className="lh-press shrink-0 bg-ink px-2 py-0.5 text-[13px] font-bold whitespace-nowrap text-background hover:bg-ink-max"
+									className="lh-press shrink-0 bg-tone-2 px-2 py-0.5 whitespace-nowrap text-ink hover:bg-edge"
 								>
 									Go to {pageName(offer.page)}
 								</button>
@@ -116,7 +116,7 @@ export function FollowChipView({
 					data-testid="follow-stop"
 					aria-label={`Stop following ${name}`}
 					onClick={() => onFollow(false)}
-					className="lh-press absolute top-1/2 right-1.5 -translate-y-1/2 bg-background/[0.13] px-2 py-0.5 text-[13px] hover:bg-background/20"
+					className="lh-press absolute top-1/2 right-0 -translate-y-1/2 px-2 py-0.5 text-ink-2 hover:bg-tone hover:text-ink"
 				>
 					Stop
 				</button>

@@ -100,17 +100,21 @@ describe("Due soon", () => {
 		assert.ok(!html.includes("due-soon-all"));
 	});
 
-	it("a row: name (14px), 'CSE 21 · 5:00 PM' (12px muted), countdown, 13px done box", () => {
+	it("a row is one line: the name (15px, with its class when the rows span classes), countdown, 13px done box; class and day on hover", () => {
 		const row = section(dueSoon(), "due-soon-row-quiz", "</li>");
-		assert.match(row, /text-\[14px\][^>]*>Reading quiz</);
-		assert.match(row, /text-\[12px\][^"]*text-ink-2[^>]*>CSE 21 · 5:00 PM</);
+		assert.match(row, /title="CSE 21 · 5:00 PM"[^>]*text-\[15px\][^>]*>CSE 21 Reading quiz</);
 		assert.match(row, /data-mode="fine"[^>]*font-mono[^>]*>48:00\.00</, "the last hour shows hundredths");
 		assert.match(row, /data-testid="done-box"[^>]*style="width:13px;height:13px"/);
 		assert.match(tag(dueSoon(), "due-soon-row-quiz"), /data-halley-target="deadline:quiz"/);
 	});
 
-	it("no time: the weekday in the meta line", () => {
-		assert.match(section(dueSoon(), "due-soon-row-hw5", "</li>"), />CSE 29 · Fri</);
+	it("rows from one class show just the deadline's name", () => {
+		const one = OPEN.filter((x) => x.classId === "c21");
+		assert.match(section(dueSoon(one), "due-soon-row-quiz", "</li>"), /text-\[15px\][^>]*>Reading quiz</);
+	});
+
+	it("no time: the weekday on hover", () => {
+		assert.match(section(dueSoon(), "due-soon-row-hw5", "</li>"), /title="CSE 29 · Fri"/);
 	});
 
 	it("overdue: a red box and 'Overdue' in red", () => {

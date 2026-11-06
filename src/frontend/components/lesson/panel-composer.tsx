@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { ArrowUpIcon, PlusIcon } from "lucide-react";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { cn } from "@/frontend/lib/utils";
-import { ActionBar, PanelBody, PanelHeader, StopButton, ToneButton } from "./panel-parts";
+import { PanelBody, PanelHeader, SendButton, StopButton } from "./panel-parts";
 import { MathBox } from "@/frontend/components/math-box";
 import { TurnStatus } from "./turn-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
@@ -93,26 +93,20 @@ export function PanelComposer({
 						onEnter={act}
 						placeholder={next !== undefined ? "Ask anything, or go on to the next problem." : "Message the teacher…"}
 						ariaLabel="Message the teacher"
+						footer={
+							<>
+								<AttachButton draft={attachments} />
+								{showNext ? (
+									<SendButton type="submit" testId="next-problem-button" label={next} />
+								) : (
+									<SendButton type="submit" testId="composer-send" label={busy ? "Send when ready" : "Send"} waiting={busy} disabled={!canSend} />
+								)}
+							</>
+						}
 					/>
 				</div>
 				{footer}
 			</PanelBody>
-			<div className="flex shrink-0">
-				<AttachButton draft={attachments} />
-				<div className="min-w-0 flex-1">
-					{showNext ? (
-						<ActionBar type="submit" testId="next-problem-button" label={next} />
-					) : (
-						<ActionBar
-							type="submit"
-							testId="composer-send"
-							label={busy ? "Send when ready" : "Send"}
-							waiting={busy}
-							disabled={!canSend}
-						/>
-					)}
-				</div>
-			</div>
 		</form>
 	);
 }
@@ -157,7 +151,7 @@ export function SideQuestionBox({
 	return (
 		<div data-testid="side-question" className="shrink-0 px-6 pb-3" {...attachmentInputProps(attachments)}>
 			<AttachmentTray draft={attachments} />
-			<div className="mt-3 flex items-end bg-background has-[.cm-focused]:inset-ring has-[.cm-focused]:inset-ring-ink-2">
+			<div className="mt-3 flex items-end gap-1 border border-tone-2 bg-background p-0.5 has-[.cm-focused]:border-ink-2">
 				<AttachButton draft={attachments} />
 				<div
 					className="flex min-w-0 flex-1 flex-col self-stretch"
@@ -176,15 +170,22 @@ export function SideQuestionBox({
 						ariaLabel="Ask the teacher something"
 					/>
 				</div>
-				<div className="p-2">
-					{busy ? (
+				{busy ? (
+					<div className="flex h-9 items-center">
 						<StopButton onStop={onStop} />
-					) : (
-						<ToneButton testId="side-question-send" onClick={send} disabled={!canSend}>
-							Send
-						</ToneButton>
-					)}
-				</div>
+					</div>
+				) : (
+					<button
+						type="button"
+						data-testid="side-question-send"
+						aria-label="Send"
+						onClick={send}
+						disabled={!canSend}
+						className="lh-press flex size-9 shrink-0 items-center justify-center bg-ink text-background hover:bg-ink-max disabled:cursor-default disabled:bg-transparent disabled:text-ink-3"
+					>
+						<ArrowUpIcon aria-hidden className="size-4" />
+					</button>
+				)}
 			</div>
 		</div>
 	);

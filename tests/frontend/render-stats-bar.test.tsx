@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { StatsBar, formatContextMeasurement } from "../../src/frontend/components/stats-bar.tsx";
+import { StatsBar, contextMeter } from "../../src/frontend/components/stats-bar.tsx";
 import { sessionCost } from "../../src/shared/core/prices.ts";
 import { planCostLabel, prettyModel } from "../../src/frontend/components/usage-format.ts";
 import type { TurnUsage } from "../../src/shared/core/contracts.ts";
@@ -27,18 +27,12 @@ function turn(over: Partial<TurnUsage> = {}): TurnUsage {
 }
 
 describe("stats bar", () => {
-	it("a lesson with no turns yet still shows the summary, and no model control", () => {
-		const html = renderToStaticMarkup(<StatsBar turns={[]} />);
-		assert.match(html, /data-testid="stats-summary"/);
+	it("stays hidden until the lesson is 80% of the way to being summarized", () => {
+		assert.equal(renderToStaticMarkup(<StatsBar turns={[]} />), "");
+		assert.equal(renderToStaticMarkup(<StatsBar turns={[turn()]} contextTokens={11_000} summarizeAt={40_000} />), "");
+		const html = renderToStaticMarkup(<StatsBar turns={[turn(), turn()]} contextTokens={33_000} summarizeAt={40_000} pricing={sessionCost({ turns: [turn(), turn()] })} />);
+		assert.match(html, /data-testid="stats-context">33k \/ 40k<\/span><span>lesson</);
 		assert.ok(!html.includes('data-testid="stats-model"'), "no model control");
-		assert.ok(!html.includes('data-testid="stats-thinking"'), "no thinking control");
-	});
-
-	it("the lesson size reads over the summarize point, labeled as the lesson", () => {
-		const html = renderToStaticMarkup(
-			<StatsBar turns={[turn(), turn()]} contextTokens={11_000} summarizeAt={40_000} pricing={sessionCost({ turns: [turn(), turn()] })} />,
-		);
-		assert.match(html, /data-testid="stats-context">11k \/ 40k<\/span><span>lesson</);
 		assert.ok(!html.includes("Your agent"), "the plan label stays in the details");
 	});
 
@@ -46,12 +40,11 @@ describe("stats bar", () => {
 		assert.equal(planCostLabel(sessionCost({ turns: [turn({ model: "nope/unknown" })] }).subscriptionProviders), "–");
 	});
 
-	it("unknown context is explicit", () => {
-		assert.equal(formatContextMeasurement(null, 100_000), "? / 100k");
-		assert.equal(formatContextMeasurement(83_000, 100_000), "83k / 100k");
-		assert.equal(formatContextMeasurement(83_000, null), "83k");
-		const html = renderToStaticMarkup(<StatsBar turns={[turn()]} contextTokens={null} summarizeAt={40_000} />);
-		assert.match(html, /data-testid="stats-context">\? \/ 40k</);
+	it("the meter's text: none while unknown or below 80%", () => {
+		assert.equal(contextMeter(null, 100_000), null, "cleared by a summary");
+		assert.equal(contextMeter(83_000, null), null);
+		assert.equal(contextMeter(79_000, 100_000), null);
+		assert.equal(contextMeter(83_000, 100_000), "83k / 100k");
 	});
 });
 

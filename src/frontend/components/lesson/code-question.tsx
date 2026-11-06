@@ -4,7 +4,7 @@ import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { cn } from "@/frontend/lib/utils";
 import { buildCodeAnswer, codeLanguage, type ChatAttachment, type QuestionAnswerData, type QuestionFormDraft, type WriteCodeInput } from "@/shared/core";
 import { CodeEditor } from "./code-editor";
-import { ActionBar, KindChip, PanelBody, PanelHeader, HeaderChip, skipExit } from "./panel-parts";
+import { KindChip, PanelBody, PanelHeader, HeaderChip, SendButton, skipExit } from "./panel-parts";
 import { TurnStatus } from "./turn-status";
 import { MathBox } from "@/frontend/components/math-box";
 
@@ -125,16 +125,18 @@ export function CodeQuestion({
 						onEnter={submit}
 						placeholder="Why this answer? Whatever comes to mind."
 						ariaLabel="Your thinking"
+						footer={
+							<SendButton
+								type="submit"
+								testId="question-submit"
+								label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
+								disabled={!canSubmit || compactionRunning || busy}
+							/>
+						}
 					/>
 				</div>
 				{footer}
 			</PanelBody>
-			<ActionBar
-				type="submit"
-				testId="question-submit"
-				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-				disabled={!canSubmit || compactionRunning || busy}
-			/>
 		</form>
 	);
 }
