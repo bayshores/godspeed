@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.5.37",
+		"date": "2026-11-06",
+		"changes": [
+			"A calmer lesson screen. Send now sits inside each writing box instead of a big bar under it, the top bar has no more white blocks, and lessons and deadlines in the sidebar fit on one line.",
+			"The cheat sheet beside a lesson has one clear title, fits its pages to the panel and keeps its zoom buttons under them.",
+			"With the cheat sheet open, the lesson text no longer gets squeezed away. When the window is too narrow, the problem moves below the text."
+		]
+	},
+	{
 		"version": "0.5.36",
 		"date": "2026-11-04",
 		"changes": [
