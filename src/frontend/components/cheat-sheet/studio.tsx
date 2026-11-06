@@ -105,15 +105,17 @@ function Studio({
 	return (
 		<>
 			<TopBar>
-				<nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-2.5 text-sm">
-					<Link href={`/class/deadline/${encodeURIComponent(deadlineId)}`} className="lh-press flex min-w-0 items-center gap-2 text-ink-2 hover:text-ink">
-						<ArrowLeftIcon className="size-4 shrink-0" aria-hidden />
-						<span className="truncate">
-							{view.className} · {view.deadlineName}
-						</span>
+				<div className="flex min-w-0 flex-1 items-center gap-2">
+					<Link
+						href={`/class/deadline/${encodeURIComponent(deadlineId)}`}
+						aria-label={`Back to ${view.deadlineName}`}
+						title={`Back to ${view.deadlineName}`}
+						className="lh-press flex size-8 shrink-0 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink"
+					>
+						<ArrowLeftIcon className="size-4" aria-hidden />
 					</Link>
-					<span className="shrink-0 font-bold text-ink">Cheat sheet</span>
-				</nav>
+					<h1 className="min-w-0 truncate text-[15px] font-bold text-ink">Cheat sheet for {view.deadlineName}</h1>
+				</div>
 				<StudioStatus view={view} agentName={agentName} agentGone={agentGone} onStop={() => void act({ action: "stop" }).then(setFailed)} />
 				{current &&
 					currentUrl &&
