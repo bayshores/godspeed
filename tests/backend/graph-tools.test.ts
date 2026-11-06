@@ -1,0 +1,224 @@
+// THE PROBER'S GRAPH TOOLS — pinned behaviors:
+// 1. REGISTRATION: the factory registers list_sessions/list_propositions
+//    on the prober ONLY when the composition root passes a graphStore
+//    (the graphToolsEnabled gate lives server-side; absent store = closed
+//    gate — the factory must not reach for settings itself).
+// 2. OUTPUT: names only — the rule bars statement text and session
+//    contents from the prober's view of the map.
+// 3. HONESTY: empty graph, unknown session id — the tools answer in
+//    their own voice, never throw, never guess.
+
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { createProberTools } from "../../src/backend/agent/tools.ts";
+import type { ChatStore, GraphStore, JobStore } from "../../src/shared/core/ports.ts";
+import type { ChatSummary } from "../../src/shared/core/contracts/chat.ts";
+import type { GraphChain, GraphNode } from "../../src/shared/core/contracts/graph.ts";
+
+// ─── fixtures ────────────────────────────────────────────────────────────────
+
+const pt = (chatId: string, messageId = "m1") => ({ chatId, messageId });
+const node = (
+	id: string,
+	name: string,
+	provenance: Array<{ chatId: string; messageId: string }>,
+): GraphNode => ({
+	id,
+	name,
+	statement: `statement of ${name}`, // must NEVER leak into tool output
+	aliases: [],
+	createdAt: "2026-09-23T00:00:00.000Z",
+	provenance,
+});
+
+function fakeStores(
+	nodes: GraphNode[],
+	over: {
+		chats?: Array<Pick<ChatSummary, "id" | "title" | "createdAt" | "updatedAt">>;
+	} = {},
+): { chatStore: ChatStore; graphStore: GraphStore } {
+	const chains: GraphChain[] = [];
+	const graphStore: GraphStore = {
+		readNodes: () => nodes,
+		readChains: () => chains,
+		readCheckpoints: () => [],
+		readCoverage: () => [],
+		readSources: () => [],
+		removeSource: () => false,
+		readClusterLabels: () => [],
+		appendClusterLabel: () => {},
+		appendNamingRun: () => {},
+	} as unknown as GraphStore;
+	const chatStore: ChatStore = {
+		listChats: () =>
+			(over.chats ?? []).map((c) => ({ ...c, messageCount: 0 }) as unknown as ChatSummary),
+		getChat: (id: string) =>
+			((over.chats ?? []).find((c) => c.id === id) as unknown as ChatSummary) ?? undefined,
+	} as unknown as ChatStore;
+	return { chatStore, graphStore };
+}
+
+const stubJobStore = {
+	createJob: (() => ({})) as never,
+	getJob: (() => undefined) as never,
+	listJobs: (() => []) as never,
+	updateJob: (() => {}) as never,
+} as unknown as JobStore;
+
+const baseCtx = {
+	chatId: "c1",
+	deliver: () => {},
+	jobStore: stubJobStore,
+	spawn: () => {},
+};
+
+// ─── registration (the factory gate) ────────────────────────────────────────
+
+describe("prober graph tools — registration", () => {
+	it("no graphStore in the context → the tools are absent (gate decided server-side)", () => {
+		const { chatStore } = fakeStores([]);
+		const tools = createProberTools({ ...baseCtx, chatStore });
+		assert.equal("list_sessions" in tools, false);
+		assert.equal("list_propositions" in tools, false);
+	});
+
+	it("graphStore present → list_sessions + list_propositions join the registry beside the usual set", () => {
+		const { chatStore, graphStore } = fakeStores([node("n1", "Water cycle", [pt("c1")])]);
+		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
+		// The standing set (research + pdf are phase-omnipresent) plus the two graph-map readers.
+		assert.deepEqual(Object.keys(tools).sort(), [
+			"ask_user_question",
+			"find",
+			"grep",
+			"list_propositions",
+			"list_sessions",
+			"ls",
+			"pdf",
+			"probe",
+			"probe_done",
+			"read",
+			"research",
+			"work_plan",
+			"write_code",
+		]);
+	});
+});
+
+// ─── output shape + the no-prose rule ──────────────────────────────────────
+
+describe("list_sessions", () => {
+	it("names, kinds, counts, dates, ids — in the prober's voice, no statements", async () => {
+		const { chatStore, graphStore } = fakeStores(
+			[
+				node("n1", "Water cycle", [pt("c1")]),
+				node("n2", "Evaporation", [pt("c1")]),
+				node("n3", "Nietzsche", [pt("src_file")]),
+			],
+			{
+				chats: [
+					{
+						id: "c1",
+						title: "First lesson",
+						createdAt: "2026-09-20T10:00:00.000Z",
+						updatedAt: "2026-09-21T10:00:00.000Z",
+					},
+				],
+			},
+		);
+		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
+		const out = (await tools.list_sessions!.execute!("tc", {})).details as string;
+		assert.match(out, /2 session\(s\) in the knowledge graph, most recent first:/);
+		// The chat: name, kind, born count, dates, id — the full resume.
+		assert.match(out, /First lesson \(chat, 2 propositions, born 2026-09-20T10:00:00.000Z, last active 2026-09-21T10:00:00.000Z\) — id: c1/);
+		// The unrecorded birth session falls back honestly: the id, no fake date.
+		assert.match(out, /src_file \(file, 1 proposition, born unknown date\) — id: src_file/);
+		// The map's prose never reaches the prober.
+		assert.ok(!out.includes("statement of"));
+	});
+
+	it("an empty graph gets an honest answer, not an empty string or a throw", async () => {
+		const { chatStore, graphStore } = fakeStores([]);
+		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
+		const out = (await tools.list_sessions!.execute!("tc", {})).details as string;
+		assert.equal(out, "The knowledge graph is empty — no session has contributed propositions yet.");
+	});
+});
+
+describe("list_propositions", () => {
+	it("names only — what the session covered (no levels, no dating)", async () => {
+		const { chatStore, graphStore } = fakeStores([
+			node("n1", "Water cycle", [pt("c1")]),
+			node("n2", "Evaporation", [pt("c1")]),
+		]);
+		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
+		const out = (await tools.list_propositions!.execute!("tc", { session: "c1" })).details as string;
+		assert.match(out, /2 proposition\(s\) covered in this session:/);
+		assert.match(out, /- Water cycle/);
+		assert.match(out, /- Evaporation/);
+		// No levels, no dating, never the statement text.
+		assert.ok(!out.includes("as of"));
+		assert.ok(!out.includes("solid"));
+		assert.ok(!out.includes("statement of"));
+	});
+
+	it("no evaluation machinery at all — the covered list is the whole output", async () => {
+		const { chatStore, graphStore } = fakeStores([node("n1", "Water cycle", [pt("c1")])]);
+		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
+		const out = (await tools.list_propositions!.execute!("tc", { session: "c1" })).details as string;
+		assert.match(out, /- Water cycle/);
+		assert.ok(!out.includes("never evaluated"));
+	});
+
+	it("an unknown session id — honest redirect, not a throw", async () => {
+		const { chatStore, graphStore } = fakeStores([node("n1", "Water cycle", [pt("c1")])]);
+		const tools = createProberTools({ ...baseCtx, chatStore, graphStore });
+		const out = (await tools.list_propositions!.execute!("tc", { session: "no-such" })).details as string;
+		assert.equal(out, 'No propositions born in session "no-such". Call list_sessions for the current ids.');
+	});
+});
+
+// ─── reads cross classes ──────────
+
+describe("prober graph tools — cross-class reads", () => {
+	it("list_sessions lists every class graph, the lesson's own class first, tagged by class", async () => {
+		const own = fakeStores([node("n1", "Gradients", [pt("c1")])], { chats: [{ id: "c1", title: "Calc lesson" }] } as never);
+		const other = fakeStores([node("n2", "Matrices", [pt("c2")])], { chats: [{ id: "c2", title: "Linear algebra lesson" }] } as never);
+		const chatStore = {
+			...own.chatStore,
+			getChat: (id: string) => own.chatStore.getChat(id) ?? other.chatStore.getChat(id),
+			listChats: () => [...own.chatStore.listChats(), ...other.chatStore.listChats()],
+		} as unknown as ChatStore;
+		const tools = createProberTools({
+			...baseCtx,
+			chatStore,
+			graphStore: own.graphStore,
+			graphs: () => [
+				{ className: "MATH 18", graphStore: other.graphStore, own: false },
+				{ className: "MATH 20C", graphStore: own.graphStore, own: true },
+			],
+		});
+		const out = (await tools.list_sessions!.execute!("tc", {})).details as string;
+		const lines = out.split("\n");
+		assert.match(lines[1]!, /Calc lesson .*class: MATH 20C \(this lesson's class\)/);
+		assert.match(lines[2]!, /Linear algebra lesson .*class: MATH 18 — id: c2/);
+		const props = (await tools.list_propositions!.execute!("tc", { session: "c2" })).details as string;
+		assert.match(props, /- Matrices/);
+	});
+});
+
+describe("read_class", () => {
+	it("is registered only with a class card reader and returns the live card", async () => {
+		const { chatStore } = fakeStores([]);
+		assert.equal("read_class" in createProberTools({ ...baseCtx, chatStore }), false);
+		const tools = createProberTools({
+			...baseCtx,
+			chatStore,
+			classCard: () => ({ classId: "cls_x", name: "PHYS 2B", description: "Uses Griffiths", files: [{ name: "syllabus.pdf", kind: "info", path: "/tmp/s.pdf" }] }),
+		});
+		const out = (await tools.read_class!.execute!("tc", {})).details as string;
+		assert.match(out, /^\[Class context\]/);
+		assert.match(out, /Class: PHYS 2B/);
+		assert.match(out, /Uses Griffiths/);
+		assert.match(out, /\[course info\] syllabus\.pdf — \/tmp\/s\.pdf/);
+	});
+});

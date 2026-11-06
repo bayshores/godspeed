@@ -10,8 +10,8 @@
 // back to a plain text send (the settle race). Stranding safety: the
 // registry copy survives a question termination or abort and rides the
 // chat's next run.
-import { ChatInputError, newUserSteer, parseUserSteerInput } from "@/core";
-import { getChat, steerLiveChat } from "@/server";
+import { ChatInputError, newUserSteer, parseUserSteerInput } from "@/shared/core";
+import { getChat, steerLiveChat } from "@/backend/server";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
 	const { id } = await ctx.params;

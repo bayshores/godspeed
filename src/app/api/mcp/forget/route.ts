@@ -1,7 +1,7 @@
 /**
- * /api/mcp/forget — an outside agent lost its context (src/server/mcp.ts).
+ * /api/mcp/forget — an outside agent lost its context (src/backend/server/mcp.ts).
  */
-import { handleAgentForget } from "@/server";
+import { handleAgentForget } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

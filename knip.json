@@ -3,8 +3,8 @@
 	"entry": [
 		"electron/*.cjs",
 		"scripts/*.{ts,mjs,cjs}",
-		"src/server/agent-folder-files/*.mjs",
-		"src/server/workers/*.mjs",
+		"src/backend/server/agent-folder-files/*.mjs",
+		"src/backend/server/workers/*.mjs",
 		"tests/**/*.test.{ts,tsx}",
 		"tests/perf/*.{ts,tsx}"
 	],

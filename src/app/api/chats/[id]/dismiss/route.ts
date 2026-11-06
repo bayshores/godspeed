@@ -18,8 +18,8 @@
  * record, so ESC-discard doubles as the turn abort's bookkeeper (the
  * client fires both).
  */
-import { ChatInputError, dismissAppends, emit, parseDismissInput } from "@/core";
-import { getChat, isTurnRunning, parkDismissal, stores } from "@/server";
+import { ChatInputError, dismissAppends, emit, parseDismissInput } from "@/shared/core";
+import { getChat, isTurnRunning, parkDismissal, stores } from "@/backend/server";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
 	const { id } = await ctx.params;

@@ -3,8 +3,8 @@
  * leave the old class graph and are rebuilt in the new one; refused while
  * a turn or job runs.
  */
-import { moveChatToClass } from "@/server";
-import { parseClassScope } from "@/core";
+import { moveChatToClass } from "@/backend/server";
+import { parseClassScope } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

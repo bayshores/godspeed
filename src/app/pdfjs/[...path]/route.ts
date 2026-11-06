@@ -4,7 +4,7 @@
  * app, never the network. Outside /api: a worker's requests don't carry
  * the desktop API secret, which only the window's main frame gets.
  */
-import { pdfjsAsset } from "@/server";
+import { pdfjsAsset } from "@/backend/server";
 
 type Ctx = { params: Promise<{ path: string[] }> };
 

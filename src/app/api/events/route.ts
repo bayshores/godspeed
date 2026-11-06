@@ -5,7 +5,7 @@
  * server seam (events-stream.ts); the framework route stays a thin
  * wrapper (the import law; tests drive the seam directly).
  */
-import { eventsResponse } from "@/server";
+import { eventsResponse } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

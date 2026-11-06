@@ -4,7 +4,7 @@
  * feed lives in server/observability.ts. See that module's header for why /api/jobs stays
  * chat-scoped and untouched.
  */
-import { activityFeed } from "@/server";
+import { activityFeed } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CheatSheetStudio } from "@/components/cheat-sheet/studio";
-import { deadlineWithClass } from "@/server";
+import { CheatSheetStudio } from "@/frontend/components/cheat-sheet/studio";
+import { deadlineWithClass } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

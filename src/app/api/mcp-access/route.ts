@@ -4,7 +4,7 @@
  * rotating the token. Desktop-window only like every /api route except
  * /api/mcp itself (proxy.ts).
  */
-import { mcpAccessStatus, rotateMcpToken } from "@/server";
+import { mcpAccessStatus, rotateMcpToken } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

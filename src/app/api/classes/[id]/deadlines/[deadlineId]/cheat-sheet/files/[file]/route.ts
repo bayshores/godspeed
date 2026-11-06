@@ -2,8 +2,8 @@
  * /api/classes/[id]/deadlines/[deadlineId]/cheat-sheet/files/[file]
  *  GET — a picture or PDF sent in the sheet's chat, as it was kept
  */
-import { cheatSheetFile } from "@/server";
-import { isClassId } from "@/core";
+import { cheatSheetFile } from "@/backend/server";
+import { isClassId } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

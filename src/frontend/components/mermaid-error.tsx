@@ -1,0 +1,32 @@
+import { Button } from "@/frontend/components/ui/button";
+
+/**
+ * Fallback card for a mermaid chart that fails to render, shown by the chat
+ * block (md-blocks.tsx) and the focus overlay (session-overlay.tsx): the
+ * error, the source in a details block (so a broken diagram doesn't flood
+ * the transcript), and a retry.
+ */
+export const MermaidError = ({ chart, error, retry }: { chart: string; error: string; retry: () => void }) => (
+	<div
+		className="my-4 border border-destructive/40 bg-destructive/5 p-4"
+		data-streamdown="mermaid-error"
+	>
+		<p className="text-sm font-medium text-destructive">
+			Diagram failed to render
+		</p>
+		<p className="mt-1 font-mono text-xs break-words text-muted-foreground">
+			{error}
+		</p>
+		<details className="mt-3">
+			<summary className="cursor-pointer text-xs text-muted-foreground">
+				Show diagram source
+			</summary>
+			<pre className="mt-2 overflow-x-auto bg-muted p-3 font-mono text-xs text-foreground">
+				{chart}
+			</pre>
+		</details>
+		<Button className="mt-3" onClick={retry} size="sm" variant="outline">
+			Retry
+		</Button>
+	</div>
+);

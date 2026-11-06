@@ -3,8 +3,8 @@
  *  GET  — the class's deadlines, soonest due first
  *  POST — add one { kind, name, date: "YYYY-MM-DD", time?: "HH:MM", fileIds?: string[] }
  */
-import { addClassDeadline, askAboutNewDeadlines, listClassDeadlines } from "@/server";
-import { isClassId, type DeadlineKind } from "@/core";
+import { addClassDeadline, askAboutNewDeadlines, listClassDeadlines } from "@/backend/server";
+import { isClassId, type DeadlineKind } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

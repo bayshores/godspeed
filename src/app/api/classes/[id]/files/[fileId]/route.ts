@@ -4,8 +4,8 @@
  *  PUT    — { kind: "study" | "info" } switch, or { retry: true }
  *  DELETE — remove a copied file and its facts
  */
-import { classFilePath, getClass, removeFile, retryFile, setFileKind } from "@/server";
-import { isClassId } from "@/core";
+import { classFilePath, getClass, removeFile, retryFile, setFileKind } from "@/backend/server";
+import { isClassId } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

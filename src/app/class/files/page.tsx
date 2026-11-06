@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { FilesPage } from "@/components/files/files-page";
+import { FilesPage } from "@/frontend/components/files/files-page";
 
 export const metadata: Metadata = { title: "Files" };
 

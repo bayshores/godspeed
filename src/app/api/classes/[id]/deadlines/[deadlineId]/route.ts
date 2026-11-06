@@ -3,8 +3,8 @@
  *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, leftOutIds?, source?: string | null, done? }
  *  DELETE — remove the deadline
  */
-import { removeClassDeadline, updateClassDeadline } from "@/server";
-import { isClassId, type DeadlineKind } from "@/core";
+import { removeClassDeadline, updateClassDeadline } from "@/backend/server";
+import { isClassId, type DeadlineKind } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v7
         if: github.event_name == 'push'
         with:
-          sparse-checkout: src/changelog.json
+          sparse-checkout: src/shared/changelog.json
           sparse-checkout-cone-mode: false
       # This job succeeds without creating anything on manual rehearsals.
       # Preparing once avoids the publisher's list-miss/create race between OS jobs.
@@ -73,11 +73,11 @@ jobs:
             const {owner, repo} = context.repo;
             const tag = context.ref.replace(/^refs\/tags\//, "");
             const version = tag.slice(1);
-            // A release needs notes: stop here when src/changelog.json has none.
-            const changelog = JSON.parse(require("fs").readFileSync("src/changelog.json", "utf8"));
+            // A release needs notes: stop here when src/shared/changelog.json has none.
+            const changelog = JSON.parse(require("fs").readFileSync("src/shared/changelog.json", "utf8"));
             const entry = changelog.find(e => e.version === version);
             if (!entry || !Array.isArray(entry.changes) || entry.changes.length === 0) {
-              throw new Error(`src/changelog.json has no notes for ${version}; add them before releasing.`);
+              throw new Error(`src/shared/changelog.json has no notes for ${version}; add them before releasing.`);
             }
             // Download links first, for people new to GitHub. These names
             // match the artifactName settings in electron/electron-builder.yml.
@@ -175,7 +175,7 @@ jobs:
           restore-keys: electron-${{ runner.os }}-
       - run: npm ci
       - name: Native renderer tests on this OS
-        run: npx electron --import tsx --test tests/pdf-native-render.test.ts tests/pdf-ops.test.ts tests/svg-native-render.test.ts tests/browser-service.test.ts
+        run: npx electron --import tsx --test tests/backend/pdf-native-render.test.ts tests/backend/pdf-ops.test.ts tests/backend/svg-native-render.test.ts tests/backend/browser-service.test.ts
         env:
           NODE_ENV: test
           ELECTRON_RUN_AS_NODE: "1"

@@ -2,7 +2,7 @@
  * GET /api/agent-actions — what outside agents changed lately (Halley's
  * panel, "Recent"): the last 20, newest first, kept in memory only.
  */
-import { recentAgentActions } from "@/server";
+import { recentAgentActions } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

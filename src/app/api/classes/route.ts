@@ -3,7 +3,7 @@
  *  GET  — every class (archived included; the switcher filters)
  *  POST — create a class { name, description? }
  */
-import { createClass, listClasses, startClassScanner } from "@/server";
+import { createClass, listClasses, startClassScanner } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

@@ -6,8 +6,8 @@
  * `today` (the browser's calendar day) sets the deadlines' days-left; absent =
  * this computer's day. Read-only.
  */
-import { progressFor, requestClassScope } from "@/server";
-import { isCalendarDate } from "@/core";
+import { progressFor, requestClassScope } from "@/backend/server";
+import { isCalendarDate } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

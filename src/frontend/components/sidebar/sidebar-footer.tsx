@@ -1,0 +1,91 @@
+import { SettingsIcon, SquareTerminalIcon } from "lucide-react";
+import { useActivity } from "@/frontend/components/activity-dock";
+import { useReopenAgent } from "@/frontend/components/agent-folder/use-agent-folder";
+import { footerLabel, teachStep, useAgentStatus } from "@/frontend/components/agent-status";
+import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useSettingsDialog } from "@/frontend/components/settings/settings-dialog-provider.tsx";
+import { Hint } from "@/frontend/components/ui/hint";
+import { cn } from "@/frontend/lib/utils";
+
+/**
+ * THE SIDEBAR FOOTER: a dot and one line — the
+ * outside agent and how many background jobs run ("Claude Code · 1 job")
+ * — plus the settings icon. The dot is green while an outside agent is
+ * connected over MCP (src/frontend/components/agent-status.tsx). While an agent
+ * teaches, clicking the line opens Halley's panel (Now, Recent, Background
+ * jobs); otherwise it opens Settings → Connection to set one up. While no
+ * agent is connected, a button above it ("Open Claude Code", as in
+ * Settings) opens the last one used in the godspeed folder.
+ */
+
+/** While no agent is connected: the button that opens it (the line under
+ *  it says it isn't connected). */
+function ReopenAgent() {
+	const reopen = useReopenAgent();
+	return (
+		<div data-testid="sidebar-reopen" className="mx-2.5 mt-2 flex flex-col gap-2">
+			<button
+				type="button"
+				data-testid="sidebar-reopen-open"
+				disabled={reopen.busy}
+				onClick={reopen.open}
+				className="lh-press flex items-center justify-center gap-2 bg-ink px-3 py-2 text-[13px] font-bold text-background hover:bg-ink-max disabled:opacity-60"
+			>
+				<SquareTerminalIcon className="size-3.5" aria-hidden />
+				{reopen.label}
+			</button>
+			{reopen.error && (
+				<p role="alert" className="text-[12px] text-ans-wrong">
+					{reopen.error}
+				</p>
+			)}
+			{reopen.manual && <p className="text-[12px] text-ink-3">Run the command from Settings, Connection in your terminal.</p>}
+		</div>
+	);
+}
+
+export function SidebarFooter() {
+	const { feed } = useActivity();
+	const jobs = feed.jobs.length + feed.extractions.length;
+	const agent = useAgentStatus();
+	const halley = useHalley();
+	const { open: openSettings } = useSettingsDialog();
+	const open = halley?.panelOpen ?? false;
+	const teaching = agent?.teaching ?? false;
+
+	return (
+		<>
+		{agent && !agent.connected && <ReopenAgent />}
+		<div className="flex w-full items-center justify-between gap-2 px-2.5 pt-2">
+			<button
+				type="button"
+				data-testid="sidebar-agent"
+				data-halley-panel-toggle={teaching ? "" : undefined}
+				aria-expanded={teaching ? open : undefined}
+				onClick={() => (teaching ? halley?.setPanelOpen(!open) : openSettings("connection"))}
+				title={agent && !teaching && (agent.connected || agent.pendingWork > 0) ? teachStep(agent.name) : undefined}
+				className="lh-press flex min-w-0 items-center gap-[7px] text-[12.5px] text-ink-2 hover:text-ink"
+			>
+				<span
+					data-testid="sidebar-agent-dot"
+					data-on={agent?.connected || undefined}
+					className={cn("size-[7px] shrink-0 rounded-full", agent?.connected ? "bg-ans-right" : "bg-ink-3")}
+					aria-hidden
+				/>
+				<span className="truncate">{footerLabel(agent, jobs)}</span>
+			</button>
+			<Hint label="Settings" side="right">
+				<button
+					type="button"
+					onClick={() => openSettings()}
+					data-testid="settings-entry"
+					aria-label="Settings"
+					className="lh-press flex size-6 shrink-0 items-center justify-center text-ink-2 hover:text-ink"
+				>
+					<SettingsIcon className="size-4" />
+				</button>
+			</Hint>
+		</div>
+		</>
+	);
+}

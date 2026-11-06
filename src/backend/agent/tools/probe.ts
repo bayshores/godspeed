@@ -1,0 +1,100 @@
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { serverExecute } from "../tool-execute.ts";
+import { probeDoneInputSchema, PROBE_DONE_ACK_TEXT } from "../../../shared/core/contracts.ts";
+import { danglingQuestionOf, hasProbeDone, newHandoffMessage } from "../../../shared/core/native-messages.ts";
+import type { ChatStore } from "../../../shared/core/ports.ts";
+import type { SteerMessage } from "../../../shared/core/contracts.ts";
+
+/** What the probe_done tool closes over. */
+export interface ProbeDoneContext {
+	chatId: string;
+	/** The storage port (open-question + already-concluded checks). */
+	chatStore: ChatStore;
+	/** Queue the handoff steer (the wake pipeline — src/backend/server/jobs.ts).
+	 *  Injected so this module never imports the server seam. */
+	deliver: (steer: SteerMessage) => void;
+}
+
+/** This turn's probe state. The stored record only updates when the turn
+ *  ends (persistTurn), so it can't see a question or a probe_done from
+ *  earlier in the same turn. One per createProberTools call (the agent is
+ *  built per request), so nothing leaks across turns. */
+export interface ProbeTurnGate {
+	questionPosed: boolean;
+	concluded: boolean;
+}
+
+/**
+ * probe_done — the probe→planning seam.
+ *
+ * SERVER-SIDE. The prober concludes the probe by authoring the learner
+ * assessment (the tool INPUT — it streams to the learner live and is
+ * durable in the transcript as the tool part itself). Three outcomes:
+ *
+ *   ok:false + error — a question is still open ("resolve it first"), or
+ *     the probe is already concluded. The refusal returns to the prober as
+ *     a tool result; it fixes course and retries (the return-to-agent
+ *     doctrine, same as nodeId validation).
+ *   ok:true — the assessment is recorded, and the HANDOFF is queued: a
+ *     steer through the wake pipeline that fires the teacher's first turn
+ *     (plan authoring) the moment the prober's turn ends, so the learner
+ *     experiences assessment → plan as one continuous flow. CONTEXT-SLIM:
+ *     the call's arguments already carry the assessment (durable, streamed
+ *     live), so the agent sees the fixed PROBE_DONE_ACK_TEXT — never an
+ *     echo. details = {ok:true} only.
+ *
+ * The first successful probe_done in the transcript is also the
+ * construction seam: from that message on, every request builds the
+ * TEACHER agent. A refusal concludes nothing, so the prober can retry.
+ */
+export function probeDoneTool(ctx: ProbeDoneContext, gate: ProbeTurnGate): Record<string, AgentTool<any>> {
+	return {
+		probe_done: {
+			name: "probe_done",
+			label: "probe_done",
+			description:
+				"Conclude the probing phase and hand off to the teaching phase. Call this ONCE, when the probe is " +
+				"complete: every strand the lesson depends on is bracketed (a floor he reliably gets right AND a " +
+				"ceiling where it runs out), and his learning goal is concrete. The input IS the learner assessment — " +
+				"one strand per dependency the lesson will rest on, with your read of where his edge sits on it " +
+				"(floor, ceiling, misconceptions, what to build from). It streams to the learner live and becomes " +
+				"the handoff artifact the teacher plans from. Refused while a question is still open, and after " +
+				"the probe is already concluded. After it succeeds, say your closing sentence and end your turn.",
+			// The core-owned schema (contracts/probe.ts) — the SAME schema the UI
+			// parse seam (tool-parts.ts) runs, so boundary-valid ⇔ consumer-parseable.
+			parameters: probeDoneInputSchema,
+			execute: serverExecute("probe_done", probeDoneInputSchema, async () => {
+				const record = ctx.chatStore.getChat(ctx.chatId);
+				if (!record) return { ok: false, error: `Chat not found: ${ctx.chatId}` };
+
+				if (gate.questionPosed || danglingQuestionOf(record.messages) !== null) {
+					return {
+						ok: false,
+						error:
+							"A question is still open — resolve it (or let him answer) before concluding the probe. " +
+							"probe_done only fires with no question outstanding.",
+					};
+				}
+				if (gate.concluded || hasProbeDone(record.messages)) {
+					return { ok: false, error: "The probe is already concluded — probe_done fires exactly once." };
+				}
+				gate.concluded = true;
+				try {
+					ctx.deliver(newHandoffMessage(ctx.chatId));
+				} catch (err) {
+					console.error(`[chat ${ctx.chatId}] probe handoff queueing failed:`, err);
+					// The handoff is recoverable-by-design (the next client message
+					// constructs the teacher off the transcript seam) — record the
+					// assessment anyway; the wake is an optimization, not a gate.
+				}
+				// The assessment lives once, as this call's arguments: content is
+				// the fixed ack (no echo for the agent), and the probe-done card
+				// reads the call's input.
+				return {
+					text: PROBE_DONE_ACK_TEXT,
+					details: { ok: true },
+				};
+			}),
+		},
+	};
+}

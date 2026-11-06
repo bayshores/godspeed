@@ -9,8 +9,8 @@
  * Guards: 404 unknown chat, 400 for a body that isn't
  * { input: { messageId, inverted } } or targets no demo/visual steer.
  */
-import { setSteerUiInverted, type SteerDetails } from "@/core";
-import { getChat, stores } from "@/server";
+import { setSteerUiInverted, type SteerDetails } from "@/shared/core";
+import { getChat, stores } from "@/backend/server";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
 	const { id } = await ctx.params;

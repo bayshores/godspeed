@@ -4,7 +4,7 @@
  * delta, so text assertions read contiguous text.
  */
 import { createFauxCore, type FauxResponseStep } from "@earendil-works/pi-ai";
-import type { PiEngine } from "../src/agent/models.ts";
+import type { PiEngine } from "../src/backend/agent/models.ts";
 
 export function fauxEngine(steps: FauxResponseStep[] = []): PiEngine {
 	const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });

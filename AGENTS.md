@@ -48,8 +48,12 @@ Keep godspeed small, tidy and easy to read. Every change follows these rules, an
 - When something is replaced, remove the old version in the same change. Stored data is the one exception: the reader may upgrade old files on read (as the schema-version stamps do).
 - No leftover feature flags, shims, or "old way" fallbacks once the new way works.
 
+**Where code goes**
+- `src/frontend`: what the browser runs (`components/`, `lib/`). `src/backend`: what the server runs (`server/`, `agent/`, `store/`, `config.ts`). `src/shared/core`: pure logic both sides use. `src/app` and `src/proxy.ts` stay where Next.js looks for them, and only translate HTTP.
+- Tests sit in the matching folder: `tests/frontend`, `tests/backend` (also tests that cross into the server, like route tests), `tests/shared`, and `tests/desktop` for `electron/`, `scripts/` and `next.config.ts`. Shared helpers and `fixtures/` stay in `tests/` itself.
+
 **One job per file**
-- Pure logic lives in `src/core` (or a `*-model.ts` next to its component) and has unit tests. Components render, hooks fetch, routes translate HTTP.
+- Pure logic lives in `src/shared/core` (or a `*-model.ts` next to its component) and has unit tests. Components render, hooks fetch, routes translate HTTP.
 - No import cycles. Keep the import law (`eslint.config.mjs`).
 - Split a file that does two jobs when you touch it. Don't grow it further.
 

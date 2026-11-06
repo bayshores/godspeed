@@ -5,8 +5,8 @@
  *  DELETE — unlink: the folder's files leave the class with their facts
  *           (the folder itself is never touched)
  */
-import { linkFolder, shortcutPathProblem, unlinkFolder } from "@/server";
-import { isClassId } from "@/core";
+import { linkFolder, shortcutPathProblem, unlinkFolder } from "@/backend/server";
+import { isClassId } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

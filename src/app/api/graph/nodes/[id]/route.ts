@@ -1,4 +1,4 @@
-import { deleteGraphNode, requestClassScope } from "@/server";
+import { deleteGraphNode, requestClassScope } from "@/backend/server";
 
 /**
  * DELETE /api/graph/nodes/[id] — single-node deletion, FULL DEATH (the

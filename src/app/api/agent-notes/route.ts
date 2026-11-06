@@ -2,7 +2,7 @@
  * /api/agent-notes — Settings → Connection's "Remembered" list: GET the
  * notes outside agents saved with remember, DELETE ?id= removes one.
  */
-import { agentNotesView, removeAgentNote } from "@/server";
+import { agentNotesView, removeAgentNote } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

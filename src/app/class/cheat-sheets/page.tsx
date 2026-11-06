@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClassSheetsPage } from "@/components/cheat-sheet/class-sheets";
+import { ClassSheetsPage } from "@/frontend/components/cheat-sheet/class-sheets";
 
 export const metadata: Metadata = { title: "Cheat sheets" };
 

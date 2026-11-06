@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TopBar } from "@/components/top-bar";
+import { TopBar } from "@/frontend/components/top-bar";
 
 /** A removed lesson's or deadline's link, in the app's own look (the
  *  default 404 page paints over the sidebar's colors). */

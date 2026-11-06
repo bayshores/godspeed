@@ -4,8 +4,8 @@
  *   POST { action: "remove", where, text }: undo one.
  *   POST { action: "edit", where, text, newText }: rewrite one (it becomes the learner's).
  */
-import { parseWhere } from "@/core";
-import { agentSavedRules, editRule, removeRule } from "@/server";
+import { parseWhere } from "@/shared/core";
+import { agentSavedRules, editRule, removeRule } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

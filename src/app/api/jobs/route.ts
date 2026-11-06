@@ -1,4 +1,4 @@
-import { isTurnRunning, listJobs } from "@/server";
+import { isTurnRunning, listJobs } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

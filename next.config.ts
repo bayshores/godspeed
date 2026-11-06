@@ -44,13 +44,13 @@ const nextConfig: NextConfig = {
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
 			// The class-PDF text worker, loaded by path
-			// (src/server/class-files.ts pdfTextWorkerPath); the tracer can't see it.
-			"src/server/workers/**/*",
-			// The godspeed folder's files, copied there at runtime (src/server/agent-folder.ts).
-			"src/server/agent-folder-files/**/*",
+			// (src/backend/server/class-files.ts pdfTextWorkerPath); the tracer can't see it.
+			"src/backend/server/workers/**/*",
+			// The godspeed folder's files, copied there at runtime (src/backend/server/agent-folder.ts).
+			"src/backend/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			// pdf.js's browser worker and its data, served to the cheat sheet
-			// studio by path (src/server/pdfjs-assets.ts).
+			// studio by path (src/backend/server/pdfjs-assets.ts).
 			"node_modules/pdfjs-dist/build/pdf.worker.min.mjs",
 			"node_modules/pdfjs-dist/cmaps/**/*",
 			"node_modules/pdfjs-dist/iccs/**/*",
@@ -86,7 +86,7 @@ const nextConfig: NextConfig = {
 	// The pi engine must stay external: its providers are runtime-loaded Node
 	// code (undici streams, catalog data) that breaks when bundled into routes.
 	// The proxy (src/proxy.ts) buffers every API body, 10 MB by default; a
-	// lesson message may carry 5 PDFs of 30 MB each as base64 (src/core/attachments.ts).
+	// lesson message may carry 5 PDFs of 30 MB each as base64 (src/shared/core/attachments.ts).
 	experimental: { proxyClientMaxBodySize: "210mb" },
 	serverExternalPackages: [
 		"@earendil-works/pi-ai",

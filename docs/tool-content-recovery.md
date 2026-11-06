@@ -55,7 +55,7 @@ Unbalanced, unsupported or ambiguous content is not generally corrected into new
 
 ## Verification
 
-- `tests/content-recovery.test.ts`: recovery/preservation rules and adversarial row/comment/code examples.
-- `tests/tool-content-presentation.test.tsx`: provenance-labeled synthetic corpus regressions, historical joins and ambiguity.
-- `tests/tool-content-interaction.test.tsx`: select/submit/persist/reveal flow and paragraph structure.
+- `tests/shared/content-recovery.test.ts`: recovery/preservation rules and adversarial row/comment/code examples.
+- `tests/frontend/tool-content-presentation.test.tsx`: provenance-labeled synthetic corpus regressions, historical joins and ambiguity.
+- `tests/frontend/tool-content-interaction.test.tsx`: select/submit/persist/reveal flow and paragraph structure.
 - Existing Markdown, card, practice, tool-shape and grading suites remain applicable.

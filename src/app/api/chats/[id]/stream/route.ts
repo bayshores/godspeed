@@ -12,7 +12,7 @@
  * wrapper over the server barrel (the import law); tests drive the seams
  * (turn-runs + ui-stream) directly.
  */
-import { getChat, runningTurn, piTurnResponse, settledTurnResponse } from "@/server";
+import { getChat, runningTurn, piTurnResponse, settledTurnResponse } from "@/backend/server";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
 	const { id } = await ctx.params;

@@ -1,6 +1,6 @@
 /**
  * GET /api/settings/prompts — every prompt part the teacher and the level
- * check compose, derived from SOURCE at runtime (src/agent/prompts), each
+ * check compose, derived from SOURCE at runtime (src/backend/agent/prompts), each
  * with its source text and the learner's saved version (null when none).
  * A part both agents share is listed once.
  *
@@ -9,8 +9,8 @@
  * The text is written through PUT/DELETE /api/settings/prompts/[...segment].
  */
 
-import type { PromptSegmentInfo } from "@/core";
-import { effectivePromptSegments } from "@/server";
+import type { PromptSegmentInfo } from "@/shared/core";
+import { effectivePromptSegments } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

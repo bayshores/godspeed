@@ -36,7 +36,7 @@
 
 /* Palette: the OLED-black default — background
    #000000, panel #080808, tone #161616, tone-2 #2F2F2F. These are exactly
-   derivedPalette("#000000") in src/components/settings/appearance-model.ts
+   derivedPalette("#000000") in src/frontend/components/settings/appearance-model.ts
    (a test holds them equal), so a background picked in Settings →
    Appearance moves every surface, text level and status color with it.
    Text: ink #E6E6E6, ink-2 #8D8D8D, ink-3 #808080 (every text level is at
@@ -505,7 +505,7 @@ body {
 /* No phase colors: phases only advance (every session ends in Teaching),
    so phase-as-signal is decoration. "A turn is in flight" is carried by
    MOTION alone: the terminal braille spinner
-   (src/components/braille-spinner.tsx), monochrome, existing only while
+   (src/frontend/components/braille-spinner.tsx), monochrome, existing only while
    true. */
 
 /* One keyframes, all ten frames: each frame <g> holds opacity 1 for its
@@ -635,7 +635,7 @@ body {
    --lh-ease-out (enters) · --lh-ease-in (exits).
 
    Classes — pair with data-state="open" | "closed" (usePresence in
-   src/components/presence.ts keeps an element mounted through its exit):
+   src/frontend/components/presence.ts keeps an element mounted through its exit):
    - .lh-pop       menus/popovers: fade + 2% scale + 4px travel toward the
                    anchor (--lh-pop-y: +4px opens down, -4px opens up)
    - .lh-dialog    dialog panels: fade + 2% scale
@@ -815,7 +815,7 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Onboarding (src/components/onboarding/). The intro is
+   Onboarding (src/frontend/components/onboarding/). The intro is
    ~2.5s: a spark at the bottom-left (0s), the comet streaks in dropping
    topic dots (0.6s), brakes at the center while the dots link and light
    red → green (1.3s), then the constellation dims to a faint backdrop as
@@ -862,7 +862,7 @@ body {
 .ob-sky:not([data-mode="intro"]) .ob-comet {
 	opacity: 0;
 }
-/* The welcome screen (src/components/welcome/): "godspeed" fades in
+/* The welcome screen (src/frontend/components/welcome/): "godspeed" fades in
    centered, a comet flies in from the bottom-left and lands on its left,
    and the word slides right to make room, forming the logo. Then the
    status line and button rise. Base styles are the end state, so .ob-skip
@@ -1036,7 +1036,7 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Halley (src/components/halley/): the logo's comet as the on-screen
+   Halley (src/frontend/components/halley/): the logo's comet as the on-screen
    teacher. Bobbing,
    blinking, one face per mood (data-mood on the svg). SVG lengths here are
    in the face's own units (the dot is 200 across).

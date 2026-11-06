@@ -3,7 +3,7 @@
  *   POST   → the chat (made on first use): id, messages, turnInFlight, turnError.
  *   DELETE → Clear: empties it (409 while the teacher is replying).
  */
-import { clearTalk, openTalk } from "@/server";
+import { clearTalk, openTalk } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

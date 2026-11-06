@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DeadlinePage } from "@/components/deadline/deadline-page";
-import { deadlineWithClass } from "@/server";
+import { DeadlinePage } from "@/frontend/components/deadline/deadline-page";
+import { deadlineWithClass } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

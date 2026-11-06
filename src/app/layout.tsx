@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
-import type { ClassSummary } from "@/core";
+import type { ClassSummary } from "@/shared/core";
 import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
-import { AppShell, SidebarProvider } from "@/components/sidebar";
-import { ActivityProvider } from "@/components/activity-dock";
-import { ServerEventsProvider } from "@/components/server-events";
-import { AgentStatusProvider } from "@/components/agent-status";
-import { AppearanceProvider } from "@/components/settings/appearance";
-import UpdateBanner from "@/components/update-banner";
-import { ClassProvider } from "@/components/class-context";
-import { SoundProvider } from "@/components/sounds";
-// The light server door — the @/server barrel would load the whole server
+import { AppShell, SidebarProvider } from "@/frontend/components/sidebar";
+import { ActivityProvider } from "@/frontend/components/activity-dock";
+import { ServerEventsProvider } from "@/frontend/components/server-events";
+import { AgentStatusProvider } from "@/frontend/components/agent-status";
+import { AppearanceProvider } from "@/frontend/components/settings/appearance";
+import UpdateBanner from "@/frontend/components/update-banner";
+import { ClassProvider } from "@/frontend/components/class-context";
+import { SoundProvider } from "@/frontend/components/sounds";
+// The light server door — the @/backend/server barrel would load the whole server
 // (agent engine, MCP, extraction) just for these render-time reads.
-import { classStore, firstLoadScreen, folderNoticeAgent, onboardingNeeded, readSettingsRecord, refreshAgentFolder, whatsNewSince } from "@/server/settings-read";
-import { Onboarding } from "@/components/onboarding/onboarding";
-import { RestartNotice } from "@/components/restart-notice";
-import { NoticeStack } from "@/components/notice-stack";
-import { WhatsNew } from "@/components/whats-new";
-import { FolderNotice } from "@/components/agent-folder/folder-notice";
-import { OldSetupNotice } from "@/components/agent-folder/old-setup";
+import { classStore, firstLoadScreen, folderNoticeAgent, onboardingNeeded, readSettingsRecord, refreshAgentFolder, whatsNewSince } from "@/backend/server/settings-read";
+import { Onboarding } from "@/frontend/components/onboarding/onboarding";
+import { RestartNotice } from "@/frontend/components/restart-notice";
+import { NoticeStack } from "@/frontend/components/notice-stack";
+import { WhatsNew } from "@/frontend/components/whats-new";
+import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
+import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
 
 // Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
 // Serif (the bundled lh-cmu @font-face in globals.css — no CDN).

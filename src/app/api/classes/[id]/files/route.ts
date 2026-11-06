@@ -3,8 +3,8 @@
  * ("study" = turned into the class's graph facts, "info" = course info the
  * teacher can read but that never becomes facts).
  */
-import { addCopiedFile } from "@/server";
-import { isClassId } from "@/core";
+import { addCopiedFile } from "@/backend/server";
+import { isClassId } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

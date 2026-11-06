@@ -13,8 +13,8 @@
  * healthy. The dock's chips + graph refetch track progress live through
  * /api/activity, as with session runs.
  */
-import { extraction, NotesImportError } from "@/server";
-import type { EmissionStats } from "@/core";
+import { extraction, NotesImportError } from "@/backend/server";
+import type { EmissionStats } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

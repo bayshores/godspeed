@@ -4,7 +4,7 @@
  * { kind: "pdf", pageCount, aspect }.
  * GET /api/reading?path=…&page=N — one PDF page as a PNG.
  */
-import { readingDocument, readingPdfPage } from "@/server";
+import { readingDocument, readingPdfPage } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

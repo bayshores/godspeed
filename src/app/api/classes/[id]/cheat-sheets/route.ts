@@ -2,8 +2,8 @@
  * /api/classes/[id]/cheat-sheets
  *  GET — the class's Cheat sheets page: each deadline and where its sheet is (ClassSheetsView)
  */
-import { classSheetsView } from "@/server";
-import { isClassId } from "@/core";
+import { classSheetsView } from "@/backend/server";
+import { isClassId } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

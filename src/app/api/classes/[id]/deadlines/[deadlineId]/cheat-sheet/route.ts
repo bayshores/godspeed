@@ -8,8 +8,8 @@
  *    { action: "remove-rule", text }         delete one of the sheet's rules
  *    { action: "file", n }                   → { path }: version n's PDF in the working folder (Show in Finder)
  */
-import { askCheatSheet, cheatSheetView, removeSheetRule, retryCheatSheet, sheetPdfFile, stopCheatSheet } from "@/server";
-import { ChatInputError, isClassId, parseAttachments, sheetAboutOf, sheetRegionOf } from "@/core";
+import { askCheatSheet, cheatSheetView, removeSheetRule, retryCheatSheet, sheetPdfFile, stopCheatSheet } from "@/backend/server";
+import { ChatInputError, isClassId, parseAttachments, sheetAboutOf, sheetRegionOf } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

@@ -73,7 +73,7 @@ jobs:
           restore-keys: electron-${{ runner.os }}-
       - run: npm ci
       - name: Native renderer tests on this OS
-        run: npx electron --import tsx --test tests/pdf-native-render.test.ts tests/pdf-ops.test.ts tests/svg-native-render.test.ts tests/browser-service.test.ts
+        run: npx electron --import tsx --test tests/backend/pdf-native-render.test.ts tests/backend/pdf-ops.test.ts tests/backend/svg-native-render.test.ts tests/backend/browser-service.test.ts
         env:
           NODE_ENV: test
           ELECTRON_RUN_AS_NODE: "1"

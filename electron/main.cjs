@@ -33,7 +33,7 @@ const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
 
-// Mirrors SIDEBAR_AUTOCLOSE in src/components/sidebar.tsx — keep in sync (the
+// Mirrors SIDEBAR_AUTOCLOSE in src/frontend/components/sidebar.tsx — keep in sync (the
 // renderer owns the number; this is the IPC widen target).
 const SIDEBAR_AUTOCLOSE = 1000;
 
@@ -195,7 +195,7 @@ function preferredPort() {
 	});
 }
 
-/** Tell the godspeed folder's connector (src/server/agent-folder-files) where this launch's server is. */
+/** Tell the godspeed folder's connector (src/backend/server/agent-folder-files) where this launch's server is. */
 function writeMcpEndpoint(baseUrl) {
 	try {
 		fs.mkdirSync(DATA_DIR(), { recursive: true });
@@ -238,7 +238,7 @@ function log(line) {
 }
 
 /** `restarted`: the app is starting it again after a crash, so its first
- *  page shows a notice instead of the welcome screen (src/server/welcome.ts). */
+ *  page shows a notice instead of the welcome screen (src/backend/server/welcome.ts). */
 function startServer(port, restarted = false) {
 	const child = spawn(
 		process.execPath,
@@ -429,7 +429,7 @@ function createWindow(url, serverUp = null) {
 		// below it even a wrapped chrome row gets cramped and the chat header
 		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
 		// auto-closes below SIDEBAR_AUTOCLOSE (a fixed 1000) in the renderer
-		// (src/components/sidebar.tsx); its "lh:expand-window"
+		// (src/frontend/components/sidebar.tsx); its "lh:expand-window"
 		// IPC widens the window back to that threshold.
 		minWidth: 640,
 		minHeight: 600,

@@ -9,7 +9,7 @@
  * flight (the dock is the source of truth for that); failures are logged
  * by the pipeline and leave coverage untouched — the button stays honest.
  */
-import { extraction, extractionStatuses, getChat } from "@/server";
+import { extraction, extractionStatuses, getChat } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

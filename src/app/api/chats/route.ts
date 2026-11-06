@@ -1,6 +1,6 @@
-import { type GraphContextPick, parseClassScope } from "@/core";
-import { compactionInFlight, createLesson, isTurnRunning, listChats, startClassScanner } from "@/server";
-import type { ChatListItem } from "@/core";
+import { type GraphContextPick, parseClassScope } from "@/shared/core";
+import { compactionInFlight, createLesson, isTurnRunning, listChats, startClassScanner } from "@/backend/server";
+import type { ChatListItem } from "@/shared/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
  *  question) + live liveness — a running turn marks the session busy
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 	// The lesson's class (absent/"none" = No class).
 	const classId = parseClassScope(typeof body.classId === "string" ? body.classId : undefined);
 	if (classId === undefined) return Response.json({ error: "bad classId" }, { status: 400 });
-	// Every new lesson is a study session (src/server/lessons.ts). A start
+	// Every new lesson is a study session (src/backend/server/lessons.ts). A start
 	// on topics or a deadline gets its topics and title from the server.
 	const created =
 		typeof body.deadlineId === "string"
@@ -49,7 +49,7 @@ function picksOf(graphContext: unknown): GraphContextPick[] {
 	// The session's map context: the picked
 	// propositions ride the CREATION as a graph-context marker (a separate
 	// custom message BEFORE the learner's first user message), carrying
-	// the picks plus the reasoning chains among them (src/server/lessons.ts).
+	// the picks plus the reasoning chains among them (src/backend/server/lessons.ts).
 	const rawPicks = (graphContext as { propositions?: unknown } | undefined)?.propositions;
 	return Array.isArray(rawPicks)
 		? rawPicks.filter(

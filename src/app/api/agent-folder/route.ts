@@ -8,7 +8,7 @@
  *   POST { action: "remove-old-setup" }: remove the old plugin and the old
  *   Codex block (the view's oldSetup).
  */
-import { AgentFolderError, agentFolderView, dismissFolderNotice, removeOldSetup, setUpAgentFolder } from "@/server";
+import { AgentFolderError, agentFolderView, dismissFolderNotice, removeOldSetup, setUpAgentFolder } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

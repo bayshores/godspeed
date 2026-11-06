@@ -9,8 +9,8 @@
  *           folder on your computer is never touched); { lessonIds } names the
  *           removed lessons so the window can drop their saved drafts
  */
-import { classShortcutDir, deleteClass, folderStatusOf, getClass, scanLinkedFolder, updateClass } from "@/server";
-import { cleanSignature, isClassIcon, isClassId, SIGNATURE_MAX } from "@/core";
+import { classShortcutDir, deleteClass, folderStatusOf, getClass, scanLinkedFolder, updateClass } from "@/backend/server";
+import { cleanSignature, isClassIcon, isClassId, SIGNATURE_MAX } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

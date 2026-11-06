@@ -94,8 +94,8 @@ for (const name of exists(ortBin) ? fs.readdirSync(ortBin) : []) {
 // 3) Sanity: the runtime-read prompt assets must be present (the teacher
 //    agent reads them from disk at request time).
 for (const asset of [
-	path.join("src", "agent", "system-prompt.md"),
-	path.join("src", "agent", "prompts", "teacher", "20-teaching.md"),
+	path.join("src", "backend", "agent", "system-prompt.md"),
+	path.join("src", "backend", "agent", "prompts", "teacher", "20-teaching.md"),
 ]) {
 	if (!exists(path.join(STANDALONE, asset))) {
 		console.error(`[build-server] prompt asset missing from the trace: ${asset}`);

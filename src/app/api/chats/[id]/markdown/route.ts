@@ -8,8 +8,8 @@
  * the same engine (problem/conclude results render as tool blocks,
  * markers are invisible by the engine's law).
  */
-import { sessionMarkdown } from "@/core";
-import { getChat } from "@/server";
+import { sessionMarkdown } from "@/shared/core";
+import { getChat } from "@/backend/server";
 
 /** Filename-safe title (own module scope on purpose: tiny + pure). */
 function slugify(title: string): string {

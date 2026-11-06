@@ -1,0 +1,121 @@
+import { useState } from "react";
+import { ChevronRightIcon } from "lucide-react";
+import { cn } from "@/frontend/lib/utils";
+import { useFold } from "@/frontend/components/use-fold";
+
+/**
+ * The graph-context card: the session's map pick —
+ * message[0] of a session started with propositions picked from the
+ * graph. Scaffolding, not a turn: minimal, muted, collapsed by default;
+ * expand reveals the picked propositions (name — statement) and the
+ * reasoning chains among them (premises → conclusion lines). The model
+ * reads the same content through the marker's own text (toLlmMessages);
+ * this card is the learner's face of it.
+ */
+
+/** The graph-context marker's details (native-messages.ts). */
+export interface GraphContextData {
+	propositions: { id: string; name: string; statement: string }[];
+	chains: string[];
+}
+
+export function GraphContextCard({ data }: { data: GraphContextData }) {
+	const [open, setOpen] = useState(false);
+	const fold = useFold(open); // eases open/shut
+	const { propositions = [], chains = [] } = data ?? {};
+	const noun = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+	return (
+		<div data-testid="graph-context-card" className="my-1">
+			<button
+				type="button"
+				data-testid="graph-context-toggle"
+				aria-expanded={open}
+				onClick={() => setOpen((v) => !v)}
+				className="flex w-full cursor-pointer items-center gap-2 border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
+			>
+				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
+				<span className="font-medium">Graph context</span>
+				<span className="min-w-0 flex-1 truncate">
+					{noun(propositions.length, "fact", "facts")}
+					{chains.length > 0 ? ` · ${noun(chains.length, "chain", "chains")}` : ""}
+				</span>
+			</button>
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+				<div>
+				<div data-testid="graph-context-body" className="mt-1 space-y-1 border border-dashed border-border/70 px-4 py-3 text-xs">
+					{propositions.map((p) => (
+						<div key={p.id} data-testid={`graph-context-prop-${p.id}`} className="leading-relaxed">
+							<span className="font-medium text-foreground/80">{p.name}</span>
+							<span className="text-muted-foreground">: {p.statement}</span>
+						</div>
+					))}
+					{chains.length > 0 && (
+						<div className="pt-1">
+							{chains.map((c, i) => (
+								<div key={i} className="font-mono text-[11px] text-muted-foreground">
+									{c}
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+				</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
+/** The class card's details (native-messages.ts ClassCardDetails). */
+export interface ClassContextData {
+	classId: string;
+	name: string;
+	description: string;
+	files: { name: string; kind: "study" | "info"; path: string | null }[];
+}
+
+/**
+ * The class card: message[0] of
+ * a lesson in a class — the class name, the learner's description, and
+ * the class files the teacher can open. Same scaffolding look as the
+ * graph-context card: muted, collapsed by default.
+ */
+export function ClassContextCard({ data }: { data: ClassContextData }) {
+	const [open, setOpen] = useState(false);
+	const fold = useFold(open);
+	const { name = "", description = "", files = [] } = data ?? {};
+	return (
+		<div data-testid="class-context-card" className="my-1">
+			<button
+				type="button"
+				data-testid="class-context-toggle"
+				aria-expanded={open}
+				onClick={() => setOpen((v) => !v)}
+				className="flex w-full cursor-pointer items-center gap-2 border border-dashed border-border/70 px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
+			>
+				<ChevronRightIcon aria-hidden="true" className={cn("size-3.5 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
+				<span className="font-medium">Class context</span>
+				<span className="min-w-0 flex-1 truncate">
+					{name}
+					{files.length > 0 ? ` · ${files.length} ${files.length === 1 ? "file" : "files"} when this lesson started` : ""}
+				</span>
+			</button>
+			{fold.mounted && (
+				<div className="lh-collapse" data-state={fold.state}>
+				<div>
+				<div data-testid="class-context-body" className="mt-1 space-y-2 border border-dashed border-border/70 px-4 py-3 text-xs">
+					{description.trim() && <p className="font-prose whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{description}</p>}
+					{files.map((f, i) => (
+						<div key={i} className="leading-relaxed">
+							<span className="text-xs font-semibold text-ink-3">{f.kind === "study" ? "Study" : "Info"}</span>
+							<span className="ml-2 text-foreground/80">{f.name}</span>
+						</div>
+					))}
+				</div>
+				</div>
+				</div>
+			)}
+		</div>
+	);
+}

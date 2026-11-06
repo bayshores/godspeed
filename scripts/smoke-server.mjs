@@ -70,7 +70,7 @@ function get(url) {
  *  see, and the model by path: embed one query through the payload's own
  *  worker file. */
 async function verifySearchModel() {
-	const worker = new Worker(path.join(STANDALONE, "src", "server", "workers", "embed-worker.mjs"), {
+	const worker = new Worker(path.join(STANDALONE, "src", "backend", "server", "workers", "embed-worker.mjs"), {
 		workerData: { modelsDir: path.join(STANDALONE, "models"), model: "Snowflake/snowflake-arctic-embed-xs" },
 	});
 	try {

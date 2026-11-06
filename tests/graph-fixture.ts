@@ -12,7 +12,7 @@ import {
 	type FactProgress,
 	type ProgressPayload,
 	type TopicProgress,
-} from "../src/core/index.ts";
+} from "../src/shared/core/index.ts";
 
 let seq = 0;
 export function answers(spec: string, level?: ConfidenceLevel): AnswerRef[] {

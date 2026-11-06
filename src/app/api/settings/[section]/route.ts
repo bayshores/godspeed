@@ -19,8 +19,8 @@ import {
 	readSettingsRecord,
 	writeSettingsRecord,
 	type SettingsBodyResult,
-} from "@/server";
-import { CURRENT_SETTINGS_VERSION } from "@/core";
+} from "@/backend/server";
+import { CURRENT_SETTINGS_VERSION } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

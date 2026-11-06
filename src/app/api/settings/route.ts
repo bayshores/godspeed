@@ -13,7 +13,7 @@
  * (core/settings-resolution.ts resolveSettings — browser-safe).
  */
 
-import { settingsStore } from "@/server";
+import { settingsStore } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

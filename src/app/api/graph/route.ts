@@ -1,8 +1,8 @@
-import { graphView, requestClassScope } from "@/server";
+import { graphView, requestClassScope } from "@/backend/server";
 
 /**
  * The home graph view's data endpoint — thin
- * transport: the server entry (src/server/graph.ts) returns nodes, edges,
+ * transport: the server entry (src/backend/server/graph.ts) returns nodes, edges,
  * session provenance, and per-session understanding observations.
  */
 

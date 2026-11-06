@@ -1,5 +1,5 @@
-import { sessionCost } from "@/core";
-import { compactionInFlight, deleteChatSession, getChat, isTurnRunning, sessionCoverage, stores, turnFailure, type ChatDeleteMode } from "@/server";
+import { sessionCost } from "@/shared/core";
+import { compactionInFlight, deleteChatSession, getChat, isTurnRunning, sessionCoverage, stores, turnFailure, type ChatDeleteMode } from "@/backend/server";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -7,7 +7,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	if (!chat) return Response.json({ error: "Not found" }, { status: 404 });
 	// The record's messages are native agent history, served verbatim; the
 	// client derives its view (core/view.ts projectView). turnInFlight lets a
-	// returning client re-attach to a running turn (src/server/turn-liveness.ts).
+	// returning client re-attach to a running turn (src/backend/server/turn-liveness.ts).
 	// coverage feeds the sidebar menu's coverage block.
 	return Response.json({
 		...chat,

@@ -7,11 +7,11 @@ the keys.
 
 ## Where the code lives
 
-- **Registry**: `src/core/keyboard.ts`. `KEYBOARD_ACTIONS` lists every
+- **Registry**: `src/shared/core/keyboard.ts`. `KEYBOARD_ACTIONS` lists every
   action as `{ id, label, scope, binding }`. The cheat sheet and the
   Settings list are drawn from it, so they never show a shortcut that
   does nothing.
-- **Provider**: `src/components/keyboard-shortcuts.tsx`. One window-level
+- **Provider**: `src/frontend/components/keyboard-shortcuts.tsx`. One window-level
   keydown listener. It turns a key press into a string like `mod+b`,
   looks it up (with the learner's changes applied), and either runs the
   action itself or sends a `lh:kbd-<action-id>` window event. The page
@@ -19,7 +19,7 @@ the keys.
   nothing happens.
 - **Changed keys**: saved in the browser's localStorage under `lh:keymap`
   as `{actionId: binding}`, on top of the defaults.
-  `src/components/settings/keyboard-section.tsx` edits them. There is no
+  `src/frontend/components/settings/keyboard-section.tsx` edits them. There is no
   conflict check: if two actions share a key, the one later in the
   registry wins (`effectiveKeymap` overwrites as it goes).
 - **displayOnly entries**: keys that one surface owns (the question rows
@@ -33,7 +33,7 @@ the keys.
 - **Tab moves focus as usual**, through buttons and links too. An open
   question claims Tab from its rows (see below). An
   open modal dialog keeps Tab inside itself (`trapTabInDialog` in
-  `src/components/focus-hygiene.ts`).
+  `src/frontend/components/focus-hygiene.ts`).
 - **Inside a text field only shortcuts with a modifier fire** (like ⌘B).
   Bare keys, `?` included, type normally.
 - **One Esc does one thing.** The top open layer handles it first: the
@@ -42,7 +42,7 @@ the keys.
   server started has no browser request to stop, so the lesson decides
   what Esc can stop.
 - **The focus ring shows after Tab and hides on the next mouse press**
-  (`showFocusRingAfterTab` in `src/components/focus-hygiene.ts`, drawn in
+  (`showFocusRingAfterTab` in `src/frontend/components/focus-hygiene.ts`, drawn in
   `src/app/globals.css`). A hidden color picker rings its tile instead.
 
 ## Key map
@@ -50,18 +50,18 @@ the keys.
 | Action | Default | Who handles it |
 |---|---|---|
 | Open settings | ⌘, | `keyboard-shortcuts.tsx` |
-| Toggle sidebar | ⌘B | `src/components/sidebar.tsx` |
-| Search lessons | ⌘⇧F | `src/components/sidebar/lessons-section.tsx`. In the search field ↑/↓ walk the results and Enter opens one (the first match if none is picked) |
+| Toggle sidebar | ⌘B | `src/frontend/components/sidebar.tsx` |
+| Search lessons | ⌘⇧F | `src/frontend/components/sidebar/lessons-section.tsx`. In the search field ↑/↓ walk the results and Enter opens one (the first match if none is picked) |
 | Go to Graph | ⌘G | `keyboard-shortcuts.tsx`, goes to `/graph` |
 | Study | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
-| Rename lesson | F2 | `src/components/lesson/use-title-rename.ts` |
-| Toggle all your thinking | ⌘T | `src/components/chat.tsx` |
-| Find | ⌘F | the open page: topic search on `/graph` (`src/components/graph/graph-top-bar.tsx`), text Find in a lesson (`src/components/session-find.tsx`) |
+| Rename lesson | F2 | `src/frontend/components/lesson/use-title-rename.ts` |
+| Toggle all your thinking | ⌘T | `src/frontend/components/chat.tsx` |
+| Find | ⌘F | the open page: topic search on `/graph` (`src/frontend/components/graph/graph-top-bar.tsx`), text Find in a lesson (`src/frontend/components/session-find.tsx`) |
 | Shortcut cheat sheet | ? | `keyboard-shortcuts.tsx` |
 
 ## Question rows
 
-While a question is open, `src/components/question-dock.tsx` owns these
+While a question is open, `src/frontend/components/question-dock.tsx` owns these
 keys. They only work when focus is not in a text field, and never with a
 modifier held:
 

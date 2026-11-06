@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import { Chat } from "@/components/chat";
-import { compactionInFlight, getChat, isTurnRunning, turnFailure } from "@/server";
+import { Chat } from "@/frontend/components/chat";
+import { compactionInFlight, getChat, isTurnRunning, turnFailure } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 

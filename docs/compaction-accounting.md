@@ -2,10 +2,10 @@
 
 ## Retention
 
-`src/core/compaction.ts` locally ports the cutoff-selection behavior and relevant
+`src/shared/core/compaction.ts` locally ports the cutoff-selection behavior and relevant
 message-size heuristic from **@earendil-works/pi-coding-agent 1.4.0**. There is no
 coding-agent dependency. Upgrade this port deliberately; the native golden
-fixtures are in `tests/compaction-native-parity.test.ts`.
+fixtures are in `tests/shared/compaction-native-parity.test.ts`.
 
 Walk backward to the approximately 20,000-token retained-tail budget, then select
 the nearest valid user/assistant boundary at or after the crossing. Never start
@@ -34,14 +34,14 @@ compaction marker invalidates earlier measurements: show `? / maximum` until a
 new qualifying response completes. Summarizer usage never supplies this meter.
 
 The denominator is the context window godspeed assumes for the outside agent:
-a fixed 200,000 tokens (`OUTSIDE_AGENT_CONTEXT_WINDOW` in `src/core/settings.ts`),
+a fixed 200,000 tokens (`OUTSIDE_AGENT_CONTEXT_WINDOW` in `src/shared/core/settings.ts`),
 independent of the last numeric measurement. The meter shows `tokens / maximum`,
 never a percentage.
 
 ## Usage, not dollars
 
 Every model call runs on the outside agent, which bills the learner's own plan.
-So nothing has a dollar price. `src/core/prices.ts` and `src/core/cost-summary.ts`
+So nothing has a dollar price. `src/shared/core/prices.ts` and `src/shared/core/cost-summary.ts`
 only fold token counts and name the plan ("Outside agent"). Records from before
 the built-in sign-ins were removed keep their old plan labels (ChatGPT, GitHub
 Copilot, Grok). A call with no plan shows as unpriced, never as zero.

@@ -4,27 +4,22 @@ import tsParser from "@typescript-eslint/parser";
 import importPlugin from "eslint-plugin-import";
 
 /**
- * ESLint with one job here: ENFORCE THE IMPORT LAW (the shell/core
- * architecture, docs/architecture.md). Everything else stays out of the
- * way — this is not a style linter.
+ * ESLint with one job here: enforce the import law (docs/architecture.md).
+ * It is not a style linter.
  *
- *   src/components/**  →  "@/core"  (the pure core barrel) — ONLY
- *   src/app/**         →  "@/core" + "@/server" (the server barrel) — ONLY
- *   (the core library = src/core, src/server, src/agent, src/store;
- *   components/, app/, lib/ and config.ts are not part of it)
- *   src/core/**    →  never imports src/agent, src/server, src/store (pure
- *                    core: adapters implement core/ports.ts, never the reverse)
- *   src/agent/**   →  never imports src/server, src/store (dependencies —
- *                    the storage ports, the composition — arrive via
- *                    factories/closures from the chat-handler)
+ *   src/frontend/components/**  imports only "@/shared/core" (the pure core barrel)
+ *   src/app/**                  imports only "@/shared/core" and "@/backend/server" (the barrels)
+ *   src/shared/core/**          never imports src/backend (adapters implement core/ports.ts)
+ *   src/backend/agent/**        never imports src/backend/server or src/backend/store
+ *                               (its dependencies arrive through factories)
  *
- * tests/ and scripts/ are internal — unrestricted.
+ * tests/, scripts/ and electron/ are outside the law.
  */
 
 const SHELL_MESSAGE =
-	"Browser shell imports ONLY the pure core barrel: `from \"@/core\"` (architecture: docs/architecture.md).";
+	"Browser shell imports ONLY the pure core barrel: `from \"@/shared/core\"` (architecture: docs/architecture.md).";
 const APP_MESSAGE =
-	"src/app/ (transport + server components) imports ONLY the barrels: `@/core` and `@/server` (plus `@/server/settings-read` for the layout's render-time reads) (architecture: docs/architecture.md).";
+	"src/app/ (transport + server components) imports ONLY the barrels: `@/shared/core` and `@/backend/server` (plus `@/backend/server/settings-read` for the layout's render-time reads) (architecture: docs/architecture.md).";
 
 export default defineConfig([
 	// electron/** — the desktop shell: plain Node, no framework, outside the
@@ -51,25 +46,25 @@ export default defineConfig([
 						// One zone per `from` dir: the plugin resolves `except` relative to
 						// the zone's `from` path, and every exception must sit inside it.
 						{
-							target: "./src/components",
-							from: "./src/core",
+							target: "./src/frontend/components",
+							from: "./src/shared/core",
 							except: ["./index.ts"],
 							message: SHELL_MESSAGE,
 						},
 						{
-							target: "./src/components",
-							from: ["./src/agent", "./src/server", "./src/store"],
+							target: "./src/frontend/components",
+							from: ["./src/backend/agent", "./src/backend/server", "./src/backend/store"],
 							message: SHELL_MESSAGE,
 						},
 						{
 							target: "./src/app",
-							from: "./src/core",
+							from: "./src/shared/core",
 							except: ["./index.ts"],
 							message: APP_MESSAGE,
 						},
 						{
 							target: "./src/app",
-							from: "./src/server",
+							from: "./src/backend/server",
 							// settings-read.ts: a light import for the layout's render-time reads;
 							// the full barrel loads the whole server.
 							except: ["./index.ts", "./settings-read.ts"],
@@ -77,18 +72,18 @@ export default defineConfig([
 						},
 						{
 							target: "./src/app",
-							from: ["./src/agent", "./src/store"],
+							from: ["./src/backend/agent", "./src/backend/store"],
 							message: APP_MESSAGE,
 						},
 						{
-							target: "./src/core",
-							from: ["./src/agent", "./src/server", "./src/store"],
+							target: "./src/shared/core",
+							from: ["./src/backend/agent", "./src/backend/server", "./src/backend/store"],
 							message:
-								"Pure core never imports IO layers (agent/server/store): adapters implement core/ports.ts, and the composition root (src/server/stores.ts) passes them in (architecture: docs/architecture.md).",
+								"Pure core never imports IO layers (agent/server/store): adapters implement core/ports.ts, and the composition root (src/backend/server/stores.ts) passes them in (architecture: docs/architecture.md).",
 						},
 						{
-							target: "./src/agent",
-							from: ["./src/server", "./src/store"],
+							target: "./src/backend/agent",
+							from: ["./src/backend/server", "./src/backend/store"],
 							message:
 								"The agent layer receives its dependencies (storage ports via factories/closures) — it never imports the server layer or store adapters (architecture: docs/architecture.md).",
 						},

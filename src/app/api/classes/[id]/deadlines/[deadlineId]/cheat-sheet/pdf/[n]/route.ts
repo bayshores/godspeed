@@ -2,8 +2,8 @@
  * /api/classes/[id]/deadlines/[deadlineId]/cheat-sheet/pdf/[n]
  *  GET — version n of the cheat sheet, the PDF exactly as the agent made it
  */
-import { cheatSheetPdf } from "@/server";
-import { isClassId } from "@/core";
+import { cheatSheetPdf } from "@/backend/server";
+import { isClassId } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 

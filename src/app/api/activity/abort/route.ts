@@ -17,7 +17,7 @@
  * Extraction abort is idempotent by design (aborting with nothing in
  * flight is success — the blob is gone either way) -> 200.
  */
-import { abortExtraction, abortJob, abortTurn } from "@/server";
+import { abortExtraction, abortJob, abortTurn } from "@/backend/server";
 
 export async function POST(req: Request) {
 	let body: unknown;

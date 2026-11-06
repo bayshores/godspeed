@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320">
-  <defs><linearGradient id="t" gradientUnits="userSpaceOnUse" x1="206" y1="818" x2="668" y2="364"><stop offset="0" stop-color="#141414" stop-opacity="0"/><stop offset="0.55" stop-color="#141414" stop-opacity="0.32"/><stop offset="1" stop-color="#141414" stop-opacity="0.85"/></linearGradient></defs>
-  <g transform="translate(250,40) scale(0.387)"><g transform="translate(-195,-210)">
-    <path d="M763.3,461.0 L572.7,267.0 Q414.9,525.8 206,818 Q501.9,614.2 763.3,461.0 Z" fill="url(#t)"/>
-    <circle cx="668" cy="364" r="136" fill="#141414"/></g></g>
-  <text x="530" y="196" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="112" font-weight="500" letter-spacing="-2" fill="#141414">godspeed</text>
-</svg>
