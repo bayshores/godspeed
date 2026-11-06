@@ -100,9 +100,9 @@ describe("Due soon", () => {
 		assert.ok(!html.includes("due-soon-all"));
 	});
 
-	it("a row is one line: the name (15px, with its class when the rows span classes), countdown, 13px done box; class and day on hover", () => {
+	it("a row is one line: the name (15px, then its class in gray when the rows span classes), countdown, 13px done box; class and day on hover", () => {
 		const row = section(dueSoon(), "due-soon-row-quiz", "</li>");
-		assert.match(row, /title="CSE 21 · 5:00 PM"[^>]*text-\[15px\][^>]*>CSE 21 Reading quiz</);
+		assert.match(row, /title="CSE 21 · 5:00 PM"[^>]*text-\[15px\][^>]*>Reading quiz<span class="text-ink-3"> CSE 21</);
 		assert.match(row, /data-mode="fine"[^>]*font-mono[^>]*>48:00\.00</, "the last hour shows hundredths");
 		assert.match(row, /data-testid="done-box"[^>]*style="width:13px;height:13px"/);
 		assert.match(tag(dueSoon(), "due-soon-row-quiz"), /data-halley-target="deadline:quiz"/);

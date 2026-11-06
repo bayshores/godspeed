@@ -9,8 +9,8 @@ import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 /**
  * DUE SOON (sidebar): the 4 most urgent
  * open deadlines from every class, overdue first. Each row is one line:
- * the done box (red once overdue), the name ("CSE 21 Final" when the rows
- * come from more than one class) and the live countdown; the class and
+ * the done box (red once overdue), the name (then the class in gray when
+ * the rows come from more than one class) and the live countdown; the class and
  * day ("CSE 21 · Thu 7:00 PM") show on hover. Hidden while there is
  * nothing open.
  */
@@ -85,7 +85,8 @@ function DueSoonRow({
 				<DoneBox size={13} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
 			</span>
 			<span title={`${d.className} · ${sidebarWhenLabel(d, today)}`} className="min-w-0 flex-1 truncate text-[15px] text-ink">
-				{withClass ? `${d.className} ${d.name}` : d.name}
+				{d.name}
+				{withClass && <span className="text-ink-3"> {d.className}</span>}
 			</span>
 			<Countdown due={d} now={fixedNow} className="shrink-0 text-[15px]" />
 		</li>
