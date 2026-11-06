@@ -1,5 +1,12 @@
 [
 	{
+		"version": "0.5.38",
+		"date": "2026-11-06",
+		"changes": [
+			"With deadlines from more than one class, Due soon in the sidebar shows each deadline's name first and its class after it, so names like Quiz 4 no longer get cut off."
+		]
+	},
+	{
 		"version": "0.5.37",
 		"date": "2026-11-06",
 		"changes": [
