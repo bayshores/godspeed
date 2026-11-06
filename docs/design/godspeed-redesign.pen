@@ -16,9 +16,9 @@
           "type": "text",
           "id": "QnB1f",
           "name": "Board title",
-          "fill": "$g-text",
+          "fill": "#E6E6E6",
           "content": "14b · Home: round 2, bigger ideas",
-          "fontFamily": "$g-ui",
+          "fontFamily": "Source Sans 3",
           "fontSize": 32,
           "fontWeight": "800"
         },
@@ -26,11 +26,11 @@
           "type": "text",
           "id": "ftMlZ",
           "name": "Board note",
-          "fill": "$g-text-2",
+          "fill": "#8D8D8D",
           "textGrowth": "fixed-width",
           "width": 1400,
           "content": "Round 1 was lists and cards. These three each make Home one big picture: D a star map of every topic you have, E your classes as covers whose signature inks in as you learn, F the actual pages you left off on. Add deadline stays only in the top bar.",
-          "fontFamily": "$g-ui",
+          "fontFamily": "Source Sans 3",
           "fontSize": 16,
           "fontWeight": "normal"
         },
@@ -51,9 +51,9 @@
                   "type": "text",
                   "id": "Y4SsB",
                   "name": "Label",
-                  "fill": "$g-text",
+                  "fill": "#E6E6E6",
                   "content": "D · Your sky: every topic as a star",
-                  "fontFamily": "$g-ui",
+                  "fontFamily": "Source Sans 3",
                   "fontSize": 22,
                   "fontWeight": "700"
                 },
@@ -64,7 +64,7 @@
                   "clip": true,
                   "width": 1440,
                   "height": 900,
-                  "fill": "$g-bg",
+                  "fill": "#000000",
                   "children": [
                     {
                       "type": "frame",
@@ -72,8 +72,8 @@
                       "name": "Sidebar",
                       "width": 256,
                       "height": "fill_container",
-                      "fill": "$g-bg",
-                      "stroke": "$g-tone-2",
+                      "fill": "#000000",
+                      "stroke": "#2F2F2F",
                       "strokeWidth": {
                         "right": 1
                       },
@@ -138,7 +138,7 @@
                               "height": 16,
                               "icon": "panel-left",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -147,7 +147,7 @@
                           "id": "c2IJYC",
                           "name": "Home",
                           "width": "fill_container",
-                          "fill": "$g-tone",
+                          "fill": "#161616",
                           "gap": 10,
                           "padding": [
                             8,
@@ -163,17 +163,17 @@
                               "height": 16,
                               "icon": "house",
                               "library": "lucide",
-                              "fill": "$g-text"
+                              "fill": "#E6E6E6"
                             },
                             {
                               "type": "text",
                               "id": "pgkYT",
                               "name": "t",
-                              "fill": "$g-text",
+                              "fill": "#E6E6E6",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "Home",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 14.5,
                               "fontWeight": "700"
                             }
@@ -184,7 +184,7 @@
                           "id": "wkmqc",
                           "name": "Class switcher",
                           "width": "fill_container",
-                          "fill": "$g-panel",
+                          "fill": "#080808",
                           "gap": 10,
                           "padding": [
                             10,
@@ -198,7 +198,7 @@
                               "name": "Icon tile",
                               "width": 30,
                               "height": 30,
-                              "fill": "$g-tone-2",
+                              "fill": "#2F2F2F",
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
@@ -210,7 +210,7 @@
                                   "height": 17,
                                   "icon": "sigma",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 }
                               ]
                             },
@@ -226,9 +226,9 @@
                                   "type": "text",
                                   "id": "d3dw97",
                                   "name": "Class",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "CSE 21",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 15,
                                   "fontWeight": "700"
                                 }
@@ -242,7 +242,7 @@
                               "height": 16,
                               "icon": "chevrons-up-down",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -275,17 +275,17 @@
                                   "height": 16,
                                   "icon": "layout-grid",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "Mt7XR",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Overview",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 }
@@ -311,17 +311,17 @@
                                   "height": 16,
                                   "icon": "waypoints",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "SDmH4",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Graph",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 }
@@ -347,17 +347,17 @@
                                   "height": 16,
                                   "icon": "files",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "p2RRFe",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Files",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -374,9 +374,9 @@
                                       "type": "text",
                                       "id": "qeQ7Q",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "33",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "700"
                                     }
@@ -398,7 +398,7 @@
                               "id": "QyYK3",
                               "name": "New lesson",
                               "width": "fill_container",
-                              "fill": "$g-tone",
+                              "fill": "#161616",
                               "gap": 7,
                               "padding": [
                                 9,
@@ -415,15 +415,15 @@
                                   "height": 14,
                                   "icon": "plus",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 },
                                 {
                                   "type": "text",
                                   "id": "eNtPp",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "New lesson",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "700"
                                 }
@@ -434,7 +434,7 @@
                               "id": "YqTME",
                               "name": "Practice",
                               "width": "fill_container",
-                              "fill": "$g-tone",
+                              "fill": "#161616",
                               "gap": 7,
                               "padding": [
                                 9,
@@ -451,15 +451,15 @@
                                   "height": 14,
                                   "icon": "dumbbell",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 },
                                 {
                                   "type": "text",
                                   "id": "I0wOgi",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Practice",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "700"
                                 }
@@ -494,9 +494,9 @@
                                   "type": "text",
                                   "id": "ID2Ze",
                                   "name": "t",
-                                  "fill": "$g-text-3",
+                                  "fill": "#6E6E6E",
                                   "content": "Due soon",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -511,9 +511,9 @@
                                       "type": "text",
                                       "id": "KlLRZ",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "All",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     },
@@ -525,7 +525,7 @@
                                       "height": 12,
                                       "icon": "arrow-right",
                                       "library": "lucide",
-                                      "fill": "$g-text-3"
+                                      "fill": "#6E6E6E"
                                     }
                                   ]
                                 }
@@ -555,9 +555,9 @@
                                       "type": "text",
                                       "id": "iuWxb",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "HW 3",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -565,9 +565,9 @@
                                       "type": "text",
                                       "id": "SmHNS",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 21 · was due Fri",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -579,7 +579,7 @@
                                   "name": "Countdown",
                                   "fill": "#EF4444",
                                   "content": "Overdue",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "700"
                                 },
@@ -618,9 +618,9 @@
                                       "type": "text",
                                       "id": "SMaMD",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Reading quiz",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -628,9 +628,9 @@
                                       "type": "text",
                                       "id": "FVX4N",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 21 · 5:00 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -642,7 +642,7 @@
                                   "name": "Countdown",
                                   "fill": "#ec4646",
                                   "content": "47:12.38",
-                                  "fontFamily": "$g-num",
+                                  "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -652,7 +652,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -681,9 +681,9 @@
                                       "type": "text",
                                       "id": "ZZiZx",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Lab 4",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -691,9 +691,9 @@
                                       "type": "text",
                                       "id": "W4WzXZ",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 29 · 11:59 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -705,7 +705,7 @@
                                   "name": "Countdown",
                                   "fill": "#cf5c5c",
                                   "content": "07:47:00",
-                                  "fontFamily": "$g-num",
+                                  "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -715,7 +715,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -744,9 +744,9 @@
                                       "type": "text",
                                       "id": "f9RHQZ",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "PA 3",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -754,9 +754,9 @@
                                       "type": "text",
                                       "id": "I0XHCB",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 29 · Thu 11:59 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -766,9 +766,9 @@
                                   "type": "text",
                                   "id": "yX9y1",
                                   "name": "Countdown",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "in 1 day",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -778,7 +778,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -803,9 +803,9 @@
                               "type": "text",
                               "id": "J48qf",
                               "name": "t",
-                              "fill": "$g-text-3",
+                              "fill": "#6E6E6E",
                               "content": "Lessons",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 13,
                               "fontWeight": "700"
                             },
@@ -817,7 +817,7 @@
                               "height": 14,
                               "icon": "search",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -847,9 +847,9 @@
                                   "type": "text",
                                   "id": "tWfMN",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Counting basics",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -864,7 +864,7 @@
                                       "type": "rectangle",
                                       "id": "svjuS",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -872,9 +872,9 @@
                                       "type": "text",
                                       "id": "Y94qx0",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "now",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -898,9 +898,9 @@
                                   "type": "text",
                                   "id": "y4y508",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Permutations vs. combinations",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -915,7 +915,7 @@
                                       "type": "rectangle",
                                       "id": "TqRqz",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -923,9 +923,9 @@
                                       "type": "text",
                                       "id": "a7I9HH",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "1d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -952,9 +952,9 @@
                                   "type": "text",
                                   "id": "xa85Y",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Binomial theorem",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -969,7 +969,7 @@
                                       "type": "rectangle",
                                       "id": "z2B8SJ",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -977,9 +977,9 @@
                                       "type": "text",
                                       "id": "jUnEv",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "3d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -1006,9 +1006,9 @@
                                   "type": "text",
                                   "id": "I0K0T",
                                   "name": "Title",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Inclusion–exclusion",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -1023,9 +1023,9 @@
                                       "type": "text",
                                       "id": "z53A0T",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "Finished · 5d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -1052,9 +1052,9 @@
                                   "type": "text",
                                   "id": "p2dUqr",
                                   "name": "Title",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Practice: counting mix",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -1069,9 +1069,9 @@
                                       "type": "text",
                                       "id": "rLbKM",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "4 of 6 solved",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -1114,9 +1114,9 @@
                                   "type": "text",
                                   "id": "cJa8P",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Claude Code · connected",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 }
@@ -1130,7 +1130,7 @@
                               "height": 16,
                               "icon": "settings",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         }
@@ -1163,7 +1163,7 @@
                               "type": "frame",
                               "id": "m51cD",
                               "name": "Add deadline",
-                              "fill": "$g-panel",
+                              "fill": "#080808",
                               "gap": 7,
                               "padding": [
                                 7,
@@ -1179,15 +1179,15 @@
                                   "height": 14,
                                   "icon": "plus",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "jQt5W",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Add deadline",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14,
                                   "fontWeight": "normal"
                                 }
@@ -1224,9 +1224,9 @@
                               "type": "text",
                               "id": "K0HmU",
                               "name": "Date",
-                              "fill": "$g-text-2",
+                              "fill": "#8D8D8D",
                               "content": "Thursday, October 29 · 5:23 PM",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 16,
                               "fontWeight": "normal"
                             }
@@ -1636,7 +1636,7 @@
                                   "name": "label Counting",
                                   "fill": "#6E6E6E",
                                   "content": "Counting",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1660,7 +1660,7 @@
                                   "name": "label Permutations",
                                   "fill": "#6E6E6E",
                                   "content": "Permutations",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1684,7 +1684,7 @@
                                   "name": "label Combinations",
                                   "fill": "#6E6E6E",
                                   "content": "Combinations",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1708,7 +1708,7 @@
                                   "name": "label Binomial theorem",
                                   "fill": "#6E6E6E",
                                   "content": "Binomial theorem",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1732,7 +1732,7 @@
                                   "name": "label Inclusion-exclusion",
                                   "fill": "#6E6E6E",
                                   "content": "Inclusion-exclusion",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1756,7 +1756,7 @@
                                   "name": "label Probability",
                                   "fill": "#6E6E6E",
                                   "content": "Probability",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1780,7 +1780,7 @@
                                   "name": "label Conditional probability",
                                   "fill": "#6E6E6E",
                                   "content": "Conditional probability",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1804,7 +1804,7 @@
                                   "name": "label Expected value",
                                   "fill": "#6E6E6E",
                                   "content": "Expected value",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1836,7 +1836,7 @@
                                   "name": "label Bits and binary",
                                   "fill": "#E6E6E6",
                                   "content": "Bits and binary",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1860,7 +1860,7 @@
                                   "name": "label Signed integers",
                                   "fill": "#6E6E6E",
                                   "content": "Signed integers",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1884,7 +1884,7 @@
                                   "name": "label Integer types in C",
                                   "fill": "#6E6E6E",
                                   "content": "Integer types in C",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1908,7 +1908,7 @@
                                   "name": "label ASCII and Unicode",
                                   "fill": "#6E6E6E",
                                   "content": "ASCII and Unicode",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1940,7 +1940,7 @@
                                   "name": "label UTF-8",
                                   "fill": "#E6E6E6",
                                   "content": "UTF-8",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1972,7 +1972,7 @@
                                   "name": "label Bitwise operators",
                                   "fill": "#E6E6E6",
                                   "content": "Bitwise operators",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -1996,7 +1996,7 @@
                                   "name": "label C strings",
                                   "fill": "#6E6E6E",
                                   "content": "C strings",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -2020,7 +2020,7 @@
                                   "name": "label Pointers and arrays",
                                   "fill": "#6E6E6E",
                                   "content": "Pointers and arrays",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -2044,7 +2044,7 @@
                                   "name": "label The stack",
                                   "fill": "#6E6E6E",
                                   "content": "The stack",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -2068,7 +2068,7 @@
                                   "name": "label Hash functions",
                                   "fill": "#6E6E6E",
                                   "content": "Hash functions",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -2100,7 +2100,7 @@
                                   "name": "label Terminal and compiling",
                                   "fill": "#E6E6E6",
                                   "content": "Terminal and compiling",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -2127,7 +2127,7 @@
                                   "name": "t",
                                   "fill": "#8D8D8D",
                                   "content": "0 of 212 facts · not started",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "normal"
                                 },
@@ -2154,7 +2154,7 @@
                                   "name": "t",
                                   "fill": "#8D8D8D",
                                   "content": "16 of 100 facts · 4 topics lit",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "normal"
                                 },
@@ -2177,9 +2177,9 @@
                                       "type": "text",
                                       "id": "gCHKl",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Terminal and compiling",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14.5,
                                       "fontWeight": "700"
                                     },
@@ -2207,7 +2207,7 @@
                                       "name": "t",
                                       "fill": "#8D8D8D",
                                       "content": "55% right · 11 answers · weakest in CSE 29",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     },
@@ -2217,7 +2217,7 @@
                                       "name": "t",
                                       "fill": "#E6E6E6",
                                       "content": "Click to practice it",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "700"
                                     }
@@ -2260,7 +2260,7 @@
                                       "name": "t",
                                       "fill": "#6E6E6E",
                                       "content": "Last",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "700"
                                     },
@@ -2268,9 +2268,9 @@
                                       "type": "text",
                                       "id": "C9CKNV",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Help me review for my CSE 29 exam today",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "700"
                                     },
@@ -2280,7 +2280,7 @@
                                       "name": "t",
                                       "fill": "#8D8D8D",
                                       "content": "2 h ago",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 13,
                                       "fontWeight": "normal"
                                     },
@@ -2300,7 +2300,7 @@
                                           "name": "t",
                                           "fill": "#000000",
                                           "content": "Continue",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13,
                                           "fontWeight": "700"
                                         }
@@ -2331,7 +2331,7 @@
                                       "name": "t",
                                       "fill": "#8D8D8D",
                                       "content": "Nothing due yet",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 13,
                                       "fontWeight": "normal"
                                     }
@@ -2372,9 +2372,9 @@
                           "type": "text",
                           "id": "u5LtQ",
                           "name": "t",
-                          "fill": "$g-text",
+                          "fill": "#E6E6E6",
                           "content": "Lecture 3 — Expectation",
-                          "fontFamily": "$g-ui",
+                          "fontFamily": "Source Sans 3",
                           "fontSize": 14,
                           "fontWeight": "700"
                         },
@@ -2390,7 +2390,7 @@
                               "type": "rectangle",
                               "id": "xNm7A",
                               "name": "came up",
-                              "fill": "$g-text-2",
+                              "fill": "#8D8D8D",
                               "width": 140,
                               "height": 6
                             },
@@ -2398,7 +2398,7 @@
                               "type": "rectangle",
                               "id": "k1Ecvd",
                               "name": "not used",
-                              "fill": "$g-tone-2",
+                              "fill": "#2F2F2F",
                               "width": "fill_container",
                               "height": 6
                             }
@@ -2408,9 +2408,9 @@
                           "type": "text",
                           "id": "cZWiE",
                           "name": "t",
-                          "fill": "$g-text-2",
+                          "fill": "#8D8D8D",
                           "content": "12 of 18 facts came up in lessons",
-                          "fontFamily": "$g-ui",
+                          "fontFamily": "Source Sans 3",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         },
@@ -2429,15 +2429,15 @@
                               "height": 12,
                               "icon": "mouse-pointer-click",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             },
                             {
                               "type": "text",
                               "id": "NtQ7y",
                               "name": "t",
-                              "fill": "$g-text-3",
+                              "fill": "#6E6E6E",
                               "content": "Click to open the file",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 12,
                               "fontWeight": "normal"
                             }
@@ -2537,9 +2537,9 @@
                   "type": "text",
                   "id": "smpQd",
                   "name": "Label",
-                  "fill": "$g-text",
+                  "fill": "#E6E6E6",
                   "content": "E · Class covers that ink in",
-                  "fontFamily": "$g-ui",
+                  "fontFamily": "Source Sans 3",
                   "fontSize": 22,
                   "fontWeight": "700"
                 },
@@ -2550,7 +2550,7 @@
                   "clip": true,
                   "width": 1440,
                   "height": 900,
-                  "fill": "$g-bg",
+                  "fill": "#000000",
                   "children": [
                     {
                       "type": "frame",
@@ -2558,8 +2558,8 @@
                       "name": "Sidebar",
                       "width": 256,
                       "height": "fill_container",
-                      "fill": "$g-bg",
-                      "stroke": "$g-tone-2",
+                      "fill": "#000000",
+                      "stroke": "#2F2F2F",
                       "strokeWidth": {
                         "right": 1
                       },
@@ -2624,7 +2624,7 @@
                               "height": 16,
                               "icon": "panel-left",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -2633,7 +2633,7 @@
                           "id": "EM9rD",
                           "name": "Home",
                           "width": "fill_container",
-                          "fill": "$g-tone",
+                          "fill": "#161616",
                           "gap": 10,
                           "padding": [
                             8,
@@ -2649,17 +2649,17 @@
                               "height": 16,
                               "icon": "house",
                               "library": "lucide",
-                              "fill": "$g-text"
+                              "fill": "#E6E6E6"
                             },
                             {
                               "type": "text",
                               "id": "J3hDYA",
                               "name": "t",
-                              "fill": "$g-text",
+                              "fill": "#E6E6E6",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "Home",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 14.5,
                               "fontWeight": "700"
                             }
@@ -2670,7 +2670,7 @@
                           "id": "QMflO",
                           "name": "Class switcher",
                           "width": "fill_container",
-                          "fill": "$g-panel",
+                          "fill": "#080808",
                           "gap": 10,
                           "padding": [
                             10,
@@ -2684,7 +2684,7 @@
                               "name": "Icon tile",
                               "width": 30,
                               "height": 30,
-                              "fill": "$g-tone-2",
+                              "fill": "#2F2F2F",
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
@@ -2696,7 +2696,7 @@
                                   "height": 17,
                                   "icon": "sigma",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 }
                               ]
                             },
@@ -2712,9 +2712,9 @@
                                   "type": "text",
                                   "id": "uJkKk",
                                   "name": "Class",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "CSE 21",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 15,
                                   "fontWeight": "700"
                                 }
@@ -2728,7 +2728,7 @@
                               "height": 16,
                               "icon": "chevrons-up-down",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -2761,17 +2761,17 @@
                                   "height": 16,
                                   "icon": "layout-grid",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "EKfnC",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Overview",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 }
@@ -2797,17 +2797,17 @@
                                   "height": 16,
                                   "icon": "waypoints",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "KgCAC",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Graph",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 }
@@ -2833,17 +2833,17 @@
                                   "height": 16,
                                   "icon": "files",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "I9JPsQ",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Files",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -2860,9 +2860,9 @@
                                       "type": "text",
                                       "id": "CtWD3",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "33",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "700"
                                     }
@@ -2884,7 +2884,7 @@
                               "id": "ki3ra",
                               "name": "New lesson",
                               "width": "fill_container",
-                              "fill": "$g-tone",
+                              "fill": "#161616",
                               "gap": 7,
                               "padding": [
                                 9,
@@ -2901,15 +2901,15 @@
                                   "height": 14,
                                   "icon": "plus",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 },
                                 {
                                   "type": "text",
                                   "id": "iC2Ik",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "New lesson",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "700"
                                 }
@@ -2920,7 +2920,7 @@
                               "id": "N7z3QS",
                               "name": "Practice",
                               "width": "fill_container",
-                              "fill": "$g-tone",
+                              "fill": "#161616",
                               "gap": 7,
                               "padding": [
                                 9,
@@ -2937,15 +2937,15 @@
                                   "height": 14,
                                   "icon": "dumbbell",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 },
                                 {
                                   "type": "text",
                                   "id": "s8XFV9",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Practice",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "700"
                                 }
@@ -2980,9 +2980,9 @@
                                   "type": "text",
                                   "id": "QbtPF",
                                   "name": "t",
-                                  "fill": "$g-text-3",
+                                  "fill": "#6E6E6E",
                                   "content": "Due soon",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -2997,9 +2997,9 @@
                                       "type": "text",
                                       "id": "R0X89c",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "All",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     },
@@ -3011,7 +3011,7 @@
                                       "height": 12,
                                       "icon": "arrow-right",
                                       "library": "lucide",
-                                      "fill": "$g-text-3"
+                                      "fill": "#6E6E6E"
                                     }
                                   ]
                                 }
@@ -3041,9 +3041,9 @@
                                       "type": "text",
                                       "id": "e8UHPp",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "HW 3",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -3051,9 +3051,9 @@
                                       "type": "text",
                                       "id": "MdqrC",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 21 · was due Fri",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -3065,7 +3065,7 @@
                                   "name": "Countdown",
                                   "fill": "#EF4444",
                                   "content": "Overdue",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "700"
                                 },
@@ -3104,9 +3104,9 @@
                                       "type": "text",
                                       "id": "sw4LB",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Reading quiz",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -3114,9 +3114,9 @@
                                       "type": "text",
                                       "id": "mlPxw",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 21 · 5:00 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -3128,7 +3128,7 @@
                                   "name": "Countdown",
                                   "fill": "#ec4646",
                                   "content": "47:12.38",
-                                  "fontFamily": "$g-num",
+                                  "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -3138,7 +3138,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -3167,9 +3167,9 @@
                                       "type": "text",
                                       "id": "viNO5",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Lab 4",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -3177,9 +3177,9 @@
                                       "type": "text",
                                       "id": "L35fT",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 29 · 11:59 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -3191,7 +3191,7 @@
                                   "name": "Countdown",
                                   "fill": "#cf5c5c",
                                   "content": "07:47:00",
-                                  "fontFamily": "$g-num",
+                                  "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -3201,7 +3201,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -3230,9 +3230,9 @@
                                       "type": "text",
                                       "id": "rJv4v",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "PA 3",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -3240,9 +3240,9 @@
                                       "type": "text",
                                       "id": "i9aC8",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 29 · Thu 11:59 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -3252,9 +3252,9 @@
                                   "type": "text",
                                   "id": "DrZyB",
                                   "name": "Countdown",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "in 1 day",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -3264,7 +3264,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -3289,9 +3289,9 @@
                               "type": "text",
                               "id": "Q7qDE4",
                               "name": "t",
-                              "fill": "$g-text-3",
+                              "fill": "#6E6E6E",
                               "content": "Lessons",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 13,
                               "fontWeight": "700"
                             },
@@ -3303,7 +3303,7 @@
                               "height": 14,
                               "icon": "search",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -3333,9 +3333,9 @@
                                   "type": "text",
                                   "id": "xuRaN",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Counting basics",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -3350,7 +3350,7 @@
                                       "type": "rectangle",
                                       "id": "qVChV",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -3358,9 +3358,9 @@
                                       "type": "text",
                                       "id": "GxRhg",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "now",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -3384,9 +3384,9 @@
                                   "type": "text",
                                   "id": "iYMcy",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Permutations vs. combinations",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -3401,7 +3401,7 @@
                                       "type": "rectangle",
                                       "id": "c6GeA",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -3409,9 +3409,9 @@
                                       "type": "text",
                                       "id": "g6J7fj",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "1d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -3438,9 +3438,9 @@
                                   "type": "text",
                                   "id": "l5VdOE",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Binomial theorem",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -3455,7 +3455,7 @@
                                       "type": "rectangle",
                                       "id": "HthOH",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -3463,9 +3463,9 @@
                                       "type": "text",
                                       "id": "uEfuO",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "3d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -3492,9 +3492,9 @@
                                   "type": "text",
                                   "id": "VL7oW",
                                   "name": "Title",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Inclusion–exclusion",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -3509,9 +3509,9 @@
                                       "type": "text",
                                       "id": "eIcjh",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "Finished · 5d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -3538,9 +3538,9 @@
                                   "type": "text",
                                   "id": "aFF2S",
                                   "name": "Title",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Practice: counting mix",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -3555,9 +3555,9 @@
                                       "type": "text",
                                       "id": "VRjhT",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "4 of 6 solved",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -3600,9 +3600,9 @@
                                   "type": "text",
                                   "id": "zWca6",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Claude Code · connected",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 }
@@ -3616,7 +3616,7 @@
                               "height": 16,
                               "icon": "settings",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         }
@@ -3649,7 +3649,7 @@
                               "type": "frame",
                               "id": "TfSyr",
                               "name": "Add deadline",
-                              "fill": "$g-panel",
+                              "fill": "#080808",
                               "gap": 7,
                               "padding": [
                                 7,
@@ -3665,15 +3665,15 @@
                                   "height": 14,
                                   "icon": "plus",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "yZ1k3",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Add deadline",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14,
                                   "fontWeight": "normal"
                                 }
@@ -3710,9 +3710,9 @@
                               "type": "text",
                               "id": "hYlMN",
                               "name": "Date",
-                              "fill": "$g-text-2",
+                              "fill": "#8D8D8D",
                               "content": "Thursday, October 29 · 5:23 PM",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 16,
                               "fontWeight": "normal"
                             }
@@ -3754,7 +3754,7 @@
                                   "name": "t",
                                   "fill": "#8D8D8D",
                                   "content": "Nothing due yet. Your agent can add deadlines from a syllabus.",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "normal"
                                 }
@@ -3811,7 +3811,7 @@
                                           "name": "t",
                                           "fill": "#8D8D8D",
                                           "content": "Mathematics for Algorithms and Systems · Miles Jones",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 14,
                                           "fontWeight": "normal"
                                         }
@@ -3856,7 +3856,7 @@
                                           "name": "t",
                                           "fill": "#8D8D8D",
                                           "content": "0 of 212 facts · 8 topics, none started",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13.5,
                                           "fontWeight": "normal"
                                         },
@@ -3933,7 +3933,7 @@
                                           "width": "fill_container",
                                           "content": "Start your first lesson and the signature starts to ink in.",
                                           "lineHeight": 1.35,
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 14.5,
                                           "fontWeight": "normal"
                                         }
@@ -3957,7 +3957,7 @@
                                           "type": "frame",
                                           "id": "w7bUEx",
                                           "name": "Button New lesson",
-                                          "fill": "$g-accent",
+                                          "fill": "#E6E6E6",
                                           "padding": [
                                             10,
                                             16
@@ -3970,7 +3970,7 @@
                                               "name": "t",
                                               "fill": "#000000",
                                               "content": "New lesson",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 14,
                                               "fontWeight": "700"
                                             }
@@ -3980,7 +3980,7 @@
                                           "type": "frame",
                                           "id": "RwRky",
                                           "name": "Button Open class",
-                                          "fill": "$g-tone",
+                                          "fill": "#161616",
                                           "padding": [
                                             10,
                                             16
@@ -3991,9 +3991,9 @@
                                               "type": "text",
                                               "id": "ScOYM",
                                               "name": "t",
-                                              "fill": "$g-text",
+                                              "fill": "#E6E6E6",
                                               "content": "Open class",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 14,
                                               "fontWeight": "700"
                                             }
@@ -4046,7 +4046,7 @@
                                           "name": "t",
                                           "fill": "#8D8D8D",
                                           "content": "Systems programming in C · Aaron Schulman",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 14,
                                           "fontWeight": "normal"
                                         }
@@ -4125,7 +4125,7 @@
                                           "name": "t",
                                           "fill": "#8D8D8D",
                                           "content": "16 of 100 facts · 4 of 11 topics started",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13.5,
                                           "fontWeight": "normal"
                                         },
@@ -4212,7 +4212,7 @@
                                           "width": "fill_container",
                                           "content": "Your mask, count leading zeros and UTF-8 answers all work. Watch for missing semicolons, x <<= 1 instead of x << 1, and positions starting at 0.",
                                           "lineHeight": 1.35,
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 14.5,
                                           "fontWeight": "normal"
                                         }
@@ -4236,7 +4236,7 @@
                                           "type": "frame",
                                           "id": "p4aZ0e",
                                           "name": "Button Continue: Help me review for my CSE 29…",
-                                          "fill": "$g-accent",
+                                          "fill": "#E6E6E6",
                                           "padding": [
                                             10,
                                             16
@@ -4249,7 +4249,7 @@
                                               "name": "t",
                                               "fill": "#000000",
                                               "content": "Continue: Help me review for my CSE 29…",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 14,
                                               "fontWeight": "700"
                                             }
@@ -4259,7 +4259,7 @@
                                           "type": "frame",
                                           "id": "m1qITK",
                                           "name": "Button Open class",
-                                          "fill": "$g-tone",
+                                          "fill": "#161616",
                                           "padding": [
                                             10,
                                             16
@@ -4270,9 +4270,9 @@
                                               "type": "text",
                                               "id": "CQ2W5",
                                               "name": "t",
-                                              "fill": "$g-text",
+                                              "fill": "#E6E6E6",
                                               "content": "Open class",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 14,
                                               "fontWeight": "700"
                                             }
@@ -4317,9 +4317,9 @@
                           "type": "text",
                           "id": "k7Tl6",
                           "name": "t",
-                          "fill": "$g-text",
+                          "fill": "#E6E6E6",
                           "content": "Lecture 3 — Expectation",
-                          "fontFamily": "$g-ui",
+                          "fontFamily": "Source Sans 3",
                           "fontSize": 14,
                           "fontWeight": "700"
                         },
@@ -4335,7 +4335,7 @@
                               "type": "rectangle",
                               "id": "jUG9V",
                               "name": "came up",
-                              "fill": "$g-text-2",
+                              "fill": "#8D8D8D",
                               "width": 140,
                               "height": 6
                             },
@@ -4343,7 +4343,7 @@
                               "type": "rectangle",
                               "id": "shBpC",
                               "name": "not used",
-                              "fill": "$g-tone-2",
+                              "fill": "#2F2F2F",
                               "width": "fill_container",
                               "height": 6
                             }
@@ -4353,9 +4353,9 @@
                           "type": "text",
                           "id": "ab2Tt",
                           "name": "t",
-                          "fill": "$g-text-2",
+                          "fill": "#8D8D8D",
                           "content": "12 of 18 facts came up in lessons",
-                          "fontFamily": "$g-ui",
+                          "fontFamily": "Source Sans 3",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         },
@@ -4374,15 +4374,15 @@
                               "height": 12,
                               "icon": "mouse-pointer-click",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             },
                             {
                               "type": "text",
                               "id": "GdxqB",
                               "name": "t",
-                              "fill": "$g-text-3",
+                              "fill": "#6E6E6E",
                               "content": "Click to open the file",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 12,
                               "fontWeight": "normal"
                             }
@@ -4482,9 +4482,9 @@
                   "type": "text",
                   "id": "J4p1v",
                   "name": "Label",
-                  "fill": "$g-text",
+                  "fill": "#E6E6E6",
                   "content": "F · The pages you left off on",
-                  "fontFamily": "$g-ui",
+                  "fontFamily": "Source Sans 3",
                   "fontSize": 22,
                   "fontWeight": "700"
                 },
@@ -4495,7 +4495,7 @@
                   "clip": true,
                   "width": 1440,
                   "height": 900,
-                  "fill": "$g-bg",
+                  "fill": "#000000",
                   "children": [
                     {
                       "type": "frame",
@@ -4503,8 +4503,8 @@
                       "name": "Sidebar",
                       "width": 256,
                       "height": "fill_container",
-                      "fill": "$g-bg",
-                      "stroke": "$g-tone-2",
+                      "fill": "#000000",
+                      "stroke": "#2F2F2F",
                       "strokeWidth": {
                         "right": 1
                       },
@@ -4569,7 +4569,7 @@
                               "height": 16,
                               "icon": "panel-left",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -4578,7 +4578,7 @@
                           "id": "gBumk",
                           "name": "Home",
                           "width": "fill_container",
-                          "fill": "$g-tone",
+                          "fill": "#161616",
                           "gap": 10,
                           "padding": [
                             8,
@@ -4594,17 +4594,17 @@
                               "height": 16,
                               "icon": "house",
                               "library": "lucide",
-                              "fill": "$g-text"
+                              "fill": "#E6E6E6"
                             },
                             {
                               "type": "text",
                               "id": "j3HfBM",
                               "name": "t",
-                              "fill": "$g-text",
+                              "fill": "#E6E6E6",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "Home",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 14.5,
                               "fontWeight": "700"
                             }
@@ -4615,7 +4615,7 @@
                           "id": "u2DHP",
                           "name": "Class switcher",
                           "width": "fill_container",
-                          "fill": "$g-panel",
+                          "fill": "#080808",
                           "gap": 10,
                           "padding": [
                             10,
@@ -4629,7 +4629,7 @@
                               "name": "Icon tile",
                               "width": 30,
                               "height": 30,
-                              "fill": "$g-tone-2",
+                              "fill": "#2F2F2F",
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
@@ -4641,7 +4641,7 @@
                                   "height": 17,
                                   "icon": "sigma",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 }
                               ]
                             },
@@ -4657,9 +4657,9 @@
                                   "type": "text",
                                   "id": "hSqvi",
                                   "name": "Class",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "CSE 21",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 15,
                                   "fontWeight": "700"
                                 }
@@ -4673,7 +4673,7 @@
                               "height": 16,
                               "icon": "chevrons-up-down",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -4706,17 +4706,17 @@
                                   "height": 16,
                                   "icon": "layout-grid",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "tr1AQ",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Overview",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 }
@@ -4742,17 +4742,17 @@
                                   "height": 16,
                                   "icon": "waypoints",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "p0i2W",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Graph",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 }
@@ -4778,17 +4778,17 @@
                                   "height": 16,
                                   "icon": "files",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "e3G2O",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
                                   "content": "Files",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -4805,9 +4805,9 @@
                                       "type": "text",
                                       "id": "YjcbX",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "33",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "700"
                                     }
@@ -4829,7 +4829,7 @@
                               "id": "KmXjT",
                               "name": "New lesson",
                               "width": "fill_container",
-                              "fill": "$g-tone",
+                              "fill": "#161616",
                               "gap": 7,
                               "padding": [
                                 9,
@@ -4846,15 +4846,15 @@
                                   "height": 14,
                                   "icon": "plus",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 },
                                 {
                                   "type": "text",
                                   "id": "bY85g",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "New lesson",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "700"
                                 }
@@ -4865,7 +4865,7 @@
                               "id": "FxzfT",
                               "name": "Practice",
                               "width": "fill_container",
-                              "fill": "$g-tone",
+                              "fill": "#161616",
                               "gap": 7,
                               "padding": [
                                 9,
@@ -4882,15 +4882,15 @@
                                   "height": 14,
                                   "icon": "dumbbell",
                                   "library": "lucide",
-                                  "fill": "$g-text"
+                                  "fill": "#E6E6E6"
                                 },
                                 {
                                   "type": "text",
                                   "id": "otPkG",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Practice",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "700"
                                 }
@@ -4925,9 +4925,9 @@
                                   "type": "text",
                                   "id": "pULbb",
                                   "name": "t",
-                                  "fill": "$g-text-3",
+                                  "fill": "#6E6E6E",
                                   "content": "Due soon",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -4942,9 +4942,9 @@
                                       "type": "text",
                                       "id": "IHjPi",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "All",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     },
@@ -4956,7 +4956,7 @@
                                       "height": 12,
                                       "icon": "arrow-right",
                                       "library": "lucide",
-                                      "fill": "$g-text-3"
+                                      "fill": "#6E6E6E"
                                     }
                                   ]
                                 }
@@ -4986,9 +4986,9 @@
                                       "type": "text",
                                       "id": "mCkuz",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "HW 3",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -4996,9 +4996,9 @@
                                       "type": "text",
                                       "id": "YU8Ic",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 21 · was due Fri",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -5010,7 +5010,7 @@
                                   "name": "Countdown",
                                   "fill": "#EF4444",
                                   "content": "Overdue",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "700"
                                 },
@@ -5049,9 +5049,9 @@
                                       "type": "text",
                                       "id": "yiJ59",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Reading quiz",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -5059,9 +5059,9 @@
                                       "type": "text",
                                       "id": "F8Ktmn",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 21 · 5:00 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -5073,7 +5073,7 @@
                                   "name": "Countdown",
                                   "fill": "#ec4646",
                                   "content": "47:12.38",
-                                  "fontFamily": "$g-num",
+                                  "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -5083,7 +5083,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -5112,9 +5112,9 @@
                                       "type": "text",
                                       "id": "WGaiz",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "Lab 4",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -5122,9 +5122,9 @@
                                       "type": "text",
                                       "id": "d59RMd",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 29 · 11:59 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -5136,7 +5136,7 @@
                                   "name": "Countdown",
                                   "fill": "#cf5c5c",
                                   "content": "07:47:00",
-                                  "fontFamily": "$g-num",
+                                  "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "700"
                                 },
@@ -5146,7 +5146,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -5175,9 +5175,9 @@
                                       "type": "text",
                                       "id": "NHDzt",
                                       "name": "t",
-                                      "fill": "$g-text",
+                                      "fill": "#E6E6E6",
                                       "content": "PA 3",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 14,
                                       "fontWeight": "normal"
                                     },
@@ -5185,9 +5185,9 @@
                                       "type": "text",
                                       "id": "JXCKT",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "CSE 29 · Thu 11:59 PM",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12,
                                       "fontWeight": "normal"
                                     }
@@ -5197,9 +5197,9 @@
                                   "type": "text",
                                   "id": "YOGSC",
                                   "name": "Countdown",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "in 1 day",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 },
@@ -5209,7 +5209,7 @@
                                   "name": "Done box",
                                   "width": 13,
                                   "height": 13,
-                                  "stroke": "$g-text-3",
+                                  "stroke": "#6E6E6E",
                                   "strokeWidth": 1.5
                                 }
                               ]
@@ -5234,9 +5234,9 @@
                               "type": "text",
                               "id": "dsgVA",
                               "name": "t",
-                              "fill": "$g-text-3",
+                              "fill": "#6E6E6E",
                               "content": "Lessons",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 13,
                               "fontWeight": "700"
                             },
@@ -5248,7 +5248,7 @@
                               "height": 14,
                               "icon": "search",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         },
@@ -5278,9 +5278,9 @@
                                   "type": "text",
                                   "id": "cvlFR",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Counting basics",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -5295,7 +5295,7 @@
                                       "type": "rectangle",
                                       "id": "rlG1x",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -5303,9 +5303,9 @@
                                       "type": "text",
                                       "id": "tWPzD",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "now",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -5329,9 +5329,9 @@
                                   "type": "text",
                                   "id": "jE3UP",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Permutations vs. combinations",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -5346,7 +5346,7 @@
                                       "type": "rectangle",
                                       "id": "buTYk",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -5354,9 +5354,9 @@
                                       "type": "text",
                                       "id": "EXuHM",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "1d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -5383,9 +5383,9 @@
                                   "type": "text",
                                   "id": "cvYcA",
                                   "name": "Title",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Binomial theorem",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -5400,7 +5400,7 @@
                                       "type": "rectangle",
                                       "id": "eRNHc",
                                       "name": "Dot",
-                                      "fill": "$g-accent",
+                                      "fill": "#E6E6E6",
                                       "width": 6,
                                       "height": 6
                                     },
@@ -5408,9 +5408,9 @@
                                       "type": "text",
                                       "id": "FxhXF",
                                       "name": "t",
-                                      "fill": "$g-text-2",
+                                      "fill": "#8D8D8D",
                                       "content": "3d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -5437,9 +5437,9 @@
                                   "type": "text",
                                   "id": "CZs2Y",
                                   "name": "Title",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Inclusion–exclusion",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -5454,9 +5454,9 @@
                                       "type": "text",
                                       "id": "m5tKhm",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "Finished · 5d",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -5483,9 +5483,9 @@
                                   "type": "text",
                                   "id": "jokMn",
                                   "name": "Title",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Practice: counting mix",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14.5,
                                   "fontWeight": "normal"
                                 },
@@ -5500,9 +5500,9 @@
                                       "type": "text",
                                       "id": "rAX68",
                                       "name": "t",
-                                      "fill": "$g-text-3",
+                                      "fill": "#6E6E6E",
                                       "content": "4 of 6 solved",
-                                      "fontFamily": "$g-ui",
+                                      "fontFamily": "Source Sans 3",
                                       "fontSize": 12.5,
                                       "fontWeight": "normal"
                                     }
@@ -5545,9 +5545,9 @@
                                   "type": "text",
                                   "id": "Ood50",
                                   "name": "t",
-                                  "fill": "$g-text-2",
+                                  "fill": "#8D8D8D",
                                   "content": "Claude Code · connected",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 12.5,
                                   "fontWeight": "normal"
                                 }
@@ -5561,7 +5561,7 @@
                               "height": 16,
                               "icon": "settings",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             }
                           ]
                         }
@@ -5594,7 +5594,7 @@
                               "type": "frame",
                               "id": "EFiuZ",
                               "name": "Add deadline",
-                              "fill": "$g-panel",
+                              "fill": "#080808",
                               "gap": 7,
                               "padding": [
                                 7,
@@ -5610,15 +5610,15 @@
                                   "height": 14,
                                   "icon": "plus",
                                   "library": "lucide",
-                                  "fill": "$g-text-2"
+                                  "fill": "#8D8D8D"
                                 },
                                 {
                                   "type": "text",
                                   "id": "bYFPi",
                                   "name": "t",
-                                  "fill": "$g-text",
+                                  "fill": "#E6E6E6",
                                   "content": "Add deadline",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 14,
                                   "fontWeight": "normal"
                                 }
@@ -5655,9 +5655,9 @@
                               "type": "text",
                               "id": "Ua0gj",
                               "name": "Date",
-                              "fill": "$g-text-2",
+                              "fill": "#8D8D8D",
                               "content": "Thursday, October 29 · 5:23 PM",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 16,
                               "fontWeight": "normal"
                             }
@@ -5699,7 +5699,7 @@
                                   "name": "t",
                                   "fill": "#8D8D8D",
                                   "content": "Nothing due yet. Your agent can add deadlines from a syllabus.",
-                                  "fontFamily": "$g-ui",
+                                  "fontFamily": "Source Sans 3",
                                   "fontSize": 13.5,
                                   "fontWeight": "normal"
                                 }
@@ -5743,7 +5743,7 @@
                                           "type": "frame",
                                           "id": "MqBPE",
                                           "name": "Class chip",
-                                          "fill": "$g-tone",
+                                          "fill": "#161616",
                                           "padding": [
                                             2,
                                             7
@@ -5753,9 +5753,9 @@
                                               "type": "text",
                                               "id": "Zcr6N",
                                               "name": "t",
-                                              "fill": "$g-text-2",
+                                              "fill": "#8D8D8D",
                                               "content": "CSE 29",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 12,
                                               "fontWeight": "700"
                                             }
@@ -5765,9 +5765,9 @@
                                           "type": "text",
                                           "id": "y5jEs",
                                           "name": "t",
-                                          "fill": "$g-text",
+                                          "fill": "#E6E6E6",
                                           "content": "Help me review for my CSE 29 exam today",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 14.5,
                                           "fontWeight": "700"
                                         },
@@ -5784,7 +5784,7 @@
                                           "name": "t",
                                           "fill": "#6E6E6E",
                                           "content": "2 h ago",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13,
                                           "fontWeight": "normal"
                                         }
@@ -5918,7 +5918,7 @@
                                           "type": "text",
                                           "id": "T5yMxo",
                                           "name": "t",
-                                          "fill": "$g-text",
+                                          "fill": "#E6E6E6",
                                           "content": "Your exam checklist",
                                           "fontFamily": "Source Serif 4",
                                           "fontSize": 22,
@@ -5959,7 +5959,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "question",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "700"
                                                     }
@@ -5984,7 +5984,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "what to write",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "700"
                                                     }
@@ -6009,7 +6009,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "your traps",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "700"
                                                     }
@@ -6043,7 +6043,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "Mask and shift",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6093,7 +6093,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "hex digits backwards; positions start at 0",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6127,7 +6127,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "Count leading zeros",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6177,7 +6177,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "x << 1 alone does nothing",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6211,7 +6211,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "UTF-8 4-byte decode",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6261,7 +6261,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "first mask is 0x07, not 0x1F",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6295,7 +6295,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "Terminal",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6345,7 +6345,7 @@
                                                       "textGrowth": "fixed-width",
                                                       "width": "fill_container",
                                                       "content": "./ before the program",
-                                                      "fontFamily": "$g-ui",
+                                                      "fontFamily": "Source Sans 3",
                                                       "fontSize": 13,
                                                       "fontWeight": "normal"
                                                     }
@@ -6399,7 +6399,7 @@
                                           "name": "t",
                                           "fill": "#8D8D8D",
                                           "content": "Lesson finished · 12 of 12 steps",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13.5,
                                           "fontWeight": "normal"
                                         },
@@ -6414,7 +6414,7 @@
                                           "type": "frame",
                                           "id": "U3GBN",
                                           "name": "Button Continue",
-                                          "fill": "$g-accent",
+                                          "fill": "#E6E6E6",
                                           "padding": [
                                             9,
                                             14
@@ -6427,7 +6427,7 @@
                                               "name": "t",
                                               "fill": "#000000",
                                               "content": "Continue",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 13.5,
                                               "fontWeight": "700"
                                             }
@@ -6467,7 +6467,7 @@
                                           "type": "frame",
                                           "id": "itQac",
                                           "name": "Class chip",
-                                          "fill": "$g-tone",
+                                          "fill": "#161616",
                                           "padding": [
                                             2,
                                             7
@@ -6477,9 +6477,9 @@
                                               "type": "text",
                                               "id": "dE6TF",
                                               "name": "t",
-                                              "fill": "$g-text-2",
+                                              "fill": "#8D8D8D",
                                               "content": "CSE 21",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 12,
                                               "fontWeight": "700"
                                             }
@@ -6489,9 +6489,9 @@
                                           "type": "text",
                                           "id": "I6VIF",
                                           "name": "t",
-                                          "fill": "$g-text",
+                                          "fill": "#E6E6E6",
                                           "content": "hi what model are u",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 14.5,
                                           "fontWeight": "700"
                                         },
@@ -6508,7 +6508,7 @@
                                           "name": "t",
                                           "fill": "#6E6E6E",
                                           "content": "3 days ago",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13,
                                           "fontWeight": "normal"
                                         }
@@ -6547,7 +6547,7 @@
                                               "name": "t",
                                               "fill": "#6E6E6E",
                                               "content": "You",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 12.5,
                                               "fontWeight": "700"
                                             },
@@ -6555,9 +6555,9 @@
                                               "type": "text",
                                               "id": "scq4u",
                                               "name": "t",
-                                              "fill": "$g-text",
+                                              "fill": "#E6E6E6",
                                               "content": "hi what model are u",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 14,
                                               "fontWeight": "normal"
                                             }
@@ -6597,7 +6597,7 @@
                                           "name": "t",
                                           "fill": "#8D8D8D",
                                           "content": "Waiting for you",
-                                          "fontFamily": "$g-ui",
+                                          "fontFamily": "Source Sans 3",
                                           "fontSize": 13.5,
                                           "fontWeight": "normal"
                                         },
@@ -6612,7 +6612,7 @@
                                           "type": "frame",
                                           "id": "vBXIl",
                                           "name": "Button Continue",
-                                          "fill": "$g-accent",
+                                          "fill": "#E6E6E6",
                                           "padding": [
                                             9,
                                             14
@@ -6625,7 +6625,7 @@
                                               "name": "t",
                                               "fill": "#000000",
                                               "content": "Continue",
-                                              "fontFamily": "$g-ui",
+                                              "fontFamily": "Source Sans 3",
                                               "fontSize": 13.5,
                                               "fontWeight": "700"
                                             }
@@ -6670,9 +6670,9 @@
                           "type": "text",
                           "id": "r21iU",
                           "name": "t",
-                          "fill": "$g-text",
+                          "fill": "#E6E6E6",
                           "content": "Lecture 3 — Expectation",
-                          "fontFamily": "$g-ui",
+                          "fontFamily": "Source Sans 3",
                           "fontSize": 14,
                           "fontWeight": "700"
                         },
@@ -6688,7 +6688,7 @@
                               "type": "rectangle",
                               "id": "zjqkn",
                               "name": "came up",
-                              "fill": "$g-text-2",
+                              "fill": "#8D8D8D",
                               "width": 140,
                               "height": 6
                             },
@@ -6696,7 +6696,7 @@
                               "type": "rectangle",
                               "id": "N24eV",
                               "name": "not used",
-                              "fill": "$g-tone-2",
+                              "fill": "#2F2F2F",
                               "width": "fill_container",
                               "height": 6
                             }
@@ -6706,9 +6706,9 @@
                           "type": "text",
                           "id": "aFPBR",
                           "name": "t",
-                          "fill": "$g-text-2",
+                          "fill": "#8D8D8D",
                           "content": "12 of 18 facts came up in lessons",
-                          "fontFamily": "$g-ui",
+                          "fontFamily": "Source Sans 3",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         },
@@ -6727,15 +6727,15 @@
                               "height": 12,
                               "icon": "mouse-pointer-click",
                               "library": "lucide",
-                              "fill": "$g-text-3"
+                              "fill": "#6E6E6E"
                             },
                             {
                               "type": "text",
                               "id": "kRWnH",
                               "name": "t",
-                              "fill": "$g-text-3",
+                              "fill": "#6E6E6E",
                               "content": "Click to open the file",
-                              "fontFamily": "$g-ui",
+                              "fontFamily": "Source Sans 3",
                               "fontSize": 12,
                               "fontWeight": "normal"
                             }
@@ -6832,103 +6832,35 @@
   "variables": {
     "ink": {
       "type": "color",
-      "value": "#121110"
+      "value": "#EDEDEF"
     },
-    "ink-raised": {
+    "bg": {
       "type": "color",
-      "value": "#1A1917"
+      "value": "#141416"
     },
-    "ink-hover": {
+    "panel": {
       "type": "color",
-      "value": "#211F1C"
+      "value": "#1B1B1E"
     },
-    "paper": {
+    "line": {
       "type": "color",
-      "value": "#ECE6DA"
+      "value": "#2A2A2F"
     },
-    "paper-2": {
+    "dim": {
       "type": "color",
-      "value": "#A9A296"
+      "value": "#8C8C94"
     },
-    "paper-3": {
+    "faint": {
       "type": "color",
-      "value": "#767066"
+      "value": "#5A5A62"
     },
-    "rule": {
+    "red": {
       "type": "color",
-      "value": "#2E2B27"
+      "value": "#FF453A"
     },
-    "rule-strong": {
+    "blue": {
       "type": "color",
-      "value": "#4A453E"
-    },
-    "rubric": {
-      "type": "color",
-      "value": "#E4573F"
-    },
-    "rubric-dim": {
-      "type": "color",
-      "value": "#E4573F22"
-    },
-    "sage": {
-      "type": "color",
-      "value": "#93B08A"
-    },
-    "ochre": {
-      "type": "color",
-      "value": "#D2A24C"
-    },
-    "serif": {
-      "type": "string",
-      "value": "Source Serif 4"
-    },
-    "mono": {
-      "type": "string",
-      "value": "IBM Plex Mono"
-    },
-    "g-bg": {
-      "type": "color",
-      "value": "#000000"
-    },
-    "g-panel": {
-      "type": "color",
-      "value": "#080808"
-    },
-    "g-tone": {
-      "type": "color",
-      "value": "#161616"
-    },
-    "g-tone-2": {
-      "type": "color",
-      "value": "#2F2F2F"
-    },
-    "g-text": {
-      "type": "color",
-      "value": "#E6E6E6"
-    },
-    "g-text-2": {
-      "type": "color",
-      "value": "#8D8D8D"
-    },
-    "g-text-3": {
-      "type": "color",
-      "value": "#6E6E6E"
-    },
-    "g-accent": {
-      "type": "color",
-      "value": "#E6E6E6"
-    },
-    "g-ui": {
-      "type": "string",
-      "value": "Source Sans 3"
-    },
-    "g-num": {
-      "type": "string",
-      "value": "JetBrains Mono"
-    },
-    "g-math": {
-      "type": "string",
-      "value": "STIX Two Text"
+      "value": "#0A84FF"
     }
   },
   "fileToken": "e46b8a32-cc64-4c22-8096-0b7960533b53"
