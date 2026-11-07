@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.5.40",
+		"date": "2026-11-06",
+		"changes": [
+			"If a class's linked folder gets no new files for 4 days, a pop-up tells you, with buttons to open the folder or see the class's files. Closing it hides it for another 4 days.",
+			"When files disappear from a class's linked folder, a pop-up says which ones.",
+			"The Files page has a Recent changes list with every file added or removed in the last 14 days."
+		]
+	},
+	{
 		"version": "0.5.39",
 		"date": "2026-11-06",
 		"changes": [
