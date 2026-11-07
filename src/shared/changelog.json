@@ -1,5 +1,14 @@
 [
 	{
+		"version": "0.5.39",
+		"date": "2026-11-06",
+		"changes": [
+			"Ask your agent in Talk to work on something, like a problem set, and it starts the lesson in the right class and opens it for you.",
+			"When godspeed asks your agent by itself what a deadline covers, it now waits until Talk has been quiet for 10 minutes, so it never cuts into your conversation.",
+			"Opening a lesson from another class switches the sidebar to that class, so the lesson shows up in the list."
+		]
+	},
+	{
 		"version": "0.5.38",
 		"date": "2026-11-06",
 		"changes": [
