@@ -29,7 +29,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { NotesImportError } from "../agent/subagents/extraction.ts";
 import { extractionStatuses, abortExtraction } from "../agent/subagents/extraction-runs.ts";
-import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem, FolderStatus, SkippedFiles } from "../../shared/core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassFileKind, ClassIcon, ClassRecord, ClassScope, ClassSignature, ClassSummary, FolderProblem, FolderStatus, RemovedFile, SkippedFiles } from "../../shared/core/contracts.ts";
 import { ClassDeadlineError, compareDeadlines, DOCUMENT_EXTENSIONS, extensionOf, extractsFacts, FILE_NOT_FOUND, isRecordingFile, isTranscriptFile, parseClassScope, safeName, SUPPORTED_CLASS_FILE_EXTENSIONS } from "../../shared/core/contracts.ts";
 import { deleteChatTraces, deleteSourceTraces } from "../../shared/core/graph-deletion.ts";
 import type { DeadlineInit, DeadlinePatch } from "../../shared/core/ports.ts";
@@ -269,7 +269,7 @@ export function listOpenDeadlines(): OpenDeadline[] {
 
 // ─── file list mutation (sync read-modify-write) ────────────────────────────
 
-function mutateFiles(classId: string, fn: (files: ClassFile[]) => ClassFile[]): ClassRecord | null {
+function mutateFiles(classId: string, fn: (files: ClassFile[]) => ClassFile[], removed?: readonly RemovedFile[]): ClassRecord | null {
 	const record = stores.classStore.getClass(classId);
 	if (!record) return null;
 	let files = fn(record.files);
@@ -282,7 +282,7 @@ function mutateFiles(classId: string, fn: (files: ClassFile[]) => ClassFile[]): 
 			return next;
 		});
 	}
-	const next = stores.classStore.saveFiles(classId, files);
+	const next = stores.classStore.saveFiles(classId, files, removed);
 	emit("classes-changed", {});
 	for (const id of recheck) enqueueFile(classId, id);
 	return next;
@@ -412,15 +412,20 @@ function dropFileTexts(classId: string, fileId: string): void {
 }
 
 /** The sync removal: facts, transcript, copy, list entry. Facts go by
- *  sourceIdFor, so an import that never saved its id leaves nothing. */
-function dropFile(record: ClassRecord, file: ClassFile): void {
+ *  sourceIdFor, so an import that never saved its id leaves nothing.
+ *  `listed` puts it in the Recent changes (not when a folder is unlinked). */
+function dropFile(record: ClassRecord, file: ClassFile, { listed = true }: { listed?: boolean } = {}): void {
 	deleteSourceTraces(graphStoreFor(record.id), sourceIdFor(record.id, file.id));
 	dropFileTexts(record.id, file.id);
 	dropClassFile(record.id, file.id).catch((err: unknown) => console.error(`[classes] could not drop ${file.id} from search:`, err));
 	if (file.origin === "copied") {
 		fs.rmSync(path.join(stores.classStore.filesDir(record.id), file.id), { recursive: true, force: true });
 	}
-	mutateFiles(record.id, (files) => files.filter((f) => f.id !== file.id));
+	mutateFiles(
+		record.id,
+		(files) => files.filter((f) => f.id !== file.id),
+		listed ? [{ id: file.id, name: file.name, at: new Date().toISOString() }] : undefined,
+	);
 }
 
 // ─── linked folder ──────────────────────────────────────────────────────────
@@ -460,7 +465,7 @@ export function unlinkFolder(classId: string): ClassOutcome<ClassRecord> {
 	if (linked.some((f) => importRunning(classId, f))) {
 		return fail(409, "extraction_running", "A linked file is being turned into facts. Try again when it finishes.");
 	}
-	for (const file of linked) dropFile(stores.classStore.getClass(classId)!, file);
+	for (const file of linked) dropFile(stores.classStore.getClass(classId)!, file, { listed: false });
 	folderScans.delete(classId);
 	return { ok: true, value: stores.classStore.updateClass(classId, { linkedFolder: null }) };
 }
@@ -592,7 +597,7 @@ export function scanLinkedFolder(classId: string, { linking = false }: { linking
 	setFolderStatus(classId, capped ? "too-many-files" : null, settling, skipped);
 	for (const id of toProcess) enqueueFile(classId, id);
 	if (added.length === 0) {
-		for (const file of gone) dropFile(stores.classStore.getClass(classId)!, file);
+		dropGone(classId, gone, !linking);
 		return;
 	}
 	const kinds = kindsForNewFiles(stores.classStore.getClass(classId)?.files ?? [], added);
@@ -652,10 +657,11 @@ function triageNewFiles(classId: string, addedIds: string[], gone: ClassFile[], 
 			);
 			if (match.origin === "copied") removeCopyDir(classId, match.id);
 		}
-		for (const file of gone) {
-			const record = stores.classStore.getClass(classId);
-			if (unmatched.has(file.id) && record?.files.some((f) => f.id === file.id) && !importRunning(classId, file)) dropFile(record, file);
-		}
+		dropGone(
+			classId,
+			gone.filter((file) => unmatched.has(file.id) && stores.classStore.getClass(classId)?.files.some((f) => f.id === file.id) && !importRunning(classId, file)),
+			announce,
+		);
 		const folder = stores.classStore.getClass(classId)?.linkedFolder;
 		if (announce && folder && fresh.length > 0) {
 			emit("files-added", { classId, files: fresh.map((f) => ({ id: f.id, name: f.name, kind: f.kind })) });
@@ -669,6 +675,13 @@ function triageNewFiles(classId: string, addedIds: string[], gone: ClassFile[], 
 			if (triaging.get(classId) === done) triaging.delete(classId);
 		});
 	triaging.set(classId, done);
+}
+
+/** Files gone from the linked folder lose their facts. Unless a folder
+ *  was just linked in its place, they are listed and announced (one notice). */
+function dropGone(classId: string, gone: readonly ClassFile[], announce: boolean): void {
+	for (const file of gone) dropFile(stores.classStore.getClass(classId)!, file, { listed: announce });
+	if (announce && gone.length > 0) emit("files-removed", { classId, files: gone.map((f) => ({ id: f.id, name: f.name })) });
 }
 
 /** Delete a copied file's folder, read-only files included. */

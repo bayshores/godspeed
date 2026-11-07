@@ -8,6 +8,7 @@ import { KeyboardShortcuts } from "@/frontend/components/keyboard-shortcuts";
 import { SettingsDialogProvider } from "@/frontend/components/settings/settings-dialog-provider.tsx";
 import { RuleNotice } from "@/frontend/components/rule-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
+import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { useUnseenFiles } from "@/frontend/components/sidebar/files-seen";
 import { Hint } from "@/frontend/components/ui/hint";
 import { Button } from "@/frontend/components/ui/button";
@@ -363,6 +364,7 @@ export function AppShell({
 			<KeyboardShortcuts />
 			<RuleNotice />
 			<FilesNotice />
+			<QuietNotice />
 		</SettingsDialogProvider>
 	);
 }

@@ -15,9 +15,10 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../../shared/core/events.ts";
+import { isRecentChange } from "../../shared/core/new-files.ts";
 import { sanitizeRules } from "../../shared/core/teaching-areas.ts";
 import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../../shared/core/ports.ts";
-import type { ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind } from "../../shared/core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind, RemovedFile } from "../../shared/core/contracts.ts";
 import {
 	ClassDeadlineError,
 	cleanSignature,
@@ -101,6 +102,14 @@ function readDeadlines(parsed: Record<string, unknown>): ClassDeadline[] | undef
 	return undefined;
 }
 
+const isRemovedFile = (v: unknown): v is RemovedFile => isRecord(v) && isString(v.id) && isString(v.name) && isString(v.at);
+
+/** Removed files still in the Recent changes window (older ones drop out
+ *  here; the next write persists that). */
+function recentRemoved(list: readonly RemovedFile[], now: number): RemovedFile[] {
+	return list.filter((r) => isRecentChange(r.at, now)).map((r) => ({ id: r.id, name: r.name, at: r.at }));
+}
+
 const isClassNote = (v: unknown): v is ClassNote => isRecord(v) && isString(v.text) && isString(v.at);
 
 function getClass(id: string): ClassRecord | null {
@@ -120,6 +129,7 @@ function getClass(id: string): ClassRecord | null {
 	}
 	if (!isString(parsed.id) || !isString(parsed.name) || !isString(parsed.createdAt) || !isString(parsed.updatedAt)) return null;
 	const files = Array.isArray(parsed.files) ? parsed.files.filter(isClassFile) : [];
+	const removedFiles = Array.isArray(parsed.removedFiles) ? recentRemoved(parsed.removedFiles.filter(isRemovedFile), Date.now()) : [];
 	// A removed file drops out of every deadline that covered it (read-side —
 	// the next write persists the cleaned list).
 	const fileIds = new Set(files.map((f) => f.id));
@@ -135,6 +145,7 @@ function getClass(id: string): ClassRecord | null {
 		archived: parsed.archived === true,
 		...(isString(parsed.linkedFolder) ? { linkedFolder: parsed.linkedFolder } : {}),
 		files,
+		...(removedFiles.length ? { removedFiles } : {}),
 		...(deadlines ? { deadlines: deadlines.map((d) => withFiles(d, d.fileIds.filter((f) => fileIds.has(f)), d.leftOutIds?.filter((f) => fileIds.has(f)))).sort(compareDeadlines) } : {}),
 		...(signature ? { signature } : {}),
 		...(isClassIcon(parsed.icon) ? { icon: parsed.icon } : {}),
@@ -145,7 +156,9 @@ function getClass(id: string): ClassRecord | null {
 }
 
 function summarize(record: ClassRecord): ClassSummary {
-	const lastFoundAt = record.files.reduce<string | undefined>((at, f) => (f.foundByScan && (!at || f.addedAt > at) ? f.addedAt : at), undefined);
+	const newest = (pick: (f: ClassFile) => boolean) => record.files.reduce<string | undefined>((at, f) => (pick(f) && (!at || f.addedAt > at) ? f.addedAt : at), undefined);
+	const lastFoundAt = newest((f) => f.foundByScan === true);
+	const lastFolderFileAt = newest((f) => f.origin === "linked");
 	return {
 		id: record.id,
 		name: record.name,
@@ -156,6 +169,7 @@ function summarize(record: ClassRecord): ClassSummary {
 		...(record.linkedFolder ? { linkedFolder: record.linkedFolder } : {}),
 		fileCount: record.files.length,
 		...(lastFoundAt ? { lastFoundAt } : {}),
+		...(lastFolderFileAt ? { lastFolderFileAt } : {}),
 		...(record.signature ? { signature: record.signature } : {}),
 		...(record.icon ? { icon: record.icon } : {}),
 		...(record.note ? { note: record.note } : {}),
@@ -232,10 +246,11 @@ function updateClass(id: string, patch: ClassPatch): ClassRecord {
 	return record;
 }
 
-function saveFiles(id: string, files: ClassFile[]): ClassRecord {
+function saveFiles(id: string, files: ClassFile[], removed: readonly RemovedFile[] = []): ClassRecord {
 	const record = getClass(id);
 	if (!record) throw new Error(`Class not found: ${id}`);
 	record.files = files;
+	if (removed.length) record.removedFiles = [...(record.removedFiles ?? []), ...removed];
 	writeClass(record);
 	return record;
 }

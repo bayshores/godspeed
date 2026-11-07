@@ -694,6 +694,36 @@ describe("a linked folder over time (a synced Drive folder)", () => {
 		assert.equal(imports.length, importsBefore, "nothing is read again");
 		assert.deepEqual(getNames(id).sort(), ["Graphs", "Trees"]);
 		assert.deepEqual(events, [], "a moved file is not new");
+		assert.equal(stores.classStore.getClass(id)!.removedFiles, undefined, "nor removed");
+	});
+
+	it("files gone from the folder or removed by hand are listed, the gone ones in one notice; unlinking lists nothing", async (t) => {
+		const id = await makeClass("CSE 154");
+		const dir = folder(t);
+		for (const name of ["a.md", "b.md", "c.md"]) fs.writeFileSync(path.join(dir, name), name);
+		await folderRoute.PUT(json("/x", "PUT", { path: dir }), ctx({ id }));
+		await classIdle(id);
+		const removed: string[][] = [];
+		t.after(subscribe((e) => {
+			if (e.type === "files-removed") removed.push(e.files.map((f) => f.name));
+		}));
+		const summary = () => stores.classStore.listClasses().find((c) => c.id === id)!;
+		assert.equal(summary().lastFolderFileAt, stores.classStore.getClass(id)!.files[0]!.addedAt, "linking counts as the folder's newest files");
+
+		fs.rmSync(path.join(dir, "a.md"));
+		fs.rmSync(path.join(dir, "b.md"));
+		await scanSettled(id);
+		assert.deepEqual(removed, [["a.md", "b.md"]], "one notice");
+		const up = await (await upload(id, "study", [["notes.md", "Queues"]])).json();
+		await classIdle(id);
+		await fileRoute.DELETE(json("/x", "DELETE"), ctx({ id, fileId: up.results[0].file.id as string }));
+		assert.deepEqual(stores.classStore.getClass(id)!.removedFiles?.map((r) => r.name), ["a.md", "b.md", "notes.md"]);
+		assert.equal(removed.length, 1, "a file removed by hand has no notice");
+
+		await folderRoute.DELETE(json("/x", "DELETE"), ctx({ id }));
+		assert.deepEqual(stores.classStore.getClass(id)!.removedFiles?.map((r) => r.name), ["a.md", "b.md", "notes.md"], "c.md left with the folder");
+		assert.equal(removed.length, 1);
+		assert.equal(summary().lastFolderFileAt, undefined);
 	});
 
 	it("the read sorts linked logistics into course info; kinds picked by hand are never sorted again", async (t) => {

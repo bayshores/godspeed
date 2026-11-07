@@ -23,7 +23,7 @@ graph/sessions.jsonl       Extraction checkpoints, NOT the session index
 graph/coverage.jsonl       Extraction fingerprints, NOT learner assessment
 graph/topics.jsonl        Topic groupings of propositions; each line a full snapshot, the last line wins
 jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
-classes/<class-id>/class.json   A class (course): name, description, archived, linkedFolder, files, deadlines, signature, icon, note, rules
+classes/<class-id>/class.json   A class (course): name, description, archived, linkedFolder, files, removedFiles, deadlines, signature, icon, note, rules
 classes/<class-id>/files/       The class's copied files (and recording transcripts)
 classes/<class-id>/graph/       That class's OWN graph: the same files as graph/ above
 ```
@@ -38,8 +38,10 @@ A class record may list `deadlines`: `{id, kind, name, date: "YYYY-MM-DD", time?
 fileIds, done, doneAt?}`. `kind` is `exam`, `homework`, `quiz` or `project`; `time`
 is a 24-hour `"HH:MM"` on the learner's own clock (absent means due at the end of
 that day); `fileIds` are the class files it covers; `doneAt` is the ISO time it was
-ticked done. Class records are stamped `"version": 5` (v3: deadlines replaced
-exams; v4: `signature` and `note`; v5: `rules`). A version-2 record lists `exams`
+ticked done. A class record may list `removedFiles`: `{id, name, at}` for files
+that left it in the last 14 days (gone from the linked folder, or removed by hand).
+Class records are stamped `"version": 6` (v3: deadlines replaced exams; v4:
+`signature` and `note`; v5: `rules`; v6: `removedFiles`). A version-2 record lists `exams`
 instead (`{id, name, date, fileIds}`), which read as deadlines of kind `exam`, not
 done; an unstamped or version-1 record has neither.
 

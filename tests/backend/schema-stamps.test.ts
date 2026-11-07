@@ -67,13 +67,13 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
-// ── classes: version 5 since class rules (v4 signature + note, v3 deadlines, v2 exams)
+// ── classes: version 6 since removed files (v5 rules, v4 signature + note, v3 deadlines, v2 exams)
 
-test("classes: writes stamp version 5; older records still read; a newer one is refused", () => {
+test("classes: writes stamp version 6; older records still read; a newer one is refused", () => {
 	const r = classStore.createClass({ name: "stamp class" });
-	assert.equal(r.version, 5);
+	assert.equal(r.version, 6);
 	const file = path.join(TMP_DATA, "classes", r.id, "class.json");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 5);
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 6);
 	const raw = JSON.parse(fs.readFileSync(file, "utf8"));
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }), "utf-8");
 	assert.equal(classStore.getClass(r.id)?.version, 1, "v1 reads as-is (no deadlines)");
@@ -85,9 +85,11 @@ test("classes: writes stamp version 5; older records still read; a newer one is 
 	assert.equal(classStore.getClass(r.id)?.version, 3, "v3 reads (no signature, note or rules)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 4 }), "utf-8");
 	assert.equal(classStore.getClass(r.id)?.version, 4, "v4 reads (no rules)");
-	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 6 }), "utf-8");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 5 }), "utf-8");
+	assert.equal(classStore.getClass(r.id)?.version, 5, "v5 reads (no removed files)");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 7 }), "utf-8");
 	assert.equal(classStore.getClass(r.id), null, "a newer build's record is refused");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 6, "and left untouched");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 7, "and left untouched");
 });
 
 // ── the graph family: the lazy format.json sidecar ──────────────────────────

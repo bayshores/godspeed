@@ -96,6 +96,15 @@ describe("ClassStore", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.files, [file]);
 	});
 
+	it("saveFiles adds removed files, and ones older than 14 days drop out on read", () => {
+		const cls = classStore.createClass({ name: "PHYS 2C" });
+		const old = { id: "f_000000000002", name: "old.pdf", at: new Date(Date.now() - 15 * 86_400_000).toISOString() };
+		const fresh = { id: "f_000000000003", name: "fresh.pdf", at: new Date().toISOString() };
+		classStore.saveFiles(cls.id, [], [old]);
+		classStore.saveFiles(cls.id, [], [fresh]);
+		assert.deepEqual(classStore.getClass(cls.id)?.removedFiles, [fresh]);
+	});
+
 	it("refuses a record stamped newer than this build", () => {
 		const cls = classStore.createClass({ name: "Future" });
 		const file = path.join(TMP_DATA, "classes", cls.id, "class.json");
@@ -127,9 +136,9 @@ describe("deadlines", () => {
 	});
 	const classFile = (id: string) => path.join(TMP_DATA, "classes", id, "class.json");
 
-	it("adds, updates, sorts and removes deadlines; stamps version 5", () => {
+	it("adds, updates, sorts and removes deadlines; stamps version 6", () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
-		assert.equal(cls.version, 5);
+		assert.equal(cls.version, 6);
 		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
 		const finalExam = classStore.addDeadline(cls.id, {
 			kind: "exam",
@@ -154,7 +163,7 @@ describe("deadlines", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.name), ["Final", "Midterm 1"]);
 
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 5);
+		assert.equal(onDisk.version, 6);
 		assert.equal(onDisk.deadlines.length, 2);
 		assert.equal(onDisk.exams, undefined);
 
@@ -243,7 +252,7 @@ describe("deadlines", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
 	});
 
-	it("reads a version-2 record's exams as deadlines, and writes them back as v5", () => {
+	it("reads a version-2 record's exams as deadlines, and writes them back as v6", () => {
 		const cls = classStore.createClass({ name: "Upgraded" });
 		classStore.saveFiles(cls.id, [studyFile("f_ffffffffffff")]);
 		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
@@ -267,7 +276,7 @@ describe("deadlines", () => {
 		]);
 		classStore.updateDeadline(cls.id, "exm_111111111111", { done: true });
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 5);
+		assert.equal(onDisk.version, 6);
 		assert.equal(onDisk.exams, undefined, "the old field is gone");
 		assert.deepEqual(
 			onDisk.deadlines.map((d: { id: string; kind: string; done: boolean }) => [d.id, d.kind, d.done]),

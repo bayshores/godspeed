@@ -28,6 +28,8 @@ import { FileGroupSection, FinderDropTargets } from "./files-sections";
 import { confirmCopy, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
 import { newSince } from "./folder-status-model";
 import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
+import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
+import { recentChanges, removedLately } from "./recent-changes-model";
 import { PickClass } from "@/frontend/components/pick-class";
 
 /**
@@ -110,6 +112,8 @@ function FilesPageBody() {
 	const shown = useMemo(() => filterGroups(groups, query), [groups, query]);
 	const searching = query.trim() !== "";
 	const arrived = useMemo(() => (record && minute !== null ? newSince(record.files, minute) : null), [record, minute]);
+	const removed = useMemo(() => (record && minute !== null ? removedLately(record.removedFiles ?? [], minute) : null), [record, minute]);
+	const changes = useMemo(() => (record && minute !== null ? recentChanges(record.files, record.removedFiles ?? [], minute) : []), [record, minute]);
 
 	/** Run one write: busy while in flight, its error shown. */
 	const run = useCallback(async (write: () => Promise<WriteResult>) => {
@@ -254,6 +258,7 @@ function FilesPageBody() {
 								<p data-testid="files-summary" className="text-base leading-6 text-ink-2">
 									{filesSummary(record.files)}
 									{arrived && ` · ${arrived}`}
+									{removed && ` · ${removed}`}
 								</p>
 							</div>
 							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}
@@ -271,6 +276,7 @@ function FilesPageBody() {
 								<span className="text-[12.5px] text-ink-3">PDF · Markdown · text · VTT/SRT · audio · video</span>
 							</div>
 						)}
+						{!searching && changes.length > 0 && <RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />}
 						{searching && shown.length === 0 && (
 							<p data-testid="files-no-match" className="py-6 text-sm text-ink-2">
 								No file names have “{query.trim()}”.

@@ -32,6 +32,7 @@ import type {
 	ClassRecord,
 	ClassSignature,
 	ClassSummary,
+	RemovedFile,
 	TopicSnapshot,
 } from "./contracts.ts";
 import type { UserSettings } from "./settings.ts";
@@ -188,9 +189,10 @@ export interface ClassStore {
 	listClasses(): ClassSummary[];
 	/** Merge a patch; bumps updatedAt. Throws on unknown id. */
 	updateClass(id: string, patch: ClassPatch): ClassRecord;
-	/** Replace the whole file list (the file pipeline's write). Quiet: no
-	 *  updatedAt bump, no event. */
-	saveFiles(id: string, files: ClassFile[]): ClassRecord;
+	/** Replace the whole file list (the file pipeline's write), adding
+	 *  `removed` to the record's removed files. Quiet: no updatedAt bump,
+	 *  no event. */
+	saveFiles(id: string, files: ClassFile[], removed?: readonly RemovedFile[]): ClassRecord;
 	/** Add a deadline (validated: a known kind, non-empty name, a
 	 *  YYYY-MM-DD date, an optional HH:MM time, every file id one of the
 	 *  class's files). Starts not done. Bumps updatedAt. Throws

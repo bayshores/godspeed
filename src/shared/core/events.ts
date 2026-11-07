@@ -86,6 +86,8 @@ export interface ServerEvents {
 	"rules-changed": { saved?: { text: string; where: { area: string } | { classId: string }; label: string; agent: string } };
 	/** A class's linked folder brought new files (the window shows a notice). */
 	"files-added": { classId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
+	/** Files left a class's linked folder (the window shows a notice). */
+	"files-removed": { classId: string; files: { id: string; name: string }[] };
 	/** A deadline's cheat sheet or its agent request changed. */
 	"cheat-sheet-changed": { deadlineId: string };
 }
@@ -109,6 +111,7 @@ export const SERVER_EVENT_TYPES = [
 	"rules-changed",
 	"cheat-sheet-changed",
 	"files-added",
+	"files-removed",
 ] as const satisfies readonly ServerEventType[];
 
 /** One notification: the type discriminates the payload (a real union,

@@ -106,6 +106,16 @@ export interface ClassFile {
 	transcriptId?: string;
 }
 
+/** A file that left the class (gone from its linked folder, or removed by
+ *  hand), kept RECENT_CHANGE_DAYS for the Files page's Recent changes. */
+export interface RemovedFile {
+	/** The id it had. */
+	id: string;
+	name: string;
+	/** ISO time it left. */
+	at: string;
+}
+
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
 
 const DEADLINE_KINDS: readonly DeadlineKind[] = ["exam", "homework", "quiz", "project"];
@@ -215,6 +225,9 @@ export interface ClassRecord {
 	/** Absolute path of a folder on the learner's computer (optional). */
 	linkedFolder?: string;
 	files: ClassFile[];
+	/** Files that left in the last RECENT_CHANGE_DAYS, oldest first (absent
+	 *  when none). */
+	removedFiles?: RemovedFile[];
 	/** The class's deadlines, soonest due first (absent on records that
 	 *  never had one — absence reads as none). */
 	deadlines?: ClassDeadline[];
@@ -234,8 +247,9 @@ export interface ClassRecord {
  *  v3: exams become deadlines (`deadlines`; a v2 record's
  *  `exams` read as deadlines of kind "exam").
  *  v4: adds `signature` and `note`.
- *  v5: adds `rules`. */
-export const CURRENT_CLASS_VERSION = 5;
+ *  v5: adds `rules`.
+ *  v6: adds `removedFiles`. */
+export const CURRENT_CLASS_VERSION = 6;
 
 /** Why a deadline write was refused (the store's validation; the server
  *  maps it to a 400 / 404 with this message). */
@@ -291,6 +305,8 @@ export interface ClassSummary {
 	fileCount: number;
 	/** When the newest file a folder scan found arrived. */
 	lastFoundAt?: string;
+	/** When the newest file from the linked folder arrived (or was linked). */
+	lastFolderFileAt?: string;
 	signature?: ClassSignature;
 	icon?: ClassIcon;
 	note?: ClassNote;
