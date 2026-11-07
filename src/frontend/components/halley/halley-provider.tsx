@@ -432,7 +432,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 					if (!alive.current) return;
 					await waitUntilFollowReady();
 					const names = (id: string) => live.current.classes.classes.find((c) => c.id === id)?.name;
-					// A Recent click jumps the line and always goes to its page.
+					// A Recent click (or a lesson the learner asked for) jumps the line and
+					// always goes to its page.
 					const forcedId = [...forced.current][0];
 					if (forcedId) {
 						forced.current.delete(forcedId);
@@ -481,6 +482,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 			if (el) ghosts.current.set(action.id, snapshot(el));
 		}
 		queue.current.push(action);
+		if (action.open) forced.current.add(action.id);
 		void run();
 	});
 

@@ -26,6 +26,15 @@ export function unlinkedDeadlines(classes: readonly ClassLike[], today: string, 
 	);
 }
 
+/** How long Talk has to sit without a new message before godspeed asks in it. */
+const TALK_QUIET_MS = 10 * 60_000;
+
+/** Talk has had no new message for TALK_QUIET_MS (or has none yet), so a
+ *  request from godspeed won't cut into the learner's conversation. */
+export function talkQuiet(talk: { updatedAt: string; messages: readonly unknown[] } | null | undefined, now: number): boolean {
+	return !talk || talk.messages.length === 0 || now - Date.parse(talk.updatedAt) >= TALK_QUIET_MS;
+}
+
 /** The deadlines godspeed already asked about in this chat. */
 export function askedDeadlineIds(messages: readonly LhMessage[]): Set<string> {
 	const ids = new Set<string>();

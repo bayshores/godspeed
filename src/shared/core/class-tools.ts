@@ -5,6 +5,7 @@
  * schemas in its own library with this text.
  */
 import { CLASS_ICONS, SIGNATURE_MAX, type ClassDeadline, type ClassIcon } from "./contracts.ts";
+import type { LhMessage } from "./native-messages.ts";
 
 /** One change an action made, as the window shows it (a recorded agent action). */
 export interface ClassChange {
@@ -51,6 +52,7 @@ export interface ClassActions {
 	}): ToolOutcome;
 	remove_class_deadline(args: { class_id: string; deadline_id: string }): ToolOutcome;
 	link_class_folder(args: { class_id: string; path: string }): ToolOutcome;
+	start_lesson(args: { topic: string; class_id?: string }): Promise<ToolOutcome>;
 }
 
 export type ClassToolName = keyof ClassActions;
@@ -78,6 +80,8 @@ export const CLASS_TOOL_TEXT: Record<ClassToolName, string> = {
 	remove_class_deadline: "Remove one deadline from a class (its files and facts are not touched).",
 	link_class_folder:
 		"Link a folder on this computer to a class. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and course info itself while reading them, and never changes the folder. Use set_class_file_kind only to correct a kind.",
+	start_lesson:
+		"Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. You teach it through wait_for_work; the learner follows along in the godspeed window.",
 };
 
 /** The argument descriptions both schemas share. */
@@ -106,7 +110,23 @@ export const CLASS_ARG_TEXT = {
 	leftOutFiles: "Ids of class files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing.",
 	source: "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
 	newTime: '24-hour "HH:MM", or null to remove the time.',
+	topic: "What the learner wants to study, in their words.",
+	lessonClass: 'The class id from list_classes, or "none" for lessons without a class (the default).',
 } as const;
 
 export const DEADLINE_KINDS = ["exam", "homework", "quiz", "project"] as const satisfies readonly DeadlineKind[];
 export const FILE_KINDS = ["study", "info"] as const satisfies readonly FileKind[];
+
+/** The lesson the last turn started with start_lesson (in Talk), so the
+ *  agent is sent on to teach it. Null when the turn started none. */
+export function lessonStartedLastTurn(messages: readonly LhMessage[]): string | null {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const m = messages[i]!;
+		if (m.role !== "assistant" && m.role !== "toolResult") return null;
+		if (m.role !== "toolResult" || m.toolName !== "start_lesson" || m.isError) continue;
+		const page = (m.details as { changes?: ClassChange[] } | null)?.changes?.[0]?.page;
+		const id = page?.startsWith("/chat/") ? page.slice("/chat/".length) : "";
+		if (id) return id;
+	}
+	return null;
+}

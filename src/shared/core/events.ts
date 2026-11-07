@@ -38,6 +38,9 @@ export interface AgentAction {
 	page: string;
 	/** The target was removed (it fades out after the visit). */
 	removed?: true;
+	/** The learner asked for it (a lesson started from Talk): the window
+	 *  goes there even with Follow off. */
+	open?: true;
 }
 
 /** The `agent` of the app's own entries in that list (a linked folder's

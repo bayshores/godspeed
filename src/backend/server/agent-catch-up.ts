@@ -2,12 +2,13 @@
  * What godspeed hands an agent by itself once it is waiting, so the learner
  * never has to ask: lessons whose last stretch never reached the graph
  * (queued runs don't survive a restart), and deadlines with nothing linked
- * (a request from godspeed in Talk). Never under tests: scripted chats are
- * fixtures.
+ * (a request from godspeed in Talk, sent only once Talk has been quiet for
+ * a while, so it never cuts into a conversation). Never under tests:
+ * scripted chats are fixtures.
  */
 import { extractsFacts, TALK_CHAT_ID } from "../../shared/core/contracts.ts";
 import { coverageOf } from "../../shared/core/coverage.ts";
-import { askedDeadlineIds, coverageRequest, unlinkedDeadlines } from "../../shared/core/deadline-requests.ts";
+import { askedDeadlineIds, coverageRequest, talkQuiet, unlinkedDeadlines } from "../../shared/core/deadline-requests.ts";
 import { localDay } from "../../shared/core/today-note.ts";
 import { agentTeaching } from "../agent/agent-bridge.ts";
 import { handleChatInput } from "./chat-handler.ts";
@@ -35,10 +36,11 @@ function catchUpLessons(now: number): void {
 	}
 }
 
-/** Ask in Talk about deadlines with nothing linked (each once), unless Talk is busy. */
+/** Ask in Talk about deadlines with nothing linked (each once), once Talk is quiet. */
 function askAboutDeadlines(now: number): void {
 	if (G.__lhAskingDeadlines || isTurnRunning(TALK_CHAT_ID)) return;
 	const talk = stores.chatStore.getChat(TALK_CHAT_ID);
+	if (!talkQuiet(talk, now)) return;
 	const deadlines = unlinkedDeadlines(stores.classStore.listClassRecords(), localDay(now), askedDeadlineIds(talk?.messages ?? []));
 	if (deadlines.length === 0) return;
 	if (!talk) stores.chatStore.createChat("Talk", "talk");

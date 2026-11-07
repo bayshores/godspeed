@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { askedDeadlineIds, coverageRequest, unlinkedDeadlines } from "../../src/shared/core/deadline-requests.ts";
+import { askedDeadlineIds, coverageRequest, talkQuiet, unlinkedDeadlines } from "../../src/shared/core/deadline-requests.ts";
 import { toLlmMessages } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/view.ts";
 
@@ -57,5 +57,19 @@ describe("deadlines godspeed asks about", () => {
 		const [view] = projectView([request]);
 		assert.deepEqual(view!.parts, [{ type: "data-app-request", id: `ar_${request.id}`, data: { deadlines: [{ id: "d1", name: "Exam d1", className: "A" }] } }]);
 		assert.deepEqual([...askedDeadlineIds([request])], ["d1"]);
+	});
+});
+
+describe("talkQuiet", () => {
+	const now = Date.parse("2026-11-06T16:40:00.000Z");
+	const talk = (minutesAgo: number, messages: unknown[] = [{}]) => ({ updatedAt: new Date(now - minutesAgo * 60_000).toISOString(), messages });
+	it("holds godspeed's request while the learner is talking", () => {
+		assert.equal(talkQuiet(talk(2), now), false);
+		assert.equal(talkQuiet(talk(9.9), now), false);
+	});
+	it("sends it once Talk has had no new message for 10 minutes, or has none", () => {
+		assert.equal(talkQuiet(talk(10), now), true);
+		assert.equal(talkQuiet(talk(1, []), now), true);
+		assert.equal(talkQuiet(undefined, now), true);
 	});
 });

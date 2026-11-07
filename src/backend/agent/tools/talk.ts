@@ -88,6 +88,10 @@ const SCHEMAS: Record<ClassToolName, TSchema> = {
 	}),
 	remove_class_deadline: Type.Object({ class_id: classId, deadline_id: Type.String() }),
 	link_class_folder: Type.Object({ class_id: classId, path: Type.String({ description: CLASS_ARG_TEXT.folderPath }) }),
+	start_lesson: Type.Object({
+		topic: Type.String({ minLength: 1, description: CLASS_ARG_TEXT.topic }),
+		class_id: Type.Optional(Type.String({ description: CLASS_ARG_TEXT.lessonClass })),
+	}),
 };
 
 /** An action's outcome as a tool result: the value for the model, the

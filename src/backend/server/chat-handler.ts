@@ -386,7 +386,7 @@ export async function handleChatInput(
 			? buildAgent({ ...agentOpts, teaching })
 			: record.kind === "talk"
 				? // TALK: the class actions, named for the agent that runs them; no lesson rules.
-					createTalkAgent(classActions(agentName()), { ...agentOpts, learnerRules: undefined })
+					createTalkAgent(classActions(agentName(), (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: true }), { ...agentOpts, learnerRules: undefined })
 			: record.kind === "practice"
 				? createPracticeAgent(
 						{

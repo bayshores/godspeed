@@ -46,7 +46,7 @@ import { getGraph } from "../../shared/core/graph.ts";
 import { pageBlocks, splitPages } from "../../shared/core/work-pages.ts";
 import { sessionMarkdown } from "../../shared/core/session-markdown.ts";
 import { CLASS_ICONS, parseClassScope, safeName, SIGNATURE_MAX, type ClassIcon, type ClassScope } from "../../shared/core/contracts.ts";
-import { CLASS_ARG_TEXT, CLASS_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, type ToolOutcome } from "../../shared/core/class-tools.ts";
+import { CLASS_ARG_TEXT, CLASS_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lessonStartedLastTurn, type ToolOutcome } from "../../shared/core/class-tools.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { handleChatInput } from "./chat-handler.ts";
 import { catchUpForAgent } from "./agent-catch-up.ts";
@@ -55,7 +55,6 @@ import { graphStoreFor, stores } from "./stores.ts";
 import { addCopiedFile, AGENT_FILE_READING_REFUSAL, replaceCopiedFile, unlinkFolder } from "./classes.ts";
 import { classActions, folderName, READING_NOTE } from "./class-actions.ts";
 import { searchFacts } from "./search-index.ts";
-import { createLesson } from "./lessons.ts";
 import { noteAgentAction } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
 import { currentAgentBriefing } from "./agent-memory.ts";
@@ -131,7 +130,7 @@ const ICON_ARG = z.enum(Object.keys(CLASS_ICONS) as [ClassIcon, ...ClassIcon[]])
 const CLASS_ID_ARG = z
 	.string()
 	.optional()
-	.describe('The class id from list_classes, or "none" for lessons without a class (the default).');
+	.describe(CLASS_ARG_TEXT.lessonClass);
 
 // ─── Access control ─────────────────────────────────────────────────────────
 
@@ -353,16 +352,19 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			const claudeCode = inClaudeCode(caller);
-			// A Talk reply goes back to the lesson the agent was staying on, not to Talk alone.
+			// A Talk reply goes on to the lesson it just started, else back to the
+			// lesson the agent was staying on, not to Talk alone.
 			const talk = chat?.kind === "talk";
-			const lessonId = talk ? stayingOn(answered.agent) : chat?.id;
+			const started = talk ? lessonStartedLastTurn(chat.messages) : null;
+			if (started) stayOn(answered.agent, started);
+			const lessonId = talk ? (started ?? stayingOn(answered.agent)) : chat?.id;
 			const wait = claudeCode ? waiterHint(lessonId) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
 			return result({
 				status: "turn_complete",
 				note: !chat
 					? `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`
 					: talk
-						? `Your reply is in Talk. ${wait}`
+						? `Your reply is in Talk.${started ? " The lesson you started is waiting for you." : ""} ${wait}`
 						: `Your turn is done. The learner is reading and will answer in the godspeed window. ${wait}`,
 			});
 		},
@@ -529,37 +531,6 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 	);
 
 	server.registerTool(
-		"start_lesson",
-		{
-			title: "Start a lesson",
-			description: "Start a new study session in godspeed taught by you (the outside agent): you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. Then call wait_for_work to teach it; the learner follows along in the godspeed window.",
-			inputSchema: z.object({
-				topic: z.string().min(1).describe("What the learner wants to study, in their words."),
-				class_id: CLASS_ID_ARG,
-			}),
-			annotations: ADDS,
-		},
-		async ({ topic, class_id }) => {
-			const arg = classArg(class_id);
-			if ("error" in arg) return failure(arg.error);
-			const scope = arg.scope;
-			if (scope && stores.classStore.getClass(scope)?.archived) {
-				return failure("This class is archived. Ask the learner to unarchive it in Edit class first.");
-			}
-			const created = createLesson({ title: topic, classId: scope });
-			if (!created.ok) return failure(created.error);
-			const chat = created.chat;
-			noteAgentAction(caller, { label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}` });
-			const started = await handleChatInput(chat.id, { type: "text", text: topic });
-			if (!started.ok) {
-				const body = await started.text();
-				return failure(`The lesson was created but could not start: ${body}`);
-			}
-			return result({ status: "started", lessonId: chat.id, title: chat.title, note: `Open the lesson in the godspeed window. ${inClaudeCode(caller) ? waiterHint(chat.id) : `Call wait_for_work with lesson_id "${chat.id}" to begin teaching.`}` });
-		},
-	);
-
-	server.registerTool(
 		"remember",
 		{
 			title: "Remember a note",
@@ -629,7 +600,7 @@ function reply(outcome: ToolOutcome) {
 }
 
 function registerClassTools(server: McpServer, caller: string | undefined): void {
-	const actions = classActions(caller);
+	const actions = classActions(caller, (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: false });
 
 	server.registerTool("list_classes", { title: "List classes", description: CLASS_TOOL_TEXT.list_classes, inputSchema: z.object({}), annotations: READ_ONLY }, async () => reply(actions.list_classes()));
 	server.registerTool("read_class", { title: "Read a class", description: CLASS_TOOL_TEXT.read_class, inputSchema: z.object({ class_id: z.string(), files: z.boolean().optional().describe(CLASS_ARG_TEXT.files) }), annotations: READ_ONLY }, async (args) => reply(await actions.read_class(args)));
@@ -690,6 +661,12 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 		}), annotations: SETS }, async (args) => reply(await actions.update_class_deadline(args)));
 	server.registerTool("remove_class_deadline", { title: "Remove a class deadline", description: CLASS_TOOL_TEXT.remove_class_deadline, inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_class_deadline(args)));
 	server.registerTool("link_class_folder", { title: "Link a folder to a class", description: CLASS_TOOL_TEXT.link_class_folder, inputSchema: z.object({ class_id: z.string(), path: z.string().describe(CLASS_ARG_TEXT.folderPath) }), annotations: SETS }, async (args) => reply(await actions.link_class_folder(args)));
+	server.registerTool("start_lesson", { title: "Start a lesson", description: CLASS_TOOL_TEXT.start_lesson, inputSchema: z.object({ topic: z.string().min(1).describe(CLASS_ARG_TEXT.topic), class_id: CLASS_ID_ARG }), annotations: ADDS }, async (args) => {
+		const outcome = await actions.start_lesson(args);
+		if (!outcome.ok) return failure(outcome.error);
+		const { lessonId } = outcome.value as { lessonId: string };
+		return result({ ...(outcome.value as object), note: `Open the lesson in the godspeed window. ${inClaudeCode(caller) ? waiterHint(lessonId) : `Call wait_for_work with lesson_id "${lessonId}" to begin teaching.`}` });
+	});
 
 	server.registerTool(
 		"unlink_class_folder",

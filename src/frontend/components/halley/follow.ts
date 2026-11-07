@@ -42,9 +42,10 @@ export function followReady(s: FollowState, busyNow: boolean, now: number): bool
 	return s.lastBusyAt === null || now - s.lastBusyAt >= RESUME_MS;
 }
 
-/** Pages that show one class (the window's class must match first). */
+/** Pages that show one class (the window's class must match first). A
+ *  lesson belongs to its class too, so the sidebar lists it. */
 function classScopedPage(page: string): boolean {
-	return page === "/class" || page.startsWith("/class/") || page === "/graph";
+	return page === "/class" || page.startsWith("/class/") || page === "/graph" || page.startsWith("/chat/");
 }
 
 /** What Follow must do to show an action's page: switch class, go to the

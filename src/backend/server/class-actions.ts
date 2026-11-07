@@ -3,8 +3,10 @@
  * Talk chat: each checks its arguments, changes the class through
  * classes.ts, records what it changed for the teacher's panel, and returns
  * what the agent sees. `caller` names the agent in the panel's rows.
+ * `send` gives a new lesson its first message (the chat handler's input,
+ * passed in so this file doesn't import it back).
  */
-import { cleanSignature, type ClassDeadline, type ClassFileStatus } from "../../shared/core/contracts.ts";
+import { cleanSignature, parseClassScope, type ClassDeadline, type ClassFileStatus } from "../../shared/core/contracts.ts";
 import type { ClassActions, ClassChange, ToolOutcome } from "../../shared/core/class-tools.ts";
 import { localDay } from "../../shared/core/today-note.ts";
 import { stores } from "./stores.ts";
@@ -13,6 +15,7 @@ import { classFilePath, classTopics } from "./class-card.ts";
 import { fileExtents, readPassage, searchClassFiles } from "./search-index.ts";
 import { noteAgentAction, type AgentActionInput } from "./agent-actions.ts";
 import { shortcutPathProblem } from "./agent-folder.ts";
+import { createLesson } from "./lessons.ts";
 import { SIGNATURE_MAX } from "../../shared/core/contracts.ts";
 
 /** Study files are read by the agent itself, as background work items. */
@@ -94,7 +97,12 @@ export function folderName(path: string | undefined): string {
 const noClass = (classId: string): ToolOutcome => ({ ok: false, error: `No class "${classId}". Use list_classes.` });
 const badSignature: ToolOutcome = { ok: false, error: `A signature is one line of at most ${SIGNATURE_MAX} characters.` };
 
-export function classActions(caller: string | undefined): ClassActions {
+/** Sends a lesson's first message. */
+type SendFirstMessage = (chatId: string, text: string) => Promise<Response>;
+
+/** `openStarted`: the learner asked for the lesson in Talk, so the window
+ *  opens it even with Follow off. */
+export function classActions(caller: string | undefined, send: SendFirstMessage, opts: { openStarted: boolean }): ClassActions {
 	// Each change is recorded for the panel and returned for the chat.
 	const done = (value: unknown, changes: AgentActionInput[] = []): ToolOutcome => {
 		for (const change of changes) noteAgentAction(caller, change);
@@ -256,6 +264,24 @@ export function classActions(caller: string | undefined): ClassActions {
 			if (!outcome.ok) return outcome;
 			return done({ class: classView(class_id), note: `Linked. ${READING_NOTE}` }, [
 				{ label: `Linking ${folderName(path)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" },
+			]);
+		},
+
+		async start_lesson({ topic, class_id }) {
+			const scope = parseClassScope(class_id);
+			if (scope === undefined) return { ok: false, error: `"${class_id}" is not a class id. Use list_classes.` };
+			if (scope !== null) {
+				const cls = stores.classStore.getClass(scope);
+				if (!cls) return noClass(scope);
+				if (cls.archived) return { ok: false, error: "This class is archived. Ask the learner to unarchive it in Edit class first." };
+			}
+			const created = createLesson({ title: topic, classId: scope });
+			if (!created.ok) return { ok: false, error: created.error };
+			const chat = created.chat;
+			const started = await send(chat.id, topic);
+			if (!started.ok) return { ok: false, error: `The lesson was created but could not start: ${await started.text()}` };
+			return done({ status: "started", lessonId: chat.id, title: chat.title }, [
+				{ label: `Starting ${chat.title}`, classId: scope, target: { kind: "lesson", id: chat.id }, page: `/chat/${chat.id}`, ...(opts.openStarted ? { open: true as const } : {}) },
 			]);
 		},
 	};

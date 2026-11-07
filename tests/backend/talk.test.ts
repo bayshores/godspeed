@@ -35,7 +35,15 @@ const { talkTools } = await import("../../src/backend/agent/tools/talk.ts");
 const { actionFor, appRequestText, speakerOf, startsTurn, talkRows } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { composeInstructions } = await import("../../src/backend/agent/teacher-agent.ts");
 const { buildCompactionPrompt } = await import("../../src/shared/core/compaction.ts");
+const { lessonStartedLastTurn } = await import("../../src/shared/core/class-tools.ts");
 type ClassActions = import("../../src/shared/core/class-tools.ts").ClassActions;
+type LhMessage = import("../../src/shared/core/native-messages.ts").LhMessage;
+
+const sent: { chatId: string; text: string }[] = [];
+async function sendOk(chatId: string, text: string): Promise<Response> {
+	sent.push({ chatId, text });
+	return new Response("ok");
+}
 type AgentAction = import("../../src/shared/core/events.ts").AgentAction;
 
 describe("the Talk chat", () => {
@@ -127,13 +135,13 @@ describe("the Talk rows", () => {
 
 describe("the Talk tools", () => {
 	it("offer the class tools, none that deletes a class or a file", () => {
-		const names = Object.keys(talkTools(classActions("Claude Code")));
+		const names = Object.keys(talkTools(classActions("Claude Code", sendOk, { openStarted: true })));
 		assert.ok(names.includes("create_class") && names.includes("add_class_deadline"));
 		assert.ok(names.every((n) => !/delete|unlink|remove_class(_file)?$/.test(n)), names.join(", "));
 	});
 	it("a change is recorded for the panel and returned as the result's changes", async () => {
 		clearAgentActions();
-		const tools = talkTools(classActions("Claude Code"));
+		const tools = talkTools(classActions("Claude Code", sendOk, { openStarted: true }));
 		const result = await tools.create_class!.execute("t1", { name: "CSE 21", icon: "sigma" });
 		assert.deepEqual(result.details, { changes: [{ label: "Creating CSE 21", page: "/class" }] });
 		const [recorded] = recentAgentActions();
@@ -143,8 +151,8 @@ describe("the Talk tools", () => {
 		assert.deepEqual(listed.details, { changes: [] });
 		assert.match((listed.content[0] as { text: string }).text, /CSE 21/);
 	});
-	it("every class action names a missing class the same way, so the agent knows to list classes", () => {
-		const actions = classActions("Claude Code");
+	it("every class action names a missing class the same way, so the agent knows to list classes", async () => {
+		const actions = classActions("Claude Code", sendOk, { openStarted: true });
 		const missing = { class_id: "cls_missing" };
 		const outcomes = [
 			actions.read_class(missing),
@@ -156,7 +164,40 @@ describe("the Talk tools", () => {
 			actions.remove_class_deadline({ ...missing, deadline_id: "ddl_x" }),
 			actions.link_class_folder({ ...missing, path: "/tmp" }),
 		];
+		outcomes.push(await actions.start_lesson({ topic: "Sets", ...missing }));
 		for (const outcome of outcomes) assert.deepEqual(outcome, { ok: false, error: 'No class "cls_missing". Use list_classes.' });
+	});
+	it("start_lesson starts a lesson on the learner's words and opens it in the window", async () => {
+		clearAgentActions();
+		sent.length = 0;
+		const tools = talkTools(classActions("Claude Code", sendOk, { openStarted: true }));
+		const result = await tools.start_lesson!.execute("t4", { topic: "the CSE 29 problem set" });
+		const [change] = (result.details as { changes: { page: string }[] }).changes;
+		const lessonId = change!.page.slice("/chat/".length);
+		assert.equal(chatStore.getChat(lessonId)?.kind, "study");
+		assert.deepEqual(sent, [{ chatId: lessonId, text: "the CSE 29 problem set" }]);
+		assert.equal(recentAgentActions()[0]?.open, true);
+	});
+	it("start_lesson from the outside agent leaves opening the lesson to Follow", async () => {
+		clearAgentActions();
+		const outcome = await classActions("Codex", sendOk, { openStarted: false }).start_lesson({ topic: "Pointers" });
+		assert.equal(outcome.ok, true);
+		assert.equal(recentAgentActions()[0]?.open, undefined);
+	});
+	it("a failed first message is the agent's error", async () => {
+		const failing = async () => new Response("busy", { status: 409 });
+		const outcome = await classActions("Codex", failing, { openStarted: false }).start_lesson({ topic: "Pointers" });
+		assert.deepEqual(outcome, { ok: false, error: "The lesson was created but could not start: busy" });
+	});
+	it("finds the lesson the last turn started, so the agent goes on to teach it", () => {
+		const user = { id: "u", role: "user", content: "lets do pointers", timestamp: 1 } as LhMessage;
+		const call = { id: "a", role: "assistant", content: [], timestamp: 2 } as unknown as LhMessage;
+		const started = (isError: boolean) =>
+			({ id: "r", role: "toolResult", toolCallId: "c1", toolName: "start_lesson", content: [], isError, details: { changes: [{ label: "Starting Pointers", page: "/chat/chat_1" }] }, timestamp: 3 }) as unknown as LhMessage;
+		assert.equal(lessonStartedLastTurn([user, call, started(false), call]), "chat_1");
+		assert.equal(lessonStartedLastTurn([user, call, started(true)]), null);
+		// An earlier turn's lesson isn't this turn's.
+		assert.equal(lessonStartedLastTurn([user, call, started(false), call, user, call]), null);
 	});
 	it("a refusal reaches the model as an error", async () => {
 		const refuse = { read_class: () => ({ ok: false, error: 'No class "nope". Use list_classes.' }) } as unknown as ClassActions;

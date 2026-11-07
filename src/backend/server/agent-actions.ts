@@ -61,6 +61,7 @@ export function recordAgentAction(input: AgentActionInput, now = Date.now()): Ag
 		target: input.target,
 		page: input.page,
 		...(input.removed ? { removed: true as const } : {}),
+		...(input.open ? { open: true as const } : {}),
 	};
 	list.push(action);
 	if (list.length > RECENT_LIMIT) list.splice(0, list.length - RECENT_LIMIT);

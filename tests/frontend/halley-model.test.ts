@@ -150,6 +150,8 @@ describe("follow", () => {
 		assert.deepEqual(followMoves({ page: "/", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: null });
 		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
 		assert.deepEqual(followMoves({ page: "/graph", classId: null }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: null }, go: null });
+		// A lesson opens in its own class, so the sidebar lists it.
+		assert.deepEqual(followMoves({ page: "/chat/c2", classId: "cls_b" }, { path: "/", activeClass: null, lessonDraft: false }), { switchClass: { to: "cls_b" }, go: "/chat/c2" });
 		// Unsent text in the lesson on screen keeps the window there.
 		assert.deepEqual(followMoves({ page: "/class", classId: "cls_b" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: true }), { switchClass: null, go: null });
 		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
