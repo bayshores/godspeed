@@ -1,177 +1,79 @@
 import { memo } from "react";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/shared/core";
-import { kindLabel } from "@/frontend/components/class-deadlines-model";
-import { Countdown, useIsOverdue } from "@/frontend/components/countdown";
-import { comingUpGroups, deadlinesSummary, dueUnderLabel, type OpenDeadline } from "@/frontend/components/deadlines-model";
-import { DoneBox } from "@/frontend/components/done-box";
-import { deadlineFilesText } from "@/frontend/components/graph/derive";
-import { displayName } from "@/frontend/components/overview/overview-model";
+import { Countdown } from "@/frontend/components/countdown";
+import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref, percent } from "@/frontend/components/overview/runway-model";
-import { CARD, CARD_TITLE } from "@/frontend/components/overview/styles";
+import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { readyBlocks } from "./home-page-model";
 
 /**
- * COMING UP (Home): every open deadline
- * from every class, grouped Overdue / Today / Tomorrow / each date / Later.
- * A row: the done box, the name and its kind, what it covers with a ready
- * bar (deadlines with files), the class (when more than one class has
- * deadlines), and the live countdown with the due time under it. Click a row for the deadline's page. With no classes
- * yet it offers New class.
+ * COMING UP (Home): the open deadlines after the one due next, soonest
+ * first. A row: a 10-block ready bar (deadlines with files), the name, the
+ * class (when more than one class has deadlines) and the live countdown.
+ * A row opens its deadline's page.
  */
 export const ComingUp = memo(function ComingUp({
 	deadlines,
 	progress,
 	leaving,
-	nowMs,
 	fixedNow,
-	hasClasses,
-	onDone,
-	onNewClass,
 }: {
 	deadlines: readonly OpenDeadline[];
-	/** Each class's deadline progress by deadline id (covers, ready %). */
+	/** Each class's deadline progress by deadline id (ready %). */
 	progress: ReadonlyMap<string, DeadlineProgress>;
 	leaving: ReadonlySet<string>;
-	/** The window's clock to the minute (groups and the head). */
-	nowMs: number;
 	/** A fixed moment for the countdowns (tests). */
 	fixedNow?: number;
-	hasClasses: boolean;
-	onDone: (d: OpenDeadline) => void;
-	onNewClass: () => void;
 }) {
-	const groups = comingUpGroups(deadlines, nowMs);
 	const manyClasses = new Set(deadlines.map((d) => d.classId)).size > 1;
 	return (
-		<section data-testid="coming-up" className={CARD}>
-			<div className="flex w-full items-end justify-between gap-4">
-				<h2 className={CARD_TITLE}>Coming up</h2>
-				{deadlines.length > 0 && (
-					<span data-testid="coming-up-summary" className="text-[13.5px] text-ink-2">
-						{deadlinesSummary(deadlines, nowMs)}
-					</span>
-				)}
-			</div>
-			{groups.length === 0 ? (
-				<>
-					<p data-testid="coming-up-empty" className="text-[13.5px] leading-5 text-ink-2">
-						{hasClasses
-							? "No deadlines yet. Your agent can add them from the syllabus."
-							: "No classes yet. Add one, then add its deadlines in Edit class."}
-					</p>
-					{!hasClasses && (
-						<button
-							type="button"
-							data-testid="coming-up-new-class"
-							onClick={onNewClass}
-							className="lh-press flex items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2"
-						>
-							<PlusIcon className="size-3.5 shrink-0" aria-hidden />
-							New class
-						</button>
-					)}
-				</>
+		<Pane name="coming up" data-testid="coming-up" className="px-3 pt-5 pb-3">
+			{deadlines.length === 0 ? (
+				<p data-testid="coming-up-empty" className="px-2 pb-1 text-sm text-ink-2">
+					Nothing else is due.
+				</p>
 			) : (
-				<div className="flex w-full flex-col gap-5">
-					{groups.map((g) => (
-						<div key={g.key} data-testid={`coming-up-group-${g.key}`} className="flex w-full flex-col gap-2">
-							<h3 className={cn(LABEL_TEXT, g.overdue && "text-ans-wrong")}>{g.label}</h3>
-							<ul className="flex w-full flex-col gap-0.5">
-								{g.items.map((d) => (
-									<ComingUpRow
-										key={d.id}
-										deadline={d}
-										progress={progress.get(d.id) ?? null}
-										later={g.key === "later"}
-										showClass={manyClasses}
-										leaving={leaving.has(d.id)}
-										fixedNow={fixedNow}
-										onDone={onDone}
-									/>
-								))}
-							</ul>
-						</div>
+				<ul className="flex flex-col">
+					{deadlines.map((d) => (
+						<Row key={d.id} deadline={d} ready={progress.get(d.id)?.ready ?? null} showClass={manyClasses} leaving={leaving.has(d.id)} fixedNow={fixedNow} />
 					))}
-				</div>
+				</ul>
 			)}
-		</section>
+		</Pane>
 	);
 });
 
-function ComingUpRow({
-	deadline: d,
-	progress: p,
-	later,
-	showClass,
-	leaving,
-	fixedNow,
-	onDone,
-}: {
-	deadline: OpenDeadline;
-	progress: DeadlineProgress | null;
-	/** In the Later group, whose heading has no date. */
-	later: boolean;
-	showClass: boolean;
-	leaving: boolean;
-	fixedNow?: number;
-	onDone: (d: OpenDeadline) => void;
-}) {
-	const overdue = useIsOverdue(d, fixedNow);
-	const files = p ? deadlineFilesText(p.files.map((f) => ({ name: displayName(f.name) }))) : "";
-	const ready = p?.ready ?? null;
+function Row({ deadline: d, ready, showClass, leaving, fixedNow }: { deadline: OpenDeadline; ready: number | null; showClass: boolean; leaving: boolean; fixedNow?: number }) {
 	return (
-		<li
-			data-testid={`coming-up-row-${d.id}`}
-			data-halley-target={`deadline:${d.id}`}
-			data-leaving={leaving || undefined}
-			className={cn(
-				"relative flex w-full items-center gap-3.5 bg-tone px-3.5 py-[11px] transition-[opacity,background-color] duration-[var(--lh-dur)] ease-[var(--lh-ease-in)] hover:bg-[color-mix(in_srgb,var(--accent),var(--lh-ink-max)_4%)]",
-				leaving && "pointer-events-none opacity-0",
-			)}
-		>
-			{/* The whole row opens the page; the done box sits above the link. */}
-			<Link href={deadlineHref(d.id)} data-testid="coming-up-open" aria-label={`Open ${d.name}`} className="absolute inset-0" />
-			<span className="relative z-10 flex">
-				<DoneBox size={16} overdue={overdue} name={d.name} disabled={leaving} onDone={() => onDone(d)} />
-			</span>
-			<div className="flex min-w-[40%] flex-1 flex-col gap-1">
-				<div className="flex min-w-0 items-baseline gap-2">
-					<span title={d.name} className="truncate text-[15.5px] leading-[22px] font-bold text-ink">{d.name}</span>
-					<span className="shrink-0 text-[13.5px] text-ink-2">{kindLabel(d.kind).toLowerCase()}</span>
-				</div>
-				{files && (
-					<div data-testid="coming-up-covers" className="flex min-w-0 items-center gap-2.5 text-[12.5px] leading-[18px]">
-						<span title={files} className="min-w-0 truncate text-ink-2">covers {files}</span>
-						{ready !== null && (
-							<>
-								<span className="flex h-[5px] w-[120px] shrink-0 bg-tone-2" aria-hidden>
-									<span className="h-full" style={{ width: `${percent(ready)}%`, background: rampColor(ready) }} />
-								</span>
-								<span data-testid="coming-up-ready" className="shrink-0 font-mono font-bold tabular-nums" style={{ color: rampColor(ready) }}>
-									{percent(ready)}% ready
-								</span>
-							</>
-						)}
-					</div>
-				)}
-			</div>
-			{/* Capped and the one that shrinks once the name is down to its 40%. */}
-			{showClass && (
-				<span
-					data-testid="coming-up-class"
-					title={d.className}
-					className="min-w-0 max-w-[160px] truncate bg-tone-2 px-2 py-0.5 text-[12.5px] leading-[18px] font-bold text-ink"
-				>
-					{d.className}
+		<li data-testid={`coming-up-row-${d.id}`} data-halley-target={`deadline:${d.id}`} className={cn("transition-opacity duration-[var(--lh-dur)]", leaving && "pointer-events-none opacity-0")}>
+			<Link href={deadlineHref(d.id)} prefetch={false} className="flex h-[34px] items-center gap-4 px-2 text-base hover:bg-tone">
+				<ReadyBar ready={ready} />
+				<span title={d.name} className="min-w-0 flex-1 truncate text-ink">
+					{d.name}
 				</span>
-			)}
-			<div className="flex w-[110px] shrink-0 flex-col items-end gap-0.5 text-right">
-				<Countdown due={d} now={fixedNow} className="text-[14px] leading-5" clockClassName="text-[16px] leading-5" />
-				<span className="truncate text-[12.5px] leading-[18px] text-ink-3">{dueUnderLabel(d, overdue, later)}</span>
-			</div>
+				{showClass && (
+					<span data-testid="coming-up-class" title={d.className} className="w-[12ch] shrink-0 truncate text-ink-2">
+						{d.className.toLowerCase()}
+					</span>
+				)}
+				<Countdown due={d} now={fixedNow} className="w-[11ch] shrink-0 text-ink" clockClassName="w-[11ch] shrink-0" />
+			</Link>
 		</li>
+	);
+}
+
+/** Ten blocks, the ready share filled in its ramp color; blank space when
+ *  the deadline has nothing to be ready on. */
+function ReadyBar({ ready }: { ready: number | null }) {
+	if (ready === null) return <span aria-hidden className="w-[88px] shrink-0" />;
+	const filled = readyBlocks(ready);
+	return (
+		<span data-testid="coming-up-ready" role="img" aria-label={`${percent(ready)}% ready`} className="flex w-[88px] shrink-0 gap-0.5">
+			{Array.from({ length: 10 }, (_, i) => (
+				<span key={i} className="h-2.5 w-[7px]" style={{ background: i < filled ? rampColor(ready) : "var(--border)" }} />
+			))}
+		</span>
 	);
 }

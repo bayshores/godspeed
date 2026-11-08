@@ -125,7 +125,7 @@ describe("the deadline page", () => {
 	});
 	it("an unfinished session from this deadline: Continue studying with its topics done", () => {
 		const html = render(deadline({ continueStudy: { chatId: "chat_1", done: 1, total: 4 } }));
-		assert.match(html, /data-testid="deadline-start".*>Continue studying · 1 of 4 topics</);
+		assert.match(html, /data-testid="deadline-start".*>Continue studying, 1 of 4 topics</);
 	});
 	it("due today puts everything on today", () => {
 		const html = render(deadline({ date: "2026-11-02", daysUntil: 0, time: "23:00" }));

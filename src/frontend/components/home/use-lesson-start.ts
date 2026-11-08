@@ -31,7 +31,7 @@ export function useLessonStart() {
 	const [error, setError] = useState<string | null>(null);
 
 	const post = useCallback(
-		async (body: StartBody, files: readonly ChatAttachment[] = []) => {
+		async (body: StartBody, files: readonly ChatAttachment[] = [], classId = active) => {
 			if (busy) return;
 			setBusy(true);
 			setError(null);
@@ -39,7 +39,7 @@ export function useLessonStart() {
 				const res = await fetch("/api/chats", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ ...body, ...(active ? { classId: active } : {}) }),
+					body: JSON.stringify({ ...body, ...(classId ? { classId } : {}) }),
 				});
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const { id, title } = (await res.json()) as { id: string; title: string };
@@ -73,13 +73,14 @@ export function useLessonStart() {
 	);
 
 	/** Study for a deadline: reopens its unfinished session, else starts
-	 *  on the next of today's topics that need work. */
+	 *  on the next of today's topics that need work. `classId`: the
+	 *  deadline's class when it isn't the active one (Home). */
 	const studyDeadline = useCallback(
-		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">) => {
+		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">, classId?: string) => {
 			if (deadline.continueStudy) router.push(`/chat/${deadline.continueStudy.chatId}`);
-			else return post({ deadlineId: deadline.id });
+			else return post({ deadlineId: deadline.id }, [], classId ?? active);
 		},
-		[post, router],
+		[post, router, active],
 	);
 
 	return {

@@ -31,5 +31,5 @@ export function continueStudyFor(deadlineId: string, sessions: readonly Deadline
 export function deadlineStudyLabel(next: ContinueStudy | undefined, name?: string): string {
 	const forName = name ? ` for ${name}` : "";
 	if (!next) return `Study${forName}`;
-	return `Continue studying${forName} · ${next.done} of ${next.total} ${next.total === 1 ? "topic" : "topics"}`;
+	return `Continue studying${forName}, ${next.done} of ${next.total} ${next.total === 1 ? "topic" : "topics"}`;
 }

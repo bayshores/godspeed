@@ -1,5 +1,5 @@
-/** Pure helpers for Home's per-class progress (home-page.tsx). */
-import type { ProgressPayload } from "@/shared/core";
+/** Pure helpers for Home (home-page.tsx): per-class progress, the fact grid, the ready bar and the activity lines. */
+import { APP_SOURCE, LEARNER_SOURCE, UNTESTED_COLOR, rampColor, type AgentAction, type FactProgress, type ProgressPayload } from "@/shared/core";
 
 export interface ClassesProgress {
 	/** The latest payload each class has had. */
@@ -35,4 +35,53 @@ export function classSlot(classId: string, state: ClassesProgress, blocksReady: 
 	if (!blocksReady) return "loading";
 	if (state.progress.has(classId)) return "block";
 	return state.errors.has(classId) ? "failed" : "loading";
+}
+
+/** An unstudied fact's cell: the pane's own border color. */
+export const UNSTUDIED_CELL = "var(--border)";
+
+/** A fact's share of right answers (0–1); null before its first answer. */
+export function factRate(f: Pick<FactProgress, "answers">): number | null {
+	if (f.answers.length === 0) return null;
+	return f.answers.filter((a) => a.outcome === "right").length / f.answers.length;
+}
+
+/** The class's fact grid, one color per fact: answered facts in their
+ *  right rate's ramp color, then studied but unanswered ones, then the
+ *  unstudied ones dim. */
+export function factCells(facts: readonly Pick<FactProgress, "inLessons" | "answers">[]): string[] {
+	const answered = facts.filter((f) => f.answers.length > 0).map((f) => rampColor(factRate(f)));
+	const studied = facts.filter((f) => f.answers.length === 0 && f.inLessons).map(() => UNTESTED_COLOR);
+	const rest = facts.filter((f) => f.answers.length === 0 && !f.inLessons).map(() => UNSTUDIED_CELL);
+	return [...answered, ...studied, ...rest];
+}
+
+/** How many of a ready bar's 10 blocks are filled. */
+export function readyBlocks(ready: number): number {
+	return Math.min(10, Math.max(0, Math.round(ready * 10)));
+}
+
+/** Who an activity line is about: the agent, the app (a folder sync) or the learner. */
+export type ActivitySource = "agent" | "app" | "you";
+
+interface ActivityLine {
+	/** "17:49" today, "nov 5" before. */
+	time: string;
+	/** The label's first word, lowercase ("read"). */
+	verb: string;
+	rest: string;
+	source: ActivitySource;
+}
+
+/** One line of Home's activity pane. */
+export function activityLine(a: Pick<AgentAction, "at" | "label" | "agent">, nowMs: number): ActivityLine {
+	const at = new Date(a.at);
+	const now = new Date(nowMs);
+	const today = at.toDateString() === now.toDateString();
+	const time = today
+		? `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`
+		: `${at.toLocaleString("en-US", { month: "short" }).toLowerCase()} ${at.getDate()}`;
+	const [verb = "", ...rest] = a.label.split(" ");
+	const source: ActivitySource = a.agent === APP_SOURCE ? "app" : a.agent === LEARNER_SOURCE ? "you" : "agent";
+	return { time, verb: verb.toLowerCase(), rest: rest.join(" "), source };
 }

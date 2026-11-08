@@ -35,7 +35,7 @@ export const SignatureText = memo(function SignatureText({ signature, className 
 /** The signature dim, with the studied share inked over it. The ink's
  *  edge is soft and eases in when the page opens (globals.css .lh-ink).
  *  Decorative: the class name says the same thing to a screen reader. */
-export const InkedSignature = memo(function InkedSignature({
+const InkedSignature = memo(function InkedSignature({
 	signature,
 	share,
 	className,

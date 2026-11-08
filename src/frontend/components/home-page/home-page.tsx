@@ -2,29 +2,32 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon } from "lucide-react";
 import type { ClassSummary, DeadlineProgress } from "@/shared/core";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog, type ClassDialogMode } from "@/frontend/components/class-dialog";
 import { ClassIcon } from "@/frontend/components/class-icon";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useMinute } from "@/frontend/components/countdown";
-import { longDateLine } from "@/frontend/components/deadlines-model";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { lessonHref } from "@/frontend/components/overview/overview-model";
 import { TopBar } from "@/frontend/components/app-bar";
+import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
-import { ClassBlock } from "./class-block";
+import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import { ActivityPane } from "./activity-pane";
+import { ClassFacts } from "./class-facts";
 import { ComingUp } from "./coming-up";
+import { DueNext } from "./due-next";
 import { classesSettled, classSlot } from "./home-page-model";
 import { useClassesProgress } from "./use-classes-progress";
 
 /**
- * HOME ("/"): the title and today's
- * date, "Coming up" (every open deadline from every class) and one block
- * per class. The top bar's "Add deadline" opens a class's Edit class with
- * a new deadline row (a menu picks the class when there are several).
+ * HOME ("/"): the deadline due next (from every class) with its study
+ * button and big countdown, then the rest coming up, one fact grid per
+ * class and the activity log. The top bar's "+ deadline" opens a class's
+ * Edit class with a new deadline row (a menu picks the class when there
+ * are several).
  */
 export function HomePage() {
 	const router = useRouter();
@@ -33,96 +36,91 @@ export function HomePage() {
 	const { deadlines, error: deadlinesError, leaving, markDone, reload: reloadDeadlines } = useOpenDeadlines();
 	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
 	const classesProgress = useClassesProgress(shownIds);
-	// The blocks fill in together the first time; a class added later
+	// The panes fill in together the first time; a class added later
 	// shows its own box until its progress arrives.
 	const [blocksReady, setBlocksReady] = useState(false);
 	if (!blocksReady && shown.length > 0 && classesSettled(shownIds, classesProgress)) setBlocksReady(true);
 	const nowMs = useMinute();
 	const [dialog, setDialog] = useState<ClassDialogMode | null>(null);
+	const halley = useHalley();
+	const lesson = useLessonStart();
 
-	// Each deadline's covers and ready %, from its class's progress.
+	// Each deadline's ready % and unfinished session, from its class's progress.
 	const deadlineProgress = useMemo(() => {
 		const map = new Map<string, DeadlineProgress>();
 		for (const p of classesProgress.progress.values()) for (const d of p.deadlines) map.set(d.id, d);
 		return map;
 	}, [classesProgress]);
 
-	const go = useCallback(
-		(classId: string, href: string) => {
+	const { studyDeadline } = lesson;
+	const onStudy = useCallback(
+		(d: OpenDeadline) => {
+			setActive(d.classId);
+			void studyDeadline({ id: d.id, continueStudy: deadlineProgress.get(d.id)?.continueStudy }, d.classId);
+		},
+		[setActive, studyDeadline, deadlineProgress],
+	);
+	const onOpenFiles = useCallback(
+		(classId: string) => {
 			setActive(classId);
-			router.push(href);
+			router.push("/class/files");
 		},
 		[router, setActive],
 	);
-	const onContinue = useCallback((classId: string, chatId: string) => go(classId, lessonHref(chatId)), [go]);
-	const onNewLesson = useCallback((classId: string) => go(classId, "/new"), [go]);
-	const onOpenClass = useCallback((classId: string) => go(classId, "/class"), [go]);
-	const onOpenFiles = useCallback((classId: string) => go(classId, "/class/files"), [go]);
 	const onNewClass = useCallback(() => setDialog({ kind: "create" }), []);
+
+	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || blocksReady);
+	const [next, ...later] = deadlines ?? [];
 
 	return (
 		<div data-testid="home-page" className="flex h-full min-h-0 flex-col">
 			<TopBar inClass={false} path={[{ label: "home", href: null }]}>
 				{shown.length > 0 && <AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />}
 			</TopBar>
-			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="@container flex w-full flex-col pb-8">
-					<header className="flex flex-col gap-2 px-[52px] py-6">
-						<h1 className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">Home</h1>
-						<p data-testid="home-date" className="min-h-6 text-base leading-6 text-ink-2">
-							{nowMs !== null ? longDateLine(nowMs) : ""}
-						</p>
-					</header>
-					{nowMs === null || !loaded || (deadlines === null && deadlinesError === null) ? (
-						<div className="px-[52px]">
-							<LoadingBox height="h-[320px]" />
-						</div>
-					) : (
-						<div className="flex flex-col items-start gap-4 px-[52px] @4xl:flex-row">
-							<div className="w-full min-w-0 flex-1">
-								{deadlines ? (
-									<ComingUp
-										deadlines={deadlines}
-										progress={deadlineProgress}
-										leaving={leaving}
-										nowMs={nowMs}
-										hasClasses={shown.length > 0}
-										onDone={markDone}
-										onNewClass={onNewClass}
-									/>
-								) : (
-									<LoadFailed message="Couldn't load your deadlines." onRetry={() => void reloadDeadlines()} />
+			<div className="@container min-h-0 flex-1 overflow-y-auto">
+				{!ready ? (
+					<div className="px-5 py-6">
+						<LoadingBox height="h-[320px]" />
+					</div>
+				) : (
+					<div className="flex flex-col gap-[22px] px-5 pt-6 pb-6">
+						{deadlines ? (
+							<DueNext
+								deadline={next ?? null}
+								progress={next ? (deadlineProgress.get(next.id) ?? null) : null}
+								leaving={!!next && leaving.has(next.id)}
+								hasClasses={shown.length > 0}
+								busy={lesson.busy}
+								error={lesson.error}
+								onStudy={onStudy}
+								onDone={markDone}
+								onNewClass={onNewClass}
+							/>
+						) : (
+							<LoadFailed message="Couldn't load your deadlines." onRetry={() => void reloadDeadlines()} />
+						)}
+						<div className="flex flex-col gap-[22px] @5xl:flex-row">
+							<div className="flex min-w-0 flex-1 flex-col gap-[22px]">
+								{next && <ComingUp deadlines={later} progress={deadlineProgress} leaving={leaving} />}
+								{shown.length > 0 && (
+									<div className="grid items-start gap-4 @2xl:grid-cols-2">
+										{shown.map((c) => {
+											const slot = classSlot(c.id, classesProgress, blocksReady);
+											const p = classesProgress.progress.get(c.id);
+											if (slot === "block" && p) return <ClassFacts key={c.id} cls={c} progress={p} onOpenFiles={onOpenFiles} />;
+											return slot === "failed" ? (
+												<LoadFailed key={c.id} message={`Couldn't load ${c.name}.`} onRetry={classesProgress.reload} />
+											) : (
+												<LoadingBox key={c.id} height="h-[222px]" />
+											);
+										})}
+									</div>
 								)}
 							</div>
-							{shown.length > 0 && (
-								<div className="flex w-full flex-col gap-4 @4xl:w-[400px] @4xl:shrink-0">
-									{shown.map((c) => {
-										const slot = classSlot(c.id, classesProgress, blocksReady);
-										const p = classesProgress.progress.get(c.id);
-										if (slot === "block" && p) {
-											return (
-												<ClassBlock
-													key={c.id}
-													cls={c}
-													progress={p}
-													onContinue={onContinue}
-													onNewLesson={onNewLesson}
-													onOpenClass={onOpenClass}
-													onOpenFiles={onOpenFiles}
-												/>
-											);
-										}
-										return slot === "failed" ? (
-											<LoadFailed key={c.id} message={`Couldn't load ${c.name}.`} onRetry={classesProgress.reload} />
-										) : (
-											<LoadingBox key={c.id} height="h-[222px]" />
-										);
-									})}
-								</div>
-							)}
+							{halley && <ActivityPane actions={halley.recent} nowMs={nowMs} onGo={halley.go} className="@5xl:w-[400px] @5xl:shrink-0" />}
 						</div>
-					)}
-				</div>
+					</div>
+				)}
 			</div>
 			<ClassDialog mode={dialog} onClose={() => setDialog(null)} />
 		</div>
@@ -135,7 +133,7 @@ function LoadingBox({ height }: { height: string }) {
 	return <div data-testid="home-loading" aria-hidden className={`w-full bg-panel ${height}`} />;
 }
 
-/** "Add deadline": one class opens its Edit class at once; several open a
+/** "+ deadline": one class opens its Edit class at once; several open a
  *  menu of classes first. */
 function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; onPick: (classId: string) => void }) {
 	const [open, setOpen] = useState(false);
@@ -153,10 +151,9 @@ function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; on
 				aria-haspopup={single ? undefined : "menu"}
 				aria-expanded={single ? undefined : open}
 				onClick={() => (single ? onPick(single.id) : setOpen((v) => !v))}
-				className="lh-press flex items-center gap-[7px] bg-panel px-2.5 py-[7px] text-sm text-ink hover:bg-tone"
+				className="lh-btn"
 			>
-				<PlusIcon className="size-3.5" aria-hidden />
-				Add deadline
+				+ deadline
 			</button>
 			{!single && (
 				<MenuShell

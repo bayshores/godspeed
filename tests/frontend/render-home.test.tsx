@@ -244,7 +244,7 @@ describe("Home: actions", () => {
 		const clicked: string[] = [];
 		const host = await mount(<DeadlineStarts deadlines={deadlines} busy={false} onStudy={(d) => clicked.push(d.id)} />);
 		const buttons = [...host.querySelectorAll('[data-testid="home-study-deadline"]')] as HTMLButtonElement[];
-		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue studying for Midterm · 0 of 4 topics", "Study for Quiz 3"]);
+		assert.deepEqual(buttons.map((b) => b.textContent), ["Continue studying for Midterm, 0 of 4 topics", "Study for Quiz 3"]);
 		await act(async () => buttons[0]!.click());
 		assert.deepEqual(clicked, ["mid"]);
 	});

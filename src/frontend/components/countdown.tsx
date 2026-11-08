@@ -2,14 +2,13 @@
 
 /**
  * THE SHARED CLOCK: one clock for every
- * countdown on screen (the sidebar's Due soon, Home), Home's date line
- * and the sidebar's when lines.
+ * countdown on screen (Home, a deadline's page) and the top bar's clock.
  * It ticks only as fast as what is mounted needs:
  *  - every animation frame while a deadline in its last hour is shown
  *    (hundredths), once a second with reduced motion;
  *  - once a second while one is in its last 24h;
  *  - otherwise it sleeps until the next text change (a whole day passing,
- *    the last 24h starting, the next minute for the date and when lines).
+ *    the last 24h starting, the next minute for the clock).
  * Formatting is pure: src/frontend/components/countdown-model.ts.
  */
 
@@ -94,7 +93,7 @@ function parseKey(key: string): CountdownValue {
 }
 
 /** A live countdown to `due`; null until the window's first render. */
-function useCountdown(due: { date: string; time?: string }): CountdownValue | null {
+export function useCountdown(due: { date: string; time?: string }): CountdownValue | null {
 	const dueMs = dueAtMs(due);
 	const subscribe = useCallback((notify: () => void) => subscribeTo(dueMs, notify), [dueMs]);
 	const key = useSyncExternalStore(
@@ -103,15 +102,6 @@ function useCountdown(due: { date: string; time?: string }): CountdownValue | nu
 		serverSnapshot,
 	);
 	return key === null ? null : parseKey(key);
-}
-
-/** True once `due` has passed, live (exact to the second). `fixedNow`
- *  answers for a fixed moment (tests). */
-export function useIsOverdue(due: { date: string; time?: string }, fixedNow?: number): boolean {
-	const dueMs = dueAtMs(due);
-	const subscribe = useCallback((notify: () => void) => subscribeTo(dueMs, notify), [dueMs]);
-	const live = useSyncExternalStore(subscribe, () => dueMs <= now, () => false);
-	return fixedNow !== undefined ? dueMs <= fixedNow : live;
 }
 
 /** The current minute (ms), live; null until the window's first render. */
