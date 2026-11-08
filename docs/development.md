@@ -57,7 +57,7 @@ flowchart TB
     LEARNER["the learner"]
 
     subgraph STAGE["STAGE — presentation shell (browser)"]
-        UI["Home · lesson screen · question dock · plan step bar · topic map · activity dock · sidebar"]
+        UI["Home · lesson screen · question dock · plan steps pane · topic map · activity dock · sidebar"]
     end
 
     subgraph CLASSROOM["CLASSROOM — session engine (owns data/chats)"]
@@ -111,7 +111,7 @@ src/
   proxy.ts                      Next proxy: desktop-only /api gate
   frontend/                     everything the browser runs
     components/                   Home (home-page/), the lesson screen (lesson/), question
-                                  dock, plan step bar and plan blocks, topic map (graph/),
+                                  dock, plan steps pane and plan blocks, topic map (graph/),
                                   class Overview and Files, settings dialog (settings/),
                                   onboarding, the welcome screen (welcome/), artifact
                                   renderers (registry: artifacts/), activity dock, keyboard

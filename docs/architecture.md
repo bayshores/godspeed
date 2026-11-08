@@ -217,7 +217,7 @@ flowchart TB
     LEARNER["the learner"]
 
     subgraph STAGE["STAGE — presentation shell (owns nothing server-side)"]
-        UI["Home · lesson screen · question dock · plan step bar · topic map · activity dock · sidebar"]
+        UI["Home · lesson screen · question dock · plan steps pane · topic map · activity dock · sidebar"]
     end
 
     subgraph CLASSROOM["CLASSROOM — session engine (owns data/chats)"]
@@ -397,7 +397,7 @@ Every new lesson is a study session (`kind: "study"` on the chat record). The le
 
 `createLesson` (`src/backend/server/lessons.ts`) writes the opening markers. The picked facts become a `graph-context` marker through `chainsForSelection` (`src/shared/core/chains.ts`): a stored chain is included when its conclusion and every premise are picked, and a picked fact in no included chain stands alone. The picks are grouped into topics in class order, each with a mode from the learner's track record (`src/shared/core/study.ts`: untested → teach, weak or shaky → problems, strong → check; a typed topic with no picks is one teach topic). They go into a `study-context` marker, and the app saves the matching plan tree, so the step bar lists the topics from the start.
 
-A session started from a deadline records it on the chat (`deadlineId`). While the latest such session is unfinished (its step bar has not reached its last topic), that deadline's Study button reopens it as "Continue studying · 1 of 4 topics" instead of starting a new one (`src/shared/core/continue-study.ts`; the progress payload carries it as `continueStudy` on the deadline, read from the cached lesson readout in `src/backend/server/progress.ts`).
+A session started from a deadline records it on the chat (`deadlineId`). While the latest such session is unfinished (its steps pane has not reached its last topic), that deadline's Study button reopens it as "Continue studying, 1 of 4 topics" instead of starting a new one (`src/shared/core/continue-study.ts`; the progress payload carries it as `continueStudy` on the deadline, read from the cached lesson readout in `src/backend/server/progress.ts`).
 
 The study agent has the teacher's prompt and tools plus `problem` and `conclude` (`src/backend/agent/tools/practice.ts`; `problem` carries the topic's `nodeId`), the practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`. There is no prober, and the tool list is the same every turn; a posed problem ends the turn. The learner's work is saved as `practice-thinking` markers, and `practice-next` / `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph like a teach lesson; older practice sessions never are.
 

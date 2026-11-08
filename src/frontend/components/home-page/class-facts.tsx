@@ -1,6 +1,5 @@
 import { memo, useMemo } from "react";
 import type { ClassSummary, ProgressPayload } from "@/shared/core";
-import { studiedFacts } from "@/frontend/components/overview/runway-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { UNSTUDIED_CELL, factCells } from "./home-page-model";
 
@@ -23,7 +22,9 @@ export const ClassFacts = memo(function ClassFacts({
 	onOpenFiles: (classId: string) => void;
 }) {
 	const cells = useMemo(() => factCells(progress.facts), [progress.facts]);
-	const { studied, total } = studiedFacts(progress.facts);
+	// Studied: every square that isn't dim, so the count matches the grid.
+	const studied = cells.filter((c) => c !== UNSTUDIED_CELL).length;
+	const total = cells.length;
 	const name = (
 		<>
 			{cls.name.toLowerCase()} <span className="text-ink-3 tabular-nums">{`${studied}/${total}`}</span>

@@ -119,7 +119,6 @@ function TopicNodeImpl({ topic, place, faded, hovered, selected, onHover, onSele
 								</span>
 								{topic.overconfident && (
 									<>
-										<span className="size-[3px] bg-ink-3" aria-hidden />
 										<span className="font-bold" style={{ color: OVERCONFIDENT_COLOR }}>
 											overconfident
 										</span>

@@ -46,7 +46,7 @@ export function scoreText(t: Pick<TopicProgress, "right" | "answered">): string 
 	return `${t.right}/${t.answered}`;
 }
 
-/** The Work-on-next status line: "4/7 right · overconfident" or
+/** The Work-on-next status line: "4/7 right, overconfident" or
  *  "Not tested". */
 export function statusLine(t: Pick<TopicProgress, "right" | "answered" | "overconfident" | "status">): string {
 	if (t.status === "untested") return "Not tested";

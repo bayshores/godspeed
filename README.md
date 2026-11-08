@@ -19,7 +19,7 @@
 
 godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. Every class gets its own lessons, files (PDFs, notes, lecture recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
 
-![A godspeed lesson: the teacher's explanation on the left, an open practice problem with a writing box on the right](docs/assets/lesson.png)
+![A godspeed lesson: the teacher's explanation with a graded quiz and a worked practice problem on the left, the lesson steps and your turn box on the right](docs/assets/lesson.png)
 
 ## How it works
 
@@ -28,7 +28,7 @@ godspeed is a study app for students and self-learners. Claude Code, Codex or an
 <sub>The diagram is an Excalidraw file, [`docs/assets/how-godspeed-works.excalidraw`](docs/assets/how-godspeed-works.excalidraw). Open it at [excalidraw.com](https://excalidraw.com) to edit it.</sub>
 
 1. **Measure.** The teacher finds where your understanding ends on each part the lesson depends on, from your answers, your confidence and what you type in the thinking box.
-2. **Plan.** It maps the steps from there to your goal. The step bar shows where you are, and the plan changes when your answers say it should.
+2. **Plan.** It maps the steps from there to your goal. The steps beside the lesson show where you are, and the plan changes when your answers say it should.
 3. **Teach.** Each step builds on something you already understand. You predict, read the explanation, then check yourself. Confusions get fixed before anything is built on them.
 4. **Practice.** Problems make you recall the right idea without being told which one it is.
 
@@ -38,13 +38,13 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 - **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor.
 - **Classes.** Each class has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
-- **Home and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's coming up and how ready you are for each one.
+- **Home and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's due next with a countdown, everything else coming up with how ready you are, a grid of every fact in each class colored by how often you get it right, and what you and your agent did lately.
 
-![Home: the deadlines coming up in each class with how ready you are, and a card for each class](docs/assets/home.png)
+![Home: the deadline due next with its countdown, the rest coming up with how ready you are, a fact grid for each class and the activity log](docs/assets/home.png)
 
 - **Knowledge graph.** A topic map. Your agent groups facts into topics, colors each by how often you get it right, and draws arrows for "learn this first". Pick a deadline to see the days left and what to work on next.
 
-![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the Midterm's days left and what to work on next](docs/assets/graph.png)
+![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the next quiz's days left and what to work on next](docs/assets/graph.png)
 
 - **Overview.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
@@ -54,7 +54,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 ![A cheat sheet for the Midterm with the chat that made it and the rules it keeps](docs/assets/cheat-sheet.png)
 
-- **Talk.** Ask your agent to set up classes, add deadlines or answer questions about your classes from the panel in the corner.
+- **Talk.** Ask your agent to set up classes, add deadlines or answer questions about your classes, with the **talk** button under the teacher in the sidebar.
 
 ## Get started
 
