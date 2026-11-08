@@ -1,8 +1,9 @@
 /**
- * Halley's server half: every MCP tool that
- * changes something records an agent action — {id, at, agent, label,
- * classId, target, page} — announces it as "agent-action", and the last
- * 20 are served by GET /api/agent-actions.
+ * The activity log: every MCP tool that changes something records an
+ * action — {id, at, agent, label, classId, target, page} — and announces
+ * it as "agent-action"; so do the app (a folder's new files) and the
+ * learner (answers, deadlines saved in the app). The newest 200 are saved
+ * to disk and served by GET /api/agent-actions.
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -34,8 +35,16 @@ const mcp = await import("../../src/backend/server/mcp.ts");
 const { ensureMcpToken } = await import("../../src/backend/store/mcp-token.ts");
 const actions = await import("../../src/backend/server/agent-actions.ts");
 const route = await import("../../src/app/api/agent-actions/route.ts");
+const deadlinesRoute = await import("../../src/app/api/classes/[id]/deadlines/route.ts");
+const deadlineRoute = await import("../../src/app/api/classes/[id]/deadlines/[deadlineId]/route.ts");
 const { subscribe } = await import("../../src/shared/core/events.ts");
 type AgentAction = import("../../src/shared/core/events.ts").AgentAction;
+type QuestionAnswerData = import("../../src/shared/core/question-core.ts").QuestionAnswerData;
+
+/** A server restart: the in-memory list is gone, the file stays. */
+function restart(): void {
+	delete (globalThis as Record<symbol, unknown>)[Symbol.for("lh.agentActions")];
+}
 
 function rpc(body: unknown, headers: Record<string, string> = {}) {
 	return new Request("http://127.0.0.1:3000/api/mcp", {
@@ -127,13 +136,37 @@ describe("agent actions from the MCP tools", () => {
 describe("the recent list", () => {
 	beforeEach(() => actions.clearAgentActions());
 
-	it("keeps the last 20, newest first, served by GET /api/agent-actions", async () => {
-		for (let i = 1; i <= 25; i++) actions.recordAgentAction({ label: `Adding HW ${i}`, classId: "cls_a", target: { kind: "deadline", id: `ddl_${i}` }, page: "/" });
+	it("keeps the newest 200, newest first, served by GET /api/agent-actions", async () => {
+		for (let i = 1; i <= 205; i++) actions.recordAgentAction({ label: `Adding HW ${i}`, classId: "cls_a", target: { kind: "deadline", id: `ddl_${i}` }, page: "/" });
 		const res = await route.GET();
 		const body = (await res.json()) as { actions: AgentAction[] };
-		assert.equal(body.actions.length, actions.RECENT_LIMIT);
-		assert.equal(body.actions[0]!.label, "Adding HW 25");
+		assert.equal(body.actions.length, actions.ACTIONS_MAX);
+		assert.equal(body.actions[0]!.label, "Adding HW 205");
 		assert.equal(body.actions.at(-1)!.label, "Adding HW 6");
+	});
+
+	it("survives a restart: the list is saved to disk with a version stamp", () => {
+		const t0 = Date.parse("2026-11-07T16:00:00Z");
+		actions.recordAgentAction({ label: "Adding HW 1", classId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/" }, t0);
+		actions.recordFolderFiles("cls_a", 2, "Google Drive", t0 + 1000);
+		const before = actions.recentAgentActions();
+		const file = JSON.parse(fs.readFileSync(path.join(scratch, "data", "agent-actions.json"), "utf8"));
+		assert.equal(file.version, 1);
+		assert.equal(file.actions.length, 2);
+		restart();
+		assert.deepEqual(actions.recentAgentActions(), before);
+		// A refreshed repeat is saved too.
+		actions.recordFolderFiles("cls_a", 1, "Google Drive", t0 + 2000);
+		restart();
+		assert.equal(actions.recentAgentActions()[0]!.label, "Added 3 files from Google Drive");
+	});
+
+	it("a broken file reads as an empty list and is set aside", () => {
+		const file = path.join(scratch, "data", "agent-actions.json");
+		fs.writeFileSync(file, "{not json");
+		restart();
+		assert.deepEqual(actions.recentAgentActions(), []);
+		assert.ok(fs.readdirSync(path.join(scratch, "data")).some((f) => f.startsWith("agent-actions.json.corrupt-")));
 	});
 
 	it("a repeat of the newest (a lesson's many replies) only refreshes its time", () => {
@@ -173,5 +206,50 @@ describe("the recent list", () => {
 		assert.ok(a.label.length <= 80);
 		assert.ok(!a.label.includes("\n"));
 		assert.equal(a.agent, "Your agent");
+	});
+});
+
+describe("the learner's entries", () => {
+	beforeEach(() => actions.clearAgentActions());
+
+	const lesson = { id: "chat_1", classId: "cls_a" };
+	const quiz = (over: Partial<QuestionAnswerData>): QuestionAnswerData => ({ kind: "quiz", questionText: "Q", dontKnow: false, answers: [], correct: true, answeredAt: "2026-11-07T16:00:00Z", ...over });
+
+	it("a graded answer is the learner's entry on its lesson; answers in a row add up", () => {
+		const t0 = Date.parse("2026-11-07T16:00:00Z");
+		actions.recordAnswer(lesson, quiz({ correct: true }), t0);
+		const [first] = actions.recentAgentActions();
+		assert.deepEqual({ ...first, id: undefined, at: undefined }, { id: undefined, at: undefined, agent: "you", label: "Answered right", classId: "cls_a", target: { kind: "lesson", id: "chat_1" }, page: "/chat/chat_1" });
+		actions.recordAnswer(lesson, quiz({ correct: false }), t0 + 10_000);
+		actions.recordAnswer(lesson, quiz({ correct: true }), t0 + 20_000);
+		assert.deepEqual(actions.recentAgentActions().map((a) => a.label), ["Answered 2 of 3 right"]);
+		// The agent's reply ends the run; the next answer starts a new entry.
+		actions.recordAgentAction({ label: "Replying in Counting", classId: "cls_a", target: { kind: "lesson", id: "chat_1" }, page: "/chat/chat_1" }, t0 + 30_000);
+		actions.recordAnswer(lesson, quiz({ correct: false }), t0 + 40_000);
+		actions.recordAnswer({ id: "chat_1" }, quiz({ dontKnow: true, correct: false }), t0 + 40_000 + actions.COALESCE_MS + 1);
+		assert.deepEqual(actions.recentAgentActions().map((a) => a.label), ["Didn't know", "Answered wrong", "Replying in Counting", "Answered 2 of 3 right"]);
+		assert.equal(actions.recentAgentActions()[0]!.classId, null);
+	});
+
+	it("answers the agent grades later are not entries", () => {
+		actions.recordAnswer(lesson, { kind: "explain", questionText: "Why?", dontKnow: false, answers: [], text: "Because", answeredAt: "2026-11-07T16:00:00Z" });
+		actions.recordAnswer(lesson, { kind: "ask", questionText: "Which?", dontKnow: false, answers: [], answeredAt: "2026-11-07T16:00:00Z" });
+		assert.deepEqual(actions.recentAgentActions(), []);
+	});
+
+	it("deadlines saved in the app are the learner's entries, with the agent's verbs", async () => {
+		const classId = (await call("create_class", { name: "CSE 30", icon: "cpu" })).body.class.id as string;
+		actions.clearAgentActions();
+		const ctx = { params: Promise.resolve({ id: classId }) };
+		const json = (body: unknown) => new Request("http://127.0.0.1:3000/x", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+		const added = (await (await deadlinesRoute.POST(json({ kind: "exam", name: "Test 2", date: "2026-11-20", fileIds: [] }), ctx)).json()).deadline as { id: string };
+		const one = { params: Promise.resolve({ id: classId, deadlineId: added.id }) };
+		await deadlineRoute.PUT(json({ time: "09:00" }), one);
+		await deadlineRoute.PUT(json({ name: "Test 2", kind: "exam", date: "2026-11-21" }), one);
+		await deadlineRoute.PUT(json({ done: true }), one);
+		await deadlineRoute.PUT(json({ date: "not a date" }), one);
+		const list = actions.recentAgentActions();
+		assert.deepEqual(list.map((a) => a.label), ["Marked Test 2 done", "Changed Test 2", "Moved Test 2", "Added Test 2"], "a refused change is not an entry");
+		assert.deepEqual(list.map((a) => [a.agent, a.classId, a.page, a.target]), list.map(() => ["you", classId, "/", { kind: "deadline", id: added.id }]));
 	});
 });

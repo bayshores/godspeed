@@ -7,7 +7,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
 import { ListIcon, PlusIcon, SearchIcon } from "lucide-react";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
 
 const CHROME_BUTTON = "lh-press flex shrink-0 items-center gap-[7px] bg-panel px-2.5 py-2 text-sm text-ink hover:bg-tone disabled:opacity-50";
 
@@ -33,9 +33,7 @@ export function GraphTopBar({
 		return () => window.removeEventListener("lh:kbd-find", onFind);
 	}, []);
 	return (
-		<TopBar>
-			<h1 className="text-[15px] font-bold text-ink">Graph</h1>
-			<div className="flex-1" />
+		<TopBar path={[{ label: "graph", href: null }]}>
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
 			{hasFacts && (
 				<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={CHROME_BUTTON}>

@@ -1,7 +1,7 @@
 /**
- * The redesigned sidebar's chrome: the Home row,
- * the class nav (active row, the Files count, Files hidden under "No
- * class"), the footer line, and the class mark's initials.
+ * The sidebar's class tree: Home, the classes with the open one's pages
+ * (the current page marked, the Files count and "new"), no class, the
+ * archived fold, add class and settings; and the agent line.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -9,12 +9,30 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ClassNav, HomeRow, activeNavHref } from "../../src/frontend/components/sidebar/class-nav.tsx";
+import type { ClassSummary } from "../../src/shared/core/index.ts";
+import { ClassTree, activePageHref } from "../../src/frontend/components/sidebar/class-tree.tsx";
+import { ClassProvider } from "../../src/frontend/components/class-context.tsx";
+import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { footerLabel } from "../../src/frontend/components/agent-status.tsx";
 import { hasUnseenFiles } from "../../src/frontend/components/sidebar/files-seen.ts";
 
-function nav(pathname: string, hasClass = true, fileCount = 33, unseenFiles = false) {
-	return renderToStaticMarkup(<ClassNav pathname={pathname} hasClass={hasClass} fileCount={fileCount} unseenFiles={unseenFiles} />);
+const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
+
+const cls = (id: string, name: string, archived = false): ClassSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived, fileCount: 33 });
+const CLASSES = [cls("c29", "CSE 29"), cls("c21", "CSE 21"), cls("old", "MATH 18", true)];
+
+function tree(pathname: string, active: string | null = "c29", unseenFiles = false) {
+	const router = { push: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
+	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+	return renderToStaticMarkup(
+		<AppRouterContext.Provider value={router}>
+			<ServerEventsProvider connect={quietEvents as never}>
+				<ClassProvider initialActive={active} initialClasses={CLASSES}>
+					<ClassTree pathname={pathname} fileCount={33} unseenFiles={unseenFiles} />
+				</ClassProvider>
+			</ServerEventsProvider>
+		</AppRouterContext.Provider>,
+	);
 }
 
 /** The opening tag of the element carrying `testid`. */
@@ -24,68 +42,38 @@ function tag(html: string, testid: string): string {
 	return m[0];
 }
 
-describe("HomeRow", () => {
-	it("links to / with the house icon, styled like the class-nav rows", () => {
-		const html = renderToStaticMarkup(<HomeRow pathname="/class" />);
-		const row = tag(html, "nav-home");
-		assert.match(row, /href="\/"/);
-		assert.ok(html.includes("lucide-house"));
-		assert.ok(html.includes(">Home</span>"));
-		assert.match(row, /text-ink-2/);
-		assert.doesNotMatch(row, /data-active|aria-current/);
-		// Same row look as Overview.
-		const overview = tag(nav("/"), "nav-overview").match(/class="([^"]*)"/)![1];
-		assert.equal(row.match(/class="([^"]*)"/)![1], overview);
+describe("the class tree", () => {
+	it("home, the classes in lowercase, no class, the archived fold, add class and settings, in that order", () => {
+		const html = tree("/");
+		assert.match(tag(html, "nav-home"), /href="\/"/);
+		assert.match(tag(html, "nav-home"), /aria-current="page"/);
+		assert.match(html, /nav-home[\s\S]*>cse 29<[\s\S]*>cse 21<[\s\S]*class-option-none[\s\S]*>archived \(1\)<[\s\S]*>add class<[\s\S]*>settings</);
 	});
 
-	it("is active on / only", () => {
-		const row = tag(renderToStaticMarkup(<HomeRow pathname="/" />), "nav-home");
-		assert.match(row, /data-active="true"/);
-		assert.match(row, /aria-current="page"/);
-		assert.match(row, /bg-tone font-bold text-ink/);
-		assert.doesNotMatch(tag(renderToStaticMarkup(<HomeRow pathname="/new" />), "nav-home"), /data-active/);
-	});
-});
-
-describe("ClassNav — Overview / Graph / Files / Cheat sheets", () => {
-	it("routes: Overview → /class, Graph → /graph, Files → /class/files, Cheat sheets → /class/cheat-sheets", () => {
-		const html = nav("/");
+	it("the open class lists its pages; the other classes stay closed", () => {
+		const html = tree("/graph");
+		assert.match(tag(html, "class-option-c29"), /aria-expanded="true"/);
+		assert.match(tag(html, "class-option-c21"), /aria-expanded="false"/);
 		assert.match(tag(html, "nav-overview"), /href="\/class"/);
 		assert.match(tag(html, "nav-graph"), /href="\/graph"/);
+		assert.match(tag(html, "nav-graph"), /aria-current="page"/);
 		assert.match(tag(html, "nav-files"), /href="\/class\/files"/);
 		assert.match(tag(html, "nav-cheat-sheets"), /href="\/class\/cheat-sheets"/);
-		assert.match(html, /nav-files[\s\S]*nav-cheat-sheets/, "below Files");
-		assert.equal(activeNavHref("/class/cheat-sheets"), "/class/cheat-sheets");
+		assert.doesNotMatch(tag(html, "nav-overview"), /aria-current/);
+		assert.equal(html.match(/data-testid="nav-overview"/g)?.length, 1, "only the open class has pages");
 	});
 
-	it("the current page's row is active (tone block, bold, aria-current); the others are not", () => {
-		const html = nav("/graph");
-		const graph = tag(html, "nav-graph");
-		assert.match(graph, /data-active="true"/);
-		assert.match(graph, /aria-current="page"/);
-		assert.match(graph, /bg-tone/);
-		assert.match(graph, /font-bold/);
-		for (const other of ["nav-overview", "nav-files"]) {
-			assert.doesNotMatch(tag(html, other), /data-active|aria-current/);
-		}
+	it("matching is exact: /class/files is files, not overview; lessons match nothing", () => {
+		assert.equal(activePageHref("/class/files"), "/class/files");
+		assert.equal(activePageHref("/class"), "/class");
+		assert.equal(activePageHref("/chat/abc"), null);
+		assert.equal(activePageHref("/"), null);
 	});
 
-	it("matching is exact: /class/files is Files, not Overview; lessons match nothing", () => {
-		assert.equal(activeNavHref("/class/files"), "/class/files");
-		assert.equal(activeNavHref("/class"), "/class");
-		assert.equal(activeNavHref("/chat/abc"), null);
-		assert.equal(activeNavHref("/"), null);
-		assert.doesNotMatch(tag(nav("/class/files"), "nav-overview"), /data-active/);
-	});
-
-	it("Files shows the class's file count in mono on the right", () => {
-		const html = nav("/", true, 33);
-		assert.match(html, /<span data-testid="nav-files-count" class="[^"]*font-mono[^"]*tabular-nums[^"]*">33<\/span>/);
-		assert.ok(!html.includes("nav-files-new"));
-	});
-
-	it("Files shows a dot while a scan found files the learner hasn't seen", () => {
-		assert.ok(nav("/", true, 33, true).includes('data-testid="nav-files-new"'));
+	it("files shows the class's file count, and \"new\" while a scan found files not seen yet", () => {
+		assert.match(tree("/"), /<span data-testid="nav-files-count" class="[^"]*font-mono[^"]*tabular-nums[^"]*">33<\/span>/);
+		assert.ok(!tree("/").includes("nav-files-new"));
+		assert.ok(tree("/", "c29", true).includes('data-testid="nav-files-new"'));
 		const now = Date.parse("2026-11-01T12:00:00Z");
 		assert.equal(hasUnseenFiles("2026-11-01T10:00:00.000Z", null, now), true, "nothing seen yet");
 		assert.equal(hasUnseenFiles("2026-11-01T10:00:00.000Z", "2026-10-31T10:00:00.000Z", now), true, "arrived after the last look");
@@ -94,22 +82,22 @@ describe("ClassNav — Overview / Graph / Files / Cheat sheets", () => {
 		assert.equal(hasUnseenFiles(undefined, null, now), false);
 	});
 
-	it("No class: Overview and Graph stay, Files (and its count) and Cheat sheets are hidden", () => {
-		const html = nav("/class", false, 0);
+	it("no class: overview and graph stay, files and cheat sheets are hidden", () => {
+		const html = tree("/class", null);
+		assert.match(tag(html, "class-option-none"), /aria-expanded="true"/);
 		assert.ok(html.includes('data-testid="nav-overview"'));
 		assert.ok(html.includes('data-testid="nav-graph"'));
 		assert.ok(!html.includes('data-testid="nav-files"'));
-		assert.ok(!html.includes("nav-files-count"));
 		assert.ok(!html.includes('data-testid="nav-cheat-sheets"'));
 	});
 });
 
-describe("footerLabel — '<agent> · N jobs'", () => {
+describe("footerLabel — '<agent>, N jobs'", () => {
 	const teaching = { connected: true, teaching: true, pendingWork: 0 };
 	const off = { connected: false, teaching: false, pendingWork: 0 };
 	it("a teaching agent shows its name and the running jobs", () => {
-		assert.equal(footerLabel({ ...teaching, name: "Claude Code" }, 1), "Claude Code · 1 job");
-		assert.equal(footerLabel({ ...teaching, name: "Claude Code" }, 3), "Claude Code · 3 jobs");
+		assert.equal(footerLabel({ ...teaching, name: "Claude Code" }, 1), "Claude Code, 1 job");
+		assert.equal(footerLabel({ ...teaching, name: "Claude Code" }, 3), "Claude Code, 3 jobs");
 	});
 	it("no jobs: just the agent", () => {
 		assert.equal(footerLabel({ ...teaching, name: "Codex" }, 0), "Codex");
@@ -119,15 +107,15 @@ describe("footerLabel — '<agent> · N jobs'", () => {
 	});
 	it("connected but not running the work loop says so", () => {
 		assert.equal(footerLabel({ ...off, connected: true, name: "Claude Code" }, 0), "Claude Code connected, not teaching");
-		assert.equal(footerLabel({ ...off, connected: true, pendingWork: 2 }, 1), "Your agent connected, not teaching · 1 job");
+		assert.equal(footerLabel({ ...off, connected: true, pendingWork: 2 }, 1), "Your agent connected, not teaching, 1 job");
 	});
 	it("nobody connected (or access off, or not loaded yet)", () => {
-		assert.equal(footerLabel(off, 2), "No agent connected · 2 jobs");
+		assert.equal(footerLabel(off, 2), "No agent connected, 2 jobs");
 		assert.equal(footerLabel(off, 0), "No agent connected");
 		assert.equal(footerLabel(null, 0), "No agent connected");
 	});
 	it("work waiting with no agent reads 'Waiting for your agent'", () => {
-		assert.equal(footerLabel({ ...off, pendingWork: 1 }, 1), "Waiting for your agent · 1 job");
+		assert.equal(footerLabel({ ...off, pendingWork: 1 }, 1), "Waiting for your agent, 1 job");
 		assert.equal(footerLabel({ ...off, pendingWork: 2 }, 0), "Waiting for your agent");
 		assert.equal(footerLabel({ ...teaching, name: "Codex", pendingWork: 2 }, 0), "Codex", "a teaching agent is taking it");
 	});

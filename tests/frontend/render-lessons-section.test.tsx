@@ -23,6 +23,8 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
+	// next/link schedules its prefetch with self.requestIdleCallback.
+	self: globalThis,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),

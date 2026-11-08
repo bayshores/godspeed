@@ -107,5 +107,5 @@ export function footerLabel(agent: Pick<AgentStatus, "connected" | "teaching" | 
 				: agent.pendingWork > 0
 					? "Waiting for your agent"
 					: "No agent connected";
-	return jobs > 0 ? `${who} · ${jobs} job${jobs === 1 ? "" : "s"}` : who;
+	return jobs > 0 ? `${who}, ${jobs} job${jobs === 1 ? "" : "s"}` : who;
 }

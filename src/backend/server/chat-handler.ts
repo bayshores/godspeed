@@ -44,6 +44,7 @@ import { hasProbeDone, danglingQuestionOf, isSideTurn, retryContext } from "../.
 import { composeInstructions } from "../agent/teacher-agent.ts";
 import { ensureCompacted, kickCompaction, type CompactionDeps } from "./compaction.ts";
 import { emit } from "../../shared/core/events.ts";
+import { recordAnswer } from "./agent-actions.ts";
 import { asAgentMessages } from "../../shared/core/native-messages.ts";
 import {
 	ChatInputError,
@@ -249,6 +250,7 @@ export async function handleChatInput(
 			console.error(`[chat ${chatId}] write-ahead persist failed:`, err);
 			return new Response("Your input could not be saved. Please try again.", { status: 500 });
 		}
+		recordAnswer(record, input.answer);
 		emit("record-changed", { chatId });
 		return Response.json({ ok: true }); // no beginTurn, no turn: the client attaches and gets the settled terminal
 	}
@@ -279,6 +281,7 @@ export async function handleChatInput(
 		endTurn(chatId);
 		return new Response("Your input could not be saved. Please try again.", { status: 500 });
 	}
+	if (input.type === "answer") recordAnswer(record, input.answer);
 	// Visibility bookkeeping is not the canonical save. Its failure must
 	// neither misreport a saved input as lost nor prevent the turn running.
 	try {

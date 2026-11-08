@@ -3,8 +3,8 @@
  *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, leftOutIds?, source?: string | null, done? }
  *  DELETE — remove the deadline
  */
-import { removeClassDeadline, updateClassDeadline } from "@/backend/server";
-import { isClassId, type DeadlineKind } from "@/shared/core";
+import { recordDeadlineChange, removeClassDeadline, updateClassDeadline } from "@/backend/server";
+import { isClassId, type DeadlineKind, type DeadlinePatch } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export async function PUT(req: Request, { params }: Ctx) {
 		done?: unknown;
 	};
 	if (body.done !== undefined && typeof body.done !== "boolean") return Response.json({ error: "done must be true or false" }, { status: 400 });
-	const outcome = updateClassDeadline(id, deadlineId, {
+	const patch: DeadlinePatch = {
 		...(body.kind !== undefined ? { kind: body.kind as DeadlineKind } : {}),
 		...(body.name !== undefined ? { name: body.name as string } : {}),
 		...(body.date !== undefined ? { date: body.date as string } : {}),
@@ -33,8 +33,10 @@ export async function PUT(req: Request, { params }: Ctx) {
 		...(body.leftOutIds !== undefined ? { leftOutIds: body.leftOutIds as string[] } : {}),
 		...(body.source !== undefined ? { source: body.source as string | null } : {}),
 		...(body.done !== undefined ? { done: body.done } : {}),
-	});
+	};
+	const outcome = updateClassDeadline(id, deadlineId, patch);
 	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
+	recordDeadlineChange(id, outcome.value, patch);
 	return Response.json({ deadline: outcome.value });
 }
 

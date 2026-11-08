@@ -87,7 +87,7 @@ export function SheetDock({
 	const shownName = cards?.cards.find((c) => c.deadlineId === shown)?.name;
 
 	return (
-		<aside data-testid="sheet-dock" aria-label="Cheat sheet" style={{ width }} className="relative flex h-dvh shrink-0 flex-col border-l border-tone-2 bg-panel font-ui">
+		<aside data-testid="sheet-dock" aria-label="Cheat sheet" style={{ width }} className="relative flex h-full shrink-0 flex-col border-l border-tone-2 bg-panel font-ui">
 			<div
 				role="separator"
 				aria-orientation="vertical"

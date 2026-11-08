@@ -1,17 +1,21 @@
 /**
- * WHAT THE AGENT CHANGED (Halley): every MCP tool that changes
- * something records one action here. The last 20 are kept in memory for
- * the panel's "Recent" (GET /api/agent-actions; a restart clears them),
- * and each new one goes out as the "agent-action" event so the window can
- * fly Halley to it.
+ * THE ACTIVITY LOG: what changed lately, and who did it. Every MCP tool
+ * that changes something records one action here, as do the app (a linked
+ * folder's new files) and the learner (answers, deadlines saved in the
+ * app). The newest ACTIONS_MAX are saved to disk and served by
+ * GET /api/agent-actions; each new one goes out as the "agent-action"
+ * event so the window can fly the teacher to an agent's change.
  *
  * globalThis-backed like the event bus: Next compiles routes as separate
  * module instances, and they must all share one list.
  */
 import { randomUUID } from "node:crypto";
-import { APP_SOURCE, emit, type AgentAction } from "../../shared/core/events.ts";
+import { APP_SOURCE, emit, LEARNER_SOURCE, type AgentAction } from "../../shared/core/events.ts";
+import type { QuestionAnswerData } from "../../shared/core/question-core.ts";
+import type { DeadlinePatch } from "../../shared/core/ports.ts";
+import { readAgentActions, writeAgentActions } from "../store/agent-actions.ts";
 
-export const RECENT_LIMIT = 20;
+export const ACTIONS_MAX = 200;
 /** The same label on the same target within this window updates the last
  *  entry instead of adding one (a lesson turn calls respond many times). */
 export const COALESCE_MS = 2 * 60_000;
@@ -23,9 +27,19 @@ interface ActionsState {
 
 const KEY = Symbol.for("lh.agentActions");
 
+/** Read from disk on first use, so the log survives a restart. */
 function state(): ActionsState {
 	const g = globalThis as Record<symbol, ActionsState | undefined>;
-	return (g[KEY] ??= { list: [] });
+	return (g[KEY] ??= { list: readAgentActions() });
+}
+
+/** A failed save keeps the list in memory and never fails the change. */
+function save(): void {
+	try {
+		writeAgentActions(state().list);
+	} catch (err) {
+		console.error("[agent-action] saving failed:", err);
+	}
 }
 
 export type AgentActionInput = Omit<AgentAction, "id" | "at" | "agent"> & { agent?: string };
@@ -50,6 +64,7 @@ export function recordAgentAction(input: AgentActionInput, now = Date.now()): Ag
 	const last = list.at(-1);
 	if (last && last.label === label && last.agent === agent && sameTarget(last.target, input.target) && now - Date.parse(last.at) < COALESCE_MS && !input.removed) {
 		last.at = new Date(now).toISOString();
+		save();
 		return last;
 	}
 	const action: AgentAction = {
@@ -64,9 +79,19 @@ export function recordAgentAction(input: AgentActionInput, now = Date.now()): Ag
 		...(input.open ? { open: true as const } : {}),
 	};
 	list.push(action);
-	if (list.length > RECENT_LIMIT) list.splice(0, list.length - RECENT_LIMIT);
+	if (list.length > ACTIONS_MAX) list.splice(0, list.length - ACTIONS_MAX);
+	save();
 	emit("agent-action", action);
 	return action;
+}
+
+/** Change the newest entry in place (it adds up several events) and
+ *  announce it again. */
+function updateNewest(last: AgentAction, label: string, now: number): void {
+	last.label = label;
+	last.at = new Date(now).toISOString();
+	save();
+	emit("agent-action", last);
 }
 
 const FOLDER_LABEL = /^Added (\d+) files? from (.+)$/;
@@ -79,22 +104,62 @@ export function recordFolderFiles(classId: string, count: number, from: string, 
 	const merged = match && match[2] === from ? Number(match[1]) + count : null;
 	const label = (n: number) => `Added ${n} ${n === 1 ? "file" : "files"} from ${from}`;
 	if (last && merged !== null) {
-		last.label = label(merged);
-		last.at = new Date(now).toISOString();
-		emit("agent-action", last);
+		updateNewest(last, label(merged), now);
 		return;
 	}
 	recordAgentAction({ agent: APP_SOURCE, label: label(count), classId, target: null, page: "/class/files" }, now);
 }
 
-/** The recent actions, newest first. */
+/** Right and total answers in an answer entry's label. */
+function answerTally(label: string): { right: number; total: number } | null {
+	if (label === "Answered right") return { right: 1, total: 1 };
+	if (label === "Answered wrong" || label === "Didn't know") return { right: 0, total: 1 };
+	const many = /^Answered (\d+) of (\d+) right$/.exec(label);
+	return many ? { right: Number(many[1]), total: Number(many[2]) } : null;
+}
+
+/** A graded answer (quiz and probe questions; others are graded by the
+ *  agent later) as the learner's entry. Answers to a lesson's questions in
+ *  a row add up: "Answered 2 of 3 right". */
+export function recordAnswer(lesson: { id: string; classId?: string }, answer: QuestionAnswerData, now = Date.now()): void {
+	if (answer.kind !== "quiz") return;
+	const right = !answer.dontKnow && answer.correct === true;
+	const last = state().list.at(-1);
+	const sum =
+		last?.agent === LEARNER_SOURCE && sameTarget(last.target, { kind: "lesson", id: lesson.id }) && now - Date.parse(last.at) < COALESCE_MS
+			? answerTally(last.label)
+			: null;
+	if (last && sum) {
+		updateNewest(last, `Answered ${sum.right + (right ? 1 : 0)} of ${sum.total + 1} right`, now);
+		return;
+	}
+	const label = answer.dontKnow ? "Didn't know" : right ? "Answered right" : "Answered wrong";
+	recordAgentAction({ agent: LEARNER_SOURCE, label, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` }, now);
+}
+
+/** A deadline the learner saved in the app, with the verbs the agent's
+ *  entries use: "Added Test 2", "Moved Test 2", "Marked Test 2 done". */
+export function recordDeadlineChange(classId: string, deadline: { id: string; name: string }, change: "added" | DeadlinePatch, now = Date.now()): void {
+	const { name } = deadline;
+	const keys = change === "added" ? [] : Object.keys(change);
+	const label =
+		change === "added"
+			? `Added ${name}`
+			: change.done !== undefined
+				? `Marked ${name} ${change.done ? "done" : "not done"}`
+				: `${keys.length > 0 && keys.every((k) => k === "date" || k === "time") ? "Moved" : "Changed"} ${name}`;
+	recordAgentAction({ agent: LEARNER_SOURCE, label, classId, target: { kind: "deadline", id: deadline.id }, page: "/" }, now);
+}
+
+/** The saved actions, newest first. */
 export function recentAgentActions(): AgentAction[] {
 	return [...state().list].reverse();
 }
 
-/** Tests only: forget everything. */
+/** Tests only: forget everything, on disk too. */
 export function clearAgentActions(): void {
 	state().list.length = 0;
+	save();
 }
 
 /** Record what an agent changed, for the teacher's panel. Never fails the

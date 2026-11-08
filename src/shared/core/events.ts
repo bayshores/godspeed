@@ -47,6 +47,14 @@ export interface AgentAction {
  *  new files): not an agent, so the teacher never flies to them. */
 export const APP_SOURCE = "godspeed";
 
+/** The `agent` of what the learner did in the app (answers, deadlines). */
+export const LEARNER_SOURCE = "you";
+
+/** An outside agent's entry: the only kind Follow and the teacher go to. */
+export function isAgentEntry(action: AgentAction): boolean {
+	return action.agent !== APP_SOURCE && action.agent !== LEARNER_SOURCE;
+}
+
 /** The full event vocabulary. */
 export interface ServerEvents {
 	/** A teach turn began server-side (beginTurn) — client-initiated sends,

@@ -30,7 +30,6 @@ Object.assign(globalThis, {
 	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
-const { DueSoon } = await import("../../src/frontend/components/sidebar/due-soon.tsx");
 const { ComingUp } = await import("../../src/frontend/components/home-page/coming-up.tsx");
 const { ClassBlock } = await import("../../src/frontend/components/home-page/class-block.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
@@ -81,71 +80,6 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
 	await act(async () => root!.render(node));
 	return host;
 }
-
-// ─── Due soon ───────────────────────────────────────────────────────────────
-
-function dueSoon(deadlines: OpenDeadline[] | null = OPEN, leaving: Set<string> = new Set()) {
-	return renderToStaticMarkup(<DueSoon deadlines={deadlines} leaving={leaving} fixedNow={NOW} onDone={() => {}} />);
-}
-
-describe("Due soon", () => {
-	it("the 4 most urgent rows, overdue first", () => {
-		const ids = [...dueSoon().matchAll(/data-testid="due-soon-row-([a-z0-9]+)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, ["late", "quiz", "hw5", "mid"]);
-	});
-
-	it("heading, and no All link (the sidebar's Home row goes there)", () => {
-		const html = dueSoon();
-		assert.ok(html.includes(">Due soon</span>"));
-		assert.ok(!html.includes("due-soon-all"));
-	});
-
-	it("a row is one line: the name (15px, then its class in gray when the rows span classes), countdown, 13px done box; class and day on hover", () => {
-		const row = section(dueSoon(), "due-soon-row-quiz", "</li>");
-		assert.match(row, /title="CSE 21 · 5:00 PM"[^>]*text-\[15px\][^>]*>Reading quiz<span class="text-ink-3"> CSE 21</);
-		assert.match(row, /data-mode="fine"[^>]*font-mono[^>]*>48:00\.00</, "the last hour shows hundredths");
-		assert.match(row, /data-testid="done-box"[^>]*style="width:13px;height:13px"/);
-		assert.match(tag(dueSoon(), "due-soon-row-quiz"), /data-halley-target="deadline:quiz"/);
-	});
-
-	it("rows from one class show just the deadline's name", () => {
-		const one = OPEN.filter((x) => x.classId === "c21");
-		assert.match(section(dueSoon(one), "due-soon-row-quiz", "</li>"), /text-\[15px\][^>]*>Reading quiz</);
-	});
-
-	it("no time: the weekday on hover", () => {
-		assert.match(section(dueSoon(), "due-soon-row-hw5", "</li>"), /title="CSE 29 · Fri"/);
-	});
-
-	it("overdue: a red box and 'Overdue' in red", () => {
-		const row = section(dueSoon(), "due-soon-row-late", "</li>");
-		assert.match(row, /data-testid="done-box"[^>]*data-overdue="true"[^>]*class="[^"]*outline-ans-wrong/);
-		assert.match(row, /data-mode="overdue" style="color:var\(--lh-ans-wrong\)"[^>]*>Overdue</);
-		assert.doesNotMatch(section(dueSoon(), "due-soon-row-mid", "</li>"), /data-overdue/);
-	});
-
-	it("days away: 'in 8 days'", () => {
-		assert.match(section(dueSoon(), "due-soon-row-mid", "</li>"), /data-mode="days"[^>]*>in 8 days</);
-	});
-
-	it("hidden while loading or with nothing open", () => {
-		assert.equal(dueSoon(null), "");
-		assert.equal(dueSoon([]), "");
-	});
-
-	it("a leaving row fades out", () => {
-		assert.match(tag(dueSoon(OPEN, new Set(["quiz"])), "due-soon-row-quiz"), /data-leaving="true"[^>]*opacity-0/);
-	});
-
-	it("the done box ticks that deadline", async () => {
-		const done: string[] = [];
-		const el = await mount(<DueSoon deadlines={OPEN} leaving={new Set()} fixedNow={NOW} onDone={(x) => done.push(x.id)} />);
-		await act(async () => (el.querySelector('[data-testid="due-soon-row-hw5"] [data-testid="done-box"]') as HTMLButtonElement).click());
-		assert.deepEqual(done, ["hw5"]);
-	});
-});
-
-// ─── ticking done ───────────────────────────────────────────────────────────
 
 describe("Ticking a deadline done", () => {
 	const writes: { url: string; body: unknown }[] = [];

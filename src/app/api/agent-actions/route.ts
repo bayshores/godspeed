@@ -1,6 +1,6 @@
 /**
- * GET /api/agent-actions — what outside agents changed lately (Halley's
- * panel, "Recent"): the last 20, newest first, kept in memory only.
+ * GET /api/agent-actions — the activity log: what outside agents, the app
+ * and the learner changed lately, newest first (saved on disk).
  */
 import { recentAgentActions } from "@/backend/server";
 

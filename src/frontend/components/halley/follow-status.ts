@@ -6,7 +6,7 @@
  * the lesson on screen, a file or lesson it is reading for facts, a
  * background job, other work, idle. No agent connected: nothing.
  */
-import { APP_SOURCE, type AgentAction, type JobKind } from "@/shared/core";
+import { isAgentEntry, type AgentAction, type JobKind } from "@/shared/core";
 
 /** The newest change counts as "what it's doing now" this long, ahead of
  *  live work; then reading a file or a lesson shows. */
@@ -47,10 +47,10 @@ const JOB_TEXT: Record<JobKind, string> = {
 	pdf: "Reading a PDF",
 };
 
-/** The agent's newest change (never the app's own entries, like a
- *  folder's new files) while it is fresh, and how long it stays fresh. */
+/** The agent's newest change (never the app's or the learner's own
+ *  entries) while it is fresh, and how long it stays fresh. */
 export function freshAction(recent: readonly AgentAction[], now: number): { action: AgentAction; leftMs: number } | null {
-	const action = recent.find((a) => a.agent !== APP_SOURCE);
+	const action = recent.find(isAgentEntry);
 	if (!action) return null;
 	const leftMs = NOW_WINDOW_MS - (now - Date.parse(action.at));
 	return leftMs > 0 ? { action, leftMs } : null;

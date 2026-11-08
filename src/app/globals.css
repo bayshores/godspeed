@@ -316,6 +316,48 @@ body {
 	line-height: 1.25;
 }
 
+/* Bracket buttons, the terminal look: "[ label ]". The brackets are
+   drawn, not part of the label, so screen readers hear the label alone.
+   .lh-btn is outlined; .lh-btn-main is the one filled action of a view. */
+.lh-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 1ch;
+	height: 30px;
+	padding: 0 10px;
+	border: 1px solid var(--border);
+	font-family: var(--font-ui);
+	font-size: 13px;
+	line-height: 1;
+	white-space: nowrap;
+	color: var(--foreground);
+	transition: background-color var(--lh-dur-fast) var(--lh-ease-out), border-color var(--lh-dur-fast) var(--lh-ease-out);
+}
+.lh-btn::before {
+	content: "[" / "";
+}
+.lh-btn::after {
+	content: "]" / "";
+}
+.lh-btn:hover {
+	border-color: var(--lh-edge);
+	background: var(--accent);
+}
+.lh-btn:disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+.lh-btn-main {
+	border-color: var(--lh-tint);
+	background: var(--lh-tint);
+	color: var(--background);
+	font-weight: 700;
+}
+.lh-btn-main:hover {
+	border-color: var(--lh-tint);
+	background: color-mix(in oklab, var(--lh-tint) 82%, white);
+}
+
 /* Thin dark native scrollbar (app-wide): dark thumb, transparent track. */
 * {
 	scrollbar-width: thin;

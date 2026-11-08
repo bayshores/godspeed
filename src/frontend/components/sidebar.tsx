@@ -1,30 +1,16 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon } from "lucide-react";
-import { KeyboardShortcuts } from "@/frontend/components/keyboard-shortcuts";
-import { SettingsDialogProvider } from "@/frontend/components/settings/settings-dialog-provider.tsx";
-import { RuleNotice } from "@/frontend/components/rule-notice";
-import { FilesNotice } from "@/frontend/components/files-notice";
-import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { useUnseenFiles } from "@/frontend/components/sidebar/files-seen";
-import { Hint } from "@/frontend/components/ui/hint";
-import { Button } from "@/frontend/components/ui/button";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction } from "@/shared/core";
-import { ClassSwitcher } from "@/frontend/components/class-switcher";
 import { useClasses } from "@/frontend/components/class-context";
-import { replayRise } from "@/frontend/components/sidebar/motion";
-import { ClassNav, HomeRow } from "@/frontend/components/sidebar/class-nav";
-import { DueSoon } from "@/frontend/components/sidebar/due-soon";
-import { OpenDeadlinesProvider, useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { ClassTree } from "@/frontend/components/sidebar/class-tree";
 import { LessonsSection } from "@/frontend/components/sidebar/lessons-section";
-import { SidebarFooter } from "@/frontend/components/sidebar/sidebar-footer";
+import { TeacherPane } from "@/frontend/components/halley/teacher-pane";
 import { toggledSidebar } from "@/frontend/components/sidebar-model";
-import { HalleyProvider } from "@/frontend/components/halley/halley-provider";
-import { Welcome } from "@/frontend/components/welcome/welcome";
+import { Pane } from "@/frontend/components/ui/pane";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 
 export { useRiseOnChange } from "@/frontend/components/sidebar/motion";
@@ -103,7 +89,7 @@ const SidebarContext = createContext<{ open: boolean; toggle: () => void; fold: 
 	fold: () => {},
 });
 
-function useSidebar() {
+export function useSidebar() {
 	return useContext(SidebarContext);
 }
 
@@ -197,71 +183,25 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		<SidebarContext.Provider value={{ open: open && !narrow && !folded, toggle, fold: setFolded }}>
 			{/* transitions gated on mount: no slide-in flash on page load;
 			    motion-safe: reduced motion opens/closes at once */}
-			<div className={cn("flex h-dvh", mounted ? "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]" : "[&_.sidebar-motion]:transition-none")}>{children}</div>
+			<div className={cn("flex h-dvh flex-col", mounted ? "motion-safe:[&_.sidebar-motion]:transition-[width,margin,opacity]" : "[&_.sidebar-motion]:transition-none")}>{children}</div>
 		</SidebarContext.Provider>
 	);
 }
 
-/** The sidebar slide's timing — the motion tokens. Shared by the
- *  sidebar and its header toggle so the two stay in lockstep. */
+/** The sidebar slide's timing: the motion tokens. */
 const SIDEBAR_MOTION = "duration-[var(--lh-dur-slow)] ease-[var(--lh-ease-out)]";
 
-/** Hamburger for page headers — only visible when the sidebar is closed.
- *
- *  The toggle is ALWAYS MOUNTED, owning a slot whose width+margin animate
- *  in LOCKSTEP with the sidebar's own width transition (SIDEBAR_MOTION,
- *  both gated on mount) — mounting it in one frame would pop its 48px
- *  footprint (button + gap) and drag the title and chips sideways while
- *  the sidebar is still mid-slide. When open the slot is exactly zero
- *  (w-0 -mr-3: width 0, the negative margin cancels the header's gap-3).
- *  The icon fades with the slot and is clipped by it as it collapses —
- *  no popping in either direction. */
-export function SidebarToggle() {
-	const { open, toggle } = useSidebar();
-	return (
-		<span
-			className={cn(
-				"sidebar-motion lh-no-drag relative flex h-9 shrink-0 overflow-hidden", SIDEBAR_MOTION,
-				open ? "w-0 -mr-3" : "w-9 mr-0 lh-closed-toggle",
-			)}
-		>
-			<Hint label="Open sidebar">
-			<Button
-				variant="ghost"
-				size="icon"
-				aria-label="Open sidebar"
-				aria-hidden={open}
-				tabIndex={open ? -1 : 0}
-				onClick={toggle}
-				className={cn("sidebar-motion", SIDEBAR_MOTION, open ? "pointer-events-none opacity-0" : "opacity-100")}
-			>
-				{/* size-4, SAME as the close glyph — the toggle must not grow
-				    when the sidebar is closed. */}
-				<PanelLeftOpenIcon className="size-4" />
-			</Button>
-			</Hint>
-		</span>
-	);
-}
-
 /** The sidebar's width (drag its border line to change it). */
-const SIDEBAR_WIDTH = { initial: 256, min: 200, max: 360 };
-
-/** The sidebar's Study button: a full-width tone block, 13.5px bold. */
-const STUDY_BUTTON =
-	"lh-press flex w-full items-center justify-center gap-[7px] bg-tone py-[9px] text-[13.5px] font-bold text-ink hover:bg-tone-2";
+const SIDEBAR_WIDTH = { initial: 300, min: 240, max: 400 };
 
 /**
- * THE SIDEBAR (the same on every screen): the window row (traffic
- * lights + close), Home, the class switcher, the class nav (Overview /
- * Graph / Files), "Study", Due soon, the lessons, and the footer
- * (outside agent · jobs, settings).
+ * THE SIDEBAR (the same on every screen but a lesson's): three panes, the
+ * class tree, the lessons and the teacher.
  */
-function SessionsSidebar() {
+export function SessionsSidebar() {
 	const { open, toggle } = useSidebar();
 	const pathname = usePathname();
 	const { active: activeClassId, activeClass } = useClasses();
-	const due = useOpenDeadlines();
 	const unseenFiles = useUnseenFiles(activeClassId, activeClass?.lastFoundAt, pathname === "/class/files");
 	const [width, setWidth] = usePaneWidth("sidebar", SIDEBAR_WIDTH);
 
@@ -271,100 +211,14 @@ function SessionsSidebar() {
 			style={{ width: open ? width : 0 }}
 			inert={!open}
 		>
-			<div className="flex h-full flex-col items-start gap-3.5 border-r border-tone-2 bg-background px-2.5 pb-3" style={{ width }}>
-				{/* The window row: in Electron it is the window's drag surface and
-				    the native traffic lights sit in its left gutter
-				    (.lh-lights-gutter); the close toggle sits at the right edge.
-				    44px tall so the lights (centered 22px down) line up with it;
-				    -mb-2.5 keeps the design's 48px to the class switcher. */}
-				<div className="lh-drag lh-lights-gutter -mb-2.5 flex h-11 w-full shrink-0 items-center justify-end px-1">
-					<Hint label="Close sidebar">
-						<button
-							type="button"
-							aria-label="Close sidebar"
-							onClick={toggle}
-							className="lh-press lh-no-drag flex size-7 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink"
-						>
-							<PanelLeftCloseIcon className="size-4" />
-						</button>
-					</Hint>
-				</div>
-
-				<HomeRow pathname={pathname} />
-
-				<ClassSwitcher />
-
-				<ClassNav pathname={pathname} hasClass={activeClass !== null} fileCount={activeClass?.fileCount ?? 0} unseenFiles={unseenFiles} />
-
-				{/* New lessons start on the start page ("/new"). */}
-				<Link href="/new" data-testid="new-session" className={STUDY_BUTTON}>
-					<PlusIcon className="size-3.5" aria-hidden />
-					Study
-				</Link>
-
-				<DueSoon deadlines={due.deadlines} leaving={due.leaving} onDone={due.markDone} />
-
+			<div className="flex h-full flex-col gap-5 px-4 pt-6 pb-4" style={{ width }}>
+				<Pane className="shrink-0 px-2 py-2.5">
+					<ClassTree pathname={pathname} fileCount={activeClass?.fileCount ?? 0} unseenFiles={unseenFiles} />
+				</Pane>
 				<LessonsSection open={open} toggle={toggle} pathname={pathname} activeClassId={activeClassId} />
-
-				<SidebarFooter />
+				<TeacherPane />
 			</div>
 			{open && <ResizeHandle paneKey="sidebar" edge="right" width={width} bounds={SIDEBAR_WIDTH} onWidth={setWidth} label="Resize the sidebar" />}
 		</aside>
-	);
-}
-
-/** The view swap: switching between
- *  pages (Home, a lesson, Overview…) rises the incoming page in once. */
-function ViewSwap({ children }: { children: React.ReactNode }) {
-	const pathname = usePathname();
-	const ref = useRef<HTMLDivElement>(null);
-	const prev = useRef(pathname);
-	useLayoutEffect(() => {
-		const from = prev.current;
-		prev.current = pathname;
-		if (from === pathname) return;
-		replayRise(ref.current);
-	}, [pathname]);
-	return (
-		<div ref={ref} className="h-full" style={{ animationDuration: "var(--lh-dur-slow)" }}>
-			{children}
-		</div>
-	);
-}
-
-/** The app frame: sidebar inline + content, Halley over both, and the
- *  welcome screen over everything at launch. Rendered once in the root
- *  layout. */
-export function AppShell({
-	children,
-	teacherName,
-	welcome,
-	whatsNewSince,
-}: {
-	children: React.ReactNode;
-	teacherName?: string;
-	welcome: boolean;
-	whatsNewSince: string | null;
-}) {
-	return (
-		<SettingsDialogProvider>
-			<OpenDeadlinesProvider>
-			<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
-			<HalleyProvider initialName={teacherName}>
-			<SessionsSidebar />
-			{/* The teacher's open panel pushes the page left (halley-panel.tsx sets the var). */}
-			<main className="min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
-				<ViewSwap>{children}</ViewSwap>
-			</main>
-			</HalleyProvider>
-			</OpenDeadlinesProvider>
-			{/* The single document-level keydown listener —
-			    after the content in the tree, but it's window-level so order only
-			    matters for the events it dispatches, never for DOM priority. */}
-			<KeyboardShortcuts />
-			<RuleNotice />
-			<FilesNotice />
-			<QuietNotice />
-		</SettingsDialogProvider>
 	);
 }

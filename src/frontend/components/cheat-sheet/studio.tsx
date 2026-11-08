@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, DownloadIcon, FolderOpenIcon, PrinterIcon } from "lucide-react";
+import { DownloadIcon, FolderOpenIcon, PrinterIcon } from "lucide-react";
 import { currentVersion, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useFoldSidebar } from "@/frontend/components/sidebar";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
+import { slug } from "@/frontend/components/app-bar-model";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
@@ -48,7 +48,7 @@ export function CheatSheetStudio({ classId, deadlineId }: { classId: string; dea
 				<Studio view={view} classId={classId} deadlineId={deadlineId} act={act} />
 			) : (
 				<>
-					<TopBar />
+					<TopBar path={[{ label: "cheat-sheet", href: null }]} />
 					{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-[52px] py-6" /> : <div className="flex-1" aria-hidden />}
 				</>
 			)}
@@ -104,18 +104,7 @@ function Studio({
 
 	return (
 		<>
-			<TopBar>
-				<div className="flex min-w-0 flex-1 items-center gap-2">
-					<Link
-						href={`/class/deadline/${encodeURIComponent(deadlineId)}`}
-						aria-label={`Back to ${view.deadlineName}`}
-						title={`Back to ${view.deadlineName}`}
-						className="lh-press flex size-8 shrink-0 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink"
-					>
-						<ArrowLeftIcon className="size-4" aria-hidden />
-					</Link>
-					<h1 className="min-w-0 truncate text-[15px] font-bold text-ink">Cheat sheet for {view.deadlineName}</h1>
-				</div>
+			<TopBar path={[{ label: slug(view.deadlineName), href: `/class/deadline/${encodeURIComponent(deadlineId)}` }, { label: "cheat-sheet", href: null }]}>
 				<StudioStatus view={view} agentName={agentName} agentGone={agentGone} onStop={() => void act({ action: "stop" }).then(setFailed)} />
 				{current &&
 					currentUrl &&

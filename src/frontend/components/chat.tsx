@@ -51,6 +51,7 @@ import { YourTurnPanel } from "@/frontend/components/lesson/your-turn-panel";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useHalley, useHalleyLesson } from "@/frontend/components/halley/halley-provider";
+import { useFoldSidebar } from "@/frontend/components/sidebar";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 import { sessionAbout } from "@/frontend/components/cheat-sheet/dock-model";
 
@@ -331,6 +332,8 @@ export function Chat({
 	// Halley rests in the reading pane: Talking while the teacher writes,
 	// Thinking while the turn runs.
 	useHalleyLesson(status === "streaming", busy, draftHeld);
+	// A lesson takes the whole width; the top bar's toggle still opens the sidebar.
+	useFoldSidebar();
 	const attachments = useAttachmentDraft(chatId);
 	const hasFiles = attachments.files.length > 0;
 
@@ -482,7 +485,7 @@ export function Chat({
 			<SessionMermaidContext.Provider value={mermaidActions}>
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
-						<div className="flex h-dvh min-w-0 flex-1">
+						<div className="flex h-full min-w-0 flex-1">
 							<div className="@container/lesson flex min-w-0 flex-1 flex-col">
 								<LessonTopBar
 									kind={kind}

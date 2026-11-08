@@ -44,7 +44,7 @@ import {
 import { chainsForSelection, formatChainLine, fuzzyScore } from "@/shared/core";
 import { usePresence } from "@/frontend/components/presence";
 import type { GraphChain, GraphNode } from "@/shared/core";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
 import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
 
@@ -212,8 +212,8 @@ export function ChainTableBody({
 			    the chain table names nothing, so its bar carries counts +
 			    search + close only. Search + close carve out with lh-no-drag
 			    (later in the DOM). */}
-			<TopBar>
-				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+			<TopBar path={[{ label: "graph", href: "/graph" }, { label: "all-facts", href: null }]}>
+				<span className="shrink-0 text-xs text-muted-foreground">
 					{nodes.length} {nodes.length === 1 ? "fact" : "facts"}
 				</span>
 				<div className="relative shrink-0">

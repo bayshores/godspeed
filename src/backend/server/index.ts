@@ -39,7 +39,7 @@ export * from "./dismissal-park.ts";
 export * from "./compaction.ts";
 export { piTurnResponse } from "./pi/ui-stream.ts";
 export * from "./observability.ts";
-export { recentAgentActions } from "./agent-actions.ts";
+export { recentAgentActions, recordDeadlineChange } from "./agent-actions.ts";
 export { readingDocument, readingPdfPage } from "./reading-pages.ts";
 
 export { AgentFolderError, agentFolderView, classShortcutDir, dismissFolderNotice, setUpAgentFolder, shortcutPathProblem } from "./agent-folder.ts";

@@ -13,7 +13,7 @@ import { longDateLine } from "@/frontend/components/deadlines-model";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { lessonHref } from "@/frontend/components/overview/overview-model";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { ClassBlock } from "./class-block";
 import { ComingUp } from "./coming-up";
@@ -62,8 +62,7 @@ export function HomePage() {
 
 	return (
 		<div data-testid="home-page" className="flex h-full min-h-0 flex-col">
-			<TopBar>
-				<div className="flex-1" />
+			<TopBar inClass={false} path={[{ label: "home", href: null }]}>
 				{shown.length > 0 && <AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />}
 			</TopBar>
 			<div className="min-h-0 flex-1 overflow-y-auto">

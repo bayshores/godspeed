@@ -20,7 +20,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import type { AgentAction } from "@/shared/core";
-import { APP_SOURCE, DEFAULT_TEACHER_NAME } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, isAgentEntry } from "@/shared/core";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
@@ -362,8 +362,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
 		setRecent((list) => [action, ...list.filter((a) => a.id !== action.id)].slice(0, RECENT_LIMIT));
-		// The app's own entries (a folder's new files) are listed, never visited.
-		if (action.agent === APP_SOURCE) return;
+		// The app's and the learner's own entries are listed, never visited.
+		if (!isAgentEntry(action)) return;
 		queue.current.push(action);
 		if (action.open) forced.current.add(action.id);
 		void run();

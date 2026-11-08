@@ -15,7 +15,8 @@ import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { askTeacher } from "@/frontend/components/halley/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
+import { slug } from "@/frontend/components/app-bar-model";
 import { useProgress } from "@/frontend/components/use-progress";
 import { DeadlineBody } from "./deadline-body";
 import { coverageMessage, deadlineMaterial } from "./deadline-model";
@@ -98,12 +99,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 
 	return (
 		<div className="flex h-full flex-col">
-			<TopBar>
-				<nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-					<Link href="/class" title={activeClass?.name} className="lh-press min-w-0 truncate text-ink-2 hover:text-ink">
-						{activeClass?.name ?? "Class"}
-					</Link>
-				</nav>
+			<TopBar path={[{ label: deadline ? slug(deadline.name) : "deadline", href: null }]}>
 				<button
 					type="button"
 					data-testid="deadline-edit-class"

@@ -7,7 +7,7 @@ import { ClassDialog } from "@/frontend/components/class-dialog";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
 import { useProgress } from "@/frontend/components/use-progress";
 import { PickClass } from "@/frontend/components/pick-class";
 import { OverviewBody } from "./overview-body";
@@ -43,8 +43,7 @@ export function ClassOverview() {
 
 	return (
 		<div className="flex h-full flex-col">
-			<TopBar>
-				<div className="flex-1" />
+			<TopBar path={[{ label: "overview", href: null }]}>
 				{activeClass && (
 					<button
 						type="button"

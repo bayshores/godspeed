@@ -41,7 +41,7 @@ const { HalleyPanel, agentLine } = await import("../../src/frontend/components/h
 const { dockPush, dockWidth } = await import("../../src/frontend/components/halley/dock-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/halley/ask-teacher.ts");
-const { FollowChipView } = await import("../../src/frontend/components/halley/follow-chip.tsx");
+const { TeacherPaneView } = await import("../../src/frontend/components/halley/teacher-pane.tsx");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivitySection } = await import("../../src/frontend/components/activity-dock.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
@@ -399,51 +399,62 @@ describe("the panel", () => {
 	});
 });
 
-describe("the Follow chip", () => {
+describe("the teacher pane", () => {
 	const reading = { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true };
-	it("following: a green dot, 'Following <name>', what it's doing, and a plain Stop; no white block", () => {
+	const pane = (over: Partial<React.ComponentProps<typeof TeacherPaneView>> = {}) => (
+		<TeacherPaneView
+			name="Marco"
+			mood="talking"
+			doing={reading}
+			idleLine="Claude Code"
+			disconnected={false}
+			following
+			onFollow={() => {}}
+			offer={null}
+			onGo={() => {}}
+			talkOpen={false}
+			onTalk={() => {}}
+			{...over}
+		/>
+	);
+	it("the name cut into the border, the mascot, and what it's doing: the verb over the rest", () => {
+		const el = mount(pane());
+		assert.equal(el.querySelector("[data-testid='teacher-pane'] h2")?.textContent, "marco");
+		assert.equal(el.querySelector("[data-testid='teacher-sprite']")?.getAttribute("data-face"), "reading");
+		assert.match(el.querySelector("[data-testid='teacher-doing']")?.textContent ?? "", /^reading06_Counting\.pdf3 of 12$/);
+	});
+	it("idle: one quiet line", () => {
+		const html = renderToStaticMarkup(pane({ doing: { text: "Idle", working: false } }));
+		assert.match(html, /data-testid="teacher-doing"[^>]*>idle</);
+	});
+	it("follow turns on and off; talk opens the panel", () => {
 		const follows: boolean[] = [];
-		const el = mount(<FollowChipView following name="Halley" doing={reading} onFollow={(on) => follows.push(on)} offer={null} onGo={() => {}} />);
-		const chip = el.querySelector("[data-testid='follow-chip']")!;
-		assert.doesNotMatch(chip.className, /bg-ink/);
-		assert.match(chip.querySelector("[data-working]")!.className, /bg-\(--lh-ans-right\)/, "the green dot");
-		assert.match(chip.textContent ?? "", /^Following HalleyReading 06_Counting\.pdf3 of 12Stop/);
-		assert.ok(chip.querySelector("[data-testid='follow-doing'] .tabular-nums"), "counts don't jitter");
-		assert.ok(chip.querySelector("[data-working]")?.className.includes("lh-breathe"), "the dot breathes while it works");
-		assert.equal(el.querySelector("[data-testid='follow-stop']")?.getAttribute("aria-label"), "Stop following Halley");
+		let talked = 0;
+		const el = mount(pane({ onFollow: (on) => follows.push(on), onTalk: () => talked++ }));
+		assert.equal(el.querySelector("[data-testid='follow-stop']")?.textContent, "following");
 		act(() => (el.querySelector("[data-testid='follow-stop']") as HTMLElement).click());
+		act(() => (el.querySelector("[data-testid='teacher-talk']") as HTMLElement).click());
 		assert.deepEqual(follows, [false]);
-	});
-	it("idle: the dot is still", () => {
-		const html = renderToStaticMarkup(<FollowChipView following name="Halley" doing={{ text: "Idle", working: false }} onFollow={() => {}} offer={null} onGo={() => {}} />);
-		assert.match(html, />Idle</);
-		assert.doesNotMatch(html, /lh-breathe/);
-	});
-	it("a new line lifts the old one out", () => {
-		const el = mount(<FollowChipView following name="Halley" doing={reading} onFollow={() => {}} offer={null} onGo={() => {}} />);
-		act(() => root!.render(inEvents(<FollowChipView following name="Halley" doing={{ text: "Adding HW 5", working: true }} onFollow={() => {}} offer={null} onGo={() => {}} />)));
-		assert.equal(el.querySelector(".lh-swap-out")?.textContent, "Reading 06_Counting.pdf");
-		assert.equal(el.querySelector("[data-testid='follow-doing'] .lh-swap-in")?.textContent, "Adding HW 5");
+		assert.equal(talked, 1);
+		const off = mount(pane({ following: false, onFollow: (on) => follows.push(on) }));
+		act(() => (off.querySelector("[data-testid='follow-start']") as HTMLElement).click());
+		assert.deepEqual(follows, [false, true]);
 	});
 	it("screen readers hear the line in a polite live region", () => {
-		const html = renderToStaticMarkup(<FollowChipView following={false} name="Halley" doing={reading} onFollow={() => {}} offer={null} onGo={() => {}} />);
-		assert.match(html, /aria-live="polite"[^>]*>Halley: Reading 06_Counting\.pdf</);
+		assert.match(renderToStaticMarkup(pane()), /aria-live="polite"[^>]*>Marco: Reading 06_Counting\.pdf</);
 	});
-	it("not following: a quiet 'Follow <name>' button turns it on", () => {
-		const follows: boolean[] = [];
-		const el = mount(<FollowChipView following={false} name="Halley" doing={reading} onFollow={(on) => follows.push(on)} offer={null} onGo={() => {}} />);
-		assert.doesNotMatch(el.querySelector("[data-testid='follow-off']")!.className, /bg-ink/);
-		assert.equal(el.querySelector("[data-testid='follow-start']")?.textContent, "Follow Halley");
-		act(() => (el.querySelector("[data-testid='follow-start']") as HTMLElement).click());
-		assert.deepEqual(follows, [true]);
-	});
-	it("with Follow off, a change on another page offers 'Go to'", () => {
+	it("with Follow off, a change on another page offers to go there", () => {
 		const offer: AgentAction = { id: "act_1", at: new Date().toISOString(), agent: "Claude Code", label: "Starting CSE 29 review", classId: null, target: null, page: "/chat/c1" };
 		const went: AgentAction[] = [];
-		const el = mount(<FollowChipView following={false} name="Halley" doing={reading} onFollow={() => {}} offer={offer} onGo={(a) => went.push(a)} />);
-		assert.match(el.querySelector("[data-testid='follow-offer']")?.textContent ?? "", /^Starting CSE 29 reviewGo to lesson$/);
+		const el = mount(pane({ following: false, offer, onGo: (a) => went.push(a) }));
+		assert.match(el.querySelector("[data-testid='follow-offer']")?.textContent ?? "", /^starting cse 29 reviewgo to lesson$/);
 		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
 		assert.deepEqual(went, [offer]);
+	});
+	it("no agent yet: the agent line, no follow button", () => {
+		const html = renderToStaticMarkup(pane({ doing: null, idleLine: "No agent connected" }));
+		assert.match(html, />no agent connected</);
+		assert.doesNotMatch(html, /follow-st/);
 	});
 });
 

@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import { DeleteSessionDialog } from "@/frontend/components/delete-session-dialog";
@@ -12,11 +13,11 @@ import { RenameRow, SessionRow } from "@/frontend/components/sidebar/session-row
 import { LessonMenu } from "@/frontend/components/sidebar/lesson-menu";
 import { useLessonList } from "@/frontend/components/sidebar/use-lesson-list";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { Pane } from "@/frontend/components/ui/pane";
 
 /**
- * THE LESSONS SECTION: the "Lessons" heading with its search toggle, the
- * active class's lessons, and the lesson menu (rename, export, move,
+ * THE LESSONS PANE: the study button and the search toggle, the active
+ * class's lessons, and the lesson menu (rename, export, move,
  * delete; a row's ⋯ button or a right-click opens it). The search icon (or ⌘⇧F) opens a fuzzy filter field: ↑/↓ walk
  * the matches, Enter opens the walked row (or the first match), Esc
  * closes the field.
@@ -179,9 +180,12 @@ export function LessonsSection({
 	};
 
 	return (
-		<div className="flex min-h-0 w-full flex-1 flex-col">
-			<div className="flex w-full items-center justify-between px-2.5 pt-1">
-				<span className={LABEL_TEXT}>Lessons</span>
+		<Pane name="lessons" className="flex min-h-0 w-full flex-1 flex-col px-2 pt-4 pb-2">
+			<div className="flex w-full items-center justify-between gap-2 px-2">
+				{/* New lessons start on the start page ("/new"). */}
+				<Link href="/new" prefetch={false} data-testid="new-session" className="lh-btn">
+					+ study
+				</Link>
 				<Hint label="Search lessons" side="right">
 					<button
 						type="button"
@@ -189,7 +193,7 @@ export function LessonsSection({
 						aria-label="Search lessons"
 						aria-expanded={searchOpen}
 						onClick={() => (searchOpen ? closeSearch() : openSearch())}
-						className={cn("lh-press -m-1 flex size-6 items-center justify-center hover:text-ink", searchOpen ? "text-ink" : "text-ink-3")}
+						className={cn("lh-press flex size-7 items-center justify-center hover:text-ink", searchOpen ? "text-ink" : "text-ink-3")}
 					>
 						<SearchIcon className="size-3.5" />
 					</button>
@@ -207,23 +211,23 @@ export function LessonsSection({
 							setKbdIndex(null); // the list reorders under the query
 						}}
 						onKeyDown={onSearchKey}
-						placeholder="Search lessons…"
+						placeholder="search lessons"
 						aria-label="Search lessons"
 						spellCheck={false}
-						className="mt-2 h-8 w-full border border-edge bg-panel px-2.5 text-[13px] text-ink outline-none placeholder:text-ink-3 focus:border-ink"
+						className="mt-2 h-8 w-full border border-edge bg-background px-2.5 text-base text-ink outline-none placeholder:text-ink-3 focus:border-tint"
 					/>
 				</div>
 			</div>
 
-			<div ref={listRef} className="mt-3.5 flex w-full min-h-0 flex-1 flex-col gap-px overflow-y-auto">
+			<div ref={listRef} className="mt-3 flex w-full min-h-0 flex-1 flex-col gap-px overflow-y-auto">
 				{shown === null ? (
 					failed ? (
 						<LoadFailed message="Couldn't load your lessons." onRetry={() => void refresh()} className="px-2.5 py-3" />
 					) : (
-						<div className="px-2.5 py-3 text-[12.5px] text-ink-2">Loading…</div>
+						<div className="px-2 py-3 text-sm text-ink-2">Loading…</div>
 					)
 				) : shown.length === 0 ? (
-					<div className="px-2.5 py-3 text-[12.5px] text-ink-2">
+					<div className="px-2 py-3 text-sm text-ink-2">
 						{query.trim() ? "No lessons match." : "No lessons yet."}
 					</div>
 				) : (
@@ -247,7 +251,7 @@ export function LessonsSection({
 									menuOpen={ctxChatId === c.id}
 								/>
 								{renameFailedId === c.id && (
-									<p role="alert" data-testid="session-rename-failed" className="px-2.5 pb-1 text-[12px] text-ans-wrong">
+									<p role="alert" data-testid="session-rename-failed" className="px-2 pb-1 text-xs text-ans-wrong">
 										Couldn&apos;t rename the lesson.
 									</p>
 								)}
@@ -292,6 +296,6 @@ export function LessonsSection({
 					window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { revision: Date.now() } }));
 				}}
 			/>
-		</div>
+		</Pane>
 	);
 }

@@ -5,7 +5,7 @@ import type { FileCoverage, GraphContextPick, GraphCostSummary, TopicProgress } 
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { classQuery, useClasses } from "@/frontend/components/class-context";
 import { useRiseOnChange } from "@/frontend/components/sidebar";
-import { TopBar } from "@/frontend/components/top-bar";
+import { TopBar } from "@/frontend/components/app-bar";
 import { useProgress } from "@/frontend/components/use-progress";
 import { GraphCostControl } from "@/frontend/components/graph/cost-control.tsx";
 import { displayName } from "@/frontend/components/overview/overview-model";
@@ -65,9 +65,7 @@ export function NewLesson() {
 
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
-			<TopBar>
-				<h1 className="text-[15px] font-bold text-ink">Study</h1>
-				<div className="flex-1" />
+			<TopBar path={[{ label: "study", href: null }]}>
 				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
 			</TopBar>
 

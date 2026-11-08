@@ -1,6 +1,6 @@
-import { DumbbellIcon, FileTextIcon, SearchIcon } from "lucide-react";
-import { SidebarToggle } from "@/frontend/components/sidebar";
-import { FollowChip } from "@/frontend/components/halley/follow-chip";
+import { SearchIcon } from "lucide-react";
+import { TopBar } from "@/frontend/components/app-bar";
+import { slug } from "@/frontend/components/app-bar-model";
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction, type LessonKind, type PlanStepBar } from "@/shared/core";
@@ -9,13 +9,10 @@ import { StepBar } from "./step-bar";
 import type { useTitleRename } from "./use-title-rename";
 
 /**
- * THE LESSON TOP BAR: a 56px window-drag band
- * over the reading pane and the Your-turn panel.
- * - Teaching or studying with a plan: the plan step bar.
- * - Practice: the lesson name, one block per problem and "2 of 3 solved".
- * - Before a plan exists: the lesson name.
- * The name is renamed in place (click or F2); Cheat sheet opens the sheet
- * beside the session; the search icon opens Find.
+ * THE LESSON'S PART OF THE TOP BAR: the path ends in the lesson's name,
+ * which renames in place on a click (or F2). Its buttons: the plan step
+ * bar (or, in practice, one block per problem), the cheat sheet beside
+ * the session, and Find.
  */
 export function LessonTopBar({
 	kind,
@@ -35,50 +32,14 @@ export function LessonTopBar({
 	/** The cheat sheet beside the session (a session in a class). */
 	sheet?: { open: boolean; onToggle: () => void };
 }) {
-	const { renaming } = rename;
 	return (
-		<header
-			onMouseDown={(e) => {
-				// Any mousedown outside the rename input commits it (via blur).
-				if (renaming && e.target !== rename.inputRef.current) rename.inputRef.current?.blur();
-			}}
-			className={cn(
-				// While renaming the bar is no drag surface: app-region:drag would
-				// eat the mousedown that ends the rename.
-				!renaming && "lh-drag",
-				"lh-wco-gutter flex h-14 shrink-0 select-none items-center gap-5 pl-7 pr-5",
-			)}
-		>
-			<div className="flex min-w-0 flex-1 items-center gap-3">
-				<SidebarToggle />
-				<FollowChip />
-				{renaming ? (
-					<RenameInput rename={rename} />
-				) : kind === "practice" ? (
-					<>
-						<DumbbellIcon aria-hidden className="size-4 shrink-0 text-ink-2" />
-						<TitleButton rename={rename} />
-						{practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />}
-					</>
-				) : bar && bar.steps.length > 0 ? (
-					<StepBar bar={bar} onJump={onJump} onOpenPlan={onOpenPlan} />
-				) : (
-					<TitleButton rename={rename} />
-				)}
-			</div>
+		<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
+			{kind === "practice"
+				? practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />
+				: bar && bar.steps.length > 0 && <StepBar bar={bar} onJump={onJump} onOpenPlan={onOpenPlan} />}
 			{sheet && (
-				<button
-					type="button"
-					data-testid="lesson-cheat-sheet"
-					aria-pressed={sheet.open}
-					onClick={sheet.onToggle}
-					className={cn(
-						"lh-no-drag lh-press flex h-8 shrink-0 items-center gap-2 px-3 text-[15px] text-ink",
-						sheet.open ? "bg-tone-2 hover:bg-edge" : "bg-tone hover:bg-tone-2",
-					)}
-				>
-					<FileTextIcon aria-hidden className="size-4" />
-					Cheat sheet
+				<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn("lh-btn", sheet.open && "border-tint text-tint")}>
+					cheat sheet
 				</button>
 			)}
 			<Hint label="Find" side="bottom">
@@ -87,12 +48,12 @@ export function LessonTopBar({
 					data-testid="lesson-find"
 					aria-label="Find"
 					onClick={() => window.dispatchEvent(new CustomEvent(kbdEventForAction("find")))}
-					className="lh-press flex size-8 shrink-0 items-center justify-center text-ink-3 hover:text-ink"
+					className="lh-press flex size-7 shrink-0 items-center justify-center text-ink-3 hover:text-ink"
 				>
 					<SearchIcon className="size-4" />
 				</button>
 			</Hint>
-		</header>
+		</TopBar>
 	);
 }
 
@@ -103,9 +64,9 @@ function TitleButton({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 				type="button"
 				data-testid="lesson-title"
 				onClick={rename.start}
-				className="lh-no-drag min-w-0 shrink cursor-text truncate text-left text-[15px] font-bold text-ink"
+				className="lh-no-drag min-w-0 shrink cursor-text truncate text-left font-bold text-ink"
 			>
-				{rename.title}
+				{slug(rename.title)}
 			</button>
 		</Hint>
 	);
@@ -128,7 +89,7 @@ function RenameInput({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 			onBlur={() => void rename.commit(rename.draft)}
 			spellCheck={false}
 			aria-label="Lesson name"
-			className="lh-no-drag min-w-[8ch] max-w-[70%] shrink-0 bg-transparent text-[15px] font-bold text-ink caret-current outline-none [field-sizing:content]"
+			className="lh-no-drag min-w-[8ch] max-w-full shrink bg-transparent font-bold text-ink caret-current outline-none [field-sizing:content]"
 		/>
 	);
 }
@@ -153,7 +114,7 @@ function PracticeBlocks({ progress }: { progress: PracticeProgress }) {
 				))}
 			</span>
 			{progress.finished > 0 && (
-				<span className="text-[15px] text-ink-2 tabular-nums">
+				<span className="text-sm text-ink-2 tabular-nums">
 					{progress.solved} of {progress.finished} solved
 				</span>
 			)}

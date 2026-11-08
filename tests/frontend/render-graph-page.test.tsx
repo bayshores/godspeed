@@ -173,6 +173,8 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	SVGElement: dom.window.SVGElement,
 	CustomEvent: dom.window.CustomEvent,
+	// next/link schedules its prefetch with self.requestIdleCallback.
+	self: globalThis,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	// The menu shell measures and places on a frame.
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),

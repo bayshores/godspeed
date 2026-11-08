@@ -52,9 +52,9 @@ describe("SessionRow", () => {
 		}
 	});
 
-	it("a waiting lesson shows its age in full white, no square and no 'Your turn' text", () => {
+	it("a waiting lesson shows its age in the accent, no square and no 'Your turn' text", () => {
 		const html = render(item({ phase: "teach", pendingQuestion: true }));
-		assert.match(html, /data-waiting="true"[^>]*text-ink"/, "the age in white");
+		assert.match(html, /data-waiting="true"[^>]*text-tint"/, "the age in the accent");
 		assert.ok(!html.includes("session-waiting-dot"), "no square");
 		assert.ok(!html.includes("braille-spinner"), "motion is reserved for working");
 		assert.doesNotMatch(html, /Your turn|Waiting for input/);

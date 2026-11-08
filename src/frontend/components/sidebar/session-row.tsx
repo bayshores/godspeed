@@ -6,12 +6,12 @@ import { cn } from "@/frontend/lib/utils";
 import { localDay, type ChatListItem } from "@/shared/core";
 
 /**
- * ONE LESSON ROW, one line: the title, then on the right its age ("now",
- * "5m", "1d") or "Working…" while the teacher writes. A lesson waiting
+ * ONE LESSON ROW: the title, and under it its age ("now", "5m", "1d") or
+ * "Working…" while the teacher writes. A lesson waiting
  * for the learner's answer shows its age in full white, and hovering (or
  * focusing) the row explains it: "Waiting for your answer · Teacher
  * replied 1 day ago". The active lesson sits on the tone block in bold.
- * Hovering shows a ⋯ button in the age's place that opens the lesson
+ * Hovering shows a ⋯ button at the row's corner that opens the lesson
  * menu, the same menu a right-click opens.
  */
 
@@ -56,11 +56,11 @@ function sessionMeta(chat: ChatListItem): string {
 }
 
 /** The age on the row's right: a spinner while working, white while waiting. */
-function MetaLine({ chat, className }: { chat: ChatListItem; className?: string }) {
+function MetaLine({ chat }: { chat: ChatListItem }) {
 	const working = chat.busy || chat.compacting;
 	const waiting = !working && lessonWaiting(chat);
 	return (
-		<span data-waiting={waiting || undefined} className={cn("flex shrink-0 items-center gap-1.5 text-[15px]", waiting ? "text-ink" : "text-ink-2", className)}>
+		<span data-waiting={waiting || undefined} className={cn("flex shrink-0 items-center gap-1.5 text-xs", waiting ? "text-tint" : "text-ink-3")}>
 			{working && <BrailleSpinner />}
 			<span>{sessionMeta(chat)}</span>
 			{waiting && <span className="sr-only">Waiting for your answer</span>}
@@ -119,15 +119,14 @@ export const SessionRow = memo(function SessionRow({
 					data-active={active || undefined}
 					aria-current={active ? "page" : undefined}
 					className={cn(
-						"lh-press flex w-full items-center gap-3 px-2.5 py-2 text-left group-hover:bg-tone",
+						"lh-press flex w-full flex-col items-start gap-0.5 px-2 py-1.5 text-left group-hover:bg-tone",
 						active && "bg-tone",
 						fresh && "lh-rise",
 						kbdSelected && !active && "bg-tone/60 ring-1 ring-tone-2 ring-inset",
 					)}
 				>
-					<span className={cn("min-w-0 flex-1 truncate text-[15px] text-ink", active && "font-bold")}>{chat.title}</span>
-					{/* The ⋯ button takes the age's place while it shows. */}
-					<MetaLine chat={chat} className={cn(onMenu && "group-focus-within:invisible group-hover:invisible", menuOpen && "invisible")} />
+					<span className={cn("w-full truncate pr-6 font-[family-name:var(--font-prose)] text-base text-ink", active && "font-bold")}>{chat.title}</span>
+					<MetaLine chat={chat} />
 				</button>
 			</Tip>
 			{onMenu && (
@@ -139,7 +138,7 @@ export const SessionRow = memo(function SessionRow({
 					data-testid="session-row-menu"
 					onClick={(e) => onMenu(e.currentTarget, chat)}
 					className={cn(
-						"lh-press absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center bg-tone hover:text-ink focus-visible:opacity-100 group-hover:opacity-100",
+						"lh-press absolute top-1 right-1 flex size-6 items-center justify-center bg-tone hover:text-ink focus-visible:opacity-100 group-hover:opacity-100",
 						menuOpen ? "text-ink opacity-100" : "text-ink-2 opacity-0",
 					)}
 				>
@@ -164,7 +163,7 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 		}
 	}, []);
 	return (
-		<div data-testid="session-rename-row" className="flex w-full items-center gap-3 bg-tone px-2.5 py-2">
+		<div data-testid="session-rename-row" className="flex w-full flex-col items-start gap-0.5 bg-tone px-2 py-1.5">
 			{/* Borderless and padding-free at the title's exact x: the
 			    underline is the only editing cue (nothing moves). */}
 			<input
@@ -182,7 +181,7 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 				}}
 				aria-label="Rename lesson"
 				data-testid="session-rename-input"
-				className="min-w-0 flex-1 truncate border-0 border-b border-tone-2 bg-transparent px-0 text-[15px] text-ink outline-none"
+				className="w-full truncate border-0 border-b border-tone-2 bg-transparent px-0 font-[family-name:var(--font-prose)] text-base text-ink outline-none"
 			/>
 			<MetaLine chat={chat} />
 		</div>
