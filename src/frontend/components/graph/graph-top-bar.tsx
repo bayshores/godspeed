@@ -6,10 +6,10 @@
  */
 import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
-import { ListIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { PlusIcon, SearchIcon } from "lucide-react";
 import { TopBar } from "@/frontend/components/app-bar";
 
-const CHROME_BUTTON = "lh-press flex shrink-0 items-center gap-[7px] bg-panel px-2.5 py-2 text-sm text-ink hover:bg-tone disabled:opacity-50";
+const CHROME_BUTTON = "lh-btn shrink-0";
 
 export function GraphTopBar({
 	hasFacts,
@@ -37,7 +37,6 @@ export function GraphTopBar({
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
 			{hasFacts && (
 				<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={CHROME_BUTTON}>
-					<ListIcon className="size-3.5" aria-hidden />
 					All facts
 				</button>
 			)}
@@ -45,8 +44,7 @@ export function GraphTopBar({
 				<ImportNotes {...importNotes} />
 			) : (
 				<Link href="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
-					<PlusIcon className="size-3.5" aria-hidden />
-					Add files
+					+ Add files
 				</Link>
 			)}
 		</TopBar>

@@ -134,10 +134,10 @@ describe("files-model", () => {
 		assert.deepEqual(
 			groups.map((g) => [g.label, g.count, g.items.map((i) => i.label)]),
 			[
-				["HW · F26", 2, ["HW 1", "HW 2"]],
+				["HW, F26", 2, ["HW 1", "HW 2"]],
 				["Lecture", 6, ["Lecture 1", "Lecture 2", "Lecture 3"]],
 				["Numbered", 3, ["1", "6", "7"]],
-				["Week · Discussion", 3, ["Week 1", "Week 2"]],
+				["Week, Discussion", 3, ["Week 1", "Week 2"]],
 				["Other", 2, [null, null]],
 			],
 		);
@@ -213,8 +213,8 @@ describe("files-model", () => {
 	});
 
 	it("filesSummary counts files by kind", () => {
-		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "3 files · 2 study material · 1 course info");
-		assert.equal(filesSummary([file({ id: "a" })]), "1 file · 1 study material · 0 course info");
+		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "3 files, 2 study material, 1 course info");
+		assert.equal(filesSummary([file({ id: "a" })]), "1 file, 1 study material, 0 course info");
 		assert.equal(filesSummary([]), "0 files");
 	});
 

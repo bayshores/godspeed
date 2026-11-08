@@ -291,7 +291,7 @@ describe("pdf-reader loop (faux engine)", () => {
 		const bridge = await import("../../src/backend/agent/agent-bridge.ts");
 		const run = runPdfReaderAgent({ path: FIXTURE, question: "anything" }, { headless: fakeHeadless() });
 		const work = await bridge.waitForWork(5000);
-		assert.equal(work?.label, "PDF reading · sample-3page.pdf");
+		assert.equal(work?.label, "PDF reading: sample-3page.pdf");
 		assert.ok(bridge.respondToWork(work!.workId, { toolCalls: [{ name: "pdf_extract", arguments: { pages: "1" } }] }, 0).ok);
 		const next = await bridge.waitForWork(5000);
 		assert.ok(bridge.respondToWork(next!.workId, { text: "Page one (p. 1)." }, 0).ok);

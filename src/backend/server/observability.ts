@@ -115,7 +115,7 @@ export function activityFeed(): {
 		// title, else the bare id, plus the chunk suffix when the source fanned out.
 		title:
 			(run.label ?? titles.get(run.chatId) ?? run.chatId) +
-			(run.part ? ` · ${run.part.i}/${run.part.n}` : ""),
+			(run.part ? ` (${run.part.i}/${run.part.n})` : ""),
 		phase: run.phase,
 		startedAt: run.startedAt,
 	}));

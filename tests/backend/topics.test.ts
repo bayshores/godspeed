@@ -274,14 +274,14 @@ describe("topics: the scheduler", () => {
 		topics.scheduleTopicGrouping(cls.id, 0);
 		const work = await bridge.waitForWork(5000);
 		assert.ok(work, "the grouper parked a work item");
-		assert.equal(work.label, "Topic grouping · PHYS 2B");
+		assert.equal(work.label, "Topic grouping: PHYS 2B");
 		assert.match(work.instructions ?? "", /topic grouper/);
 		assert.ok(work.tools?.some((t) => t.name === "submit_topics"));
 		const row = extractionStatuses().find((r) => r.chatId === topics.topicRunKey(cls.id));
 		assert.ok(row, "the dock lists the run");
 		assert.equal(row.kind, "topics");
 		assert.equal(row.phase, "grouping");
-		assert.equal(row.label, "Topic grouping · PHYS 2B");
+		assert.equal(row.label, "Topic grouping: PHYS 2B");
 		const answered = bridge.respondToWork(work.workId, { toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Electrostatics", members: ids }] } }] }, 0);
 		assert.equal(answered.ok, true);
 		await topics.topicGroupingIdle(cls.id);

@@ -40,25 +40,25 @@ describe("file series", () => {
 		assert.deepEqual(
 			series.map((s) => [s.label, s.items.map((i) => i.number)]),
 			[
-				["CSE21 HW · Practice Problems", [2, 3]],
+				["CSE21 HW, Practice Problems", [2, 3]],
 				["Day", [1, 2, 10]],
-				["HW · F26", [1, 2]],
+				["HW, F26", [1, 2]],
 				["Lecture", [1, 2, 4]],
 				["Numbered", [1, 6, 7]],
-				["Week · Discussion", [1, 2, 3]],
+				["Week, Discussion", [1, 2, 3]],
 			],
 		);
 		assert.deepEqual(other.map((f) => f.name), ["Digital_Note_Sheet_STUDENT_GUIDE.pdf", "syllabus.txt"]);
 	});
 	it("one number can hold two files, and a date in the name is kept", () => {
-		assert.equal(by("Week · Discussion")!.items[1]!.files.length, 2);
-		assert.equal(by("CSE21 HW · Practice Problems")!.items[1]!.files.length, 2);
+		assert.equal(by("Week, Discussion")!.items[1]!.files.length, 2);
+		assert.equal(by("CSE21 HW, Practice Problems")!.items[1]!.files.length, 2);
 		assert.deepEqual(by("Lecture")!.items.map((i) => i.date), ["2026-09-25", "2026-09-28", "2026-10-02"]);
 		assert.equal(by("Day")!.items[0]!.date, null);
 	});
 	it("labels use words only, never a dash or a number", () => {
 		const { series: s } = groupFileSeries(named(["Rosen 6.2 — Probability theory.pdf", "Rosen 7.1 — Discrete probability.pdf"]));
-		assert.deepEqual(s.map((x) => x.label), ["Rosen · Probability"]);
+		assert.deepEqual(s.map((x) => x.label), ["Rosen, Probability"]);
 	});
 	it("small words two titles happen to share stay out of the label", () => {
 		const { series: s } = groupFileSeries(named(["Lecture 01 Sets and functions.pdf", "Lecture 02 Proofs go on and on.pdf"]));
@@ -73,11 +73,11 @@ describe("file series", () => {
 	});
 	it("a date in front of the name doesn't split a series", () => {
 		const { series: s } = groupFileSeries(named(["2026-09-30 Week 1 Discussion.pdf", "Week 2 Morning Discussion_annotated.pdf"]));
-		assert.deepEqual(s.map((x) => [x.label, x.items.map((i) => i.number)]), [["Week · Discussion", [1, 2]]]);
+		assert.deepEqual(s.map((x) => [x.label, x.items.map((i) => i.number)]), [["Week, Discussion", [1, 2]]]);
 	});
 	it("a word shared in two cases shows once in the label", () => {
 		const { series: s } = groupFileSeries(named(["2026-09-30 Week 1 Discussion (evening discussion).pdf", "2026-10-07 Week 2 Discussion (evening discussion).pdf"]));
-		assert.deepEqual(s.map((x) => x.label), ["Week · Discussion evening"]);
+		assert.deepEqual(s.map((x) => x.label), ["Week, Discussion evening"]);
 	});
 	it("a lone numbered file or one repeated number is not a series", () => {
 		const { series: s, other: o } = groupFileSeries(named(["Notes 1.pdf", "Exam 2025.pdf", "Exam 2025 answers.pdf"]));

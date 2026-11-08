@@ -72,11 +72,11 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	// The question dock's row machine — displayOnly: the dock owns
 	// the keys while a question is expanded; the registry never dispatches
 	// them, so bare arrows stay free everywhere else.
-	{ id: "question-focus", label: "Question · focus thinking ↔ rows", scope: "chat", binding: "tab", displayOnly: true },
-	{ id: "question-next-row", label: "Question · next row", scope: "chat", binding: "arrowdown", displayOnly: true },
-	{ id: "question-prev-row", label: "Question · previous row", scope: "chat", binding: "arrowup", displayOnly: true },
-	{ id: "question-pick-row", label: "Question · pick row", scope: "chat", binding: "space", displayOnly: true },
-	{ id: "question-submit", label: "Question · submit", scope: "chat", binding: "enter", displayOnly: true },
+	{ id: "question-focus", label: "Question: focus thinking ↔ rows", scope: "chat", binding: "tab", displayOnly: true },
+	{ id: "question-next-row", label: "Question: next row", scope: "chat", binding: "arrowdown", displayOnly: true },
+	{ id: "question-prev-row", label: "Question: previous row", scope: "chat", binding: "arrowup", displayOnly: true },
+	{ id: "question-pick-row", label: "Question: pick row", scope: "chat", binding: "space", displayOnly: true },
+	{ id: "question-submit", label: "Question: submit", scope: "chat", binding: "enter", displayOnly: true },
 ];
 
 const STORAGE_KEY = "lh:keymap";

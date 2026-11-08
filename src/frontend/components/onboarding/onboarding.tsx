@@ -53,7 +53,7 @@ function useReturn(onReturn: (() => void) | null) {
 }
 
 const PRIMARY =
-	"lh-press bg-ink px-7 py-3 text-[15px] font-bold text-background hover:bg-ink-max disabled:cursor-default disabled:bg-tone disabled:text-ink-3";
+	"lh-btn lh-btn-main";
 const QUIET = "lh-press text-[14px] font-bold text-ink-2 hover:text-ink";
 
 export function Onboarding() {

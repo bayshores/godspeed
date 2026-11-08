@@ -174,7 +174,7 @@ export async function runPdfReaderAgent(
 	const toolDeclarations = Object.values(tools);
 	const engine = opts.engine ?? agentEngine();
 	const sessionId = randomUUID();
-	labelConversation(sessionId, `PDF reading · ${path.basename(pdfPath)}`);
+	labelConversation(sessionId, `PDF reading: ${path.basename(pdfPath)}`);
 	const prompt = [
 		`PDF path: ${pdfPath}`,
 		`Question (what the teacher needs from this document): ${input.question || "(no question — give a structural overview)"}`,

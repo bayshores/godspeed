@@ -438,7 +438,7 @@ describe("steer card rendering (the delivered artifact)", () => {
 		const html = renderToStaticMarkup(<SubagentSteerCard message={projectNative([steer])[0] as never} />);
 		assert.match(html, /PDF/);
 		assert.match(html, /reading complete/);
-		assert.match(html, /read 1 page/, "the badge counts READ pages, not search hits");
+		assert.match(html, /\(1 page read\)/, "the badge counts READ pages, not search hits");
 		assert.match(html, /<details[^>]*data-testid="pdf-complete-badge"/, "a real disclosure like the research badge");
 		assert.ok(!/<details[^>]*open/.test(html), "collapsed by default");
 		assert.ok(html.includes("power rule"), "the brief rides inside the details");

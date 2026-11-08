@@ -6,7 +6,7 @@ import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog } from "@/frontend/components/class-dialog";
 import { ClassIcon } from "@/frontend/components/class-icon";
 
-const CHOICE = "lh-press flex max-w-full items-center gap-2 bg-tone px-3 py-2 text-[13.5px] font-bold text-ink hover:bg-tone-2";
+const CHOICE = "lh-btn max-w-full";
 
 /** For a class page opened with No class: the classes to switch to and
  *  New class, right on the page. */

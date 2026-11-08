@@ -477,7 +477,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 							data-testid="class-save"
 							disabled={busy || loadFailed || loading}
 							onClick={() => void save()}
-							className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
+							className="lh-btn lh-btn-main"
 						>
 							{mode.kind === "create" ? "Create class" : "Save"}
 						</button>

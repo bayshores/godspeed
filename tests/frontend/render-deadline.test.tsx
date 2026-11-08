@@ -101,7 +101,7 @@ describe("the deadline page", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-week"'), 1);
 		assert.deepEqual([...html.matchAll(/data-testid="deadline-day-row" data-state="(\w+)"/g)].map((m) => m[1]), ["ready", "reading", "info", "open"]);
-		assert.match(html, /2 class days · 3 files · 1 still being read\. From <span[^>]*>Midterm practice exam\.pdf</);
+		assert.match(html, /2 class days, 3 files, 1 still being read\. From <span[^>]*>Midterm practice exam\.pdf</);
 		assert.match(html, /Not on it, but before the exam/);
 		assert.match(html, /Pigeonhole/);
 		assert.match(html, />Add<\/button>.*>Leave out<\/button>/);
@@ -113,13 +113,13 @@ describe("the deadline page", () => {
 		const html = render(deadline(), {}, ["d2"]);
 		assert.ok(!html.includes('data-testid="deadline-not-included"'));
 		assert.match(html, /Every class day before the exam is on it or left out\./);
-		assert.match(html, /1 left out · Show/);
+		assert.match(html, /1 left out, Show/);
 	});
 	it("path: weakest first from today, the deadline day last, Study", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-day"'), 3);
 		assert.match(html, />Today<.*Inclusion–exclusion.*2 of 5 right/);
-		assert.match(html, /data-testid="deadline-day-due".*Midterm · 7:00 PM/);
+		assert.match(html, /data-testid="deadline-day-due".*Midterm, 7:00 PM/);
 		assert.match(html, /data-testid="deadline-start".*>Study</);
 		assert.ok(!html.includes("Permutations</span><span"), "strong topics stay off the path");
 	});

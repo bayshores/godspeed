@@ -89,7 +89,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 						data-testid="folder-notice-setup"
 						disabled={busy}
 						onClick={() => void openAgent(agent)}
-						className="lh-press bg-ink px-[18px] py-2.5 text-[14px] font-bold text-background hover:bg-ink-max disabled:opacity-60"
+						className="lh-btn lh-btn-main"
 					>
 						Set up my folder
 					</button>

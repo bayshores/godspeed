@@ -1,5 +1,5 @@
 /** The Overview's shared card look. */
-export const CARD = "flex w-full flex-col items-start gap-3.5 bg-panel px-[22px] py-5";
+export const CARD = "flex w-full flex-col items-start gap-3.5 border border-tone-2 px-[22px] py-5";
 export const CARD_TITLE = "text-[17px] font-extrabold text-ink";
 
 /** Answer outcome → block color (right / wrong / didn't know). */

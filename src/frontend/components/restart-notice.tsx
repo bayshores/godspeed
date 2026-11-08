@@ -16,7 +16,7 @@ export function RestartNotice() {
 			<button
 				type="button"
 				onClick={() => setOpen(false)}
-				className="lh-press self-start bg-ink px-3 py-1.5 text-sm font-bold text-background hover:bg-ink/85"
+				className="lh-btn lh-btn-main self-start"
 			>
 				OK
 			</button>

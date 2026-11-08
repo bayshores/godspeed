@@ -319,14 +319,14 @@ describe("render smoke tests", () => {
 		);
 	});
 
-	it("AnsweredCard shows the plan step it checked (Check · step N)", () => {
+	it("AnsweredCard shows the plan step it checked (Check, step N)", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Mercury"] });
 		const html = renderToStaticMarkup(
 			<LessonStepsContext.Provider value={new Map([["n2", 10]])}>
 				<AnsweredCard answer={answer} input={{ ...quizInput, nodeId: "n2" }} />
 			</LessonStepsContext.Provider>,
 		);
-		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz · step 10</);
+		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz, step 10</);
 		assert.match(html, />Right</);
 	});
 

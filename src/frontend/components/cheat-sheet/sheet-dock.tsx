@@ -148,7 +148,7 @@ export function SheetDock({
 				<div data-testid="sheet-dock-none" className="flex flex-col items-start gap-3 px-5 py-5 text-[14px] text-ink-2">
 					<p>No cheat sheet yet.</p>
 					{target ? (
-						<button type="button" data-testid="sheet-dock-make" onClick={() => setMaking(target)} className="lh-press bg-ink px-4 py-2 text-[13.5px] font-bold text-background hover:bg-ink-max">
+						<button type="button" data-testid="sheet-dock-make" onClick={() => setMaking(target)} className="lh-btn lh-btn-main">
 							Make one
 						</button>
 					) : (

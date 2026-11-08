@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DownloadIcon, FolderOpenIcon, PrinterIcon } from "lucide-react";
 import { currentVersion, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
@@ -100,7 +99,7 @@ function Studio({
 			empty={emptyChatLine(agentName, !!current)}
 		/>
 	);
-	const fileClass = "lh-press flex items-center gap-2 bg-panel px-3 py-[7px] text-sm text-ink hover:bg-tone";
+	const fileClass = "lh-btn";
 
 	return (
 		<>
@@ -115,12 +114,10 @@ function Studio({
 							onClick={() => void showSheetPdf(classId, deadlineId, current.n).then(setFailed)}
 							className={fileClass}
 						>
-							<FolderOpenIcon className="size-4" aria-hidden />
 							Show in {fileBrowserName(window.lh?.platform)}
 						</button>
 					) : (
 						<a data-testid="cheat-sheet-download" href={currentUrl} download={`${fileName}.pdf`} className={fileClass}>
-							<DownloadIcon className="size-4" aria-hidden />
 							Download PDF
 						</a>
 					))}
@@ -129,9 +126,8 @@ function Studio({
 					data-testid="cheat-sheet-print"
 					disabled={!current || printing}
 					onClick={print}
-					className="lh-press flex items-center gap-2 bg-ink px-4 py-[7px] text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-40"
+					className="lh-btn lh-btn-main"
 				>
-					<PrinterIcon className="size-4" aria-hidden />
 					Print
 				</button>
 			</TopBar>

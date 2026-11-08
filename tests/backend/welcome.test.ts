@@ -39,9 +39,9 @@ describe("statusLine", () => {
 		assert.equal(statusLine({ connected: false, name: "Claude Code" }, undefined, NOW), "No agent connected");
 	});
 	it("adds the next deadline: today, tomorrow, in N days, overdue", () => {
-		assert.equal(statusLine(on, midterm("2026-10-28", "23:00"), NOW), "Claude Code connected · Midterm 2 today");
-		assert.equal(statusLine(on, midterm("2026-10-29"), NOW), "Claude Code connected · Midterm 2 tomorrow");
-		assert.equal(statusLine(on, midterm("2026-10-31"), NOW), "Claude Code connected · Midterm 2 in 3 days");
-		assert.equal(statusLine(on, midterm("2026-10-28", "09:00"), NOW), "Claude Code connected · Midterm 2 overdue");
+		assert.equal(statusLine(on, midterm("2026-10-28", "23:00"), NOW), "Claude Code connected, Midterm 2 today");
+		assert.equal(statusLine(on, midterm("2026-10-29"), NOW), "Claude Code connected, Midterm 2 tomorrow");
+		assert.equal(statusLine(on, midterm("2026-10-31"), NOW), "Claude Code connected, Midterm 2 in 3 days");
+		assert.equal(statusLine(on, midterm("2026-10-28", "09:00"), NOW), "Claude Code connected, Midterm 2 overdue");
 	});
 });

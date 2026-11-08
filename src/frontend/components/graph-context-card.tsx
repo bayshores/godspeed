@@ -37,7 +37,7 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 				<span className="font-medium">Graph context</span>
 				<span className="min-w-0 flex-1 truncate">
 					{noun(propositions.length, "fact", "facts")}
-					{chains.length > 0 ? ` · ${noun(chains.length, "chain", "chains")}` : ""}
+					{chains.length > 0 ? `, ${noun(chains.length, "chain", "chains")}` : ""}
 				</span>
 			</button>
 			{fold.mounted && (
@@ -98,7 +98,7 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 				<span className="font-medium">Class context</span>
 				<span className="min-w-0 flex-1 truncate">
 					{name}
-					{files.length > 0 ? ` · ${files.length} ${files.length === 1 ? "file" : "files"} when this lesson started` : ""}
+					{files.length > 0 ? `, ${files.length} ${files.length === 1 ? "file" : "files"} when this lesson started` : ""}
 				</span>
 			</button>
 			{fold.mounted && (

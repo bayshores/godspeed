@@ -26,7 +26,7 @@ export function changeTitle(entry: FolderChange, className: string, agentConnect
 	const files = count === 1 ? "file" : "files";
 	if (entry.change === "removed") return `${count} ${files} removed from ${className}`;
 	const title = `${count} new ${files} in ${className}`;
-	return !agentConnected && entry.files.some((f) => f.kind === "study") ? `${title} · read when your agent connects` : title;
+	return !agentConnected && entry.files.some((f) => f.kind === "study") ? `${title}, read when your agent connects` : title;
 }
 
 /** "Lecture11.srt", "Lecture11.srt and HW5.pdf", "Lecture11.srt and 2 more". */

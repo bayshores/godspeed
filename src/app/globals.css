@@ -330,6 +330,7 @@ body {
 	font-size: 13px;
 	line-height: 1;
 	white-space: nowrap;
+	text-transform: lowercase;
 	color: var(--foreground);
 	transition: background-color var(--lh-dur-fast) var(--lh-ease-out), border-color var(--lh-dur-fast) var(--lh-ease-out);
 }

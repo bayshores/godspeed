@@ -37,9 +37,9 @@ describe("DispatchCard elapsed", () => {
 					</JobsContext.Provider>,
 				),
 			);
-			assert.match(host.textContent ?? "", /· 0s/);
+			assert.match(host.textContent ?? "", /0s/);
 			await act(async () => mock.timers.tick(5000));
-			assert.match(host.textContent ?? "", /· 5s/);
+			assert.match(host.textContent ?? "", /5s/);
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();

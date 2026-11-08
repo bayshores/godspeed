@@ -138,7 +138,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 	const toolDeclarations = Object.values(tools);
 	const engine = opts.engine ?? agentEngine();
 	const sessionId = randomUUID();
-	labelConversation(sessionId, `Visual · ${brief.split("\n")[0]}`);
+	labelConversation(sessionId, `Visual: ${brief.split("\n")[0]}`);
 	const prompt = [
 		"Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):",
 		brief,

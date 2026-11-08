@@ -306,7 +306,7 @@ export function createJobRunner(deps: JobRunnerDeps): JobRunner {
 				engine,
 				pdfDir,
 				abortSignal: loop.abortSignal,
-				taskLabel: `Research · ${question}`,
+				taskLabel: `Research: ${question}`,
 				// Each agent step is one model call: fold its usage into the
 				// record as it completes (progress write).
 				onUsage: (usage) => loop.onUsage(piUsageToStep(usage)),

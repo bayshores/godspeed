@@ -100,7 +100,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 				<span className="text-foreground font-mono tabular-nums">
 					{graphUsageLabel(costs)}
 					{unpricedRuns > 0 && (
-						<span className="text-muted-foreground"> · {unpricedRuns} unpriced</span>
+						<span className="text-muted-foreground">, {unpricedRuns} unpriced</span>
 					)}
 				</span>
 			</div>
@@ -114,8 +114,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 								<span className="text-muted-foreground"> +{stage.unpricedRuns} unpriced</span>
 							)}
 							<span className="text-muted-foreground">
-								{" "}
-								· {fmtTokens(stage.tokens.inputTokens)} in / {fmtTokens(stage.tokens.outputTokens)} out
+								, {fmtTokens(stage.tokens.inputTokens)} in / {fmtTokens(stage.tokens.outputTokens)} out
 							</span>
 						</span>
 					</div>

@@ -60,7 +60,7 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 				{/* The Braille spinner: one working indicator everywhere. */}
 				<BrailleSpinner label={`${label} running`} />
 				{label}
-				{elapsed !== null && <span className="font-normal">· {elapsed}s</span>}
+				{elapsed !== null && <span className="font-normal">{elapsed}s</span>}
 			</div>
 			{job?.activity && (
 				<div className="mt-1 truncate text-sm text-muted-foreground" data-testid="dispatch-activity-line">

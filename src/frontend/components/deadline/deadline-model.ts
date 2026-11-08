@@ -189,12 +189,12 @@ export function deadlineMaterial(
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** "11 class days · 34 files · 2 still being read". */
+/** "11 class days, 34 files, 2 still being read". */
 export function materialSummary(m: Material): string {
 	const parts = [m.classDays > 0 ? plural(m.classDays, "class day") : null, plural(m.files, "file")];
 	if (m.reading > 0) parts.push(`${m.reading} still being read`);
 	if (m.failed > 0) parts.push(`${m.failed} couldn't be read`);
-	return parts.filter(Boolean).join(" · ");
+	return parts.filter(Boolean).join(", ");
 }
 
 /** "Sep 25" from "2026-09-25". */

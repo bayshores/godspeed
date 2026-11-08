@@ -45,7 +45,7 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				aria-expanded={open}
 				disabled={disabled}
 				onClick={() => setOpen((o) => !o)}
-				className="lh-press flex shrink-0 items-center gap-[7px] bg-ink px-3 py-[7px] text-sm font-bold text-background hover:bg-ink-max disabled:opacity-60"
+				className="lh-btn lh-btn-main shrink-0"
 			>
 				<PlusIcon className="size-3.5" aria-hidden />
 				Add files

@@ -62,9 +62,9 @@ export function announceDelay(lastAt: number | null, now: number): number {
 	return lastAt === null ? 0 : Math.max(0, ANNOUNCE_GAP_MS - (now - lastAt));
 }
 
-/** "06_Counting.pdf" from "Slides/06_Counting.pdf · 3/12". */
+/** "06_Counting.pdf" from "Slides/06_Counting.pdf (3/12)". */
 function fileName(run: Extraction): string {
-	const suffix = run.part ? ` · ${run.part.i}/${run.part.n}` : "";
+	const suffix = run.part ? ` (${run.part.i}/${run.part.n})` : "";
 	const path = suffix && run.title.endsWith(suffix) ? run.title.slice(0, -suffix.length) : run.title;
 	return path.split("/").pop() || path;
 }

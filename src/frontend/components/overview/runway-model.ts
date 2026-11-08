@@ -33,10 +33,10 @@ export function gapLabel(fromDate: string, toDate: string): string {
 	return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
-/** Under a stop's name: "Fri Oct 30", or "Exam · Thu Nov 5" for exams. */
+/** Under a stop's name: "Fri Oct 30", or "Exam, Thu Nov 5" for exams. */
 export function stopMeta(d: Pick<DeadlineProgress, "kind" | "date">): string {
 	const day = deadlineDateLabel(d.date);
-	return d.kind === "exam" ? `Exam · ${day}` : day;
+	return d.kind === "exam" ? `Exam, ${day}` : day;
 }
 
 /** The deadline's own page. */
@@ -49,17 +49,17 @@ export function percent(rate: number): number {
 	return Math.round(rate * 100);
 }
 
-/** The ring tooltip's title: "Midterm 2 · 38% ready" (just the name when
+/** The ring tooltip's title: "Midterm 2, 38% ready" (just the name when
  *  there is nothing to be ready on). */
 export function ringTitle(d: Pick<DeadlineProgress, "name" | "ready">): string {
-	return d.ready === null ? d.name : `${d.name} · ${percent(d.ready)}% ready`;
+	return d.ready === null ? d.name : `${d.name}, ${percent(d.ready)}% ready`;
 }
 
-/** The ring tooltip's second line: "Thu Nov 5, 7:00 PM · Lecture 4". */
+/** The ring tooltip's second line: "Thu Nov 5, 7:00 PM, covers Lecture 4". */
 export function ringMeta(d: Pick<DeadlineProgress, "date" | "time" | "files">): string {
 	const when = dueLabel(d.date, d.time);
 	const files = deadlineFilesText(d.files.map((f) => ({ name: displayName(f.name) })));
-	return files ? `${when} · ${files}` : when;
+	return files ? `${when}, covers ${files}` : when;
 }
 
 /** "a", "a and b", "a, b and c". */

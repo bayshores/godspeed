@@ -146,7 +146,7 @@ export const ClassCover = memo(function ClassCover({
 						<TeacherSprite mood="idle" className="w-[17px] shrink-0" />
 						<div className="flex min-w-0 flex-col gap-1">
 							<p className="text-sm leading-snug text-ink">{note.text}</p>
-							{when && <p className="text-xs text-ink-3">{teacherName} · {when}</p>}
+							{when && <p className="text-xs text-ink-3">{teacherName}, {when}</p>}
 						</div>
 					</div>
 				)}

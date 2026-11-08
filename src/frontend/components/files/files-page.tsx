@@ -256,8 +256,8 @@ function FilesPageBody() {
 								<h1 className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">Files</h1>
 								<p data-testid="files-summary" className="text-base leading-6 text-ink-2">
 									{filesSummary(record.files)}
-									{arrived && ` · ${arrived}`}
-									{removed && ` · ${removed}`}
+									{arrived && `, ${arrived}`}
+									{removed && `, ${removed}`}
 								</p>
 							</div>
 							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}
@@ -272,7 +272,7 @@ function FilesPageBody() {
 						{record.files.length === 0 && finderDrag === null && (
 							<div data-testid="files-empty" className="flex h-[200px] flex-col items-center justify-center gap-2 bg-panel p-4 text-center">
 								<span className="text-[14.5px] text-ink-2">Add lecture notes, readings, recordings or the syllabus, or drop them here.</span>
-								<span className="text-[12.5px] text-ink-3">PDF · Markdown · text · VTT/SRT · audio · video</span>
+								<span className="text-[12.5px] text-ink-3">PDF, Markdown, text, VTT/SRT, audio, video</span>
 							</div>
 						)}
 						{!searching && changes.length > 0 && <RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />}

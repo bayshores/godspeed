@@ -21,7 +21,7 @@ export function folderStatusLine(folder: string, status: FolderStatus, now: numb
 	const skipped = status.skipped?.count ?? 0;
 	if (skipped > 0) parts.push(`${skipped} can't be read`);
 	if (status.checkedAt && now !== null) parts.push(`checked ${checkedAgo(status.checkedAt, now)}`);
-	return { text: parts.join(" · "), warn: false };
+	return { text: parts.join(", "), warn: false };
 }
 
 /** The linked-folder box's lines about files it can't read ("2 files here

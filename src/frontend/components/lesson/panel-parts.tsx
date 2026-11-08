@@ -89,8 +89,8 @@ export function KindChip({ children, testId }: { children: React.ReactNode; test
  *  the field has focus. */
 export const FIELD_EDGE = "border border-tone-2 focus-within:border-ink-2 bg-background text-[16px]! leading-6! text-ink";
 
-/** The send button inside a writing box's bottom edge: white, gray while
- *  it waits ("Send when ready"). */
+/** The send button inside a writing box's bottom edge: filled, outlined
+ *  while it waits ("Send when ready"). */
 export function SendButton({
 	label,
 	onClick,
@@ -112,11 +112,7 @@ export function SendButton({
 			data-testid={testId}
 			onClick={onClick}
 			disabled={disabled}
-			className={cn(
-				"lh-press ml-auto flex h-9 shrink-0 items-center gap-2 px-4 text-[15px] font-bold transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-				waiting ? "bg-tone-2 text-ink" : "bg-ink text-background hover:bg-ink-max",
-				"disabled:cursor-default disabled:bg-tone disabled:text-ink-3",
-			)}
+			className={cn("lh-btn ml-auto shrink-0", !waiting && "lh-btn-main")}
 		>
 			{label}
 		</button>
@@ -148,8 +144,8 @@ export function ActionBar({
 			disabled={disabled}
 			className={cn(
 				"lh-press flex h-14 w-full shrink-0 items-center px-6 text-left text-base font-extrabold transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-				waiting ? "bg-tone-2 text-ink" : "bg-ink text-background hover:bg-ink-max",
-				"disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink",
+				waiting ? "bg-tone-2 text-ink" : "bg-tint text-background hover:bg-[color-mix(in_oklab,var(--lh-tint)_82%,white)]",
+				"disabled:cursor-default disabled:opacity-50 disabled:hover:bg-tint",
 				waiting && "disabled:hover:bg-tone-2",
 			)}
 		>

@@ -124,7 +124,7 @@ describe("Home: the topic box", () => {
 		assert.ok(html.includes("A topic, a homework method, or a question you&#x27;re stuck on…"));
 		assert.ok(html.includes('aria-label="What do you want to study?"'));
 		assert.ok(html.includes("Start from facts"));
-		assert.match(html, /data-testid="home-start"[^>]*class="[^"]*bg-ink[^"]*text-background[^"]*"[^>]*>Study</);
+		assert.match(html, /data-testid="home-start"[^>]*class="lh-btn lh-btn-main[^"]*"[^>]*>Study</);
 		assert.doesNotMatch(html, /facts-picks-clear/);
 	});
 

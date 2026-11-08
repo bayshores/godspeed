@@ -124,7 +124,7 @@ export function SheetCardView({
 				<div className="flex flex-col gap-0.5 px-3.5 pt-3">
 					<h3 className="truncate text-[15px] font-bold text-ink">{card.name}</h3>
 					<p className="text-[13px] text-ink-2">
-						{kindLabel(card.kind)} · {whenLabel(card)}
+						{kindLabel(card.kind)}, {whenLabel(card)}
 					</p>
 				</div>
 			</Link>
@@ -140,14 +140,14 @@ export function SheetCardView({
 	);
 }
 
-const ACTION = "lh-press bg-tone px-2.5 py-1.5 font-bold text-ink hover:bg-tone-2";
+const ACTION = "lh-btn";
 
 function Status({ card, agentName, onRemake }: { card: SheetCard; agentName: string; onRemake: () => void }) {
 	switch (card.status) {
 		case "made":
 			return (
 				<span className="text-ink-2">
-					{pageSizeLabel(card.version!.pages)} · made {madeAt(card.version!.at)}
+					{pageSizeLabel(card.version!.pages)}, made {madeAt(card.version!.at)}
 				</span>
 			);
 		case "making":

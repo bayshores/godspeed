@@ -16,7 +16,7 @@ const PROBLEM_LINE: Record<FolderProblem, string> = {
 	"too-many-files": `Only the first ${MAX_LINKED_FILES} files were added. Link a smaller folder to choose which ones.`,
 };
 
-const BOX_BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-2.5 py-1.5 text-[13.5px] font-bold text-ink hover:bg-tone-2 disabled:opacity-50";
+const BOX_BUTTON = "lh-btn";
 
 /**
  * THE LINKED FOLDER (Files page, top bar): a live line, "Watching CSE 21
@@ -195,7 +195,7 @@ export function LinkFolderField({
 				type="submit"
 				data-testid="class-link-folder"
 				disabled={disabled || !ready}
-				className="lh-press shrink-0 bg-ink px-3 py-1.5 text-[13.5px] font-bold text-background hover:bg-ink-max disabled:opacity-50"
+				className="lh-btn lh-btn-main shrink-0"
 			>
 				Link
 			</button>

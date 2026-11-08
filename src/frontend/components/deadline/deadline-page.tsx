@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PencilIcon } from "lucide-react";
 import { DEFAULT_TEACHER_NAME, planDays } from "@/shared/core";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog } from "@/frontend/components/class-dialog";
@@ -104,9 +103,8 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 					type="button"
 					data-testid="deadline-edit-class"
 					onClick={() => setEditing("class")}
-					className="lh-press flex items-center gap-[7px] bg-panel px-2.5 py-[7px] text-sm text-ink hover:bg-tone"
+					className="lh-btn"
 				>
-					<PencilIcon className="size-3.5" aria-hidden />
 					Edit class
 				</button>
 			</TopBar>
@@ -114,7 +112,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				{current && !deadline ? (
 					<div data-testid="deadline-removed" className="flex flex-col items-start gap-3 px-[52px] py-6">
 						<p className="text-base text-ink-2">This deadline was removed.</p>
-						<Link href="/class" className="lh-press bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2">
+						<Link href="/class" className="lh-btn">
 							Go to the class
 						</Link>
 					</div>

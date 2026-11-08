@@ -19,5 +19,5 @@ export function statusLine(
 		const days = daysBetween(localDay(nowMs), next.date);
 		when = days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
 	}
-	return `${who} · ${next.name} ${when}`;
+	return `${who}, ${next.name} ${when}`;
 }

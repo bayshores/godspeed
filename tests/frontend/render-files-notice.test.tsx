@@ -52,7 +52,7 @@ describe("folder notice model", () => {
 		const study = added("a", [file("1", "Day1.pdf"), file("2", "Day2.pdf"), file("3", "HW5.pdf", "info")]);
 		const info = added("a", [file("3", "HW5.pdf", "info")]);
 		assert.equal(changeTitle(study, "CSE 21", true), "3 new files in CSE 21");
-		assert.equal(changeTitle(study, "CSE 21", false), "3 new files in CSE 21 · read when your agent connects");
+		assert.equal(changeTitle(study, "CSE 21", false), "3 new files in CSE 21, read when your agent connects");
 		assert.equal(changeTitle(info, "CSE 21", false), "1 new file in CSE 21", "course info needs no agent");
 		assert.equal(changeNames(study.files), "Day1.pdf and 2 more");
 		assert.equal(changeNames(study.files.slice(0, 2)), "Day1.pdf and Day2.pdf");
@@ -94,7 +94,7 @@ describe("folder notices", () => {
 		assert.match(gone?.textContent ?? "", /1 file removed from CSE 21/);
 		assert.match(gone?.textContent ?? "", /Week4\.pdf/);
 		assert.match(gone?.textContent ?? "", /See changes/);
-		assert.match(cards[0]!.textContent ?? "", /3 new files in CSE 21 · read when your agent connects/);
+		assert.match(cards[0]!.textContent ?? "", /3 new files in CSE 21, read when your agent connects/);
 		assert.match(cards[0]!.textContent ?? "", /Lecture11\.srt and 2 more/);
 		assert.match(cards[0]!.textContent ?? "", /See files/);
 		await act(async () => document.querySelector<HTMLElement>('[data-testid="files-notice-see"]')!.click());

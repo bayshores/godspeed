@@ -117,7 +117,7 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 						e.stopPropagation();
 						onClose();
 					}}
-					className="lh-press mt-8 bg-ink px-7 py-3 text-[15px] font-bold text-background hover:bg-ink-max"
+					className="lh-btn lh-btn-main mt-8"
 				>
 					Let&apos;s go
 				</button>

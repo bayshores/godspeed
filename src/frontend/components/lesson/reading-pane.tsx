@@ -117,7 +117,7 @@ export function ReadingPane({
 								type="button"
 								data-testid="lesson-waiting-settings"
 								onClick={() => openSettings("connection")}
-								className="lh-press mt-1 bg-tone px-2 py-[3px] text-[12.5px] font-bold text-ink-2 hover:text-ink"
+								className="lh-btn mt-1"
 							>
 								Open Connection settings
 							</button>

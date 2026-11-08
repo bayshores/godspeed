@@ -76,7 +76,7 @@ export function WhatsNewDialog({
 					{entries.map((entry) => (
 						<section key={entry.version} data-testid="whats-new-entry" className="flex flex-col gap-2">
 							<p className={LABEL_TEXT}>
-								{single ? formatChangelogDate(entry.date) : `${entry.version} · ${formatChangelogDate(entry.date)}`}
+								{single ? formatChangelogDate(entry.date) : `${entry.version}, ${formatChangelogDate(entry.date)}`}
 							</p>
 							<ul className="flex flex-col gap-1.5">
 								{entry.changes.map((change) => (
@@ -95,7 +95,7 @@ export function WhatsNewDialog({
 						data-autofocus
 						data-testid="whats-new-done"
 						onClick={onClose}
-						className="lh-press bg-ink px-4 py-[9px] text-sm font-extrabold text-background hover:bg-ink-max"
+						className="lh-btn lh-btn-main"
 					>
 						Got it
 					</button>

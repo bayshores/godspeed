@@ -125,9 +125,9 @@ describe("Ticking a deadline done", () => {
 	}
 	const notice = () => document.querySelector<HTMLElement>('[data-testid="done-notice"]');
 
-	it("says 'Marked done · Undo', and Undo ticks it back", async () => {
+	it("says 'Marked done' and Undo, and Undo ticks it back", async () => {
 		await mountProvider();
-		assert.equal(notice()!.textContent, "Marked done·Undo");
+		assert.equal(notice()!.textContent, "Marked doneUndo");
 		assert.equal(notice()!.parentElement!.id, "lh-notices", "it stacks with the update and restart notices");
 		assert.equal(notice()!.getAttribute("role"), "status");
 		await act(async () => {

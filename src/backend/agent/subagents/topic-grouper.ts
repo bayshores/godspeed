@@ -76,7 +76,7 @@ function topicGrouperPrompt(input: Pick<TopicGrouperInput, "className" | "facts"
  *  in exactly one topic. Throws when the model never submits. */
 export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[]> {
 	const submitted = await runSubmitAgent<TopicsSubmit>({
-		taskLabel: `Topic grouping · ${input.className}`,
+		taskLabel: `Topic grouping: ${input.className}`,
 		toolName: "submit_topics",
 		toolDescription: "Submit the full topic grouping for the course's facts.",
 		parameters: submitSchema,

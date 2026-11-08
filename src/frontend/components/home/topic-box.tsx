@@ -109,7 +109,7 @@ export function TopicBox({
 						data-testid="home-start"
 						aria-disabled={empty || busy}
 						disabled={busy}
-						className="lh-press flex shrink-0 items-center gap-2 self-stretch bg-ink px-[18px] py-3 text-[14.5px] font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
+						className="lh-btn lh-btn-main h-auto shrink-0 self-stretch"
 					>
 						Study
 					</button>

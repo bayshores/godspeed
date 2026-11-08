@@ -120,7 +120,7 @@ describe("the dialog", () => {
 	it("several versions: one section per version, newest first", () => {
 		const html = renderToStaticMarkup(<WhatsNewDialog entries={NOTES.slice(0, 3)} state="open" onClose={() => {}} />);
 		assert.match(html, /aria-label="What&#x27;s new"/);
-		const order = ["0.4.3", "0.4.2", "0.4.1"].map((v) => html.indexOf(`${v} · `));
+		const order = ["0.4.3", "0.4.2", "0.4.1"].map((v) => html.indexOf(`${v}, `));
 		assert.ok(order.every((i) => i >= 0) && order[0]! < order[1]! && order[1]! < order[2]!);
 	});
 

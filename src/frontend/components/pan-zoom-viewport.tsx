@@ -118,7 +118,7 @@ export function ZoomControls({
 }) {
 	return (
 		<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-			<span className="text-xs text-ink-3">Drag to pan · scroll to zoom</span>
+			<span className="text-xs text-ink-3">Drag to pan, scroll to zoom</span>
 			<div className="flex gap-1">
 				<Hint label="Zoom out" side="bottom">
 					<button type="button" aria-label="Zoom out" onClick={() => onStep(1 / 1.25)} className={ZOOM_BUTTON}>

@@ -94,7 +94,7 @@ describe("the Your-turn panel's states", () => {
 		assert.match(html, /Teacher is writing…/);
 		assert.match(html, /data-testid="stop-turn"[\s\S]*?Stop<\/button>/, "no key hint beside Stop");
 		assert.ok(!html.includes("Sends when the teacher finishes"));
-		assert.match(html, /data-testid="composer-send"[^>]*class="[^"]*bg-tone-2[\s\S]*?Send when ready/);
+		assert.match(html, /data-testid="composer-send"[^>]*class="lh-btn ml-auto shrink-0"[\s\S]*?Send when ready/);
 	});
 
 	it("queued messages and the notice slot sit in the panel", () => {

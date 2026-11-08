@@ -104,7 +104,7 @@ export function AnsweredCard({
 					{isQuiz && <ResultChip answer={answer} />}
 					<span data-testid="answer-kind" className={LABEL_TEXT}>
 						{questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType)}
-						{step !== undefined && ` · step ${step}`}
+						{step !== undefined && `, step ${step}`}
 					</span>
 					{isQuiz && !answer.dontKnow && answer.confidence != null && (
 						<span data-testid="answered-confidence" className="text-ink-3">

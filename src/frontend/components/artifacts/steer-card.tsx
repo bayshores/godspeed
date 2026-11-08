@@ -89,7 +89,7 @@ function PdfCompleteBadge({ result }: { result: PdfResult }) {
 				<span>reading complete</span>
 				{readPages.length > 0 && (
 					<span>
-						· read {readPages.length} page{readPages.length === 1 ? "" : "s"}
+						({readPages.length} page{readPages.length === 1 ? "" : "s"} read)
 					</span>
 				)}
 				<span className="ml-1 text-xs text-ink-3 group-open:hidden">view brief</span>
@@ -114,7 +114,7 @@ function ResearchCompleteBadge({ result }: { result: ResearchResult }) {
 				<CheckIcon className="size-3.5" />
 				<span className="font-semibold">Research</span>
 				<span>complete</span>
-				{result.sources.length > 0 && <span>· {result.sources.length} sources</span>}
+				{result.sources.length > 0 && <span>{result.sources.length} sources</span>}
 				<span className="ml-1 text-xs text-ink-3 group-open:hidden">view brief</span>
 				<span className="ml-1 hidden text-xs text-ink-3 group-open:inline">hide brief</span>
 			</summary>

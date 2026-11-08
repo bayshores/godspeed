@@ -55,7 +55,7 @@ describe("agentDoing", () => {
 	it("a file read in parts names the file and the part", () => {
 		const extractions = [
 			{ kind: "notes" as const, phase: "waiting", title: "Slides/07_Graphs.pdf" },
-			{ kind: "notes" as const, phase: "extracting", title: "Slides/06_Counting.pdf · 3/12", part: { i: 3, n: 12 } },
+			{ kind: "notes" as const, phase: "extracting", title: "Slides/06_Counting.pdf (3/12)", part: { i: 3, n: 12 } },
 		];
 		assert.deepEqual(agentDoing({ ...none, agent: teaching, extractions }), { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true });
 		assert.deepEqual(agentDoing({ ...none, agent: teaching, extractions: [{ ...extractions[1]!, phase: "merging" }] }), {

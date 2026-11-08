@@ -64,15 +64,15 @@ describe("labels", () => {
 		assert.equal(gapLabel("2026-10-28", "2026-10-30"), "2 days");
 		assert.equal(gapLabel("2026-10-28", "2026-10-28"), "");
 	});
-	it("meta: the date, 'Exam · date' for exams", () => {
+	it("meta: the date, 'Exam, date' for exams", () => {
 		assert.equal(stopMeta({ kind: "homework", date: "2026-10-30" }), "Fri Oct 30");
-		assert.equal(stopMeta({ kind: "exam", date: "2026-11-05" }), "Exam · Thu Nov 5");
+		assert.equal(stopMeta({ kind: "exam", date: "2026-11-05" }), "Exam, Thu Nov 5");
 	});
-	it("ring tooltip: 'Midterm 2 · 38% ready' and 'Thu Nov 5, 7:00 PM · Lecture 4'", () => {
+	it("ring tooltip: 'Midterm 2, 38% ready' and 'Thu Nov 5, 7:00 PM, covers Lecture 4'", () => {
 		const m = d("Midterm 2", "2026-11-05", { time: "19:00", ready: 0.38, files: [{ id: "f", name: "Lecture 4.pdf" }] });
-		assert.equal(ringTitle(m), "Midterm 2 · 38% ready");
-		assert.equal(ringMeta(m), "Thu Nov 5, 7:00 PM · Lecture 4");
-		assert.equal(ringMeta({ ...m, files: [{ id: "a", name: "a" }, { id: "b", name: "b" }] }), "Thu Nov 5, 7:00 PM · 2 files");
+		assert.equal(ringTitle(m), "Midterm 2, 38% ready");
+		assert.equal(ringMeta(m), "Thu Nov 5, 7:00 PM, covers Lecture 4");
+		assert.equal(ringMeta({ ...m, files: [{ id: "a", name: "a" }, { id: "b", name: "b" }] }), "Thu Nov 5, 7:00 PM, covers 2 files");
 		assert.equal(ringTitle({ name: "Reading", ready: null }), "Reading");
 		assert.equal(ringMeta({ date: "2026-10-30", files: [] }), "Fri Oct 30");
 	});

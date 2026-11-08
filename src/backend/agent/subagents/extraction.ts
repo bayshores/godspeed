@@ -699,7 +699,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		const run = runningExtractions.get(jobKey);
 		const name = run?.label ?? chatStore.getChat(run?.chatId ?? jobKey)?.title ?? jobKey;
 		const part = run?.part ? ` (part ${run.part.i} of ${run.part.n})` : "";
-		return `Graph extraction · ${name}${part}`;
+		return `Graph extraction: ${name}${part}`;
 	}
 
 	async function extract(

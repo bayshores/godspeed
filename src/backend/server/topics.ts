@@ -132,7 +132,7 @@ async function groupOnce(scope: ClassScope): Promise<void> {
 	const engine = backgroundEngine();
 
 	const runKey = topicRunKey(scope);
-	const controller = startBackgroundGraphRun(runKey, `Topic grouping · ${className}`);
+	const controller = startBackgroundGraphRun(runKey, `Topic grouping: ${className}`);
 	const t0 = performance.now();
 	try {
 		const current = resolveTopics(last, factIds).filter((t) => !t.ungrouped);

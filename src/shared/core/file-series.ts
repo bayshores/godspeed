@@ -93,7 +93,7 @@ function labelFor(members: Candidate[]): string {
 	const shared = words(members[0]!.remainder).filter((w) => !SMALL_WORDS.has(w.toLowerCase()) && sets.every((s) => s.has(w.toLowerCase())));
 	const tail = shared.filter((w, i) => shared.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i).join(" ");
 	if (!head) return tail || "Numbered";
-	return tail ? `${head} · ${tail}` : head;
+	return tail ? `${head}, ${tail}` : head;
 }
 
 /**

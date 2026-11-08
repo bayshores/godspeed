@@ -208,7 +208,7 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 			abortSignal: opts.abortSignal,
 			onUsage: (usage) => opts.onUsage?.(usage),
 			onToolStart: (toolName) => opts.onActivity?.(toolName),
-			taskLabel: `Demo · ${title}`,
+			taskLabel: `Demo: ${title}`,
 		});
 		finalText = result.text;
 	} catch (err) {

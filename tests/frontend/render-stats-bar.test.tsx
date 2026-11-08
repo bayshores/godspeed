@@ -55,8 +55,8 @@ describe("prettyModel", () => {
 	});
 
 	it("provider-qualified stamps keep the provider as a quiet suffix", () => {
-		assert.equal(prettyModel("openrouter:z-ai/glm-5.3-flash"), "glm-5.3-flash · openrouter");
-		assert.equal(prettyModel("openai:gpt-5.2"), "gpt-5.2 · openai");
+		assert.equal(prettyModel("openrouter:z-ai/glm-5.3-flash"), "glm-5.3-flash (openrouter)");
+		assert.equal(prettyModel("openai:gpt-5.2"), "gpt-5.2 (openai)");
 		// a bare id: no suffix invented
 		assert.equal(prettyModel("z-ai/glm-5.3-flash"), "glm-5.3-flash");
 	});

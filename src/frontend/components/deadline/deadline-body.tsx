@@ -67,11 +67,9 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 					<h1 data-testid="deadline-name" className="font-bold text-[40px] leading-[48px] tracking-tight break-words text-ink">
 						{d.name}
 					</h1>
-					<p data-testid="deadline-when" className="flex flex-wrap items-baseline gap-x-2 text-base leading-6 text-ink-2">
+					<p data-testid="deadline-when" className="flex flex-wrap items-baseline gap-x-4 text-base leading-6 text-ink-2">
 						<span>{kindLabel(d.kind)}</span>
-						<span aria-hidden>·</span>
 						<span>{dueLabel(d.date, d.time)}</span>
-						<span aria-hidden>·</span>
 						{d.done ? (
 							<span className="font-bold text-ink">Done</span>
 						) : past ? (
@@ -154,7 +152,7 @@ function TopicStrip({ deadline: d, tallies }: { deadline: DeadlineProgress; tall
 
 const tallyText = (t: TopicTally | undefined) => (t ? rightLabel(t) : "not tested");
 
-const BUTTON = "lh-press flex items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2 disabled:opacity-50";
+const BUTTON = "lh-btn";
 const TEXT_BUTTON = "lh-press text-[13px] font-bold text-ink hover:underline disabled:opacity-50";
 const WARN = "text-(--lh-ramp-2)";
 
@@ -273,7 +271,7 @@ function CoversCard({
 					{m.leftOut.length > 0 && (
 						<div className="flex w-full flex-col gap-1.5">
 							<button type="button" data-testid="deadline-left-out-toggle" aria-expanded={showLeftOut} onClick={() => setShowLeftOut((v) => !v)} className={cn(TEXT_BUTTON, "self-start font-normal text-ink-2")}>
-								{m.leftOut.length} left out · {showLeftOut ? "Hide" : "Show"}
+								{m.leftOut.length} left out, {showLeftOut ? "Hide" : "Show"}
 							</button>
 							{showLeftOut && (
 								<ul data-testid="deadline-left-out" className="flex flex-col gap-1.5">
@@ -325,13 +323,13 @@ function DayRow({ day, open = false, children }: { day: ClassDay; open?: boolean
 		<li data-testid="deadline-day-row" data-state={open ? "open" : day.state} className="flex min-w-0 items-center gap-2.5">
 			<DayMark state={day.state} open={open} />
 			<span className="w-[52px] shrink-0 font-mono text-[12.5px] text-ink-2 tabular-nums">{day.date ? shortDate(day.date) : ""}</span>
-			<Tip title={day.title} body={<span className="text-xs text-ink-2">{`${day.names.join(", ")} · ${STATE_WORD[day.state]}`}</span>}>
+			<Tip title={day.title} body={<span className="text-xs text-ink-2">{`${day.names.join(", ")}, ${STATE_WORD[day.state]}`}</span>}>
 				<span tabIndex={0} className="max-w-[60%] shrink-0 truncate text-[14px] text-ink">
 					{day.title}
 				</span>
 			</Tip>
 			<span className={cn("min-w-0 flex-1 truncate text-[12.5px]", day.state === "failed" ? "text-ans-wrong" : "text-ink-3")}>
-				{day.state === "failed" ? "couldn't be read" : day.parts.join(" · ")}
+				{day.state === "failed" ? "couldn't be read" : day.parts.join(", ")}
 			</span>
 			{children && <span className="ml-auto flex shrink-0 items-center gap-3 pl-2">{children}</span>}
 		</li>
@@ -378,7 +376,7 @@ function PathCard({
 					))}
 					<li data-testid="deadline-day-due" className="flex w-full gap-4 border-t border-tone-2 py-2.5">
 						<span className="w-[84px] shrink-0 text-[13.5px] text-ink-2">{deadlineDateLabel(d.date)}</span>
-						<span className="text-[13.5px] font-bold text-ink">{d.time ? `${d.name} · ${clockLabel(d.time)}` : d.name}</span>
+						<span className="text-[13.5px] font-bold text-ink">{d.time ? `${d.name}, ${clockLabel(d.time)}` : d.name}</span>
 					</li>
 				</ol>
 			)}

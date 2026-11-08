@@ -160,8 +160,8 @@ describe("Overview header", () => {
 		const note = section(html, "class-cover-note", "</p>");
 		assert.ok(note.includes("teacher-sprite"));
 		assert.ok(note.includes("Gradient steps are clicking. Momentum is next."));
-		assert.match(section(html, "class-cover-note", "</div></div>"), /Teacher · after /);
-		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Teacher · /, "no clock yet, no when");
+		assert.match(section(html, "class-cover-note", "</div></div>"), /Teacher, after /);
+		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Teacher, /, "no clock yet, no when");
 	});
 
 	it("loading: no progress line yet", () => {
@@ -255,9 +255,9 @@ describe("Ready for what's due", () => {
 		assert.match(section(html, "runway-ring-d2", "</a>"), /data-testid="runway-arc"[^>]*style="stroke:var\(--lh-ramp-4\)"/);
 	});
 
-	it("names and meta: exams read 'Exam · Thu Nov 5', others the date", () => {
+	it("names and meta: exams read 'Exam, Thu Nov 5', others the date", () => {
 		const html = renderRunway();
-		assert.ok(section(html, "runway-stop-d2", "</div></div></div>").includes("Exam · Thu Nov 5"));
+		assert.ok(section(html, "runway-stop-d2", "</div></div></div>").includes("Exam, Thu Nov 5"));
 		assert.ok(section(html, "runway-stop-d1", "</div></div></div>").includes(">Thu Oct 29<"));
 	});
 

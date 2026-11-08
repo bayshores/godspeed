@@ -107,8 +107,8 @@ describe("the studio's status", () => {
 	});
 
 	it("labels each version by what made it, and an empty chat by whether there is a sheet", () => {
-		assert.match(versionLabel(versions[1]!, true), /^Current · double sided, and a flowchart$/);
-		assert.match(versionLabel({ ...versions[1]!, fromFolder: true }, false), /^Nov 3, .* · From the working folder$/);
+		assert.match(versionLabel(versions[1]!, true), /^Current, double sided, and a flowchart$/);
+		assert.match(versionLabel({ ...versions[1]!, fromFolder: true }, false), /^Nov 3, .*, From the working folder$/);
 		assert.match(emptyChatLine("Claude Code", false), /^Say what you want on it.*Claude Code reads your class's rules/);
 		assert.match(emptyChatLine("Claude Code", true), /point at a part that confuses you/);
 	});
@@ -215,7 +215,7 @@ describe("the sheet's chat", () => {
 });
 
 describe("the canvas", () => {
-	const html = renderToStaticMarkup(<SheetCanvas versions={versions} pdfUrl={(n) => `/pdf/${n}`} labelFor={(v, newest) => `${newest ? "Current" : "Earlier"} · ${v.prompt}`} inset={372} onPoint={() => {}} />);
+	const html = renderToStaticMarkup(<SheetCanvas versions={versions} pdfUrl={(n) => `/pdf/${n}`} labelFor={(v, newest) => `${newest ? "Current" : "Earlier"}, ${v.prompt}`} inset={372} onPoint={() => {}} />);
 
 	it("puts every version's pages on the canvas at their size, newest first, each labeled", () => {
 		const pages = html.match(/data-testid="cheat-sheet-page"[^>]*style="[^"]*"/g)!;
@@ -223,7 +223,7 @@ describe("the canvas", () => {
 		assert.match(pages[0]!, /left:0;top:0;width:793\.7\d*px;height:1122\.5\d*px/);
 		assert.match(pages[1]!, /left:841\.7\d*px/);
 		const labels = [...html.matchAll(/data-testid="cheat-sheet-version"[^>]*>([^<]*)</g)].map((m) => m[1]);
-		assert.deepEqual(labels, ["Current · double sided, and a flowchart", "Earlier · A4"]);
+		assert.deepEqual(labels, ["Current, double sided, and a flowchart", "Earlier, A4"]);
 		assert.match(html, />Front<\/p>.*>Back<\/p>.*>Page 1<\/p>/);
 	});
 
@@ -251,8 +251,8 @@ describe("a class's cheat sheet cards", () => {
 		const html = render(card({ status: "made", version: versions[1]! }));
 		assert.match(html, /href="\/class\/deadline\/ddl_1\/cheat-sheet"/);
 		assert.match(html, /data-testid="cheat-sheet-thumb"[^>]*style="width:134px;height:190px"/);
-		assert.match(html, /Midterm<\/h3>.*Exam · Wed Nov 4 9:00 AM/);
-		assert.match(html, /A4, front and back · made Nov 3/);
+		assert.match(html, /Midterm<\/h3>.*Exam, Wed Nov 4 9:00 AM/);
+		assert.match(html, /A4, front and back, made Nov 3/);
 		assert.doesNotMatch(html, /cheat-sheet-show-file/, "no file browser in a plain browser");
 		assert.match(render(card({ status: "made", version: versions[1]! }), { label: "Show in Finder", run: () => {} }), /data-testid="cheat-sheet-show-file"[^>]*>Show in Finder/);
 	});

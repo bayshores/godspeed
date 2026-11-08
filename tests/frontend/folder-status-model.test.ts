@@ -25,16 +25,16 @@ describe("linked folder names", () => {
 
 describe("the folder line", () => {
 	it("says what it watches and when it last checked", () => {
-		assert.deepEqual(folderStatusLine(DRIVE, ok(), NOW), { text: "Watching CSE 21 on Google Drive · checked just now", warn: false });
-		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: new Date(NOW - 4 * 60_000).toISOString() }), NOW).text, "Watching CSE 21 · checked 4 minutes ago");
-		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: new Date(NOW - 61 * 60_000).toISOString() }), NOW).text, "Watching CSE 21 · checked 1 hour ago");
+		assert.deepEqual(folderStatusLine(DRIVE, ok(), NOW), { text: "Watching CSE 21 on Google Drive, checked just now", warn: false });
+		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: new Date(NOW - 4 * 60_000).toISOString() }), NOW).text, "Watching CSE 21, checked 4 minutes ago");
+		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: new Date(NOW - 61 * 60_000).toISOString() }), NOW).text, "Watching CSE 21, checked 1 hour ago");
 		assert.equal(folderStatusLine(LOCAL, ok({ checkedAt: null }), NOW).text, "Watching CSE 21");
 		assert.equal(folderStatusLine(LOCAL, ok(), null).text, "Watching CSE 21");
 	});
 
 	it("counts files it can't read, and its box names them", () => {
 		const skipped = { count: 5, examples: ["notes.key", "Plan.gdoc", "photo.png"], google: 1 };
-		assert.equal(folderStatusLine(DRIVE, ok({ skipped }), NOW).text, "Watching CSE 21 on Google Drive · 5 can't be read · checked just now");
+		assert.equal(folderStatusLine(DRIVE, ok({ skipped }), NOW).text, "Watching CSE 21 on Google Drive, 5 can't be read, checked just now");
 		assert.deepEqual(skippedLines(skipped), [
 			"5 files here can't be read: notes.key, Plan.gdoc, photo.png and 2 more.",
 			"Google Docs need saving as PDF or Word to be read.",

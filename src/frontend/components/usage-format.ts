@@ -49,5 +49,5 @@ export function prettyModel(id: string): string {
 	const parts = short.split("-");
 	const trimmed = /^\d+$/.test(parts[parts.length - 1] ?? "") ? parts.slice(0, -1) : parts;
 	const pretty = trimmed.join("-");
-	return provider ? `${pretty} · ${provider}` : pretty;
+	return provider ? `${pretty} (${provider})` : pretty;
 }

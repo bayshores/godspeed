@@ -90,8 +90,8 @@ describe("activity dock pure layer", () => {
 
 	it("per-chunk jobs: one source, N rows — unique ids (React keys), one chatId, part-suffixed titles", () => {
 		const rows = [
-			{ id: "src_a#1", chatId: "src_a", kind: "notes", part: { i: 1, n: 2 }, title: "notes.md · 1/2", phase: "extracting", startedAt: NOW - 1000 },
-			{ id: "src_a#2", chatId: "src_a", kind: "notes", part: { i: 2, n: 2 }, title: "notes.md · 2/2", phase: "waiting", startedAt: NOW - 500 },
+			{ id: "src_a#1", chatId: "src_a", kind: "notes", part: { i: 1, n: 2 }, title: "notes.md (1/2)", phase: "extracting", startedAt: NOW - 1000 },
+			{ id: "src_a#2", chatId: "src_a", kind: "notes", part: { i: 2, n: 2 }, title: "notes.md (2/2)", phase: "waiting", startedAt: NOW - 500 },
 		] as FeedExtraction[];
 		const blobs = toBlobs({ jobs: [], extractions: rows });
 		assert.equal(blobs.length, 2, "one blob per chunk job");

@@ -34,7 +34,7 @@ describe("Where you're at (nothing selected)", () => {
 		assert.ok(html.includes('data-testid="deadline-picker"'));
 		assert.ok(html.includes("Midterm 1"));
 		assert.ok(html.includes("9 days"));
-		assert.ok(html.includes("Thu Nov 5 · 2 files"));
+		assert.ok(html.includes("Thu Nov 5, covers 2 files"));
 	});
 
 	it("one readiness block per deadline topic, and the four counts", () => {
@@ -47,7 +47,7 @@ describe("Where you're at (nothing selected)", () => {
 	it("Work on next lists the deadline's items with status lines and reasons", () => {
 		assert.equal(count(html, 'data-testid="work-on-next-row"'), 3);
 		assert.ok(html.includes("4/7 right"));
-		assert.ok(html.includes("3/7 right · overconfident"));
+		assert.ok(html.includes("3/7 right, overconfident"));
 		assert.ok(html.includes("You felt sure on most of your misses"));
 		assert.ok(html.includes("Not tested"));
 		assert.ok(html.includes("Study these 3"));
@@ -93,7 +93,7 @@ describe("Topic selected", () => {
 	});
 
 	it("the first four facts, Show all, and math as KaTeX", () => {
-		assert.ok(html.includes("Facts in this topic · 6"));
+		assert.ok(html.includes("Facts in this topic (6)"));
 		assert.equal(count(html, 'data-testid="fact-row"'), 4);
 		assert.ok(html.includes("Show all 6"));
 		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");

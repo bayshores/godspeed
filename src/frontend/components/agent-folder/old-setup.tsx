@@ -33,7 +33,7 @@ export function OldSetupNotice() {
 			)}
 			<div className="flex items-center justify-end gap-4">
 				{removed ? (
-					<button type="button" onClick={() => setHidden(true)} className="lh-press bg-ink px-3 py-1.5 text-sm font-bold text-background hover:bg-ink/85">
+					<button type="button" onClick={() => setHidden(true)} className="lh-btn lh-btn-main">
 						OK
 					</button>
 				) : (
@@ -46,7 +46,7 @@ export function OldSetupNotice() {
 							data-testid="old-setup-remove"
 							disabled={busy}
 							onClick={() => void remove()}
-							className="lh-press bg-ink px-3 py-1.5 text-sm font-bold text-background hover:bg-ink/85 disabled:opacity-60"
+							className="lh-btn lh-btn-main"
 						>
 							Remove
 						</button>

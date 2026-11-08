@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { PencilIcon } from "lucide-react";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog } from "@/frontend/components/class-dialog";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -49,9 +48,8 @@ export function ClassOverview() {
 						type="button"
 						data-testid="overview-edit-class"
 						onClick={() => setEditing("class")}
-						className="lh-press flex items-center gap-[7px] bg-panel px-2.5 py-[7px] text-sm text-ink hover:bg-tone"
+						className="lh-btn"
 					>
-						<PencilIcon className="size-3.5" aria-hidden />
 						Edit class
 					</button>
 				)}

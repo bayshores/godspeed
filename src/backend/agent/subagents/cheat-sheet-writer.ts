@@ -85,7 +85,7 @@ export async function replyOnSheet(input: {
 		prompt: input.prompt,
 		lookups: input.lookups,
 		maxTurns: 10,
-		taskLabel: `Cheat sheet · ${input.title}`,
+		taskLabel: `Cheat sheet: ${input.title}`,
 		engine: input.engine,
 		signal: input.signal,
 		onStep: () => {},

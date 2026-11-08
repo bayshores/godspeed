@@ -50,7 +50,7 @@ export function scoreText(t: Pick<TopicProgress, "right" | "answered">): string 
  *  "Not tested". */
 export function statusLine(t: Pick<TopicProgress, "right" | "answered" | "overconfident" | "status">): string {
 	if (t.status === "untested") return "Not tested";
-	return `${scoreText(t)} right${t.overconfident ? " · overconfident" : ""}`;
+	return `${scoreText(t)} right${t.overconfident ? ", overconfident" : ""}`;
 }
 
 /** The reason under a Work-on-next row. progress.ts says "overconfident"

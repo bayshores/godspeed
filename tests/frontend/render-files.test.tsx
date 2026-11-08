@@ -151,12 +151,12 @@ describe("FilesPage", () => {
 		assert.ok(q("class-add-files"));
 		assert.equal(q("class-folder-status")!.textContent, "Watching CSE 21");
 		const today = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
-		assert.equal(q("files-summary")!.textContent, `7 files · 6 study material · 1 course info · 1 new since ${today}`);
+		assert.equal(q("files-summary")!.textContent, `7 files, 6 study material, 1 course info, 1 new since ${today}`);
 		assert.ok(q("class-file-new-f2"), "a file a scan just found is marked New");
 		assert.equal(q("class-file-new-f1"), null);
 		assert.deepEqual(
 			[...document.querySelectorAll('[data-testid^="files-group-toggle-"]')].map((b) => b.textContent),
-			["Lecture3", "Rosen · Probability2", "Other2"],
+			["Lecture3", "Rosen, Probability2", "Other2"],
 		);
 		assert.deepEqual(
 			[...q("files-group-lecture")!.querySelectorAll('[data-testid^="files-item-"]')].map((i) => i.textContent!.slice(0, 9)),

@@ -20,7 +20,7 @@ describe("class surfaces", () => {
 		);
 		assert.ok(html.includes('data-testid="class-context-card"'));
 		assert.ok(html.includes("Class context"));
-		assert.ok(html.includes("MATH 20C · 1 file"));
+		assert.ok(html.includes("MATH 20C, 1 file"));
 		assert.ok(!html.includes("class-context-body"), "collapsed by default");
 	});
 

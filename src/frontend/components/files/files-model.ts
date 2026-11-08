@@ -172,10 +172,10 @@ export function shortDate(iso: string): string {
 	return `${DAYS[day.getUTCDay()]} ${MONTHS[m - 1]} ${d}`;
 }
 
-/** "46 files · 27 study material · 19 course info". */
+/** "46 files, 27 study material, 19 course info". */
 export function filesSummary(files: readonly ClassFile[]): string {
 	const info = files.filter((f) => f.kind === "info").length;
 	const parts = [count(files.length, "file", "files")];
 	if (files.length > 0) parts.push(`${files.length - info} study material`, `${info} course info`);
-	return parts.join(" · ");
+	return parts.join(", ");
 }

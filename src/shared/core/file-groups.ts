@@ -27,10 +27,10 @@ export interface FileGroup {
 	items: FileItem[];
 }
 
-/** "Day", "Week" from a series label ("Week · Discussion"); null when the
+/** "Day", "Week" from a series label ("Week, Discussion"); null when the
  *  names start with the number ("06_Counting") or with codes ("29-fa26-l3"). */
 function headOf(series: FileSeries<ClassFile>): string | null {
-	return series.key && series.label !== "Numbered" ? series.label.split(" · ")[0]! : null;
+	return series.key && series.label !== "Numbered" ? series.label.split(", ")[0]! : null;
 }
 
 /** How alike two series' numbers are: shared over all (1 = the same

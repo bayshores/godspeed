@@ -32,7 +32,7 @@ export function CompactionMomentDivider({ data: _data }: { data: CompactionDivid
  *  chip) so it reads as a transcript boundary, not a message. Inert: it
  *  shows the summarized length only. */
 export function CompactionCutDivider({ data }: { data: CompactionDividerData }) {
-	const length = data.details.tokensBefore > 0 ? ` · ${pagesLabel(data.details.tokensBefore)}` : "";
+	const length = data.details.tokensBefore > 0 ? `, ${pagesLabel(data.details.tokensBefore)}` : "";
 	return (
 		<div data-testid="compaction-cut-divider" className="my-4 flex w-full items-center gap-3">
 			<span className="h-0 flex-1 border-t-2 border-dotted border-border/50" aria-hidden />

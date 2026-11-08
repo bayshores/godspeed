@@ -102,7 +102,7 @@ export const RunwayCard = memo(function RunwayCard({
 									type="button"
 									data-testid="runway-add-deadline"
 									onClick={onAddDeadline}
-									className="lh-press flex shrink-0 items-center gap-1.5 bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2"
+									className="lh-btn shrink-0"
 								>
 									<PlusIcon className="size-3.5 shrink-0" aria-hidden />
 									Add deadline
@@ -216,7 +216,7 @@ function MostNeededRow({ needed, busy, onStudy }: { needed: MostNeeded; busy: bo
 				data-testid="runway-study"
 				disabled={busy}
 				onClick={() => onStudy(needed.topicId)}
-				className="lh-press flex shrink-0 items-center gap-1.5 bg-ink px-3.5 py-2 text-sm font-extrabold text-background hover:bg-ink-max disabled:opacity-60"
+				className="lh-btn lh-btn-main shrink-0"
 			>
 				Study
 				<ArrowRightIcon className="size-3.5" aria-hidden />

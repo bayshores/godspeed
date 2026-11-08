@@ -47,7 +47,7 @@ export function OlderSheet({ onRemake }: { onRemake: () => void }) {
 	return (
 		<div data-testid="cheat-sheet-older" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 text-sm text-ink-2 outline outline-1 -outline-offset-1 outline-tone-2">
 			<span>Your sheet was made by an older godspeed and can&apos;t be shown anymore.</span>
-			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-press bg-tone px-2.5 py-1.5 font-bold text-ink hover:bg-tone-2">
+			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-btn">
 				Make it again
 			</button>
 		</div>
@@ -58,7 +58,7 @@ const when = (at: string) => new Date(at).toLocaleString(undefined, { month: "sh
 
 /** The line above a version on the canvas. */
 export function versionLabel(v: SheetVersion, newest: boolean): string {
-	return `${newest ? "Current" : when(v.at)} · ${v.fromFolder ? "From the working folder" : v.prompt || "From the files you sent"}`;
+	return `${newest ? "Current" : when(v.at)}, ${v.fromFolder ? "From the working folder" : v.prompt || "From the files you sent"}`;
 }
 
 /** What an empty chat says, before and after the sheet is made. */

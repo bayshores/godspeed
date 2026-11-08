@@ -138,7 +138,7 @@ describe("panel helpers", () => {
 	const mini = byId.get("t-mini")!;
 
 	it("statusLine: score + overconfident, or not tested", () => {
-		assert.equal(statusLine(mini), "3/7 right · overconfident");
+		assert.equal(statusLine(mini), "3/7 right, overconfident");
 		assert.equal(statusLine(byId.get("t-var")!), "4/7 right");
 		assert.equal(statusLine(byId.get("t-mom")!), "Not tested");
 	});

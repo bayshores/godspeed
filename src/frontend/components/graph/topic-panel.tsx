@@ -75,7 +75,7 @@ export function TopicPanel({
 						<ChipColumn label="Leads to" empty="Nothing yet" topics={leadsTo} onSelect={onSelectTopic} testid="leads-to" />
 					</div>
 				)}
-				<h3 className={cn("mt-4", LABEL_TEXT)}>Facts in this topic · {list.length}</h3>
+				<h3 className={cn("mt-4", LABEL_TEXT)}>Facts in this topic ({list.length})</h3>
 				<div className="h-1.5" />
 				<FactList key={topic.id} facts={list} />
 			</div>

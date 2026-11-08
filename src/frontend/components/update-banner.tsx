@@ -32,7 +32,7 @@ export default function UpdateBanner() {
 						type="button"
 						data-testid="update-restart-now"
 						onClick={() => window.lh?.installUpdate?.()}
-						className="lh-press bg-ink px-3 py-1.5 text-sm font-bold text-background hover:bg-ink/85"
+						className="lh-btn lh-btn-main"
 					>
 						Restart now
 					</button>

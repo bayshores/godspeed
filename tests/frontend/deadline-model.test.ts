@@ -50,7 +50,7 @@ describe("what a deadline covers", () => {
 		assert.equal(m.weeks[1]!.days[0]!.state, "failed");
 		assert.deepEqual(m.undated.map((x) => x.title), ["Midterm practice exam.pdf"]);
 		assert.deepEqual([m.classDays, m.files, m.reading, m.failed, m.facts], [4, 8, 1, 1, 17]);
-		assert.equal(materialSummary(m), "4 class days · 8 files · 1 still being read · 1 couldn't be read");
+		assert.equal(materialSummary(m), "4 class days, 8 files, 1 still being read, 1 couldn't be read");
 	});
 
 	it("flags study days before an exam that it doesn't cover, and stops once they're left out", () => {

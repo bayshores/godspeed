@@ -178,7 +178,7 @@ function Countdown({ deadline }: { deadline: DeadlineProgress }) {
 	const line = (
 		<span className="pb-1.5 text-[13.5px] text-ink-3">
 			{dayLabel(deadline.date)}
-			{files ? ` · ${files}` : ""}
+			{files ? `, covers ${files}` : ""}
 		</span>
 	);
 	return (
