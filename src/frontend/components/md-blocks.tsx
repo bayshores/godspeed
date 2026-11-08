@@ -38,7 +38,6 @@ import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/frontend/components/session-overlay";
 import { Hint } from "@/frontend/components/ui/hint";
-import { useLightBackground } from "@/frontend/components/settings/appearance";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
 
@@ -97,7 +96,6 @@ function MermaidInline({ chart }: { chart: string }) {
 	const [attempt, setAttempt] = useState(0);
 	const overlay = useSessionMermaid();
 	const incomplete = useIsCodeFenceIncomplete();
-	const light = useLightBackground();
 	// The font-parity cap: the house CSS
 	// (`max-width: 100% !important`) overrides mermaid's own natural-size cap,
 	// so a chart would otherwise stretch to the full column and render its
@@ -120,7 +118,7 @@ function MermaidInline({ chart }: { chart: string }) {
 		let cancelled = false;
 		setSvg(null);
 		setError(null);
-		renderMermaid(chart, light)
+		renderMermaid(chart)
 			.then((s) => {
 				if (!cancelled) setSvg(s);
 			})
@@ -130,7 +128,7 @@ function MermaidInline({ chart }: { chart: string }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [chart, attempt, incomplete, light]);
+	}, [chart, attempt, incomplete]);
 
 	if (incomplete || (svg === null && error === null)) {
 		return (
@@ -175,11 +173,6 @@ function MermaidInline({ chart }: { chart: string }) {
 	);
 }
 
-/** On a light background, code tokens take the light theme's colors: the
- *  page keeps its `dark` class there, so the dark theme's pale colors would
- *  otherwise win and fade into the light code tint. */
-const LIGHT_TOKENS = "[&_[style*='--sdm-c']]:text-(--sdm-c)!";
-
 /** The Streamdown `code` override: inline code passes through with the
  *  house inline classes; block fences split — mermaid renders as the bare
  *  chart above, everything else delegates to streamdown's exported
@@ -189,7 +182,6 @@ const LIGHT_TOKENS = "[&_[style*='--sdm-c']]:text-(--sdm-c)!";
  *  (data-streamdown="code-block"…). */
 function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const incomplete = useIsCodeFenceIncomplete();
-	const light = useLightBackground();
 	const { children, className, node, ...rest } = props;
 
 	// Inline code: no data-block (the pre handler stamps block fences only).
@@ -211,7 +203,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const startLine = startMatch ? Number.parseInt(startMatch[1]!, 10) : undefined;
 	const lineNumbers = !/\bnoLineNumbers\b/.test(meta);
 	return (
-		<div className={cn("group/md relative", light && LIGHT_TOKENS)} data-testid="md-code">
+		<div className="group/md relative" data-testid="md-code">
 			<CopyCorner className="absolute top-1.5 right-2 z-10" getText={() => source} label="Copy code" />
 			<CodeBlock
 				code={source}

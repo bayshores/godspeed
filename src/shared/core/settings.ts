@@ -112,14 +112,12 @@ export interface AppearanceSettings {
 	/** The one user-chosen color; text, panels and borders derive from it
 	 *  in code (dark text on a light one). null = black. */
 	background?: string | null;
-	/** The main reading font (everything that is Source Sans 3 today), by
-	 *  name — user-chosen from installed fonts. null = Source Sans 3. */
+	/** The reading font by name, user-chosen from installed fonts.
+	 *  null = Atkinson Hyperlegible Mono. */
 	fontFamily?: string | null;
-	/** Reading font size in px (12–24, default 16). Headings render as
+	/** Reading font size in px (12–24, default 15). Headings render as
 	 *  multiples of this, so one knob scales the document coherently. */
 	proseFontSize?: number;
-	/** Session names in CMU Serif (default true — today's look). */
-	sessionNameSerif?: boolean;
 	mdRendering?: MdRenderingSettings;
 }
 
@@ -190,7 +188,6 @@ export interface FactorySettings {
 		background: string | null;
 		fontFamily: string | null;
 		proseFontSize: number;
-		sessionNameSerif: boolean;
 		mdRendering: {
 			headingWeight: number;
 			boldColor: string | null;
@@ -206,9 +203,8 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
 	appearance: {
 		background: null, // black
-		fontFamily: null, // Source Sans 3
-		proseFontSize: 16,
-		sessionNameSerif: true,
+		fontFamily: null, // Atkinson Hyperlegible Mono
+		proseFontSize: 15,
 		mdRendering: { headingWeight: 900, boldColor: null, italicColor: null },
 	},
 	graph: { enabled: true, extractionChunkTokens: 4096 },
@@ -304,15 +300,17 @@ function sanitizeMdRendering(raw: unknown): MdRenderingSettings {
 
 function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	const out: AppearanceSettings = {};
-	if (raw.background !== undefined) out.background = sanitizeHexOrNull(raw.background);
+	// Paper and White were removed (the app is dark only): they read as Black.
+	if (raw.background !== undefined) {
+		const background = sanitizeHexOrNull(raw.background);
+		out.background = ["#f4f1ea", "#ffffff"].includes(background?.toLowerCase() ?? "") ? null : background;
+	}
 	if (raw.fontFamily !== undefined) {
 		out.fontFamily = typeof raw.fontFamily === "string" && raw.fontFamily.trim() ? raw.fontFamily : null;
 	}
 	if (typeof raw.proseFontSize === "number" && Number.isFinite(raw.proseFontSize)) {
 		out.proseFontSize = clamp(Math.round(raw.proseFontSize), PROSE_FONT_MIN, PROSE_FONT_MAX);
 	}
-	const sessionNameSerif = boolOrDrop(raw.sessionNameSerif);
-	if (sessionNameSerif !== undefined) out.sessionNameSerif = sessionNameSerif;
 	if (raw.mdRendering !== undefined) out.mdRendering = sanitizeMdRendering(raw.mdRendering);
 	return out;
 }

@@ -38,11 +38,11 @@ const GRAPH_PAD = 8;
 const GLOW_MARGIN = 8;
 const GLOW_BLUR = 5;
 const GLOW_REACH = GLOW_MARGIN + 3 * GLOW_BLUR;
-/** Node titles render at text-xs (12.5px) in svg units. The in-chat block
+/** Node titles render at text-xs (12px) in svg units. The in-chat block
  *  scales up to fill the column but NEVER past the chat prose size
- *  (--lh-prose-size, 16px — the ladder's reading rung) — the width cap
+ *  (--lh-prose-size, 15px, the ladder's reading rung): the width cap
  *  that makes that hold. */
-const TEXT_CAP_SCALE = 16 / 12.5;
+const TEXT_CAP_SCALE = 15 / 12;
 
 // ─── Status styling ──────────────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ const MONO_TEXT = "fill-foreground text-xs";
  *  sets font-family var(--font-prose): node titles render in the READING
  *  font, not the mono UI font, and the runtime var
  *  rides the Appearance reading-font override (the utility can't: @theme
- *  inline bakes literals — the --font-title trap). */
+ *  inline bakes literals). */
 function PlanDiagram({
 	nodes,
 	edges,
@@ -133,8 +133,8 @@ function PlanDiagram({
 			style={{
 				// The READING font via the runtime var, NOT
 				// the font-prose utility: @theme inline bakes the literal into
-				// utilities (the --font-title trap), which would freeze the
-				// graph at Source Sans 3 and ignore the Appearance reading-font
+				// utilities, which would freeze the
+				// graph at the default font and ignore the Appearance reading-font
 				// override. var(--font-prose) rides it.
 				fontFamily: "var(--font-prose)",
 				...(textCapScale

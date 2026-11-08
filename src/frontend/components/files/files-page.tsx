@@ -254,7 +254,7 @@ function FilesPageBody() {
 					<div className="flex w-full flex-col gap-4 px-[52px] pb-8">
 						<header className="flex flex-wrap items-end gap-x-6 gap-y-3 py-6">
 							<div className="flex min-w-0 flex-1 flex-col gap-2">
-								<h1 className="font-title text-[40px] leading-[48px] tracking-tight text-ink">Files</h1>
+								<h1 className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">Files</h1>
 								<p data-testid="files-summary" className="text-base leading-6 text-ink-2">
 									{filesSummary(record.files)}
 									{arrived && ` · ${arrived}`}

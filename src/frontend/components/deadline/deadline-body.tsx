@@ -64,7 +64,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-6 pb-8">
 			<header className="flex items-start justify-between gap-8 px-[52px] pt-6">
 				<div className="flex min-w-0 flex-col gap-2">
-					<h1 data-testid="deadline-name" className="font-title text-[40px] leading-[48px] tracking-tight break-words text-ink">
+					<h1 data-testid="deadline-name" className="font-bold text-[40px] leading-[48px] tracking-tight break-words text-ink">
 						{d.name}
 					</h1>
 					<p data-testid="deadline-when" className="flex flex-wrap items-baseline gap-x-2 text-base leading-6 text-ink-2">

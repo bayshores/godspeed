@@ -10,7 +10,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { wantsDarkText, type AppearanceSettings, type EffectiveAppearance } from "@/shared/core";
+import type { AppearanceSettings, EffectiveAppearance } from "@/shared/core";
 import { appearanceVars, resolveAppearance, staleVarNames } from "./appearance-model.ts";
 
 interface AppearanceContextValue {
@@ -27,13 +27,6 @@ const AppearanceContext = createContext<AppearanceContextValue>({
 
 export function useAppearance() {
 	return useContext(AppearanceContext);
-}
-
-/** Is the chosen background light? The page keeps its `dark` class on
- *  every background, so code and diagrams ask this to pick their colors. */
-export function useLightBackground(): boolean {
-	const { background } = useAppearance().appearance;
-	return background !== null && wantsDarkText(background);
 }
 
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {

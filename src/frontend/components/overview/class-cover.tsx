@@ -1,7 +1,7 @@
 import { memo, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import katex from "katex";
 import { DEFAULT_TEACHER_NAME, type ClassNote, type ClassSignature } from "@/shared/core";
-import { HalleyFace } from "@/frontend/components/halley/halley-face";
+import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { cn } from "@/frontend/lib/utils";
 import { firstSentence, labelHangsLeft, noteWhen, signaturePlace, studiedShare } from "./class-cover-model";
@@ -131,7 +131,7 @@ export const ClassCover = memo(function ClassCover({
 			)}
 			<div className="relative flex flex-col gap-6 @4xl:flex-row @4xl:items-end @4xl:justify-between">
 				<div ref={textRef} className="flex min-w-0 flex-col gap-2">
-					<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">
+					<h1 data-testid="overview-name" className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
 						{name}
 					</h1>
 					{about && <p className="max-w-[640px] text-base text-ink-2">{about}</p>}
@@ -143,9 +143,7 @@ export const ClassCover = memo(function ClassCover({
 				</div>
 				{note && (
 					<div ref={noteRef} data-testid="class-cover-note" className="flex shrink-0 items-center gap-3 bg-panel/90 px-3.5 py-3 @4xl:w-[440px]">
-						<span className="size-[22px] shrink-0">
-							<HalleyFace mood="idle" still />
-						</span>
+						<TeacherSprite mood="idle" className="w-[17px] shrink-0" />
 						<div className="flex min-w-0 flex-col gap-1">
 							<p className="text-sm leading-snug text-ink">{note.text}</p>
 							{when && <p className="text-xs text-ink-3">{teacherName} · {when}</p>}

@@ -38,7 +38,7 @@ export const ClassBlock = memo(function ClassBlock({
 			{/* The signature sits beside the name, so the text ends before it. */}
 			<div className="flex w-full min-w-0 items-start gap-3">
 				<div className="flex min-w-0 flex-1 flex-col gap-1">
-					<h2 title={cls.name} className="truncate font-title text-[22px] leading-7 font-bold text-ink">{cls.name}</h2>
+					<h2 title={cls.name} className="truncate font-bold text-[22px] leading-7 text-ink">{cls.name}</h2>
 					{firstLine && <p title={firstLine} className="truncate text-[13.5px] leading-5 text-ink-2">{firstLine}</p>}
 				</div>
 				{cls.signature && (

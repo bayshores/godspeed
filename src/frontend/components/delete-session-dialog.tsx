@@ -22,8 +22,7 @@ export const TRACES_COPY = {
  * one design):
  *
  *   - red title "Delete lesson?" in the abort-turn look (text-sm
- *     font-semibold JetBrains Mono via the UI default), the lesson name
- *     below it in JetBrains Mono at text-sm, no code-block chrome;
+ *     font-semibold), the lesson name below it in mono at text-sm, no code-block chrome;
  *   - ONE unchecked-by-default checkbox "Also remove its graph traces"
  *     (unchecked = preserve-graph: the session record, its jobs, and its
  *     extraction bookkeeping die; the graph keeps every contribution.
@@ -180,7 +179,7 @@ export function DeleteSessionBody({
 			className="lh-dialog w-[32rem] max-w-[calc(100vw-2rem)] border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">Delete lesson?</h2>
-			{/* The lesson name in JetBrains Mono with no code-block chrome:
+			{/* The lesson name in mono with no code-block chrome:
 			    the font already says code. Same shape as the node dialog. */}
 			<div className="mt-1.5">
 				<code data-testid="session-name-code" className="font-mono text-sm text-foreground">

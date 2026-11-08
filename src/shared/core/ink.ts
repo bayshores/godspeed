@@ -1,22 +1,22 @@
 /**
- * Text and edge colors that read well on any background. Light or dark ink
- * is picked by which has more contrast; each level starts from the default
- * gray, takes a hint of the background's hue (in OKLCH, so the tint looks
- * even across colors), then moves lighter or darker until it meets its
- * contrast minimum. Browser-safe, pure.
+ * Text and edge colors that read well on any dark background. Each level
+ * starts from the default gray, takes a hint of the background's hue (in
+ * OKLCH, so the tint looks even across colors), then moves lighter until
+ * it meets its contrast minimum. The app is dark only, so a picked color
+ * is first made dark enough (darkBackground). Browser-safe, pure.
  */
 
 export type InkLevel = "text" | "body" | "muted" | "faint" | "edge";
 
-/** Each level's contrast minimum (WCAG ratio) and its default grays, on
- *  dark and on light backgrounds. Every text level is at least 4.5 (small
- *  text); an edge (field borders, empty bars) needs 3. */
-const LEVELS: Record<InkLevel, { min: number; onDark: string; onLight: string }> = {
-	text: { min: 7, onDark: "#e6e6e6", onLight: "#1a1a1a" },
-	body: { min: 6, onDark: "#cfcfcf", onLight: "#2b2b2b" },
-	muted: { min: 4.5, onDark: "#8d8d8d", onLight: "#5f5f5f" },
-	faint: { min: 4.5, onDark: "#7a7a7a", onLight: "#6b6b6b" },
-	edge: { min: 3, onDark: "#5a5a5a", onLight: "#8f8f8f" },
+/** Each level's contrast minimum (WCAG ratio) and its default gray. Every
+ *  text level is at least 4.5 (small text); an edge (field borders, empty
+ *  bars) needs 3. */
+const LEVELS: Record<InkLevel, { min: number; gray: string }> = {
+	text: { min: 7, gray: "#e6e6e6" },
+	body: { min: 6, gray: "#cfcfcf" },
+	muted: { min: 4.5, gray: "#8d8d8d" },
+	faint: { min: 4.5, gray: "#7a7a7a" },
+	edge: { min: 3, gray: "#5a5a5a" },
 };
 
 /** How much of the background's hue text takes (OKLCH chroma). */
@@ -81,33 +81,48 @@ export function contrast(a: string, b: string): number {
 	return (hi + 0.05) / (lo + 0.05);
 }
 
-/** True when dark text reads better than light text on this color. */
-export function wantsDarkText(background: string): boolean {
-	return contrast("#000000", background) >= contrast("#ffffff", background);
+/** The lightest a background may be (OKLCH lightness): darker than this
+ *  stays easy on the eyes. */
+const MAX_BACKGROUND_L = 0.3;
+
+/** A picked color made dark enough for the app: its lightness capped (hue
+ *  kept), then stepped darker until secondary text reads on it and on the
+ *  surfaces it implies (`surfaces`, from the same background). */
+export function darkBackground(color: string, surfaces: (background: string) => readonly string[]): string {
+	const start = toOklch(color);
+	let background = start.l > MAX_BACKGROUND_L ? fromOklch({ ...start, l: MAX_BACKGROUND_L, c: start.c * (MAX_BACKGROUND_L / start.l) }) : color;
+	while (!inkReaches(background, "muted", surfaces(background))) background = shiftHex(background, -4);
+	return background;
 }
 
-/** `color` moved lighter (or darker, `darker`) in small steps, keeping its
- *  hue, until it has `min` contrast on every surface. Stops at white or black. */
-function reach(color: string, surfaces: readonly string[], min: number, darker: boolean): string {
+/** The accent: a pale tint of the background's hue (gray when it has
+ *  none), readable as text on the background. */
+export function tintFor(background: string): string {
+	const bg = toOklch(background);
+	const tinted = bg.c < 0.01 ? fromOklch({ l: 0.9, c: 0, h: 0 }) : fromOklch({ l: 0.82, c: 0.08, h: bg.h });
+	return reach(tinted, [background], LEVELS.text.min);
+}
+
+/** `color` moved lighter in small steps, keeping its hue, until it has
+ *  `min` contrast on every surface. Stops at white. */
+function reach(color: string, surfaces: readonly string[], min: number): string {
 	const start = toOklch(color);
 	let out = color;
 	for (let l = start.l; !surfaces.every((s) => contrast(out, s) >= min); ) {
-		l += darker ? -0.01 : 0.01;
-		if (l <= 0 || l >= 1) return darker ? "#000000" : "#ffffff";
-		// The tint fades as the color nears white or black, so it stays in gamut.
-		const room = darker ? l / start.l : (1 - l) / (1 - start.l);
-		out = fromOklch({ l, c: start.c * Math.min(1, room), h: start.h });
+		l += 0.01;
+		if (l >= 1) return "#ffffff";
+		// The tint fades as the color nears white, so it stays in gamut.
+		out = fromOklch({ l, c: start.c * Math.min(1, (1 - l) / (1 - start.l)), h: start.h });
 	}
 	return out;
 }
 
 /** One ink level for a background, readable on it and on the given panels. */
 export function inkFor(background: string, level: InkLevel, panels: readonly string[] = []): string {
-	const dark = wantsDarkText(background);
 	const spec = LEVELS[level];
 	const bg = toOklch(background);
-	const tinted = fromOklch({ l: toOklch(dark ? spec.onLight : spec.onDark).l, c: Math.min(TINT, bg.c), h: bg.h });
-	return reach(tinted, [background, ...panels], spec.min, dark);
+	const tinted = fromOklch({ l: toOklch(spec.gray).l, c: Math.min(TINT, bg.c), h: bg.h });
+	return reach(tinted, [background, ...panels], spec.min);
 }
 
 /** True when this level can meet its minimum on the background and every panel. */
@@ -118,7 +133,7 @@ export function inkReaches(background: string, level: InkLevel, panels: readonly
 
 /** A color used as text or a mark (bold, italic, right, wrong, the ramps)
  *  made readable on the background and its panels: unchanged when it
- *  already is, else lighter or darker with the same hue. */
+ *  already is, else lighter with the same hue. */
 export function readableAccent(color: string, background: string, panels: readonly string[] = []): string {
-	return reach(color, [background, ...panels], LEVELS.muted.min, wantsDarkText(background));
+	return reach(color, [background, ...panels], LEVELS.muted.min);
 }

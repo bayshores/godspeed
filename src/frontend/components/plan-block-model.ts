@@ -20,34 +20,20 @@ import { curveBasis, line } from "d3-shape";
  * floored so short titles don't collapse into pills. An estimate, not
  * canvas measurement, so layout stays deterministic and DOM-free. */
 
-/** Symmetric horizontal padding, equal to the vertical padding the
- * single-line text gets in NODE_H: (44 − 11) / 2 ≈ 16 (the prose font
- * renders text-xs at 11px). */
+/** Symmetric horizontal padding, about the vertical padding the
+ * single-line text gets in NODE_H: (44 − 12) / 2 = 16. */
 const PAD_X = 16;
 export const NODE_W_MIN = 96;
 export const NODE_H = 44;
 
-// Width classes for the PROSE font (Source Sans 3 as shipped, text-xs
-// rendering at 11px): narrow stems and punctuation, wide m/w, caps +
-// digits, everything else. Rates least-squares-fitted against
-// getComputedTextLength() measurements of real plan titles; residuals
-// land within ±4px per LINE, so
-// per-side padding reads as PAD_X ±2. A different reading font
-// (Appearance override) drifts the estimate slightly; accepted.
-const NARROW_CHARS = new Set(" ijltfr.,:;'!|()[]-\\");
-const WIDE_CHARS = new Set("mwMW@");
-const CAP_DIGIT = /[A-Z0-9]/;
+/** One character's width at text-xs (12px) in the reading font, which is
+ *  monospace: Atkinson Hyperlegible Mono advances 0.632em. A different
+ *  reading font (Appearance) drifts the estimate slightly; accepted. */
+const CHAR_W = 12 * 0.632;
 
 /** Estimated rendered width (px) of one line at text-xs. Pure. */
 export function estimateLineWidth(line: string): number {
-	let w = 0;
-	for (const ch of line) {
-		if (NARROW_CHARS.has(ch)) w += 3.1;
-		else if (WIDE_CHARS.has(ch)) w += 9.2;
-		else if (CAP_DIGIT.test(ch)) w += 6.0;
-		else w += 5.4;
-	}
-	return w;
+	return [...line].length * CHAR_W;
 }
 /** Baseline-to-baseline distance of node titles. */
 export const LINE_H = 13;

@@ -1,5 +1,5 @@
 /**
- * Halley's mood from the app's state. Pure.
+ * The teacher's mood from the app's state. Pure.
  *
  * A brief reaction (a graded answer, a deadline under an hour away, a
  * failed job) shows on top of everything for a moment. Otherwise:
@@ -55,9 +55,4 @@ export function pickMood(i: MoodInputs): HalleyMood {
  *  hour don't count: the face reacts once, when it crosses. */
 export function crossedUnderHour(deadlines: readonly { id: string; dueMs: number }[], prevMs: number, nowMs: number): string[] {
 	return deadlines.filter((d) => d.dueMs - prevMs >= HOUR && d.dueMs - nowMs < HOUR && d.dueMs > nowMs).map((d) => d.id);
-}
-
-/** Moods where the eyes don't follow the mouse. */
-export function eyesStill(mood: HalleyMood): boolean {
-	return mood === "sleepy" || mood === "dizzy";
 }

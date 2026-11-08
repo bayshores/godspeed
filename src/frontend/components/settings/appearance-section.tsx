@@ -7,17 +7,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon, PipetteIcon, PlusIcon } from "lucide-react";
-import { wantsDarkText, type AppearanceSettings } from "@/shared/core";
+import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { cn } from "@/frontend/lib/utils";
 import { useAppearance } from "./appearance.tsx";
-import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette } from "./appearance-model.ts";
-import { FontMenuList } from "./font-menu";
-import { SettingsGroup, Slider, Toggle } from "./controls.tsx";
+import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette, readableBackground } from "./appearance-model.ts";
+import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
+import { SettingsGroup, Slider } from "./controls.tsx";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
-/** The factory reading family (unset = this). */
-export const DEFAULT_READING_FONT = "Source Sans 3";
 
 /** Offered when the installed list can't be read (a plain browser). */
 export const CURATED_FALLBACK_FONTS: readonly string[] = [
@@ -52,19 +50,17 @@ export function AppearanceSection({
 	const md = appearance?.mdRendering;
 	const background = appearance?.background ?? null;
 	const shownBackground = background ?? "#000000";
-	const light = wantsDarkText(shownBackground);
 	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
 	const weightIndex = Math.max(0, HEADING_WEIGHTS.findIndex((w) => w.weight >= resolved.mdRendering.headingWeight));
 	const ink = md?.boldColor ?? null;
-	const inks: readonly string[] = INK_PRESETS[light ? "light" : "dark"];
-	const customInk = ink !== null && !inks.includes(ink);
+	const customInk = ink !== null && !INK_PRESETS.includes(ink);
 	const setInk = (color: string | null) =>
 		onSectionChange({ ...appearance, mdRendering: { ...md, boldColor: color, italicColor: color } });
 
 	return (
 		<>
 			<SettingsGroup label="Background" testid="group-background">
-				<div className="grid grid-cols-7 gap-2.5">
+				<div className="grid grid-cols-5 gap-2.5">
 					{BACKGROUND_PRESETS.map((preset) => (
 						<ThemeTile
 							key={preset.name}
@@ -81,7 +77,7 @@ export function AppearanceSection({
 								!isPreset ? "border-2 border-ink" : "border-tone-2",
 							)}
 							style={{
-								background: !isPreset && background ? background : "conic-gradient(#e4573f, #d2a24c, #93b08a, #4a6fd1, #e4573f)",
+								background: !isPreset && background ? readableBackground(background) : "conic-gradient(#e4573f, #d2a24c, #93b08a, #4a6fd1, #e4573f)",
 							}}
 						>
 							<span className="flex size-[26px] items-center justify-center bg-background text-ink">
@@ -126,8 +122,8 @@ export function AppearanceSection({
 					</Control>
 					<Control label="Bold and italic color">
 						<div className="flex items-center gap-1.5">
-							<InkSwatch color={derivedPalette(shownBackground)["--foreground"]!} label="Same as text" on={ink === null} onPick={() => setInk(null)} />
-							{inks.map((c) => (
+							<InkSwatch color={derivedPalette(readableBackground(shownBackground))["--foreground"]!} label="Same as text" on={ink === null} onPick={() => setInk(null)} />
+							{INK_PRESETS.map((c) => (
 								<InkSwatch key={c} color={c} label={c} on={ink === c} onPick={() => setInk(c)} />
 							))}
 							<label
@@ -140,16 +136,6 @@ export function AppearanceSection({
 								<PipetteIcon className="size-[13px]" aria-hidden />
 								<ColorInput label="Custom bold and italic color" value={ink ?? "#ffffff"} onCommit={setInk} />
 							</label>
-						</div>
-					</Control>
-					<Control label="Lesson titles">
-						<div className="flex items-center justify-between bg-tone px-3 py-2">
-							<span className="text-[13.5px] text-ink">Serif titles</span>
-							<Toggle
-								checked={resolved.sessionNameSerif}
-								label="serif titles"
-								onChange={(on) => onSectionChange({ ...appearance, sessionNameSerif: on })}
-							/>
 						</div>
 					</Control>
 				</div>
@@ -219,7 +205,7 @@ function Preview() {
 	return (
 		<div className="min-w-0 flex-1 self-start border border-tone-2 bg-background px-5 py-[18px]" data-testid="appearance-preview">
 			<p className={cn("pb-2", LABEL_TEXT)}>Preview</p>
-			<h4 className="font-title pb-2 text-[22px] leading-tight text-ink">Why a derivative is a slope</h4>
+			<h4 className="font-bold pb-2 text-[22px] leading-tight text-ink">Why a derivative is a slope</h4>
 			<div className="lh-prose flex flex-col gap-2.5">
 				<p>
 					Zoom in on a smooth curve and it <strong>looks straight</strong>.

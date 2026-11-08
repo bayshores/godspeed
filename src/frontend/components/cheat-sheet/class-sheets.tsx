@@ -72,7 +72,7 @@ export function ClassSheetsPage() {
 				{view && (
 					<div className="flex w-full flex-col gap-8 px-[52px] pb-8">
 						<header className="flex flex-col gap-2 py-6">
-							<h1 className="font-title text-[40px] leading-[48px] tracking-tight text-ink">Cheat sheets</h1>
+							<h1 className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">Cheat sheets</h1>
 							<p data-testid="cheat-sheets-summary" className="text-base leading-6 text-ink-2">
 								{view.cards.length === 0 ? "No deadlines yet. Add one to make a cheat sheet for it." : `${made} of ${view.cards.length} ${view.cards.length === 1 ? "deadline has" : "deadlines have"} a sheet`}
 							</p>

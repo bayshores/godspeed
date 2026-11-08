@@ -16,14 +16,12 @@ import type { MermaidConfig } from "mermaid";
  *  cap (chart text must never render larger than the session's own text). */
 export const MERMAID_FONT_SIZE = 16;
 
-const mermaidConfig = (light: boolean): MermaidConfig => ({
-	fontFamily: "ui-sans-serif, system-ui, sans-serif",
+const MERMAID_CONFIG: MermaidConfig = {
+	fontFamily: "ui-monospace, monospace",
 	fontSize: MERMAID_FONT_SIZE,
 	securityLevel: "strict",
-	// The page keeps html.dark on every background, so the theme follows
-	// the background itself.
-	theme: light ? "default" : "dark",
-});
+	theme: "dark",
+};
 
 // Mermaid is large, so it loads only when the first diagram renders
 // (the dynamic import() Next documents for libraries), then stays cached.
@@ -40,13 +38,12 @@ function loadPlugin(): Promise<MermaidPlugin> {
 	return pluginPromise;
 }
 
-/** Render one chart source to an svg string, themed for a light or dark
- *  background. The id is unique per call —
+/** Render one chart source to an svg string. The id is unique per call —
  *  mermaid caches rendered ids, and a repeated id across charts/renders
  *  returns the stale svg (the bug streamdown's own id minting avoids). */
-export async function renderMermaid(chart: string, light: boolean): Promise<string> {
+export async function renderMermaid(chart: string): Promise<string> {
 	const id = `lh-mermaid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 	const plugin = await loadPlugin();
-	const { svg } = await plugin.getMermaid(mermaidConfig(light)).render(id, chart);
+	const { svg } = await plugin.getMermaid(MERMAID_CONFIG).render(id, chart);
 	return svg;
 }

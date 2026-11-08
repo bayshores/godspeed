@@ -21,7 +21,7 @@ import {
 	WaypointsIcon,
 } from "lucide-react";
 import { savedTimes, TEACHING_AREAS, TOOL_SWITCH_LABELS, type AgentSettings, type AreaId, type GraphSettings, type PromptSegmentInfo, type TeachingArea, type ToggleableTool } from "@/shared/core";
-import { HalleyFace } from "@/frontend/components/halley/halley-face";
+import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { useSavedRules } from "@/frontend/components/use-saved-rules";
@@ -102,7 +102,7 @@ export function TeachingSection({
 	return (
 		<>
 			<p className="flex items-center gap-2.5 pb-1.5 text-[13.5px] text-ink-2">
-				<HalleyFace mood="idle" still className="size-[22px] shrink-0" />
+				<TeacherSprite mood="idle" className="w-[17px] shrink-0" />
 				How {teacherName} teaches you. Change a switch, add a rule, or rewrite the instructions.
 			</p>
 			{segments === null && segmentsFailed && <LoadFailed message="Couldn't load the instructions." onRetry={readSegments} className="pb-1.5" />}

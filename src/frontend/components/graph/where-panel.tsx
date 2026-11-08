@@ -8,7 +8,6 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { CalendarIcon, ChevronDownIcon, DumbbellIcon, PanelRightCloseIcon } from "lucide-react";
 import { Hint } from "@/frontend/components/ui/hint";
-import { useHalleyAvoid } from "@/frontend/components/halley/avoid";
 import { dayLabel, type DeadlineProgress, type ProgressPayload, type StatusCounts, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -300,13 +299,11 @@ export function StudyBar({
 	error: string | null;
 	testid: string;
 }) {
-	useHalleyAvoid();
 	return (
 		<>
 			<button
 				type="button"
 				data-testid={testid}
-				data-halley-avoid=""
 				disabled={busy}
 				onClick={onClick}
 				className="lh-press flex h-14 w-full shrink-0 items-center gap-2 bg-primary px-5 text-[15px] font-extrabold text-primary-foreground hover:opacity-90 disabled:opacity-60"

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { MaximizeIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/frontend/components/pan-zoom";
 import { Hint } from "@/frontend/components/ui/hint";
-import { useHalleyAvoid } from "@/frontend/components/halley/avoid";
 
 /**
  * The pan/zoom viewport wiring shared by the plan popup and the diagram
@@ -117,11 +116,10 @@ export function ZoomControls({
 	onStep: (factor: number) => void;
 	onFit: () => void;
 }) {
-	useHalleyAvoid();
 	return (
 		<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
 			<span className="text-xs text-ink-3">Drag to pan · scroll to zoom</span>
-			<div className="flex gap-1" data-halley-avoid="">
+			<div className="flex gap-1">
 				<Hint label="Zoom out" side="bottom">
 					<button type="button" aria-label="Zoom out" onClick={() => onStep(1 / 1.25)} className={ZOOM_BUTTON}>
 						<MinusIcon className="size-3.5" />

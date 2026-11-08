@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ClassSummary } from "@/shared/core";
-import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
+import { Atkinson_Hyperlegible_Mono, Martian_Mono } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { AppShell, SidebarProvider } from "@/frontend/components/sidebar";
@@ -21,10 +21,10 @@ import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
 
-// Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
-// Serif (the bundled lh-cmu @font-face in globals.css — no CDN).
-const ui = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
-const prose = Source_Sans_3({ subsets: ["latin"], variable: "--font-sans3" });
+// The interface is Martian Mono, reading text Atkinson Hyperlegible Mono.
+// next/font bundles both at build time, so they work offline.
+const ui = Martian_Mono({ subsets: ["latin"], variable: "--font-martian" });
+const prose = Atkinson_Hyperlegible_Mono({ subsets: ["latin"], variable: "--font-atkinson" });
 
 // Request-time render: the active class is read
 // from the live settings record on every load, never baked in at build.

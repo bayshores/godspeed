@@ -56,7 +56,7 @@ export function TopicPanel({
 						<XIcon className="size-4" />
 					</button>
 				</Hint>
-				<h2 className="mt-2 font-title text-[30px] leading-9 text-ink" data-testid="topic-panel-name">
+				<h2 className="mt-2 font-bold text-[30px] leading-9 text-ink" data-testid="topic-panel-name">
 					{topic.name}
 				</h2>
 				<div className="mt-3.5 flex w-full flex-col gap-2 bg-tone px-3.5 py-3" data-testid="topic-results">

@@ -70,7 +70,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
 		>
 			<div data-state={presence.state} className="lh-dialog mx-4 w-full max-w-[500px] border border-tone-2 bg-panel p-7 shadow-lg">
-				<h2 className="font-title text-[26px] leading-tight text-ink">godspeed has its own folder now</h2>
+				<h2 className="font-bold text-[26px] leading-tight text-ink">godspeed has its own folder now</h2>
 				<p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-2">
 					Open {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your classes and lessons
 					stay as they are.

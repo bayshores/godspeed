@@ -17,8 +17,7 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);
 		assert.equal(eff.appearance.fontFamily, null);
-		assert.equal(eff.appearance.proseFontSize, 16);
-		assert.equal(eff.appearance.sessionNameSerif, true);
+		assert.equal(eff.appearance.proseFontSize, 15);
 		assert.equal(eff.appearance.mdRendering.headingWeight, 900);
 		// the master switch ONLY + the chunk budget — absent record
 		// resolves the factory 4096

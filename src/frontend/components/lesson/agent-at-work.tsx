@@ -146,7 +146,7 @@ const PAPER = "bg-[#E9E9E7] text-[#2B2B2B] shadow-[0_18px_40px_rgba(0,0,0,0.75)]
 const TextPages = memo(function TextPages({ text, from, to }: { text: string; from: number | null; to: number | null }) {
 	const pages = useMemo(() => textPages(text), [text]);
 	return pages.map((page) => (
-		<div key={page.start} className={cn(PAPER, "px-6 py-5 font-title text-[10.5px] leading-[1.5]")}>
+		<div key={page.start} className={cn(PAPER, "px-6 py-5 text-[10.5px] leading-[1.5]")}>
 			{page.lines.map((line, i) => {
 				const n = page.start + i;
 				const lit = from !== null && to !== null && n >= from && n <= to;

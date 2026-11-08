@@ -35,12 +35,11 @@ describe("plan block layout (pure)", () => {
 	it("layers a chain top-down, one node per depth row", () => {
 		const layout = blockLayout(CHAIN.nodes, CHAIN.edges);
 		assert.ok(layout.y.get("a")! < layout.y.get("b")! && layout.y.get("b")! < layout.y.get("c")!, "one row per depth, top-down");
-		// Text-first sizing: these short titles hug to the minimum.
+		// Text-first sizing: each box hugs its title (10 mono chars ≈ 76 + 2×16).
 		const W = nodeWidth(wrapTitle("Alpha node"));
-		assert.equal(W, NODE_W_MIN); // est ≈ 50 → floored at the min
-		// All three short titles floor — the extent is the floor itself.
-		assert.equal(nodeWidth(wrapTitle("Gamma node")), NODE_W_MIN); // est ≈ 59.9
-		assert.equal(layout.width, NODE_W_MIN);
+		assert.equal(W, 108);
+		assert.equal(nodeWidth(wrapTitle("Gamma node")), 108);
+		assert.equal(layout.width, 108);
 		assert.equal(layout.height, 3 * NODE_H + 2 * 48);
 		assert.equal(layout.nodeW.get("a"), W);
 	});
@@ -123,12 +122,12 @@ describe("plan block layout (pure)", () => {
 		// Short titles floor at the min; wide ones size to the widest line.
 		// Per-char-CLASS estimate (the flat px/char rate
 		// overshot the rendered width — invisible slack beside the text).
-		assert.equal(nodeWidth(["supercalifragilistic"]), 117); // est ≈ 85 + 2×16
-		assert.equal(nodeWidth(wrapTitle("Symmetry and orthogonal complements")), 149);
+		assert.equal(nodeWidth(["supercalifragilistic"]), 184); // 20 mono chars ≈ 152 + 2×16
+		assert.equal(nodeWidth(wrapTitle("Symmetry and orthogonal complements")), 207);
 		// The hug is symmetric padding — 16 a side, the SAME as the vertical
 		// (44−12)/2 — and never below the floor.
 		assert.ok(nodeWidth(["a"]) === NODE_W_MIN);
-		assert.ok(Math.abs(estimateLineWidth("The normal-form ladder") - 106.3) < 0.5);
+		assert.ok(Math.abs(estimateLineWidth("The normal-form ladder") - 166.8) < 0.5);
 	});
 });
 
@@ -158,10 +157,10 @@ describe("plan block render", () => {
 		assert.match(html, /<svg[^>]*font-family:var\(--font-prose\)/);
 		// Lines + outlines at the app's standard 1px border weight.
 		assert.match(html, /<rect[^>]*stroke-width="1"/);
-		assert.match(html, /max-width:143\.36px/); // (96+16) × 1.28 — boxes hug now
+		assert.match(html, /max-width:155px/); // (108+16) × 15/12
 		// Centered text: every title line
 		// anchors to its box's midline — the old x=12 left inset is gone.
-		assert.match(html, /<text[^>]*x="48"[^>]*text-anchor="middle"/); // 96/2
+		assert.match(html, /<text[^>]*x="54"[^>]*text-anchor="middle"/); // 108/2
 		assert.ok(!/x="12"/.test(html), "no left-inset text");
 		// The in-chat block speaks the dock language:
 		// lighter-background boxes like the composer shells — with WHITE
@@ -170,7 +169,7 @@ describe("plan block render", () => {
 		// Two stacked nodes: 2*NODE_H + GAP_Y = 136 extent + GRAPH_PAD on
 		// every side (strokes/glow never clip at the edges). The width
 		// rides the hug now: 96-min boxes, not the old 160 slabs.
-		assert.match(html, /viewBox="-8 -8 112 152"/);
+		assert.match(html, /viewBox="-8 -8 124 152"/);
 		// Snapshot statuses render as carried.
 		assert.match(html, /data-testid="plan-node-a" data-status="visited"/);
 		assert.match(html, /data-testid="plan-node-b" data-status="upcoming"/);

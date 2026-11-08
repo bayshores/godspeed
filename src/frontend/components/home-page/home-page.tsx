@@ -69,7 +69,7 @@ export function HomePage() {
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="@container flex w-full flex-col pb-8">
 					<header className="flex flex-col gap-2 px-[52px] py-6">
-						<h1 className="font-title text-[40px] leading-[48px] tracking-tight text-ink">Home</h1>
+						<h1 className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">Home</h1>
 						<p data-testid="home-date" className="min-h-6 text-base leading-6 text-ink-2">
 							{nowMs !== null ? longDateLine(nowMs) : ""}
 						</p>

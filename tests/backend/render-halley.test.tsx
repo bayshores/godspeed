@@ -35,11 +35,10 @@ Object.assign(globalThis, {
 // The Talk thread scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { HalleyFace } = await import("../../src/frontend/components/halley/halley-face.tsx");
+const { TeacherSprite } = await import("../../src/frontend/components/halley/teacher-sprite.tsx");
 const { HALLEY_MOODS } = await import("../../src/frontend/components/halley/mood.ts");
 const { HalleyPanel, agentLine } = await import("../../src/frontend/components/halley/halley-panel.tsx");
 const { dockPush, dockWidth } = await import("../../src/frontend/components/halley/dock-model.ts");
-const { clearOfDock } = await import("../../src/frontend/components/halley/geometry.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/halley/ask-teacher.ts");
 const { FollowChipView } = await import("../../src/frontend/components/halley/follow-chip.tsx");
@@ -73,19 +72,19 @@ const ACTIONS: AgentAction[] = [
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
 
-describe("the face", () => {
-	it("one svg with every mood; the dot is #F2F2F2 and the eyes plain black", () => {
-		const html = renderToStaticMarkup(<HalleyFace mood="idle" />);
-		assert.match(html, /data-mood="idle"/);
-		assert.match(html, /fill="#F2F2F2"/);
-		for (const mood of HALLEY_MOODS) {
-			if (mood === "talking") continue; // talking reuses the idle eyes plus the mouth
-			assert.ok(html.includes(`hy-m-${mood}`), mood);
-		}
-		assert.doesNotMatch(html, /fill="#fff"|fill="white"/i, "no white highlights in the eyes");
+describe("the mascot", () => {
+	it("a pixel picture on a 10×13 grid, with a face for every mood", () => {
+		const html = renderToStaticMarkup(<TeacherSprite mood="thinking" />);
+		assert.match(html, /viewBox="0 0 10 13"/);
+		assert.match(html, /shape-rendering="crispEdges"/);
+		assert.match(html, /fill="#F2F4FF"/, "the white body");
+		assert.match(html, /fill="#2A3270"/, "the cap");
+		const faces = Object.fromEntries(HALLEY_MOODS.map((m) => [m, /data-face="(\w+)"/.exec(renderToStaticMarkup(<TeacherSprite mood={m} />))?.[1]]));
+		assert.deepEqual(faces, { idle: "idle", talking: "reading", thinking: "thinking", happy: "happy", oops: "oops", shocked: "oops", dizzy: "oops", sleepy: "blink" });
 	});
-	it("a still copy has no motion", () => {
-		assert.match(renderToStaticMarkup(<HalleyFace mood="sleepy" still />), /hy-still/);
+	it("only the idle face blinks", () => {
+		assert.match(renderToStaticMarkup(<TeacherSprite mood="idle" />), /lh-sprite-blink/);
+		assert.doesNotMatch(renderToStaticMarkup(<TeacherSprite mood="happy" />), /lh-sprite-blink/);
 	});
 });
 
@@ -386,12 +385,6 @@ describe("the panel", () => {
 		assert.equal(dockPush(600, 600, null), 0, "the whole window: no push");
 		assert.equal(dockPush(1000, 1000, null), 400);
 		assert.equal(dockPush(800, 544, null), 0, "a page too narrow to push is covered instead");
-	});
-	it("the teacher rests left of the open panel", () => {
-		const area = { left: 256, top: 0, width: 1184, height: 900 };
-		assert.deepEqual(clearOfDock(area, 1040), { left: 256, top: 0, width: 784, height: 900 });
-		assert.equal(clearOfDock({ ...area, width: 600 }, 1040).width, 600, "already clear");
-		assert.equal(clearOfDock(area, 0).width, 0);
 	});
 	it("askTeacher reaches the panel's listener with the text", () => {
 		const heard: string[] = [];

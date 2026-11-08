@@ -103,7 +103,7 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 					</g>
 					<circle r={HEAD_R} className="fill-ink" />
 				</svg>
-				<h1 className="wl-word font-title text-[64px] leading-none text-ink">godspeed</h1>
+				<h1 className="wl-word font-bold text-[64px] leading-none text-ink">godspeed</h1>
 			</div>
 			<div className={cn("wl-rise relative mt-10 flex flex-col items-center", !ready && "pointer-events-none")}>
 				<p data-testid="welcome-status" className="min-h-6 text-[15px] leading-6 text-ink-2">

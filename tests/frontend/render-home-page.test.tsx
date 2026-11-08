@@ -360,9 +360,9 @@ describe("Class block", () => {
 		assert.ok(!block().includes("class-signature-ink"), "no signature, nothing behind");
 	});
 
-	it("the name in CMU and the description's first line", () => {
+	it("the name in bold and the description's first line", () => {
 		const html = block();
-		assert.match(html, /font-title[^>]*>CSE 21</);
+		assert.match(html, /font-bold[^>]*>CSE 21</);
 		assert.ok(html.includes(">Discrete math</p>"));
 		assert.ok(!html.includes("Second line"));
 	});

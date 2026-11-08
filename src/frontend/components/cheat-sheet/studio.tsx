@@ -165,7 +165,7 @@ function Studio({
 			) : (
 				<div className="min-h-0 flex-1 overflow-y-auto">
 					<div className="mx-auto flex h-full w-full max-w-[712px] flex-col gap-7 px-4 pt-[72px] pb-10">
-						<h2 className="font-title text-[34px] leading-tight font-bold text-ink">What do you want on your cheat sheet?</h2>
+						<h2 className="font-bold text-[34px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
 						{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(classId, deadlineId).then(setFailed)} />}
 						<div data-testid="cheat-sheet-panel" className="flex min-h-[420px] flex-1 flex-col bg-panel outline outline-1 -outline-offset-1 outline-tone-2">
 							{chat}

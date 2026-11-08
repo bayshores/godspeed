@@ -151,7 +151,7 @@ function Intro({ skipped, onSkip, onDone }: { skipped: boolean; onSkip: () => vo
 	return (
 		<div data-testid="onboarding-intro" className="flex w-full flex-col items-center justify-center pt-[6vh]">
 			<div className="ob-rise flex flex-col items-center gap-6">
-				<h1 className="font-title text-[64px] leading-none text-ink">godspeed</h1>
+				<h1 className="font-bold text-[64px] leading-none text-ink">godspeed</h1>
 				<button type="button" data-testid="onboarding-start" className={PRIMARY} onClick={onDone}>
 					Get started
 				</button>
@@ -181,7 +181,7 @@ function StepColumn({ at, title, sub, center = false, children }: { at: 1 | 2; t
 	return (
 		<div className={cn("ob-step mx-auto flex w-[600px] max-w-[calc(100vw-2rem)] flex-col py-[15vh]", center && "items-center text-center")}>
 			<StepBar at={at} />
-			<h1 className="mt-8 font-title text-[44px] leading-tight text-ink">{title}</h1>
+			<h1 className="mt-8 font-bold text-[44px] leading-tight text-ink">{title}</h1>
 			<p className="mt-2 text-[15px] leading-relaxed text-ink-2">{sub}</p>
 			{children}
 		</div>
@@ -406,7 +406,7 @@ export function DoneStep({
 			<span className="flex size-14 items-center justify-center border border-ans-right/50 bg-ans-right/10">
 				<CheckIcon className="size-6 text-ans-right" aria-hidden />
 			</span>
-			<h1 className="mt-6 font-title text-[44px] leading-tight text-ink">{agent ? "You’re all set." : "You’re almost set."}</h1>
+			<h1 className="mt-6 font-bold text-[44px] leading-tight text-ink">{agent ? "You’re all set." : "You’re almost set."}</h1>
 			<p className="mt-2 text-[15px] text-ink-2">
 				{agent
 					? `Ask ${agent.name?.trim() || "your agent"} to teach you anything, or type a topic in godspeed.`

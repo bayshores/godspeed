@@ -61,7 +61,7 @@ export const OverviewBody = memo(function OverviewBody({
 				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} nowMs={nowMs} onAddSignature={onAddSignature} />
 			) : (
 				<header className="flex flex-col gap-2 px-[52px] py-6">
-					<h1 data-testid="overview-name" className="font-title text-[40px] leading-[48px] tracking-tight text-ink">
+					<h1 data-testid="overview-name" className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
 						{name}
 					</h1>
 					{pickClass}

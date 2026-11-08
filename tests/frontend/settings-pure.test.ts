@@ -1,6 +1,6 @@
 /**
  * The settings pure layers: the appearance → CSS-variable mapping, the
- * background-derived palette (dark and light), the Teaching section's
+ * background-derived palette (dark only), the Teaching section's
  * compose helpers (the replace-whole PUT), and the keyboard overrides map.
  */
 
@@ -31,8 +31,7 @@ describe("resolveAppearance — delta over factory", () => {
 		const a = resolveAppearance(undefined);
 		assert.equal(a.background, null);
 		assert.equal(a.fontFamily, null);
-		assert.equal(a.proseFontSize, 16);
-		assert.equal(a.sessionNameSerif, true);
+		assert.equal(a.proseFontSize, 15);
 		assert.deepEqual(a.mdRendering, { headingWeight: 900, boldColor: null, italicColor: null });
 	});
 
@@ -47,7 +46,6 @@ describe("resolveAppearance — delta over factory", () => {
 describe("derivedPalette — every surface and text color follows the background", () => {
 	it("a dark background steps surfaces up and keeps light text", () => {
 		const p = derivedPalette("#141414");
-		assert.equal(p["color-scheme"], "dark");
 		assert.equal(p["--background"], "#141414");
 		assert.equal(p["--card"], "#1c1c1c");
 		assert.equal(p["--accent"], "#2a2a2a");
@@ -55,7 +53,14 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.equal(p["--border"], "#434343");
 		assert.equal(p["--foreground"], "#e6e6e6");
 		assert.equal(p["--primary-foreground"], "#141414", "primary buttons take the background as their text");
-		assert.equal(p["--lh-ink-max"], "#ffffff");
+		assert.equal(p["--lh-tint"], "#dedede", "a gray background gets a gray accent");
+	});
+
+	it("the accent is a pale tint of the background's hue", () => {
+		const tint = derivedPalette("#0d1320")["--lh-tint"]!;
+		const [r, g, b] = [1, 3, 5].map((i) => parseInt(tint.slice(i, i + 2), 16));
+		assert.ok(b! > r! && b! > g!, `Midnight's accent leans blue: ${tint}`);
+		assert.ok(contrast(tint, "#0d1320") >= 7, "and reads as text");
 	});
 
 	it("OLED black derives the redesign's panel / tone / tooltip / tone-2", () => {
@@ -66,26 +71,8 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.equal(p["--border"], "#2f2f2f");
 	});
 
-	it("a light background steps surfaces down and flips the text to dark", () => {
-		const p = derivedPalette("#f4f1ea");
-		assert.equal(p["color-scheme"], "light");
-		assert.equal(p["--card"], "#ece9e2");
-		assert.equal(p["--border"], "#c5c2bb");
-		assert.equal(p["--foreground"], "#1c1a15", "dark text with a hint of the paper's warmth");
-		assert.equal(p["--lh-ink-max"], "#000000");
-		assert.equal(p["--primary-foreground"], "#f4f1ea");
-	});
-
 	it("channels clamp at 255", () => {
 		assert.equal(derivedPalette("#0000ff")["--card"], "#0808ff");
-	});
-
-	it("a mid color takes the text that reads better: dark on red and orange", () => {
-		for (const bg of ["#ff0000", "#e07020"]) {
-			const p = derivedPalette(bg);
-			assert.equal(p["color-scheme"], "light", bg);
-			assert.equal(p["--foreground"], "#000000", bg);
-		}
 	});
 
 	it("3-digit hex expands", () => {
@@ -119,20 +106,20 @@ describe("derivedPalette — every surface and text color follows the background
 	});
 });
 
-describe("readableBackground — a picked color text can't read on is moved until it can", () => {
+describe("readableBackground — a picked color is made dark enough for the app", () => {
 	it("leaves every preset alone", () => {
 		for (const { color } of BACKGROUND_PRESETS) if (color) assert.equal(readableBackground(color), color);
 	});
 
-	it("moves a mid color toward its text's opposite until secondary text reads on its tone", () => {
-		for (const picked of ["#777777", "#3366cc", "#ff0000"]) {
+	it("darkens a light or mid color, keeping its hue, until secondary text reads on its tone", () => {
+		for (const picked of ["#777777", "#3366cc", "#ff0000", "#f4f1ea", "#ffffff"]) {
 			const bg = readableBackground(picked);
-			assert.notEqual(bg, picked, picked);
+			assert.ok(contrast("#ffffff", bg) > contrast("#ffffff", picked), `${picked} gets darker`);
 			const p = derivedPalette(bg);
 			assert.ok(contrast(p["--muted-foreground"]!, p["--accent"]!) >= 4.5, `${picked} → ${bg}`);
 		}
-		assert.ok(contrast("#000000", readableBackground("#777777")) > contrast("#000000", "#777777"), "gray (dark text) gets lighter");
-		assert.ok(contrast("#ffffff", readableBackground("#3366cc")) > contrast("#ffffff", "#3366cc"), "blue (light text) gets darker");
+		const [r, , b] = [1, 3, 5].map((i) => parseInt(readableBackground("#3366cc").slice(i, i + 2), 16));
+		assert.ok(b! > r!, "blue stays blue");
 	});
 
 	it("is what appearanceVars paints (the saved choice stays as picked)", () => {
@@ -144,10 +131,9 @@ describe("readableBackground — a picked color text can't read on is moved unti
 describe("appearanceVars — the mapping the provider applies", () => {
 	it("factory appearance: only the always-applied tokens move", () => {
 		const vars = appearanceVars(resolveAppearance(undefined));
-		assert.equal(vars["--lh-prose-size"], "16px");
+		assert.equal(vars["--lh-prose-size"], "15px");
 		assert.equal(vars["--lh-heading-weight"], "900");
 		assert.equal(vars["--font-prose"], undefined, "no font override at factory");
-		assert.equal(vars["--font-title"], undefined, "CMU stays");
 		assert.equal(vars["--background"], undefined, "factory palette untouched");
 		assert.equal(vars["--lh-ink-strong"], undefined, "default ink");
 	});
@@ -158,15 +144,13 @@ describe("appearanceVars — the mapping the provider applies", () => {
 				background: "#101820",
 				fontFamily: "Georgia",
 				proseFontSize: 18,
-				sessionNameSerif: false,
 				mdRendering: { headingWeight: 700, boldColor: "#ff8080", italicColor: "#00ff00" },
 			}),
 		);
 		assert.equal(vars["--background"], "#101820");
 		assert.equal(vars["--card"], "#182028", "raised +8 per channel: 10→18, 18→20, 20→28");
-		assert.equal(vars["--font-prose"], `"Georgia", var(--font-sans3), ui-sans-serif, system-ui, sans-serif`);
+		assert.equal(vars["--font-prose"], `"Georgia", var(--font-atkinson), ui-monospace, monospace`);
 		assert.equal(vars["--lh-prose-size"], "18px");
-		assert.equal(vars["--font-title"], "var(--font-prose)", "serif off → titles follow the prose font");
 		assert.equal(vars["--lh-heading-weight"], "700");
 		assert.equal(vars["--lh-ink-strong"], "#ff8080");
 		assert.equal(vars["--lh-ink-italic"], "#00ff00");
@@ -176,12 +160,6 @@ describe("appearanceVars — the mapping the provider applies", () => {
 		const vars = appearanceVars(resolveAppearance({ mdRendering: { boldColor: "#2f5fb3" } }));
 		assert.notEqual(vars["--lh-ink-strong"], "#2f5fb3", "dark blue on black is lightened");
 	});
-
-	it("sessionNameSerif false alone: titles move, nothing else does", () => {
-		const vars = appearanceVars(resolveAppearance({ sessionNameSerif: false }));
-		assert.equal(vars["--font-title"], "var(--font-prose)");
-		assert.equal(Object.keys(vars).length, 3, "prose-size, heading-weight, font-title only");
-	});
 });
 
 describe("staleVarNames — the removal half of application (resets revert)", () => {
@@ -190,7 +168,6 @@ describe("staleVarNames — the removal half of application (resets revert)", ()
 			resolveAppearance({
 				background: "#101820",
 				fontFamily: "Georgia",
-				sessionNameSerif: false,
 				mdRendering: { headingWeight: 700, boldColor: "#ff8080", italicColor: "#00ff00" },
 			}),
 		);
@@ -199,7 +176,6 @@ describe("staleVarNames — the removal half of application (resets revert)", ()
 		const stale = staleVarNames(applied, factory);
 		assert.ok(stale.includes("--background"));
 		assert.ok(stale.includes("--font-prose"));
-		assert.ok(stale.includes("--font-title"), "serif toggle back ON must clear the title override");
 		assert.ok(stale.includes("--lh-ink-strong"));
 		assert.ok(stale.includes("--lh-ink-italic"));
 		assert.ok(!stale.includes("--lh-prose-size"), "always-applied tokens never go stale");

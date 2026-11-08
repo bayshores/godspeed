@@ -85,7 +85,6 @@ describe("parseAppearanceSettingsBody", () => {
 			background: "#ffffff",
 			fontFamily: "Some Font",
 			proseFontSize: 20,
-			sessionNameSerif: false,
 			mdRendering: { headingWeight: 700, boldColor: "#ff8800", italicColor: null },
 		});
 		assert.ok(r.ok);
@@ -93,7 +92,6 @@ describe("parseAppearanceSettingsBody", () => {
 			background: "#ffffff",
 			fontFamily: "Some Font",
 			proseFontSize: 20,
-			sessionNameSerif: false,
 			mdRendering: { headingWeight: 700, boldColor: "#ff8800", italicColor: null },
 		});
 	});
@@ -106,7 +104,6 @@ describe("parseAppearanceSettingsBody", () => {
 			{ fontFamily: 12 },
 			{ proseFontSize: 30 },
 			{ proseFontSize: 64.5 },
-			{ sessionNameSerif: 1 },
 			{ mdRendering: { headingWeight: 1000 } },
 			{ mdRendering: { boldColor: "red" } },
 		];

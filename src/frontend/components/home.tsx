@@ -77,7 +77,7 @@ export function NewLesson() {
 					className="mx-auto flex w-full max-w-[712px] flex-col px-4 pb-16 pt-[92px]"
 					style={{ animationDuration: "var(--lh-dur-slow)" }}
 				>
-					<h2 className="font-title text-[34px] font-bold leading-tight text-ink">What do you want to study?</h2>
+					<h2 className="font-bold text-[34px] leading-tight text-ink">What do you want to study?</h2>
 					{progress && deadlines.length > 0 && <DeadlineStarts deadlines={deadlines} busy={lesson.busy} onStudy={(d) => void studyDeadline(d)} />}
 					<div className="mt-2.5">
 						<TopicBox

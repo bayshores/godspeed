@@ -145,20 +145,14 @@ describe("GeneralSection (SSR)", () => {
 describe("AppearanceSection (SSR)", () => {
 	it("the background presets plus Custom, with Black picked at factory", () => {
 		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
-		for (const id of ["black", "graphite", "midnight", "forest", "paper", "white", "custom"]) {
+		for (const id of ["black", "graphite", "midnight", "forest", "custom"]) {
 			assert.ok(html.includes(`data-testid="theme-${id}"`), id);
 		}
 		assert.ok(tagOf(html, "theme-black").includes('aria-pressed="true"'));
 		assert.ok(html.includes('data-testid="font-trigger"'));
-		assert.ok(tagOf(html, "slider-text-size").includes('value="16"'));
+		assert.ok(!html.includes('data-testid="theme-paper"') && !html.includes('data-testid="theme-white"'), "dark only");
+		assert.ok(tagOf(html, "slider-text-size").includes('value="15"'));
 		assert.ok(html.includes('data-testid="appearance-preview"'));
-	});
-
-	it("a light background offers the light bold colors", () => {
-		const html = renderToStaticMarkup(<AppearanceSection appearance={{ background: "#f4f1ea" }} onSectionChange={() => {}} />);
-		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="true"'));
-		assert.ok(html.includes('aria-label="#b4541e"'));
-		assert.ok(!html.includes('aria-label="#f2c14e"'));
 	});
 
 	it("Tab onto a hidden color picker rings its visible tile", () => {

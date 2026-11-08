@@ -24,9 +24,8 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, extractionChunkTokens: 4096 });
 		const a = FACTORY_SETTINGS.appearance;
 		assert.equal(a.background, null); // black
-		assert.equal(a.fontFamily, null); // Source Sans 3
-		assert.equal(a.proseFontSize, 16);
-		assert.equal(a.sessionNameSerif, true);
+		assert.equal(a.fontFamily, null); // Atkinson Hyperlegible Mono
+		assert.equal(a.proseFontSize, 15);
 		assert.equal(a.mdRendering.headingWeight, 900);
 		assert.equal(a.mdRendering.boldColor, null); // white
 		assert.equal(a.mdRendering.italicColor, null);
@@ -57,15 +56,20 @@ describe("sanitizeUserSettings", () => {
 				rules: { voice: ["No jokes"], files: ["Quote page numbers"] },
 			},
 			appearance: {
-				background: "#ffffff",
+				background: "#101820",
 				fontFamily: "Some Font",
 				proseFontSize: 18,
-				sessionNameSerif: false,
 				mdRendering: { headingWeight: 700, boldColor: "#ff8800", italicColor: null },
 			},
 			graph: { enabled: false },
 		};
 		assert.deepEqual(sanitizeUserSettings(record), record);
+	});
+
+	it("the removed Paper and White backgrounds read as Black; an old serif-titles key drops", () => {
+		for (const background of ["#f4f1ea", "#FFFFFF"]) {
+			assert.deepEqual(sanitizeUserSettings({ appearance: { background, sessionNameSerif: false } })?.appearance, { background: null });
+		}
 	});
 
 	it("null and non-objects → null (first-boot semantics), never throws", () => {
@@ -86,7 +90,7 @@ describe("sanitizeUserSettings", () => {
 		const out = sanitizeUserSettings({
 			general: { autoUpdate: "yes", sounds: "off" },
 			agent: { tools: { research: "no" }, rules: { voice: [1], mood: ["x"] }, models: { researcher: "fast" } },
-			appearance: { sessionNameSerif: "true" },
+			appearance: { proseFontSize: "16" },
 			graph: { enabled: 0 },
 		});
 		assert.ok(out);
@@ -134,7 +138,7 @@ describe("sanitizeUserSettings", () => {
 		assert.equal(out.appearance?.mdRendering?.italicColor, null);
 	});
 
-	it("empty strings/whitespace fontFamily → null (Source Sans 3); wrong-type → null too (the default)", () => {
+	it("empty strings/whitespace fontFamily → null (the default); wrong-type → null too (the default)", () => {
 		for (const bad of ["", "   ", 12, { name: "x" }]) {
 			const out = sanitizeUserSettings({ appearance: { fontFamily: bad } });
 			assert.ok(out);

@@ -158,7 +158,7 @@ describe("Overview header", () => {
 	it("Halley's note sits on the cover", () => {
 		const html = render({ classId: "cls_ml", note: { text: "Gradient steps are clicking. Momentum is next.", at: "2026-10-28T10:00:00.000Z" } });
 		const note = section(html, "class-cover-note", "</p>");
-		assert.ok(note.includes("halley-face"));
+		assert.ok(note.includes("teacher-sprite"));
 		assert.ok(note.includes("Gradient steps are clicking. Momentum is next."));
 		assert.match(section(html, "class-cover-note", "</div></div>"), /Teacher · after /);
 		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Teacher · /, "no clock yet, no when");
@@ -168,9 +168,9 @@ describe("Overview header", () => {
 		assert.ok(!render({ classId: "cls_ml", data: null }).includes("class-cover-progress"));
 	});
 
-	it("the class name is the CMU title; the description sits under it", () => {
+	it("the class name is the bold title; the description sits under it", () => {
 		const html = render();
-		assert.match(tag(html, "overview-name"), /font-title/);
+		assert.match(tag(html, "overview-name"), /font-bold/);
 		assert.ok(html.includes(">ML Foundations</h1>"));
 		assert.ok(html.includes("Optimization and learning theory"));
 	});

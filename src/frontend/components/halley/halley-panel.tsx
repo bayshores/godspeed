@@ -17,7 +17,7 @@ import type { AgentAction } from "@/shared/core";
 import { ActivitySection, useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
 import { agentWaiting, footerLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
-import { HalleyFace } from "./halley-face";
+import { TeacherSprite } from "./teacher-sprite";
 import { safePage } from "./follow";
 import type { AgentDoing } from "./follow-status";
 import { pastLabel } from "./tour";
@@ -48,11 +48,6 @@ function actionTime(at: string): string {
 
 function yourTurnWidth(): number | null {
 	return document.querySelector("[data-testid='your-turn-panel']")?.getBoundingClientRect().width || null;
-}
-
-/** The dock's width for this window, kept current on resize. */
-export function currentDockWidth(): number {
-	return dockWidth(window.innerWidth, yourTurnWidth());
 }
 
 /** The page's push while the panel is open (main's padding reads it). */
@@ -115,11 +110,9 @@ export function HalleyPanel({
 			className="lh-slide-in fixed top-0 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-start gap-3 px-6 pt-5 pb-4">
-				<span className="mt-1 size-7 shrink-0">
-					<HalleyFace mood="idle" still />
-				</span>
+				<TeacherSprite mood="idle" className="mt-1 w-[22px] shrink-0" />
 				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span data-testid="halley-panel-name" className="truncate font-title text-[22px] leading-7 text-ink">
+					<span data-testid="halley-panel-name" className="truncate font-bold text-[22px] leading-7 text-ink">
 						{name}
 					</span>
 					<span data-testid="halley-panel-agent" className="truncate text-[12.5px] text-ink-2">

@@ -81,8 +81,8 @@ describe("Topic selected", () => {
 		/>,
 	);
 
-	it("names the topic in the title font with its takeaway", () => {
-		assert.ok(/class="[^"]*font-title[^"]*"[^>]*>Minibatch noise</.test(html));
+	it("names the topic in a bold title with its takeaway", () => {
+		assert.ok(/class="[^"]*font-bold[^"]*"[^>]*>Minibatch noise</.test(html));
 		assert.ok(html.includes("3 of 7 right. On 4 of the misses you picked 4 or 5, so you felt sure."));
 	});
 
