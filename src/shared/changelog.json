@@ -1,5 +1,19 @@
 [
 	{
+		"version": "0.5.41",
+		"date": "2026-11-07",
+		"changes": [
+			"A new look: godspeed now looks like a terminal app, with monospace type, panes with their names cut into the border and [ bracket ] buttons. The first time you open this version, a short boot screen plays and then the new look draws in.",
+			"The top bar shows where you are as a path you can click, and the left column holds your classes as a tree, your lessons with a + study button, and the teacher with follow and talk.",
+			"The teacher mascot is now a pixel character.",
+			"Home shows what's due next with a big countdown, everything else coming up with how ready you are, a grid of every fact in each class colored by how often you get it right, and what you and your agent did lately.",
+			"In a lesson the steps sit beside the text, how sure you are is five numbered buttons, and side questions open at the bottom of the right column.",
+			"The activity list is saved, so it's still there after a restart.",
+			"godspeed is dark only now. If you used Paper or White, it switches to Black.",
+			"Browser tab titles read like the top bar, like godspeed / graph."
+		]
+	},
+	{
 		"version": "0.5.40",
 		"date": "2026-11-06",
 		"changes": [
