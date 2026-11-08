@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
 	const { id } = await params;
 	const owner = deadlineWithClass(id);
-	return { title: owner ? `Cheat sheet for ${owner.deadline.name}` : "Cheat sheet" };
+	return { title: owner ? `cheat sheet for ${owner.deadline.name.toLowerCase()}` : "cheat sheet" };
 }
 
 /** A deadline's cheat sheet studio, from the Cheat sheet button on its page. */

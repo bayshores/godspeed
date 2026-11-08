@@ -11,7 +11,7 @@ const chatFor = cache(getChat);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
 	const { id } = await params;
-	return { title: chatFor(id)?.title || "Lesson" };
+	return { title: (chatFor(id)?.title || "lesson").toLowerCase() };
 }
 
 export default async function ChatPage({

@@ -4,7 +4,7 @@ import { NewLesson } from "@/frontend/components/home";
 // Dynamic: the root layout reads the settings record per request.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Study" };
+export const metadata: Metadata = { title: "study" };
 
 /** The start page ("/new"): every new lesson is a study session. */
 export default function NewLessonPage() {

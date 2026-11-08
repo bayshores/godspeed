@@ -32,8 +32,8 @@ const prose = Atkinson_Hyperlegible_Mono({ subsets: ["latin"], variable: "--font
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-	// Each page names itself ("Graph · godspeed"); Home keeps the plain name.
-	title: { template: "%s · godspeed", default: "godspeed" },
+	// Each page names itself like the top bar ("godspeed / graph"); Home keeps the plain name.
+	title: { template: "godspeed / %s", default: "godspeed" },
 	description: "A teacher agent with a memory: lessons, quizzes, and a knowledge graph of what you know.",
 };
 
