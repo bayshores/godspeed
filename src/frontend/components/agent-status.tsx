@@ -2,7 +2,7 @@
 
 /**
  * THE OUTSIDE AGENT'S LIVE STATUS: one read of
- * GET /api/mcp-access shared by every surface (sidebar footer, activity
+ * GET /api/mcp-access shared by every surface (teacher pane, activity
  * panel, lesson composer, onboarding). It refreshes on the server's
  * "agent-changed" event (a check-in, a lapse, work starting or stopping
  * to wait), on reconnect, and when the window comes back.
@@ -94,9 +94,9 @@ export function useAgentStatus(): AgentStatus | null {
 	return useContext(AgentStatusContext);
 }
 
-/** The sidebar footer's agent line (also Settings → Connection and Halley's
- *  panel). Pure — exported for tests. */
-export function footerLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null, jobs: number): string {
+/** The agent's status line (the teacher pane, Settings → Connection and
+ *  the teacher panel). Pure, exported for tests. */
+export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null, jobs: number): string {
 	const name = agent?.name?.trim() || "Your agent";
 	const who = !agent
 		? "No agent connected"

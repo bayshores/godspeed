@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The teacher's panel: click the teacher or the sidebar's agent line.
+ * The teacher's panel: click the teacher in the teacher pane or the top bar.
  * Docked to the window's right edge at full height. It pushes the page
  * left to make room (in a lesson it covers the Your turn panel until
  * closed, and pushes only by what's left over). The head (name, the
@@ -15,7 +15,7 @@ import { ArrowRightIcon, XIcon } from "lucide-react";
 import { cn } from "@/frontend/lib/utils";
 import type { AgentAction } from "@/shared/core";
 import { ActivitySection, useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
-import { agentWaiting, footerLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
+import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { TeacherSprite } from "./teacher-sprite";
 import { safePage } from "./follow";
@@ -32,7 +32,7 @@ type Tab = (typeof TABS)[number];
 
 /** The agent line under the name: the footer's line, or the waiting notice while work waits. */
 export function agentLine(agent: AgentStatus | null): string {
-	return agentWaiting(agent) ? waitingNotice(agent?.name) : footerLabel(agent, 0);
+	return agentWaiting(agent) ? waitingNotice(agent?.name) : agentStatusLabel(agent, 0);
 }
 
 /** The background jobs block has something to show (it hides otherwise). */

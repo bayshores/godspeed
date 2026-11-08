@@ -61,8 +61,8 @@ import { sessionAbout } from "@/frontend/components/cheat-sheet/dock-model";
 const PlanPopup = dynamic(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
 
 /**
- * THE LESSON: the plan step bar on top, the reading
- * pane on the left, the Your-turn panel on the right (below the text in
+ * THE LESSON: the reading pane on the left, the right column (steps
+ * pane, Your-turn panel, side question) on the right (below the text in
  * narrow windows). This component owns the lesson's state and wiring; the
  * pieces live in src/frontend/components/lesson/.
  */

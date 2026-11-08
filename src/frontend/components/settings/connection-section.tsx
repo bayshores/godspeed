@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { footerLabel, teachStep, useAgentStatus } from "@/frontend/components/agent-status";
+import { agentStatusLabel, teachStep, useAgentStatus } from "@/frontend/components/agent-status";
 import { AgentLauncher } from "@/frontend/components/agent-folder/agent-launcher";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
 import { CopyButton } from "@/frontend/components/copy-button";
@@ -80,7 +80,7 @@ export function ConnectionSection() {
 				>
 					<span data-testid="agent-status" className="flex min-w-0 items-center gap-2 text-[13.5px] text-ink-2">
 						<span aria-hidden className={cn("size-[7px] shrink-0 rounded-full", access.agentConnected ? "bg-ans-right" : "bg-ink-3")} />
-						<span className="truncate">{footerLabel(agent, 0)}</span>
+						<span className="truncate">{agentStatusLabel(agent, 0)}</span>
 					</span>
 				</SettingsRow>
 				<SettingsRow label="Access token" tip="Anyone with this token can use godspeed as you. Make a new one if it leaks.">

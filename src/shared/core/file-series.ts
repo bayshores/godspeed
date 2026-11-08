@@ -24,7 +24,7 @@ export interface SeriesItem<F extends NamedFile = NamedFile> {
 export interface FileSeries<F extends NamedFile = NamedFile> {
 	/** The shared start of the names, lowercased ("day", "cse21_hw", "" for "01_…"). */
 	key: string;
-	/** For people: "Day", "CSE21 HW", "Week · Discussion", "Numbered". */
+	/** For people: "Day", "CSE21 HW", "Week, Discussion", "Numbered". */
 	label: string;
 	/** In number order. */
 	items: SeriesItem<F>[];

@@ -1,5 +1,5 @@
 /**
- * The right panel with a topic selected: its name (CMU), its answers as
+ * The right panel with a topic selected: its name, its answers as
  * blocks with a one-line takeaway, "Needs first" / "Leads to" chips (each
  * opens that topic), its facts, and "Study this topic".
  */

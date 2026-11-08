@@ -11,7 +11,7 @@
  *    files groups once, at the end), or when the fact set is exactly the
  *    one the last snapshot grouped.
  *  - The run shows in the activity dock (the extraction registry, kind
- *    "topics", label "Topic grouping · <class>"); the dock's abort stops it.
+ *    "topics", label "Topic grouping: <class>"); the dock's abort stops it.
  *  - It runs on the outside agent (MCP) as a labeled work item.
  *  - Result: one full snapshot appended to the graph's topics.jsonl.
  */

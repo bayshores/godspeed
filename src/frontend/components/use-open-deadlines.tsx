@@ -2,12 +2,12 @@
 
 /**
  * The open deadlines of every non-archived class (GET /api/deadlines), for
- * the sidebar's Due soon, Home, Halley and the welcome screen. One shared
+ * Home, the teacher mascot and the welcome screen. One shared
  * read in OpenDeadlinesProvider: it re-reads when classes change (every
  * deadline edit announces classes-changed) and after the events channel
  * reconnects. `markDone` ticks one done (PUT done: true); the row fades
  * out while the list re-reads. The fade is per caller; the notice after it
- * ("Marked done · Undo", or why it failed) is shared.
+ * ("Marked done" with Undo, or why it failed) is shared.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";

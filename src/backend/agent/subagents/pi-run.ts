@@ -34,7 +34,7 @@ interface SubagentRunOptions {
 	onAssistantMessage?: (message: AssistantMessage, step: number) => void;
 	/** Extra stop rule (extractor: stop after a clean submit). */
 	shouldStop?: (message: AssistantMessage, toolResults: ToolResultMessage[]) => boolean;
-	/** A short name for the task ("Topic grouping · CSE 21"). An outside
+	/** A short name for the task ("Topic grouping: CSE 21"). An outside
 	 *  agent (MCP) sees it on the run's work items, so it can tell which
 	 *  background job it is answering. */
 	taskLabel?: string;

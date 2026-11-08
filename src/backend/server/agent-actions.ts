@@ -4,7 +4,7 @@
  * folder's new files) and the learner (answers, deadlines saved in the
  * app). The newest ACTIONS_MAX are saved to disk and served by
  * GET /api/agent-actions; each new one goes out as the "agent-action"
- * event so the window can fly the teacher to an agent's change.
+ * event so Follow can open the page an agent changed.
  *
  * globalThis-backed like the event bus: Next compiles routes as separate
  * module instances, and they must all share one list.

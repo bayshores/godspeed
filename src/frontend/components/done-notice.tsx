@@ -14,7 +14,7 @@ export interface DoneNoticeState {
 }
 
 /**
- * The short notice after a deadline is ticked done ("Marked done · Undo"),
+ * The short notice after a deadline is ticked done ("Marked done" with Undo),
  * or when that save didn't work. The update pop-up's card, in the notice
  * stack (the page body when there is none, as in tests).
  */

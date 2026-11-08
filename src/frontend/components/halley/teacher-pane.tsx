@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentAction } from "@/shared/core";
 import { useReopenAgent } from "@/frontend/components/agent-folder/use-agent-folder";
-import { footerLabel, useAgentStatus } from "@/frontend/components/agent-status";
+import { agentStatusLabel, useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -33,7 +33,7 @@ export function TeacherPane() {
 			name={halley.name}
 			mood={halley.mood}
 			doing={halley.doing}
-			idleLine={footerLabel(agent, feed.jobs.length + feed.extractions.length)}
+			idleLine={agentStatusLabel(agent, feed.jobs.length + feed.extractions.length)}
 			disconnected={!!agent && !agent.connected}
 			following={halley.follow}
 			onFollow={halley.setFollow}

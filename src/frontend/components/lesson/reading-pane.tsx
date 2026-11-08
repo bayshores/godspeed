@@ -24,7 +24,7 @@ import { cn } from "@/frontend/lib/utils";
 /**
  * THE READING PANE: the lesson as one
  * document in a 640px column at the left of the pane — teacher text at
- * 17/1.6 with CMU headings (.lh-reading in globals.css), answered cards
+ * 17/1.6 (.lh-reading in globals.css), answered cards
  * inline. Each message is a memoized row, so streaming redraws only the
  * message being written.
  */

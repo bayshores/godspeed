@@ -4,7 +4,7 @@
  * name. Built on the extractor's single-submit seam (runSubmitAgent): the
  * model reads the facts and the current topics, then calls submit_topics
  * once. Runs on the outside agent, so the connected agent gets it as a
- * work item labeled "Topic grouping · <class>".
+ * work item labeled "Topic grouping: <class>".
  *
  * This file only talks to the model. The deterministic rules — names 1–4
  * words (checked here, so the model retries), every fact in exactly one

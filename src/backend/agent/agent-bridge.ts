@@ -119,7 +119,7 @@ export interface WorkView {
 	/** The names of this reply's other tools, which the agent already has. */
 	toolsAsBefore?: string[];
 	messages: WorkMessage[];
-	/** The background task's name ("Topic grouping · CSE 21"), when the
+	/** The background task's name ("Topic grouping: CSE 21"), when the
 	 *  caller gave one (pi-run taskLabel). */
 	label?: string;
 	/** The images in `messages`, in order (absent when there are none). */

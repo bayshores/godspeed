@@ -11,7 +11,7 @@ import { useServerEvent, useServerResync } from "@/frontend/components/server-ev
 import { agentWaiting, useAgentStatus, waitingNotice } from "@/frontend/components/agent-status";
 
 /**
- * THE BACKGROUND-JOBS SECTION (in Halley's panel, recently failed jobs and
+ * THE BACKGROUND-JOBS SECTION (in the teacher panel, recently failed jobs and
  * their errors on top): one blob per running BACKGROUND process — session
  * sub-agents (research/demo/visual) and global extraction runs. Teaching
  * turns are deliberately NOT here: the section exists to give background

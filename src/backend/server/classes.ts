@@ -255,7 +255,7 @@ export function removeClassDeadline(classId: string, deadlineId: string): ClassO
 type OpenDeadline = ClassDeadline & { classId: string; className: string };
 
 /** Every deadline not yet done, across every class that is not archived,
- *  soonest due first (Home and the sidebar's Due soon). */
+ *  soonest due first (Home). */
 export function listOpenDeadlines(): OpenDeadline[] {
 	const out: OpenDeadline[] = [];
 	for (const record of stores.classStore.listClassRecords()) {
