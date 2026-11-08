@@ -157,7 +157,7 @@ describe("the unrated confidence meter", () => {
 
 	it("starts with no level picked", () => {
 		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="u1" input={quizInput} onSubmit={async () => true} />);
-		assert.match(html, /data-testid="confidence-value"[^>]*>How sure are you\?</);
+		assert.match(html, /data-testid="confidence-value"[^>]*>how sure\?</);
 		assert.ok(!/role="radio" aria-checked="true" aria-label="\d/.test(html), "no bar is checked");
 	});
 

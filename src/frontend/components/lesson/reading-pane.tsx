@@ -73,7 +73,7 @@ export function ReadingPane({
 		<Conversation className="h-full min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
 			<SessionMessageNavigation />
 			<ConversationContent className="min-h-full gap-0 p-0">
-				<div data-session-find-root="" className="lh-reading flex w-full max-w-[744px] flex-1 flex-col gap-4 px-[52px] pt-6 pb-24">
+				<div data-session-find-root="" className="lh-reading flex w-full max-w-[744px] flex-1 flex-col gap-4 px-9 pt-7 pb-24">
 					{messages.length === 0 && !busy && (
 						<ConversationEmptyState title="New lesson" description="" />
 					)}

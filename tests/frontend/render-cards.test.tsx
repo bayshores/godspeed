@@ -87,8 +87,8 @@ describe("question submission draft restoration", () => {
 		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={async () => true} initialDraft={draft} />);
 		assert.match(html, /role="radio" aria-checked="true" data-kbdrow="0"/);
 		assert.ok(html.includes("preserved reasoning"));
-		assert.ok(html.includes("5 · Certain"), "index 4 = level 5");
-		assert.match(html, /aria-checked="true" aria-label="5 · Certain"/, "the meter shows level 5");
+		assert.ok(html.includes("> certain</span>"), "index 4 = level 5");
+		assert.match(html, /aria-checked="true" aria-label="5, Certain"/, "the meter shows level 5");
 		assert.match(html, /data-testid="confidence-level-5"[^>]*tabindex="0"/, "Tab lands on the picked level");
 	});
 
@@ -156,10 +156,9 @@ describe("render smoke tests", () => {
 		assert.ok(!html.includes("Enter"), "mouse-first: no key label on the submit bar");
 		// Mouse-first: the rows carry no number-key badges.
 		assert.doesNotMatch(html, /data-testid="dont-know-option"[\s\S]*?>0</, "no key 0 badge on I don't know");
-		assert.ok(html.includes('data-testid="confidence-meter"'), "the 5-bar confidence meter");
+		assert.ok(html.includes('data-testid="confidence-meter"'), "the five confidence buttons");
 		assert.match(html, /data-testid="confidence-level-1"[^>]*tabindex="0"/, "Tab reaches the unrated meter at level 1");
 		assert.match(html, /data-testid="confidence-level-2"[^>]*tabindex="-1"/, "the other levels wait for the arrows");
-		assert.match(html, />Guessing<\/span><span>Certain</, "the meter's ends are named");
 		assert.ok(html.includes('data-testid="question-kind"'), "the kind chip");
 		// The v1 desync bug: options are buttons with ARIA roles, not native inputs.
 		assert.ok(!html.includes('type="radio"'), "no native radio inputs");

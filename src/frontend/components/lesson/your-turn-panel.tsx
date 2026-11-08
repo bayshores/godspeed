@@ -9,6 +9,7 @@ import { PanelComposer, SideQuestionBox } from "./panel-composer";
 import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
 import { TurnStatus } from "./turn-status";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
+import { Pane } from "@/frontend/components/ui/pane";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 
@@ -27,19 +28,21 @@ export function fitPanelWidth(width: number, room: number | null): number {
 }
 
 /**
- * THE YOUR-TURN PANEL: always on the right
- * (440px), below the text in narrow windows. What it holds, in order:
+ * THE YOUR-TURN PANEL: the lesson's right column (440px), below the text
+ * in narrow windows: the plan's steps pane on top, then the "your turn"
+ * pane (lit while a question or problem waits), which holds one of:
  * - a teach-phase check waiting behind "Check your understanding" (the
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
  * - an active practice problem (PracticeDock);
- * - under any of those, a side question box (the message box in compact
- *   form), which holds Stop while the teacher answers it;
  * - otherwise the message box (PanelComposer), under the last graded
  *   answer's result.
- * The lesson's stats row sits at the foot of every state.
+ * Under a question or problem, the side question pane (the message box in
+ * compact form) holds Stop while the teacher answers it. The lesson's
+ * stats row sits at the foot of every state.
  */
 export function YourTurnPanel({
+	steps,
 	pending,
 	requiresReveal,
 	initialQuestionDraft,
@@ -58,6 +61,8 @@ export function YourTurnPanel({
 	composer,
 	stats,
 }: {
+	/** The steps pane, for a lesson with a plan. */
+	steps?: React.ReactNode;
 	pending: Pending | null;
 	/** A teach-phase check: it waits behind the reveal invitation. */
 	requiresReveal: boolean;
@@ -191,16 +196,19 @@ export function YourTurnPanel({
 			ref={asideRef}
 			data-testid="your-turn-panel"
 			data-mode={mode.split(":")[0]}
-			className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-tone-2 bg-panel @max-[759px]/lesson:max-h-[50dvh] @max-[759px]/lesson:min-h-[240px] @min-[760px]/lesson:w-(--lh-turn-w) @min-[760px]/lesson:border-t-0 @min-[760px]/lesson:border-l"
+			className="relative flex min-h-0 w-full shrink-0 flex-col gap-4 @max-[759px]/lesson:max-h-[50dvh] @max-[759px]/lesson:min-h-[240px] @min-[760px]/lesson:w-(--lh-turn-w)"
 			style={{ "--lh-turn-w": `${width}px` } as React.CSSProperties}
 		>
 			{/* Side by side only: stacked, the panel is full width. */}
 			<div className="contents @max-[759px]/lesson:hidden">
 				<ResizeHandle paneKey="your-turn" edge="left" width={width} bounds={PANEL_WIDTH} onWidth={setWidth} label="Resize the Your turn panel" />
 			</div>
-			<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
-				{body}
-			</div>
+			{steps}
+			<Pane name="your turn" active={mode !== "chat"} className="flex min-h-0 flex-1 flex-col">
+				<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
+					{body}
+				</div>
+			</Pane>
 			{/* Outside the keyed state, so opening the check keeps what's typed. */}
 			{(pending || practice) && <SideQuestionBox busy={sideReply} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} attachments={composer.attachments} />}
 		</aside>

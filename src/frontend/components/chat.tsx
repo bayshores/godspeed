@@ -48,6 +48,8 @@ import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { YourTurnPanel } from "@/frontend/components/lesson/your-turn-panel";
+import { StepsPane } from "@/frontend/components/lesson/steps-pane";
+import { Pane } from "@/frontend/components/ui/pane";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useHalley, useHalleyLesson } from "@/frontend/components/halley/halley-provider";
@@ -490,14 +492,12 @@ export function Chat({
 								<LessonTopBar
 									kind={kind}
 									rename={rename}
-									bar={stepBar}
 									practice={stablePractice}
-									onJump={jumpToAnswer}
-									onOpenPlan={openPlan}
 									sheet={classId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
 								/>
 								<SessionFind scopeRef={sessionFindScopeRef} scrollContextRef={scrollContextRef} />
-								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col @min-[760px]/lesson:flex-row">
+								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col gap-4 px-5 pt-6 pb-5 @min-[760px]/lesson:flex-row">
+									<Pane className="flex min-h-0 min-w-0 flex-1">
 									<ReadingPane
 										messages={messages}
 										phases={phases}
@@ -513,9 +513,11 @@ export function Chat({
 										onOpenPlan={openPlan}
 										scrollContextRef={scrollContextRef}
 									/>
+									</Pane>
 									<YourTurnPanel
 										// Remounts once the saved drafts are read, so the forms start from them.
 										key={draftsLoaded ? "drafts" : "loading"}
+										steps={kind !== "practice" && stepBar && stepBar.steps.length > 0 ? <StepsPane bar={stepBar} onJump={jumpToAnswer} onOpenPlan={openPlan} /> : null}
 										pending={pending}
 										requiresReveal={requiresReveal}
 										initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}

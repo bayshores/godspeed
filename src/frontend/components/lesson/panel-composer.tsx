@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowUpIcon, PlusIcon } from "lucide-react";
+import { ArrowUpIcon } from "lucide-react";
+import { Pane } from "@/frontend/components/ui/pane";
 import { enterAction } from "./enter-action";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { cn } from "@/frontend/lib/utils";
@@ -116,8 +117,9 @@ export function PanelComposer({
  * problem: the learner asks the teacher something on the side and the
  * question or problem stays. Pictures
  * and PDFs wait above it as in the message box; while the teacher replies,
- * Send becomes Stop. It waits behind an "Ask a side question" link so the
- * question gets the room, and stays open while there's a draft or a reply.
+ * Send becomes Stop. It is its own pane at the foot of the column, waiting
+ * behind "› ask a side question" so the question gets the room, and stays
+ * open while there's a draft or a reply.
  */
 export function SideQuestionBox({
 	busy,
@@ -136,20 +138,22 @@ export function SideQuestionBox({
 	};
 	if (!opened && !busy && !value.trim() && attachments.files.length === 0 && !attachments.error)
 		return (
-			<div data-testid="side-question" className="shrink-0 px-6 py-2.5" {...attachmentInputProps(attachments)}>
+			<Pane data-testid="side-question" className="shrink-0" {...attachmentInputProps(attachments)}>
 				<button
 					type="button"
 					data-testid="side-question-open"
 					onClick={() => setOpened(true)}
-					className="lh-press flex items-center gap-1.5 text-[13.5px] text-ink-2 hover:text-ink"
+					className="flex h-12 w-full items-center gap-[1ch] px-4 text-left text-base text-ink-3 hover:bg-tone hover:text-ink"
 				>
-					<PlusIcon aria-hidden className="size-3.5" />
-					Ask a side question
+					<span aria-hidden className="text-tint">
+						›
+					</span>
+					ask a side question
 				</button>
-			</div>
+			</Pane>
 		);
 	return (
-		<div data-testid="side-question" className="shrink-0 px-6 pb-3" {...attachmentInputProps(attachments)}>
+		<Pane name="side question" active data-testid="side-question" className="shrink-0 px-4 pt-1 pb-3" {...attachmentInputProps(attachments)}>
 			<AttachmentTray draft={attachments} />
 			<div className="mt-3 flex items-end gap-1 border border-tone-2 bg-background p-0.5 has-[.cm-focused]:border-ink-2">
 				<AttachButton draft={attachments} />
@@ -187,6 +191,6 @@ export function SideQuestionBox({
 					</button>
 				)}
 			</div>
-		</div>
+		</Pane>
 	);
 }

@@ -3,40 +3,30 @@ import { TopBar } from "@/frontend/components/app-bar";
 import { slug } from "@/frontend/components/app-bar-model";
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
-import { kbdEventForAction, type LessonKind, type PlanStepBar } from "@/shared/core";
+import { kbdEventForAction, type LessonKind } from "@/shared/core";
 import type { PracticeProgress } from "./practice-progress";
-import { StepBar } from "./step-bar";
 import type { useTitleRename } from "./use-title-rename";
 
 /**
  * THE LESSON'S PART OF THE TOP BAR: the path ends in the lesson's name,
- * which renames in place on a click (or F2). Its buttons: the plan step
- * bar (or, in practice, one block per problem), the cheat sheet beside
- * the session, and Find.
+ * which renames in place on a click (or F2). Its buttons: in practice,
+ * one block per problem; the cheat sheet beside the session; and Find.
  */
 export function LessonTopBar({
 	kind,
 	rename,
-	bar,
 	practice,
-	onJump,
-	onOpenPlan,
 	sheet,
 }: {
 	kind: LessonKind;
 	rename: ReturnType<typeof useTitleRename>;
-	bar: PlanStepBar | null;
 	practice: PracticeProgress | null;
-	onJump: (toolCallId: string) => void;
-	onOpenPlan: () => void;
 	/** The cheat sheet beside the session (a session in a class). */
 	sheet?: { open: boolean; onToggle: () => void };
 }) {
 	return (
 		<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
-			{kind === "practice"
-				? practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />
-				: bar && bar.steps.length > 0 && <StepBar bar={bar} onJump={onJump} onOpenPlan={onOpenPlan} />}
+			{kind === "practice" && practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />}
 			{sheet && (
 				<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn("lh-btn", sheet.open && "border-tint text-tint")}>
 					cheat sheet

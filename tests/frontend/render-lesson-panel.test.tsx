@@ -13,7 +13,7 @@ import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurnPanel, fitPanelWidth } from "../../src/frontend/components/lesson/your-turn-panel.tsx";
-import { StepBar, answerBlockClass, jumpTarget, rightCountLabel } from "../../src/frontend/components/lesson/step-bar.tsx";
+import { StepsPane, jumpTarget, rightCountLabel } from "../../src/frontend/components/lesson/steps-pane.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
 import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
@@ -316,7 +316,7 @@ describe("the side question box", () => {
 			const html = panel(problem);
 			assert.match(html, /data-testid="practice-thinking-field"[\s\S]*data-testid="practice-send"[\s\S]*data-testid="side-question"/);
 			const side = html.slice(html.indexOf('data-testid="side-question"'));
-			assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
+			assert.match(side, /data-testid="side-question-open"[^>]*>.*ask a side question</);
 			assert.ok(!side.includes('data-testid="math-box"'));
 		});
 
@@ -340,7 +340,7 @@ describe("the side question box", () => {
 	it("waits behind an Ask a side question link, with no em-dash or key hint", () => {
 		const html = panel(waiting);
 		const side = html.slice(html.indexOf('data-testid="side-question"'));
-		assert.match(side, /data-testid="side-question-open"[^>]*>.*Ask a side question</);
+		assert.match(side, /data-testid="side-question-open"[^>]*>.*ask a side question</);
 		assert.ok(!side.includes('data-testid="math-box"'), "no field until it is asked for");
 		assert.ok(!side.includes("—") && !side.includes("Enter"));
 	});
@@ -614,7 +614,7 @@ describe("the reading pane's waiting and error states", () => {
 	});
 });
 
-// ─── the plan step bar ───────────────────────────────────────────────────────
+// ─── the steps pane ───────────────────────────────────────────────────────
 
 const bar: PlanStepBar = {
 	currentIndex: 1,
@@ -634,32 +634,21 @@ describe("the Your-turn panel's width", () => {
 	});
 });
 
-describe("the plan step bar", () => {
-	it("one block per step, the count and the current step's name", () => {
-		const html = renderToStaticMarkup(<StepBar bar={bar} onJump={() => {}} onOpenPlan={() => {}} />);
+describe("the steps pane", () => {
+	it("every step in order, ticked, current or upcoming, with the position in its name", () => {
+		const html = renderToStaticMarkup(<StepsPane bar={bar} onJump={() => {}} onOpenPlan={() => {}} />);
 		const statuses = [...html.matchAll(/data-testid="plan-step" data-status="(\w+)"/g)].map((m) => m[1]);
 		assert.deepEqual(statuses, ["visited", "current", "upcoming"]);
 		assert.match(html, /data-testid="plan-step-count"[^>]*>2 of 3</);
-		assert.match(html, /Gradient as an expectation/);
-		assert.match(html, /data-testid="plan-step-open"/, "the chevron opens the plan map");
-		// The current step is the white block, the same size as the others.
-		assert.match(html, /data-status="current"[\s\S]*?h-1\.5 w-2\.5 bg-ink/);
+		assert.match(html, /font-bold text-ink"[^>]*>Gradient as an expectation</);
+		assert.match(html, />1 of 2 right</, "a done step says how its answers went");
+		assert.match(html, /data-testid="plan-step-open"[^>]*>plan map</);
 	});
 
-	it("a one-step plan shows only its name, no blocks or count", () => {
-		const one: PlanStepBar = { steps: [bar.steps[1]!], currentIndex: 0 };
-		const html = renderToStaticMarkup(<StepBar bar={one} onJump={() => {}} onOpenPlan={() => {}} />);
-		assert.doesNotMatch(html, /data-testid="plan-step"/);
-		assert.doesNotMatch(html, /plan-step-count/);
-		assert.match(html, /Gradient as an expectation/);
-	});
-
-	it("tooltip data: answers as colored blocks and 'n of m right'", () => {
+	it("'n of m right' counts graded answers only", () => {
 		assert.equal(rightCountLabel(bar.steps[0]!.answers), "1 of 2 right");
 		assert.equal(rightCountLabel([]), null);
 		assert.equal(rightCountLabel([{ toolCallId: "e", outcome: "ungraded" }]), null, "explain answers are not graded");
-		assert.equal(answerBlockClass({ toolCallId: "x", outcome: "right" }), "bg-ans-right");
-		assert.equal(answerBlockClass({ toolCallId: "x", outcome: "dontKnow" }), "bg-ans-dontknow");
 	});
 
 	it("only a done step with an answer jumps back", () => {
@@ -674,11 +663,11 @@ describe("the plan step bar", () => {
 		const root = createRoot(host);
 		const jumps: string[] = [];
 		try {
-			await act(async () => root.render(<StepBar bar={bar} onJump={(id) => jumps.push(id)} onOpenPlan={() => {}} />));
-			const steps = host.querySelectorAll<HTMLButtonElement>('[data-testid="plan-step"]');
-			await act(async () => steps[0]!.click());
-			await act(async () => steps[2]!.click());
-			assert.deepEqual(jumps, ["c1"], "done step jumps; upcoming does nothing");
+			await act(async () => root.render(<StepsPane bar={bar} onJump={(id) => jumps.push(id)} onOpenPlan={() => {}} />));
+			const buttons = host.querySelectorAll<HTMLButtonElement>('[data-testid="plan-step"] button');
+			assert.equal(buttons.length, 1, "only the done step is a button");
+			await act(async () => buttons[0]!.click());
+			assert.deepEqual(jumps, ["c1"]);
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();
@@ -713,7 +702,7 @@ describe("the question panel's keys", () => {
 			await act(async () => press("9"));
 			assert.equal(rows()[0]!.getAttribute("aria-checked"), "true", "a key past the options does nothing");
 			await act(async () => press("ArrowRight"));
-			assert.match(host.querySelector('[data-testid="confidence-value"]')!.textContent ?? "", /^4 · Fairly sure$/);
+			assert.match(host.querySelector('[data-testid="confidence-value"]')!.textContent ?? "", /^how sure\? fairly sure$/);
 			await act(async () => press("Enter"));
 			assert.ok(answer, "Enter submits");
 			assert.equal(answer!.confidence, CONFIDENCE_STOPS[3], "level 4 is saved as 80%");
@@ -731,7 +720,7 @@ describe("the question panel's keys", () => {
 		try {
 			await act(async () => root.render(<QuestionDock toolName="quiz" toolCallId="keys2" input={quizInput} onSubmit={async () => true} />));
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="confidence-level-5"]')!.click());
-			assert.equal(host.querySelector('[data-testid="confidence-value"]')!.textContent, "5 · Certain");
+			assert.equal(host.querySelector('[data-testid="confidence-value"]')!.textContent, "how sure? certain");
 			assert.equal(host.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("aria-checked"), "true");
 		} finally {
 			await act(async () => root.unmount());

@@ -22,9 +22,6 @@ const CONFIDENCE_COLORS = [
 /** What each level means, in the learner's words. */
 const CONFIDENCE_WORDS: readonly string[] = ["Guessing", "Unsure", "Somewhat sure", "Fairly sure", "Certain"];
 
-/** Bar heights (px), rising with the level. */
-const BAR_HEIGHTS = [14, 21, 28, 35, 42];
-
 /** Roving tabindex: Tab lands on the picked level (the first when
  *  unrated). */
 function rovingTabIndex(n: ConfidenceLevel, level: ConfidenceLevel | null): 0 | -1 {
@@ -44,10 +41,10 @@ function useFocusFollowsPick<T extends HTMLElement>(level: ConfidenceLevel | nul
 }
 
 /**
- * The 5-bar meter: "4 · Fairly sure" in the level's color over five
- * rising bars, "Guessing" and "Certain" under its ends. Bars up to the pick wear its color (the ones below at 55%),
- * the rest stay dark. Click a bar or use ←/→ (the question panel owns the
- * keys). It starts unrated (all bars dark), and an unrated answer sends no
+ * "how sure?" over five numbered buttons, each number in its level's
+ * color; the picked one fills with it, and its word follows the question
+ * ("how sure? fairly sure"). Click one or use ←/→ (the question panel owns
+ * the keys). It starts unrated, and an unrated answer sends no
  * confidence. "I don't know" grays it out and sends none either.
  */
 export function ConfidenceMeter({
@@ -59,58 +56,39 @@ export function ConfidenceMeter({
 	onChange: (level: ConfidenceLevel) => void;
 	disabled?: boolean;
 }) {
-	const color = level === null ? "var(--color-ink-3)" : CONFIDENCE_COLORS[level - 1]!;
 	const groupRef = useFocusFollowsPick<HTMLDivElement>(level);
 	return (
 		<div data-testid="confidence-meter" className={cn("flex flex-col gap-2", disabled && "opacity-40")}>
-			<div
-				data-testid="confidence-value"
-				className="text-[13.5px] font-bold"
-				style={{ color: disabled ? "var(--color-ink-3)" : color }}
-			>
-				{level === null ? "How sure are you?" : `${level} · ${CONFIDENCE_WORDS[level - 1]}`}
+			<div data-testid="confidence-value" className="text-xs text-ink-2">
+				how sure?
+				{level !== null && !disabled && <span style={{ color: CONFIDENCE_COLORS[level - 1] }}>{` ${CONFIDENCE_WORDS[level - 1]!.toLowerCase()}`}</span>}
 			</div>
-			<div ref={groupRef} className="flex items-end gap-[3px]" role="radiogroup" aria-label="Confidence">
-				{BAR_HEIGHTS.map((h, i) => {
+			<div ref={groupRef} className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Confidence">
+				{CONFIDENCE_WORDS.map((word, i) => {
 					const n = (i + 1) as ConfidenceLevel;
-					const on = !disabled && level !== null && n <= level;
+					const color = CONFIDENCE_COLORS[i]!;
+					const picked = n === level && !disabled;
 					return (
 						<button
 							key={n}
 							type="button"
 							role="radio"
 							aria-checked={n === level}
-							aria-label={`${n} · ${CONFIDENCE_WORDS[i]}`}
+							aria-label={`${n}, ${word}`}
 							data-testid={`confidence-level-${n}`}
 							disabled={disabled}
 							tabIndex={rovingTabIndex(n, level)}
 							onClick={() => onChange(n)}
-							className="group flex flex-1 cursor-pointer flex-col items-center gap-[5px] outline-none disabled:cursor-default"
+							className={cn(
+								"lh-press flex h-8 items-center justify-center border font-mono text-sm tabular-nums transition-colors duration-(--lh-dur-fast) disabled:cursor-default",
+								picked ? "font-bold text-background" : "border-tone-2 hover:enabled:bg-tone",
+							)}
+							style={picked ? { backgroundColor: color, borderColor: color } : { color }}
 						>
-							<span
-								aria-hidden
-								className={cn(
-									"block w-full transition-[background-color,opacity] duration-(--lh-dur) ease-(--lh-ease-out)",
-									!on && "bg-edge group-hover:group-enabled:bg-ink-3",
-								)}
-								style={{ height: h, ...(on ? { backgroundColor: color, opacity: n === level ? 1 : 0.55 } : {}) }}
-							/>
-							<span
-								aria-hidden
-								className={cn(
-									"font-mono text-[12.5px] tabular-nums",
-									n === level && !disabled ? "font-bold text-ink" : "text-ink-3",
-								)}
-							>
-								{n}
-							</span>
+							{n}
 						</button>
 					);
 				})}
-			</div>
-			<div aria-hidden className="flex justify-between text-[12px] text-ink-3">
-				<span>{CONFIDENCE_WORDS[0]}</span>
-				<span>{CONFIDENCE_WORDS[CONFIDENCE_WORDS.length - 1]}</span>
 			</div>
 		</div>
 	);
@@ -137,8 +115,8 @@ export function ConfidenceSquares({ level, onChange }: { level: ConfidenceLevel 
 							type="button"
 							role="radio"
 							aria-checked={n === level}
-							aria-label={`${n} · ${word}`}
-							title={`${n} · ${word}`}
+							aria-label={`${n}, ${word}`}
+							title={`${n}, ${word}`}
 							data-testid={`confidence-square-${n}`}
 							tabIndex={rovingTabIndex(n, level)}
 							onClick={() => onChange(n)}

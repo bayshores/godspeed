@@ -358,6 +358,18 @@ body {
 	background: color-mix(in oklab, var(--lh-tint) 82%, white);
 }
 
+/* The block cursor at the end of the text the teacher is writing. */
+.lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
+.lh-streaming > :is(ul, ol):last-child > li:last-child::after {
+	content: "";
+	display: inline-block;
+	width: 0.6em;
+	height: 1.15em;
+	margin-left: 2px;
+	vertical-align: text-bottom;
+	background: var(--lh-tint);
+}
+
 /* Thin dark native scrollbar (app-wide): dark thumb, transparent track. */
 * {
 	scrollbar-width: thin;
