@@ -275,7 +275,7 @@ describe("A class's facts", () => {
 		);
 		assert.match(html, /cse 29 <span[^>]*>2\/3<\/span>/);
 		assert.match(html, /aria-label="2 of 3 facts studied"/);
-		assert.equal(html.split('class="size-[13px]"').length - 1, 3);
+		assert.equal(html.split('size-[13px]"').length - 1, 3);
 	});
 
 	it("no study files: add files, to its Files page", async () => {

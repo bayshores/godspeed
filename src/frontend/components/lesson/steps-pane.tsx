@@ -1,4 +1,5 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect } from "react";
+import { useHoverBar } from "@/frontend/components/ui/hover-bar";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { stepPosition, type PlanStep, type PlanStepBar, type StepAnswer } from "@/shared/core";
@@ -26,7 +27,8 @@ const MARK: Record<PlanStep["status"], string> = { visited: "✓", current: "▸
  */
 export const StepsPane = memo(function StepsPane({ bar, onJump, onOpenPlan }: { bar: PlanStepBar; onJump: (toolCallId: string) => void; onOpenPlan: () => void }) {
 	const { steps, currentIndex } = bar;
-	const listRef = useRef<HTMLOListElement>(null);
+	const hover = useHoverBar<HTMLOListElement>();
+	const listRef = hover.ref;
 	// A long plan scrolls; the current step stays in view.
 	useEffect(() => {
 		listRef.current?.querySelector('[data-status="current"]')?.scrollIntoView({ block: "nearest" });
@@ -49,7 +51,8 @@ export const StepsPane = memo(function StepsPane({ bar, onJump, onOpenPlan }: { 
 			>
 				plan map
 			</button>
-			<ol ref={listRef} aria-label="Plan steps" className="flex max-h-[168px] flex-col overflow-y-auto">
+			<ol ref={listRef} onPointerOver={hover.onPointerOver} onPointerLeave={hover.onPointerLeave} aria-label="Plan steps" className="relative flex max-h-[168px] flex-col overflow-y-auto">
+				{hover.bar}
 				{steps.map((step) => (
 					<Step key={step.id} step={step} onJump={onJump} />
 				))}
@@ -84,7 +87,7 @@ function Step({ step, onJump }: { step: PlanStep; onJump: (toolCallId: string) =
 	return (
 		<li data-testid="plan-step" data-status={step.status}>
 			{target ? (
-				<button type="button" onClick={() => onJump(target)} className={cn(cls, "hover:bg-tone")}>
+				<button type="button" data-row="" onClick={() => onJump(target)} className={cn(cls, "relative")}>
 					{row}
 				</button>
 			) : (

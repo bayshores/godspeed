@@ -4,13 +4,18 @@
  * THE WELCOME SCREEN: covers the app on the first page load of each
  * launch (src/backend/server/welcome.ts) and plays the startup sound. Over the
  * onboarding sky, "godspeed" fades in, a comet flies in and lands on its
- * left, and the word slides right to make room: the logo. Under it, one line (the agent, the next
- * deadline) and "Let's go", which closes it; after an update the release
- * notes open next. A click during the animation skips to the end.
- * Server-rendered, so the window's first paint is this and not Home.
+ * left, and the word slides right to make room: the logo. Under it, a
+ * boot log types out (the version, the agent, the next deadline; after
+ * updating from the old look, "new look"), then "Let's go", which closes
+ * it; after an update the release notes open next. A click during the
+ * animation skips to the end. Server-rendered, so the window's first
+ * paint is this and not Home. The app's panes hold their draw-in while
+ * it covers them (html[data-lh-hold], set by the root layout) and draw
+ * in as it leaves.
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useMinute } from "@/frontend/components/countdown";
 import { byDue } from "@/frontend/components/deadlines-model";
@@ -21,11 +26,20 @@ import { useSound } from "@/frontend/components/sounds";
 import { openFolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { openWhatsNew } from "@/frontend/components/whats-new";
 import { cn } from "@/frontend/lib/utils";
-import { statusLine } from "./welcome-model";
+import { bootLines, lookUpgraded } from "./welcome-model";
 
 /** When the button has risen (.wl-rise in globals.css). */
 const ANIMATION_MS = 2800;
 const LEAVE_MS = 400;
+/** The boot log starts once the logo has landed, and types this fast. */
+const BOOT_START_MS = 2200;
+const LETTER_MS = 12;
+const VERSION = process.env.LH_VERSION ?? "";
+
+/** Lets the app's panes draw in (they hold while the screen covers them). */
+function releasePanes() {
+	delete document.documentElement.dataset.lhHold;
+}
 
 export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; whatsNewSince: string | null }) {
 	// Kept in state: later layout renders (router.refresh) say false.
@@ -33,14 +47,15 @@ export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; 
 	const presence = usePresence(open, LEAVE_MS);
 	const close = useCallback(() => {
 		setOpen(false);
+		releasePanes();
 		// "What's new" and the godspeed folder notice never come on the same launch.
 		setTimeout(() => (whatsNewSince ? openWhatsNew(whatsNewSince) : openFolderNotice()), LEAVE_MS);
 	}, [whatsNewSince]);
 	if (!presence.mounted) return null;
-	return <WelcomeScreen leaving={!open} onClose={close} />;
+	return <WelcomeScreen leaving={!open} onClose={close} upgraded={lookUpgraded(whatsNewSince)} />;
 }
 
-function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => void }) {
+function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClose: () => void; upgraded: boolean }) {
 	const agent = useAgentStatus();
 	const nowMs = useMinute();
 	const { deadlines } = useOpenDeadlines();
@@ -106,9 +121,7 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 				<h1 className="wl-word font-bold text-[64px] leading-none text-ink">godspeed</h1>
 			</div>
 			<div className={cn("wl-rise relative mt-10 flex flex-col items-center", !ready && "pointer-events-none")}>
-				<p data-testid="welcome-status" className="min-h-6 text-[15px] leading-6 text-ink-2">
-					{agent && nowMs !== null ? statusLine(agent, next, nowMs) : ""}
-				</p>
+				<BootLog lines={agent && nowMs !== null ? bootLines(VERSION, agent, next, nowMs, upgraded) : []} skipped={skipped} />
 				<button
 					type="button"
 					data-testid="welcome-go"
@@ -122,6 +135,44 @@ function WelcomeScreen({ leaving, onClose }: { leaving: boolean; onClose: () => 
 					Let&apos;s go
 				</button>
 			</div>
+		</div>
+	);
+}
+
+/** The boot log: its lines type out one letter at a time after the logo
+ *  lands, a block cursor at the end; a skip or Reduce motion shows them
+ *  whole. */
+function BootLog({ lines, skipped }: { lines: readonly string[]; skipped: boolean }) {
+	const [typed, setTyped] = useState(0);
+	const total = lines.reduce((n, l) => n + l.length, 0);
+	const instant = skipped || prefersReducedMotion();
+	useEffect(() => {
+		if (instant) return;
+		let timer: ReturnType<typeof setInterval> | undefined;
+		const start = setTimeout(() => {
+			timer = setInterval(() => setTyped((n) => n + 1), LETTER_MS);
+		}, BOOT_START_MS);
+		return () => {
+			clearTimeout(start);
+			clearInterval(timer);
+		};
+	}, [instant]);
+	const shown = instant ? total : Math.min(typed, total);
+	let left = shown;
+	return (
+		<div data-testid="welcome-status" className="flex min-h-[72px] w-[34ch] flex-col font-mono text-[15px] leading-6 text-ink-2">
+			<span className="sr-only">{lines.join(", ")}</span>
+			{lines.map((line, i) => {
+				const part = line.slice(0, Math.max(0, left));
+				const typing = left >= 0 && left < line.length;
+				left -= line.length;
+				return (
+					<span key={i} aria-hidden className="whitespace-pre">
+						{i === 0 ? <span className="text-ink">{part}</span> : part}
+						{typing && <span aria-hidden className="ml-px inline-block h-[1.1em] w-[0.6em] translate-y-[3px] bg-tint" />}
+					</span>
+				);
+			})}
 		</div>
 	);
 }

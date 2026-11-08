@@ -15,6 +15,7 @@ import type { ClassSummary } from "@/shared/core";
 import { ClassDialog } from "@/frontend/components/class-dialog";
 import { useClasses } from "@/frontend/components/class-context";
 import { useSettingsDialog } from "@/frontend/components/settings/settings-dialog-provider.tsx";
+import { useHoverBar } from "@/frontend/components/ui/hover-bar";
 import { cn } from "@/frontend/lib/utils";
 
 interface Page {
@@ -37,7 +38,7 @@ export function activePageHref(pathname: string): string | null {
 	return PAGES.find((p) => p.href === pathname)?.href ?? null;
 }
 
-const ROW = "lh-press flex w-full items-center gap-[1ch] px-2 py-[5px] text-left text-base hover:bg-tone";
+const ROW = "lh-press relative flex w-full items-center gap-[1ch] px-2 py-[5px] text-left text-base";
 const rowState = (selected: boolean) => (selected ? "bg-tone font-bold text-ink" : "text-ink-2 hover:text-ink");
 
 /** The fixed-width mark before a row's name. */
@@ -63,6 +64,7 @@ export const ClassTree = memo(function ClassTree({
 	const { open: openSettings } = useSettingsDialog();
 	const [showArchived, setShowArchived] = useState(false);
 	const [creating, setCreating] = useState(false);
+	const hover = useHoverBar<HTMLUListElement>();
 	const current = classes.filter((c) => !c.archived);
 	const archived = classes.filter((c) => c.archived);
 	const page = activePageHref(pathname);
@@ -81,7 +83,7 @@ export const ClassTree = memo(function ClassTree({
 					data-halley-target={`class:${c.id}`}
 					aria-expanded={open}
 					onClick={() => pick(c.id)}
-					className={cn(ROW, inFold && "pl-5", rowState(open && page === "/class"))}
+					data-row="" className={cn(ROW, inFold && "pl-5", rowState(open && page === "/class"))}
 				>
 					<Mark>{open ? "▾" : "▸"}</Mark>
 					<span title={c.name} className="min-w-0 flex-1 truncate">
@@ -95,16 +97,17 @@ export const ClassTree = memo(function ClassTree({
 
 	return (
 		<nav aria-label="Classes" data-testid="class-tree">
-			<ul className="flex flex-col">
+			<ul ref={hover.ref} onPointerOver={hover.onPointerOver} onPointerLeave={hover.onPointerLeave} className="relative flex flex-col">
+				{hover.bar}
 				<li>
-					<Link href="/" data-testid="nav-home" aria-current={pathname === "/" ? "page" : undefined} className={cn(ROW, rowState(pathname === "/"))}>
+					<Link href="/" data-testid="nav-home" aria-current={pathname === "/" ? "page" : undefined} data-row="" className={cn(ROW, rowState(pathname === "/"))}>
 						<Mark>~</Mark>
 						<span className="min-w-0 flex-1 truncate">home</span>
 					</Link>
 				</li>
 				{current.map((c) => classRow(c))}
 				<li>
-					<button type="button" data-testid="class-option-none" aria-expanded={active === null} onClick={() => pick(null)} className={cn(ROW, rowState(active === null && page === "/class"))}>
+					<button type="button" data-testid="class-option-none" aria-expanded={active === null} onClick={() => pick(null)} data-row="" className={cn(ROW, rowState(active === null && page === "/class"))}>
 						<Mark>{active === null ? "▾" : "▸"}</Mark>
 						<span className="min-w-0 flex-1 truncate">no class</span>
 					</button>
@@ -112,7 +115,7 @@ export const ClassTree = memo(function ClassTree({
 				</li>
 				{archived.length > 0 && (
 					<li>
-						<button type="button" data-testid="class-show-archived" aria-expanded={showArchived} onClick={() => setShowArchived((v) => !v)} className={cn(ROW, "text-ink-3 hover:text-ink")}>
+						<button type="button" data-testid="class-show-archived" aria-expanded={showArchived} onClick={() => setShowArchived((v) => !v)} data-row="" className={cn(ROW, "text-ink-3 hover:text-ink")}>
 							<Mark>{showArchived ? "▾" : "▸"}</Mark>
 							<span className="min-w-0 flex-1 truncate">archived ({archived.length})</span>
 						</button>
@@ -125,13 +128,13 @@ export const ClassTree = memo(function ClassTree({
 					</li>
 				)}
 				<li>
-					<button type="button" data-testid="class-new" onClick={() => setCreating(true)} className={cn(ROW, "text-ink-2 hover:text-ink")}>
+					<button type="button" data-testid="class-new" onClick={() => setCreating(true)} data-row="" className={cn(ROW, "text-ink-2 hover:text-ink")}>
 						<Mark>+</Mark>
 						<span className="min-w-0 flex-1 truncate">add class</span>
 					</button>
 				</li>
 				<li>
-					<button type="button" data-testid="settings-entry" onClick={() => openSettings()} className={cn(ROW, "text-ink-2 hover:text-ink")}>
+					<button type="button" data-testid="settings-entry" onClick={() => openSettings()} data-row="" className={cn(ROW, "text-ink-2 hover:text-ink")}>
 						<Mark>*</Mark>
 						<span className="min-w-0 flex-1 truncate">settings</span>
 					</button>
@@ -150,7 +153,7 @@ function ClassPages({ page, hasClass, fileCount, unseenFiles }: { page: string |
 				const selected = p.href === page;
 				return (
 					<li key={p.href}>
-						<Link href={p.href} data-testid={p.testid} aria-current={selected ? "page" : undefined} className={cn(ROW, "pl-[calc(3ch+8px)]", rowState(selected))}>
+						<Link href={p.href} data-testid={p.testid} aria-current={selected ? "page" : undefined} data-row="" className={cn(ROW, "pl-[calc(3ch+8px)]", rowState(selected))}>
 							<span className="min-w-0 flex-1 truncate">{p.label}</span>
 							{p.href === "/class/files" && unseenFiles && (
 								<span data-testid="nav-files-new" className="shrink-0 text-xs text-tint">

@@ -2,7 +2,10 @@ import { memo, useMemo } from "react";
 import type { ClassSummary, ProgressPayload } from "@/shared/core";
 import { studiedFacts } from "@/frontend/components/overview/runway-model";
 import { Pane } from "@/frontend/components/ui/pane";
-import { factCells } from "./home-page-model";
+import { UNSTUDIED_CELL, factCells } from "./home-page-model";
+
+/** The studied squares fill in over this long, one at a time. */
+const FILL_MS = 400;
 
 /**
  * A CLASS'S FACTS (Home): one square per fact, colored by how often it's
@@ -40,7 +43,11 @@ export const ClassFacts = memo(function ClassFacts({
 			) : (
 				<div role="img" aria-label={`${studied} of ${total} facts studied`} className="flex flex-wrap gap-[3px]">
 					{cells.map((color, i) => (
-						<span key={i} className="size-[13px]" style={{ background: color }} />
+						<span
+							key={i}
+							className={color === UNSTUDIED_CELL ? "size-[13px]" : "lh-block-in size-[13px]"}
+							style={{ background: color, "--lh-block-delay": `${Math.round((i * FILL_MS) / cells.length)}ms` } as React.CSSProperties}
+						/>
 					))}
 				</div>
 			)}

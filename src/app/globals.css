@@ -1189,3 +1189,150 @@ body {
 	}
 }
 
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TERMINAL MOTION: fast and stepped, like a terminal redrawing. Nothing
+   floats or glows. Reduce motion (the OS setting) turns all of it off.
+
+   - .lh-pane          a pane's border traces around from its name, then
+                       its contents reveal top to bottom (--lh-pane-delay
+                       staggers panes that appear together);
+   - html[data-lh-hold] holds every pane's draw-in while the welcome
+                       screen covers the app; it plays when the screen goes;
+   - .lh-hover-bar     the highlight that slides to the hovered row;
+   - .lh-px-in         a countdown pixel that lights in;
+   - .lh-block-in      a bar block or fact square that steps in
+                       (--lh-block-delay);
+   - .lh-push          a new activity line pushing in at the top;
+   - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
+                       or red for a beat, then settles;
+   - the streaming block cursor blinks. */
+@property --lh-trace {
+	syntax: "<angle>";
+	inherits: false;
+	initial-value: 360deg;
+}
+@keyframes lh-trace {
+	from {
+		--lh-trace: 0deg;
+	}
+	to {
+		--lh-trace: 360deg;
+	}
+}
+@keyframes lh-reveal-down {
+	from {
+		clip-path: inset(0 0 100% 0);
+	}
+	to {
+		clip-path: inset(0 0 0 0);
+	}
+}
+@keyframes lh-appear {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+.lh-pane::before {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border: 1px solid var(--border);
+	pointer-events: none;
+	/* The trace starts at the top-left corner, where the name sits. */
+	mask: conic-gradient(from -60deg, #000 var(--lh-trace), transparent 0);
+	animation: lh-trace 180ms steps(12, end) var(--lh-pane-delay, 0ms) backwards;
+}
+.lh-pane[data-active]::before {
+	border-color: var(--lh-tint);
+}
+.lh-pane > h2 {
+	animation: lh-appear 1ms var(--lh-pane-delay, 0ms) backwards;
+}
+.lh-pane > :not(h2) {
+	animation: lh-reveal-down 220ms steps(8, end) calc(var(--lh-pane-delay, 0ms) + 120ms) backwards;
+}
+html[data-lh-hold] .lh-pane::before,
+html[data-lh-hold] .lh-pane > * {
+	animation-play-state: paused;
+}
+
+.lh-hover-bar {
+	position: absolute;
+	top: 0;
+	pointer-events: none;
+	background: var(--accent);
+	transition:
+		transform 90ms var(--lh-ease-out),
+		height 90ms var(--lh-ease-out),
+		opacity 90ms var(--lh-ease-out);
+}
+
+@keyframes lh-px-in {
+	from {
+		opacity: 0;
+	}
+}
+.lh-px-in {
+	animation: lh-px-in 1ms steps(1, end) var(--lh-px-delay, 0ms) backwards;
+}
+
+.lh-block-in {
+	animation: lh-appear 1ms steps(1, end) var(--lh-block-delay, 0ms) backwards;
+}
+
+@keyframes lh-push {
+	from {
+		clip-path: inset(0 0 100% 0);
+		transform: translateY(-6px);
+	}
+}
+.lh-push {
+	animation: lh-push 120ms steps(4, end);
+}
+
+@keyframes lh-flash {
+	0%,
+	37% {
+		background-color: var(--lh-flash);
+		color: var(--background);
+	}
+}
+.lh-flash-right [data-testid="answered-card"] {
+	--lh-flash: var(--lh-ans-right);
+	animation: lh-flash 320ms var(--lh-ease-out);
+}
+.lh-flash-wrong [data-testid="answered-card"] {
+	--lh-flash: var(--lh-ans-wrong);
+	animation: lh-flash 320ms var(--lh-ease-out);
+}
+
+@keyframes lh-blink {
+	50% {
+		opacity: 0;
+	}
+}
+.lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
+.lh-streaming > :is(ul, ol):last-child > li:last-child::after {
+	animation: lh-blink 1060ms steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lh-pane::before,
+	.lh-pane > *,
+	.lh-px-in,
+	.lh-block-in,
+	.lh-push,
+	.lh-flash-right [data-testid="answered-card"],
+	.lh-flash-wrong [data-testid="answered-card"],
+	.lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
+	.lh-streaming > :is(ul, ol):last-child > li:last-child::after {
+		animation: none;
+	}
+	.lh-hover-bar {
+		transition: none;
+	}
+}

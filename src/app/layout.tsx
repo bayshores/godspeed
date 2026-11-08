@@ -89,7 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		/* unreadable settings: No class */
 	}
 	return (
-		<html lang="en" className={`dark ${ui.variable} ${prose.variable}`}>
+		<html lang="en" className={`dark ${ui.variable} ${prose.variable}`} data-lh-hold={welcome ? "" : undefined}>
 			<body className="min-h-dvh antialiased">
 			{/* The notification channel rides OUTSIDE everything: sidebar, dock,
 				 and pages all subscribe. */}

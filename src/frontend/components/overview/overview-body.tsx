@@ -6,6 +6,7 @@ import { LessonsCard } from "./lessons-card";
 import { answeredLessons, hasCalibration } from "./overview-model";
 import { RunwayCard } from "./runway-card";
 import { studiedFacts } from "./runway-model";
+import { Decode } from "@/frontend/components/ui/decode";
 
 /**
  * The Overview page below the top bar (pure view — the render-test seam):
@@ -62,7 +63,7 @@ export const OverviewBody = memo(function OverviewBody({
 			) : (
 				<header className="flex flex-col gap-2 px-[52px] py-6">
 					<h1 data-testid="overview-name" className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
-						{name}
+						<Decode text={name} />
 					</h1>
 					{pickClass}
 				</header>

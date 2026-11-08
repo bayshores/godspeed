@@ -12,6 +12,7 @@ import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { materialSummary, rightLabel, shortDate, type ClassDay, type DayState, type Material } from "./deadline-model";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { Decode } from "@/frontend/components/ui/decode";
 
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the name, when,
@@ -65,7 +66,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 			<header className="flex items-start justify-between gap-8 px-[52px] pt-6">
 				<div className="flex min-w-0 flex-col gap-2">
 					<h1 data-testid="deadline-name" className="font-bold text-[40px] leading-[48px] tracking-tight break-words text-ink">
-						{d.name}
+						<Decode text={d.name} />
 					</h1>
 					<p data-testid="deadline-when" className="flex flex-wrap items-baseline gap-x-4 text-base leading-6 text-ink-2">
 						<span>{kindLabel(d.kind)}</span>

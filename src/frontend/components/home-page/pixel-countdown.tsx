@@ -4,7 +4,9 @@
  * Home's big countdown to the next deadline. In its last 24h the clock is
  * drawn in square pixels ("04:08:33"); before that, and once overdue, it
  * is plain large text ("in 3 days", "Overdue"). The color is the
- * countdown's own (grey fading to red).
+ * countdown's own (grey fading to red). While it ticks once a second,
+ * each newly lit pixel blinks on a beat apart from the rest (globals.css,
+ * .lh-px-in), so a digit redraws pixel by pixel.
  */
 import { countdown, dueAtMs } from "@/frontend/components/countdown-model";
 import { useCountdown } from "@/frontend/components/countdown";
@@ -65,7 +67,15 @@ export function PixelCountdown({ due, now: fixedNow, className }: { due: { date:
 			className={cn("block h-14 w-auto", className)}
 		>
 			{cells.map(([x, y]) => (
-				<rect key={`${x}-${y}`} x={x * PITCH} y={y * PITCH} width={PITCH - 1} height={PITCH - 1} />
+				<rect
+					key={`${x}-${y}`}
+					className={value.mode === "clock" ? "lh-px-in" : undefined}
+					x={x * PITCH}
+					y={y * PITCH}
+					width={PITCH - 1}
+					height={PITCH - 1}
+					style={{ "--lh-px-delay": `${((x * 7 + y * 3) % 8) * 10}ms` } as React.CSSProperties}
+				/>
 			))}
 		</svg>
 	);

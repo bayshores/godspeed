@@ -5,6 +5,7 @@ import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { cn } from "@/frontend/lib/utils";
 import { firstSentence, labelHangsLeft, noteWhen, signaturePlace, studiedShare } from "./class-cover-model";
+import { Decode } from "@/frontend/components/ui/decode";
 
 /**
  * THE CLASS COVER (top of a class's Overview): the
@@ -132,7 +133,7 @@ export const ClassCover = memo(function ClassCover({
 			<div className="relative flex flex-col gap-6 @4xl:flex-row @4xl:items-end @4xl:justify-between">
 				<div ref={textRef} className="flex min-w-0 flex-col gap-2">
 					<h1 data-testid="overview-name" className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
-						{name}
+						<Decode text={name} />
 					</h1>
 					{about && <p className="max-w-[640px] text-base text-ink-2">{about}</p>}
 					{!signature && onAddSignature && (

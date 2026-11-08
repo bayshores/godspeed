@@ -12,6 +12,7 @@ import { deadlineHref } from "@/frontend/components/overview/runway-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { PixelCountdown } from "./pixel-countdown";
+import { Decode } from "@/frontend/components/ui/decode";
 
 export function DueNext({
 	deadline: d,
@@ -62,7 +63,7 @@ export function DueNext({
 						<h3 className="flex min-w-0 items-baseline gap-3 text-2xl font-bold">
 							<span className="shrink-0 text-ink-3">{d.className.toLowerCase()} /</span>
 							<Link href={deadlineHref(d.id)} prefetch={false} data-testid="due-next-open" title={d.name} className="truncate text-ink hover:underline">
-								{d.name}
+								<Decode text={d.name} />
 							</Link>
 						</h3>
 						<div className="flex flex-wrap gap-2.5">

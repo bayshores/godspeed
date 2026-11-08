@@ -1,23 +1,37 @@
 /**
- * The welcome screen's one line under the logo: the agent, and the next
- * deadline when there is one ("Claude Code connected · Midterm 2 in 3
- * days"). Pure and unit-tested.
+ * The welcome screen's boot log under the logo: the version, the agent,
+ * and the next deadline ("godspeed v0.5.41", "claude code connected",
+ * "midterm 2 due in 3 days"). The first launch after updating from the
+ * old look says so instead. Pure and unit-tested.
  */
-import { daysBetween, localDay } from "@/shared/core";
+import { compareVersions, daysBetween, localDay } from "@/shared/core";
 import { isOverdue } from "@/frontend/components/deadlines-model";
 
-export function statusLine(
+/** The last version with the old look: updating from it (or earlier)
+ *  plays the new look's boot once. */
+const LAST_OLD_LOOK = "0.5.40";
+
+/** True on the first launch after updating from the old look. */
+export function lookUpgraded(whatsNewSince: string | null): boolean {
+	return whatsNewSince !== null && compareVersions(whatsNewSince, LAST_OLD_LOOK) <= 0;
+}
+
+export function bootLines(
+	version: string,
 	agent: { connected: boolean; name?: string },
 	next: { name: string; date: string; time?: string } | undefined,
 	nowMs: number,
-): string {
-	const who = agent.connected ? `${agent.name?.trim() || "Your agent"} connected` : "No agent connected";
-	if (!next) return who;
+	upgraded: boolean,
+): string[] {
+	const head = `godspeed v${version}`;
+	if (upgraded) return [head, "new look", "loading your classes"];
+	const who = agent.connected ? `${agent.name?.trim() || "your agent"} connected` : "no agent connected";
+	if (!next) return [head, who.toLowerCase()];
 	let when: string;
 	if (isOverdue(next, nowMs)) when = "overdue";
 	else {
 		const days = daysBetween(localDay(nowMs), next.date);
-		when = days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+		when = days <= 0 ? "due today" : days === 1 ? "due tomorrow" : `due in ${days} days`;
 	}
-	return `${who}, ${next.name} ${when}`;
+	return [head, who.toLowerCase(), `${next.name} ${when}`.toLowerCase()];
 }

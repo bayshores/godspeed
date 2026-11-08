@@ -253,7 +253,7 @@ function AssistantPart({
 			// render as graded records (the step bar jumps to them).
 			if (part.state !== "output-available") return null;
 			return (
-				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot))}>
+				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot), arrive(slot) && answerFlash(part.output as QuestionAnswerData))}>
 					<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} />
 					{part.files && <MessageAttachments parts={part.files} />}
 				</div>
@@ -280,4 +280,10 @@ function AssistantPart({
 			);
 		}
 	}
+}
+
+/** A just-checked graded answer flashes green or red (globals.css). */
+function answerFlash(answer: QuestionAnswerData): string | undefined {
+	if (answer.dontKnow || answer.correct === undefined) return undefined;
+	return answer.correct ? "lh-flash-right" : "lh-flash-wrong";
 }

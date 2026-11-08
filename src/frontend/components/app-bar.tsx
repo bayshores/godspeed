@@ -13,7 +13,7 @@
  * drag region on their own (globals.css).
  */
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { PanelLeftIcon } from "lucide-react";
@@ -25,9 +25,12 @@ import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
 import { useSidebar } from "@/frontend/components/sidebar";
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
-import { clockText, rootCrumb, type Crumb } from "./app-bar-model";
+import { prefersReducedMotion } from "@/frontend/components/presence";
+import { clockText, retypeStep, rootCrumb, type Crumb } from "./app-bar-model";
 
 const PATH_SLOT = "lh-bar-path";
+/** The path retypes one letter at a time, this fast. */
+const LETTER_MS = 15;
 const ACTIONS_SLOT = "lh-bar-actions";
 
 /** True under the app shell, where the top bar is on the page. */
@@ -129,25 +132,58 @@ export function TopBar({
 	if (!hasBar) {
 		return (
 			<header className="flex h-11 items-center gap-3 px-3">
-				<Path path={full} tail={tail} />
+				<Path path={full} tail={tail} retype={false} />
 				{children}
 			</header>
 		);
 	}
 	return (
 		<>
-			{slots.path && createPortal(<Path path={full} tail={tail} />, slots.path)}
+			{slots.path && createPortal(<Path path={full} tail={tail} retype />, slots.path)}
 			{slots.actions && children && createPortal(children, slots.actions)}
 		</>
 	);
 }
 
-function Path({ path, tail }: { path: readonly Crumb[]; tail?: ReactNode }) {
+/** The path as last shown, so the next page's path retypes from it. */
+let lastShown: readonly string[] = [];
+
+/** The labels as shown while the path retypes from the last page's path:
+ *  old parts erase, new ones type in. Reduce motion, or a path outside the
+ *  top bar (`on` false), shows it at once. */
+function useRetyped(labels: readonly string[], on: boolean): readonly string[] {
+	const key = labels.join("\u0000");
+	const [shown, setShown] = useState<readonly string[]>(() => (on && lastShown.length > 0 ? lastShown : labels));
+	const target = useRef(labels);
+	target.current = labels;
+	useEffect(() => {
+		if (!on || prefersReducedMotion()) {
+			setShown(target.current);
+			return;
+		}
+		const timer = setInterval(() => {
+			setShown((s) => {
+				const next = retypeStep(s, target.current);
+				if (next === s) clearInterval(timer);
+				return next;
+			});
+		}, LETTER_MS);
+		return () => clearInterval(timer);
+	}, [key, on]);
+	useEffect(() => {
+		if (on) lastShown = shown;
+	}, [shown, on]);
+	return shown;
+}
+
+function Path({ path, tail, retype }: { path: readonly Crumb[]; tail?: ReactNode; retype: boolean }) {
 	const { active, setActive } = useClasses();
 	const last = path.length - 1;
+	const shown = useRetyped(path.map((c) => c.label), retype);
+	const typed = shown.length === path.length && shown[last] === path[last]?.label;
 	return (
 		<ol data-testid="bar-path" className="flex min-w-0 items-center">
-			{path.map((c, i) => (
+			{path.slice(0, shown.length).map((c, i) => (
 				<li key={`${i}-${c.label}`} className={cn("flex items-center", i === last && !tail ? "min-w-0 shrink" : "max-w-[24ch] shrink-0")}>
 					{i > 0 && <span aria-hidden className="px-2 text-ink-3">/</span>}
 					{c.href && (i < last || tail) ? (
@@ -159,16 +195,16 @@ function Path({ path, tail }: { path: readonly Crumb[]; tail?: ReactNode }) {
 							}}
 							className="truncate text-ink-2 hover:text-ink"
 						>
-							{c.label}
+							{shown[i]}
 						</Link>
 					) : (
 						<span aria-current="page" className="truncate font-bold text-ink">
-							{c.label}
+							{shown[i]}
 						</span>
 					)}
 				</li>
 			))}
-			{tail && (
+			{tail && typed && (
 				<li className="flex min-w-0 shrink items-center">
 					<span aria-hidden className="px-2 text-ink-3">/</span>
 					{tail}

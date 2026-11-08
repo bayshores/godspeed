@@ -33,3 +33,25 @@ export function rootCrumb(cls: { id: string; name: string } | null): Crumb {
 export function clockText(d: Date): string {
 	return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
+
+/** True when every shown part starts the target's part at its place (the
+ *  last one may be cut short). */
+function startsTarget(shown: readonly string[], target: readonly string[]): boolean {
+	return shown.every((s, i) => (i < shown.length - 1 ? s === target[i] : (target[i] ?? "").startsWith(s)));
+}
+
+/**
+ * One letter of the path retyping toward `target`: while what's shown
+ * isn't the start of the target, erase a letter from the end; then type
+ * the target's next letter. Returns `shown` itself once it is the target.
+ */
+export function retypeStep(shown: readonly string[], target: readonly string[]): readonly string[] {
+	if (!startsTarget(shown, target)) {
+		const last = shown[shown.length - 1]!;
+		return last.length > 1 ? [...shown.slice(0, -1), last.slice(0, -1)] : shown.slice(0, -1);
+	}
+	const i = shown.length - 1;
+	if (i >= 0 && shown[i] !== target[i]) return [...shown.slice(0, i), target[i]!.slice(0, shown[i]!.length + 1)];
+	if (shown.length < target.length) return [...shown, target[shown.length]!.slice(0, 1)];
+	return shown;
+}
