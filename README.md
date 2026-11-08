@@ -19,7 +19,7 @@
 
 godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. Every class gets its own lessons, files (PDFs, notes, lecture recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
 
-![A godspeed lesson: the teacher's explanation with a graded quiz and a worked practice problem on the left, the lesson steps and your turn box on the right](docs/assets/lesson.png)
+![A godspeed lesson: the teacher's explanation on the left, the lesson steps and an open quiz with how sure you are on the right](docs/assets/lesson.png)
 
 ## How it works
 
