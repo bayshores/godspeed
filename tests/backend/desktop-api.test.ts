@@ -62,7 +62,7 @@ test("all methods fail closed for desktop missing/wrong secret; API-only matcher
 			assert.equal(proxy(new NextRequest(origin + "/api/settings", { method })).status, 403);
 			assert.equal(proxy(new NextRequest(origin + "/api/settings", { method, headers: { [HEADER]: secret } })).headers.get("x-middleware-next"), "1");
 		}
-		for (const pathname of ["/api/mcp", "/api/mcp/forget"]) {
+		for (const pathname of ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting"]) {
 			assert.equal(proxy(new NextRequest(origin + pathname, { method: "POST" })).headers.get("x-middleware-next"), "1", "outside agents bring their own token");
 		}
 		assert.equal(proxy(new NextRequest(origin + "/api/mcp/other", { method: "POST" })).status, 403);

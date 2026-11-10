@@ -82,7 +82,7 @@ While godspeed is open it runs an MCP server, and an agent you already use is it
    - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph and your class files, import notes, and manage classes and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
+While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Open Claude Code also opens a second Claude Code window, the backup teacher. When the main one stops to compact its memory, the backup answers your lesson and Talk messages so you don't wait, and otherwise it just waits for free. Agents can also list and read lessons, search your graph and your class files, import notes, and manage classes and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
 ## Your plans, your data
 

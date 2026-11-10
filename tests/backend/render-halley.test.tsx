@@ -92,7 +92,7 @@ describe("the panel", () => {
 	const panel = (over: Partial<React.ComponentProps<typeof HalleyPanel>> = {}) => (
 		<HalleyPanel
 			name="Halley"
-			agent={{ connected: true, teaching: true, name: "Claude Code", pendingWork: 0, claimedLessons: [] }}
+			agent={{ connected: true, teaching: true, name: "Claude Code", backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] }}
 			onClose={() => {}}
 			doing={{ text: "Reading syllabus.pdf", count: "2 of 5", working: true }}
 			recent={ACTIONS}
@@ -323,7 +323,7 @@ describe("the panel", () => {
 		}
 	});
 	it("the agent line is empty with no agent, and shows the waiting notice while work waits", () => {
-		const idle = { connected: false, teaching: false, pendingWork: 0, claimedLessons: [] };
+		const idle = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
 		assert.equal(agentLine(idle), null);
 		assert.equal(agentLine(null), null);
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
@@ -332,7 +332,7 @@ describe("the panel", () => {
 	});
 	it("a Talk message no agent has taken says it waits once, in the head", async () => {
 		talkChat = { id: "chat_talk", turnInFlight: true, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
-		const el = mount(panel({ agent: { connected: false, teaching: false, pendingWork: 1, claimedLessons: [] } }));
+		const el = mount(panel({ agent: { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 1, claimedLessons: [] } }));
 		await settle();
 		assert.ok(el.querySelector("[data-testid='talk-you']"), "the thread is open");
 		assert.equal(el.textContent!.split("Waiting for your agent").length - 1, 1);
@@ -416,6 +416,7 @@ describe("the teacher pane", () => {
 			doing={reading}
 			idleLine="Claude Code"
 			disconnected={false}
+			backupAnswering={false}
 			following
 			onFollow={() => {}}
 			offer={null}
@@ -458,6 +459,11 @@ describe("the teacher pane", () => {
 		assert.match(el.querySelector("[data-testid='follow-offer']")?.textContent ?? "", /^starting cse 29 reviewgo to lesson$/);
 		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
 		assert.deepEqual(went, [offer]);
+	});
+	it("while the agent compacts, the bubble says the backup is answering", () => {
+		const html = renderToStaticMarkup(pane({ backupAnswering: true }));
+		assert.match(html, /data-testid="teacher-backup"[^>]*>Catching up on my notes\. My backup is answering for a minute\.</);
+		assert.doesNotMatch(html, /teacher-doing/);
 	});
 	it("no agent yet: the agent line in the bubble, no follow button", () => {
 		const html = renderToStaticMarkup(pane({ doing: null, idleLine: "No agent connected" }));

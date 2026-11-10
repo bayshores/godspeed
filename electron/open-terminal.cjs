@@ -2,8 +2,9 @@
 
 /**
  * Opens a new terminal window running one of the godspeed folder's start
- * scripts (.godspeed/start-<agent>.<ext>, written by the server). Only those
- * scripts can be run, so the window can't ask for anything else.
+ * scripts (.godspeed/start-<agent>.<ext>, written by the server; "claude-backup"
+ * starts the backup teacher). Only those scripts can be run, so the window
+ * can't ask for anything else.
  */
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
@@ -13,7 +14,7 @@ const EXTENSION = { darwin: "command", win32: "cmd" };
 
 /** The start script for this agent in this folder, or null when the request isn't one. */
 function startScript(folder, agent, platform) {
-	if (typeof folder !== "string" || !path.isAbsolute(folder) || (agent !== "claude" && agent !== "codex")) return null;
+	if (typeof folder !== "string" || !path.isAbsolute(folder) || !["claude", "claude-backup", "codex"].includes(agent)) return null;
 	const script = path.join(folder, ".godspeed", `start-${agent}.${EXTENSION[platform] ?? "sh"}`);
 	try {
 		return fs.statSync(script).isFile() ? script : null;

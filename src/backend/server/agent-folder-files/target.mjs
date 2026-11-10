@@ -1,7 +1,7 @@
 /**
  * Where the running godspeed app is, and its access token. Shared by the
  * MCP connector (connect.mjs), the background waiter (wait-for-work.mjs)
- * and the forget hook (forget.mjs).
+ * and the hooks (forget.mjs, compacting.mjs).
  *
  * Where it looks (first match wins):
  *   URL:   $GODSPEED_MCP_URL → <data>/mcp-endpoint.json → http://127.0.0.1:47613/api/mcp

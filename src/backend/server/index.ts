@@ -45,7 +45,7 @@ export { readingDocument, readingPdfPage } from "./reading-pages.ts";
 
 export { AgentFolderError, agentFolderView, classShortcutDir, dismissFolderNotice, setUpAgentFolder, shortcutPathProblem } from "./agent-folder.ts";
 export { removeOldSetup } from "./old-setup.ts";
-export { handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
+export { handleAgentCompacting, handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";
 export { agentSavedRules, editRule, removeRule } from "./agent-rules.ts";
 export { clearTalk, openTalk } from "./talk.ts";

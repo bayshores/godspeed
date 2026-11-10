@@ -36,7 +36,7 @@ const mcp = await import("../../src/backend/server/mcp.ts");
 const { ensureMcpToken } = await import("../../src/backend/store/mcp-token.ts");
 const { subscribe } = await import("../../src/shared/core/events.ts");
 const { WORK_PAGE_BYTES } = await import("../../src/shared/core/work-pages.ts");
-const { TALK_CHAT_ID } = await import("../../src/shared/core/contracts.ts");
+const { CHAT_ID_PREFIX, TALK_CHAT_ID } = await import("../../src/shared/core/contracts.ts");
 const { openTalk } = await import("../../src/backend/server/talk.ts");
 
 function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Promise<void> {
@@ -829,6 +829,49 @@ describe("claims, lost context and finished runs", () => {
 		assert.equal(textOf(await stream.result()), "Done.");
 	});
 
+	it("the backup teacher answers only while the main agent compacts, taking the turn it held", async () => {
+		const compacting = (body: unknown) =>
+			mcp.handleAgentCompacting(new Request("http://127.0.0.1:3000/api/mcp/compacting", {
+				method: "POST",
+				headers: { host: "127.0.0.1:3000", "content-type": "application/json", authorization: `Bearer ${ensureMcpToken()}` },
+				body: JSON.stringify(body),
+			}));
+		const lesson = park(`${CHAT_ID_PREFIX}backup_turn`, [user("hi")]);
+		const held = await bridge.waitForWork(5000, { agent: "main-1" });
+		assert.ok(held);
+		assert.equal(await bridge.waitForWork(50, { agent: "backup-1", backup: true }), null, "nobody is compacting");
+		assert.equal(mcp.mcpAccessStatus().backupConnected, true);
+		assert.equal(mcp.mcpAccessStatus().backupAnswering, false);
+
+		assert.equal((await compacting({})).status, 400);
+		assert.equal((await compacting({ agent: "main-1" })).status, 200);
+		assert.equal(mcp.mcpAccessStatus().backupAnswering, true);
+		assert.equal(await bridge.waitForWork(50, { agent: "main-1" }), null, "a compacting agent takes nothing");
+		const background = park("job_backup_skips", [user("read this")]);
+		const taken = await bridge.waitForWork(50, { agent: "backup-1", backup: true });
+		assert.equal(taken?.conversation, `${CHAT_ID_PREFIX}backup_turn`, "the backup takes the held turn, not the background job");
+		assert.equal(bridge.respondToWork(held.workId, { text: "Too late." }, 0).ok, false, "the compacted agent's late reply is refused");
+		assert.ok(bridge.respondToWork(taken.workId, { text: "Hello." }, 0).ok);
+		assert.equal(textOf(await lesson.result()), "Hello.");
+		bridge.releaseConversation(`${CHAT_ID_PREFIX}backup_turn`);
+
+		assert.equal((await forget({ agent: "main-1" })).status, 200);
+		assert.equal(mcp.mcpAccessStatus().backupAnswering, false, "compacting ends when the session starts again");
+		const next = park(`${CHAT_ID_PREFIX}backup_next`, [user("again")]);
+		assert.equal(await bridge.waitForWork(50, { agent: "backup-1", backup: true }), null, "the main agent is back");
+		const taken2: string[] = [];
+		for (let i = 0; i < 2; i++) {
+			const work = await bridge.waitForWork(50, { agent: "main-1" });
+			assert.ok(work);
+			taken2.push(work.conversation);
+			assert.ok(bridge.respondToWork(work.workId, { text: "Done." }, 0).ok);
+			bridge.releaseConversation(work.conversation);
+		}
+		assert.deepEqual(taken2.sort(), [`${CHAT_ID_PREFIX}backup_next`, "job_backup_skips"].sort());
+		await Promise.all([next.result(), background.result()]);
+		for (const id of ["job_backup_skips", `${CHAT_ID_PREFIX}backup_turn`, `${CHAT_ID_PREFIX}backup_next`]) bridge.forgetConversation(id);
+	});
+
 	it("a wait whose caller went away ends at once and claims nothing", async () => {
 		const gone = new AbortController();
 		const started = Date.now();
@@ -992,6 +1035,12 @@ describe("the work loop's status, references and recovery", () => {
 		const done = await call("respond", { work_id: work.workId, text: "Hello.", wait_seconds: 0 });
 		assert.match(JSON.parse(done.content[0]!.text).note, new RegExp(`wait-for-work\\.mjs --lesson ${chat.id}`));
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle");
+	});
+
+	it("tells the backup teacher to wait with --backup, never on a lesson", async () => {
+		await initialize("claude-code");
+		const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "wait_for_work", arguments: { timeout_seconds: 1 }, _meta: { "godspeed/agent": "backup-hint", "godspeed/backup": true } } }))).json();
+		assert.match(JSON.parse(res.result.content[0].text).note, /wait-for-work\.mjs --backup /);
 	});
 
 	it("after a Talk reply, the waiter goes back to the lesson it stayed on", async () => {

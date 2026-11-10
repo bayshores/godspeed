@@ -3,12 +3,18 @@
  * and the live log under it. Pure — exported for tests.
  */
 
-import type { FolderAgent, OldSetup } from "@/shared/core";
+import type { FolderAgent, OldSetup, StartTarget } from "@/shared/core";
 
 /** The button's menu: an agent the app opens, or the setup for any other MCP app. */
 export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
+
+/** The terminals a click opens: Claude Code also gets the backup teacher,
+ *  unless one is already waiting. */
+export function startTargets(agent: FolderAgent, backupWaiting: boolean): StartTarget[] {
+	return agent === "claude" && !backupWaiting ? ["claude", "claude-backup"] : [agent];
+}
 
 /** What the server says about the folder (GET /api/agent-folder). */
 export interface FolderView {

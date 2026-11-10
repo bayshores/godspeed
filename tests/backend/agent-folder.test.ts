@@ -43,6 +43,7 @@ describe("the folder's files and commands", () => {
 		assert.deepEqual(settings.permissions.allow, ["mcp__godspeed__*", "Bash(node .godspeed/wait-for-work.mjs)", "Bash(node .godspeed/wait-for-work.mjs *)"]);
 		assert.deepEqual(settings.hooks.SessionStart[0].hooks[0].args, ["/Users/me/godspeed/.godspeed/forget.mjs"]);
 		assert.equal(settings.hooks.SessionEnd[0].matcher, "clear");
+		assert.deepEqual(settings.hooks.PreCompact, [{ hooks: [{ type: "command", command: "node", args: ["/Users/me/godspeed/.godspeed/compacting.mjs"], timeout: 10 }] }], "every compaction, manual or automatic");
 		assert.equal(settings.permissions.defaultMode, undefined, "no auto mode");
 	});
 
@@ -74,6 +75,7 @@ describe("the folder's files and commands", () => {
 		assert.match(win, /^@echo off\r\ncd \/d "C:\\gs"\r\nwhere codex /);
 		assert.match(win, /\r\nwhere node >nul 2>nul \|\| \(echo godspeed needs Node\.js\. Install it from https:\/\/nodejs\.org, then click Open Codex in godspeed again\. & exit \/b 1\)\r\ncodex /);
 		assert.match(win, /codex -c "mcp_servers\.godspeed\.command='node'"/);
+		assert.match(core.startScript("claude-backup", "/Users/me/godspeed", "linux"), /\nexec claude --settings \.godspeed\/claude-settings\.json "Start as the backup teacher"\n$/);
 	});
 
 	it("withoutJsonEntry drops one entry and leaves the rest", () => {
@@ -119,7 +121,7 @@ describe("writing the folder", () => {
 		assert.equal(view.folder, path.join(home, "godspeed"));
 		assert.equal(view.short, "~/godspeed");
 		assert.equal(view.exists, true);
-		for (const file of ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-classes/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json"]) {
+		for (const file of ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-classes/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json"]) {
 			assert.ok(fs.existsSync(path.join(view.folder, file)), file);
 		}
 		if (process.platform !== "win32") {
@@ -207,6 +209,7 @@ describe("opening a terminal", () => {
 		const folder = server.setUpAgentFolder(path.join(scratch, "home", "launch")).folder;
 		const platform = process.platform === "darwin" ? "darwin" : "linux";
 		assert.equal(terminal.startScript(folder, "claude", platform), core.startScriptPath(folder, "claude", platform));
+		assert.equal(terminal.startScript(folder, "claude-backup", platform), core.startScriptPath(folder, "claude-backup", platform));
 		assert.equal(terminal.startScript(folder, "rm -rf", platform), null);
 		assert.equal(terminal.startScript("relative", "claude", platform), null);
 		assert.equal(terminal.startScript(path.join(scratch, "nowhere"), "claude", platform), null);
@@ -222,6 +225,12 @@ describe("opening a terminal", () => {
 describe("the setup log", () => {
 	const off = { connected: false, teaching: false };
 	const texts = (lines: { text: string; state: string }[]) => lines.map((l) => `${l.state}: ${l.text}`);
+
+	it("Claude Code opens with the backup teacher, unless one is already waiting", () => {
+		assert.deepEqual(model.startTargets("claude", false), ["claude", "claude-backup"]);
+		assert.deepEqual(model.startTargets("claude", true), ["claude"]);
+		assert.deepEqual(model.startTargets("codex", false), ["codex"]);
+	});
 
 	it("ticks each step, then follows the agent", () => {
 		assert.deepEqual(texts(model.logLines({ agent: "claude", made: "wait" }, off, "~/godspeed", true)), ["wait: Making ~/godspeed…"]);

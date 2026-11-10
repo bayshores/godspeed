@@ -18,6 +18,10 @@ export interface AgentStatus {
 	teaching: boolean;
 	/** The agent's name from its MCP client info ("Claude Code"). */
 	name?: string;
+	/** The backup teacher's waiter checked in recently. */
+	backupConnected: boolean;
+	/** The main agent is compacting its context and the backup answers meanwhile. */
+	backupAnswering: boolean;
 	/** Requests waiting for (or being handled by) the agent. */
 	pendingWork: number;
 	/** Lessons whose current request an agent took and hasn't answered, with the ISO claim time. */
@@ -43,11 +47,13 @@ export function agentWaiting(status: AgentStatus | null): boolean {
 /** Parse the /api/mcp-access body (pure — exported for tests). */
 export function parseAgentStatus(body: unknown): AgentStatus | null {
 	if (!body || typeof body !== "object") return null;
-	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; pendingWork?: unknown; claimedLessons?: unknown };
+	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; backupConnected?: unknown; backupAnswering?: unknown; pendingWork?: unknown; claimedLessons?: unknown };
 	return {
 		connected: b.agentConnected === true,
 		teaching: b.agentTeaching === true,
 		...(typeof b.agentName === "string" && b.agentName.trim() ? { name: b.agentName.trim() } : {}),
+		backupConnected: b.backupConnected === true,
+		backupAnswering: b.backupAnswering === true,
 		pendingWork: typeof b.pendingWork === "number" && b.pendingWork > 0 ? b.pendingWork : 0,
 		claimedLessons: Array.isArray(b.claimedLessons)
 			? b.claimedLessons.filter((c): c is { lessonId: string; claimedAt: string } =>
@@ -60,6 +66,7 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
  *  and consumers skip a render (pure — exported for tests). */
 export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
 	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork
+		&& a.backupConnected === b.backupConnected && a.backupAnswering === b.backupAnswering
 		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons);
 }
 

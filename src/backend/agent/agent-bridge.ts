@@ -22,6 +22,11 @@
  * (onboarding, the sidebar, the activity panel) update live.
  * Requests wait for an agent with no time limit, so work queued while no
  * agent is connected starts by itself once one connects.
+ *
+ * THE BACKUP TEACHER: a second Claude Code session whose waiter says it is
+ * the backup. While a main agent compacts its context (its PreCompact hook
+ * says so), the backup takes the lesson and Talk turns, including the one
+ * the main agent held; otherwise it only waits, which costs nothing.
  */
 import type {
 	AssistantMessage,
@@ -154,13 +159,17 @@ interface BridgeState {
 	backgroundRuns: Set<string>;
 	/** agent id ("" = no id) → the lesson its waiter stays on. */
 	stayingOn: Map<string, string>;
+	/** agent id → when it started compacting its context. */
+	compacting: Map<string, number>;
+	/** backup agent id ("" = no id) → its last check-in. */
+	backups: Map<string, number>;
 }
 
 const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set(), stayingOn: new Map() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set(), stayingOn: new Map(), compacting: new Map(), backups: new Map() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	g[STATE_KEY].held ??= new Map();
 	g[STATE_KEY].seenBy ??= new Map();
@@ -169,6 +178,8 @@ function state(): BridgeState {
 	g[STATE_KEY].lastWork ??= 0;
 	g[STATE_KEY].known ??= new Map();
 	g[STATE_KEY].stayingOn ??= new Map();
+	g[STATE_KEY].compacting ??= new Map();
+	g[STATE_KEY].backups ??= new Map();
 	return g[STATE_KEY];
 }
 
@@ -215,6 +226,49 @@ export function agentConnected(now = Date.now()): boolean {
  *  tools, and lessons wait. */
 export function agentTeaching(now = Date.now()): boolean {
 	return recent(state().lastWork, now);
+}
+
+/** A compaction that never reported its end stops counting after this long. */
+const COMPACTING_LIMIT_MS = 10 * 60_000;
+
+/** Whether this agent is compacting now (an old mark lapses). */
+function compactingNow(agent: string, now: number): boolean {
+	const since = state().compacting.get(agent);
+	return since !== undefined && now - since < COMPACTING_LIMIT_MS;
+}
+
+/** A main agent is compacting, so a backup answers for it. */
+function someoneCompacting(now: number): boolean {
+	return [...state().compacting.keys()].some((agent) => compactingNow(agent, now));
+}
+
+/** A backup's waiter checked in recently. */
+export function backupConnected(now = Date.now()): boolean {
+	return [...state().backups.values()].some((at) => recent(at, now));
+}
+
+/** The backup is answering: a main agent is compacting and a backup waits. */
+export function backupAnswering(now = Date.now()): boolean {
+	return someoneCompacting(now) && backupConnected(now);
+}
+
+/** The agent started compacting its context (its PreCompact hook). With a
+ *  backup waiting, the lesson and Talk turns it held go back in the queue
+ *  for the backup; its late reply is then refused (the claim count). */
+export function agentCompacting(agent: string, now = Date.now()): void {
+	const s = state();
+	// The backup compacting has no one to answer for it.
+	if (s.backups.has(agent)) return;
+	s.compacting.set(agent, now);
+	if (backupConnected(now)) {
+		for (const item of s.items.values()) {
+			if (item.agent === agent && !isBackground(item) && item.claimedAt !== undefined) item.claimedAt = undefined;
+		}
+	}
+	// The window hears when a mark that never ended lapses.
+	setTimeout(() => emit("agent-changed", {}), COMPACTING_LIMIT_MS + 1000).unref?.();
+	emit("agent-changed", {});
+	wake();
 }
 
 /** Lessons whose current request an agent took and hasn't answered yet,
@@ -364,6 +418,8 @@ export function setSeenStore(store: SeenStore): void {
  *  go to the next agent at once. */
 export function forgetAgent(agent: string, cleared: boolean): void {
 	const s = state();
+	// It came back from compacting: the work is its own again.
+	if (s.compacting.delete(agent)) emit("agent-changed", {});
 	for (const byAgent of s.seenBy.values()) byAgent.delete(agent);
 	s.known.delete(agent);
 	let released = false;
@@ -459,10 +515,14 @@ function isBackground(item: WorkItem): boolean {
 interface Taker {
 	conversation?: string;
 	agent?: string;
+	/** The backup teacher's waiter. */
+	backup?: boolean;
 }
 
 function claimable(item: WorkItem, now: number, taker: Taker): boolean {
-	if (item.conversation !== taker.conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
+	if (taker.agent !== undefined && compactingNow(taker.agent, now)) return false;
+	// The backup answers for a compacting agent, so its holds don't count.
+	if (!taker.backup && item.conversation !== taker.conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
 	// An agent may take its own item again (a compaction lost its workId).
 	if (taker.agent !== undefined && item.agent === taker.agent) return true;
 	return item.claimedAt === undefined || now - item.claimedAt > CLAIM_TIMEOUT_MS;
@@ -480,6 +540,12 @@ function oldestClaimable(now: number, taker: Taker, keep: (i: WorkItem) => boole
  *  on one lesson still does the file reading and graph work nobody else would. */
 function pick(now: number, opts: Taker & { andBackground?: boolean }): WorkItem | undefined {
 	const { conversation } = opts;
+	// The backup finishes a turn it began, and takes new lesson and Talk
+	// turns only while a main agent compacts.
+	if (opts.backup) {
+		if (conversation) return oldestClaimable(now, opts, (i) => i.conversation === conversation);
+		return someoneCompacting(now) ? oldestClaimable(now, opts, (i) => !isBackground(i)) : undefined;
+	}
 	if (!conversation) return oldestClaimable(now, opts, () => true);
 	const withTalk = conversation.startsWith(CHAT_ID_PREFIX);
 	return (
@@ -499,7 +565,9 @@ export async function waitForWork(
 	for (;;) {
 		if (opts.signal?.aborted) return null;
 		const now = Date.now();
-		recordCheckIn({ working: true }, now);
+		// A backup that only waits isn't teaching: lessons still need the main agent.
+		if (opts.backup) noteBackup(opts.agent, now);
+		else recordCheckIn({ working: true }, now);
 		const item = pick(now, opts);
 		if (item) {
 			item.claimedAt = now;
@@ -526,6 +594,19 @@ export async function waitForWork(
 			opts.signal?.addEventListener("abort", done, { once: true });
 		});
 	}
+}
+
+/** A backup's waiter checked in; the window hears when the first one does. */
+function noteBackup(agent: string | undefined, now: number): void {
+	const s = state();
+	const was = backupConnected(now);
+	s.backups.set(agent ?? "", now);
+	if (!was) emit("agent-changed", {});
+}
+
+/** Whether this agent's waiter is a backup's (its turn hints say --backup). */
+export function isBackupAgent(agent: string | undefined): boolean {
+	return state().backups.has(agent ?? "");
 }
 
 /** Remember the lesson an agent's waiter stays on (none = any work), so a

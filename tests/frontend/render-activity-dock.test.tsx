@@ -6,7 +6,7 @@ import { formatTokens, pagesLabel } from "../../src/frontend/components/usage-fo
 import { agentWaiting, parseAgentStatus, sameAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 
 describe("the waiting-for-your-agent notice", () => {
-	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, pendingWork: 0, claimedLessons: [], ...over });
+	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [], ...over });
 	it("shows only while work waits and no agent is teaching", () => {
 		assert.equal(agentWaiting(status({ pendingWork: 1 })), true);
 		assert.equal(agentWaiting(status({ connected: true, teaching: true, pendingWork: 1 })), false);
@@ -21,8 +21,8 @@ describe("the waiting-for-your-agent notice", () => {
 	});
 	it("reads the /api/mcp-access body", () => {
 		assert.deepEqual(
-			parseAgentStatus({ agentConnected: true, agentTeaching: true, agentName: "Claude Code", pendingWork: 2, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }, { lessonId: 3 }] }),
-			{ connected: true, teaching: true, name: "Claude Code", pendingWork: 2, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] },
+			parseAgentStatus({ agentConnected: true, agentTeaching: true, agentName: "Claude Code", backupConnected: true, backupAnswering: "yes", pendingWork: 2, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }, { lessonId: 3 }] }),
+			{ connected: true, teaching: true, name: "Claude Code", backupConnected: true, backupAnswering: false, pendingWork: 2, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] },
 		);
 		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), status());
 		assert.equal(parseAgentStatus(null), null);
@@ -35,6 +35,8 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(sameAgentStatus(s, { ...s, teaching: false }), false);
 		assert.equal(sameAgentStatus(s, { ...s, name: "Codex" }), false);
 		assert.equal(sameAgentStatus(s, { ...s, pendingWork: 3 }), false);
+		assert.equal(sameAgentStatus(s, { ...s, backupConnected: true }), false);
+		assert.equal(sameAgentStatus(s, { ...s, backupAnswering: true }), false);
 		assert.equal(sameAgentStatus(s, { ...s, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] }), false);
 	});
 	it("the activity panel shows the notice text", () => {

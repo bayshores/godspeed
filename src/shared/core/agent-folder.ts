@@ -9,6 +9,10 @@
 
 export type FolderAgent = "claude" | "codex";
 
+/** What a start script starts: an agent, or Claude Code as the backup
+ *  teacher, which answers while the main session compacts its context. */
+export type StartTarget = FolderAgent | "claude-backup";
+
 /** The old ways godspeed loaded outside the folder that are still set up:
  *  the retired Claude Code plugin, and the block once pasted into Codex's config. */
 export interface OldSetup {
@@ -20,6 +24,7 @@ export type Platform = "darwin" | "win32" | "linux";
 
 /** The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means. */
 const START_PROMPT = "Start teaching";
+const BACKUP_PROMPT = "Start as the backup teacher";
 
 /** Settings Claude Code loads at launch (--settings), so they apply before the folder is trusted. */
 const CLAUDE_SETTINGS = ".godspeed/claude-settings.json";
@@ -51,13 +56,15 @@ export function mcpJson(folder: string, platform: Platform): string {
 
 /** .godspeed/claude-settings.json: turns on the folder's server, lets the
  *  agent use godspeed's tools and the waiter without asking, and tells the
- *  app when the session loses its context. */
+ *  app when the session starts compacting and when it lost its context. */
 export function claudeSettings(folder: string, platform: Platform): string {
-	const forget = [{ type: "command", command: "node", args: [join(folder, platform, ".godspeed", "forget.mjs")], timeout: 10 }];
+	const hook = (script: string) => [{ type: "command", command: "node", args: [join(folder, platform, ".godspeed", script)], timeout: 10 }];
+	const forget = hook("forget.mjs");
 	const settings = {
 		enabledMcpjsonServers: ["godspeed"],
 		permissions: { allow: ["mcp__godspeed__*", `Bash(${WAITER})`, `Bash(${WAITER} *)`] },
 		hooks: {
+			PreCompact: [{ hooks: hook("compacting.mjs") }],
 			SessionStart: [{ matcher: "compact", hooks: forget }],
 			SessionEnd: [{ matcher: "clear", hooks: forget }],
 		},
@@ -81,6 +88,11 @@ function codexArgs(folder: string, platform: Platform): string[] {
 
 const CLAUDE_ARGS = ["--settings", CLAUDE_SETTINGS, START_PROMPT];
 
+function startArgs(target: StartTarget, folder: string, platform: Platform): string[] {
+	if (target === "codex") return codexArgs(folder, platform);
+	return target === "claude" ? CLAUDE_ARGS : ["--settings", CLAUDE_SETTINGS, BACKUP_PROMPT];
+}
+
 function posixQuote(arg: string): string {
 	return /^[\w./=-]+$/.test(arg) ? arg : `"${arg.replace(/["\\$`]/g, "\\$&")}"`;
 }
@@ -89,13 +101,13 @@ function cmdQuote(arg: string): string {
 	return /^[\w./=-]+$/.test(arg) ? arg : `"${arg}"`;
 }
 
-function startScriptName(agent: FolderAgent, platform: Platform): string {
-	return `start-${agent}.${platform === "win32" ? "cmd" : platform === "darwin" ? "command" : "sh"}`;
+function startScriptName(target: StartTarget, platform: Platform): string {
+	return `start-${target}.${platform === "win32" ? "cmd" : platform === "darwin" ? "command" : "sh"}`;
 }
 
 /** The start script's path, inside .godspeed/. */
-export function startScriptPath(folder: string, agent: FolderAgent, platform: Platform): string {
-	return join(folder, platform, ".godspeed", startScriptName(agent, platform));
+export function startScriptPath(folder: string, target: StartTarget, platform: Platform): string {
+	return join(folder, platform, ".godspeed", startScriptName(target, platform));
 }
 
 /** The command the "Copy the command" link copies: go to the folder, start the agent. */
@@ -123,8 +135,9 @@ const NEEDS_NODE: Record<FolderAgent, string> = {
 };
 
 /** The start script the button runs in a new terminal window. */
-export function startScript(agent: FolderAgent, folder: string, platform: Platform): string {
-	const args = agent === "claude" ? CLAUDE_ARGS : codexArgs(folder, platform);
+export function startScript(target: StartTarget, folder: string, platform: Platform): string {
+	const agent: FolderAgent = target === "codex" ? "codex" : "claude";
+	const args = startArgs(target, folder, platform);
 	if (platform === "win32") {
 		return [
 			"@echo off",

@@ -12,6 +12,8 @@ This folder belongs to the godspeed learning app. Here you are the AI inside god
    - Answer with `respond`. If it returns another work item, handle it the same way. If it returns `turn_complete`, start the waiter again.
 3. Keep going until the user tells you to stop. Here, say only brief status lines (e.g. "Taught step 2 of the photosynthesis lesson"); the teaching itself goes through `respond`.
 
+When the user says "Start as the backup teacher", you are the backup: you answer lesson and Talk turns only while the main teacher session compacts its context. Run the same loop, but always run the waiter as `node .godspeed/wait-for-work.mjs --backup`, never with `--lesson`, and never start lessons.
+
 To set up classes from the learner's course files, use the `/setup-classes` skill.
 
 `classes/` in this folder holds read-only shortcuts to the learner's class files. Prefer `search_class_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.

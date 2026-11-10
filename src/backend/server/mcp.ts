@@ -24,13 +24,17 @@ import { timingSafeEqual } from "node:crypto";
 import { CLIENT_INFO_META_KEY, createMcpHandler, isLegacyRequest, McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import {
+	agentCompacting,
 	agentConnected,
 	agentName,
 	agentTeaching,
+	backupAnswering,
+	backupConnected,
 	claimedLessons,
 	displayAgentName,
 	forgetAgent,
 	fullWorkView,
+	isBackupAgent,
 	pendingWorkCount,
 	readWorkPage,
 	recordCheckIn,
@@ -140,6 +144,8 @@ export function mcpAccessStatus(): {
 	agentConnected: boolean;
 	agentTeaching: boolean;
 	agentName: string | null;
+	backupConnected: boolean;
+	backupAnswering: boolean;
 	pendingWork: number;
 	claimedLessons: { lessonId: string; claimedAt: string }[];
 } {
@@ -148,6 +154,8 @@ export function mcpAccessStatus(): {
 		agentConnected: agentConnected(),
 		agentTeaching: agentTeaching(),
 		agentName: agentName() ?? null,
+		backupConnected: backupConnected(),
+		backupAnswering: backupAnswering(),
 		pendingWork: pendingWorkCount(),
 		claimedLessons: claimedLessons(),
 	};
@@ -249,15 +257,17 @@ function inClaudeCode(caller: string | undefined): boolean {
 	return caller === "Claude Code";
 }
 
-function waiterHint(lessonId?: string): string {
-	return `Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs${lessonId ? ` --lesson ${lessonId}` : ""} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
+/** The backup teacher's waiter always says --backup and stays on no lesson. */
+function waiterHint(lessonId?: string, backup = false): string {
+	const flags = backup ? " --backup" : lessonId ? ` --lesson ${lessonId}` : "";
+	return `Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs${flags} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
 }
 
-function idle(caller: string | undefined) {
+function idle(caller: string | undefined, backup = false) {
 	return {
 		status: "idle",
 		note: inClaudeCode(caller)
-			? `Nothing to do right now. ${waiterHint()}`
+			? `Nothing to do right now. ${waiterHint(undefined, backup)}`
 			: "Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).",
 	};
 }
@@ -315,6 +325,11 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		async ({ timeout_seconds, lesson_id, full_context }, ctx) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
 			const agent = agentIdOf(ctx.mcpReq._meta);
+			// The backup teacher's waiter (wait-for-work.mjs --backup).
+			if (ctx.mcpReq._meta?.["godspeed/backup"] === true) {
+				const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, agent, backup: true, signal });
+				return view ? workResult(view) : result(idle(caller, true));
+			}
 			stayOn(agent, lesson_id);
 			// Waiting counts the agent as working at once, so what godspeed queues
 			// for it now (catch-up) reaches this same wait.
@@ -348,7 +363,8 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			// The Talk chat has no page to go to; its replies show in the panel.
 			if (lesson && lesson.kind !== "talk") noteAgentAction(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
-			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
+			const backup = isBackupAgent(answered.agent);
+			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, backup, signal }).finally(() => releaseConversation(answered.conversation));
 			if (next) return workResult(next);
 			const chat = stores.chatStore.getChat(answered.conversation);
 			const claudeCode = inClaudeCode(caller);
@@ -356,9 +372,9 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			// lesson the agent was staying on, not to Talk alone.
 			const talk = chat?.kind === "talk";
 			const started = talk ? lessonStartedLastTurn(chat.messages) : null;
-			if (started) stayOn(answered.agent, started);
+			if (started && !backup) stayOn(answered.agent, started);
 			const lessonId = talk ? (started ?? stayingOn(answered.agent)) : chat?.id;
-			const wait = claudeCode ? waiterHint(lessonId) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
+			const wait = claudeCode ? waiterHint(lessonId, backup) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
 			return result({
 				status: "turn_complete",
 				note: !chat
@@ -720,16 +736,32 @@ function clientOfMeta(meta: Record<string, unknown> | undefined): string | undef
 	return undefined;
 }
 
+/** A godspeed folder hook's request: the session id it sent and its body, or the refusal. */
+async function hookRequest(req: Request): Promise<{ agent: string; body: Record<string, unknown> } | Response> {
+	const refused = refuse(req);
+	if (refused) return refused;
+	const body = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+	const agent = agentIdOf({ "godspeed/agent": body.agent });
+	if (!agent) return Response.json({ error: "Send the agent's session id as \"agent\"." }, { status: 400 });
+	return { agent, body };
+}
+
 /** /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its
  *  context (it compacted, or "cleared": /clear ended the session), so its
  *  next items come in full. */
 export async function handleAgentForget(req: Request): Promise<Response> {
-	const refused = refuse(req);
-	if (refused) return refused;
-	const body = (await req.json().catch(() => null)) as { agent?: unknown; cleared?: unknown } | null;
-	const agent = agentIdOf({ "godspeed/agent": body?.agent });
-	if (!agent) return Response.json({ error: "Send the agent's session id as \"agent\"." }, { status: 400 });
-	forgetAgent(agent, body?.cleared === true);
+	const hook = await hookRequest(req);
+	if (hook instanceof Response) return hook;
+	forgetAgent(hook.agent, hook.body.cleared === true);
+	return Response.json({ ok: true });
+}
+
+/** /api/mcp/compacting: the godspeed folder's Claude Code hook says an agent
+ *  started compacting its context, so the backup teacher answers meanwhile. */
+export async function handleAgentCompacting(req: Request): Promise<Response> {
+	const hook = await hookRequest(req);
+	if (hook instanceof Response) return hook;
+	agentCompacting(hook.agent);
 	return Response.json({ ok: true });
 }
 

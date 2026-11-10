@@ -62,7 +62,7 @@ declare global {
 			/** Opens this folder in Finder (File Explorer), or this PDF in its default app. */
 			openPath?: (path: string) => Promise<void>;
 			/** Opens a terminal running the godspeed folder's start script: null, or why it couldn't. */
-			openAgent?: (folder: string, agent: "claude" | "codex") => Promise<string | null>;
+			openAgent?: (folder: string, agent: "claude" | "claude-backup" | "codex") => Promise<string | null>;
 			/** A dropped file's or folder's absolute path (onboarding drop zone). */
 			pathForFile?: (file: File) => string;
 			expandWindow: () => void;

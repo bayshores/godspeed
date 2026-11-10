@@ -27,7 +27,7 @@
  *   window.lh.reportBug() — opens a prefilled GitHub issue in the browser.
  *
  *   window.lh.openAgent(folder, agent) — opens a terminal running the
- *   godspeed folder's start script for "claude" or "codex"; resolves to
+ *   godspeed folder's start script for "claude", "claude-backup" or "codex"; resolves to
  *   null, or a message saying why it couldn't.
  *
  *   window.lh.listFonts() — the installed font families (Appearance).

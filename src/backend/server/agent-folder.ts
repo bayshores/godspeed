@@ -22,6 +22,7 @@ import {
 	type FolderAgent,
 	type OldSetup,
 	type Platform,
+	type StartTarget,
 } from "../../shared/core/agent-folder.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 import { oldSetup, removeOldSetup } from "./old-setup.ts";
@@ -31,7 +32,7 @@ import { stores } from "./stores.ts";
 
 const STATE_FILE = path.join(PATHS.data, "agent-folder.json");
 const TEMPLATE = path.join(process.cwd(), "src", "backend", "server", "agent-folder-files");
-const AGENTS: FolderAgent[] = ["claude", "codex"];
+const START_TARGETS: StartTarget[] = ["claude", "claude-backup", "codex"];
 /** Images the waiter saved for the agent are kept this long. */
 const IMAGE_DAYS = 7;
 
@@ -149,10 +150,10 @@ function writeFolder(folder: string): void {
 	put(path.join(folder, "AGENTS.md"), template("AGENTS.md"));
 	put(path.join(folder, ".claude", "skills", "setup-classes", "SKILL.md"), template("setup-classes.md"));
 	put(path.join(folder, ".mcp.json"), mcpJson(folder, p));
-	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs"]) put(path.join(dot, script), template(script));
+	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs", "compacting.mjs"]) put(path.join(dot, script), template(script));
 	put(path.join(dot, "package.json"), `${JSON.stringify({ private: true, type: "module", version: process.env.LH_VERSION ?? "0.0.0" }, null, "\t")}\n`);
 	put(path.join(dot, "claude-settings.json"), claudeSettings(folder, p));
-	for (const agent of AGENTS) put(startScriptPath(folder, agent, p), startScript(agent, folder, p), 0o755);
+	for (const target of START_TARGETS) put(startScriptPath(folder, target, p), startScript(target, folder, p), 0o755);
 	dropOldImages(folder);
 }
 

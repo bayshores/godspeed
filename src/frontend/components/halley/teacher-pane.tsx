@@ -35,6 +35,7 @@ export function TeacherPane() {
 			doing={halley.doing}
 			idleLine={agentStatusLabel(agent, feed.jobs.length + feed.extractions.length)}
 			disconnected={!!agent && !agent.connected}
+			backupAnswering={!!agent?.backupAnswering}
 			following={halley.follow}
 			onFollow={halley.setFollow}
 			offer={halley.offer}
@@ -51,6 +52,7 @@ export function TeacherPaneView({
 	doing,
 	idleLine,
 	disconnected,
+	backupAnswering,
 	following,
 	onFollow,
 	offer,
@@ -65,6 +67,8 @@ export function TeacherPaneView({
 	/** The agent line shown while nothing is being done. */
 	idleLine: string;
 	disconnected: boolean;
+	/** The agent is compacting its context and its backup answers meanwhile. */
+	backupAnswering: boolean;
 	following: boolean;
 	onFollow: (on: boolean) => void;
 	offer: AgentAction | null;
@@ -76,7 +80,17 @@ export function TeacherPaneView({
 		<Pane name={name.toLowerCase()} data-testid="teacher-pane" className="flex shrink-0 flex-col gap-3 px-4 pt-5 pb-4">
 			<div className="flex items-end gap-2.5">
 				<TeacherSprite mood={mood} className="w-10 shrink-0" />
-				<Bubble>{doing ? <Doing doing={doing} /> : disconnected ? <NotConnected /> : <p className="text-ink">{idleLine}</p>}</Bubble>
+				<Bubble>
+					{backupAnswering ? (
+						<p data-testid="teacher-backup" className="text-ink">Catching up on my notes. My backup is answering for a minute.</p>
+					) : doing ? (
+						<Doing doing={doing} />
+					) : disconnected ? (
+						<NotConnected />
+					) : (
+						<p className="text-ink">{idleLine}</p>
+					)}
+				</Bubble>
 			</div>
 			{doing && <Announce name={name} text={doing.text} />}
 			{disconnected && <ReopenAgent />}

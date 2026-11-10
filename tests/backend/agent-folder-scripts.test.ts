@@ -91,6 +91,28 @@ describe("the forget hook", () => {
 	});
 });
 
+describe("the compacting hook", () => {
+	it("tells a running app, prints nothing and lets the compaction go on", async () => {
+		const app = await fakeApp(() => ({}));
+		try {
+			const { child, exited } = run("compacting.mjs", [], app.url);
+			child.stdin.end(JSON.stringify({ session_id: "session-1", hook_event_name: "PreCompact", trigger: "auto" }));
+			assert.deepEqual(await exited, { code: 0, stdout: "" });
+			assert.deepEqual(app.seen.map((s) => s.body), [{ agent: "session-1" }]);
+		} finally {
+			app.close();
+		}
+	});
+
+	it("exits quietly when the app is closed", async () => {
+		const closed = await fakeApp(() => ({}));
+		closed.close();
+		const { child, exited } = run("compacting.mjs", [], closed.url);
+		child.stdin.end(JSON.stringify({ session_id: "session-1" }));
+		assert.deepEqual(await exited, { code: 0, stdout: "" });
+	});
+});
+
 describe("the MCP connector", () => {
 	it("sends the session id with tool calls, and closes a cancelled call's request", async () => {
 		const app = await fakeApp((body) => (body.method === "tools/call" ? undefined : {}));
@@ -158,7 +180,19 @@ describe("the background waiter", () => {
 			assert.deepEqual(meta["io.modelcontextprotocol/clientCapabilities"], {});
 			assert.equal((meta["io.modelcontextprotocol/clientInfo"] as { name: string }).name, "claude-code");
 			assert.equal(meta["godspeed/agent"], "session-1");
+			assert.equal(meta["godspeed/backup"], undefined);
 			assert.deepEqual([headers["mcp-protocol-version"], headers["mcp-method"], headers["mcp-name"]], ["2026-07-28", "tools/call", "wait_for_work"]);
+		} finally {
+			app.close();
+		}
+	});
+
+	it("says it is the backup teacher's with --backup", async () => {
+		const item = { status: "work", workId: "work_5_1", messages: [] };
+		const app = await fakeApp(() => ({ content: [{ type: "text", text: JSON.stringify(item) }] }));
+		try {
+			assert.equal((await run("wait-for-work.mjs", ["--backup"], app.url).exited).code, 0);
+			assert.equal((app.seen[0]!.body.params as { _meta: Record<string, unknown> })._meta["godspeed/backup"], true);
 		} finally {
 			app.close();
 		}
