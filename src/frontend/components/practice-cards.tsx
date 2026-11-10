@@ -71,7 +71,7 @@ export function ProblemCard({ part }: ArtifactPartProps) {
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";
 	return (
-		<div data-testid="problem-card" className="my-1 border bg-card p-4">
+		<div data-testid="problem-card" data-problem-call={part.toolCallId} className="my-1 scroll-mt-4 border bg-card p-4">
 			<div className="mb-1 text-xs font-semibold text-muted-foreground">Problem</div>
 			<div className="lh-prose text-[15px]">
 				<ToolContentResponse>{statement}</ToolContentResponse>

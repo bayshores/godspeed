@@ -447,13 +447,15 @@ export function Chat({
 	const practiceKey = practice ? JSON.stringify(practice) : "";
 	const stablePractice = useMemo(() => practice, [practiceKey]);
 
-	// Click a done step: scroll back to its first answered question.
-	const jumpToAnswer = useCallback((toolCallId: string) => {
-		const el = sessionFindScopeRef.current?.querySelector(answerAnchorSelector(toolCallId));
+	// Scroll the lesson to a card in it.
+	const scrollToCard = useCallback((selector: string) => {
+		const el = sessionFindScopeRef.current?.querySelector(selector);
 		if (!el) return;
 		scrollContextRef.current?.stopScroll();
 		el.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
 	}, []);
+	// Click a done step: scroll back to its first answered question.
+	const jumpToAnswer = useCallback((toolCallId: string) => scrollToCard(answerAnchorSelector(toolCallId)), [scrollToCard]);
 
 	// The demo's error report follows the message box's rules: never past a
 	// waiting question, problem or compaction, and a running turn is steered.
@@ -581,6 +583,9 @@ export function Chat({
 										}}
 										onSubmitThinking={submitThinking}
 										onDiscardProblem={() => setAbortAsk("problem")}
+										onShowProblem={() => {
+											if (activeProblemId) scrollToCard(`[data-problem-call="${activeProblemId}"]`);
+										}}
 										busy={busy}
 										waitingForAgent={waitingForAgent}
 										onStop={sideReply ? undefined : abortInFlightTurn}

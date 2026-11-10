@@ -55,6 +55,7 @@ export function YourTurnPanel({
 	onSavePracticeDraft,
 	onSubmitThinking,
 	onDiscardProblem,
+	onShowProblem,
 	busy,
 	waitingForAgent,
 	onStop,
@@ -82,6 +83,8 @@ export function YourTurnPanel({
 	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** Opens the discard confirm for the active problem. */
 	onDiscardProblem: () => void;
+	/** Scrolls the lesson to the active problem's card. */
+	onShowProblem: () => void;
 	busy: boolean;
 	/** The turn waits for an agent to take it. */
 	waitingForAgent: boolean;
@@ -192,6 +195,7 @@ export function YourTurnPanel({
 				initialDraft={initialPracticeDraft}
 				onSaveDraft={onSavePracticeDraft}
 				onDiscard={onDiscardProblem}
+				onShowProblem={onShowProblem}
 				onStop={onStop}
 				busy={busy}
 				waitingForAgent={waitingForAgent}

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { HeaderChip, PanelBody, PanelHeader, SendButton, StopButton } from "@/frontend/components/lesson/panel-parts";
@@ -10,7 +10,8 @@ import type { ChatAttachment } from "@/shared/core";
 
 /**
  * THE PRACTICE PANEL: an active problem fills
- * the Your-turn panel: the statement (it names its own number) and the
+ * the Your-turn panel: the statement's opening (the whole problem is the
+ * card in the lesson, which "show the whole problem" scrolls to) and the
  * thinking box with one Send (Enter sends, Shift+Enter is a newline).
  * Whether a submission claims an answer is read from the thinking by the
  * agent; one problem may take many submissions, each starting a turn.
@@ -41,6 +42,8 @@ interface PracticeDockProps {
 	onSaveDraft?: (thinking: string) => void;
 	/** Opens the discard confirm. */
 	onDiscard?: () => void;
+	/** Scrolls the lesson to the problem's card, for a statement too long to show here. */
+	onShowProblem?: () => void;
 	/** Stops the running turn (shown while it runs). */
 	onStop?: () => void;
 	/** A homework problem's place in the assignment, under the statement. */
@@ -60,6 +63,7 @@ export function PracticeDock({
 	initialDraft = "",
 	onSaveDraft,
 	onDiscard,
+	onShowProblem,
 	onStop,
 	source,
 	sendLabel = "Send",
@@ -91,6 +95,8 @@ export function PracticeDock({
 
 	// Enter submits from anywhere outside a typing surface.
 	useEnterSubmits(submit);
+	const statementRef = useRef<HTMLDivElement>(null);
+	const statementOverflows = useOverflows(statementRef);
 
 	return (
 		<form
@@ -112,20 +118,32 @@ export function PracticeDock({
 						</HeaderChip>
 					}
 				/>
+				{/* The statement's opening: the whole problem stays in the wide lesson
+				    column, so the work box keeps the panel. A longer one fades out. */}
 				<div
-					data-session-find-root=""
+					ref={statementRef}
 					data-testid="practice-statement"
-					className="mt-3 shrink-0 font-bold text-ink"
+					data-overflow={statementOverflows || undefined}
+					className="lh-edge-fade max-h-36 shrink-0 overflow-hidden py-3 font-bold text-ink"
 					style={{ "--lh-prose-size": "18px", "--lh-prose-leading": `${25 / 18}`, "--lh-ink-body": "var(--foreground)" } as React.CSSProperties}
 				>
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
-				{source && (
-					<p data-testid="practice-source" className="mt-1.5 shrink-0 text-[13px] text-ink-3">
-						{source}
-					</p>
+				{(source || (statementOverflows && onShowProblem)) && (
+					<div className="flex shrink-0 items-center gap-3 text-[13px]">
+						{source && (
+							<p data-testid="practice-source" className="min-w-0 truncate text-ink-3">
+								{source}
+							</p>
+						)}
+						{statementOverflows && onShowProblem && (
+							<button type="button" data-testid="show-problem" onClick={onShowProblem} className="lh-press ml-auto shrink-0 text-ink-2 underline underline-offset-4 hover:text-ink">
+								show the whole problem
+							</button>
+						)}
+					</div>
 				)}
-				<div data-testid="practice-thinking-field" className="mt-5 flex flex-1 flex-col">
+				<div data-testid="practice-thinking-field" className="mt-3 flex min-h-40 flex-1 flex-col">
 					<AttachmentTray draft={attachments} />
 					<MathBox
 						value={thinking}
@@ -154,4 +172,19 @@ export function PracticeDock({
 			</PanelBody>
 		</form>
 	);
+}
+
+/** Whether the element's content is taller than the element, kept current. */
+function useOverflows(ref: React.RefObject<HTMLElement | null>): boolean {
+	const [overflows, setOverflows] = useState(false);
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+		const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+		const ro = new ResizeObserver(measure);
+		ro.observe(el);
+		for (const child of el.children) ro.observe(child);
+		return () => ro.disconnect();
+	}, [ref]);
+	return overflows;
 }

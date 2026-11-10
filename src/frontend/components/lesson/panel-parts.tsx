@@ -8,10 +8,11 @@ import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
  * content column; a writing box carries its own Send.
  */
 
-/** The panel's scrollable content column. */
+/** The panel's scrollable content column; scrolled text fades out inside
+ *  its padding instead of running into the pane's border. */
 export function PanelBody({ children, className }: { children: React.ReactNode; className?: string }) {
 	return (
-		<div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-6 pb-5", className)}>{children}</div>
+		<div className={cn("lh-edge-fade flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-6 pb-5", className)}>{children}</div>
 	);
 }
 

@@ -91,6 +91,7 @@ describe("the practice transcript cards", () => {
 			/>,
 		);
 		assert.match(html, /data-testid="problem-card"/);
+		assert.match(html, /data-problem-call="call_p1"/, "the dock's show the whole problem scrolls to it");
 		assert.match(html, /Problem/);
 		assert.match(html, /Prove the parity claim\./);
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");

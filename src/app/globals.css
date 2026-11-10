@@ -351,6 +351,17 @@ body {
 	background: color-mix(in oklab, var(--lh-tint) 82%, white);
 }
 
+/* A box whose text fades out over its top and bottom 12px, so scrolled
+   or cut-off text never runs hard into an edge. Its padding is at least
+   12px, so nothing fades at rest. */
+.lh-edge-fade {
+	mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+}
+/* Cut off: the foot fades over the text itself, so it reads as "more". */
+.lh-edge-fade[data-overflow] {
+	mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 48px), transparent);
+}
+
 /* The block cursor at the end of the text the teacher is writing. */
 .lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
 .lh-streaming > :is(ul, ol):last-child > li:last-child::after {

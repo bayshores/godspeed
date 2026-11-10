@@ -90,6 +90,7 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			onSavePracticeDraft={() => {}}
 			onSubmitThinking={async () => true}
 			onDiscardProblem={() => {}}
+			onShowProblem={() => {}}
 			busy={false}
 			waitingForAgent={false}
 			onNext={() => {}}
@@ -161,6 +162,7 @@ describe("the Your-turn panel's states", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
+				onShowProblem={() => {}}
 				busy={false}
 				waitingForAgent={false}
 				onNext={() => {}}
@@ -252,6 +254,7 @@ describe("the Your-turn panel's states", () => {
 				onSavePracticeDraft={() => {}}
 				onSubmitThinking={async () => true}
 				onDiscardProblem={() => asked.push("problem")}
+				onShowProblem={() => {}}
 								busy={false}
 								waitingForAgent={false}
 								onNext={() => {}}
