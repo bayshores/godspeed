@@ -1,5 +1,15 @@
 [
 	{
+		"version": "0.5.43",
+		"date": "2026-11-09",
+		"changes": [
+			"Buttons are solid rounded blocks instead of text in brackets.",
+			"The sidebar is easier to scan: class names are bold, a class's pages hang off one line under it, and add class and settings sit quieter in their own group at the bottom.",
+			"On a Mac the window buttons sit in the middle of the top bar.",
+			"The bar under a question no longer covers the panel's border."
+		]
+	},
+	{
 		"version": "0.5.42",
 		"date": "2026-11-09",
 		"changes": [
