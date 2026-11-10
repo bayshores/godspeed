@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.48",
+		"date": "2026-11-10",
+		"changes": [
+			"Long lessons no longer make you wait. godspeed shortens the older part at once, and the teacher's written summary takes its place a few minutes later.",
+			"Open Claude Code also opens a backup teacher. When the main one stops to compact its memory, the backup answers your lesson and Talk messages so you don't wait."
+		]
+	},
+	{
 		"version": "0.5.47",
 		"date": "2026-11-10",
 		"changes": [
