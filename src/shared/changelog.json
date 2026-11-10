@@ -1,5 +1,16 @@
 [
 	{
+		"version": "0.5.46",
+		"date": "2026-11-10",
+		"changes": [
+			"Homework: the whole problem stays in the Your turn panel while you work, so you never scroll up to find it. You work in the message box under the lesson, and the teacher checks each message and marks the problem done when your work is right.",
+			"The panel shows which part of a problem you're on, like q3 (b), and scrolls to it.",
+			"Math like 0<r<n no longer cuts off the rest of the teacher's message.",
+			"The teacher in the sidebar says what it's doing in a speech bubble, with talk and follow side by side.",
+			"Buttons that looked like plain text, like discard problem, skip question, cancel and try again, now look like buttons."
+		]
+	},
+	{
 		"version": "0.5.45",
 		"date": "2026-11-09",
 		"changes": [
