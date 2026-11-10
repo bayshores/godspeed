@@ -1,5 +1,17 @@
 [
 	{
+		"version": "0.5.42",
+		"date": "2026-11-09",
+		"changes": [
+			"One message box in lessons: it sits under the lesson and never moves. If a question or problem is open, what you send is a side question and the question stays open. Talk is hidden while a lesson is open.",
+			"You can ask the teacher to add, move or remove a deadline in the middle of a lesson.",
+			"Homework mode: pick a homework or project's assignment file on its page and hit work on. The teacher lists its problems and opens them one at a time. You do the work, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.",
+			"Homework and projects show how many problems are done, on Home, on their page and beside the lesson. Mark done when you've handed it in.",
+			"The Graph page lays topics out in columns by level, from what you learn first to what builds on it. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from, its answers and a button to practice it.",
+			"The class Overview is tighter, so it fits on one screen."
+		]
+	},
+	{
 		"version": "0.5.41",
 		"date": "2026-11-07",
 		"changes": [
