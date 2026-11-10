@@ -1,7 +1,7 @@
 /**
- * Pure helpers for the topic Graph's panels and map: status colors, score
- * lines, the topic takeaway, the deadline picker's choices and
- * default, search matches. Browser-safe, unit-tested.
+ * Pure helpers for the Graph page's columns and panes: status colors,
+ * score lines, the topic takeaway, levels, a fact's links, the deadline
+ * picker's choices and default, search matches. Browser-safe, unit-tested.
  */
 import {
 	RAMP_COLORS,
@@ -9,6 +9,7 @@ import {
 	type AnswerRef,
 	type DeadlineProgress,
 	type FactProgress,
+	type GraphChain,
 	type TopicLink,
 	type TopicProgress,
 	type TopicStatus,
@@ -24,9 +25,6 @@ export const STATUS_COLOR: Record<TopicStatus, string | null> = {
 	untested: null,
 };
 
-/** The map's "overconfident" orange (the ramp's second step). */
-export const OVERCONFIDENT_COLOR = RAMP_COLORS[1];
-
 /** Answer blocks in the topic panel use the topic ramp's ends. */
 export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	right: RAMP_COLORS[4],
@@ -34,15 +32,8 @@ export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	dontKnow: "var(--color-ans-dontknow)",
 };
 
-/** The hovered topic's answer strip on the map uses the right/wrong tokens. */
-export const STRIP_ANSWER_CLASS: Record<AnswerOutcome, string> = {
-	right: "bg-ans-right",
-	wrong: "bg-ans-wrong",
-	dontKnow: "bg-ans-dontknow",
-};
-
 /** "4/7" — right over answered. */
-export function scoreText(t: Pick<TopicProgress, "right" | "answered">): string {
+function scoreText(t: Pick<TopicProgress, "right" | "answered">): string {
 	return `${t.right}/${t.answered}`;
 }
 
@@ -148,4 +139,37 @@ export function searchMatches(
 		if (f.name.toLowerCase().includes(q) || f.statement.toLowerCase().includes(q)) hits.add(f.topicId);
 	}
 	return hits;
+}
+
+/** The topics by level (a topic's column: the longest chain of topics it
+ *  needs first), each level's topics by name. */
+export function topicLevels<T extends Pick<TopicProgress, "column" | "name">>(topics: readonly T[]): T[][] {
+	const levels: T[][] = [];
+	for (const t of topics) (levels[t.column] ??= []).push(t);
+	return levels.filter((l) => l !== undefined).map((l) => l.sort((a, b) => a.name.localeCompare(b.name)));
+}
+
+/** A level pane's name: the first says where to start, the last that it's advanced. */
+export function levelName(index: number, count: number): string {
+	const name = `level ${index + 1}`;
+	if (count < 2) return name;
+	if (index === 0) return `${name}, start here`;
+	return index === count - 1 ? `${name}, advanced` : name;
+}
+
+/** "How many of these topics are ready": the strong ones. */
+export function readyCount(topics: readonly Pick<TopicProgress, "status">[]): number {
+	return topics.filter((t) => t.status === "strong").length;
+}
+
+/** The facts a fact builds on (the premises of chains concluding it) and
+ *  the ones it leads to (conclusions of chains it is a premise of), each once. */
+export function factLinks(factId: string, chains: readonly Pick<GraphChain, "premises" | "conclusion">[]): { buildsOn: string[]; leadsTo: string[] } {
+	const buildsOn = new Set<string>();
+	const leadsTo = new Set<string>();
+	for (const c of chains) {
+		if (c.conclusion === factId) for (const p of c.premises) if (p !== factId) buildsOn.add(p);
+		if (c.premises.includes(factId) && c.conclusion !== factId) leadsTo.add(c.conclusion);
+	}
+	return { buildsOn: [...buildsOn], leadsTo: [...leadsTo] };
 }

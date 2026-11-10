@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * THE GRAPH PAGE: the class's topics as a map
- * with a right panel — "Where you're at" when nothing is selected, the
- * topic's details when one is. Data: useProgress (GET /api/progress); the
- * chain table reads the raw graph (GET /api/graph) only while it is open.
- * Keyed by class by the route, so a class switch starts clean.
+ * THE GRAPH PAGE: the class's topics as level columns with a right side:
+ * the next deadline on top, under it what to work on next, the picked
+ * topic, or the picked fact. Data: useProgress (GET /api/progress) and the
+ * raw graph (GET /api/graph) for where facts came from, how they link,
+ * and the chain table. Keyed by class by the route, so a class switch
+ * starts clean.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { GraphSnapshot } from "@/shared/core";
 import { classQuery, useClasses } from "@/frontend/components/class-context";
@@ -19,8 +20,7 @@ import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-i
 import { GraphTopBar } from "./graph-top-bar.tsx";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 
-// The map and its panels (with d3-zoom) load in their own chunk once the
-// progress data has arrived.
+// The columns and panes load in their own chunk once the progress data has arrived.
 const GraphBody = dynamic(() => import("./graph-body.tsx").then((m) => m.GraphBody), { ssr: false });
 
 export function GraphScreen() {
@@ -36,7 +36,6 @@ function GraphScreenBody() {
 	const [chainsOpen, setChainsOpen] = useState(false);
 	const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null);
 
-	// The chain table's data, read while it is open.
 	const loadSnapshot = useCallback(() => {
 		fetch(`/api/graph${classQuery(active)}`)
 			.then((res) => {
@@ -44,22 +43,24 @@ function GraphScreenBody() {
 				return res.json() as Promise<GraphSnapshot>;
 			})
 			.then(setSnapshot)
-			// Closed on a failure, so the next click on Chains fetches again.
+			// The page works without it: no fact sources or links, and All facts waits.
 			.catch(() => setChainsOpen(false));
 	}, [active]);
-	useEffect(() => {
-		if (chainsOpen) loadSnapshot();
-	}, [chainsOpen, loadSnapshot]);
+	useEffect(() => loadSnapshot(), [loadSnapshot]);
 
 	// A delete (fact menu or chain table) announces the new revision.
 	useEffect(() => {
 		const onRevision = () => {
 			refresh();
-			if (chainsOpen) loadSnapshot();
+			loadSnapshot();
 		};
 		window.addEventListener("lh:graph-revision", onRevision);
 		return () => window.removeEventListener("lh:graph-revision", onRevision);
-	}, [refresh, chainsOpen, loadSnapshot]);
+	}, [refresh, loadSnapshot]);
+	const sources = useMemo(
+		() => (snapshot ? { chains: snapshot.chains, fileSources: snapshot.fileSources, sessions: snapshot.sessions } : null),
+		[snapshot],
+	);
 
 	const refreshActivity = useActivity().refresh;
 	const notesImport = useNotesImport({ onStart: refreshActivity, onFinish: refresh });
@@ -83,9 +84,12 @@ function GraphScreenBody() {
 					<GraphBody
 						data={data}
 						query={query}
+						sources={sources}
 						studying={study.busy}
 						studyError={study.error}
 						onStudy={(ids) => void study.studyTopics(ids)}
+						onStudyDeadline={(d) => void study.studyDeadline(d)}
+						onPractice={(f) => void study.start({ title: "", picks: [{ id: f.id, name: f.name, statement: f.statement }] })}
 					/>
 				) : progress.error ? (
 					<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="m-auto" />

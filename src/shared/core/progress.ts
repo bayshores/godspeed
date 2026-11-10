@@ -18,6 +18,7 @@
 import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines } from "./contracts.ts";
 import { continueStudyFor, type ContinueStudy, type DeadlineSession } from "./continue-study.ts";
+import { latestHomework, problemsDone, type HomeworkSession } from "./homework.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
 import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
@@ -554,6 +555,10 @@ export interface DeadlineProgress {
 	topics: { id: string; name: string; rate: number | null }[];
 	/** The unfinished Study session its Study button reopens (continue-study.ts). */
 	continueStudy?: ContinueStudy;
+	/** Homework and projects: how many of its problems are done. */
+	problems?: { done: number; total: number };
+	/** The latest homework session on it, which Work on reopens. */
+	continueHomework?: string;
 }
 
 /** The class-wide view (no deadline picked, or none exists). */
@@ -643,6 +648,8 @@ interface ProgressInput {
 	lessons: readonly ProgressLessonInput[];
 	/** The class's Study sessions started from a deadline. */
 	deadlineSessions?: readonly DeadlineSession[];
+	/** The class's homework sessions. */
+	homeworkSessions?: readonly HomeworkSession[];
 	/** A topic-grouping run is going right now. */
 	grouping?: boolean;
 }
@@ -762,6 +769,8 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 		const covered = grouped.filter((t) => t.members.some((id) => sources.has(bornIn.get(id) ?? "")));
 		const weakest = [...covered].sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0) || a.name.localeCompare(b.name));
 		const next = continueStudyFor(d.id, input.deadlineSessions ?? []);
+		const done = problemsDone(d.problems);
+		const homework = latestHomework(d.id, input.homeworkSessions ?? []);
 		return {
 			id: d.id,
 			kind: d.kind,
@@ -777,6 +786,8 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 			ready: covered.length === 0 ? null : covered.reduce((sum, t) => sum + (t.rate ?? 0), 0) / covered.length,
 			topics: weakest.map((t) => ({ id: t.id, name: t.name, rate: t.rate })),
 			...(next ? { continueStudy: next } : {}),
+			...(done ? { problems: done } : {}),
+			...(homework ? { continueHomework: homework } : {}),
 		};
 	});
 

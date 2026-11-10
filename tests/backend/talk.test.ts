@@ -31,7 +31,10 @@ const { chatStore } = await import("../../src/backend/store/chats.ts");
 const { openTalk, clearTalk } = await import("../../src/backend/server/talk.ts");
 const { classActions } = await import("../../src/backend/server/class-actions.ts");
 const { clearAgentActions, recentAgentActions } = await import("../../src/backend/server/agent-actions.ts");
-const { talkTools } = await import("../../src/backend/agent/tools/talk.ts");
+const { lessonClassChangeTools, talkTools } = await import("../../src/backend/agent/tools/talk.ts");
+const { createTeacherTools } = await import("../../src/backend/agent/tools.ts");
+const { practiceTools } = await import("../../src/backend/agent/tools/practice.ts");
+const { jobStore } = await import("../../src/backend/store/jobs.ts");
 const { actionFor, appRequestText, speakerOf, startsTurn, talkRows } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { composeInstructions } = await import("../../src/backend/agent/teacher-agent.ts");
 const { buildCompactionPrompt } = await import("../../src/shared/core/compaction.ts");
@@ -130,6 +133,19 @@ describe("the Talk rows", () => {
 		const action: AgentAction = { id: "x", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Creating CSE 21", classId: "c", target: null, page: "/class" };
 		assert.equal(actionFor({ label: "Creating CSE 21", page: "/class" }, [action]), action);
 		assert.equal(actionFor({ label: "Creating CSE 21", page: "/class" }, []), null);
+	});
+});
+
+describe("class changes in a lesson", () => {
+	const actions = () => classActions("Claude Code", sendOk, { openStarted: true });
+	it("a lesson takes only the deadline changes and the class list", () => {
+		assert.deepEqual(Object.keys(lessonClassChangeTools(actions())).sort(), ["add_class_deadline", "list_classes", "remove_class_deadline", "update_class_deadline"]);
+	});
+	it("the teacher's and practice's tools include them when given the class actions", () => {
+		const teacher = createTeacherTools({ chatId: "c1", chatStore, jobStore, spawn: () => {}, classActions: actions() });
+		assert.ok(teacher.add_class_deadline && teacher.list_classes);
+		assert.equal(createTeacherTools({ chatId: "c1", chatStore, jobStore, spawn: () => {} }).add_class_deadline, undefined);
+		assert.ok(practiceTools({ chatId: "c1", chatStore, classActions: actions() }).add_class_deadline);
 	});
 });
 

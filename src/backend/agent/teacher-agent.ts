@@ -18,6 +18,7 @@ import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
  *  graph the problem targets validate against. */
 type StudyToolContext = TeacherToolContext & Pick<PracticeToolContext, "graphNodes">;
 import { talkTools } from "./tools/talk.ts";
+import { homeworkTools, type HomeworkToolContext } from "./tools/homework.ts";
 import type { ClassActions } from "../../shared/core/class-tools.ts";
 import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../../shared/core/question-core.ts";
@@ -56,7 +57,7 @@ import { toLlmMessages, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL } from "..
 
 /** Which agent's prompt directory to compose. Practice composes its own
  *  directory plus a curated shared set (see prompt-segments.ts). */
-export type AgentKind = "prober" | "teacher" | "practice" | "study" | "talk";
+export type AgentKind = "prober" | "teacher" | "practice" | "study" | "homework" | "talk";
 
 /** The switchable tools each agent's factory carries (tools.ts,
  *  tools/practice.ts): demos and figures are teacher-only. */
@@ -65,6 +66,7 @@ const AGENT_SWITCHES: Record<AgentKind, readonly ToggleableTool[]> = {
 	teacher: TOGGLEABLE_TOOLS,
 	practice: ["research", "pdf"],
 	study: TOGGLEABLE_TOOLS,
+	homework: ["research", "pdf"],
 	talk: [],
 };
 
@@ -136,7 +138,7 @@ function makeQuestionStopper(kind: AgentKind) {
 			context.message.content
 				.filter((c) => c.type === "toolCall" && c.name !== undefined && (
 					isQuestionTool(c.name) ||
-					((kind === "practice" || kind === "study") && c.name === PRACTICE_PROBLEM_TOOL)
+					((kind === "practice" || kind === "study" || kind === "homework") && c.name === PRACTICE_PROBLEM_TOOL)
 				))
 				.map((c) => c.id!),
 		);
@@ -286,6 +288,15 @@ export function createPracticeAgent(ctx: PracticeToolContext, opts: AgentBuildOp
  */
 export function createStudyAgent(ctx: StudyToolContext, opts: AgentBuildOptions = {}) {
 	return baseAgentOptions("study", opts, Object.values(opts.tools ?? createStudyTools(ctx, opts.toolToggles)));
+}
+
+/**
+ * HOMEWORK: one deadline's problems, one at a time, hints only. Runs on
+ * post_problems, problem and conclude plus practice's side tools
+ * (tools/homework.ts). A clean problem opening ends the run, as in practice.
+ */
+export function createHomeworkAgent(ctx: HomeworkToolContext, opts: AgentBuildOptions = {}) {
+	return baseAgentOptions("homework", opts, Object.values(opts.tools ?? homeworkTools(ctx, opts.toolToggles)));
 }
 
 /**

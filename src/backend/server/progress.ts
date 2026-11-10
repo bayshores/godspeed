@@ -14,6 +14,7 @@ import type { GraphContextPick } from "../../shared/core/native-messages.ts";
 import { localDay } from "../../shared/core/today-note.ts";
 import { planPositionLh } from "../../shared/core/plan-step-bar.ts";
 import type { DeadlineSession } from "../../shared/core/continue-study.ts";
+import type { HomeworkSession } from "../../shared/core/homework.ts";
 import { sourceIdFor } from "./classes.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { topicGroupingRunning } from "./topics.ts";
@@ -98,8 +99,10 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 	for (const id of readoutCache.keys()) if (!known.has(id)) readoutCache.delete(id);
 	const lessons = [];
 	const deadlineSessions: DeadlineSession[] = [];
+	const homeworkSessions: HomeworkSession[] = [];
 	for (const c of chats) {
 		if ((c.classId ?? null) !== scope) continue;
+		if (c.kind === "homework" && c.deadlineId) homeworkSessions.push({ chatId: c.id, deadlineId: c.deadlineId, createdAt: c.createdAt });
 		const readout = lessonReadout(c.id);
 		if (!readout) continue;
 		lessons.push({ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt, answers: readout.answers });
@@ -115,6 +118,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 		deadlines: record?.deadlines ?? [],
 		lessons,
 		deadlineSessions,
+		homeworkSessions,
 		grouping: topicGroupingRunning(scope),
 	});
 }

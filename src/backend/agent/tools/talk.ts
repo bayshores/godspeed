@@ -70,6 +70,7 @@ const SCHEMAS: Record<ClassToolName, TSchema> = {
 				file_ids: Type.Optional(Type.Array(Type.String(), { description: CLASS_ARG_TEXT.coveredFiles })),
 				left_out_ids: Type.Optional(Type.Array(Type.String(), { description: CLASS_ARG_TEXT.leftOutFiles })),
 				source: Type.Optional(Type.String({ description: CLASS_ARG_TEXT.source })),
+				assignment_file_id: Type.Optional(Type.String({ description: CLASS_ARG_TEXT.assignmentFile })),
 			}),
 			{ minItems: 1 },
 		),
@@ -84,6 +85,7 @@ const SCHEMAS: Record<ClassToolName, TSchema> = {
 		file_ids: Type.Optional(Type.Array(Type.String(), { description: CLASS_ARG_TEXT.coveredFiles })),
 		left_out_ids: Type.Optional(Type.Array(Type.String(), { description: CLASS_ARG_TEXT.leftOutFiles })),
 		source: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: CLASS_ARG_TEXT.source })),
+		assignment_file_id: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: CLASS_ARG_TEXT.assignmentFile })),
 		done: Type.Optional(Type.Boolean()),
 	}),
 	remove_class_deadline: Type.Object({ class_id: classId, deadline_id: Type.String() }),
@@ -101,9 +103,18 @@ function toResult(outcome: ToolOutcome) {
 	return { text: typeof outcome.value === "string" ? outcome.value : JSON.stringify(outcome.value), details: { changes: outcome.changes } };
 }
 
-export function talkTools(actions: ClassActions): Record<string, AgentTool<any>> {
+/** What a lesson adds to its own class tools: the deadline changes a
+ *  learner asks for mid-lesson ("add HW 4, due Friday"). Each tool's
+ *  definition costs the agent tokens, so the rest stays in Talk. */
+const LESSON_CHANGES: readonly ClassToolName[] = ["list_classes", "add_class_deadline", "update_class_deadline", "remove_class_deadline"];
+
+export function lessonClassChangeTools(actions: ClassActions): Record<string, AgentTool<any>> {
+	return talkTools(actions, LESSON_CHANGES);
+}
+
+export function talkTools(actions: ClassActions, names: readonly ClassToolName[] = Object.keys(SCHEMAS) as ClassToolName[]): Record<string, AgentTool<any>> {
 	const tools: Record<string, AgentTool<any>> = {};
-	for (const name of Object.keys(SCHEMAS) as ClassToolName[]) {
+	for (const name of names) {
 		const parameters = SCHEMAS[name];
 		const run = actions[name] as (args: unknown) => ToolOutcome | Promise<ToolOutcome>;
 		tools[name] = {

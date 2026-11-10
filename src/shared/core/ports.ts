@@ -26,6 +26,7 @@ import type {
 	NotesSource,
 	ClassDeadline,
 	DeadlineKind,
+	HomeworkProblem,
 	ClassFile,
 	ClassIcon,
 	ClassNote,
@@ -165,9 +166,11 @@ export interface DeadlineInit {
 	fileIds?: string[];
 	leftOutIds?: string[];
 	source?: string;
+	assignmentFileId?: string;
 }
 
-/** A deadline change. `time: null` and `source: null` clear them. */
+/** A deadline change. `time: null`, `source: null` and
+ *  `assignmentFileId: null` clear them; `problems` replaces the list. */
 export interface DeadlinePatch {
 	kind?: DeadlineKind;
 	name?: string;
@@ -176,6 +179,8 @@ export interface DeadlinePatch {
 	fileIds?: string[];
 	leftOutIds?: string[];
 	source?: string | null;
+	assignmentFileId?: string | null;
+	problems?: HomeworkProblem[];
 	done?: boolean;
 }
 

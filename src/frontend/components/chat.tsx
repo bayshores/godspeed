@@ -24,13 +24,17 @@ import {
 	dismissedAnswer,
 	findPendingToolCall,
 	firstPhase,
+	homeworkProblems,
 	isSideTurn,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
+	problemLabel,
+	problemSource,
 	questionNeedsReveal,
 	toolQuestionKind,
 	type ChatAttachment,
+	type HomeworkView,
 	type LessonKind,
 	type LhMessage,
 	type PlanTree,
@@ -46,8 +50,10 @@ import { practiceProgress } from "@/frontend/components/lesson/practice-progress
 import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
+import { ProblemsPane } from "@/frontend/components/lesson/problems-pane";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
 import { YourTurnPanel } from "@/frontend/components/lesson/your-turn-panel";
+import { LessonBox } from "@/frontend/components/lesson/lesson-box";
 import { StepsPane } from "@/frontend/components/lesson/steps-pane";
 import { Pane } from "@/frontend/components/ui/pane";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -61,9 +67,9 @@ import { sessionAbout } from "@/frontend/components/cheat-sheet/dock-model";
 const PlanPopup = dynamic(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
 
 /**
- * THE LESSON: the reading pane on the left, the right column (steps
- * pane, Your-turn panel, side question) on the right (below the text in
- * narrow windows). This component owns the lesson's state and wiring; the
+ * THE LESSON: the reading pane with the one message box under it on the
+ * left, the right column (steps pane, Your-turn panel) on the right (below
+ * the text in narrow windows). This component owns the lesson's state and wiring; the
  * pieces live in src/frontend/components/lesson/.
  */
 export function Chat({
@@ -78,6 +84,7 @@ export function Chat({
 	initialTree,
 	classId,
 	deadlineId,
+	homework,
 }: {
 	chatId: string;
 	title: string;
@@ -86,6 +93,8 @@ export function Chat({
 	classId?: string;
 	deadlineId?: string;
 	initialMessages: LhMessage[];
+	/** A homework lesson's deadline: its problems fill the steps pane. */
+	homework?: HomeworkView;
 	/** Memory-only settlement notice supplied on reopening. */
 	initialError?: string;
 	/** Practice lessons show their problems instead of a plan; study
@@ -344,8 +353,8 @@ export function Chat({
 	// owns the panel; compaction gates sends. Under a waiting question or
 	// problem the box asks a side question, never while the teacher replies.
 	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: activeProblem !== null, compacting });
-	const sideOpen = pending !== null || activeProblem !== null;
-	const sideReply = busy && sideOpen && isSideTurn(nativeMessages);
+	const sideOpen = pending !== null ? "question" : activeProblem !== null ? "problem" : null;
+	const sideReply = busy && sideOpen !== null && isSideTurn(nativeMessages);
 	const canSend = sideOpen
 		? (text.trim().length > 0 || hasFiles) && !busy && !compacting
 		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
@@ -388,7 +397,7 @@ export function Chat({
 		const t = textRef.current.trim();
 		const files = attachments.files.map((f) => f.attachment);
 		// A steer of the running turn is text only.
-		if (busy && !sideOpen) {
+		if (busy && sideOpen === null) {
 			if (!t || files.length > 0) return;
 			editText("");
 			void steer(t).then((sent) => {
@@ -422,7 +431,12 @@ export function Chat({
 
 	// ── the top bar's data ──
 	const planTree = useMemo(() => latestTree(messages) ?? initialTree ?? null, [messages, initialTree]);
-	const freshBar = useMemo(() => (kind === "practice" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
+	const freshBar = useMemo(() => (kind === "practice" || kind === "homework" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
+	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
+	const freshProblems = useMemo(() => (kind === "homework" ? homeworkProblems(homework?.problems ?? [], messages) : null), [kind, homework, messages]);
+	const problemsKey = freshProblems ? JSON.stringify(freshProblems) : "";
+	const problems = useMemo(() => freshProblems, [problemsKey]);
+	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const barKey = freshBar ? JSON.stringify(freshBar) : "";
 	const stepBar = useMemo(() => freshBar, [barKey]);
@@ -494,10 +508,11 @@ export function Chat({
 									rename={rename}
 									practice={stablePractice}
 									sheet={classId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
+									file={homework?.assignment ?? undefined}
 								/>
 								<SessionFind scopeRef={sessionFindScopeRef} scrollContextRef={scrollContextRef} />
 								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col gap-4 px-5 pt-6 pb-5 @min-[760px]/lesson:flex-row">
-									<Pane className="flex min-h-0 min-w-0 flex-1">
+									<Pane className="flex min-h-0 min-w-0 flex-1 flex-col">
 									<ReadingPane
 										messages={messages}
 										phases={phases}
@@ -513,11 +528,42 @@ export function Chat({
 										onOpenPlan={openPlan}
 										scrollContextRef={scrollContextRef}
 									/>
+									<LessonBox
+										busy={busy}
+										value={text}
+										onChange={editText}
+										onSend={onSend}
+										onStop={abortInFlightTurn}
+										canSend={canSend}
+										showStop={sideOpen === null || sideReply || pending !== null}
+										sideOpen={sideOpen}
+										nextReady={nextReady}
+										onNext={sendNext}
+										queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
+										attachments={attachments}
+										notice={
+											stuck ? (
+												<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
+													Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
+													<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
+														{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
+													</button>
+												</p>
+											) : undefined
+										}
+									/>
 									</Pane>
 									<YourTurnPanel
 										// Remounts once the saved drafts are read, so the forms start from them.
 										key={draftsLoaded ? "drafts" : "loading"}
-										steps={kind !== "practice" && stepBar && stepBar.steps.length > 0 ? <StepsPane bar={stepBar} onJump={jumpToAnswer} onOpenPlan={openPlan} /> : null}
+										steps={
+											problems ? (
+												<ProblemsPane name={homework?.name ?? title} problems={problems.problems} open={problems.open} />
+											) : kind !== "practice" && stepBar && stepBar.steps.length > 0 ? (
+												<StepsPane bar={stepBar} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+											) : null
+										}
+										homeworkProblem={openProblem && { label: problemLabel(openProblem.number), source: problemSource(homework?.assignment ?? null, openProblem.page) }}
 										pending={pending}
 										requiresReveal={requiresReveal}
 										initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
@@ -535,32 +581,15 @@ export function Chat({
 										}}
 										onSubmitThinking={submitThinking}
 										onDiscardProblem={() => setAbortAsk("problem")}
-										sideReply={sideReply}
+										busy={busy}
+										waitingForAgent={waitingForAgent}
+										onStop={sideReply ? undefined : abortInFlightTurn}
+										next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
+										onNext={sendNext}
 										compacting={compacting}
-										composer={{
-											busy,
-											value: text,
-											onChange: editText,
-											onSend,
-											onStop: abortInFlightTurn,
-											canSend,
-											next: nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined,
-											onNext: sendNext,
-											queuedSteers: visibleQueuedSteers(steerQueue, nativeMessages),
-											attachments,
-											waitingForAgent,
-											notice:
-												stuck ? (
-													<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
-														Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
-														<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
-															{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
-														</button>
-													</p>
-												) : undefined,
-										}}
 										stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
 									/>
+
 
 									{/* The session-scoped focuses: absolute over the lesson area, below
 									    the top bar; each fades out through usePresence. */}

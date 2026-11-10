@@ -251,6 +251,14 @@ describe("Coming up", () => {
 		assert.ok(!section(comingUp(), "coming-up-row-mid", "</li>").includes("coming-up-ready"));
 	});
 
+	it("homework with problems shows a done bar and 2/7 instead of the ready bar", () => {
+		const progress = new Map([["hw5", { ...progressFor("hw5", { files: [{ id: "f4", name: "Lecture 4.pdf" }], ready: 0.58 }), problems: { done: 2, total: 7 } }]]);
+		const row = section(renderToStaticMarkup(<ComingUp deadlines={OPEN.slice(2)} progress={progress} leaving={new Set()} fixedNow={NOW} />), "coming-up-row-hw5", "</li>");
+		assert.match(row, /aria-label="2 of 7 problems done"/);
+		assert.match(row, /2\/7/);
+		assert.ok(!row.includes("coming-up-ready"));
+	});
+
 	it("the class shows only when more than one class has deadlines", () => {
 		assert.ok(comingUp().includes('data-testid="coming-up-class"'));
 		assert.ok(!comingUp([OPEN[3]!, OPEN[4]!]).includes('data-testid="coming-up-class"'));

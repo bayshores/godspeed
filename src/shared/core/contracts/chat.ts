@@ -13,17 +13,18 @@ import type { EmissionStats } from "./graph.ts";
  *  the practice tools, per topic (core/study.ts). "teach" (prober then
  *  teacher; ABSENT on old records, absence reads as teach) and "practice"
  *  (the practice agent, its two tools, no extraction) are older sessions
- *  that keep working as they were. "talk" is the one Talk chat in the
- *  teacher's panel (TALK_CHAT_ID), never a lesson. */
-export type ChatKind = "teach" | "practice" | "study" | "talk";
+ *  that keep working as they were. "homework" works on one deadline's
+ *  problems with hints only (core/homework.ts). "talk" is the one Talk
+ *  chat in the teacher's panel (TALK_CHAT_ID), never a lesson. */
+export type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
 
 /** A lesson's kind: every kind but Talk. */
 export type LessonKind = Exclude<ChatKind, "talk">;
 
 /** Whether a session's teaching is saved to the class graph: teach and
- *  study lessons are, practice and Talk are not. */
+ *  study lessons are, practice, homework and Talk are not. */
 export function extractsFacts(kind: ChatKind | undefined): boolean {
-	return kind !== "practice" && kind !== "talk";
+	return kind === undefined || kind === "teach" || kind === "study";
 }
 
 /** Every lesson id starts with this (store/chats.ts makes them). The

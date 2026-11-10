@@ -1,5 +1,5 @@
 import { type GraphContextPick, parseClassScope } from "@/shared/core";
-import { compactionInFlight, createLesson, isTurnRunning, listChats, startClassScanner } from "@/backend/server";
+import { compactionInFlight, createHomework, createLesson, isTurnRunning, listChats, startClassScanner } from "@/backend/server";
 import type { ChatListItem } from "@/shared/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
@@ -28,13 +28,20 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; classId?: unknown; topicIds?: unknown; deadlineId?: unknown };
+	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; classId?: unknown; topicIds?: unknown; deadlineId?: unknown; homework?: unknown };
 	const title = typeof body.title === "string" ? body.title : "";
 	// The lesson's class (absent/"none" = No class).
 	const classId = parseClassScope(typeof body.classId === "string" ? body.classId : undefined);
 	if (classId === undefined) return Response.json({ error: "bad classId" }, { status: 400 });
-	// Every new lesson is a study session (src/backend/server/lessons.ts). A start
+	// A new lesson is a study session (src/backend/server/lessons.ts), or with
+	// homework: true a homework session on the deadline (homework.ts). A start
 	// on topics or a deadline gets its topics and title from the server.
+	if (body.homework === true) {
+		if (typeof classId !== "string" || typeof body.deadlineId !== "string") return Response.json({ error: "homework needs a classId and a deadlineId" }, { status: 400 });
+		const homework = createHomework(classId, body.deadlineId);
+		if (!homework.ok) return Response.json({ error: homework.error, code: homework.code }, { status: homework.status });
+		return Response.json({ id: homework.chat.id, title: homework.title });
+	}
 	const created =
 		typeof body.deadlineId === "string"
 			? createLesson({ classId, deadlineId: body.deadlineId })

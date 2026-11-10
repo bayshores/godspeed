@@ -38,14 +38,15 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 - **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor.
 - **Classes.** Each class has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
-- **Home and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's due next with a countdown, everything else coming up with how ready you are, a grid of every fact in each class colored by how often you get it right, and what you and your agent did lately.
+- **Home and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's due next with a countdown, everything else coming up with how ready you are (or how many problems you've done), a grid of every fact in each class colored by how often you get it right, and what you and your agent did lately.
 
 ![Home: the deadline due next with its countdown, the rest coming up with how ready you are, a fact grid for each class and the activity log](docs/assets/home.png)
 
-- **Knowledge graph.** A topic map. Your agent groups facts into topics, colors each by how often you get it right, and draws arrows for "learn this first". Pick a deadline to see the days left and what to work on next.
+- **Knowledge graph.** Your agent groups facts into topics, and the Graph page lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
 
 ![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the next quiz's days left and what to work on next](docs/assets/graph.png)
 
+- **Homework.** Attach the assignment file to a homework or project and hit work on. The teacher lists its problems and opens them one at a time. You do the work, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
 - **Overview.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
 ![A class Overview: readiness for each deadline, how lessons went, and a confidence check](docs/assets/overview.png)

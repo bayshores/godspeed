@@ -140,10 +140,31 @@ export interface ClassDeadline {
 	leftOutIds?: string[];
 	/** Where the agent found what it covers ("2026-11-04 Midterm (practice exam).pdf"). */
 	source?: string;
+	/** The assignment itself (homework, project): the class file it is in. */
+	assignmentFileId?: string;
+	/** The assignment's problems, as the agent read them from its file. */
+	problems?: HomeworkProblem[];
 	done: boolean;
 	/** ISO time it was ticked done. */
 	doneAt?: string;
 }
+
+/** One problem of an assignment. The learner works on it in a homework
+ *  session; it is done once the teacher marks the learner's work right. */
+export interface HomeworkProblem {
+	/** As the assignment numbers it ("Q1", "2b"); unique in its deadline. */
+	number: string;
+	/** A few words: "Largest step that converges". */
+	title: string;
+	/** The full problem text (markdown + LaTeX). */
+	text: string;
+	/** The page of the assignment file it is on. */
+	page?: number;
+	done: boolean;
+}
+
+/** At most this many problems in one assignment. */
+export const MAX_HOMEWORK_PROBLEMS = 60;
 
 export type SignatureKind = "math" | "code" | "text";
 
@@ -248,14 +269,15 @@ export interface ClassRecord {
  *  `exams` read as deadlines of kind "exam").
  *  v4: adds `signature` and `note`.
  *  v5: adds `rules`.
- *  v6: adds `removedFiles`. */
-export const CURRENT_CLASS_VERSION = 6;
+ *  v6: adds `removedFiles`.
+ *  v7: deadlines add `assignmentFileId` and `problems`. */
+export const CURRENT_CLASS_VERSION = 7;
 
 /** Why a deadline write was refused (the store's validation; the server
  *  maps it to a 400 / 404 with this message). */
 export class ClassDeadlineError extends Error {
 	constructor(
-		public readonly code: "bad_name" | "bad_kind" | "bad_date" | "bad_time" | "bad_source" | "unknown_file" | "deadline_not_found",
+		public readonly code: "bad_name" | "bad_kind" | "bad_date" | "bad_time" | "bad_source" | "bad_problems" | "unknown_file" | "deadline_not_found",
 		message: string,
 	) {
 		super(message);

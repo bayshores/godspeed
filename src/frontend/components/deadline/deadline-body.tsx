@@ -47,6 +47,8 @@ interface DeadlineBodyProps {
 	onLeaveOut: (fileIds: string[]) => void;
 	/** Opens the cheat sheet studio. */
 	onCheatSheet: () => void;
+	/** A homework or project's problems (homework-card.tsx). */
+	homework?: React.ReactNode;
 }
 
 const LEGEND: { key: keyof DeadlineProgress["counts"]; label: string; rate: number | null }[] = [
@@ -97,6 +99,8 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 			</header>
 
 			{d.topics.length > 0 && <TopicStrip deadline={d} tallies={tallies} />}
+
+			{props.homework && <div className="px-[52px]">{props.homework}</div>}
 
 			<div className="flex flex-col items-start gap-4 px-[52px] @4xl:flex-row">
 				<div className="w-full min-w-0 flex-1">

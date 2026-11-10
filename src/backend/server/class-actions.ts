@@ -203,7 +203,7 @@ export function classActions(caller: string | undefined, send: SendFirstMessage,
 			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const added: ClassDeadline[] = [];
 			const refused: { name: string; error: string }[] = [];
-			for (const { kind, name, date, time, file_ids, left_out_ids, source } of deadlines) {
+			for (const { kind, name, date, time, file_ids, left_out_ids, source, assignment_file_id } of deadlines) {
 				const outcome = addClassDeadline(class_id, {
 					kind,
 					name,
@@ -212,6 +212,7 @@ export function classActions(caller: string | undefined, send: SendFirstMessage,
 					...(file_ids ? { fileIds: file_ids } : {}),
 					...(left_out_ids ? { leftOutIds: left_out_ids } : {}),
 					...(source !== undefined ? { source } : {}),
+					...(assignment_file_id !== undefined ? { assignmentFileId: assignment_file_id } : {}),
 				});
 				if (!outcome.ok) refused.push({ name, error: outcome.error });
 				else added.push(outcome.value);
@@ -223,7 +224,7 @@ export function classActions(caller: string | undefined, send: SendFirstMessage,
 			);
 		},
 
-		update_class_deadline({ class_id, deadline_id, kind, name, date, time, file_ids, left_out_ids, source, done: isDone }) {
+		update_class_deadline({ class_id, deadline_id, kind, name, date, time, file_ids, left_out_ids, source, assignment_file_id, done: isDone }) {
 			if (!stores.classStore.getClass(class_id)) return noClass(class_id);
 			const outcome = updateClassDeadline(class_id, deadline_id, {
 				...(kind !== undefined ? { kind } : {}),
@@ -233,10 +234,11 @@ export function classActions(caller: string | undefined, send: SendFirstMessage,
 				...(file_ids !== undefined ? { fileIds: file_ids } : {}),
 				...(left_out_ids !== undefined ? { leftOutIds: left_out_ids } : {}),
 				...(source !== undefined ? { source } : {}),
+				...(assignment_file_id !== undefined ? { assignmentFileId: assignment_file_id } : {}),
 				...(isDone !== undefined ? { done: isDone } : {}),
 			});
 			if (!outcome.ok) return outcome;
-			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && left_out_ids === undefined && source === undefined && isDone === undefined;
+			const moved = (date !== undefined || time !== undefined) && kind === undefined && name === undefined && file_ids === undefined && left_out_ids === undefined && source === undefined && assignment_file_id === undefined && isDone === undefined;
 			const label =
 				isDone === true
 					? `Marking ${outcome.value.name} done`

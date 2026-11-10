@@ -13,7 +13,7 @@ const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
-	| { deadlineId: string };
+	| { deadlineId: string; homework?: true };
 
 /**
  * Every Study start (the start page, its suggestions, a deadline, the
@@ -83,10 +83,21 @@ export function useLessonStart() {
 		[post, router, active],
 	);
 
+	/** Work on a homework or project: reopens its latest homework session,
+	 *  else starts one on its next problem not done. */
+	const workOnHomework = useCallback(
+		(deadline: Pick<DeadlineProgress, "id" | "continueHomework">, classId?: string) => {
+			if (deadline.continueHomework) router.push(`/chat/${deadline.continueHomework}`);
+			else return post({ deadlineId: deadline.id, homework: true }, [], classId ?? active);
+		},
+		[post, router, active],
+	);
+
 	return {
 		start,
 		studyTopics,
 		studyDeadline,
+		workOnHomework,
 		busy,
 		error,
 	};

@@ -95,6 +95,7 @@ export interface LhMarkerMessage {
 		| "graph-context"
 		| "class-context"
 		| "study-context"
+		| "homework-context"
 		| "today-context"
 		| "probe-handoff"
 		| "subagent-steer"
@@ -420,12 +421,14 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 }
 
 /** A study session's topics with their modes (core/study.ts
- *  studyContextText), for the model only: the step bar shows the topics. */
-export function newStudyContextMessage(text: string): LhMarkerMessage {
+ *  studyContextText), or a homework session's deadline and problems
+ *  (core/homework.ts homeworkContextText), for the model only: the
+ *  steps pane shows the topics or problems. */
+export function newStudyContextMessage(text: string, customType: "study-context" | "homework-context" = "study-context"): LhMarkerMessage {
 	return {
 		id: newMessageId(),
 		role: "custom",
-		customType: "study-context",
+		customType,
 		content: text,
 		display: false,
 		details: null,

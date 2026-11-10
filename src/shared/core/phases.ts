@@ -125,10 +125,10 @@ export function teachStepIndex(
 	return -1;
 }
 
-/** Where a session's phase fold starts: a study session has no probe and
- *  no plan to write, so it teaches from its first message. */
+/** Where a session's phase fold starts: study and homework sessions have
+ *  no probe and no plan to write, so they teach from their first message. */
 export function firstPhase(kind: string | undefined): Phase3 {
-	return kind === "study" ? "teach" : "probe";
+	return kind === "study" || kind === "homework" ? "teach" : "probe";
 }
 
 /** The phase at every message index, in one forward fold (the transcript

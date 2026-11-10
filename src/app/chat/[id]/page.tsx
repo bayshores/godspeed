@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Chat } from "@/frontend/components/chat";
-import { compactionInFlight, getChat, isTurnRunning, turnFailure } from "@/backend/server";
+import { compactionInFlight, getChat, homeworkView, isTurnRunning, turnFailure } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,7 @@ export default async function ChatPage({
 	const chat = chatFor(id);
 	// The Talk chat lives in the teacher's panel, never on a lesson page.
 	if (!chat || chat.kind === "talk") notFound();
+	const homework = chat.kind === "homework" && chat.classId && chat.deadlineId ? homeworkView(chat.classId, chat.deadlineId) : null;
 	return (
 		<Chat
 			key={chat.id}
@@ -35,6 +36,7 @@ export default async function ChatPage({
 			initialTree={chat.tree}
 			classId={chat.classId}
 			deadlineId={chat.deadlineId}
+			homework={homework ?? undefined}
 			// The record IS native agent history — the client view is
 				// derived app-side (core/view.ts projectView; GET serves the same
 				// native messages).

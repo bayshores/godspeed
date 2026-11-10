@@ -33,7 +33,7 @@ export function MathBox({
 	onFocus?: () => void;
 	placeholder: string;
 	ariaLabel: string;
-	/** One line that grows (the side question row), its edge drawn by the row. */
+	/** One line that grows (the lesson box), its edge drawn by the row. */
 	compact?: boolean;
 	/** Focus once it loads. */
 	autoFocus?: boolean;

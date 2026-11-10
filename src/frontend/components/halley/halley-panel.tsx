@@ -67,6 +67,7 @@ export function HalleyPanel({
 	ask,
 	onAsked,
 	jobs,
+	inLesson = false,
 }: {
 	name: string;
 	agent: AgentStatus | null;
@@ -80,8 +81,11 @@ export function HalleyPanel({
 	onAsked?: (id: number) => void;
 	/** The background jobs block (tests pass their own). */
 	jobs?: React.ReactNode;
+	/** A lesson is open: its own box talks to the teacher, so Talk hides. */
+	inLesson?: boolean;
 }) {
-	const [tab, setTab] = useState<Tab>("talk");
+	const [picked, setTab] = useState<Tab>("talk");
+	const tab: Tab = inLesson ? "activity" : picked;
 	const { feed } = useActivity();
 	const tabsId = useId();
 	const [width, setWidth] = useState(DOCK_WIDTH);
@@ -135,39 +139,41 @@ export function HalleyPanel({
 				</button>
 			</div>
 
-			<div
-				role="tablist"
-				aria-label={name}
-				onKeyDown={tabListKeys(TABS.indexOf(tab), TABS.length, (i) => setTab(TABS[i]!))}
-				className="flex shrink-0 gap-6 border-b border-tone-2 px-6"
-			>
-				{TABS.map((t) => (
-					<button
-						key={t}
-						type="button"
-						role="tab"
-						id={`${tabsId}-${t}`}
-						aria-selected={tab === t}
-						aria-controls={`${tabsId}-panel`}
-						tabIndex={tab === t ? 0 : -1}
-						data-testid={`halley-tab-${t}`}
-						onClick={() => setTab(t)}
-						className={cn(
-							"lh-press -mb-px border-b-2 py-2.5 text-[13.5px] font-bold",
-							tab === t ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink-2",
-						)}
-					>
-						{t === "talk" ? "Talk" : "Activity"}
-					</button>
-				))}
-			</div>
+			{!inLesson && (
+				<div
+					role="tablist"
+					aria-label={name}
+					onKeyDown={tabListKeys(TABS.indexOf(tab), TABS.length, (i) => setTab(TABS[i]!))}
+					className="flex shrink-0 gap-6 border-b border-tone-2 px-6"
+				>
+					{TABS.map((t) => (
+						<button
+							key={t}
+							type="button"
+							role="tab"
+							id={`${tabsId}-${t}`}
+							aria-selected={tab === t}
+							aria-controls={`${tabsId}-panel`}
+							tabIndex={tab === t ? 0 : -1}
+							data-testid={`halley-tab-${t}`}
+							onClick={() => setTab(t)}
+							className={cn(
+								"lh-press -mb-px border-b-2 py-2.5 text-[13.5px] font-bold",
+								tab === t ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink-2",
+							)}
+						>
+							{t === "talk" ? "Talk" : "Activity"}
+						</button>
+					))}
+				</div>
+			)}
 
 			{tab === "talk" ? (
 				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-talk`} className="flex min-h-0 flex-1 flex-col">
 					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} />
 				</div>
 			) : (
-				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-activity`} data-testid="halley-activity" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+				<div {...(inLesson ? { "aria-label": "Activity" } : { role: "tabpanel", id: `${tabsId}-panel`, "aria-labelledby": `${tabsId}-activity` })} data-testid="halley-activity" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
 					{doing?.working && (
 						<p data-testid="halley-now" className="text-[15px] font-bold text-ink-max">
 							{doing.text}

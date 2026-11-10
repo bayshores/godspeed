@@ -10,25 +10,37 @@ import type { useTitleRename } from "./use-title-rename";
 /**
  * THE LESSON'S PART OF THE TOP BAR: the path ends in the lesson's name,
  * which renames in place on a click (or F2). Its buttons: in practice,
- * one block per problem; the cheat sheet beside the session; and Find.
+ * one block per problem; in homework, the assignment file; the cheat
+ * sheet beside the session; and Find.
  */
 export function LessonTopBar({
 	kind,
 	rename,
 	practice,
 	sheet,
+	file,
 }: {
 	kind: LessonKind;
 	rename: ReturnType<typeof useTitleRename>;
 	practice: PracticeProgress | null;
 	/** The cheat sheet beside the session (a session in a class). */
 	sheet?: { open: boolean; onToggle: () => void };
+	/** A homework lesson's assignment file, opened on the desktop. */
+	file?: { name: string; path: string | null };
 }) {
+	const desktop = typeof window !== "undefined" ? window.lh : undefined;
+	const pdf = !!file && /\.pdf$/i.test(file.name);
+	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
 	return (
 		<>
 			<h1 className="sr-only">{rename.title}</h1>
 			<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
 			{kind === "practice" && practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />}
+			{file && openFile && (
+				<button type="button" data-testid="lesson-assignment" title={file.name} onClick={() => void openFile(file.path!)} className="lh-btn max-w-[24ch]">
+					<span className="truncate">{file.name}</span>
+				</button>
+			)}
 			{sheet && (
 				<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn("lh-btn", sheet.open && "border-tint text-tint")}>
 					cheat sheet

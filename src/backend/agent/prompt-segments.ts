@@ -52,8 +52,8 @@ function readPromptOverride(segmentPath: string): string | null {
 	}
 }
 
-/** The practice fragments a STUDY session composes: the hint and
- *  claimed-answer rules its problems run on. */
+/** The practice fragments STUDY and HOMEWORK sessions compose: the hint
+ *  and claimed-answer rules their problems run on. */
 const STUDY_PRACTICE_FRAGMENTS = ["20-hints.md"];
 
 type Segment = { path: string; shared: boolean; file: string };
@@ -72,20 +72,23 @@ function directoryFragments(dir: PromptAgent, only?: readonly string[]): Segment
 /** List the SOURCE segments for one agent, in composition order: the
  *  agent's job and method lead, the shared mechanics are an appendix. */
 function listSourceSegments(agent: PromptAgent): Segment[] {
-	// Practice and Talk skip the teaching base (their 00-base.md plays that
-	// role) and take only a curated shared appendix.
-	const segments: Segment[] = agent === "practice" || agent === "talk" ? [] : [
+	// Practice, homework and Talk skip the teaching base (their 00-base.md
+	// plays that role) and take only a curated shared appendix.
+	const own = agent === "practice" || agent === "homework" || agent === "talk";
+	const segments: Segment[] = own ? [] : [
 		{ path: "system-prompt.md", shared: true, file: PATHS.teacherPrompt },
 	];
 	// Study is the teacher plus practice's hint rules plus its own fragment.
 	if (agent === "study") {
 		segments.push(...directoryFragments("teacher"), ...directoryFragments("practice", STUDY_PRACTICE_FRAGMENTS), ...directoryFragments("study"));
+	} else if (agent === "homework") {
+		segments.push(...directoryFragments("homework"), ...directoryFragments("practice", STUDY_PRACTICE_FRAGMENTS));
 	} else {
 		segments.push(...directoryFragments(agent));
 	}
 	const sharedDir = path.join(PROMPTS_DIR, "shared");
 	if (fs.existsSync(sharedDir)) {
-		const allow = agent === "practice" ? PRACTICE_SHARED_FRAGMENTS : agent === "talk" ? TALK_SHARED_FRAGMENTS : null;
+		const allow = agent === "practice" || agent === "homework" ? PRACTICE_SHARED_FRAGMENTS : agent === "talk" ? TALK_SHARED_FRAGMENTS : null;
 		const sharedFragments = fs
 			.readdirSync(sharedDir)
 			.filter((f) => FRAGMENT_RE.test(f) && (allow === null || allow.includes(f)))
@@ -119,7 +122,7 @@ export function effectivePromptSegments(agent: PromptAgent): PromptSegmentInfo[]
 /** Every known segment path across the lesson agents (route validation). */
 export function allSegmentPaths(): string[] {
 	const paths = new Set<string>();
-	for (const agent of ["prober", "teacher", "practice", "study"] as const) {
+	for (const agent of ["prober", "teacher", "practice", "study", "homework"] as const) {
 		for (const segment of listSourceSegments(agent)) paths.add(segment.path);
 	}
 	return [...paths].sort();

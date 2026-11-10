@@ -1,6 +1,6 @@
 /**
  * /api/classes/[id]/deadlines/[deadlineId]
- *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, leftOutIds?, source?: string | null, done? }
+ *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, leftOutIds?, source?: string | null, assignmentFileId?: string | null, done? }
  *  DELETE — remove the deadline
  */
 import { recordDeadlineChange, removeClassDeadline, updateClassDeadline } from "@/backend/server";
@@ -21,6 +21,7 @@ export async function PUT(req: Request, { params }: Ctx) {
 		fileIds?: unknown;
 		leftOutIds?: unknown;
 		source?: unknown;
+		assignmentFileId?: unknown;
 		done?: unknown;
 	};
 	if (body.done !== undefined && typeof body.done !== "boolean") return Response.json({ error: "done must be true or false" }, { status: 400 });
@@ -32,6 +33,7 @@ export async function PUT(req: Request, { params }: Ctx) {
 		...(body.fileIds !== undefined ? { fileIds: body.fileIds as string[] } : {}),
 		...(body.leftOutIds !== undefined ? { leftOutIds: body.leftOutIds as string[] } : {}),
 		...(body.source !== undefined ? { source: body.source as string | null } : {}),
+		...(body.assignmentFileId !== undefined ? { assignmentFileId: body.assignmentFileId as string | null } : {}),
 		...(body.done !== undefined ? { done: body.done } : {}),
 	};
 	const outcome = updateClassDeadline(id, deadlineId, patch);

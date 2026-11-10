@@ -11,6 +11,7 @@ export * from "./chats.ts";
 export * from "./classes.ts";
 export { classFilePath } from "./class-card.ts";
 export { createLesson } from "./lessons.ts";
+export { createHomework, homeworkView } from "./homework.ts";
 export * from "./graph.ts";
 export * from "./topics.ts";
 export * from "./progress.ts";

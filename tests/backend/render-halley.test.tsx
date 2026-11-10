@@ -132,6 +132,14 @@ describe("the panel", () => {
 		assert.equal(el.querySelector("[data-testid='halley-tab-activity']")?.getAttribute("aria-selected"), "true");
 		assert.ok(el.querySelector("[data-testid='halley-recent']"));
 	});
+	it("in a lesson, Talk hides: the lesson's own box talks to the teacher", () => {
+		talkCalls.length = 0;
+		const el = mount(panel({ inLesson: true }));
+		assert.equal(el.querySelector("[data-testid='halley-tab-talk']"), null);
+		assert.equal(el.querySelector("[role='tablist']"), null);
+		assert.ok(el.querySelector("[data-testid='halley-recent']"), "Activity shows");
+		assert.deepEqual(talkCalls, [], "no Talk chat opens");
+	});
 	it("head: the name, the agent and a close button (Follow is the top bar's chip)", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);

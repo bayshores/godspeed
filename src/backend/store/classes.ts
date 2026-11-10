@@ -18,7 +18,7 @@ import { emit } from "../../shared/core/events.ts";
 import { isRecentChange } from "../../shared/core/new-files.ts";
 import { sanitizeRules } from "../../shared/core/teaching-areas.ts";
 import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../../shared/core/ports.ts";
-import type { ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind, RemovedFile } from "../../shared/core/contracts.ts";
+import type { ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
 import {
 	ClassDeadlineError,
 	cleanSignature,
@@ -29,6 +29,7 @@ import {
 	isClassId,
 	isClockTime,
 	isDeadlineKind,
+	MAX_HOMEWORK_PROBLEMS,
 } from "../../shared/core/contracts.ts";
 import { isRecord, isString } from "./guards.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
@@ -73,6 +74,17 @@ const isClassDeadline = (v: unknown): v is ClassDeadline =>
 
 const isIdList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isString);
 
+const isHomeworkProblem = (v: unknown): v is HomeworkProblem =>
+	isRecord(v) && isString(v.number) && isString(v.title) && isString(v.text) && (v.page === undefined || typeof v.page === "number") && typeof v.done === "boolean";
+
+const cleanProblem = (p: HomeworkProblem): HomeworkProblem => ({
+	number: p.number,
+	title: p.title,
+	text: p.text,
+	...(p.page !== undefined ? { page: p.page } : {}),
+	done: p.done,
+});
+
 /** A v2 exam as saved (read as a deadline of kind "exam"). */
 const isLegacyExam = (v: unknown): v is { id: string; name: string; date: string; fileIds: string[] } =>
 	isRecord(v) && isString(v.id) && isString(v.name) && isString(v.date) && Array.isArray(v.fileIds) && v.fileIds.every(isString);
@@ -90,6 +102,8 @@ function readDeadlines(parsed: Record<string, unknown>): ClassDeadline[] | undef
 			fileIds: d.fileIds,
 			...(isIdList(d.leftOutIds) && d.leftOutIds.length > 0 ? { leftOutIds: d.leftOutIds } : {}),
 			...(isString(d.source) && d.source ? { source: d.source } : {}),
+			...(isString(d.assignmentFileId) ? { assignmentFileId: d.assignmentFileId } : {}),
+			...(Array.isArray(d.problems) && d.problems.some(isHomeworkProblem) ? { problems: d.problems.filter(isHomeworkProblem).map(cleanProblem) } : {}),
 			done: d.done,
 			...(d.done && isString(d.doneAt) ? { doneAt: d.doneAt } : {}),
 		}));
@@ -146,7 +160,7 @@ function getClass(id: string): ClassRecord | null {
 		...(isString(parsed.linkedFolder) ? { linkedFolder: parsed.linkedFolder } : {}),
 		files,
 		...(removedFiles.length ? { removedFiles } : {}),
-		...(deadlines ? { deadlines: deadlines.map((d) => withFiles(d, d.fileIds.filter((f) => fileIds.has(f)), d.leftOutIds?.filter((f) => fileIds.has(f)))).sort(compareDeadlines) } : {}),
+		...(deadlines ? { deadlines: deadlines.map((d) => withFiles(knownAssignment(d, fileIds), d.fileIds.filter((f) => fileIds.has(f)), d.leftOutIds?.filter((f) => fileIds.has(f)))).sort(compareDeadlines) } : {}),
 		...(signature ? { signature } : {}),
 		...(isClassIcon(parsed.icon) ? { icon: parsed.icon } : {}),
 		...(isClassNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
@@ -291,6 +305,35 @@ function deadlineSource(source: unknown): string | undefined {
 	return source.trim().replace(/\s+/g, " ").slice(0, 300) || undefined;
 }
 
+/** The deadline without its assignment file once that file is gone. */
+function knownAssignment(d: ClassDeadline, fileIds: ReadonlySet<string>): ClassDeadline {
+	if (d.assignmentFileId === undefined || fileIds.has(d.assignmentFileId)) return d;
+	const { assignmentFileId: _gone, ...rest } = d;
+	return rest;
+}
+
+function deadlineAssignment(record: ClassRecord, fileId: unknown): string {
+	if (!isString(fileId) || !record.files.some((f) => f.id === fileId)) throw new ClassDeadlineError("unknown_file", `Not a file of this class: ${JSON.stringify(fileId)}`);
+	return fileId;
+}
+
+/** A problem list as the store keeps it: numbers unique, text trimmed. */
+function deadlineProblems(problems: unknown): HomeworkProblem[] {
+	if (!Array.isArray(problems) || problems.length > MAX_HOMEWORK_PROBLEMS) throw new ClassDeadlineError("bad_problems", `The problems must be a list of at most ${MAX_HOMEWORK_PROBLEMS}`);
+	const seen = new Set<string>();
+	return problems.map((p, i) => {
+		if (!isRecord(p)) throw new ClassDeadlineError("bad_problems", `Problem ${i + 1} is not an object`);
+		const number = isString(p.number) ? p.number.trim().slice(0, 20) : "";
+		const title = isString(p.title) ? p.title.trim().replace(/\s+/g, " ").slice(0, 120) : "";
+		const text = isString(p.text) ? p.text.trim().slice(0, 8000) : "";
+		if (!number || !text) throw new ClassDeadlineError("bad_problems", `Problem ${i + 1} needs a number and its text`);
+		if (seen.has(number)) throw new ClassDeadlineError("bad_problems", `Two problems are numbered ${number}`);
+		seen.add(number);
+		const page = typeof p.page === "number" && Number.isInteger(p.page) && p.page > 0 ? p.page : undefined;
+		return { number, title: title || number, text, ...(page !== undefined ? { page } : {}), done: p.done === true };
+	});
+}
+
 /** The deadline with these covered and left-out files; a file is never both
  *  (`leftOutWins` says which list was just set). */
 function withFiles(d: ClassDeadline, fileIds: string[], leftOutIds: string[] | undefined, leftOutWins = false): ClassDeadline {
@@ -318,6 +361,7 @@ function addDeadline(id: string, init: DeadlineInit): ClassDeadline {
 	const record = requireClass(id);
 	const time = init.time !== undefined ? deadlineTime(init.time) : undefined;
 	const source = init.source !== undefined ? deadlineSource(init.source) : undefined;
+	const assignmentFileId = init.assignmentFileId !== undefined ? deadlineAssignment(record, init.assignmentFileId) : undefined;
 	const base: ClassDeadline = {
 		id: `ddl_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
 		kind: deadlineKind(init.kind),
@@ -326,6 +370,7 @@ function addDeadline(id: string, init: DeadlineInit): ClassDeadline {
 		...(time !== undefined ? { time } : {}),
 		fileIds: [],
 		...(source !== undefined ? { source } : {}),
+		...(assignmentFileId !== undefined ? { assignmentFileId } : {}),
 		done: false,
 	};
 	const deadline = withFiles(base, deadlineFiles(record, init.fileIds ?? []), init.leftOutIds !== undefined ? deadlineFiles(record, init.leftOutIds) : undefined);
@@ -339,6 +384,9 @@ function updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): C
 	if (!prev) throw new ClassDeadlineError("deadline_not_found", `No deadline "${deadlineId}" in this class`);
 	const time = patch.time === undefined ? prev.time : patch.time === null ? undefined : deadlineTime(patch.time);
 	const source = patch.source === undefined ? prev.source : patch.source === null ? undefined : deadlineSource(patch.source);
+	const assignmentFileId =
+		patch.assignmentFileId === undefined ? prev.assignmentFileId : patch.assignmentFileId === null ? undefined : deadlineAssignment(record, patch.assignmentFileId);
+	const problems = patch.problems !== undefined ? deadlineProblems(patch.problems) : prev.problems;
 	const done = patch.done ?? prev.done;
 	// Ticking stamps the time; unticking clears it; leaving it alone keeps it.
 	const doneAt = !done ? undefined : patch.done === true && !prev.done ? new Date().toISOString() : prev.doneAt;
@@ -350,6 +398,8 @@ function updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): C
 		...(time !== undefined ? { time } : {}),
 		fileIds: [],
 		...(source !== undefined ? { source } : {}),
+		...(assignmentFileId !== undefined ? { assignmentFileId } : {}),
+		...(problems !== undefined && problems.length > 0 ? { problems } : {}),
 		done,
 		...(doneAt !== undefined ? { doneAt } : {}),
 	};

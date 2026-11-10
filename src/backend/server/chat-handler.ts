@@ -1,5 +1,6 @@
 import type { Usage } from "@earendil-works/pi-ai";
 import {
+	createHomeworkAgent,
 	createPracticeAgent,
 	createProberAgent,
 	createStudyAgent,
@@ -27,6 +28,7 @@ import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
 import { allGraphScopes, effectiveSettings, graphStoreFor, stores } from "./stores.ts";
 import { classCardFor } from "./class-card.ts";
+import { homeworkDeadline } from "./homework.ts";
 import type { ClassSearch } from "../agent/tools/class.ts";
 import type { TeacherToolContext } from "../agent/tools.ts";
 import { readPassage, searchClassFiles } from "./search-index.ts";
@@ -108,9 +110,11 @@ function lessonClassRules(classId: string | undefined): { name: string; rules: s
 function compactionDeps(record: ChatRecord): CompactionDeps {
 	const engine = agentEngine();
 	const agentKind: AgentKind =
-		record.kind === "practice" || record.kind === "talk" || record.kind === "study" ? record.kind : hasProbeDone(record.messages) ? "teacher" : "prober";
-	// The summary's wording: a study session teaches.
-	const kind = agentKind === "teacher" || agentKind === "study" ? "teach" : agentKind === "prober" ? "probe" : agentKind;
+		record.kind === "practice" || record.kind === "talk" || record.kind === "study" || record.kind === "homework"
+			? record.kind
+			: hasProbeDone(record.messages) ? "teacher" : "prober";
+	// The summary's wording: a study session teaches, homework practices.
+	const kind = agentKind === "teacher" || agentKind === "study" ? "teach" : agentKind === "prober" ? "probe" : agentKind === "homework" ? "practice" : agentKind;
 	return {
 		chatStore: stores.chatStore,
 		engine,
@@ -377,6 +381,9 @@ export async function handleChatInput(
 			if (!saved.ok) return saved.error;
 			return { saved: true, rule: saved.rule, for: saved.for, where, note: "Saved. The learner sees it in the chat and can undo or edit it." };
 		};
+		// Talk's class actions, named for the agent; lessons take the changes
+		// ("add HW 4, due Friday") too.
+		const agentClassActions = classActions(agentName(), (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: true });
 		const teacherContext: TeacherToolContext = {
 			chatId,
 			chatStore: stores.chatStore,
@@ -384,17 +391,29 @@ export async function handleChatInput(
 			spawn: (job, input) => void jobRunner.runJob(job.id, input),
 			...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 			saveRule,
+			classActions: agentClassActions,
+		};
+		// Practice and homework sessions: the rarely-needed set (research +
+		// pdf jobs and the map readers behind the SAME settings gate as the
+		// prober's), the class tools and save_rule.
+		const practiceContext = {
+			chatId,
+			chatStore: stores.chatStore,
+			jobs: { chatId, jobStore: stores.jobStore, spawn: teacherContext.spawn },
+			...(graphToolsEnabled(effective) ? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } } : {}),
+			...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+			saveRule,
+			classActions: agentClassActions,
 		};
 		const constructed: TeachingAgent = buildAgent
 			? buildAgent({ ...agentOpts, teaching })
 			: record.kind === "talk"
 				? // TALK: the class actions, named for the agent that runs them; no lesson rules.
-					createTalkAgent(classActions(agentName(), (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: true }), { ...agentOpts, learnerRules: undefined })
+					createTalkAgent(agentClassActions, { ...agentOpts, learnerRules: undefined })
 			: record.kind === "practice"
 				? createPracticeAgent(
 						{
-							chatId,
-							chatStore: stores.chatStore,
+							...practiceContext,
 							// TARGET VALIDATION: the practice tools read the
 							// WHOLE graph fresh per pose — targets validate against every
 							// proposition, not just the session's picks (so pickless
@@ -402,21 +421,12 @@ export async function handleChatInput(
 							// Targets are the lesson's OWN class graph (writes never cross
 							// classes).
 							graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
-							// THE RARELY-NEEDED SET: research + pdf jobs and the map
-							// readers behind the SAME settings gate as the prober's.
-							jobs: {
-								chatId,
-								jobStore: stores.jobStore,
-								spawn: (job, input) => void jobRunner.runJob(job.id, input),
-								},
-							...(graphToolsEnabled(effective)
-								? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } }
-								: {}),
-							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
-							saveRule,
 						},
 						agentOpts,
 					)
+			: record.kind === "homework" && record.classId && record.deadlineId
+				? // HOMEWORK: practice's side tools plus the deadline's problems.
+					createHomeworkAgent({ ...practiceContext, homework: homeworkDeadline(record.classId, record.deadlineId) }, agentOpts)
 				: record.kind === "study"
 				? // STUDY: the teacher from turn 1 plus problem/conclude; problem
 					// targets validate against the lesson's own class graph.
@@ -438,6 +448,7 @@ export async function handleChatInput(
 							...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
 							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
 							saveRule,
+							classActions: agentClassActions,
 						},
 						agentOpts,
 					);

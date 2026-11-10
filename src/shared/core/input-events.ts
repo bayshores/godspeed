@@ -274,11 +274,11 @@ export function inputAppends(
 		}
 		case "next": {
 			// Honest 400s, the thinking gate's discipline: the signal is a
-			// between-problems affordance — practice and study sessions only,
+			// between-problems affordance — practice, study and homework only,
 			// nothing active (mid-problem input rides the dock), and the client
 			// gates make violations unreachable in practice anyway.
-			if (record.kind !== "practice" && record.kind !== "study") {
-				throw new ChatInputError("next input is a practice or study session affordance");
+			if (record.kind !== "practice" && record.kind !== "study" && record.kind !== "homework") {
+				throw new ChatInputError("next input is a practice, study or homework session affordance");
 			}
 			if (activeProblemOf(record.messages)) {
 				throw new ChatInputError("next input requires no active problem");

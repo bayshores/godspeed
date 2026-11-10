@@ -164,3 +164,54 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-start-error"/);
 	});
 });
+
+// ─── Homework ───────────────────────────────────────────────────────────────
+
+const { HomeworkCard } = await import("../../src/frontend/components/deadline/homework-card.tsx");
+
+const HW_PROBLEMS = [
+	{ number: "1", title: "Gradient of a quadratic", text: "…", done: true },
+	{ number: "2", title: "Fixed step", text: "…", done: false },
+	{ number: "3", title: "Momentum", text: "…", done: false },
+];
+
+function homework(problems = HW_PROBLEMS, over: Partial<React.ComponentProps<typeof HomeworkCard>> = {}) {
+	return renderToStaticMarkup(
+		<HomeworkCard
+			deadline={deadline({ id: "hw4", kind: "homework", name: "HW 4" })}
+			problems={problems}
+			files={[{ id: "a", name: "hw4.pdf" }]}
+			assignmentId="a"
+			busy={false}
+			saving={false}
+			onWork={() => {}}
+			onPickAssignment={() => {}}
+			onMarkDone={() => {}}
+			{...over}
+		/>,
+	);
+}
+
+describe("the homework card", () => {
+	it("counts problems done, marks the next one and offers work on and mark done", () => {
+		const html = homework();
+		assert.match(html, /1 of 3 problems done/);
+		assert.match(html, /aria-label="1 of 3 problems done"/);
+		assert.match(html, /work on hw 4/);
+		assert.match(html, /mark done/);
+		assert.equal(html.split('data-testid="homework-problem"').length - 1, 3);
+		assert.match(html, /▸<\/span><span[^>]*>2<\/span><span[^>]*font-bold/);
+		assert.match(html, /<option value="a" selected="">hw4.pdf<\/option>/);
+	});
+
+	it("with no problems says how they get listed; a done deadline offers mark not done", () => {
+		assert.match(homework([], { assignmentId: undefined }), /Pick its assignment file/);
+		const done = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", done: true }) });
+		assert.match(done, /mark not done/);
+		assert.ok(!done.includes('data-testid="homework-work"'));
+	});
+
+	it("shows in the page's homework slot", () => {
+		assert.match(render(deadline(), { homework: <p>slot</p> }), /<p>slot<\/p>/);
+	});
+});

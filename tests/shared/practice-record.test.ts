@@ -247,10 +247,11 @@ describe("the next input", () => {
 		assert.match(marker.content, /\[NEXT PROBLEM\]/);
 	});
 
-	it("400s outside practice and study sessions", () => {
-		assert.throws(() => inputAppends({ messages: [], kind: "teach" }, { type: "next" }), /practice or study session/);
+	it("400s outside practice, study and homework sessions", () => {
+		assert.throws(() => inputAppends({ messages: [], kind: "teach" }, { type: "next" }), /practice, study or homework session/);
 		assert.equal(inputAppends({ messages: [], kind: "study" }, { type: "next" }).length, 1);
-		assert.throws(() => inputAppends({ messages: [] }, { type: "next" }), /practice or study session/);
+		assert.equal(inputAppends({ messages: [], kind: "homework" }, { type: "next" }).length, 1);
+		assert.throws(() => inputAppends({ messages: [] }, { type: "next" }), /practice, study or homework session/);
 	});
 
 	it("400s while a problem is active (mid-problem input rides the dock)", () => {

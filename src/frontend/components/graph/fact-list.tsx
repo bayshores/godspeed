@@ -1,13 +1,13 @@
 /**
- * A topic's facts in the topic panel: a mark for the latest answer (a
- * check, a cross or a dash; an empty square when never asked), the fact's name, and a chevron that opens its
- * statement. The first FACTS_SHOWN show until "Show all N". Right-click
+ * A topic's facts in the topic pane: a mark for the latest answer (a
+ * check, a cross or a dash; an empty square when never asked) and the
+ * fact's name; a click opens the fact. The first FACTS_SHOWN show until
+ * "Show all N". Right-click
  * (or the keyboard's context-menu key) opens a menu whose one action,
  * Delete, opens the shared DeleteNodeDialog; a delete announces
  * lh:graph-revision (the page refreshes on it, as for the chain table).
  */
 import { memo, useCallback, useRef, useState, type MouseEvent } from "react";
-import { CheckIcon, ChevronRightIcon, MinusIcon, XIcon } from "lucide-react";
 import { factMark, type AnswerOutcome, type FactProgress } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -19,12 +19,13 @@ const FACTS_SHOWN = 4;
 
 export function FactList({
 	facts,
+	onOpen,
 }: {
 	/** Already in display order (core topicFacts). */
 	facts: readonly FactProgress[];
+	onOpen: (id: string) => void;
 }) {
 	const [showAll, setShowAll] = useState(false);
-	const [openId, setOpenId] = useState<string | null>(null);
 	const [menu, setMenu] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
 	const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
 	const anchorRef = useRef<HTMLDivElement>(null);
@@ -34,7 +35,6 @@ export function FactList({
 	// One hidden fact isn't worth a button: show it.
 	const folded = !showAll && facts.length > FACTS_SHOWN + 1;
 	const shown = folded ? facts.slice(0, FACTS_SHOWN) : facts;
-	const onToggle = useCallback((id: string) => setOpenId((cur) => (cur === id ? null : id)), []);
 	const onMenu = useCallback((fact: FactProgress, e: MouseEvent<HTMLElement>) => {
 		e.preventDefault();
 		let { clientX: x, clientY: y } = e;
@@ -51,7 +51,7 @@ export function FactList({
 		<>
 			<ul className="flex w-full flex-col" data-testid="fact-list">
 				{shown.map((f) => (
-					<FactRow key={f.id} fact={f} open={openId === f.id} onToggle={onToggle} onMenu={onMenu} />
+					<FactRow key={f.id} fact={f} onOpen={onOpen} onMenu={onMenu} />
 				))}
 			</ul>
 			{folded && (
@@ -59,9 +59,9 @@ export function FactList({
 					type="button"
 					data-testid="facts-show-all"
 					onClick={() => setShowAll(true)}
-					className="lh-press mt-2 text-[13px] font-bold text-ink-2 hover:text-ink"
+					className="lh-btn self-start"
 				>
-					Show all {facts.length}
+					show all {facts.length}
 				</button>
 			)}
 			{menu && <div ref={anchorRef} className="pointer-events-none fixed size-0" style={{ left: menu.x, top: menu.y }} />}
@@ -94,54 +94,48 @@ export function FactList({
 
 const FactRow = memo(function FactRow({
 	fact,
-	open,
-	onToggle,
+	onOpen,
 	onMenu,
 }: {
 	fact: FactProgress;
-	open: boolean;
-	onToggle: (id: string) => void;
+	onOpen: (id: string) => void;
 	onMenu: (fact: FactProgress, e: MouseEvent<HTMLElement>) => void;
 }) {
-	const mark = factMark(fact);
 	return (
 		<li className="border-b border-tone">
 			<button
 				type="button"
 				data-testid="fact-row"
-				aria-expanded={open}
-				onClick={() => onToggle(fact.id)}
+				onClick={() => onOpen(fact.id)}
 				onContextMenu={(e) => onMenu(fact, e)}
-				className="lh-press flex w-full items-center gap-2 py-[9px] text-left text-sm text-ink hover:text-ink-max"
+				className="lh-press flex w-full items-center gap-2.5 py-2 text-left text-sm text-ink hover:text-ink-max"
 			>
-				<FactMark mark={mark} />
+				<FactMark mark={factMark(fact)} />
 				<span className="min-w-0 flex-1 truncate">
 					<InlineMath text={fact.name} />
 				</span>
-				<ChevronRightIcon
-					aria-hidden
-					className="size-3.5 shrink-0 text-ink-3 transition-transform duration-[var(--lh-dur)]"
-					style={open ? { transform: "rotate(90deg)" } : undefined}
-				/>
+				<span aria-hidden className="shrink-0 text-ink-3">
+					›
+				</span>
 			</button>
-			{open && (
-				<p data-testid="fact-statement" className="lh-rise pb-2.5 pl-4 text-[13.5px] leading-5 text-ink-2">
-					<InlineMath text={fact.statement} />
-				</p>
-			)}
 		</li>
 	);
 });
 
-/** The latest answer as a shape, not only a color: check, cross, dash. */
-const MARKS: Record<AnswerOutcome, { Icon: typeof CheckIcon; className: string; label: string }> = {
-	right: { Icon: CheckIcon, className: "text-ans-right", label: "Last answer right" },
-	wrong: { Icon: XIcon, className: "text-ans-wrong", label: "Last answer wrong" },
-	dontKnow: { Icon: MinusIcon, className: "text-ink-3", label: "Last answer: I don't know" },
+/** The latest answer as a shape, not only a color: check, cross, dash;
+ *  an empty square when never asked. */
+const MARKS: Record<AnswerOutcome | "none", { glyph: string; className: string; label: string }> = {
+	right: { glyph: "✓", className: "text-ans-right", label: "Last answer right" },
+	wrong: { glyph: "✗", className: "text-ans-wrong", label: "Last answer wrong" },
+	dontKnow: { glyph: "–", className: "text-ink-3", label: "Last answer: I don't know" },
+	none: { glyph: "□", className: "text-ink-3", label: "Not tested" },
 };
 
-function FactMark({ mark }: { mark: AnswerOutcome | null }) {
-	if (mark === null) return <span role="img" aria-label="Not tested" className="mx-0.5 size-2 shrink-0 outline outline-[1.5px] -outline-offset-[0.75px] outline-ink-3" />;
-	const { Icon, className, label } = MARKS[mark];
-	return <Icon role="img" aria-label={label} aria-hidden={false} strokeWidth={3} className={`size-3 shrink-0 ${className}`} />;
+export function FactMark({ mark }: { mark: AnswerOutcome | null }) {
+	const { glyph, className, label } = MARKS[mark ?? "none"];
+	return (
+		<span role="img" aria-label={label} className={`w-3 shrink-0 text-center text-[13px] font-bold ${className}`}>
+			{glyph}
+		</span>
+	);
 }

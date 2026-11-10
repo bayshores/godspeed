@@ -12,7 +12,7 @@ import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PanelComposer } from "../../src/frontend/components/lesson/panel-composer.tsx";
+import { LessonBox } from "../../src/frontend/components/lesson/lesson-box.tsx";
 import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
 import { MessageRow } from "../../src/frontend/components/lesson/message-row.tsx";
 import { useAttachmentDraft, type AttachmentDraft } from "../../src/frontend/components/lesson/attachment-tray.tsx";
@@ -43,9 +43,9 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 	...over,
 });
 
-function composer(over: Partial<React.ComponentProps<typeof PanelComposer>> = {}) {
+function composer(over: Partial<React.ComponentProps<typeof LessonBox>> = {}) {
 	return renderToStaticMarkup(
-		<PanelComposer busy={false} value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} canSend queuedSteers={[]} attachments={draft()} {...over} />,
+		<LessonBox busy={false} value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} canSend showStop sideOpen={null} nextReady={false} onNext={() => {}} queuedSteers={[]} attachments={draft()} {...over} />,
 	);
 }
 
@@ -73,10 +73,11 @@ describe("the composer's waiting files", () => {
 		assert.match(html, /data-testid="attachment-error"[^>]*>Can&#x27;t use HEIC photos yet\. Export as JPG\.</);
 	});
 
-	it("while the teacher writes, files wait with a hint and Send is off", () => {
+	it("while the teacher writes, files wait with a hint and Stop takes Send's place", () => {
 		const html = composer({ busy: true, canSend: false });
 		assert.match(html, /data-testid="attachment-note"[^>]*>Send pictures after the teacher finishes</);
-		assert.match(html, /data-testid="composer-send"[^>]*disabled/);
+		assert.match(html, /data-testid="stop-turn"/);
+		assert.ok(!html.includes('data-testid="composer-send"'));
 		assert.ok(!html.includes("—"), "no em-dashes");
 	});
 

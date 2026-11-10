@@ -5,7 +5,6 @@ import { PracticeDock } from "@/frontend/components/practice-dock";
 import { QuestionDock, type QuestionDockProps } from "@/frontend/components/question-dock";
 import { ReadingThinkingField } from "@/frontend/components/reading-thinking";
 import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
-import { PanelComposer, SideQuestionBox } from "./panel-composer";
 import { ActionBar, HeaderChip, KindChip, PanelBody, PanelHeader, skipExit } from "./panel-parts";
 import { TurnStatus } from "./turn-status";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
@@ -35,11 +34,11 @@ export function fitPanelWidth(width: number, room: number | null): number {
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
  * - an active practice problem (PracticeDock);
- * - otherwise the message box (PanelComposer), under the last graded
- *   answer's result.
- * Under a question or problem, the side question pane (the message box in
- * compact form) holds Stop while the teacher answers it. The lesson's
- * stats row sits at the foot of every state.
+ * - otherwise nothing to answer, with Next problem / Continue in the pause
+ *   between problems.
+ * Messages, side questions included, go through the one box under the
+ * reading pane (LessonBox). The lesson's stats row sits at the foot of
+ * every state.
  */
 export function YourTurnPanel({
 	steps,
@@ -56,10 +55,14 @@ export function YourTurnPanel({
 	onSavePracticeDraft,
 	onSubmitThinking,
 	onDiscardProblem,
-	sideReply,
+	busy,
+	waitingForAgent,
+	onStop,
+	next,
+	onNext,
 	compacting,
-	composer,
 	stats,
+	homeworkProblem,
 }: {
 	/** The steps pane, for a lesson with a plan. */
 	steps?: React.ReactNode;
@@ -79,12 +82,19 @@ export function YourTurnPanel({
 	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** Opens the discard confirm for the active problem. */
 	onDiscardProblem: () => void;
-	/** The running turn answers a side question. */
-	sideReply: boolean;
+	busy: boolean;
+	/** The turn waits for an agent to take it. */
+	waitingForAgent: boolean;
+	/** The problem dock's Stop; absent when the lesson box holds it. */
+	onStop?: () => void;
+	/** The go-ahead in the pause between problems ("Next problem", or
+	 *  "Continue" in a study session); absent outside that pause. */
+	next?: string;
+	onNext: () => void;
 	compacting: boolean;
-	/** The message-box state's props (everything but the stats footer). */
-	composer: Omit<React.ComponentProps<typeof PanelComposer>, "footer">;
 	stats: React.ReactNode;
+	/** A homework lesson's open problem: its name and where it is in the assignment. */
+	homeworkProblem?: { label: string; source: string | null };
 }) {
 	const [saved, setWidth] = usePaneWidth("your-turn", PANEL_WIDTH);
 	const asideRef = useRef<HTMLElement>(null);
@@ -137,7 +147,7 @@ export function YourTurnPanel({
 			<div className="flex min-h-0 flex-1 flex-col">
 				<PanelBody>
 					<PanelHeader
-						status={composer.busy && <TurnStatus waitingForAgent={composer.waitingForAgent ?? false} />}
+						status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 						right={
 							<HeaderChip exit={skipExit(onSkipQuestion)}>
 								{label !== "Question" && (
@@ -168,8 +178,8 @@ export function YourTurnPanel({
 				onSaveDraft={onSaveQuestionDraft}
 				onSkip={onSkipQuestion}
 				compactionRunning={compacting}
-				busy={composer.busy}
-				waitingForAgent={composer.waitingForAgent}
+				busy={busy}
+				waitingForAgent={waitingForAgent}
 				footer={footer}
 			/>
 		);
@@ -182,15 +192,30 @@ export function YourTurnPanel({
 				initialDraft={initialPracticeDraft}
 				onSaveDraft={onSavePracticeDraft}
 				onDiscard={onDiscardProblem}
-				onStop={sideReply ? undefined : composer.onStop}
-				busy={composer.busy}
-				waitingForAgent={composer.waitingForAgent}
+				onStop={onStop}
+				busy={busy}
+				waitingForAgent={waitingForAgent}
 				compactionRunning={compacting}
 				footer={footer}
+				{...(homeworkProblem ? { source: homeworkProblem.source, sendLabel: "check my work" } : {})}
 			/>
 		);
 	} else {
-		body = <PanelComposer {...composer} footer={footer} />;
+		body = (
+			<div className="flex min-h-0 flex-1 flex-col">
+				<PanelBody>
+					<PanelHeader status={busy && <TurnStatus waitingForAgent={waitingForAgent} />} />
+					{!busy && (
+						<p data-testid="nothing-to-answer" className="text-base leading-6 text-ink-3">
+							Nothing to answer right now.
+						</p>
+					)}
+					<div className="flex-1" />
+					{footer}
+				</PanelBody>
+				{next !== undefined && <ActionBar testId="next-problem-button" label={next} onClick={onNext} />}
+			</div>
+		);
 	}
 
 	return (
@@ -207,13 +232,11 @@ export function YourTurnPanel({
 				<ResizeHandle paneKey="your-turn" edge="left" width={width} bounds={PANEL_WIDTH} onWidth={setWidth} label="Resize the Your turn panel" />
 			</div>
 			{steps}
-			<Pane name="your turn" active={mode !== "chat"} className="flex min-h-0 flex-1 flex-col">
+			<Pane name={practice && homeworkProblem ? `your turn: ${homeworkProblem.label.toLowerCase()}` : "your turn"} active={mode !== "chat"} className="flex min-h-0 flex-1 flex-col">
 				<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 					{body}
 				</div>
 			</Pane>
-			{/* Outside the keyed state, so opening the check keeps what's typed. */}
-			{(pending || practice) && <SideQuestionBox busy={sideReply} value={composer.value} onChange={composer.onChange} onSend={composer.onSend} onStop={composer.onStop} canSend={composer.canSend} attachments={composer.attachments} />}
 		</aside>
 	);
 }

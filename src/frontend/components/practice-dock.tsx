@@ -43,6 +43,10 @@ interface PracticeDockProps {
 	onDiscard?: () => void;
 	/** Stops the running turn (shown while it runs). */
 	onStop?: () => void;
+	/** A homework problem's place in the assignment, under the statement. */
+	source?: string | null;
+	/** The send button's label ("check my work" in homework). */
+	sendLabel?: string;
 }
 
 export function PracticeDock({
@@ -57,6 +61,8 @@ export function PracticeDock({
 	onSaveDraft,
 	onDiscard,
 	onStop,
+	source,
+	sendLabel = "Send",
 }: PracticeDockProps) {
 	const [thinking, setThinking] = useState(initialDraft);
 	// The ref mirrors the field: the window-level Enter reads the current trace.
@@ -114,6 +120,11 @@ export function PracticeDock({
 				>
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
+				{source && (
+					<p data-testid="practice-source" className="mt-1.5 shrink-0 text-[13px] text-ink-3">
+						{source}
+					</p>
+				)}
 				<div data-testid="practice-thinking-field" className="mt-5 flex flex-1 flex-col">
 					<AttachmentTray draft={attachments} />
 					<MathBox
@@ -132,7 +143,7 @@ export function PracticeDock({
 								<SendButton
 									type="submit"
 									testId="practice-send"
-									label={compactionRunning ? "Summarizing the lesson…" : "Send"}
+									label={compactionRunning ? "Summarizing the lesson…" : sendLabel}
 									disabled={empty || compactionRunning || busy}
 								/>
 							</>

@@ -35,13 +35,17 @@ the same idea taught in two classes is two propositions. A class file with kind
 `study` was turned into propositions (its source id is in the class graph's
 `sources.json`); a file with kind `info` (syllabus, assignments) never was.
 A class record may list `deadlines`: `{id, kind, name, date: "YYYY-MM-DD", time?,
-fileIds, done, doneAt?}`. `kind` is `exam`, `homework`, `quiz` or `project`; `time`
+fileIds, done, doneAt?, assignmentFileId?, problems?}`. `kind` is `exam`, `homework`, `quiz` or `project`; `time`
 is a 24-hour `"HH:MM"` on the learner's own clock (absent means due at the end of
 that day); `fileIds` are the class files it covers; `doneAt` is the ISO time it was
-ticked done. A class record may list `removedFiles`: `{id, name, at}` for files
+ticked done. Homework and projects may name the class file with their problems
+(`assignmentFileId`) and list `problems`: `{number, title, text, page?, done}`, where
+`done` means the teacher marked the learner's own work right in a homework lesson
+(chat `kind: "homework"`). A class record may list `removedFiles`: `{id, name, at}` for files
 that left it in the last 14 days (gone from the linked folder, or removed by hand).
-Class records are stamped `"version": 6` (v3: deadlines replaced exams; v4:
-`signature` and `note`; v5: `rules`; v6: `removedFiles`). A version-2 record lists `exams`
+Class records are stamped `"version": 7` (v3: deadlines replaced exams; v4:
+`signature` and `note`; v5: `rules`; v6: `removedFiles`; v7: `assignmentFileId` and
+`problems` on deadlines). A version-2 record lists `exams`
 instead (`{id, name, date, fileIds}`), which read as deadlines of kind `exam`, not
 done; an unstamped or version-1 record has neither.
 
@@ -64,7 +68,7 @@ Each `chats/*.json` file is an object with:
 | --- | --- |
 | `id`, `title` | Stable session identity and user-visible name |
 | `createdAt`, `updatedAt` | ISO date strings for the session, not a date for every idea |
-| `kind` | `study`, `talk`, or (older lessons) `teach` or `practice`; absent means `teach` |
+| `kind` | `study`, `homework`, `talk`, or (older lessons) `teach` or `practice`; absent means `teach` |
 | `version` | Format stamp; absent means v1 |
 | `messages` | Complete stored chronological history, including custom app markers |
 | `tree` | Optional session plan: nodes, prerequisite edges, revision number |
@@ -171,6 +175,7 @@ recall/explain response: the teacher's subsequent prose is its interpretation.
 | `graph-context` | Picked propositions/chains supplied as session context; app-injected, not learner speech |
 | `class-context` | The class card shown at the start of a class lesson; app-injected |
 | `today-context` | Today's date and the class's open deadlines, given to the teacher only; app-injected |
+| `homework-context` | A homework lesson's deadline, assignment file and posted problems, given to the teacher only; app-injected |
 | `plan-block` | Historical plan presentation snapshot in `details.block` |
 | `subagent-steer` | Delivered teaching artifact; `details.kind` and `details.result` identify the payload |
 | `subagent-abort` | Background work was aborted; no result should be invented |

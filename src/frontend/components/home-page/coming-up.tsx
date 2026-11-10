@@ -7,6 +7,7 @@ import { deadlineHref, percent } from "@/frontend/components/overview/runway-mod
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { useHoverBar } from "@/frontend/components/ui/hover-bar";
+import { DoneBar } from "@/frontend/components/ui/done-bar";
 import { readyBlocks } from "./home-page-model";
 
 /** A bar fills in 400 ms, a block at a time. */
@@ -14,7 +15,8 @@ const BLOCK_STEP_MS = 40;
 
 /**
  * COMING UP (Home): the open deadlines after the one due next, soonest
- * first. A row: a 10-block ready bar (deadlines with files), the name, the
+ * first. A row: a 10-block ready bar (deadlines with files), or for
+ * homework with problems a done bar and "2/7", the name, the
  * class (when more than one class has deadlines) and the live countdown.
  * A row opens its deadline's page.
  */
@@ -43,7 +45,7 @@ export const ComingUp = memo(function ComingUp({
 				<ul ref={hover.ref} onPointerOver={hover.onPointerOver} onPointerLeave={hover.onPointerLeave} className="relative flex flex-col">
 					{hover.bar}
 					{deadlines.map((d) => (
-						<Row key={d.id} deadline={d} ready={progress.get(d.id)?.ready ?? null} showClass={manyClasses} leaving={leaving.has(d.id)} fixedNow={fixedNow} />
+						<Row key={d.id} deadline={d} ready={progress.get(d.id)?.ready ?? null} problems={progress.get(d.id)?.problems} showClass={manyClasses} leaving={leaving.has(d.id)} fixedNow={fixedNow} />
 					))}
 				</ul>
 			)}
@@ -51,11 +53,34 @@ export const ComingUp = memo(function ComingUp({
 	);
 });
 
-function Row({ deadline: d, ready, showClass, leaving, fixedNow }: { deadline: OpenDeadline; ready: number | null; showClass: boolean; leaving: boolean; fixedNow?: number }) {
+function Row({
+	deadline: d,
+	ready,
+	problems,
+	showClass,
+	leaving,
+	fixedNow,
+}: {
+	deadline: OpenDeadline;
+	ready: number | null;
+	problems: DeadlineProgress["problems"];
+	showClass: boolean;
+	leaving: boolean;
+	fixedNow?: number;
+}) {
 	return (
 		<li data-testid={`coming-up-row-${d.id}`} data-halley-target={`deadline:${d.id}`} className={cn("transition-opacity duration-[var(--lh-dur)]", leaving && "pointer-events-none opacity-0")}>
 			<Link href={deadlineHref(d.id)} prefetch={false} data-row="" className="relative flex h-[34px] items-center gap-4 px-2 text-base">
-				<ReadyBar ready={ready} />
+				{problems ? (
+					<span className="flex w-[88px] shrink-0 items-center gap-1.5">
+						<DoneBar done={problems.done} total={problems.total} className="gap-px" blockClassName="h-2.5 w-1" />
+						<span aria-hidden className="text-[12px] text-ink-2 tabular-nums">
+							{problems.done}/{problems.total}
+						</span>
+					</span>
+				) : (
+					<ReadyBar ready={ready} />
+				)}
 				<span title={d.name} className="min-w-0 flex-1 truncate text-ink">
 					{d.name}
 				</span>

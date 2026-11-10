@@ -399,7 +399,7 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"list_lessons",
 		{
 			title: "List lessons",
-			description: "List the learner's lessons, newest first, each with its class and kind (study; older ones teach or practice). total says how many match.",
+			description: "List the learner's lessons, newest first, each with its class and kind (study or homework; older ones teach or practice). total says how many match.",
 			inputSchema: z.object({
 				class_id: z.string().optional().describe('Only the lessons of this class (from list_classes), or "none" for lessons without a class. Leave it out for all lessons.'),
 				limit: z.number().int().min(1).max(200).optional().describe("Most lessons to return (default 20)."),
@@ -643,6 +643,7 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 						file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
 						left_out_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.leftOutFiles),
 						source: z.string().optional().describe(CLASS_ARG_TEXT.source),
+						assignment_file_id: z.string().optional().describe(CLASS_ARG_TEXT.assignmentFile),
 					}),
 				)
 				.min(1),
@@ -657,6 +658,7 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 			file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
 			left_out_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.leftOutFiles),
 			source: z.string().nullable().optional().describe(CLASS_ARG_TEXT.source),
+			assignment_file_id: z.string().nullable().optional().describe(CLASS_ARG_TEXT.assignmentFile),
 			done: z.boolean().optional(),
 		}), annotations: SETS }, async (args) => reply(await actions.update_class_deadline(args)));
 	server.registerTool("remove_class_deadline", { title: "Remove a class deadline", description: CLASS_TOOL_TEXT.remove_class_deadline, inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_class_deadline(args)));

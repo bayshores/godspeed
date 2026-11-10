@@ -403,6 +403,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 						classNameOf={classNameOf}
 						ask={ask}
 						onAsked={onAsked}
+						inLesson={lesson !== null}
 					/>
 				</PanelPortal>
 			)}

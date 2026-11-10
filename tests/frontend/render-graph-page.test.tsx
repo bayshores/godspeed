@@ -1,7 +1,8 @@
 /**
- * The topic Graph page: static renders of both right
- * panels over a fixture ProgressPayload, and keyboard access to the map's
- * topics (Tab-focusable, focus shows the tooltip, Enter/Space select).
+ * The Graph page: the level columns, the right side's panes (the next
+ * deadline, work on next, the picked topic, the picked fact) over a
+ * fixture ProgressPayload, keyboard access to topics, and the screen's
+ * load failure.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,9 +13,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { GraphBody } from "../../src/frontend/components/graph/graph-body.tsx";
-import { WherePanel } from "../../src/frontend/components/graph/where-panel.tsx";
-import { TopicPanel } from "../../src/frontend/components/graph/topic-panel.tsx";
-import { TopicMap } from "../../src/frontend/components/graph/topic-map.tsx";
+import { DeadlinePane, WorkOnNextPane } from "../../src/frontend/components/graph/side-panes.tsx";
+import { TopicPane } from "../../src/frontend/components/graph/topic-pane.tsx";
+import { FactPane, type FactSources } from "../../src/frontend/components/graph/fact-pane.tsx";
+import { LevelColumns } from "../../src/frontend/components/graph/level-columns.tsx";
 import { GraphTopBar } from "../../src/frontend/components/graph/graph-top-bar.tsx";
 import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
@@ -23,143 +25,187 @@ import { fixture } from "../graph-fixture.ts";
 
 const noop = () => {};
 const count = (html: string, needle: string) => html.split(needle).length - 1;
+const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) => (
+	<GraphBody data={fixture()} query="" sources={null} studying={false} studyError={null} onStudy={noop} onStudyDeadline={noop} onPractice={noop} {...over} />
+);
 
-describe("Where you're at (nothing selected)", () => {
+describe("the level columns", () => {
 	const data = fixture();
-	const html = renderToStaticMarkup(
-		<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onStudy={noop} onHide={noop} slideIn={false} studying={false} studyError={null} />,
-	);
+	const html = renderToStaticMarkup(body());
 
-	it("shows the deadline picker, the countdown, its date and files", () => {
-		assert.ok(html.includes('data-testid="deadline-picker"'));
-		assert.ok(html.includes("Midterm 1"));
-		assert.ok(html.includes("9 days"));
-		assert.ok(html.includes("Thu Nov 5, covers 2 files"));
+	it("one pane per level, named from start to advanced, each topic a row with a square per fact", () => {
+		assert.equal(count(html, 'data-testid="level"'), 3);
+		assert.match(html, />level 1, start here</);
+		assert.match(html, />level 2</);
+		assert.match(html, />level 3, advanced</);
+		assert.equal(count(html, 'data-testid="topic-row"'), 5);
+		const mini = html.slice(html.indexOf('aria-label="Minibatch noise'));
+		assert.match(mini, /^aria-label="Minibatch noise, 3\/7 right, overconfident, 6 facts"/);
+		assert.ok(!html.includes("<svg"), "no map");
 	});
 
-	it("one readiness block per deadline topic, and the four counts", () => {
+	it("topics off the picked deadline dim", () => {
+		const row = (name: string) => html.slice(html.lastIndexOf("<button", html.indexOf(`aria-label="${name},`)), html.indexOf(`aria-label="${name},`));
+		assert.match(row("Attention"), /data-dim="true"/, "Attention is not on Midterm 1");
+		assert.doesNotMatch(row("Variance"), /data-dim/);
+	});
+
+	it("a picked topic: its row pressed, what it needs marked ←, what it leads to →, the rest dim", () => {
+		const picked = renderToStaticMarkup(
+			<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inClass focus={null} selectedId="t-mini" onSelect={noop} />,
+		);
+		assert.match(picked, /aria-pressed="true"[^>]*aria-label="Minibatch noise/);
+		assert.match(picked, /aria-label="Variance, [^"]*, needed first"/);
+		assert.match(picked, /aria-label="Derivatives, [^"]*, needed first"/);
+		assert.match(picked, /aria-label="Momentum, [^"]*, comes next"/);
+		assert.equal(count(picked, 'data-testid="topic-mark"'), 3);
+		assert.match(picked.slice(picked.lastIndexOf("<button", picked.indexOf('aria-label="Attention,'))), /^<button[^>]*data-dim="true"/);
+	});
+
+	it("a search dims the topics it doesn't match", () => {
+		const searched = renderToStaticMarkup(body({ query: "momentum" }));
+		assert.equal(count(searched, 'data-dim="true"'), 4);
+	});
+
+	it("an empty class graph points to the Files page; No class doesn't", () => {
+		const empty = { ...fixture(), topics: [], topicLinks: [] };
+		const inClass = renderToStaticMarkup(body({ data: { ...empty, classId: "cls_a" } }));
+		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add files<\/a> to build your graph\./);
+		const noClass = renderToStaticMarkup(body({ data: { ...empty, classId: null } }));
+		assert.ok(noClass.includes("Start a lesson or add files to build your graph."));
+		assert.ok(!noClass.includes("/class/files"));
+	});
+});
+
+describe("the right side", () => {
+	const data = fixture();
+	const deadline = data.deadlines[0]!;
+
+	it("the next deadline sits on top: when, its date and files, readiness, and Study", () => {
+		const html = renderToStaticMarkup(
+			<DeadlinePane deadlines={data.deadlines} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
+		);
+		assert.match(html, />next</);
+		assert.ok(html.includes("Midterm 1"));
+		assert.ok(html.includes("in 9 days"));
+		assert.ok(html.includes("Thu Nov 5, covers 2 files"));
 		const bar = html.slice(html.indexOf('data-testid="readiness"'));
 		assert.equal(count(bar.slice(0, bar.indexOf("</div>")), "<span"), 3);
-		assert.ok(html.includes("not tested"));
-		assert.ok(html.includes("shaky"));
+		assert.match(html, /data-testid="deadline-ready"[^>]*>0 of 3 ready</);
+		assert.match(html, /data-testid="study-deadline"[^>]*class="lh-btn lh-btn-main[\s\S]*?>study</);
 	});
 
-	it("Work on next lists the deadline's items with status lines and reasons", () => {
+	it("work on next: the counts, the deadline's topics with status lines and reasons, and Study these", () => {
+		const html = renderToStaticMarkup(<WorkOnNextPane scope={deadline} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError={null} />);
 		assert.equal(count(html, 'data-testid="work-on-next-row"'), 3);
 		assert.ok(html.includes("4/7 right"));
 		assert.ok(html.includes("3/7 right, overconfident"));
 		assert.ok(html.includes("You felt sure on most of your misses"));
-		assert.ok(html.includes("Not tested"));
-		assert.ok(html.includes("Study these 3"));
+		assert.ok(html.includes("not tested"));
+		assert.ok(html.includes("study these 3"));
 	});
 
-	it("with no deadlines: the class-wide view (no picker)", () => {
-		const none = renderToStaticMarkup(
-			<WherePanel data={{ ...data, deadlines: [] }} deadlineId={null} onDeadlineChange={noop} onSelectTopic={noop} onStudy={noop} onHide={noop} slideIn={false} studying={false} studyError={null} />,
-		);
-		assert.ok(!none.includes('data-testid="deadline-picker"'));
-		assert.ok(none.includes("Where you&#x27;re at"));
-		assert.equal(count(none, 'data-testid="work-on-next-row"'), 1);
-		assert.ok(none.includes("Study these 1"));
-	});
-});
-
-describe("Topic selected", () => {
-	const data = fixture();
-	const mini = data.topics.find((t) => t.id === "t-mini")!;
-	const html = renderToStaticMarkup(
-		<TopicPanel
-			topic={mini}
-			topics={data.topics}
-			links={data.topicLinks}
-			facts={data.facts}
-			onClose={noop}
-			onSelectTopic={noop}
-			onStudy={noop}
-			studying={false}
-			studyError={null}
-		/>,
-	);
-
-	it("names the topic in a bold title with its takeaway", () => {
-		assert.ok(/class="[^"]*font-bold[^"]*"[^>]*>Minibatch noise</.test(html));
-		assert.ok(html.includes("3 of 7 right. On 4 of the misses you picked 4 or 5, so you felt sure."));
+	it("nothing picked: the deadline pane and work on next; a topic picked: the deadline stays and the topic shows under it", () => {
+		const none = renderToStaticMarkup(body());
+		assert.ok(none.includes('data-testid="deadline-pane"') && none.includes('data-testid="work-on-next-pane"'));
+		const picked = renderToStaticMarkup(body({ initialSelected: "t-var" }));
+		assert.ok(picked.includes('data-testid="deadline-pane"'), "the deadline stays");
+		assert.ok(picked.includes('data-testid="topic-pane"'));
+		assert.ok(!picked.includes('data-testid="work-on-next-pane"'));
 	});
 
-	it("Needs first and Leads to chips", () => {
-		const needs = html.slice(html.indexOf('data-testid="needs-first"'), html.indexOf('data-testid="leads-to"'));
-		assert.ok(needs.includes("Variance") && needs.includes("Derivatives"));
-		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
-	});
-
-	it("the first four facts, Show all, and math as KaTeX", () => {
-		assert.ok(html.includes("Facts in this topic (6)"));
-		assert.equal(count(html, 'data-testid="fact-row"'), 4);
-		assert.ok(html.includes("Show all 6"));
-		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");
-		assert.ok(html.includes("Study this topic"));
-	});
-});
-
-describe("GraphBody picks the panel", () => {
-	const data = fixture();
-	it("nothing selected → Where you're at; a topic → its panel", () => {
-		const where = renderToStaticMarkup(<GraphBody data={data} query="" studying={false} studyError={null} onStudy={noop} />);
-		assert.ok(where.includes('data-testid="where-panel"'));
-		assert.equal(count(where, 'data-testid="topic-node"'), 5);
-		const picked = renderToStaticMarkup(<GraphBody data={data} query="" studying={false} studyError={null} onStudy={noop} initialSelected="t-var" />);
-		assert.ok(picked.includes('data-testid="topic-panel"'));
-	});
-
-	it("a done deadline, or one with no files, is not offered: the class-wide view", () => {
+	it("a done deadline, or one with no files, is not offered: work on next covers the class", () => {
 		const [d] = data.deadlines;
 		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
-			const html = renderToStaticMarkup(
-				<WherePanel data={{ ...data, deadlines }} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onStudy={noop} onHide={noop} slideIn={false} studying={false} studyError={null} />,
-			);
-			assert.ok(!html.includes('data-testid="deadline-picker"'));
+			const html = renderToStaticMarkup(body({ data: { ...data, deadlines } }));
+			assert.ok(!html.includes('data-testid="deadline-pane"'));
 			assert.equal(count(html, 'data-testid="work-on-next-row"'), 1);
 		}
 	});
 
-	it("topics off the picked deadline fade on the map", () => {
-		const html = renderToStaticMarkup(<GraphBody data={data} query="" studying={false} studyError={null} onStudy={noop} />);
-		const node = (id: string) => html.slice(html.indexOf(`data-topic="${id}"`), html.indexOf(`data-topic="${id}"`) + 400);
-		assert.ok(node("t-attn").includes('opacity="0.22"'), "Attention is not on Midterm 1");
-		assert.ok(node("t-var").includes('opacity="1"'));
+	it("a Study start that failed says so under the button", () => {
+		const html = renderToStaticMarkup(<WorkOnNextPane scope={deadline} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError="Couldn't start the lesson. Try again." />);
+		assert.match(html.slice(html.indexOf('data-testid="study-these"')), /data-testid="study-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
 	});
 });
 
-describe("adding notes and start errors", () => {
+describe("the picked topic", () => {
 	const data = fixture();
-	const empty = { ...data, topics: [], topicLinks: [] };
+	const mini = data.topics.find((t) => t.id === "t-mini")!;
+	const html = renderToStaticMarkup(
+		<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />,
+	);
 
-	it("an empty class graph points to the Files page; No class keeps import", () => {
-		const inClass = renderToStaticMarkup(<GraphBody data={{ ...empty, classId: "cls_a" }} query="" studying={false} studyError={null} onStudy={noop} />);
-		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add files<\/a> to build your graph\./);
-		const noClass = renderToStaticMarkup(<GraphBody data={{ ...empty, classId: null }} query="" studying={false} studyError={null} onStudy={noop} />);
-		assert.ok(noClass.includes("Start a lesson or add files to build your graph."));
-		assert.ok(!noClass.includes("/class/files"));
+	it("names the topic in the pane, with its score and takeaway", () => {
+		assert.match(html, /<h2[^>]*>Minibatch noise</);
+		assert.match(html, /data-testid="topic-score"[^>]*>3\/7 right, overconfident</);
+		assert.ok(html.includes("3 of 7 right. On 4 of the misses you picked 4 or 5, so you felt sure."));
 	});
 
-	it("the top bar's Add files opens the Files page in a class; No class picks files right there", () => {
+	it("needs first and leads to as bracket buttons", () => {
+		const needs = html.slice(html.indexOf('data-testid="needs-first"'), html.indexOf('data-testid="leads-to"'));
+		assert.ok(needs.includes("Variance") && needs.includes("Derivatives"));
+		assert.match(needs, /class="lh-btn max-w-full"/);
+		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
+	});
+
+	it("the first four facts with marks, show all, math as KaTeX, and Study", () => {
+		assert.equal(count(html, 'data-testid="fact-row"'), 4);
+		assert.ok(html.includes("show all 6"));
+		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");
+		assert.match(html, /aria-label="Last answer wrong"/);
+		assert.match(html, /data-testid="study-topic"[\s\S]*?study Minibatch noise/);
+		assert.ok(!html.includes("lucide"), "no icons from the old look");
+	});
+});
+
+describe("the picked fact", () => {
+	const data = fixture();
+	const f6 = data.facts.find((f) => f.id === "f6")!;
+	const sources: FactSources = {
+		chains: [
+			{ premises: ["f3", "f4"], conclusion: "f6" },
+			{ premises: ["f6"], conclusion: "f9" },
+		],
+		fileSources: { src_a: "/Users/me/cse/lecture 5.pdf" },
+		sessions: { "chat-1": "Study: Minibatch noise" },
+	};
+	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) =>
+		renderToStaticMarkup(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onOpenFact={noop} onPractice={noop} studying={false} studyError={null} {...over} />);
+
+	it("what it says, its answers, where it came from, what it builds on and leads to, and Practice", () => {
+		const html = pane();
+		assert.match(html, /data-testid="fact-pane-back"[\s\S]*?Minibatch noise/);
+		assert.match(html, /data-testid="fact-statement" class="lh-prose"/);
+		assert.match(html, /1 of 2 right, last /);
+		assert.match(html, /from the lesson Study: Minibatch noise/);
+		assert.match(html, /data-testid="fact-source-open"[^>]*href="\/chat\/chat-1"/);
+		const builds = html.slice(html.indexOf('data-testid="builds-on"'), html.indexOf('data-testid="fact-leads-to"'));
+		assert.ok(builds.includes("Variance adds") && builds.includes("Variance scales"));
+		assert.ok(html.slice(html.indexOf('data-testid="fact-leads-to"')).includes("Batch size and learning rate"));
+		assert.match(html, /data-testid="practice-fact"[\s\S]*?practice this fact/);
+	});
+
+	it("a fact from a class file names the file", () => {
+		const html = pane({ fact: { ...f6, born: "src_a" } });
+		assert.match(html, /from lecture 5\.pdf/);
+	});
+
+	it("before the graph loads: no source or links, the rest shows", () => {
+		const html = pane({ sources: null });
+		assert.ok(!html.includes("fact-source") && !html.includes("builds-on"));
+		assert.ok(html.includes("practice this fact"));
+	});
+});
+
+describe("the top bar", () => {
+	it("Add files opens the Files page in a class; No class picks files right there", () => {
 		const inClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={null} />);
 		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add files<\/a>/);
 		assert.ok(!inClass.includes("import-notes"));
-		const noClass = renderToStaticMarkup(
-			<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />,
-		);
+		const noClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />);
 		assert.ok(noClass.includes('data-testid="import-notes"'));
 		assert.ok(!noClass.includes("add-notes"));
-	});
-
-	it("a Study start that failed says so under the panel button", () => {
-		const html = renderToStaticMarkup(
-			<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onStudy={noop} onHide={noop} slideIn={false} studying={false} studyError="Couldn't start the lesson. Try again." />,
-		);
-		const after = html.slice(html.indexOf('data-testid="study-these"'));
-		assert.match(after, /data-testid="study-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
-		assert.ok(!renderToStaticMarkup(<WherePanel data={data} deadlineId="ex-1" onDeadlineChange={noop} onSelectTopic={noop} onStudy={noop} onHide={noop} slideIn={false} studying={false} studyError={null} />).includes("study-start-error"));
 	});
 });
 
@@ -203,59 +249,23 @@ function fire(el: Element, type: string, init: Record<string, unknown> = {}) {
 	el.dispatchEvent(event);
 }
 
-describe("keyboard access to topics", () => {
-	it("topics are tab stops in map order; focus shows the tooltip; Enter and Space select", async () => {
-		const data = fixture();
-		const picked: (string | null)[] = [];
+describe("picking in the page", () => {
+	it("a topic row picks the topic; a fact opens it; Escape closes the fact, then the topic", async () => {
 		host = document.createElement("div");
 		document.body.append(host);
 		root = createRoot(host);
-		await act(async () =>
-			root!.render(<TopicMap topics={data.topics} links={data.topicLinks} inClass focus={null} selectedId={null} onSelect={(id) => picked.push(id)} />),
-		);
-		const nodes = [...host.querySelectorAll('[data-testid="topic-node"]')];
-		assert.equal(nodes.length, 5);
-		for (const n of nodes) assert.equal(n.getAttribute("tabindex"), "0");
-		assert.equal(nodes[0]!.getAttribute("role"), "button");
-		// Left to right: the foundations come first, Momentum/Attention last.
-		assert.deepEqual(
-			nodes.map((n) => n.getAttribute("data-topic")).slice(0, 2).sort(),
-			["t-deriv", "t-var"],
-		);
-		const mini = host.querySelector('[data-topic="t-mini"]')!;
-		assert.match(mini.getAttribute("aria-label")!, /Minibatch noise, 3 of 7 right, overconfident, 6 facts/);
-
-		const faded = () => nodes.filter((n) => n.getAttribute("opacity") === "0.22").length;
-		await act(async () => fire(mini, "focusin"));
-		assert.equal(host.querySelector('[data-testid="topic-tooltip"]'), null, "no floating box");
-		assert.match(host.querySelector('[data-testid="topic-links-hover"]')!.textContent!, /needs/, "its arrows are labeled");
-		assert.ok(mini.querySelector('[data-testid="topic-answer-strip"]'), "its last answers show under the score");
-		assert.ok(faded() > 0, "topics it isn't linked to fade");
-
-		await act(async () => fire(mini, "keydown", { key: "Enter" }));
-		await act(async () => fire(mini, "keydown", { key: " " }));
-		assert.deepEqual(picked, ["t-mini", "t-mini"]);
-
-		await act(async () => fire(mini, "focusout"));
-		assert.equal(host.querySelector('[data-testid="topic-answer-strip"]'), null, "blur hides the strip");
-		assert.equal(faded(), 0, "and brings every topic back");
-	});
-});
-
-describe("hiding Where you're at", () => {
-	it("folds the panel to a strip that opens it again (sliding in)", async () => {
-		const data = fixture();
-		host = document.createElement("div");
-		document.body.append(host);
-		root = createRoot(host);
-		await act(async () => root!.render(<GraphBody data={data} query="" studying={false} studyError={null} onStudy={noop} />));
+		await act(async () => root!.render(body()));
 		const q = (id: string) => host!.querySelector<HTMLElement>(`[data-testid="${id}"]`);
-		assert.doesNotMatch(q("where-panel")!.getAttribute("class")!, /lh-slide-in/, "no slide on the first paint");
-		await act(async () => q("where-panel-hide")!.click());
-		assert.equal(q("where-panel"), null);
-		await act(async () => q("where-panel-show")!.click());
-		assert.match(q("where-panel")!.getAttribute("class")!, /lh-slide-in/);
-		assert.equal(q("where-panel-show"), null);
+		const rows = [...host.querySelectorAll<HTMLButtonElement>('[data-testid="topic-row"]')];
+		for (const r of rows) assert.equal(r.tagName, "BUTTON", "each topic is a tab stop");
+		await act(async () => rows.find((r) => r.getAttribute("aria-label")!.startsWith("Minibatch noise"))!.click());
+		assert.ok(q("topic-pane"));
+		await act(async () => q("fact-row")!.click());
+		assert.ok(q("fact-pane"));
+		await act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
+		assert.ok(q("topic-pane") && !q("fact-pane"), "back to the topic");
+		await act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
+		assert.ok(q("work-on-next-pane") && !q("topic-pane"));
 	});
 });
 
@@ -267,19 +277,7 @@ describe("the deadline picker's menu", () => {
 		document.body.append(host);
 		root = createRoot(host);
 		await act(async () =>
-			root!.render(
-				<WherePanel
-					data={{ ...data, deadlines: [data.deadlines[0]!, long] }}
-					deadlineId="ex-1"
-					onDeadlineChange={noop}
-					onSelectTopic={noop}
-					onStudy={noop}
-					onHide={noop}
-					slideIn={false}
-					studying={false}
-					studyError={null}
-				/>,
-			),
+			root!.render(<DeadlinePane deadlines={[data.deadlines[0]!, long]} deadline={data.deadlines[0]!} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />),
 		);
 		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
 		const menu = document.querySelector('[data-testid="deadline-picker-menu"]')!;

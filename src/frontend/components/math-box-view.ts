@@ -237,7 +237,7 @@ const theme = EditorView.theme(
 	{ dark: true },
 );
 
-/** The one-line box under a waiting question (the side question): the
+/** The one-line box under the reading pane (the lesson box): the
  *  smaller type and padding of that row. */
 const compactTheme = EditorView.theme({
 	".cm-scroller": { fontSize: "14px", lineHeight: "20px" },

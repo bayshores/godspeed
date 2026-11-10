@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DEFAULT_TEACHER_NAME, planDays } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog } from "@/frontend/components/class-dialog";
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { dueLabel } from "@/frontend/components/class-deadlines-model";
 import { useMinute } from "@/frontend/components/countdown";
-import { useClassRecord } from "@/frontend/components/files/class-files-api";
+import { classFilePathOf, useClassRecord } from "@/frontend/components/files/class-files-api";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { askTeacher } from "@/frontend/components/halley/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
@@ -18,6 +18,7 @@ import { TopBar } from "@/frontend/components/app-bar";
 import { pathLabel } from "@/frontend/components/app-bar-model";
 import { useProgress } from "@/frontend/components/use-progress";
 import { DeadlineBody } from "./deadline-body";
+import { HomeworkCard } from "./homework-card";
 import { coverageMessage, deadlineMaterial } from "./deadline-model";
 
 /**
@@ -55,14 +56,8 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		() => (record && saved ? deadlineMaterial(record.files, saved, record.deadlines ?? [], current?.files ?? []) : null),
 		[record, saved, current?.files],
 	);
-	// Add puts files on the deadline; Leave out marks them as not on it.
-	const saveFiles = useCallback(
-		async (fileIds: string[], add: boolean) => {
-			if (!saved) return;
-			const ids = new Set(fileIds);
-			const patch = add
-				? { fileIds: [...saved.fileIds, ...fileIds.filter((id) => !saved.fileIds.includes(id))], leftOutIds: (saved.leftOutIds ?? []).filter((id) => !ids.has(id)) }
-				: { leftOutIds: [...(saved.leftOutIds ?? []), ...fileIds] };
+	const save = useCallback(
+		async (patch: Record<string, unknown>) => {
 			setSaving(true);
 			setSaveError(null);
 			try {
@@ -79,11 +74,34 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				setSaving(false);
 			}
 		},
-		[saved, classId, deadlineId, reload, refresh],
+		[classId, deadlineId, reload, refresh],
+	);
+	// Add puts files on the deadline; Leave out marks them as not on it.
+	const saveFiles = useCallback(
+		(fileIds: string[], add: boolean) => {
+			if (!saved) return;
+			const ids = new Set(fileIds);
+			void save(
+				add
+					? { fileIds: [...saved.fileIds, ...fileIds.filter((id) => !saved.fileIds.includes(id))], leftOutIds: (saved.leftOutIds ?? []).filter((id) => !ids.has(id)) }
+					: { leftOutIds: [...(saved.leftOutIds ?? []), ...fileIds] },
+			);
+		},
+		[saved, save],
 	);
 	const plan = useMemo(() => (current && deadline ? planDays(current.today, deadline.date, deadline.topics) : []), [current, deadline]);
 
-	const { studyDeadline } = lesson;
+	const { studyDeadline, workOnHomework } = lesson;
+	const assignmentId = saved?.assignmentFileId;
+	const openAssignment = useMemo(() => {
+		const desktop = typeof window !== "undefined" ? window.lh : undefined;
+		const file = record?.files.find((f) => f.id === assignmentId);
+		if (!file || !desktop) return undefined;
+		const open = /\.pdf$/i.test(file.name) ? desktop.openPath : desktop.showInFolder;
+		return open && (() => void classFilePathOf(classId, file.id).then((path) => {
+				if (path) void open(path);
+			}));
+	}, [record, assignmentId, classId]);
 	const onStart = useCallback(() => {
 		if (deadline) void studyDeadline(deadline);
 	}, [deadline, studyDeadline]);
@@ -131,9 +149,25 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						teacherName={teacherName}
 						saving={saving}
 						onAsk={onAsk}
-						onAdd={(ids) => void saveFiles(ids, true)}
-						onLeaveOut={(ids) => void saveFiles(ids, false)}
+						onAdd={(ids) => saveFiles(ids, true)}
+						onLeaveOut={(ids) => saveFiles(ids, false)}
 						onCheatSheet={() => router.push(studioPath(deadlineId))}
+						homework={
+							hasProblems(deadline.kind) && (
+								<HomeworkCard
+									deadline={deadline}
+									problems={saved?.problems ?? []}
+									files={record?.files ?? []}
+									assignmentId={assignmentId}
+									busy={lesson.busy}
+									saving={saving}
+									onWork={() => void workOnHomework(deadline)}
+									onPickAssignment={(id) => void save({ assignmentFileId: id })}
+									onOpenAssignment={openAssignment}
+									onMarkDone={(done) => void save({ done })}
+								/>
+							)
+						}
 					/>
 				) : error ? (
 					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} className="px-[52px] py-6" />
