@@ -520,7 +520,6 @@ The client learns about server-side change by **push**, not polling: exactly one
 | `classes-changed` | `{}` | a class was created, edited, archived or deleted, or its files changed |
 | `agent-changed` | `{}` | the outside agent checked in or went quiet, or a request started or stopped waiting for it |
 | `record-changed` | `{chatId}` | a chat record changed without a turn: a dismissal, an answer that leaves a sibling question open, or a finished compaction |
-| `compaction-changed` | `{chatId, running}` | a compaction started or finished; `running: true` blocks sending |
 | `agent-action` | the action | a new line in the activity log: an outside agent, the app or the learner changed something (`src/backend/server/agent-actions.ts`, saved in `data/agent-actions.json`) |
 | `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`src/backend/server/agent-rules.ts`); `saved` carries the rule when an outside agent saved it from the terminal |
 | `files-added` | `{classId, files}` | a linked folder scan added new files (`triageNewFiles` in `src/backend/server/classes.ts`); the window shows a notice |

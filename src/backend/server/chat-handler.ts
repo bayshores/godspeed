@@ -184,14 +184,12 @@ export async function handleChatInput(
 	// agent queue until one polls (the UI shows "Waiting for your agent").
 	const effective = effectiveSettings();
 
-	// THE COMPACTION GATE: NOTHING model-facing for this chat interleaves
-	// with a running compaction. Await any in-flight compaction (the settle
-	// kick usually finished inside the learner's answer pause), and if the
-	// record is STILL over threshold, compact synchronously — this request
-	// waits. Skipped under tests (the extraction precedent). It runs BEFORE
-	// appends and beginTurn, so it has no liveness effects, and the record
-	// re-reads after because compaction appends the marker.
-	await ensureCompacted(compactionDeps(record), chatId);
+	// THE COMPACTION GATE: a record still over the threshold is shortened
+	// now, at once (no model). Skipped under tests (the extraction
+	// precedent: scripted chats are fixtures). It runs BEFORE appends and
+	// beginTurn, so it has no liveness effects, and the record re-reads
+	// after because shortening appends the marker.
+	if (process.env.NODE_ENV !== "test") ensureCompacted(compactionDeps(record), chatId);
 
 	// The agent engine loads on the first turn, not at server start; loaded
 	// before the turn is claimed so nothing awaits between beginTurn and registerTurn.
@@ -571,15 +569,10 @@ export async function handleChatInput(
 				// ones stay parked for the chat's next run (the registry is the
 				// stranding safety net — the agent's undrained copy died above).
 				reconcileUserSteers(chatId, stamped);
-				// THE SETTLE KICK: the turn settled — if the
-				// projection is now over threshold, the summary starts in the
-				// background, INSIDE the learner's reading/answering pause
-				// (question/problem poses end runs, so this moment is always a
-				// between-runs window). The next turn's ensureCompacted gate
-				// awaits whatever this leaves running; a lost engine or a
-				// beneath-threshold record is a silent no-op. Skipped under
-				// tests (the extraction precedent — scripted chats are
-				// fixtures; the service itself is pinned directly).
+				// THE SETTLE KICK: the turn settled — a lesson now over the
+				// threshold is shortened at once, and the quiet wait for the
+				// model's summary starts again. Skipped under tests (the
+				// extraction precedent; the service itself is pinned directly).
 				if (process.env.NODE_ENV !== "test")
 					kickCompaction(() => {
 						const fresh = stores.chatStore.getChat(chatId);

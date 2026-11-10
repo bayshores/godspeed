@@ -50,14 +50,13 @@ export function lessonWaiting(chat: ChatListItem): boolean {
 
 /** The age slot's text. */
 function sessionMeta(chat: ChatListItem): string {
-	if (chat.compacting) return "Summarizing…";
 	if (chat.busy) return "Working…";
 	return shortAgo(chat.updatedAt);
 }
 
 /** The age on the row's right: a spinner while working, white while waiting. */
 function MetaLine({ chat }: { chat: ChatListItem }) {
-	const working = chat.busy || chat.compacting;
+	const working = chat.busy;
 	const waiting = !working && lessonWaiting(chat);
 	return (
 		<span data-waiting={waiting || undefined} className={cn("flex shrink-0 items-center gap-1.5 text-xs", waiting ? "text-tint" : "text-ink-3")}>
@@ -94,7 +93,7 @@ export const SessionRow = memo(function SessionRow({
 	menuOpen = false,
 	fresh = false,
 }: SessionRowProps) {
-	const waiting = !(chat.busy || chat.compacting) && lessonWaiting(chat);
+	const waiting = !chat.busy && lessonWaiting(chat);
 	return (
 		<div className="group relative">
 			<Tip

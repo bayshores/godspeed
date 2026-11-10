@@ -94,7 +94,6 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			busy={false}
 			waitingForAgent={false}
 			onNext={() => {}}
-			compacting={false}
 			stats={null}
 			{...over}
 		/>,
@@ -166,7 +165,6 @@ describe("the Your-turn panel's states", () => {
 				busy={false}
 				waitingForAgent={false}
 				onNext={() => {}}
-				compacting={false}
 				stats={null}
 				{...over}
 			/>
@@ -260,7 +258,6 @@ describe("the Your-turn panel's states", () => {
 								busy={false}
 								waitingForAgent={false}
 								onNext={() => {}}
-								compacting={false}
 				stats={null}
 				{...over}
 			/>
@@ -442,7 +439,6 @@ describe("the reading pane's waiting and error states", () => {
 				status="submitted"
 				busy
 				turnInFlight={false}
-				compacting={false}
 				waitingForAgent={false}
 				error={null}
 				onRetry={() => {}}

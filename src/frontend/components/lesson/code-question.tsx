@@ -31,7 +31,6 @@ export function CodeQuestion({
 	initialDraft,
 	onSaveDraft,
 	onSkip,
-	compactionRunning = false,
 	busy = false,
 	waitingForAgent = false,
 	footer,
@@ -44,7 +43,6 @@ export function CodeQuestion({
 	/** Called on every change, so the code survives leaving the lesson. */
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
 	onSkip?: () => void;
-	compactionRunning?: boolean;
 	busy?: boolean;
 	waitingForAgent?: boolean;
 	footer?: React.ReactNode;
@@ -65,7 +63,7 @@ export function CodeQuestion({
 	}, [code, dontKnow, thinking, starter]);
 
 	const submit = () => {
-		if (!canSubmit || compactionRunning || busy) return;
+		if (!canSubmit || busy) return;
 		void onSubmit(buildCodeAnswer(input, { code, dontKnow, thinking }, toolName), []);
 	};
 	// Enter outside the editor and the fields submits, like every question.
@@ -129,8 +127,8 @@ export function CodeQuestion({
 							<SendButton
 								type="submit"
 								testId="question-submit"
-								label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-								disabled={!canSubmit || compactionRunning || busy}
+								label="Submit answer"
+								disabled={!canSubmit || busy}
 							/>
 						}
 					/>

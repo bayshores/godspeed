@@ -27,7 +27,6 @@ function item(overrides: Partial<ChatListItem>): ChatListItem {
 		pendingQuestion: false,
 		pendingProblem: false,
 		busy: false,
-		compacting: false,
 		...overrides,
 	};
 }
@@ -72,12 +71,6 @@ describe("SessionRow", () => {
 		assert.ok((html.match(/class="braille-frame"/g) ?? []).length === 10, "all ten frames");
 		assert.ok(html.includes("Working…"), "working meta");
 		assert.ok(!html.includes("data-waiting"), "working wins over waiting");
-	});
-
-	it("compacting has priority over waiting", () => {
-		const html = render(item({ compacting: true, pendingQuestion: true }));
-		assert.match(html, /Summarizing…/);
-		assert.ok(!html.includes("data-waiting"));
 	});
 
 	it("the meta line is the short age; the message count stays dropped", () => {

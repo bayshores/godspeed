@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Chat } from "@/frontend/components/chat";
-import { compactionInFlight, getChat, homeworkView, isTurnRunning, turnFailure } from "@/backend/server";
+import { getChat, homeworkView, isTurnRunning, turnFailure } from "@/backend/server";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,6 @@ export default async function ChatPage({
 			// A teacher turn that outlived its client: the remounted view must
 			// attach (busy shimmer + poll), never resurrect the stale record.
 			initiallyInFlight={isTurnRunning(chat.id)}
-			initiallyCompacting={compactionInFlight(chat.id)}
 		/>
 	);
 }

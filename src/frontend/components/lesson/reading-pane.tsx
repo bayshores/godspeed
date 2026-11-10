@@ -34,7 +34,6 @@ export function ReadingPane({
 	status,
 	busy,
 	turnInFlight,
-	compacting,
 	waitingForAgent,
 	error,
 	onRetry,
@@ -49,7 +48,6 @@ export function ReadingPane({
 	status: "ready" | "submitted" | "streaming" | "error";
 	busy: boolean;
 	turnInFlight: boolean;
-	compacting: boolean;
 	/** The turn waits for an agent to take it: one waiting state instead of Thinking…. */
 	waitingForAgent: boolean;
 	error: { message: string } | null;
@@ -91,14 +89,6 @@ export function ReadingPane({
 							onOpenPlan={onOpenPlan}
 						/>
 					))}
-					{/* Compaction holds the model gate: a visible session-wide state,
-					    never at the same time as the Thinking placeholder. */}
-					{compacting && (
-						<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
-							<BrailleSpinner label="Summarizing the lesson" />
-							<Shimmer>Summarizing the lesson…</Shimmer>
-						</ArrivalRow>
-					)}
 					{/* From the instant of any action that produces tokens until the
 					    turn's first applied event (the stream then renders its own
 					    thinking row with the same look). */}

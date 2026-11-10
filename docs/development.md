@@ -223,7 +223,7 @@ data/                           runtime state, git-ignored:
 ## Key mechanisms
 
 See [compaction and accounting](compaction-accounting.md) for the local Pi cutoff port
-and the measurement-only context meter. Lessons are summarized past `compaction.thresholdTokens` (default 40,000; Settings → General shows it in pages). Every call runs on the outside agent, which
+and the measurement-only context meter. Lessons are shortened past `compaction.thresholdTokens` (default 40,000; Settings → General shows it in pages): godspeed cuts the old part at once with its own short version (`localSummary`), so nobody waits, and the agent's written summary replaces that version after 5 quiet minutes (`refine` in `src/backend/server/compaction.ts`). Every call runs on the outside agent, which
 bills the learner's own plan, so nothing has a dollar price: the app only counts tokens.
 
 **The outside agent is the only model.** `src/backend/agent/models.ts` (`agentEngine`) parks every model request (lesson turns, helper jobs, extraction, topic grouping) as a work item in `src/backend/agent/agent-bridge.ts`. The connected agent takes it with `wait_for_work` and answers with `respond` (`src/backend/server/mcp.ts`). If no agent is teaching, the work waits. Any MCP request in the last 3 minutes counts as connected; only `wait_for_work`, `respond` and `read_work` count as teaching, and the teacher pane and Settings → Connection show "connected, not teaching" when only the first holds. Access needs the token in `data/mcp-token` and a local, non-browser request. Details:

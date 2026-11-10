@@ -4,8 +4,8 @@ import type { ChatListItem } from "@/shared/core";
 
 /**
  * THE LESSON LIST'S DATA: the /api/chats snapshot, kept fresh by events
- * (no poll). chats-changed / turn-started / turn-settled /
- * compaction-changed refetch on a 250ms trailing debounce; a resync
+ * (no poll). chats-changed / turn-started / turn-settled
+ * refetch on a 250ms trailing debounce; a resync
  * refetches at once. Two same-tab instants patch the snapshot without a
  * round trip: lh:chat-renamed (a header rename) and lh:turn-state (the
  * open lesson's turn starting or settling). Rows that arrive after the
@@ -94,7 +94,6 @@ export function useLessonList(open: boolean, pathname: string) {
 	useServerEvent("chats-changed", scheduleRefresh);
 	useServerEvent("turn-started", scheduleRefresh);
 	useServerEvent("turn-settled", scheduleRefresh);
-	useServerEvent("compaction-changed", scheduleRefresh);
 	useServerResync(() => void refreshRef.current());
 	useEffect(
 		() => () => {

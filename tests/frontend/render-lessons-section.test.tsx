@@ -54,7 +54,6 @@ const LESSON: ChatListItem = {
 	pendingQuestion: false,
 	pendingProblem: false,
 	busy: false,
-	compacting: false,
 };
 
 let root: Root | null = null;

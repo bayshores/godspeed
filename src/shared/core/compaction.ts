@@ -22,6 +22,11 @@
  * for messages appended after that anchor; the heuristic alone runs
  * only when no usage exists yet.
  *
+ * Two steps, so a turn never waits on a summary: past the threshold godspeed
+ * shortens the record itself at once (localSummary: the plan, then the older
+ * messages cut short, oldest dropped first), and once the lesson has been
+ * quiet the session's model writes the real summary in its place.
+ *
  * Summary content: the learner's understanding and its EVOLUTION (quiz outcomes, confidence,
  * misconceptions — a detailed picture of what the user knows), the
  * teaching arc / session progression, and the plan dependency tree
@@ -259,6 +264,8 @@ export interface CompactionDetails {
 	model?: string;
 	/** ISO timestamp of the compaction moment. */
 	at: string;
+	/** godspeed's own shortening, waiting for the model's summary to replace it. */
+	local?: boolean;
 }
 
 /** Build the compaction marker. Content is the FULL model-facing text
@@ -312,6 +319,11 @@ export function keptIndexFor(messages: readonly LhMessage[], marker: LhMarkerMes
  * results truncate at ~2k chars (the kept tail carries them verbatim for
  * the model; the SUMMARY only needs their gist). */
 export function serializeForSummary(messages: readonly LhMessage[]): string {
+	return summaryLines(messages).join("\n\n");
+}
+
+/** serializeForSummary's entries, one per message. */
+function summaryLines(messages: readonly LhMessage[]): string[] {
 	const lines: string[] = [];
 	for (const m of messages) {
 		const role = (m as { role?: string }).role;
@@ -341,7 +353,48 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 			lines.push(`[SYSTEM NOTE] ${[marker.content, ...(marker.attachments ? [contentText(marker.attachments)] : [])].join("\n")}`);
 		}
 	}
-	return lines.join("\n\n");
+	return lines;
+}
+
+/** A message in godspeed's own shortening is cut to this many characters. */
+const LOCAL_LINE_CHARS = 600;
+/** godspeed's own shortening stays under this (about 6k tokens). */
+const LOCAL_SUMMARY_CHARS = 24_000;
+
+/** godspeed's own shortening of a span, written at once and without a model:
+ *  the plan, the summary before it, then each message cut short, the oldest
+ *  dropped first when they don't all fit. */
+export function localSummary(input: { span: readonly LhMessage[]; priorSummary: string | null; planTreeText: string | null }): string {
+	const head = ["godspeed shortened the earlier part of this session itself; a written summary comes later. Long messages are cut short."];
+	if (input.planTreeText) head.push(`## The plan dependency tree\n${input.planTreeText}`);
+	if (input.priorSummary) head.push(`## Before that\n${cut(input.priorSummary, LOCAL_SUMMARY_CHARS / 3)}`);
+	const lines = summaryLines(input.span).map((line) => cut(line, LOCAL_LINE_CHARS));
+	let room = LOCAL_SUMMARY_CHARS - head.join("\n\n").length;
+	const kept: string[] = [];
+	for (let i = lines.length - 1; i >= 0 && room - lines[i]!.length > 0; i--) {
+		kept.unshift(lines[i]!);
+		room -= lines[i]!.length + 2;
+	}
+	const dropped = lines.length - kept.length;
+	return [...head, "## Earlier messages", ...(dropped > 0 ? [`(${dropped} older messages left out)`] : []), ...kept].join("\n\n");
+}
+
+function cut(text: string, chars: number): string {
+	return text.length > chars ? `${text.slice(0, chars)}…` : text;
+}
+
+/** The messages a compaction marker stands for: from the previous marker's
+ *  kept boundary (or the start) to its own, and that previous marker's text. */
+export function compactionSpan(
+	messages: readonly LhMessage[],
+	marker: LhMarkerMessage & { details: CompactionDetails },
+): { span: LhMessage[]; priorSummary: string | null } | null {
+	const at = messages.findIndex((m) => m.id === marker.id);
+	const kept = messages.findIndex((m) => m.id === marker.details.firstKeptMessageId);
+	if (at < 0 || kept < 0) return null;
+	const previous = activeCompactionOf(messages.slice(0, at));
+	const start = previous ? messages.findIndex((m) => m.id === previous.details.firstKeptMessageId) : 0;
+	return { span: messages.slice(Math.max(start, 0), kept), priorSummary: previous?.content ?? null };
 }
 
 /** Render the plan dependency tree verbatim (the tree persists through

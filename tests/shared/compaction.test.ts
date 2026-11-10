@@ -7,8 +7,10 @@ import {
 	estimateMessageTokens,
 	buildCompactionPrompt,
 	compactionCutIndex,
+	compactionSpan,
 	estimateTokens,
 	keptIndexFor,
+	localSummary,
 	newCompactionMarker,
 	newUserMessage,
 	planTreeToText,
@@ -222,6 +224,43 @@ describe("the compaction marker", () => {
 		assert.equal(keptIndexFor(messages as never, marker as never), 1);
 		const gone = newCompactionMarker("s", { firstKeptMessageId: "zzz", tokensBefore: 1, at: "t" }) as LhMarkerMessage & { details: { firstKeptMessageId: string } };
 		assert.equal(keptIndexFor(messages as never, gone as never), -1);
+	});
+});
+
+describe("godspeed's own shortening (no model)", () => {
+	const user = (id: string, text: string) => Object.assign(newUserMessage(text), { id });
+
+	it("the plan and the summary before it come first, then each message cut short", () => {
+		const text = localSummary({ span: [user("a", "hi"), user("b", "y".repeat(5_000))], priorSummary: "earlier summary", planTreeText: "- [todo] Sets (s1)" });
+		assert.ok(text.indexOf("## The plan dependency tree") < text.indexOf("## Before that"));
+		assert.ok(text.indexOf("earlier summary") < text.indexOf("## Earlier messages"));
+		assert.match(text, /\[LEARNER\] hi/);
+		assert.ok(!text.includes("y".repeat(700)), "a long message is cut");
+		assert.ok(!text.includes("left out"));
+	});
+
+	it("when the messages don't fit, the oldest are left out and counted", () => {
+		const span = Array.from({ length: 100 }, (_, i) => user(`m${i}`, `${i} ${"z".repeat(1_000)}`));
+		const text = localSummary({ span, priorSummary: null, planTreeText: null });
+		assert.ok(text.length <= 24_000 + 200);
+		assert.match(text, /\((\d+) older messages left out\)/);
+		assert.match(text, /\[LEARNER\] 99 /, "the newest survives");
+		assert.ok(!text.includes("[LEARNER] 0 "), "the oldest goes");
+	});
+
+	it("compactionSpan: from the previous marker's kept boundary to this one's, with its text", () => {
+		// A marker lands at the end, after the tail it keeps.
+		const m = ["m0", "m1", "m2", "m3", "m4"].map((id) => user(id, id));
+		const first = Object.assign(newCompactionMarker("first", { firstKeptMessageId: "m2", tokensBefore: 1, at: "t" }), { id: "c1" });
+		const second = newCompactionMarker("second", { firstKeptMessageId: "m4", tokensBefore: 1, at: "t" });
+		const messages = [m[0]!, m[1]!, m[2]!, m[3]!, first as never, m[4]!, second as never];
+		const one = compactionSpan(messages, first as never)!;
+		assert.deepEqual(one.span.map((x) => x.id), ["m0", "m1"]);
+		assert.equal(one.priorSummary, null);
+		const two = compactionSpan(messages, second as never)!;
+		assert.deepEqual(two.span.map((x) => x.id), ["m2", "m3", "c1"]);
+		assert.ok(two.priorSummary!.endsWith("first"));
+		assert.equal(compactionSpan([m[0]!], second as never), null, "a marker not in the list");
 	});
 });
 

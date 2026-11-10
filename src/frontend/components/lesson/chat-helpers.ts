@@ -51,10 +51,9 @@ export function restoreUnsent(unsent: string, draft: string): string {
 
 /** Why the message box can't take text right now (the demo's Send to
  *  teacher shows it as a tip), or null when it can. */
-export function sendBlockedReason(s: { pending: boolean; problem: boolean; compacting: boolean }): string | null {
+export function sendBlockedReason(s: { pending: boolean; problem: boolean }): string | null {
 	if (s.pending) return "Answer or skip the waiting question first.";
 	if (s.problem) return "Finish or discard the practice problem first.";
-	if (s.compacting) return "Wait until the lesson finishes summarizing.";
 	return null;
 }
 

@@ -25,12 +25,10 @@ export function useLessonServer({
 	chatId,
 	session,
 	initiallyInFlight,
-	initiallyCompacting,
 }: {
 	chatId: string;
 	session: Session;
 	initiallyInFlight: boolean;
-	initiallyCompacting: boolean;
 }) {
 	const { status, setMessages, continueIfOwed, adoptRecord, resumeStream, clearError, setReattachSettled } = session;
 
@@ -255,11 +253,6 @@ export function useLessonServer({
 		}
 		void syncFromServer(); // fully idle: a turn we never saw
 	});
-	const [compacting, setCompacting] = useState(initiallyCompacting);
-	useServerEvent("compaction-changed", (p) => {
-		if (p.chatId !== chatId) return;
-		setCompacting(p.running);
-	});
 	useServerEvent("record-changed", (p) => {
 		// The silent dismissal write: only the record moved. Busy states
 		// ignore it (a running turn owns the view).
@@ -274,6 +267,5 @@ export function useLessonServer({
 		jobs,
 		turns,
 		pricing,
-		compacting,
 	};
 }

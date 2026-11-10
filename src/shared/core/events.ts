@@ -81,12 +81,6 @@ export interface ServerEvents {
 	 *  Same notify-then-fetch contract as the turn events: open views of
 	 *  the chat refetch and adopt the durable record. */
 	"record-changed": { chatId: string };
-	/** A compaction started/finished for the chat. running=true is the
-	 *  SEND GATE: while a compaction is
-	 *  in flight the server structurally refuses model interaction for
-	 *  the chat; the client mirrors it by disabling the composer/dock
-	 *  submit. */
-	"compaction-changed": { chatId: string; running: boolean };
 	/** An outside agent changed something (the payload is the action). */
 	"agent-action": AgentAction;
 	/** A teaching rule was saved, undone or edited. `saved` when an outside
@@ -114,7 +108,6 @@ export const SERVER_EVENT_TYPES = [
 	"classes-changed",
 	"agent-changed",
 	"record-changed",
-	"compaction-changed",
 	"agent-action",
 	"rules-changed",
 	"cheat-sheet-changed",

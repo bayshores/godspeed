@@ -1,5 +1,5 @@
 import { type GraphContextPick, parseClassScope } from "@/shared/core";
-import { compactionInFlight, createHomework, createLesson, isTurnRunning, listChats, startClassScanner } from "@/backend/server";
+import { createHomework, createLesson, isTurnRunning, listChats, startClassScanner } from "@/backend/server";
 import type { ChatListItem } from "@/shared/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
@@ -22,7 +22,6 @@ export async function GET(req: Request) {
 		.map((c) => ({
 			...c,
 			busy: isTurnRunning(c.id),
-			compacting: compactionInFlight(c.id),
 		}));
 	return Response.json({ chats });
 }

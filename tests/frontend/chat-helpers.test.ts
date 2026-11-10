@@ -16,10 +16,9 @@ describe("restoreUnsent", () => {
 
 describe("sendBlockedReason", () => {
 	it("says why the box can't take text, in the panel's order", () => {
-		assert.equal(sendBlockedReason({ pending: false, problem: false, compacting: false }), null);
-		assert.equal(sendBlockedReason({ pending: true, problem: true, compacting: true }), "Answer or skip the waiting question first.");
-		assert.equal(sendBlockedReason({ pending: false, problem: true, compacting: true }), "Finish or discard the practice problem first.");
-		assert.equal(sendBlockedReason({ pending: false, problem: false, compacting: true }), "Wait until the lesson finishes summarizing.");
+		assert.equal(sendBlockedReason({ pending: false, problem: false }), null);
+		assert.equal(sendBlockedReason({ pending: true, problem: true }), "Answer or skip the waiting question first.");
+		assert.equal(sendBlockedReason({ pending: false, problem: true }), "Finish or discard the practice problem first.");
 	});
 });
 

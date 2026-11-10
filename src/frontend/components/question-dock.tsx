@@ -74,9 +74,6 @@ export interface QuestionDockProps {
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
 	/** Opens the skip confirm. */
 	onSkip?: () => void;
-	/** Compaction is running for this chat: the answer would block on the
-	 *  server's compaction gate, so submit waits (the server is the real gate). */
-	compactionRunning?: boolean;
 	/** The teacher is replying to a side question: submit waits. */
 	busy?: boolean;
 	/** That reply waits for an agent to take it (the header says so). */
@@ -161,7 +158,6 @@ function QuestionDockForm({
 	initialDraft,
 	onSaveDraft,
 	onSkip,
-	compactionRunning = false,
 	busy = false,
 	waitingForAgent = false,
 	footer,
@@ -250,8 +246,8 @@ function QuestionDockForm({
 			<SendButton
 				type="submit"
 				testId="question-submit"
-				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-				disabled={!canSubmit || compactionRunning || busy}
+				label="Submit answer"
+				disabled={!canSubmit || busy}
 			/>
 		</>
 	);
@@ -264,7 +260,7 @@ function QuestionDockForm({
 	};
 
 	const submit = () => {
-		if (!canSubmit || compactionRunning || busy) return;
+		if (!canSubmit || busy) return;
 		const req: AnswerRequest = {
 			dontKnow: sel.dontKnow,
 			values: [...sel.selected].map((i) => qd.options[i]!.value),

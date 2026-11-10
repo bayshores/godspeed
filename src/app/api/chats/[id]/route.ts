@@ -1,5 +1,5 @@
 import { sessionCost } from "@/shared/core";
-import { compactionInFlight, deleteChatSession, getChat, isTurnRunning, sessionCoverage, stores, turnFailure, type ChatDeleteMode } from "@/backend/server";
+import { deleteChatSession, getChat, isTurnRunning, sessionCoverage, stores, turnFailure, type ChatDeleteMode } from "@/backend/server";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -16,7 +16,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 		turnInFlight: isTurnRunning(id),
 		// Also reaches idle views that missed the failing turn's stream.
 		turnError: turnFailure(id),
-		compacting: compactionInFlight(id),
 		coverage: sessionCoverage(chat),
 	});
 }

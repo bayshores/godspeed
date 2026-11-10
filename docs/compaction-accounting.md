@@ -22,7 +22,9 @@ not measured or stripped. Whole-message boundaries can overshoot. This does
 Only cutoff selection is ported. godspeed retains its educational summary
 prompt, plan continuity, persistence, threshold, scheduling, and authorization
 lifecycle. It does not adopt Pi's coding summary or separate split-turn summary
-calls. A cut that drops no active history does not launch a summarizer.
+calls. A cut that drops no active history adds no marker. The marker is written at once
+with godspeed's own short version; the summarizer runs after 5 quiet minutes and
+replaces that marker's text in place.
 
 ## Conversation meter
 

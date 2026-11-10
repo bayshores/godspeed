@@ -63,7 +63,6 @@ export function YourTurnPanel({
 	onStop,
 	next,
 	onNext,
-	compacting,
 	stats,
 	homeworkProblem,
 }: {
@@ -96,7 +95,6 @@ export function YourTurnPanel({
 	 *  "Continue" in a study session); absent outside that pause. */
 	next?: string;
 	onNext: () => void;
-	compacting: boolean;
 	stats: React.ReactNode;
 	/** A homework lesson's open problem: its name, where it is in the
 	 *  assignment and the part the learner is on. */
@@ -183,7 +181,6 @@ export function YourTurnPanel({
 				initialDraft={initialQuestionDraft}
 				onSaveDraft={onSaveQuestionDraft}
 				onSkip={onSkipQuestion}
-				compactionRunning={compacting}
 				busy={busy}
 				waitingForAgent={waitingForAgent}
 				footer={footer}
@@ -215,7 +212,6 @@ export function YourTurnPanel({
 				onStop={onStop}
 				busy={busy}
 				waitingForAgent={waitingForAgent}
-				compactionRunning={compacting}
 				footer={footer}
 			/>
 		);

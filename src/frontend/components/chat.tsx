@@ -79,7 +79,6 @@ export function Chat({
 	initialError,
 	initialPrompt,
 	initiallyInFlight,
-	initiallyCompacting = false,
 	kind = "teach",
 	initialTree,
 	classId,
@@ -106,19 +105,16 @@ export function Chat({
 	initialPrompt?: string;
 	/** A teacher turn is running server-side with no client attached. */
 	initiallyInFlight?: boolean;
-	/** A compaction holds the chat's model gate at mount. */
-	initiallyCompacting?: boolean;
 }) {
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, status, error, stop, clearError, resumeStream } = session;
 	const summarizeAt = useSummarizePoint();
-	const { turnInFlight, localStreamRef, jobs, turns, pricing, compacting } = useLessonServer({
+	const { turnInFlight, localStreamRef, jobs, turns, pricing } = useLessonServer({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
-		initiallyCompacting,
 	});
 	const rename = useTitleRename(chatId, title);
 
@@ -350,15 +346,15 @@ export function Chat({
 
 	// A running turn never gates the box: Enter while busy STEERS it (text
 	// only, so waiting files hold the send). A waiting question or problem
-	// owns the panel; compaction gates sends. Under a waiting question or
+	// owns the panel. Under a waiting question or
 	// problem the box asks a side question, never while the teacher replies.
 	// A homework problem is worked on in the box itself: plain messages.
 	const practiceProblem = activeProblem !== null && kind !== "homework";
-	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: practiceProblem, compacting });
+	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: practiceProblem });
 	const sideOpen = pending !== null ? "question" : practiceProblem ? "problem" : null;
 	const sideReply = busy && sideOpen !== null && isSideTurn(nativeMessages);
 	const canSend = sideOpen
-		? (text.trim().length > 0 || hasFiles) && !busy && !compacting
+		? (text.trim().length > 0 || hasFiles) && !busy
 		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
 
 	/* THE PRACTICE PAUSE (practice and study): between problems, once a
@@ -374,7 +370,7 @@ export function Chat({
 			),
 		[nativeMessages],
 	);
-	const nextReady = posedAny && !pending && !activeProblem && !compacting && !busy;
+	const nextReady = posedAny && !pending && !activeProblem && !busy;
 	const sendNext = useCallback(() => {
 		if (!nextReady) return;
 		void send({ type: "next" });
@@ -395,7 +391,6 @@ export function Chat({
 	 * falls back to exactly that). Under a waiting question or problem it is
 	 * a side question. */
 	const onSend = () => {
-		if (compacting) return;
 		const t = textRef.current.trim();
 		const files = attachments.files.map((f) => f.attachment);
 		// A steer of the running turn is text only.
@@ -460,7 +455,7 @@ export function Chat({
 	const jumpToAnswer = useCallback((toolCallId: string) => scrollToCard(answerAnchorSelector(toolCallId)), [scrollToCard]);
 
 	// The demo's error report follows the message box's rules: never past a
-	// waiting question, problem or compaction, and a running turn is steered.
+	// waiting question or problem, and a running turn is steered.
 	const chatActions = useMemo(
 		() => ({
 			chatId,
@@ -523,7 +518,6 @@ export function Chat({
 										status={status}
 										busy={busy}
 										turnInFlight={turnInFlight}
-										compacting={compacting}
 										waitingForAgent={waitingForAgent}
 										error={error}
 										onRetry={retry}
@@ -595,7 +589,6 @@ export function Chat({
 										onStop={sideReply ? undefined : abortInFlightTurn}
 										next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
 										onNext={sendNext}
-										compacting={compacting}
 										stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
 									/>
 

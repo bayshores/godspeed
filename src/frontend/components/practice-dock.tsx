@@ -32,8 +32,6 @@ interface PracticeDockProps {
 	busy?: boolean;
 	/** The running turn waits on the outside agent (the header says so). */
 	waitingForAgent?: boolean;
-	/** Compaction is running: the POST would block on the server's gate. */
-	compactionRunning?: boolean;
 	/** A quiet row under the field (the lesson's stats). */
 	footer?: React.ReactNode;
 	/** The thinking as the learner left it (this problem's saved draft). */
@@ -54,7 +52,6 @@ export function PracticeDock({
 	onSubmit,
 	busy = false,
 	waitingForAgent = false,
-	compactionRunning = false,
 	footer,
 	initialDraft = "",
 	onSaveDraft,
@@ -69,7 +66,7 @@ export function PracticeDock({
 	const empty = thinking.trim().length === 0 && attachments.files.length === 0;
 
 	const submit = () => {
-		if (compactionRunning || busy) return;
+		if (busy) return;
 		const text = thinkingRef.current.trim();
 		const drafts = attachments.files;
 		const files = drafts.map((f) => f.attachment);
@@ -146,8 +143,8 @@ export function PracticeDock({
 								<SendButton
 									type="submit"
 									testId="practice-send"
-									label={compactionRunning ? "Summarizing the lesson…" : "Send"}
-									disabled={empty || compactionRunning || busy}
+									label="Send"
+									disabled={empty || busy}
 								/>
 							</>
 						}
