@@ -108,7 +108,8 @@ export function homeworkProblems(
 /** What the teacher knows when a homework session starts (a hidden
  *  message at its top). */
 export function homeworkContextText(
-	deadline: Pick<ClassDeadline, "name" | "kind" | "date" | "time">,
+	classId: string,
+	deadline: Pick<ClassDeadline, "id" | "name" | "kind" | "date" | "time">,
 	assignment: { id: string; name: string; path: string | null } | null,
 	problems: readonly HomeworkProblem[],
 ): string {
@@ -116,7 +117,7 @@ export function homeworkContextText(
 	lines.push(
 		assignment
 			? `Its assignment is the class file ${assignment.name} (file id ${assignment.id})${assignment.path ? `, at ${assignment.path}` : ""}.`
-			: "No assignment file is attached yet. Ask the learner which class file it is and attach it with update_class_deadline (assignment_file_id), or work from the problems they paste.",
+			: `No assignment file is attached yet. Find it in the class files (search_class_files) and attach it with update_class_deadline (class_id ${classId}, deadline_id ${deadline.id}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.`,
 	);
 	if (problems.length > 0) {
 		lines.push("Its problems, posted before:", ...problems.map((p) => `- ${p.number}: ${p.title}${p.done ? " (done)" : ""}`), "Open the first one not done unless the learner picks another.");

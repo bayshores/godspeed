@@ -29,7 +29,7 @@ export function createHomework(classId: string, deadlineId: string): CreateHomew
 	const chat = stores.chatStore.createChat(title, "homework", cls.id, deadline.id);
 	const messages: LhMessage[] = [
 		newClassContextMessage(classCardFor(cls)) as LhMessage,
-		newStudyContextMessage(homeworkContextText(deadline, assignment, deadline.problems ?? []), "homework-context") as LhMessage,
+		newStudyContextMessage(homeworkContextText(cls.id, deadline, assignment, deadline.problems ?? []), "homework-context") as LhMessage,
 	];
 	stores.chatStore.saveMessages(chat.id, messages);
 	return { ok: true, chat: stores.chatStore.getChat(chat.id) ?? chat, title };

@@ -70,9 +70,14 @@ describe("homework problems", () => {
 	});
 
 	it("tells the teacher what is posted and what is done", () => {
-		const text = homeworkContextText({ name: "HW 4", kind: "homework", date: "2026-11-13", time: "23:59" }, { id: "f1", name: "hw4.pdf", path: "/x/hw4.pdf" }, [P("1", true), P("2")]);
+		const text = homeworkContextText("c1", { id: "d1", name: "HW 4", kind: "homework", date: "2026-11-13", time: "23:59" }, { id: "f1", name: "hw4.pdf", path: "/x/hw4.pdf" }, [P("1", true), P("2")]);
 		assert.match(text, /HW 4 \(homework\), due 2026-11-13 23:59/);
 		assert.match(text, /hw4\.pdf \(file id f1\), at \/x\/hw4\.pdf/);
 		assert.match(text, /- 1: t1 \(done\)\n- 2: t2/);
+	});
+
+	it("without an assignment file, names the ids to attach one with", () => {
+		const text = homeworkContextText("c1", { id: "d1", name: "HW 4", kind: "homework", date: "2026-11-13" }, null, []);
+		assert.match(text, /update_class_deadline \(class_id c1, deadline_id d1, assignment_file_id\)/);
 	});
 });

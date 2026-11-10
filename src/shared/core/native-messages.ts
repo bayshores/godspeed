@@ -473,14 +473,27 @@ export function classCardText(card: ClassCardDetails): string {
 	if (card.description.trim()) lines.push("", "About the class (the learner's own words):", card.description.trim());
 	const readable = card.files.filter((f) => f.path !== null);
 	if (readable.length > 0) {
-		lines.push("", "Class files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):");
-		for (const f of readable) {
-			const about = [f.size, f.status && f.status !== "ready" ? f.status : undefined].filter(Boolean).join(", ");
-			lines.push(`- [${f.kind === "study" ? "study material" : "course info"}] ${f.name}${about ? ` (${about})` : ""} — ${f.path}`);
-		}
+		const study = readable.filter((f) => f.kind === "study").length;
+		lines.push(
+			"",
+			`Class files: ${study} study material, ${readable.length - study} course info. Find what's in them with search_class_files; read_class lists them with their paths.`,
+		);
 	}
 	if (card.topics?.length) {
 		lines.push("", "Topics in the class's knowledge graph (facts in each):", card.topics.map((t) => `${t.name} (${t.facts})`).join(", "));
+	}
+	return lines.join("\n");
+}
+
+/** The class's readable files, one line each with its path (read_class
+ *  only: the card just counts them, so lessons don't carry the list). */
+export function classFilesText(card: ClassCardDetails): string {
+	const readable = card.files.filter((f) => f.path !== null);
+	if (readable.length === 0) return "";
+	const lines = ["Class files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):"];
+	for (const f of readable) {
+		const about = [f.size, f.status && f.status !== "ready" ? f.status : undefined].filter(Boolean).join(", ");
+		lines.push(`- [${f.kind === "study" ? "study material" : "course info"}] ${f.name}${about ? ` (${about})` : ""} — ${f.path}`);
 	}
 	return lines.join("\n");
 }

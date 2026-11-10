@@ -903,7 +903,7 @@ describe("lessons in classes", () => {
 		assert.equal(card.customType, "class-context");
 		assert.match(card.content, /^\[Class context\]/);
 		assert.match(card.content, /Class: MATH 18/);
-		assert.match(card.content, /\[course info\] syllabus\.md — \//);
+		assert.match(card.content, /Class files: 0 study material, 1 course info\./);
 		const loose = await (await chatsRoute.POST(json("/api/chats", "POST", { title: "Loose" }))).json();
 		assert.deepEqual(stores.chatStore.getChat(loose.id)!.messages.map((m) => (m as { customType?: string }).customType), ["study-context"], "No-class lessons carry no card, just the study plan");
 		const inClass = await (await chatsRoute.GET(json(`/api/chats?class=${id}`, "GET"))).json();

@@ -6,10 +6,15 @@
  */
 import { createHash } from "node:crypto";
 
-/** How many messages of a conversation an agent has seen, and a hash of them. */
+/** How many messages of a conversation an agent has seen and a hash of
+ *  them (the instructions left out), the hash of the last one (its own
+ *  reply, to find its place after a summary replaced the messages before
+ *  it), and the hash of the instructions it was given. */
 export interface SeenMark {
 	count: number;
 	hash: string;
+	last: string;
+	lead: string;
 }
 
 /** Saved marks, per agent. */
@@ -27,17 +32,26 @@ export interface SeenStore {
 /** Agents kept in the file; each new agent session drops the oldest. */
 export const SEEN_AGENTS_MAX = 20;
 
-/** The mark for a list of message fingerprints. */
-export function seenMark(prints: readonly string[]): SeenMark {
-	const hash = createHash("sha256");
-	for (const print of prints) hash.update(print).update("\0");
-	return { count: prints.length, hash: hash.digest("hex").slice(0, 32) };
+/** A short hash of one message's fingerprint (or the instructions'). */
+export function printHash(print: string): string {
+	return createHash("sha256").update(print).digest("hex").slice(0, 32);
 }
 
-/** True when the agent saw exactly the first `mark.count` of these messages. */
-export function continuesFrom(mark: SeenMark | undefined, prints: readonly string[]): boolean {
-	if (!mark || mark.count > prints.length) return false;
-	return seenMark(prints.slice(0, mark.count)).hash === mark.hash;
+/** The mark for a list of message fingerprints and the instructions' hash. */
+export function seenMark(prints: readonly string[], lead: string): SeenMark {
+	const hash = createHash("sha256");
+	for (const print of prints) hash.update(print).update("\0");
+	return { count: prints.length, hash: hash.digest("hex").slice(0, 32), last: printHash(prints.at(-1) ?? ""), lead };
+}
+
+/** Where the new messages start for an agent with this mark: after the
+ *  ones it saw when they are unchanged, else after the newest copy of the
+ *  last one it saw (a summary replaced what came before it). -1 = nowhere. */
+export function resumeAt(mark: SeenMark | undefined, prints: readonly string[]): number {
+	if (!mark) return -1;
+	if (mark.count <= prints.length && seenMark(prints.slice(0, mark.count), mark.lead).hash === mark.hash) return mark.count;
+	for (let i = prints.length - 1; i >= 0; i--) if (printHash(prints[i]!) === mark.last) return i + 1;
+	return -1;
 }
 
 /** A saved file, checked. Anything unreadable reads as nothing seen. */
@@ -50,8 +64,10 @@ export function parseAgentSeen(raw: unknown): AgentSeenFile {
 		if (typeof at !== "string" || !conversations || typeof conversations !== "object") continue;
 		const kept: Record<string, SeenMark> = {};
 		for (const [conversation, mark] of Object.entries(conversations)) {
-			const { count, hash } = (mark ?? {}) as { count?: unknown; hash?: unknown };
-			if (Number.isInteger(count) && (count as number) >= 0 && typeof hash === "string") kept[conversation] = { count: count as number, hash };
+			const { count, hash, last, lead } = (mark ?? {}) as { count?: unknown; hash?: unknown; last?: unknown; lead?: unknown };
+			if (Number.isInteger(count) && (count as number) >= 0 && typeof hash === "string" && typeof last === "string" && typeof lead === "string") {
+				kept[conversation] = { count: count as number, hash, last, lead };
+			}
 		}
 		out.agents[agent] = { at, conversations: kept };
 	}

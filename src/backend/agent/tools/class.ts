@@ -1,7 +1,7 @@
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { serverExecute } from "../tool-execute.ts";
-import { classCardText, type ClassCardDetails } from "../../../shared/core/native-messages.ts";
+import { classCardText, classFilesText, type ClassCardDetails } from "../../../shared/core/native-messages.ts";
 import { NOTE_MAX } from "../../../shared/core/contracts.ts";
 import type { PassageRef } from "../../../shared/core/search.ts";
 
@@ -64,13 +64,13 @@ export function classTools(ctx: ClassToolContext): Record<string, AgentTool<any>
 			label: "read_class",
 			description:
 				"Read the current card of this lesson's class: the class name, the learner's description of the course, its files (study material and course info) with the paths to open them, and the topics of its knowledge graph. " +
-				"Use it when you need class details the opening [Class context] card may not have (files added since the lesson started, an edited description). " +
+				"Use it when you need a file's path (the opening [Class context] card only counts the files) or class details that changed since the lesson started. To find something inside the files, use search_class_files instead. " +
 				"It also returns today's date and time and the class's open deadlines (the [Today] note).",
 			parameters: readClassInput,
 			execute: serverExecute("read_class", readClassInput, async (): Promise<string> => {
 				const card = ctx.classCard();
 				if (!card) return "This lesson's class no longer exists.";
-				return ctx.todayNote ? `${classCardText(card)}\n\n${ctx.todayNote()}` : classCardText(card);
+				return [classCardText(card), classFilesText(card), ctx.todayNote?.()].filter(Boolean).join("\n\n");
 			}),
 		},
 		...(ctx.setNote ? noteTools(ctx.setNote) : {}),

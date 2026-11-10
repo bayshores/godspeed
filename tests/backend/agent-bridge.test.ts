@@ -910,8 +910,8 @@ describe("claims, lost context and finished runs", () => {
 		assert.ok(Date.now() - started < 1000);
 	});
 
-	it("a new tool set under the same prompt text comes in full", async () => {
-		const system = (tool: string) => ({ role: "system", content: "Teach well.", toolsAdded: [{ name: tool, description: tool, parameters: { type: "object", properties: {} } }], timestamp: 1 });
+	it("new tools or instructions come with only the new messages", async () => {
+		const system = (tool: string, text = "Teach well.") => ({ role: "system", content: text, toolsAdded: [{ name: tool, description: tool, parameters: { type: "object", properties: {} } }], timestamp: 1 });
 		const turn = async (messages: unknown[]) => {
 			const stream = park("job_tool_change", messages);
 			const work = await bridge.waitForWork(5000);
@@ -922,11 +922,37 @@ describe("claims, lost context and finished runs", () => {
 		const first = await turn([system("quiz"), user("hi")]);
 		assert.equal(first.reply.usage.cacheWrite, 0, "no faux prompt cache is kept");
 		const second = await turn([system("explain"), user("hi"), first.reply, user("next")]);
-		assert.equal(second.work.continued, false);
+		assert.equal(second.work.continued, true);
 		assert.deepEqual(second.work.tools?.map((t) => t.name), ["explain"]);
+		assert.deepEqual(second.work.messages.map((m) => m.text), ["next"]);
 		const third = await turn([system("explain"), user("hi"), first.reply, user("next"), second.reply, user("more")]);
 		assert.equal(third.work.continued, true, "the same tools again: only what is new");
+		assert.equal(third.work.tools, undefined);
+		assert.equal(third.work.instructions, undefined);
+		const ruled = await turn([system("explain", "Teach well. Explain terms."), user("hi"), first.reply, user("next"), second.reply, user("more"), third.reply, user("again")]);
+		assert.equal(ruled.work.continued, true, "a saved rule changes the instructions, not the conversation");
+		assert.equal(ruled.work.instructions, "Teach well. Explain terms.");
+		assert.deepEqual(ruled.work.messages.map((m) => m.text), ["again"]);
 		bridge.forgetConversation("job_tool_change");
+	});
+
+	it("after a summary replaces the earlier messages, the agent that saw them gets only what is new", async () => {
+		const system = { role: "system", content: "Teach well.", timestamp: 1 };
+		const turn = async (messages: unknown[], agent: string) => {
+			const stream = park("job_summary", messages);
+			const work = await bridge.waitForWork(5000, { agent });
+			assert.ok(work);
+			assert.ok(bridge.respondToWork(work.workId, { text: `Okay ${messages.length}.` }, 0).ok);
+			return { work, reply: await stream.result() };
+		};
+		const first = await turn([system, user("one"), user("two")], "agent-summary");
+		const summary = user("[summary of one and two]");
+		const second = await turn([system, summary, first.reply, user("three")], "agent-summary");
+		assert.equal(second.work.continued, true);
+		assert.deepEqual(second.work.messages.map((m) => m.text), ["three"]);
+		const other = await turn([system, summary, first.reply, user("three"), second.reply, user("four")], "agent-fresh");
+		assert.equal(other.work.continued, false, "an agent that never saw it gets the summary and all");
+		bridge.forgetConversation("job_summary");
 	});
 });
 

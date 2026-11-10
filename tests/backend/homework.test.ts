@@ -107,6 +107,7 @@ describe("a homework start", () => {
 		);
 		const note = String((chat.messages[1] as { content: unknown }).content);
 		assert.match(note, /No assignment file is attached yet/);
+		assert.match(note, new RegExp(`class_id ${id}, deadline_id ${hw}`));
 		assert.match(note, /post them all with post_problems/);
 	});
 
