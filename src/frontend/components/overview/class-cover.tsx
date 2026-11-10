@@ -90,7 +90,7 @@ export const ClassCover = memo(function ClassCover({
 	const signatureRef = useRef<HTMLDivElement>(null);
 	const textRef = useRef<HTMLDivElement>(null);
 	const noteRef = useRef<HTMLDivElement>(null);
-	const [place, setPlace] = useState<{ left: number; scale: number } | null>(null);
+	const [place, setPlace] = useState<ReturnType<typeof signaturePlace> | null>(null);
 	useLayoutEffect(() => {
 		const cover = coverRef.current;
 		const sig = signatureRef.current;
@@ -127,7 +127,7 @@ export const ClassCover = memo(function ClassCover({
 					className={cn("absolute top-1/2 -translate-y-1/2 origin-left", !place && "invisible")}
 					style={{ left: place?.left ?? 0, scale: String(place?.scale ?? 1) }}
 				>
-					<InkedSignature signature={signature} share={share} className={signature.kind === "math" ? "text-[110px]" : "text-[180px]"} />
+					<InkedSignature signature={signature} share={place?.behind ? 0 : share} className={signature.kind === "math" ? "text-[110px]" : "text-[180px]"} />
 				</div>
 			)}
 			<div className="relative flex flex-col gap-6 @4xl:flex-row @4xl:items-end @4xl:justify-between">

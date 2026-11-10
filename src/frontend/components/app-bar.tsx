@@ -2,7 +2,7 @@
 
 /**
  * THE TOP BAR, one for the whole window: the sidebar toggle, the page's
- * path ("cse-29 / review-for-my-exam"), the page's own buttons, the
+ * path ("cse 29 / review for my exam"), the page's own buttons, the
  * teacher's status while the sidebar is closed (its pane shows it
  * otherwise), and the clock.
  *
@@ -22,7 +22,7 @@ import { useMinute } from "@/frontend/components/countdown";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
-import { useSidebar } from "@/frontend/components/sidebar";
+import { useSidebar } from "@/frontend/components/sidebar/sidebar-context";
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
 import { prefersReducedMotion } from "@/frontend/components/presence";
@@ -193,7 +193,8 @@ function Path({ path, tail, retype }: { path: readonly Crumb[]; tail?: ReactNode
 							onClick={() => {
 								if (c.classId && c.classId !== active) setActive(c.classId);
 							}}
-							className="truncate text-ink-2 hover:text-ink"
+							aria-label={c.label === "~" ? "Home" : undefined}
+							className="-mx-2 -my-1 truncate px-2 py-1 text-ink-2 hover:text-ink"
 						>
 							{shown[i]}
 						</Link>

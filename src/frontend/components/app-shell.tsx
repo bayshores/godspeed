@@ -52,11 +52,14 @@ export function AppShell({
 			<OpenDeadlinesProvider>
 				<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 				<HalleyProvider initialName={teacherName}>
+					<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50 focus:bg-card">
+						Skip to the page
+					</a>
 					<AppBar />
 					<div className="flex min-h-0 flex-1">
 						<SessionsSidebar />
 						{/* The teacher's open panel pushes the page left (halley-panel.tsx sets the var). */}
-						<main className="min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
+						<main id="lh-page" tabIndex={-1} className="min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
 							<WithAppBar>
 								<ViewSwap>{children}</ViewSwap>
 							</WithAppBar>

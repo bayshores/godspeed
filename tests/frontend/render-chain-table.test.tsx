@@ -125,9 +125,9 @@ describe("ChainTableBody — clusters (the outermost layer)", () => {
 });
 
 describe("ChainTableBody — THE shared TopBar + the lines law", () => {
-	it("the body fills the shared top bar: the path ends at all-facts, then the counts, search and close X", () => {
+	it("the body fills the shared top bar: the path ends at all facts, then the counts, search and close X", () => {
 		const html = render();
-		assert.match(html, /data-testid="bar-path"[\s\S]*>graph<[\s\S]*>all-facts</);
+		assert.match(html, /data-testid="bar-path"[\s\S]*>graph<[\s\S]*>all facts</);
 		assert.ok(!html.includes(">Chains<"), "no title of its own");
 		assert.ok(html.includes("chain"), "the counts remain");
 		assert.ok(html.includes('data-testid="chain-table-close"'), "the close X");

@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import Link from "next/link";
-import { CheckIcon, FileTextIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { deadlineStudyLabel, rampColor, topicStatus, type DeadlineProgress, type PlanDay, type TopicProgress } from "@/shared/core";
 import { clockLabel, deadlineDateLabel, dueLabel, kindLabel } from "@/frontend/components/class-deadlines-model";
 import { Countdown } from "@/frontend/components/countdown";
@@ -85,9 +85,8 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 						type="button"
 						data-testid="deadline-cheat-sheet"
 						onClick={props.onCheatSheet}
-						className="lh-press mt-1.5 flex items-center gap-2 px-3.5 py-2 text-sm font-bold text-ink outline outline-1 -outline-offset-1 outline-tone-2 hover:bg-tone"
+						className="lh-btn mt-1.5"
 					>
-						<FileTextIcon className="size-4 text-ink-2" aria-hidden />
 						Cheat sheet
 					</button>
 					<div data-testid="deadline-ring" className="flex flex-col items-center gap-1.5">
@@ -369,7 +368,9 @@ function PathCard({
 									<li key={t.id} className="flex min-w-0 items-center gap-2 text-[13.5px]">
 										<span className="size-2.5 shrink-0" style={{ background: rampColor(t.rate) }} aria-hidden />
 										<span title={t.name} className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
-										<span className="shrink-0 text-[12.5px] text-ink-3">{tallyText(tallies.get(t.id))}</span>
+										{(tallies.get(t.id)?.answered ?? 0) > 0 && (
+											<span className="shrink-0 text-[12.5px] text-ink-3">{tallyText(tallies.get(t.id))}</span>
+										)}
 									</li>
 								))}
 							</ul>

@@ -3,19 +3,18 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { clockText, retypeStep, rootCrumb, slug } from "../../src/frontend/components/app-bar-model.ts";
+import { clockText, retypeStep, pathLabel, rootCrumb } from "../../src/frontend/components/app-bar-model.ts";
 
 describe("app bar path", () => {
-	it("turns a name into a lowercase slug", () => {
-		assert.equal(slug("Review for my exam"), "review-for-my-exam");
-		assert.equal(slug("CSE 29"), "cse-29");
-		assert.equal(slug("  PS3 (Problem Set 3)  "), "ps3-problem-set-3");
-		assert.equal(slug("Café déjà vu"), "café-déjà-vu");
-		assert.equal(slug("???"), "untitled");
+	it("writes a name in lowercase, as the sidebar does", () => {
+		assert.equal(pathLabel("Review for my exam"), "review for my exam");
+		assert.equal(pathLabel("CSE 29"), "cse 29");
+		assert.equal(pathLabel("  PS3 (Problem Set 3)  "), "ps3 (problem set 3)");
+		assert.equal(pathLabel("   "), "untitled");
 	});
 
 	it("starts at the class's overview, or at ~ (Home) outside a class", () => {
-		assert.deepEqual(rootCrumb({ id: "c1", name: "CSE 21" }), { label: "cse-21", href: "/class", classId: "c1" });
+		assert.deepEqual(rootCrumb({ id: "c1", name: "CSE 21" }), { label: "cse 21", href: "/class", classId: "c1" });
 		assert.deepEqual(rootCrumb(null), { label: "~", href: "/" });
 	});
 

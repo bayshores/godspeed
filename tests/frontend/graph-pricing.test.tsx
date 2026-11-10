@@ -12,19 +12,17 @@ const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): 
 const summary = (runs: ExtractionRunUsage[]) => graphCostSummary({ chats: [{ title: "fixture", extractions: runs }], sources: [] });
 const headline = (runs: ExtractionRunUsage[]) => renderToStaticMarkup(<GraphCostControl costs={summary(runs)} />);
 
-test("wholly unpriced historical graph costs render unknown, never a dollar figure", () => {
+test("the top bar button says graph costs, never a dollar figure", () => {
 	const historical = run([usage()]);
 	assert.equal(displayUnpricedRuns(summary([historical])), 1);
 	const html = headline([historical]);
-	assert.match(html, />–<\/button>/);
+	assert.match(html, />\s*graph costs\s*<\/button>/);
 	assert.doesNotMatch(html, /\$/);
 });
 
-test("plan runs read the plan's label, with or without unpriced history", () => {
+test("unpriced history is counted beside plan runs", () => {
 	const plan = run([usage()], "agent:outside-agent");
 	const historical = run([usage()], undefined, 2);
-	assert.match(headline([plan]), />Your agent<\/button>/);
-	assert.match(headline([plan, historical]), />Your agent<\/button>/);
 	assert.equal(displayUnpricedRuns(summary([plan, historical])), 1);
 });
 

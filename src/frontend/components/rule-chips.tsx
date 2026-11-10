@@ -37,7 +37,7 @@ export function RuleChips({
 				<span key={rule} className="flex max-w-full items-center gap-2 bg-tone-2 py-[5px] pl-[11px] pr-[9px] text-[13px] text-ink">
 					<span className="min-w-0 break-words">{rule}</span>
 					{saved[rule] && (
-						<span title={savedDay(saved[rule])} className="shrink-0 text-xs whitespace-nowrap text-ink-3">
+						<span title={savedDay(saved[rule])} className="shrink-0 text-xs whitespace-nowrap text-ink-2">
 							Saved by {teacherName}
 						</span>
 					)}

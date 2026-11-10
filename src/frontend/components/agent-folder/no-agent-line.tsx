@@ -1,17 +1,20 @@
 "use client";
 
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useSidebar } from "@/frontend/components/sidebar/sidebar-context";
 import { cn } from "@/frontend/lib/utils";
 import { useReopenAgent } from "./use-agent-folder";
 
 /**
  * Next to a control that needs the agent (Talk's Send, Start lesson,
  * Submit answer): "No agent connected" and the button that opens it, while
- * none is. Nothing otherwise.
+ * none is. Nothing otherwise, and nothing while the sidebar is open: its
+ * teacher pane says the same.
  */
 export function NoAgentLine({ className }: { className?: string }) {
 	const agent = useAgentStatus();
-	if (!agent || agent.connected || agent.teaching) return null;
+	const sidebar = useSidebar();
+	if (!agent || agent.connected || agent.teaching || sidebar.open) return null;
 	return <Line className={className} />;
 }
 

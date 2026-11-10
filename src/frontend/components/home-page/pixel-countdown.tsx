@@ -3,7 +3,7 @@
 /**
  * Home's big countdown to the next deadline. In its last 24h the clock is
  * drawn in square pixels ("04:08:33"); before that, and once overdue, it
- * is plain large text ("in 3 days", "Overdue"). The color is the
+ * is plain large text ("in 3 days", "overdue"). The color is the
  * countdown's own (grey fading to red). While it ticks once a second,
  * each newly lit pixel blinks on a beat apart from the rest (globals.css,
  * .lh-px-in), so a digit redraws pixel by pixel.
@@ -50,7 +50,7 @@ export function PixelCountdown({ due, now: fixedNow, className }: { due: { date:
 	if (value.mode === "days" || value.mode === "overdue") {
 		return (
 			<span data-testid="pixel-countdown" data-mode={value.mode} style={{ color: value.color }} className={cn("text-2xl font-bold whitespace-nowrap", className)}>
-				{value.text.toLowerCase()}
+				{value.text}
 			</span>
 		);
 	}

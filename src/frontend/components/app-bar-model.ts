@@ -2,7 +2,8 @@
  * The top bar's path and clock. Pure.
  *
  * The path reads like a terminal's: the class (or "~" outside one), then
- * the page, each as a lowercase slug ("cse-29 / review-for-my-exam").
+ * the page, each in lowercase ("cse 29 / review for my exam"), spelled as
+ * the sidebar spells it.
  */
 
 export interface Crumb {
@@ -13,20 +14,14 @@ export interface Crumb {
 	classId?: string;
 }
 
-/** A name as a path segment: lowercase, runs of anything but letters and
- *  digits as one "-". */
-export function slug(text: string): string {
-	return (
-		text
-			.toLowerCase()
-			.replace(/[^\p{L}\p{N}]+/gu, "-")
-			.replace(/^-+|-+$/g, "") || "untitled"
-	);
+/** A name as a path segment: lowercase, as the sidebar writes names. */
+export function pathLabel(text: string): string {
+	return text.trim().toLowerCase() || "untitled";
 }
 
 /** The path's first segment: the class (its overview), or "~" (Home). */
 export function rootCrumb(cls: { id: string; name: string } | null): Crumb {
-	return cls ? { label: slug(cls.name), href: "/class", classId: cls.id } : { label: "~", href: "/" };
+	return cls ? { label: pathLabel(cls.name), href: "/class", classId: cls.id } : { label: "~", href: "/" };
 }
 
 /** The clock: 24-hour "17:51". */

@@ -1,6 +1,5 @@
 import { memo, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
 import type { FileCoverage, TopicProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
@@ -8,8 +7,7 @@ import { STATUS_COLOR } from "@/frontend/components/graph/derive";
 import { suggestionKey, type LessonStep, type Suggestion } from "./suggestions-model";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
-const ACTION =
-	"lh-press flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-[13.5px] font-bold text-ink outline outline-1 -outline-offset-1 outline-tone-2 hover:bg-tone-2 disabled:opacity-60";
+const ACTION = "lh-btn shrink-0";
 
 const KIND_LABEL: Record<Suggestion["kind"], string> = {
 	continue: "Continue",
@@ -91,7 +89,6 @@ const SuggestionRow = memo(function SuggestionRow({
 		action = (
 			<Link href={lessonHref(s.lesson.chatId)} data-testid="home-continue" className={ACTION}>
 				Open
-				<ArrowRightIcon aria-hidden className="size-[13px]" />
 			</Link>
 		);
 	} else if (s.kind === "next-up") {
@@ -105,7 +102,6 @@ const SuggestionRow = memo(function SuggestionRow({
 		action = (
 			<button type="button" data-testid="home-study-file" disabled={busy} onClick={() => onStudyFile(s.file)} className={ACTION}>
 				Study
-				<ArrowRightIcon aria-hidden className="size-[13px]" />
 			</button>
 		);
 	} else {
@@ -129,7 +125,6 @@ const SuggestionRow = memo(function SuggestionRow({
 				className={ACTION}
 			>
 				Study
-				<ArrowRightIcon aria-hidden className="size-[13px]" />
 			</button>
 		);
 	}

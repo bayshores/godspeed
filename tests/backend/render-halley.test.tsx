@@ -144,7 +144,7 @@ describe("the panel", () => {
 	});
 	it("docks on the right edge as a solid panel with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-0 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
+		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-11 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
 		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
 	});
 	it("Talk reads like a script: the speaker's name once per turn, no bubbles, a white Send bar", async () => {
@@ -314,10 +314,10 @@ describe("the panel", () => {
 			talkChat = null;
 		}
 	});
-	it("the agent line matches the footer, and shows the waiting notice while work waits", () => {
+	it("the agent line is empty with no agent, and shows the waiting notice while work waits", () => {
 		const idle = { connected: false, teaching: false, pendingWork: 0, claimedLessons: [] };
-		assert.equal(agentLine(idle), "No agent connected");
-		assert.equal(agentLine(null), "No agent connected");
+		assert.equal(agentLine(idle), null);
+		assert.equal(agentLine(null), null);
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));

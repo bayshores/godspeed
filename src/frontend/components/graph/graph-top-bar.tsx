@@ -33,7 +33,9 @@ export function GraphTopBar({
 		return () => window.removeEventListener("lh:kbd-find", onFind);
 	}, []);
 	return (
-		<TopBar path={[{ label: "graph", href: null }]}>
+		<>
+			<h1 className="sr-only">Graph</h1>
+			<TopBar path={[{ label: "graph", href: null }]}>
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
 			{hasFacts && (
 				<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={CHROME_BUTTON}>
@@ -47,7 +49,8 @@ export function GraphTopBar({
 					+ Add files
 				</Link>
 			)}
-		</TopBar>
+			</TopBar>
+		</>
 	);
 }
 

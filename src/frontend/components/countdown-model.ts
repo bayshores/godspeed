@@ -6,7 +6,7 @@
  *    all of Sunday, like the runway), muted;
  *  - the last 24h: "HH:MM:SS", fading from grey to red;
  *  - the last hour: "MM:SS.hh" (hundredths), or "MM:SS" with reduced motion;
- *  - past due: "Overdue", red.
+ *  - past due: "overdue", red.
  *
  * Times are the computer's wall clock: a deadline with no time is due at
  * 23:59 that day.
@@ -46,7 +46,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
  *  motion) writes the last hour as "MM:SS". */
 export function countdown(dueMs: number, nowMs: number, opts: { hundredths?: boolean } = {}): Countdown {
 	const left = dueMs - nowMs;
-	if (left <= 0) return { mode: "overdue", text: "Overdue", color: COUNTDOWN_RED };
+	if (left <= 0) return { mode: "overdue", text: "overdue", color: COUNTDOWN_RED };
 	if (left >= DAY) {
 		const days = calendarDays(nowMs, dueMs);
 		return { mode: "days", text: `in ${days} ${days === 1 ? "day" : "days"}`, color: COUNTDOWN_GREY };

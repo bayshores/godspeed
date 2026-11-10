@@ -140,10 +140,12 @@ export function YourTurnPanel({
 						status={composer.busy && <TurnStatus waitingForAgent={composer.waitingForAgent ?? false} />}
 						right={
 							<HeaderChip exit={skipExit(onSkipQuestion)}>
-								<KindChip>
-									{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
-									{label}
-								</KindChip>
+								{label !== "Question" && (
+									<KindChip>
+										{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
+										{label}
+									</KindChip>
+								)}
 							</HeaderChip>
 						}
 					/>
@@ -195,6 +197,7 @@ export function YourTurnPanel({
 		<aside
 			ref={asideRef}
 			data-testid="your-turn-panel"
+			aria-label="Your turn"
 			data-mode={mode.split(":")[0]}
 			className="relative flex min-h-0 w-full shrink-0 flex-col gap-4 @max-[759px]/lesson:max-h-[50dvh] @max-[759px]/lesson:min-h-[240px] @min-[760px]/lesson:w-(--lh-turn-w)"
 			style={{ "--lh-turn-w": `${width}px` } as React.CSSProperties}

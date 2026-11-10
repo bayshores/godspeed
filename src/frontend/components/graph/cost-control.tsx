@@ -1,13 +1,12 @@
 /**
- * The graph-pipeline cost control: the plan that paid (or "–"); click
- * toggles the breakdown panel. Used by the minimal home.
+ * The graph-pipeline cost control: "graph costs"; click toggles the
+ * breakdown panel (the plan that paid, or "–"). Used by the Study page.
  */
 import { useRef, useState } from "react";
 import type { GraphCostSummary } from "@/shared/core";
 import { planCostLabel } from "@/frontend/components/usage-format";
 import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
 import { usePresence } from "@/frontend/components/presence";
-import { Hint } from "@/frontend/components/ui/hint";
 
 /** Compact token display: 45231 → "45.2k"; absent → "–". */
 function fmtTokens(n: number | undefined): string {
@@ -42,7 +41,7 @@ export function displayUnpricedRuns(costs: Pick<GraphCostSummary, "stages">): nu
 }
 
 /**
- * The graph's cost label, hover-highlighted; click toggles the breakdown
+ * The "graph costs" button; click toggles the breakdown
  * panel, and an outside click or Escape closes it. The panel is
  * viewport-capped and scrolls.
  */
@@ -56,21 +55,14 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	const panel = usePresence(open);
 	return (
 		<div ref={rootRef} className="relative">
-			<Hint
-				label="Graph costs: click for details"
-				side="bottom"
-			>
-				<button
+			<button
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={`lh-press px-2 py-1 text-xs font-mono tabular-nums hover:bg-accent ${
-					open ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-				}`}
+				className={`lh-press px-2 py-1 text-xs hover:bg-accent ${open ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
 			>
-				{graphUsageLabel(costs)}
+				graph costs
 			</button>
-			</Hint>
 			{panel.mounted && (
 				<div data-state={panel.state} className="lh-pop absolute right-0 top-full mt-2 max-h-[60vh] overflow-y-auto">
 					<GraphCostPanel costs={costs} />

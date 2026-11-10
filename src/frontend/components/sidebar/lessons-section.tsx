@@ -180,7 +180,7 @@ export function LessonsSection({
 	};
 
 	return (
-		<Pane name="lessons" className="flex min-h-0 w-full flex-1 flex-col px-2 pt-4 pb-2">
+		<Pane name="lessons" className="flex min-h-44 w-full flex-1 flex-col px-2 pt-4 pb-2">
 			<div className="flex w-full items-center justify-between gap-2 px-2">
 				{/* New lessons start on the start page ("/new"). */}
 				<Link href="/new" prefetch={false} data-testid="new-session" className="lh-btn">

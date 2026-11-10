@@ -69,7 +69,7 @@ export function DueNext({
 						<div className="flex flex-wrap gap-2.5">
 							<button type="button" data-testid="due-next-study" disabled={busy} onClick={() => onStudy(d)} className="lh-btn lh-btn-main max-w-full">
 								<span aria-hidden>▶</span>
-								<span className="truncate">{deadlineStudyLabel(progress?.continueStudy, d.name).toLowerCase()}</span>
+								<span className="truncate">{deadlineStudyLabel(progress?.continueStudy).toLowerCase()}</span>
 							</button>
 							<button type="button" data-testid="due-next-done" disabled={leaving} onClick={() => onDone(d)} className="lh-btn">
 								<span aria-hidden>✓</span>

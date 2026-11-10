@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { SidebarContext, useSidebar } from "@/frontend/components/sidebar/sidebar-context";
 import { usePathname } from "next/navigation";
 import { useUnseenFiles } from "@/frontend/components/sidebar/files-seen";
 import { cn } from "@/frontend/lib/utils";
@@ -81,16 +82,6 @@ declare global {
 			onOpenSettings?: (cb: (section: string) => void) => () => void;
 		};
 	}
-}
-
-const SidebarContext = createContext<{ open: boolean; toggle: () => void; fold: (on: boolean) => void }>({
-	open: false,
-	toggle: () => {},
-	fold: () => {},
-});
-
-export function useSidebar() {
-	return useContext(SidebarContext);
 }
 
 /** Folds the sidebar away while the calling page is open (the cheat sheet
@@ -207,11 +198,12 @@ export function SessionsSidebar() {
 
 	return (
 		<aside
+			aria-label="Sidebar"
 			className={cn("sidebar-motion relative shrink-0 overflow-hidden", SIDEBAR_MOTION)}
 			style={{ width: open ? width : 0 }}
 			inert={!open}
 		>
-			<div className="flex h-full flex-col gap-5 px-4 pt-6 pb-4" style={{ width }}>
+			<div className="flex h-full flex-col gap-5 overflow-y-auto px-4 pt-6 pb-4" style={{ width }}>
 				<Pane className="shrink-0 px-2 py-2.5">
 					<ClassTree pathname={pathname} fileCount={activeClass?.fileCount ?? 0} unseenFiles={unseenFiles} />
 				</Pane>

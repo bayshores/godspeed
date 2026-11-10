@@ -332,7 +332,7 @@ function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 				label="Copy table"
 				getText={() => (ref.current ? tableDataToMarkdown(extractTableDataFromElement(ref.current)) : "")}
 			/>
-			<div className="overflow-x-auto">
+			<div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Table">
 				<table
 					ref={ref}
 					// No text-sm here — the table text runs at the session prose size
@@ -386,6 +386,18 @@ function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 	);
 }
 
+/** A header cell with nothing in it is a plain cell: a screen reader would
+ *  otherwise announce a header with no name. */
+function MarkdownHeaderCell(props: ComponentProps<"th"> & ExtraProps) {
+	const { children, node, ...rest } = props;
+	const Cell = node?.children.length ? "th" : "td";
+	return (
+		<Cell data-streamdown="table-header-cell" {...rest}>
+			{children}
+		</Cell>
+	);
+}
+
 // ─── The stable override set (module identity: Streamdown is memoized) ────────
 
 /** Bold as the REAL element: streamdown's default `strong` renders a
@@ -404,6 +416,7 @@ function MarkdownStrong(props: ComponentProps<"strong"> & ExtraProps) {
 export const mdComponents = {
 	code: MarkdownCode,
 	table: MarkdownTable,
+	th: MarkdownHeaderCell,
 	span: MathDisplay,
 	strong: MarkdownStrong,
 	blockquote: MarkdownBlockquote,

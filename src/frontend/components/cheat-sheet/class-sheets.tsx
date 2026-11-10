@@ -8,6 +8,8 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { useClasses } from "@/frontend/components/class-context";
 import { kindLabel } from "@/frontend/components/class-deadlines-model";
+import { useMinute } from "@/frontend/components/countdown";
+import { dueAtMs } from "@/frontend/components/countdown-model";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { PickClass } from "@/frontend/components/pick-class";
 import { TopBar } from "@/frontend/components/app-bar";
@@ -35,8 +37,11 @@ export function ClassSheetsPage() {
 	const { view, failed, reload } = useClassSheets(active);
 	const agentName = useAgentStatus()?.name ?? "Your agent";
 	const [error, setError] = useState<string | null>(null);
-	const upcoming = view?.cards.filter((c) => !c.past) ?? [];
-	const past = view?.cards.filter((c) => c.past) ?? [];
+	const minute = useMinute();
+	// A deadline whose time went by today is past too, not coming up.
+	const isPast = (c: SheetCard) => c.past || (minute !== null && dueAtMs(c) <= minute);
+	const upcoming = view?.cards.filter((c) => !isPast(c)) ?? [];
+	const past = view?.cards.filter(isPast) ?? [];
 	const made = view?.cards.filter((c) => c.version).length ?? 0;
 	const remake = (deadlineId: string) => active && void remakeSheet(active, deadlineId).then(setError);
 	const fileBrowser = typeof window !== "undefined" && window.lh?.showInFolder ? fileBrowserName(window.lh.platform) : null;
@@ -61,7 +66,7 @@ export function ClassSheetsPage() {
 
 	return (
 		<div className="flex h-full flex-col" data-testid="cheat-sheets-page">
-			<TopBar path={[{ label: "cheat-sheets", href: null }]} />
+			<TopBar path={[{ label: "cheat sheets", href: null }]} />
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{!active && (
 					<div className="m-auto px-[52px]">

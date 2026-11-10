@@ -8,7 +8,7 @@ import { useClasses } from "@/frontend/components/class-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useFoldSidebar } from "@/frontend/components/sidebar";
 import { TopBar } from "@/frontend/components/app-bar";
-import { slug } from "@/frontend/components/app-bar-model";
+import { pathLabel } from "@/frontend/components/app-bar-model";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
@@ -47,7 +47,7 @@ export function CheatSheetStudio({ classId, deadlineId }: { classId: string; dea
 				<Studio view={view} classId={classId} deadlineId={deadlineId} act={act} />
 			) : (
 				<>
-					<TopBar path={[{ label: "cheat-sheet", href: null }]} />
+					<TopBar path={[{ label: "cheat sheet", href: null }]} />
 					{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-[52px] py-6" /> : <div className="flex-1" aria-hidden />}
 				</>
 			)}
@@ -103,7 +103,7 @@ function Studio({
 
 	return (
 		<>
-			<TopBar path={[{ label: slug(view.deadlineName), href: `/class/deadline/${encodeURIComponent(deadlineId)}` }, { label: "cheat-sheet", href: null }]}>
+			<TopBar path={[{ label: pathLabel(view.deadlineName), href: `/class/deadline/${encodeURIComponent(deadlineId)}` }, { label: "cheat sheet", href: null }]}>
 				<StudioStatus view={view} agentName={agentName} agentGone={agentGone} onStop={() => void act({ action: "stop" }).then(setFailed)} />
 				{current &&
 					currentUrl &&

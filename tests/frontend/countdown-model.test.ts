@@ -1,6 +1,6 @@
 /**
  * The deadline countdown: "in N days" until the
- * last 24h, then HH:MM:SS, then MM:SS.hh in the last hour, "Overdue" once
+ * last 24h, then HH:MM:SS, then MM:SS.hh in the last hour, "overdue" once
  * past due; the grey → red fade over the last 24h; how fast the clock
  * must tick; and a deadline with no time being due at 23:59.
  */
@@ -57,9 +57,9 @@ describe("countdown", () => {
 		assert.equal(countdown(due, due - 10).text, "00:00.01");
 	});
 
-	it("at or past due: Overdue, red", () => {
-		assert.deepEqual(countdown(due, due), { mode: "overdue", text: "Overdue", color: COUNTDOWN_RED });
-		assert.equal(countdown(due, due + DAY).text, "Overdue");
+	it("at or past due: overdue, red", () => {
+		assert.deepEqual(countdown(due, due), { mode: "overdue", text: "overdue", color: COUNTDOWN_RED });
+		assert.equal(countdown(due, due + DAY).text, "overdue");
 	});
 
 	it("a deadline with no time counts down to 23:59", () => {

@@ -277,7 +277,7 @@ export function SettingsDialogBody({
 			</nav>
 
 			<div className="flex min-w-0 flex-1 flex-col">
-				<header className="flex shrink-0 items-center justify-between gap-3 px-7 py-[22px]">
+				<div className="flex shrink-0 items-center justify-between gap-3 px-7 py-[22px]">
 					<span className="flex min-w-0 items-center gap-2">
 						<h3 data-testid="settings-section-title" className="truncate text-xl font-bold text-ink">
 							{current.label}
@@ -301,7 +301,7 @@ export function SettingsDialogBody({
 							<XIcon className="size-4" aria-hidden />
 						</button>
 					</Hint>
-				</header>
+				</div>
 
 				{/* One section at a time; scrolling locks while a menu is open. */}
 				<div

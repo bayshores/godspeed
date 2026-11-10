@@ -212,7 +212,7 @@ export function ChainTableBody({
 			    the chain table names nothing, so its bar carries counts +
 			    search + close only. Search + close carve out with lh-no-drag
 			    (later in the DOM). */}
-			<TopBar path={[{ label: "graph", href: "/graph" }, { label: "all-facts", href: null }]}>
+			<TopBar path={[{ label: "graph", href: "/graph" }, { label: "all facts", href: null }]}>
 				<span className="shrink-0 text-xs text-muted-foreground">
 					{nodes.length} {nodes.length === 1 ? "fact" : "facts"}
 				</span>

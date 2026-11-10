@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import type { ClassSummary, ProgressPayload } from "@/shared/core";
+import { RAMP_COLORS, UNTESTED_COLOR, type ClassSummary, type ProgressPayload } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { UNSTUDIED_CELL, factCells } from "./home-page-model";
 
@@ -55,3 +55,26 @@ export const ClassFacts = memo(function ClassFacts({
 		</Pane>
 	);
 });
+
+/** What the squares' colors mean, once under all the grids. */
+export function FactKey() {
+	return (
+		<p data-testid="fact-key" className="flex flex-wrap items-center gap-x-5 gap-y-1 px-1 text-xs text-ink-2">
+			<span>one square is one fact</span>
+			<span className="flex items-center gap-[3px]">
+				{RAMP_COLORS.map((c) => (
+					<span key={c} aria-hidden className="size-2.5" style={{ background: c }} />
+				))}
+				<span className="ml-1.5">answered, wrong to right</span>
+			</span>
+			<span className="flex items-center gap-1.5">
+				<span aria-hidden className="size-2.5" style={{ background: UNTESTED_COLOR }} />
+				in a lesson, not answered
+			</span>
+			<span className="flex items-center gap-1.5">
+				<span aria-hidden className="size-2.5" style={{ background: UNSTUDIED_CELL }} />
+				not studied
+			</span>
+		</p>
+	);
+}

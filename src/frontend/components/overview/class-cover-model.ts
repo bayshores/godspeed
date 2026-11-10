@@ -24,20 +24,21 @@ export function fitScale(natural: { width: number; height: number }, room: { wid
 
 /** Where the signature sits (its left edge, in cover pixels) and its
  *  scale: in the free space right of the text and left of the note (or
- *  the cover's padding), so it never sits under words; behind the text
- *  only when that space is too small. */
+ *  the cover's padding), so it never sits under words; `behind` the text
+ *  only when that space is too small (the cover then leaves it dim, so
+ *  the words stay readable). */
 export function signaturePlace(
 	natural: { width: number; height: number },
 	cover: { width: number; height: number; padRight: number },
 	textRight: number,
 	noteLeft: number | null,
-): { left: number; scale: number } {
+): { left: number; scale: number; behind: boolean } {
 	const start = textRight + SIGNATURE_GAP;
 	const end = noteLeft !== null ? noteLeft - SIGNATURE_GAP : cover.width - cover.padRight;
 	const beside = fitScale(natural, { width: end - start, height: cover.height });
-	if (end > start && beside >= MIN_BESIDE_SCALE) return { left: start, scale: beside };
+	if (end > start && beside >= MIN_BESIDE_SCALE) return { left: start, scale: beside, behind: false };
 	const left = cover.width * SIGNATURE_LEFT;
-	return { left, scale: fitScale(natural, { width: cover.width - left, height: cover.height }) };
+	return { left, scale: fitScale(natural, { width: cover.width - left, height: cover.height }), behind: true };
 }
 
 /** Share of the class's facts studied, 0–1 (0 with no facts). */

@@ -16,7 +16,7 @@ import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { ActivityPane } from "./activity-pane";
-import { ClassFacts } from "./class-facts";
+import { ClassFacts, FactKey } from "./class-facts";
 import { ComingUp } from "./coming-up";
 import { DueNext } from "./due-next";
 import { classesSettled, classSlot } from "./home-page-model";
@@ -74,6 +74,7 @@ export function HomePage() {
 
 	return (
 		<div data-testid="home-page" className="flex h-full min-h-0 flex-col">
+			<h1 className="sr-only">Home</h1>
 			<TopBar inClass={false} path={[{ label: "home", href: null }]}>
 				{shown.length > 0 && <AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />}
 			</TopBar>
@@ -116,6 +117,7 @@ export function HomePage() {
 										})}
 									</div>
 								)}
+								{shown.length > 0 && blocksReady && <FactKey />}
 							</div>
 							{halley && <ActivityPane actions={halley.recent} nowMs={nowMs} onGo={halley.go} className="@5xl:w-[400px] @5xl:shrink-0" />}
 						</div>
@@ -164,6 +166,7 @@ function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; on
 					align="right"
 					menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5"
 				>
+					<span className="px-2.5 py-1 text-[13px] text-ink-2">which class?</span>
 					{classes.map((c) => (
 						<button
 							role="menuitem"

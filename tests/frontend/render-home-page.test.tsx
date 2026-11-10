@@ -197,9 +197,9 @@ describe("Due next", () => {
 	});
 
 	it("study for it, or continue its unfinished session; mark done", () => {
-		assert.match(section(dueNext(), "due-next-study", "</button>"), /study for reading quiz/);
+		assert.match(section(dueNext(), "due-next-study", "</button>"), />study</);
 		const cont = dueNext({ progress: progressFor("quiz", { continueStudy: { chatId: "c", done: 1, total: 3 } }) });
-		assert.match(section(cont, "due-next-study", "</button>"), /continue studying for reading quiz, 1 of 3 topics/);
+		assert.match(section(cont, "due-next-study", "</button>"), /continue studying, 1 of 3 topics/);
 		assert.match(section(dueNext(), "due-next-done", "</button>"), /mark done/);
 	});
 

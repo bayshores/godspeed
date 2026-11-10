@@ -43,7 +43,7 @@ export function TopicPanel({
 	const list = useMemo(() => topicFacts(facts, topic), [facts, topic]);
 	const blocks = topic.answers.slice(-MAX_BLOCKS);
 	return (
-		<aside data-testid="topic-panel" className={SIDE_PANEL}>
+		<aside data-testid="topic-panel" aria-label="Topic" className={SIDE_PANEL}>
 			<div className="min-h-0 flex-1 overflow-y-auto px-6 py-[22px]">
 				<Hint label="Close" side="bottom">
 					<button

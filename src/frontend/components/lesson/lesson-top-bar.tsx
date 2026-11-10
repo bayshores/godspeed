@@ -1,6 +1,6 @@
 import { SearchIcon } from "lucide-react";
 import { TopBar } from "@/frontend/components/app-bar";
-import { slug } from "@/frontend/components/app-bar-model";
+import { pathLabel } from "@/frontend/components/app-bar-model";
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction, type LessonKind } from "@/shared/core";
@@ -25,7 +25,9 @@ export function LessonTopBar({
 	sheet?: { open: boolean; onToggle: () => void };
 }) {
 	return (
-		<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
+		<>
+			<h1 className="sr-only">{rename.title}</h1>
+			<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
 			{kind === "practice" && practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />}
 			{sheet && (
 				<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn("lh-btn", sheet.open && "border-tint text-tint")}>
@@ -43,7 +45,8 @@ export function LessonTopBar({
 					<SearchIcon className="size-4" />
 				</button>
 			</Hint>
-		</TopBar>
+			</TopBar>
+		</>
 	);
 }
 
@@ -56,7 +59,7 @@ function TitleButton({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 				onClick={rename.start}
 				className="lh-no-drag min-w-0 shrink cursor-text truncate text-left font-bold text-ink"
 			>
-				{slug(rename.title)}
+				{pathLabel(rename.title)}
 			</button>
 		</Hint>
 	);

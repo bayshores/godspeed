@@ -112,7 +112,7 @@ export function useMinute(): number | null {
 
 /**
  * The countdown text. `className` sizes the plain words ("in 2 days",
- * "Overdue"); `clockClassName` sizes the ticking clock. Pass `now` for a
+ * "overdue"); `clockClassName` sizes the ticking clock. Pass `now` for a
  * fixed moment (tests).
  */
 export function Countdown({

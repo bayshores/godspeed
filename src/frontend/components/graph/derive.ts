@@ -55,8 +55,10 @@ export function statusLine(t: Pick<TopicProgress, "right" | "answered" | "overco
 
 /** The reason under a Work-on-next row. progress.ts says "overconfident"
  *  for that group; the status line already says the word, so the reason
- *  explains it. */
+ *  explains it. A bare "<n>% right" repeats the status line's score, so
+ *  it shows nothing. */
 export function reasonText(item: Pick<WorkOnNextItem, "reason">): string {
+	if (/^\d+% right$/.test(item.reason)) return "";
 	return item.reason === "overconfident" ? "You felt sure on most of your misses" : item.reason;
 }
 

@@ -54,7 +54,7 @@ export function WherePanel({
 	const scoped = scope.topicIds.map((id) => byId.get(id)).filter((t): t is TopicProgress => !!t);
 	const next = scope.workOnNext.slice(0, WORK_ON_NEXT_LIMIT);
 	return (
-		<aside data-testid="where-panel" className={slideIn ? `${SIDE_PANEL} lh-slide-in` : SIDE_PANEL}>
+		<aside data-testid="where-panel" aria-label="Where you're at" className={slideIn ? `${SIDE_PANEL} lh-slide-in` : SIDE_PANEL}>
 			<div className="min-h-0 flex-1 overflow-y-auto px-6 py-[22px]">
 				{/* The first row ends in the hide button. */}
 				<div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ const NextRow = memo(function NextRow({
 					<span className="text-[12.5px] font-bold" style={{ color: color ?? "var(--color-ink-2)" }}>
 						{topic ? statusLine(topic) : ""}
 					</span>
-					{item.reason && <span className="text-[12.5px] text-ink-3">{reasonText(item)}</span>}
+					{reasonText(item) && <span className="text-[12.5px] text-ink-3">{reasonText(item)}</span>}
 				</span>
 			</button>
 		</li>

@@ -88,7 +88,7 @@ export function InstructionsPanel({
 				aria-label={`${area.label} instructions`}
 				className="absolute inset-y-0 right-0 flex w-[620px] max-w-full flex-col border-l border-tone-2 bg-panel shadow-[-20px_0_40px_#000000cc]"
 			>
-				<header className="flex items-start justify-between gap-3 px-6 pb-3.5 pt-5">
+				<div className="flex items-start justify-between gap-3 px-6 pb-3.5 pt-5">
 					<span>
 						<h3 className="text-lg font-bold text-ink">{area.label}</h3>
 						<span className="text-[12.5px] text-ink-2">What the teacher reads before every lesson</span>
@@ -103,7 +103,7 @@ export function InstructionsPanel({
 							<XIcon className="size-4" aria-hidden />
 						</button>
 					</Hint>
-				</header>
+				</div>
 				{parts.length > 1 && (
 					<div
 						role="tablist"

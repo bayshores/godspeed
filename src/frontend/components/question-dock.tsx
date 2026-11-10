@@ -412,10 +412,12 @@ function QuestionDockForm({
 					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={skipExit(onSkip)}>
-							<KindChip testId="question-kind">
-								{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
-								{label}
-							</KindChip>
+							{label !== "Question" && (
+								<KindChip testId="question-kind">
+									{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
+									{label}
+								</KindChip>
+							)}
 						</HeaderChip>
 					}
 				/>

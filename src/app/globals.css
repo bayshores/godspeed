@@ -456,6 +456,10 @@ body {
 [data-streamdown="code-block-header"] {
 	display: none;
 }
+/* Code comments: the theme's grey is too faint to read on the block. */
+[data-streamdown="code-block-body"] span[style*="#6A737D"] {
+	--shiki-dark: #8b949e !important;
+}
 [data-streamdown="code-block-body"] {
 	border: 0;
 	background: transparent;

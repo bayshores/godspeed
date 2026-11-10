@@ -56,7 +56,7 @@ describe("signaturePlace", () => {
 	const cover = { width: 1084, height: 240, padRight: 52 };
 	it("sits in the free space right of the text, never under it", () => {
 		const place = signaturePlace({ width: 200, height: 170 }, cover, 600, null);
-		assert.deepEqual(place, { left: 632, scale: 1 });
+		assert.deepEqual(place, { left: 632, scale: 1, behind: false });
 	});
 	it("stops before a note in the same row", () => {
 		const place = signaturePlace({ width: 200, height: 170 }, cover, 400, 600);
@@ -66,6 +66,7 @@ describe("signaturePlace", () => {
 	it("goes behind the text when the space beside it is too small", () => {
 		const place = signaturePlace({ width: 600, height: 170 }, cover, 900, null);
 		assert.equal(place.left, 1084 * 0.28);
+		assert.equal(place.behind, true);
 		assert.ok(place.scale > 0 && place.scale <= 1);
 	});
 });

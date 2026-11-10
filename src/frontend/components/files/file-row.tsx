@@ -127,14 +127,14 @@ function RowState({
 			return <CoverageCell fileId={fileId} state={state} />;
 		case "building":
 			return (
-				<span data-testid={`class-file-status-${fileId}`} className="flex w-[150px] shrink-0 @3xl:w-[216px] items-center gap-2 text-[13px] text-ink-2">
+				<span data-testid={`class-file-status-${fileId}`} className="flex w-[150px] shrink-0 @3xl:w-[240px] items-center gap-2 text-[13px] text-ink-2">
 					<LoaderIcon className="size-[13px] animate-spin motion-reduce:animate-none" aria-hidden />
 					Building facts…
 				</span>
 			);
 		case "waiting":
 			return (
-				<span data-testid={`class-file-status-${fileId}`} className="w-[150px] shrink-0 @3xl:w-[216px] text-[13px] text-ink-2">
+				<span data-testid={`class-file-status-${fileId}`} className="w-[150px] shrink-0 @3xl:w-[240px] text-[13px] text-ink-2">
 					{state.label}
 				</span>
 			);
@@ -145,7 +145,7 @@ function RowState({
 				</span>
 			);
 			return (
-				<span className="flex w-[150px] shrink-0 @3xl:w-[216px] items-center gap-2">
+				<span className="flex w-[150px] shrink-0 @3xl:w-[240px] items-center gap-2">
 					<CircleXIcon className="size-[13px] shrink-0 text-ans-wrong" aria-hidden />
 					{state.error ? (
 						<Tip title={state.label} body={<span className="whitespace-pre-wrap break-words">{state.error}</span>} side="bottom">
@@ -168,13 +168,13 @@ function RowState({
 		}
 		case "transcript":
 			return (
-				<span data-testid={`class-file-status-${fileId}`} title={state.label} className="w-[150px] shrink-0 @3xl:w-[216px] truncate text-[13px] text-ink-2">
+				<span data-testid={`class-file-status-${fileId}`} title={state.label} className="w-[150px] shrink-0 @3xl:w-[240px] truncate text-[13px] text-ink-2">
 					{state.label}
 				</span>
 			);
 		case "none":
 			// Keeps the menus in one column.
-			return <span className="w-[150px] shrink-0 @3xl:w-[216px]" aria-hidden />;
+			return <span className="w-[150px] shrink-0 @3xl:w-[240px]" aria-hidden />;
 	}
 }
 
@@ -201,13 +201,13 @@ function CoverageCell({ fileId, state }: { fileId: string; state: Extract<FileSt
 	const fill = studiedFill(state);
 	if (state.facts === 0) {
 		return (
-			<span data-testid={`class-file-status-${fileId}`} className="w-[216px] shrink-0 text-[13px] text-ink-3">
+			<span data-testid={`class-file-status-${fileId}`} className="w-[150px] shrink-0 @3xl:w-[240px] text-[13px] text-ink-3">
 				No facts yet
 			</span>
 		);
 	}
 	return (
-		<span data-testid={`class-file-status-${fileId}`} className="flex w-[150px] shrink-0 @3xl:w-[216px] items-center gap-2.5">
+		<span data-testid={`class-file-status-${fileId}`} className="flex w-[150px] shrink-0 @3xl:w-[240px] items-center gap-2.5">
 			<span className="hidden h-[5px] w-[72px] shrink-0 bg-tone-2 @3xl:flex" aria-hidden>
 				{fill > 0 && <span data-testid="file-coverage-fill" className="h-full bg-ink-2" style={{ width: `${Math.round(fill * 100)}%` }} />}
 			</span>

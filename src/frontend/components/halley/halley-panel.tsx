@@ -2,7 +2,7 @@
 
 /**
  * The teacher's panel: click the teacher in the teacher pane or the top bar.
- * Docked to the window's right edge at full height. It pushes the page
+ * Docked to the window's right edge, under the top bar. It pushes the page
  * left to make room (in a lesson it covers the Your turn panel until
  * closed, and pushes only by what's left over). The head (name, the
  * agent's state, close), then two tabs: Talk (a chat outside lessons,
@@ -30,9 +30,12 @@ const RECENT_ROWS = 8;
 const TABS = ["talk", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
-/** The agent line under the name: the footer's line, or the waiting notice while work waits. */
-export function agentLine(agent: AgentStatus | null): string {
-	return agentWaiting(agent) ? waitingNotice(agent?.name) : agentStatusLabel(agent, 0);
+/** The agent line under the name: the waiting notice while work waits, the
+ *  agent's state while one is connected. Nothing otherwise: the teacher
+ *  pane and the Talk box already say no agent is connected. */
+export function agentLine(agent: AgentStatus | null): string | null {
+	if (agentWaiting(agent)) return waitingNotice(agent?.name);
+	return agent?.connected || agent?.teaching ? agentStatusLabel(agent, 0) : null;
 }
 
 /** The background jobs block has something to show (it hides otherwise). */
@@ -107,7 +110,7 @@ export function HalleyPanel({
 			data-testid="halley-panel"
 			aria-label={name}
 			style={{ width }}
-			className="lh-slide-in fixed top-0 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
+			className="lh-slide-in fixed top-11 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-start gap-3 px-6 pt-5 pb-4">
 				<TeacherSprite mood="idle" className="mt-1 w-[22px] shrink-0" />
@@ -115,9 +118,11 @@ export function HalleyPanel({
 					<span data-testid="halley-panel-name" className="truncate font-bold text-[22px] leading-7 text-ink">
 						{name}
 					</span>
-					<span data-testid="halley-panel-agent" className="truncate text-[12.5px] text-ink-2">
-						{agentLine(agent)}
-					</span>
+					{agentLine(agent) && (
+						<span data-testid="halley-panel-agent" className="truncate text-[12.5px] text-ink-2">
+							{agentLine(agent)}
+						</span>
+					)}
 				</span>
 				<button
 					type="button"

@@ -272,5 +272,4 @@ export function CommitInput({
 	);
 }
 /** The settings' small outlined button ("Copy", "New token"). */
-export const OUTLINE_BUTTON =
-	"lh-press shrink-0 px-2.5 py-[5px] text-[13px] font-bold text-ink border border-tone-2 hover:bg-tone-2 disabled:opacity-50";
+export const OUTLINE_BUTTON = "lh-btn shrink-0";
