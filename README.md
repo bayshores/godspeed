@@ -55,6 +55,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 ![A cheat sheet for the Midterm with the chat that made it and the rules it keeps](docs/assets/cheat-sheet.png)
 
+- **Calculator.** In any box you write in, end a calculation with `=` and the answer shows in grey after it. Click it (or press Tab) to keep it. It does numbers, letters you set on a line above (`x = 3`), expanding and simplifying, `solve 2x + 3 = 11`, derivatives (`d/dx x^3 =`) and integrals (`int x^2 dx =`), all on your computer.
 - **Talk.** Ask your agent to set up classes, add deadlines or answer questions about your classes, with the **talk** button under the teacher in the sidebar.
 
 ## Get started

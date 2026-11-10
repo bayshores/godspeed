@@ -62,6 +62,7 @@ export * from "./settings.ts";
 export type { ChatDeleteMode } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
 export * from "./math-typing.ts";
+export * from "./calculator.ts";
 export * from "./file-series.ts";
 export * from "./file-groups.ts";
 export * from "./new-files.ts";

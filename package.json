@@ -33,6 +33,7 @@
 		"@codemirror/search": "^6.7.2",
 		"@codemirror/state": "^6.7.6",
 		"@codemirror/view": "^6.43.15",
+		"@cortex-js/compute-engine": "0.185.1",
 		"@earendil-works/pi-agent-core": "1.4.0",
 		"@earendil-works/pi-ai": "1.4.0",
 		"@huggingface/transformers": "^4.3.2",

@@ -13,6 +13,7 @@ import { autocompletion, closeCompletion, type CompletionContext, type Completio
 import katex from "katex";
 import type { MathfieldElement } from "mathlive";
 import { formatBeforeBreak, hasSlots, isMathBreak, mathSpans, suggestMath, symbolSwap } from "@/shared/core";
+import { calculator, fieldCalculator } from "./math-box-calculator";
 
 /** The math piece being edited, by its range in the document. */
 type Editing = { from: number; to: number } | null;
@@ -88,10 +89,12 @@ class MathWidget extends WidgetType {
 	}
 }
 
-/** The piece being edited: a MathLive field with the caret in it. */
+/** The piece being edited: a MathLive field with the caret in it, then
+ *  the calculator's answer when the piece ends in "=". */
 class EditWidget extends WidgetType {
 	constructor(
 		readonly latex: string,
+		readonly from: number,
 		readonly onEnter: () => boolean,
 	) {
 		super();
@@ -100,14 +103,17 @@ class EditWidget extends WidgetType {
 		return other.latex === this.latex;
 	}
 	toDOM(view: EditorView) {
+		const outer = document.createElement("span");
 		const host = document.createElement("span");
 		host.className = "cm-math cm-math-editing";
 		host.innerHTML = renderMath(this.latex);
+		outer.append(host);
 		void loadMathLive().then((Field) => {
 			if (!host.isConnected) return;
 			const field = new Field();
 			// Its options need the field on the page.
 			host.replaceChildren(field);
+			fieldCalculator(view, field, outer, this.from);
 			field.mathVirtualKeyboardPolicy = "manual";
 			field.popoverPolicy = "off";
 			field.menuItems = [];
@@ -140,7 +146,7 @@ class EditWidget extends WidgetType {
 				field.executeCommand("moveToNextPlaceholder");
 			}
 		});
-		return host;
+		return outer;
 	}
 }
 
@@ -148,7 +154,7 @@ function decorations(state: EditorState, onEnter: () => boolean): DecorationSet 
 	const editing = state.field(editingField);
 	const ranges: Range<Decoration>[] = mathSpans(state.doc.toString()).map((s) =>
 		Decoration.replace({
-			widget: editing?.from === s.from ? new EditWidget(s.latex, onEnter) : new MathWidget(s.latex),
+			widget: editing?.from === s.from ? new EditWidget(s.latex, s.from, onEnter) : new MathWidget(s.latex),
 		}).range(s.from, s.to),
 	);
 	return Decoration.set(ranges);
@@ -285,6 +291,7 @@ export function mountMathBox(
 				keymap.of([...defaultKeymap, ...historyKeymap]),
 				editingField,
 				mathPieces(opts.onEnter),
+				calculator((state) => state.field(editingField) !== null),
 				typingRules,
 				// Pasted or dropped files are attachments (the form takes them), not text.
 				EditorView.domEventHandlers({
