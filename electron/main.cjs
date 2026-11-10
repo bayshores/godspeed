@@ -391,12 +391,13 @@ function createWindow(url, serverUp = null) {
 		width: 1440,
 		height: 900,
 		title: PRODUCT_NAME,
-		// Merged chrome: the system title bar is gone; the app's own 60px
-		// header bands ARE the title bar. macOS centers each 12px traffic
-		// light at y+6.75, so y 22.5 puts them at 29.25, about mid-band.
+		// Merged chrome: the system title bar is gone; the app's own 44px
+		// top bar IS the title bar. macOS 26 centers each traffic light
+		// about 8px below y, so y 14 centers them on the bar (y 22), with
+		// the same gap above them as to their left.
 		// Dragging comes from the renderer's .lh-drag bands (src/app/globals.css).
 		...(process.platform === "darwin"
-			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 22.5 } }
+			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 14 } }
 			: {
 				titleBarStyle: "hidden",
 				// Native min/max/close on the right, at the OS's compact default

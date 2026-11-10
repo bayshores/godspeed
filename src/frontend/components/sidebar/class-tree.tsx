@@ -3,9 +3,10 @@
 /**
  * THE CLASS TREE, the sidebar's first pane: Home, then the classes. The
  * active class is open and lists its pages (overview, graph, files, cheat
- * sheets); clicking another class switches the window to it and opens
- * its overview. Then "no class" (lessons outside a class), the archived
- * classes folded, "add class", and settings.
+ * sheets) on a tree line; clicking another class switches the window to it
+ * and opens its overview. Then "no class" (lessons outside a class), the
+ * archived classes folded, and under a rule the quieter actions: "add
+ * class" and settings.
  */
 
 import { memo, useState } from "react";
@@ -40,6 +41,13 @@ export function activePageHref(pathname: string): string | null {
 
 const ROW = "lh-press relative flex w-full items-center gap-[1ch] px-2 py-[5px] text-left text-base";
 const rowState = (selected: boolean) => (selected ? "bg-tone font-bold text-ink" : "text-ink-2 hover:text-ink");
+/** Add class and settings: smaller and dimmer than the places above them. */
+const ACTION = "text-sm text-ink-3 hover:text-ink";
+
+/** A thin line between the tree's groups. */
+function Rule() {
+	return <li aria-hidden className="mx-2 my-1.5 h-px bg-tone-2" />;
+}
 
 /** The fixed-width mark before a row's name. */
 function Mark({ children }: { children: string }) {
@@ -83,7 +91,7 @@ export const ClassTree = memo(function ClassTree({
 					data-halley-target={`class:${c.id}`}
 					aria-expanded={open}
 					onClick={() => pick(c.id)}
-					data-row="" className={cn(ROW, inFold && "pl-5", rowState(open && page === "/class"))}
+					data-row="" className={cn(ROW, inFold && "pl-5", rowState(open && page === "/class"), !inFold && "font-bold text-ink")}
 				>
 					<Mark>{open ? "▾" : "▸"}</Mark>
 					<span title={c.name} className="min-w-0 flex-1 truncate">
@@ -105,6 +113,7 @@ export const ClassTree = memo(function ClassTree({
 						<span className="min-w-0 flex-1 truncate">home</span>
 					</Link>
 				</li>
+				<Rule />
 				{current.map((c) => classRow(c))}
 				<li>
 					<button type="button" data-testid="class-option-none" aria-expanded={active === null} onClick={() => pick(null)} data-row="" className={cn(ROW, rowState(active === null && page === "/class"))}>
@@ -127,14 +136,15 @@ export const ClassTree = memo(function ClassTree({
 						</div>
 					</li>
 				)}
+				<Rule />
 				<li>
-					<button type="button" data-testid="class-new" onClick={() => setCreating(true)} data-row="" className={cn(ROW, "text-ink-2 hover:text-ink")}>
+					<button type="button" data-testid="class-new" onClick={() => setCreating(true)} data-row="" className={cn(ROW, ACTION)}>
 						<Mark>+</Mark>
 						<span className="min-w-0 flex-1 truncate">add class</span>
 					</button>
 				</li>
 				<li>
-					<button type="button" data-testid="settings-entry" onClick={() => openSettings()} data-row="" className={cn(ROW, "text-ink-2 hover:text-ink")}>
+					<button type="button" data-testid="settings-entry" onClick={() => openSettings()} data-row="" className={cn(ROW, ACTION)}>
 						<Mark>*</Mark>
 						<span className="min-w-0 flex-1 truncate">settings</span>
 					</button>
@@ -145,15 +155,19 @@ export const ClassTree = memo(function ClassTree({
 	);
 });
 
-/** The open class's pages, indented under it. */
+/** The open class's pages, hanging off one tree line drawn from the
+ *  class's mark (its center sits 1.5ch left of each page row). */
 function ClassPages({ page, hasClass, fileCount, unseenFiles }: { page: string | null; hasClass: boolean; fileCount: number; unseenFiles: boolean }) {
+	const pages = PAGES.filter((p) => hasClass || !p.classOnly);
 	return (
 		<ul aria-label="Class pages" className="flex flex-col">
-			{PAGES.filter((p) => hasClass || !p.classOnly).map((p) => {
+			{pages.map((p, i) => {
 				const selected = p.href === page;
 				return (
-					<li key={p.href}>
-						<Link href={p.href} data-testid={p.testid} aria-current={selected ? "page" : undefined} data-row="" className={cn(ROW, "pl-[calc(3ch+8px)]", rowState(selected))}>
+					<li key={p.href} className="pl-[calc(2ch+8px)] text-base">
+						<Link href={p.href} data-testid={p.testid} aria-current={selected ? "page" : undefined} data-row="" className={cn(ROW, rowState(selected))}>
+							<span aria-hidden className={cn("absolute top-0 left-[-1.5ch] w-px bg-edge/70", i === pages.length - 1 ? "h-1/2" : "bottom-0")} />
+							<span aria-hidden className="absolute top-1/2 left-[-1.5ch] h-px w-[1.5ch] bg-edge/70" />
 							<span className="min-w-0 flex-1 truncate">{p.label}</span>
 							{p.href === "/class/files" && unseenFiles && (
 								<span data-testid="nav-files-new" className="shrink-0 text-xs text-tint">

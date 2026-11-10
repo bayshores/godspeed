@@ -316,46 +316,38 @@ body {
 	line-height: 1.25;
 }
 
-/* Bracket buttons, the terminal look: "[ label ]". The brackets are
-   drawn, not part of the label, so screen readers hear the label alone.
-   .lh-btn is outlined; .lh-btn-main is the one filled action of a view. */
+/* Soft-fill buttons: a solid block a step above the background, rounded.
+   The fill mixes from the theme's colors so Appearance moves it too.
+   .lh-btn-main is the one light action of a view. */
 .lh-btn {
 	display: inline-flex;
 	align-items: center;
 	gap: 1ch;
 	height: 30px;
-	padding: 0 10px;
-	border: 1px solid var(--border);
+	padding: 0 12px;
+	border-radius: 6px;
+	background: color-mix(in oklab, var(--foreground) 12%, var(--background));
 	font-family: var(--font-ui);
 	font-size: 13px;
 	line-height: 1;
 	white-space: nowrap;
 	text-transform: lowercase;
 	color: var(--foreground);
-	transition: background-color var(--lh-dur-fast) var(--lh-ease-out), border-color var(--lh-dur-fast) var(--lh-ease-out);
-}
-.lh-btn::before {
-	content: "[" / "";
-}
-.lh-btn::after {
-	content: "]" / "";
+	transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 }
 .lh-btn:hover {
-	border-color: var(--lh-edge);
-	background: var(--accent);
+	background: color-mix(in oklab, var(--foreground) 19%, var(--background));
 }
 .lh-btn:disabled {
 	opacity: 0.5;
 	pointer-events: none;
 }
 .lh-btn-main {
-	border-color: var(--lh-tint);
 	background: var(--lh-tint);
 	color: var(--background);
 	font-weight: 700;
 }
 .lh-btn-main:hover {
-	border-color: var(--lh-tint);
 	background: color-mix(in oklab, var(--lh-tint) 82%, white);
 }
 
@@ -1197,6 +1189,9 @@ body {
 .lh-pane::before {
 	content: "";
 	position: absolute;
+	/* Above the contents: a full-width bar inside (an action bar) must not
+	   paint over the border once an animation lifts it. */
+	z-index: 1;
 	inset: -1px;
 	border: 1px solid var(--border);
 	pointer-events: none;
