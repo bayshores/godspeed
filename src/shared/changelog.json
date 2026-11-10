@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.44",
+		"date": "2026-11-09",
+		"changes": [
+			"A long problem shows in full in the lesson, where code and every part fit. The Your turn panel shows how it starts with a show the whole problem button, so the box you work in keeps its room.",
+			"Text that scrolls in the Your turn panel fades out before it reaches the panel's border and title."
+		]
+	},
+	{
 		"version": "0.5.43",
 		"date": "2026-11-09",
 		"changes": [
