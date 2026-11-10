@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.45",
+		"date": "2026-11-09",
+		"changes": [
+			"A calculator in every box you write in. End a calculation with = and the answer shows in grey after it. Click it or press Tab to keep it, or keep typing to skip it.",
+			"It works out numbers, letters you set on a line above (x = 3), expanding and simplifying, solve 2x + 3 = 11, derivatives (d/dx x^3 =) and integrals (int x^2 dx =). Exact answers come with their decimal."
+		]
+	},
+	{
 		"version": "0.5.44",
 		"date": "2026-11-09",
 		"changes": [
