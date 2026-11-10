@@ -46,14 +46,14 @@ export const ConfidenceCard = memo(function ConfidenceCard({
 	);
 });
 
-/** One level: "right/answered", the 110px well (right share + target
+/** One level: "right/answered", the well (right share + target
  *  line), the level number. */
 const LevelBar = memo(function LevelBar({ level }: { level: CalibrationLevel }) {
 	const red = isLevelOverconfident(level);
 	return (
 		<div data-testid={`calibration-level-${level.level}`} data-overconfident={red || undefined} className="flex flex-1 flex-col items-center gap-[5px]">
 			<span className="font-mono text-xs tabular-nums text-ink-3">{level.answered > 0 ? `${level.right}/${level.answered}` : "–"}</span>
-			<div className="relative h-[110px] w-full overflow-hidden bg-tone">
+			<div className="relative h-[72px] w-full overflow-hidden bg-tone">
 				{level.rate !== null && (
 					<div
 						data-testid="calibration-right"

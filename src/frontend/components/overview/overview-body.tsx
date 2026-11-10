@@ -57,7 +57,7 @@ export const OverviewBody = memo(function OverviewBody({
 	const showRunway = hasClass && !!data && nowMs !== null;
 	const showConfidence = !!data && hasCalibration(data.calibration.levels);
 	return (
-		<div data-testid="class-overview" className="@container flex w-full flex-col pb-8">
+		<div data-testid="class-overview" className="@container flex w-full flex-col pb-4">
 			{classId ? (
 				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} nowMs={nowMs} onAddSignature={onAddSignature} />
 			) : (
@@ -68,7 +68,7 @@ export const OverviewBody = memo(function OverviewBody({
 					{pickClass}
 				</header>
 			)}
-			<div className="flex flex-col gap-4 px-[52px]">
+			<div className="flex flex-col gap-3 px-[52px]">
 				{showRunway && (
 					<RunwayCard
 						deadlines={data.deadlines}
@@ -81,13 +81,13 @@ export const OverviewBody = memo(function OverviewBody({
 					/>
 				)}
 				{(lessons.length > 0 || showConfidence) && (
-					<div className="flex flex-col items-start gap-4 @4xl:flex-row">
+					<div className="flex flex-col items-start gap-3 @4xl:flex-row">
 						{lessons.length > 0 && (
 							<div className="w-full min-w-0 flex-1">
 								<LessonsCard lessons={lessons} />
 							</div>
 						)}
-						{showConfidence && <ConfidenceCard calibration={data.calibration} className="@4xl:w-[440px] @4xl:shrink-0" />}
+						{showConfidence && <ConfidenceCard calibration={data.calibration} className="@4xl:min-w-0 @4xl:flex-1" />}
 					</div>
 				)}
 			</div>

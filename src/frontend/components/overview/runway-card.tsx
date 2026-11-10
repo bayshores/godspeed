@@ -62,7 +62,7 @@ export const RunwayCard = memo(function RunwayCard({
 			<div className="w-full overflow-x-auto">
 				<div
 					data-testid="runway"
-					className="grid w-full pt-6 pb-1"
+					className="grid w-full"
 					style={{ gridTemplateColumns: `repeat(${COLUMNS}, minmax(120px, 1fr))` }}
 				>
 					<Stop
@@ -146,7 +146,7 @@ function Stop({
 			<div className="flex items-center justify-center" style={{ height: RING }}>
 				{mark}
 			</div>
-			<div className="mt-3 flex w-[120px] flex-col items-center gap-0.5 text-center">
+			<div className="mt-2 flex w-[120px] flex-col items-center gap-0.5 text-center">
 				<span title={name} className="w-full truncate text-[14.5px] leading-5 font-bold text-ink">{name}</span>
 				<span className="w-full truncate text-[12.5px] leading-[18px] text-ink-2">{meta}</span>
 			</div>

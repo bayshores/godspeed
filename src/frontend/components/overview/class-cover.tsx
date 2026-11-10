@@ -120,7 +120,7 @@ export const ClassCover = memo(function ClassCover({
 		return () => observer.disconnect();
 	}, [signature, note]);
 	return (
-		<header ref={coverRef} data-testid="class-cover" data-halley-target={`class:${classId}`} className="@container relative overflow-hidden px-[52px] pt-10 pb-7">
+		<header ref={coverRef} data-testid="class-cover" data-halley-target={`class:${classId}`} className="@container relative overflow-hidden px-[52px] pt-6 pb-5">
 			{signature && (
 				<div
 					ref={signatureRef}
@@ -130,7 +130,7 @@ export const ClassCover = memo(function ClassCover({
 					<InkedSignature signature={signature} share={place?.behind ? 0 : share} className={signature.kind === "math" ? "text-[110px]" : "text-[180px]"} />
 				</div>
 			)}
-			<div className="relative flex flex-col gap-6 @4xl:flex-row @4xl:items-end @4xl:justify-between">
+			<div className="relative flex flex-col gap-6 @3xl:flex-row @3xl:items-end @3xl:justify-between">
 				<div ref={textRef} className="flex min-w-0 flex-col gap-2">
 					<h1 data-testid="overview-name" className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
 						<Decode text={name} />
@@ -143,7 +143,7 @@ export const ClassCover = memo(function ClassCover({
 					)}
 				</div>
 				{note && (
-					<div ref={noteRef} data-testid="class-cover-note" className="flex shrink-0 items-center gap-3 bg-panel/90 px-3.5 py-3 @4xl:w-[440px]">
+					<div ref={noteRef} data-testid="class-cover-note" className="flex shrink-0 items-center gap-3 bg-panel/90 px-3.5 py-3 @3xl:w-[440px]">
 						<TeacherSprite mood="idle" className="w-[17px] shrink-0" />
 						<div className="flex min-w-0 flex-col gap-1">
 							<p className="text-sm leading-snug text-ink">{note.text}</p>
@@ -153,7 +153,7 @@ export const ClassCover = memo(function ClassCover({
 				)}
 			</div>
 			{facts && facts.total > 0 && (
-				<div data-testid="class-cover-progress" className="relative mt-8 h-[2px] bg-tone">
+				<div data-testid="class-cover-progress" className="relative mt-9 h-[2px] bg-tone">
 					<div className="lh-grow h-full bg-ink" style={{ width: `${pct}%` }} />
 					<span
 						className={cn("absolute bottom-2 font-mono text-xs whitespace-nowrap text-ink-3", labelHangsLeft(share) && "-translate-x-full")}
