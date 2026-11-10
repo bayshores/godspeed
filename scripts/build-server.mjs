@@ -8,9 +8,9 @@
  * model (scripts/fetch-model.mjs), which the server loads by path — and
  * sanity-checks the result, including
  * the exclusion that keeps the repo's real data/ OUT of the bundle
- * (see next.config.ts outputFileTracingExcludes). It also removes two
- * exact build-only paths the tracer sweeps in: old installers and the
- * development Electron runtime. Broad trace exclusions break externals.
+ * (see next.config.ts outputFileTracingExcludes). It also removes three
+ * exact build-only paths the tracer sweeps in: old installers, agent
+ * worktrees and the development Electron runtime. Broad trace exclusions break externals.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -70,14 +70,15 @@ for (const secret of ["auth.json", ...subscriptionSecrets, ".env", ".env.local"]
 }
 
 // 2c) Payload curation: the trace sweep can copy repo-root
-// dist/ (previous installers, recursively) and the development Electron
-// runtime (the demo helper's dev-only require). Neither belongs in the
+// dist/ (previous installers, recursively), .claude/ (agent worktrees,
+// each a whole checkout with its own builds) and the development Electron
+// runtime (the demo helper's dev-only require). None belongs in the
 // server: packaged helpers use process.execPath, the app's own binary.
 // Remove ONLY these standalone-root paths AFTER tracing — excluding a
 // generic dist/** earlier broke pi-ai / pi-agent-core's runtime dist/.
 // Never touch ROOT/dist or ROOT/node_modules/electron (the running app
 // and the build runtime); native canvas/resvg packages stay untouched.
-for (const extra of ["dist", path.join("node_modules", "electron")]) {
+for (const extra of ["dist", ".claude", path.join("node_modules", "electron")]) {
 	const target = path.join(STANDALONE, extra);
 	if (exists(target)) {
 		fs.rmSync(target, { recursive: true, force: true });
