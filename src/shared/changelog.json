@@ -1,5 +1,13 @@
 [
 	{
+		"version": "0.5.47",
+		"date": "2026-11-10",
+		"changes": [
+			"Buttons are a step brighter, so they stand out from the text around them.",
+			"The attach and send buttons in the lesson's message box sit evenly inside it."
+		]
+	},
+	{
 		"version": "0.5.46",
 		"date": "2026-11-10",
 		"changes": [
