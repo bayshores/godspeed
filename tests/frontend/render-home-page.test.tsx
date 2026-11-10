@@ -24,10 +24,9 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
-	requestIdleCallback: (cb: () => void) => setTimeout(cb, 0),
-	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
+const { MemoryRouter } = await import("react-router");
 const { ComingUp } = await import("../../src/frontend/components/home-page/coming-up.tsx");
 const { DueNext } = await import("../../src/frontend/components/home-page/due-next.tsx");
 const { ClassFacts } = await import("../../src/frontend/components/home-page/class-facts.tsx");
@@ -172,19 +171,21 @@ function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProg
 
 function dueNext(props: Partial<React.ComponentProps<typeof DueNext>> = {}) {
 	return renderToStaticMarkup(
-		<DueNext
-			deadline={OPEN[1]!}
-			progress={null}
-			leaving={false}
-			hasClasses
-			busy={false}
-			error={null}
-			fixedNow={NOW}
-			onStudy={() => {}}
-			onDone={() => {}}
-			onNewClass={() => {}}
-			{...props}
-		/>,
+		<MemoryRouter initialEntries={["/"]}>
+			<DueNext
+				deadline={OPEN[1]!}
+				progress={null}
+				leaving={false}
+				hasClasses
+				busy={false}
+				error={null}
+				fixedNow={NOW}
+				onStudy={() => {}}
+				onDone={() => {}}
+				onNewClass={() => {}}
+				{...props}
+			/>
+		</MemoryRouter>,
 	);
 }
 
@@ -219,7 +220,11 @@ describe("Due next", () => {
 	it("a click passes the deadline", async () => {
 		const studied: string[] = [];
 		const done: string[] = [];
-		const el = await mount(<DueNext deadline={OPEN[1]!} progress={null} leaving={false} hasClasses busy={false} error={null} fixedNow={NOW} onStudy={(x) => studied.push(x.id)} onDone={(x) => done.push(x.id)} onNewClass={() => {}} />);
+		const el = await mount(
+			<MemoryRouter initialEntries={["/"]}>
+				<DueNext deadline={OPEN[1]!} progress={null} leaving={false} hasClasses busy={false} error={null} fixedNow={NOW} onStudy={(x) => studied.push(x.id)} onDone={(x) => done.push(x.id)} onNewClass={() => {}} />
+			</MemoryRouter>,
+		);
 		await act(async () => {
 			el.querySelector<HTMLButtonElement>('[data-testid="due-next-study"]')!.click();
 			el.querySelector<HTMLButtonElement>('[data-testid="due-next-done"]')!.click();
@@ -232,8 +237,12 @@ describe("Due next", () => {
 
 const PROGRESS = new Map([["hw5", progressFor("hw5", { files: [{ id: "f4", name: "Lecture 4.pdf" }], ready: 0.58 })]]);
 
-function comingUp(deadlines: OpenDeadline[] = OPEN.slice(2)) {
-	return renderToStaticMarkup(<ComingUp deadlines={deadlines} progress={PROGRESS} leaving={new Set()} fixedNow={NOW} />);
+function comingUp(deadlines: OpenDeadline[] = OPEN.slice(2), progress = PROGRESS) {
+	return renderToStaticMarkup(
+		<MemoryRouter initialEntries={["/"]}>
+			<ComingUp deadlines={deadlines} progress={progress} leaving={new Set()} fixedNow={NOW} />
+		</MemoryRouter>,
+	);
 }
 
 describe("Coming up", () => {
@@ -253,7 +262,7 @@ describe("Coming up", () => {
 
 	it("homework with problems shows a done bar and 2/7 instead of the ready bar", () => {
 		const progress = new Map([["hw5", { ...progressFor("hw5", { files: [{ id: "f4", name: "Lecture 4.pdf" }], ready: 0.58 }), problems: { done: 2, total: 7 } }]]);
-		const row = section(renderToStaticMarkup(<ComingUp deadlines={OPEN.slice(2)} progress={progress} leaving={new Set()} fixedNow={NOW} />), "coming-up-row-hw5", "</li>");
+		const row = section(comingUp(OPEN.slice(2), progress), "coming-up-row-hw5", "</li>");
 		assert.match(row, /aria-label="2 of 7 problems done"/);
 		assert.match(row, /2\/7/);
 		assert.ok(!row.includes("coming-up-ready"));

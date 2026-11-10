@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FolderOpenIcon, SearchIcon, XIcon } from "lucide-react";
 import { fileGroups, type FileCoverage } from "@/shared/core";

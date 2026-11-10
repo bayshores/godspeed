@@ -4,7 +4,7 @@
  * app), the facts it builds on and leads to (each opens), and Practice.
  */
 import { useMemo } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { dayLabel, factMark, localDay, type FactProgress, type GraphChain } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
@@ -110,7 +110,7 @@ function Source({ born, sources }: { born: string | null; sources: FactSources |
 					</button>
 				)
 			) : (
-				<Link href={`/chat/${born}`} prefetch={false} data-testid="fact-source-open" className="lh-btn shrink-0">
+				<Link to={`/chat/${born}`} data-testid="fact-source-open" className="lh-btn shrink-0">
 					open
 				</Link>
 			)}

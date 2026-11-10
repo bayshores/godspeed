@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Shown on the first page after the desktop app restarted its crashed
  * server, so the reload has a reason. Same card as the update pop-up.

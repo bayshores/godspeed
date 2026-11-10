@@ -1,12 +1,10 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
+import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
@@ -64,7 +62,7 @@ import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet
 import { sessionAbout } from "@/frontend/components/cheat-sheet/dock-model";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
-const PlanPopup = dynamic(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
+const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup));
 
 /**
  * THE LESSON: the reading pane with the one message box under it on the
@@ -139,7 +137,7 @@ export function Chat({
 			sentInitial.current = true;
 			const files = takeStartFiles(chatId);
 			void send({ type: "text", text: initialPrompt!, ...(files.length > 0 ? { attachments: [...files] } : {}) });
-			window.history.replaceState(null, "", window.location.pathname);
+			window.history.replaceState(window.history.state, "", window.location.pathname);
 		}
 	}, [chatId, initialPrompt, initialMessages, send]);
 

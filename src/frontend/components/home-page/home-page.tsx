@@ -1,7 +1,5 @@
-"use client";
-
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import type { ClassSummary, DeadlineProgress } from "@/shared/core";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog, type ClassDialogMode } from "@/frontend/components/class-dialog";
@@ -30,7 +28,7 @@ import { useClassesProgress } from "./use-classes-progress";
  * are several).
  */
 export function HomePage() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { classes, loaded, setActive } = useClasses();
 	const shown = useMemo(() => classes.filter((c) => !c.archived), [classes]);
 	const { deadlines, error: deadlinesError, leaving, markDone, reload: reloadDeadlines } = useOpenDeadlines();
@@ -63,9 +61,9 @@ export function HomePage() {
 	const onOpenFiles = useCallback(
 		(classId: string) => {
 			setActive(classId);
-			router.push("/class/files");
+			navigate("/class/files");
 		},
-		[router, setActive],
+		[navigate, setActive],
 	);
 	const onNewClass = useCallback(() => setDialog({ kind: "create" }), []);
 

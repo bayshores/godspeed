@@ -17,7 +17,7 @@
 import { useEffect, useState } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 
-/** Matches --lh-dur in src/app/globals.css (the .lh-collapse transition). */
+/** Matches --lh-dur in src/frontend/globals.css (the .lh-collapse transition). */
 const FOLD_MS = 160;
 
 export function useFold(open: boolean): { mounted: boolean; state: "open" | "closed" } {

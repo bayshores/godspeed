@@ -4,7 +4,7 @@
  * models/ is gitignored: the files come from one pinned Hugging Face
  * revision and are checked by sha256, so every build ships the same bytes.
  * Files already present with the right hash are skipped. The desktop
- * builds run this before `next build`; scripts/build-server.mjs copies
+ * builds run this before `npm run build`; scripts/build-server.mjs copies
  * models/ into the server payload.
  */
 import { createHash } from "node:crypto";

@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { BotIcon, CircleAlertIcon, FileTextIcon, PenToolIcon, PlayIcon, SearchIcon, SquareIcon, WaypointsIcon } from "lucide-react";
 import { useFold } from "@/frontend/components/use-fold";
@@ -84,7 +82,7 @@ export interface ActivityFeed {
 
 const EMPTY_FEED: ActivityFeed = { jobs: [], extractions: [], failed: [] };
 
-// ─── The activity feed (composition root: the root layout) ───────────────────
+// ─── The activity feed (composition root: src/frontend/routes/root.tsx) ───────────────────
 
 const ActivityContext = createContext<{ feed: ActivityFeed; refresh: () => void }>({
 	feed: EMPTY_FEED,

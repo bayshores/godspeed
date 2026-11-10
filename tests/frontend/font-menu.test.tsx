@@ -132,13 +132,13 @@ describe("the appearance section's font control (thin SSR)", () => {
 
 describe("the emphasis-ink factory ruling (globals.css)", () => {
 	it("the old emphasis hexes are GONE from the ink token declarations", () => {
-		const css = fs.readFileSync("src/app/globals.css", "utf-8");
+		const css = fs.readFileSync("src/frontend/globals.css", "utf-8");
 		assert.ok(!css.includes("--lh-ink-strong: #ee928c"), "bold factory is not the old orange");
 		assert.ok(!css.includes("--lh-ink-italic: #6fa9d6"), "italic factory is not the old blue");
 	});
 
 	it("both blocks default the inks to the regular text color", () => {
-		const css = fs.readFileSync("src/app/globals.css", "utf-8");
+		const css = fs.readFileSync("src/frontend/globals.css", "utf-8");
 		assert.equal((css.match(/--lh-ink-strong: var\(--foreground\)/g) ?? []).length, 2, "both theme blocks");
 		assert.equal((css.match(/--lh-ink-italic: var\(--foreground\)/g) ?? []).length, 2, "both theme blocks");
 	});

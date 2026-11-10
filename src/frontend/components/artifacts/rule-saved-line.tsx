@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The save_rule call in a lesson: one quiet line, "Saved a rule for every
  * lesson: …", with Undo and Edit. A refused call (the list was full)

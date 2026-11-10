@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE WELCOME SCREEN: covers the app on the first page load of each
  * launch (src/backend/server/welcome.ts) and plays the startup sound. Over the
@@ -8,10 +6,10 @@
  * boot log types out (the version, the agent, the next deadline; after
  * updating from the old look, "new look"), then "Let's go", which closes
  * it; after an update the release notes open next. A click during the
- * animation skips to the end. Server-rendered, so the window's first
- * paint is this and not Home. The app's panes hold their draw-in while
- * it covers them (html[data-lh-hold], set by the root layout) and draw
- * in as it leaves.
+ * animation skips to the end. The first paint waits for /api/boot
+ * (src/frontend/main.tsx), so it is still this and not Home. The app's
+ * panes hold their draw-in while it covers them (html[data-lh-hold], set
+ * by main.tsx) and draw in as it leaves.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -42,7 +40,7 @@ function releasePanes() {
 }
 
 export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; whatsNewSince: string | null }) {
-	// Kept in state: later layout renders (router.refresh) say false.
+	// Kept in state: a later /api/boot read (onboarding finishing) says false.
 	const [open, setOpen] = useState(initialOpen);
 	const presence = usePresence(open, LEAVE_MS);
 	const close = useCallback(() => {

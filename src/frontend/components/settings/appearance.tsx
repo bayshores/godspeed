@@ -1,12 +1,11 @@
-"use client";
 /**
  * Applies the settings record's appearance section as runtime CSS
  * variables on <html> (appearance-model.ts builds them). Every surface was
  * built on tokens, so applying is setProperty and nothing re-renders.
  *
- * Mounted at the root layout: every page picks appearance up on load. The
- * settings dialog writes a section, hands the new appearance here, and the
- * variables move immediately.
+ * Mounted in src/frontend/routes/root.tsx: every page picks appearance up
+ * on load. The settings dialog writes a section, hands the new appearance
+ * here, and the variables move immediately.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";

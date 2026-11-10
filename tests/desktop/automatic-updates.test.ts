@@ -64,7 +64,9 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 		isMinimized() { return this.minimized; }
 		restore() { this.minimized = false; }
 		focus() { this.focused = true; }
-		show() {}
+		visible = false;
+		isVisible() { return this.visible; }
+		show() { this.visible = true; }
 		static getAllWindows() {
 			if (enumerationFails) throw new Error("window enumeration failed");
 			return windows;
@@ -118,6 +120,8 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 		},
 		process: { argv: [], env: { LH_DEV_URL: "http://127.0.0.1:9000" }, platform: "darwin", on() {} },
 		__dirname: path.dirname(mainFile), URL,
+		// The dev server (LH_DEV_URL) answers at once.
+		fetch: async () => ({ status: 200 }),
 		setInterval: (callback: () => void, delay: number) => intervals.push({ callback, delay }),
 		setTimeout() {},
 		fixtureChild: { kill: (signal: string) => order.push(signal) },
@@ -324,9 +328,9 @@ describe("desktop shell guards", () => {
 	it("every IPC channel ignores a subframe or a foreign sender", async () => {
 		const f = fixture(); f.setSettings({ general: { autoUpdate: false } }); await f.run("main()");
 		const sender = f.windows[0]!.webContents;
-		const channels = ["lh:update-install", "lh:update:get", "lh:update:check", "lh:report-bug", "lh:pick-folder", "lh:fonts", "lh:show-in-folder", "lh:open-path", "lh:open-agent", "lh:zoom:get", "lh:expand-window"];
+		const channels = ["lh:update-install", "lh:update:get", "lh:update:check", "lh:report-bug", "lh:pick-folder", "lh:fonts", "lh:show-in-folder", "lh:open-path", "lh:open-agent", "lh:zoom:get", "lh:expand-window", "lh:show-window"];
 		assert.deepEqual([...f.handles.keys()].sort(), [...channels].sort());
-		const sendOnly = new Set(["lh:update-install", "lh:report-bug", "lh:expand-window"]);
+		const sendOnly = new Set(["lh:update-install", "lh:report-bug", "lh:expand-window", "lh:show-window"]);
 		for (const bad of [{ sender: {}, senderFrame: sender.mainFrame }, { sender, senderFrame: { url: sender.mainFrame.url } }]) {
 			for (const channel of channels) {
 				const call = async () => f.handles.get(channel)!(bad, "/Users/me/CSE 21");
@@ -337,6 +341,15 @@ describe("desktop shell guards", () => {
 		assert.deepEqual(f.osCalls, []);
 		assert.equal(f.updater.checks, 0);
 		assert.ok(!f.order.includes("install"));
+		assert.equal(f.windows[0]!.isVisible(), false, "a foreign sender never shows the window");
+	});
+
+	it("the window stays hidden until its page says its first screen is drawn", async () => {
+		const f = fixture(); await f.run("main()");
+		const win = f.windows[0]!;
+		assert.equal(win.isVisible(), false);
+		f.handles.get("lh:show-window")!({ sender: win.webContents, senderFrame: win.webContents.mainFrame });
+		assert.equal(win.isVisible(), true);
 	});
 
 	it("open-path shows an app bundle in Finder instead of launching it, links included", async () => {

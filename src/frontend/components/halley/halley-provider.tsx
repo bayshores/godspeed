@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The teacher: one provider in the app shell.
  *
@@ -18,7 +16,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { usePathname, useRouter } from "next/navigation";
+import { useLocation, useNavigate } from "react-router";
 import type { AgentAction } from "@/shared/core";
 import { DEFAULT_TEACHER_NAME, isAgentEntry } from "@/shared/core";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
@@ -112,12 +110,12 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const { feed } = useActivity();
 	const classes = useClasses();
 	const due = useOpenDeadlines();
-	const router = useRouter();
-	const pathname = usePathname();
+	const navigate = useNavigate();
+	const { pathname } = useLocation();
 
 	// ── refs the async tour reads (always the latest render's values) ──
-	const live = useRef({ name, pathname, classes, router });
-	live.current = { name, pathname, classes, router };
+	const live = useRef({ name, pathname, classes, navigate });
+	live.current = { name, pathname, classes, navigate };
 	const alive = useRef(true);
 	useEffect(() => {
 		alive.current = true;
@@ -276,11 +274,11 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const showPage = useCallback(async (action: AgentAction, asked: boolean) => {
 		const page = safePage(action.page);
 		if (!page) return;
-		const { pathname: path, classes: cls, router: r } = live.current;
+		const { pathname: path, classes: cls, navigate: nav } = live.current;
 		const moves = followMoves({ page, classId: action.classId }, { path, activeClass: cls.active, lessonDraft: !asked && !!lessonRef.current?.draft });
 		if (moves.switchClass) cls.setActive(moves.switchClass.to);
 		if (moves.go) {
-			r.push(moves.go);
+			nav(moves.go);
 			const end = Date.now() + 4000;
 			while (live.current.pathname !== moves.go && Date.now() < end && alive.current) await sleep(60);
 			await sleep(200);

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Undo and Edit for a rule an agent just saved, shared by the chat line
  * (lessons) and the corner notice (the terminal). Edit turns the rule into

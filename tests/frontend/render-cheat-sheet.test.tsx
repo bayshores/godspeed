@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { parseHTML } from "linkedom";
 import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
 import { newCheatSheet, type CheatSheetView, type ClassSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
@@ -64,7 +65,7 @@ function mount(node: React.ReactNode): HTMLElement {
 	host = document.createElement("div");
 	document.body.appendChild(host);
 	root = createRoot(host);
-	act(() => root!.render(inEvents(node)));
+	act(() => root!.render(<MemoryRouter initialEntries={["/chat/ses_1"]}>{inEvents(node)}</MemoryRouter>));
 	return host;
 }
 const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
@@ -245,7 +246,11 @@ describe("the canvas", () => {
 describe("a class's cheat sheet cards", () => {
 	const card = (over: Partial<SheetCard> = {}): SheetCard => ({ deadlineId: "ddl_1", name: "Midterm", kind: "exam", date: "2026-11-04", time: "09:00", past: false, status: "none", version: null, ...over });
 	const render = (c: SheetCard, show: { label: string; run: () => void } | null = null) =>
-		renderToStaticMarkup(<SheetCardView card={c} classId="cls_1" agentName="Claude Code" onRemake={() => {}} show={show} />);
+		renderToStaticMarkup(
+			<MemoryRouter initialEntries={["/class/cheat-sheets"]}>
+				<SheetCardView card={c} classId="cls_1" agentName="Claude Code" onRemake={() => {}} show={show} />
+			</MemoryRouter>,
+		);
 
 	it("a made sheet: its first page's preview from the real PDF, its paper and when it was made, opening the studio", () => {
 		const html = render(card({ status: "made", version: versions[1]! }));
@@ -278,7 +283,11 @@ describe("the cheat sheet beside a session", () => {
 
 	it("opens from a visible Cheat sheet button in the lesson's top bar, for a session in a class", () => {
 		const bar = (sheet?: { open: boolean; onToggle: () => void }) =>
-			renderToStaticMarkup(<LessonTopBar kind="study" rename={rename} practice={null} sheet={sheet} />);
+			renderToStaticMarkup(
+				<MemoryRouter initialEntries={["/chat/ses_1"]}>
+					<LessonTopBar kind="study" rename={rename} practice={null} sheet={sheet} />
+				</MemoryRouter>,
+			);
 		assert.match(bar({ open: false, onToggle() {} }), /data-testid="lesson-cheat-sheet" aria-pressed="false"[^>]*>cheat sheet/);
 		assert.match(bar({ open: true, onToggle() {} }), /aria-pressed="true"/);
 		assert.doesNotMatch(bar(), /lesson-cheat-sheet/);

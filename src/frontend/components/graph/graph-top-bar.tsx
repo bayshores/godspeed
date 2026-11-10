@@ -5,7 +5,7 @@
  * here). Search and All facts only show once the class has facts.
  */
 import { useEffect, useRef, type RefObject } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { TopBar } from "@/frontend/components/app-bar";
 
@@ -45,7 +45,7 @@ export function GraphTopBar({
 			{importNotes ? (
 				<ImportNotes {...importNotes} />
 			) : (
-				<Link href="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
+				<Link to="/class/files" data-testid="add-notes" className={CHROME_BUTTON}>
 					+ Add files
 				</Link>
 			)}

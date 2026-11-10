@@ -1,5 +1,3 @@
-"use client";
-
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CrosshairIcon, MinusIcon, PlusIcon, ScanIcon } from "lucide-react";
 import { pageCaption, type SheetVersion } from "@/shared/core";

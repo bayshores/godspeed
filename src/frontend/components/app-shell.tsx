@@ -1,7 +1,5 @@
-"use client";
-
 import { useLayoutEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router";
 import { KeyboardShortcuts } from "@/frontend/components/keyboard-shortcuts";
 import { SettingsDialogProvider } from "@/frontend/components/settings/settings-dialog-provider.tsx";
 import { RuleNotice } from "@/frontend/components/rule-notice";
@@ -17,7 +15,7 @@ import { AppBar, WithAppBar } from "@/frontend/components/app-bar";
 /** The view swap: switching between pages (Home, a lesson, Overview…)
  *  rises the incoming page in once. */
 function ViewSwap({ children }: { children: React.ReactNode }) {
-	const pathname = usePathname();
+	const { pathname } = useLocation();
 	const ref = useRef<HTMLDivElement>(null);
 	const prev = useRef(pathname);
 	useLayoutEffect(() => {
@@ -34,8 +32,8 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 }
 
 /** The app frame: the top bar over the sidebar and the page, and the
- *  welcome screen over everything at launch. Rendered once in the root
- *  layout. */
+ *  welcome screen over everything at launch. Rendered once by
+ *  src/frontend/routes/root.tsx. */
 export function AppShell({
 	children,
 	teacherName,

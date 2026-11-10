@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { ArrowRightIcon, PlusIcon } from "lucide-react";
 import { rampColor, type DeadlineProgress } from "@/shared/core";
 import { deadlineDateLabel } from "@/frontend/components/class-deadlines-model";
@@ -86,7 +86,7 @@ export const RunwayCard = memo(function RunwayCard({
 					{later > 0 && (
 						<div className="flex flex-col items-center">
 							<div className="flex items-center justify-center" style={{ height: RING }}>
-								<Link href="/" data-testid="runway-later" className="lh-press text-[14.5px] font-bold text-ink-2 hover:text-ink">
+								<Link to="/" data-testid="runway-later" className="lh-press text-[14.5px] font-bold text-ink-2 hover:text-ink">
 									+{later} later
 								</Link>
 							</div>
@@ -175,7 +175,7 @@ function Ring({ deadline: d }: { deadline: DeadlineProgress }) {
 	return (
 		<Tip side="bottom" title={ringTitle(d)} body={<RingTipBody deadline={d} />}>
 			<Link
-				href={deadlineHref(d.id)}
+				to={deadlineHref(d.id)}
 				data-testid={`runway-ring-${d.id}`}
 				aria-label={ringTitle(d)}
 				className="group flex items-center justify-center outline-none"

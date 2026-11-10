@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { parseSavedRules, type SavedRule } from "@/shared/core";
 import { useServerEvent } from "@/frontend/components/server-events";

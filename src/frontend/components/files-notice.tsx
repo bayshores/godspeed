@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The corner notices when a class's linked folder brings new files (say,
  * a new lecture landing in a synced Google Drive folder) or loses some:
@@ -12,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { usePathname, useRouter } from "next/navigation";
+import { useLocation, useNavigate } from "react-router";
 import { FolderInputIcon, FolderMinusIcon, XIcon } from "lucide-react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
@@ -24,9 +22,9 @@ export function FilesNotice() {
 	const [changes, setChanges] = useState<FolderChange[]>([]);
 	const { classes, active, setActive } = useClasses();
 	const agent = useAgentStatus();
-	const router = useRouter();
+	const navigate = useNavigate();
 	// The class whose Files page is open, if any.
-	const onFilesOf = usePathname() === "/class/files" ? active : null;
+	const onFilesOf = useLocation().pathname === "/class/files" ? active : null;
 	const onFilesRef = useRef(onFilesOf);
 	useEffect(() => {
 		onFilesRef.current = onFilesOf;
@@ -48,7 +46,7 @@ export function FilesNotice() {
 			onSee={(entry) => {
 				dismiss(entry);
 				setActive(entry.classId);
-				router.push("/class/files");
+				navigate("/class/files");
 			}}
 			onDismiss={dismiss}
 		/>,

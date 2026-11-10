@@ -22,8 +22,6 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
-	// next/link schedules its prefetch with self.requestIdleCallback.
-	self: globalThis,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	// The ⋯ menu and the folder box place themselves on the next frame.
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
@@ -41,6 +39,7 @@ Object.defineProperty(dom.window, "localStorage", {
 // to an old-IE way of watching text fields.
 (dom.document as unknown as { oninput: null }).oninput = null;
 const { createRoot } = await import("react-dom/client");
+const { MemoryRouter } = await import("react-router");
 const { FilesPage } = await import("../../src/frontend/components/files/files-page.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
@@ -105,13 +104,15 @@ async function mount(initialActive: string | null = "cls_a") {
 	const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	await act(async () => {
 		root!.render(
-			<ServerEventsProvider connect={connect as never}>
-				<AgentStatusProvider>
-					<ClassProvider initialActive={initialActive}>
-						<FilesPage />
-					</ClassProvider>
-				</AgentStatusProvider>
-			</ServerEventsProvider>,
+			<MemoryRouter initialEntries={["/class/files"]}>
+				<ServerEventsProvider connect={connect as never}>
+					<AgentStatusProvider>
+						<ClassProvider initialActive={initialActive}>
+							<FilesPage />
+						</ClassProvider>
+					</AgentStatusProvider>
+				</ServerEventsProvider>
+			</MemoryRouter>,
 		);
 	});
 	// Let the record + progress fetches land.

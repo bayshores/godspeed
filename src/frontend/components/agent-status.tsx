@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE OUTSIDE AGENT'S LIVE STATUS: one read of
  * GET /api/mcp-access shared by every surface (teacher pane, activity

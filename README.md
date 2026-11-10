@@ -99,7 +99,7 @@ npm test             # tests only. deterministic: no LLM, no network
 
 A change is done when `npm run check` passes.
 
-The code is split in `src/`: `frontend/` is what the browser runs, `backend/` is the server, the agent loops and the files on disk, and `shared/` is the pure logic both use. `src/app/` holds the Next.js pages and API routes. Tests mirror that split under `tests/`.
+The code is split in `src/`: `frontend/` is what the browser runs, `backend/` is the server, the agent loops and the files on disk, and `shared/` is the pure logic both use. `src/app/` holds the API routes. The screens live in `src/frontend` and are built by Vite. Tests mirror that split under `tests/`.
 
 See the [development guide](docs/development.md) and [architecture](docs/architecture.md). Bugs and requests go to [GitHub Issues](https://github.com/bayshores/godspeed/issues).
 

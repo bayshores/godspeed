@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE SHARED CLOCK: one clock for every
  * countdown on screen (Home, a deadline's page) and the top bar's clock.
@@ -88,8 +86,7 @@ function subscribeTo(due: number | null, notify: () => void): () => void {
 	};
 }
 
-/** Server and hydration renders show no time (the server's clock is not
- *  the window's). */
+/** A render to a string (no window, as in tests) shows no time. */
 const serverSnapshot = () => null;
 
 function keyOf(c: CountdownValue): string {
@@ -101,7 +98,7 @@ function parseKey(key: string): CountdownValue {
 	return { mode: mode as CountdownValue["mode"], color: color!, text: text.join("|") };
 }
 
-/** A live countdown to `due`; null until the window's first render. */
+/** A live countdown to `due`; null in a render to a string. */
 export function useCountdown(due: { date: string; time?: string }): CountdownValue | null {
 	const dueMs = dueAtMs(due);
 	const subscribe = useCallback((notify: () => void) => subscribeTo(dueMs, notify), [dueMs]);
@@ -113,7 +110,7 @@ export function useCountdown(due: { date: string; time?: string }): CountdownVal
 	return key === null ? null : parseKey(key);
 }
 
-/** The current minute (ms), live; null until the window's first render. */
+/** The current minute (ms), live; null in a render to a string. */
 export function useMinute(): number | null {
 	const subscribe = useCallback((notify: () => void) => subscribeTo(null, notify), []);
 	return useSyncExternalStore(subscribe, () => Math.floor(now / MINUTE) * MINUTE, serverSnapshot);

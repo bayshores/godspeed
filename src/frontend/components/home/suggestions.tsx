@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import type { FileCoverage, TopicProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
@@ -87,7 +87,7 @@ const SuggestionRow = memo(function SuggestionRow({
 			);
 		}
 		action = (
-			<Link href={lessonHref(s.lesson.chatId)} data-testid="home-continue" className={ACTION}>
+			<Link to={lessonHref(s.lesson.chatId)} data-testid="home-continue" className={ACTION}>
 				Open
 			</Link>
 		);

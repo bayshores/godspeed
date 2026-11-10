@@ -1,8 +1,5 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog } from "@/frontend/components/class-dialog";
@@ -29,15 +26,15 @@ import { coverageMessage, deadlineMaterial } from "./deadline-model";
  * is strong).
  */
 export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlineId: string }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { active, setActive, activeClass } = useClasses();
 	const [joined, setJoined] = useState(active === classId);
 	useEffect(() => {
 		if (!joined) {
 			if (active === classId) setJoined(true);
 			else setActive(classId);
-		} else if (active !== classId) router.replace("/class");
-	}, [active, classId, joined, setActive, router]);
+		} else if (active !== classId) navigate("/class", { replace: true });
+	}, [active, classId, joined, setActive, navigate]);
 
 	const { data, error, refresh } = useProgress();
 	const { record, reload } = useClassRecord(classId);
@@ -130,7 +127,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				{current && !deadline ? (
 					<div data-testid="deadline-removed" className="flex flex-col items-start gap-3 px-[52px] py-6">
 						<p className="text-base text-ink-2">This deadline was removed.</p>
-						<Link href="/class" className="lh-btn">
+						<Link to="/class" className="lh-btn">
 							Go to the class
 						</Link>
 					</div>
@@ -151,7 +148,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						onAsk={onAsk}
 						onAdd={(ids) => saveFiles(ids, true)}
 						onLeaveOut={(ids) => saveFiles(ids, false)}
-						onCheatSheet={() => router.push(studioPath(deadlineId))}
+						onCheatSheet={() => navigate(studioPath(deadlineId))}
 						homework={
 							hasProblems(deadline.kind) && (
 								<HomeworkCard

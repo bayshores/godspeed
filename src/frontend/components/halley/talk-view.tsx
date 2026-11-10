@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRightIcon, SquareIcon } from "lucide-react";
 import type { AgentAction, LhMessage } from "@/shared/core";

@@ -19,7 +19,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useBackdropDismiss } from "@/frontend/components/backdrop-dismiss";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import {
 	actionForBinding,
 	bindingForAction,
@@ -40,18 +40,18 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 export { kbdEventForAction };
 
 export function KeyboardShortcuts() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const [cheatOpen, setCheatOpen] = useState(false);
 	const { open: openSettings } = useSettingsDialog();
 
-	// Router + cheat + settings state inside a ref so the keydown listener
+	// Navigate + cheat + settings state inside a ref so the keydown listener
 	// (attached once) never goes stale.
 	const handlersRef = useRef<{
-		router: ReturnType<typeof useRouter>;
+		navigate: ReturnType<typeof useNavigate>;
 		setCheatOpen: (v: boolean) => void;
 		openSettings: () => void;
-	}>({ router, setCheatOpen, openSettings });
-	handlersRef.current = { router, setCheatOpen, openSettings };
+	}>({ navigate, setCheatOpen, openSettings });
+	handlersRef.current = { navigate, setCheatOpen, openSettings };
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -88,13 +88,13 @@ export function KeyboardShortcuts() {
 			// ride the window event for the mounted surface to catch.
 			switch (action) {
 				case "new-session":
-					handlersRef.current.router.push("/new");
+					handlersRef.current.navigate("/new");
 					break;
 				case "open-settings":
 					handlersRef.current.openSettings();
 					break;
 				case "jump-graph":
-					handlersRef.current.router.push("/graph");
+					handlersRef.current.navigate("/graph");
 					break;
 				case "cheat-sheet":
 					handlersRef.current.setCheatOpen(true);

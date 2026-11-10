@@ -2,7 +2,7 @@
 
 Status: **the canonical architecture spec** for the app as built. When this file and the code disagree, the code is right and this file gets fixed. The file-by-file layout lives in [development.md](development.md).
 
-**What this is.** A standalone learning app (web + Electron desktop): the learner's knowledge accumulates into a persistent, cross-session knowledge graph per class, built from tutoring sessions in which a teacher agent authors a formal, visible dependency tree (the plan tree) and verifies understanding with structured questions. Home (`src/app/page.tsx`) shows what is coming up across classes; each class's graph is drawn as a Graph page at `/graph`; the session is the classroom.
+**What this is.** A standalone learning app (web + Electron desktop): the learner's knowledge accumulates into a persistent, cross-session knowledge graph per class, built from tutoring sessions in which a teacher agent authors a formal, visible dependency tree (the plan tree) and verifies understanding with structured questions. Home (`HomePage`, routed in `src/frontend/routes/router.tsx`) shows what is coming up across classes; each class's graph is drawn as a Graph page at `/graph`; the session is the classroom.
 
 **Design principles, in priority order:**
 
@@ -40,12 +40,13 @@ Hold the architecture along two orthogonal axes:
 
 Dependency arrows point **down only**. Each layer may import the core barrel; nothing skips a boundary for convenience.
 
-Where the layers live: `src/frontend` holds what the browser runs (components, lib), `src/backend` what the server runs (server, agent, store, config.ts), and `src/shared` the pure core both sides import. `src/app` and `src/proxy.ts` stay where Next.js looks for them.
+Where the layers live: `src/frontend` holds what the browser runs (components, lib), `src/backend` what the server runs (server, agent, store, config.ts), and `src/shared` the pure core both sides import. `src/app` holds the API route handlers only, and `src/proxy.ts` stays where Next.js looks for it. The screens are a Vite + React Router app in `src/frontend` (`index.html`, `main.tsx`, `routes/`).
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ SHELL    src/app/                  Next.js pages + route handlers  │
-│          src/frontend/components/  session + home UI (render only) │
+│ SHELL    src/app/                  API route handlers (transport)  │
+│          src/frontend/             Vite + React Router: routes/ and│
+│                                    components/ (render only)       │
 ├────────────────────────────────────────────────────────────────────┤
 │ SERVER   src/backend/server/       composition roots (stores.ts,   │
 │          chat-handler.ts) + named service seams + the pi engine    │
@@ -72,16 +73,16 @@ Where the layers live: `src/frontend` holds what the browser runs (components, l
 
 | Zone | May import | Rationale |
 |---|---|---|
-| `src/frontend/components/**` | `@/shared/core` only (the barrel) | The UI renders domain data; it never runs domain logic or touches IO |
-| `src/app/**` | `@/shared/core` + `@/backend/server` (the barrels) | Route handlers are transport; they delegate to server entry points |
+| `src/frontend/**` | `@/shared/core` only (the barrel) | The UI renders domain data; it never runs domain logic or touches IO |
+| `src/app/**` | `@/shared/core` + `@/backend/server` (the barrels), plus `@/backend/server/boot` and `@/backend/server/ui-files` | Route handlers are transport; they delegate to server entry points. The two light exceptions answer every page load without loading the whole server |
 | `src/shared/core/**` | nothing below itself (never `agent`/`server`/`store`) | The core is pure; adapters implement its ports, never the reverse |
 | `src/backend/agent/**` | never `server`/`store` | The agent layer receives its dependencies (ports, engines, seams) via factories/closures |
 
 ```mermaid
 flowchart TB
     subgraph SHELL["SHELL — render + transport, no domain logic"]
-        APP["src/app/: pages + API route handlers"]
-        COMP["src/frontend/components/: session + home UI, graph columns"]
+        APP["src/app/: API route handlers"]
+        COMP["src/frontend/: routes + components: session + home UI, graph columns"]
     end
 
     subgraph SERVER["SERVER — src/backend/server — composition + seams"]
@@ -137,7 +138,7 @@ flowchart TB
     COMP -.->|"✗ FORBIDDEN (lint)"| SERVER
 ```
 
-**Two rules are documentation-only by design.** The ESLint plugin's `except` can't express "all but one", so (a) `src/backend/server/stores.ts` is *intended* to be the only server module importing adapters — but the server barrel also re-exports the settings reader and `promptOverrides`, and `observability.ts`, `onboarding.ts`, `whats-new.ts`, `settings-read.ts`, `mcp.ts`, `agent-memory.ts`, `agent-rules.ts`, `agent-actions.ts` and `cheat-sheets.ts` import store modules directly, and `classes.ts`, `class-shortcuts.ts`, `agent-folder.ts` and `old-setup.ts` import `writeFileAtomic`; and (b) the browser-safety of the core barrel is a doc-comment convention (see §2.1). `tests/`, `scripts/`, and `electron/` are deliberately outside the law (lint-excluded); tests import freely across layers, scripts act as extra composition roots.
+**Two rules are documentation-only by design.** The ESLint plugin's `except` can't express "all but one", so (a) `src/backend/server/stores.ts` is *intended* to be the only server module importing adapters — but the server barrel also re-exports the settings reader and `promptOverrides`, and `observability.ts`, `onboarding.ts`, `whats-new.ts`, `boot.ts`, `mcp.ts`, `agent-memory.ts`, `agent-rules.ts`, `agent-actions.ts` and `cheat-sheets.ts` import store modules directly, and `classes.ts`, `class-shortcuts.ts`, `agent-folder.ts` and `old-setup.ts` import `writeFileAtomic`; and (b) the browser-safety of the core barrel is a doc-comment convention (see §2.1). `tests/`, `scripts/`, and `electron/` are deliberately outside the law (lint-excluded); tests import freely across layers, scripts act as extra composition roots.
 
 ### 2.1 The core barrel and browser-safety
 
@@ -413,8 +414,8 @@ The study agent has the teacher's prompt and tools plus `problem` and `conclude`
 ```mermaid
 flowchart LR
     subgraph DESKTOP["Electron app (production)"]
-        MAIN["Electron main (electron/main.cjs)<br/>launcher + security owner<br/>origin-pinned controls"] -->|"spawn: ELECTRON_RUN_AS_NODE,<br/>loopback port, LH_DATA_DIR=userData/data"| NEXT["standalone Next server (child)<br/>ALL app logic: turns · extraction · jobs · graph"]
-        MAIN -->|"loadURL, sandboxed renderer"| REND["Browser renderer (src/frontend/components/)<br/>fetch/WebSocket to own origin only"]
+        MAIN["Electron main (electron/main.cjs)<br/>launcher + security owner<br/>origin-pinned controls"] -->|"spawn: ELECTRON_RUN_AS_NODE,<br/>loopback port, LH_DATA_DIR=userData/data"| NEXT["standalone Next server (child)<br/>ALL app logic: turns · extraction · jobs · graph<br/>also serves the built UI (ui/)"]
+        MAIN -->|"loadURL, sandboxed renderer"| REND["Browser renderer (src/frontend/)<br/>fetch/WebSocket to own origin only"]
     end
     subgraph OUTSIDE["outside the process"]
         OR["Outside agent (Claude Code · Codex · any MCP app) — connects to /api/mcp with the access token"]
@@ -429,13 +430,13 @@ flowchart LR
     REND -->|"fetch /api/*"| NEXT
 ```
 
-The Electron main is a launcher + security guard, never a host for teaching or inference logic: single-instance lock, deny-by-default permissions, origin-pinned navigation, sandboxed renderer. All Next.js code runs unchanged in a child process (`output: "standalone"`), relocated by the `LH_DATA_DIR` seam (also the test seam — `data-dir-seam.test.ts` covers it, including a fresh-child-process case). The build hard-fails if repo `data/` would leak into the bundle or if prompt assets fall out of the trace (`scripts/build-server.mjs`). The packaged app flips Electron fuses (`electronFuses` in `electron/electron-builder.yml`): no extra `file://` privileges and no `--inspect` flags or SIGUSR1 to attach a debugger. There is one startup screen: the window stays hidden (`show: false`, shown on `ready-to-show`) until the app's first page loads, and that page is the welcome screen (`src/frontend/components/welcome/welcome.tsx`, chosen by `firstLoadScreen` in `src/backend/server/welcome.ts`), which plays the startup sound. When the server crashes, the main process starts it again (at most 3 times a minute) with `LH_SERVER_RESTARTED=1` and reloads the window; that server's first page shows a "godspeed restarted after a problem" notice instead of the welcome screen (`firstLoadScreen` in `src/backend/server/welcome.ts`). After too many crashes a "godspeed stopped working" dialog offers Relaunch, Report a bug and Quit.
+The Electron main is a launcher + security guard, never a host for teaching or inference logic: single-instance lock, deny-by-default permissions, origin-pinned navigation, sandboxed renderer. All Next.js code runs unchanged in a child process (`output: "standalone"`), relocated by the `LH_DATA_DIR` seam (also the test seam — `data-dir-seam.test.ts` covers it, including a fresh-child-process case). The build hard-fails if repo `data/` would leak into the bundle or if prompt assets fall out of the trace (`scripts/build-server.mjs`). The packaged app flips Electron fuses (`electronFuses` in `electron/electron-builder.yml`): no extra `file://` privileges and no `--inspect` flags or SIGUSR1 to attach a debugger. There is one startup screen: the window stays hidden (`show: false`) until the app has drawn its first screen, which it reports through the preload bridge (`window.lh.showWindow`, sent once `/api/boot` has answered and React has rendered; a page that never reports is shown 5 seconds after its first paint), and that screen is the welcome screen (`src/frontend/components/welcome/welcome.tsx`, chosen by `/api/boot` through `firstLoadScreen` in `src/backend/server/welcome.ts`), which plays the startup sound. When the server crashes, the main process starts it again (at most 3 times a minute) with `LH_SERVER_RESTARTED=1` and reloads the window; that server's first page shows a "godspeed restarted after a problem" notice instead of the welcome screen (`firstLoadScreen` in `src/backend/server/welcome.ts`). After too many crashes a "godspeed stopped working" dialog offers Relaunch, Report a bug and Quit.
 
 ---
 
 ### 8.1 Outside-agent boundary
 
-The outside agent is the only model. The server makes the access token `data/mcp-token` (mode 0600) on the first page load (`src/app/layout.tsx`) and again whenever it is missing, so access is always on. `/api/mcp` accepts only local, non-browser requests that carry the token (`src/backend/server/mcp.ts` `refuse`). The Electron app writes `data/mcp-endpoint.json` so the godspeed folder's connector can find the address; the connector reads the token file itself. Settings → Connection shows the connection status, shows and rotates the token, and has the button that opens the agent (or the setup for another MCP app). No credentials for model providers exist anywhere in the app. The server speaks both MCP versions on one endpoint: the 2026-07-28 one, where every request carries the client's version and name and `server/discover` replaces the handshake (Claude Code and the folder's scripts), and the older one that starts with `initialize` (Codex). Each request names the agent from its client info. The older version keeps a JSON-mode transport, because the SDK's own fallback for it answers in SSE, which the folder's scripts can't read.
+The outside agent is the only model. The server makes the access token `data/mcp-token` (mode 0600) on the first `/api/boot` (`src/backend/server/boot.ts`) and again whenever it is missing, so access is always on. `/api/mcp` accepts only local, non-browser requests that carry the token (`src/backend/server/mcp.ts` `refuse`). The Electron app writes `data/mcp-endpoint.json` so the godspeed folder's connector can find the address; the connector reads the token file itself. Settings → Connection shows the connection status, shows and rotates the token, and has the button that opens the agent (or the setup for another MCP app). No credentials for model providers exist anywhere in the app. The server speaks both MCP versions on one endpoint: the 2026-07-28 one, where every request carries the client's version and name and `server/discover` replaces the handshake (Claude Code and the folder's scripts), and the older one that starts with `initialize` (Codex). Each request names the agent from its client info. The older version keeps a JSON-mode transport, because the SDK's own fallback for it answers in SSE, which the folder's scripts can't read.
 
 **The godspeed folder.** Agents are opened in one folder, `~/godspeed` by default (`data/agent-folder.json` remembers another one and whether the one-time notice was seen). `src/backend/server/agent-folder.ts` writes it from `src/backend/server/agent-folder-files/` and `src/shared/core/agent-folder.ts`: `CLAUDE.md` (Claude Code's work loop with the waiter) and `AGENTS.md` (Codex's; each opens with a note that godspeed rewrites it, so the learner's own notes belong in `CLAUDE.local.md` or `~/.codex/AGENTS.md`), the `setup-classes` skill, `.mcp.json` (Claude Code runs `.godspeed/connect.mjs`, a stdio bridge to `/api/mcp`), and in `.godspeed/` the scripts, `claude-settings.json` (loaded with `--settings`, so it applies before the folder is trusted: it turns on the folder's server, allows godspeed's tools and the waiter, and adds the forget hook) and a start script per agent. A start script stops with an install hint when the agent's command or Node.js is missing (`startScript` in `src/shared/core/agent-folder.ts`), since the connector and hooks run with plain `node`. Codex gets the same connector through `-c` flags, its tools pre-approved, with no project config (that would need the folder trusted). The app rewrites the files once per start, so an update reaches them. "Open Claude Code" (`src/frontend/components/agent-folder/`) writes the folder, then `lh:open-agent` (`electron/open-terminal.cjs`) opens Terminal, a Windows console or a Linux terminal running the start script; only those scripts can be run. The setup log follows the agent status from there. People who set up the old way (the retired Claude Code plugin, or the Codex config they pasted) see a one-time notice. Both load godspeed in every folder, so `src/backend/server/old-setup.ts` finds and removes what is left of them: the plugin's install and marketplace entries in Claude Code's plugin lists, its files in `plugins/cache/godspeed` and `plugins/marketplaces/godspeed` (a project that switched the plugin on still loads those after `claude plugin uninstall`), and the Codex block in `~/.codex/config.toml`. Setting up the folder removes them; once the folder exists, anything left shows as a corner notice on app start and a line in Settings → Connection, both with Remove.
 
@@ -466,7 +467,7 @@ The outside agent is the only model. The server makes the access token `data/mcp
 | Law | Zone |
 |---|---|
 | **Imports point inward.** `src/shared/core` never imports `agent`/`server`/`store` | zone 3 |
-| **The shell sees barrels only.** `src/frontend/components/**` → `@/shared/core`; `src/app/**` → `@/shared/core` + `@/backend/server` | zones 1–2 |
+| **The shell sees barrels only.** `src/frontend/**` → `@/shared/core`; `src/app/**` → `@/shared/core` + `@/backend/server` (plus the light `boot.ts` and `ui-files.ts`) | zones 1–2 |
 | **The agent layer never imports server or store** — every dependency arrives as a factory/closure argument | zone 4 |
 
 ### Tier B — gate-enforced elsewhere
@@ -506,7 +507,7 @@ Structured-logging frameworks are still deferred; the baseline is one correlatio
 
 ### 10.1 The events channel — how the client learns truth moved
 
-The client learns about server-side change by **push**, not polling: exactly one app-scoped SSE channel, `GET /api/events` (`core/events.ts` bus → `server/events-stream.ts` seam), held open by **one EventSource per open window** (`src/frontend/components/server-events.tsx`, mounted outermost in the root layout — the only file where `EventSource` exists). The client owns the connection's lifetime; the server frames `: ping` heartbeats every 25s and never closes first. **Notify→fetch**: payloads never carry data — an event says only *that* truth moved (plus a key like `chatId`); every consumer then fetches fresh from the normal endpoints. Reconnects (EventSource auto-retry) fire a **resync** hook per consumer for one immediate refetch, healing any events the gap ate.
+The client learns about server-side change by **push**, not polling: exactly one app-scoped SSE channel, `GET /api/events` (`core/events.ts` bus → `server/events-stream.ts` seam), held open by **one EventSource per open window** (`src/frontend/components/server-events.tsx`, mounted outermost in `src/frontend/routes/root.tsx` — the only file where `EventSource` exists). The client owns the connection's lifetime; the server frames `: ping` heartbeats every 25s and never closes first. **Notify→fetch**: payloads never carry data — an event says only *that* truth moved (plus a key like `chatId`); every consumer then fetches fresh from the normal endpoints. Reconnects (EventSource auto-retry) fire a **resync** hook per consumer for one immediate refetch, healing any events the gap ate.
 
 ### 10.2 Event vocabulary
 

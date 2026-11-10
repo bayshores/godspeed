@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FileCoverage, GraphContextPick, GraphCostSummary, TopicProgress } from "@/shared/core";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";

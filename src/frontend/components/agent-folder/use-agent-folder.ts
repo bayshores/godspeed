@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL, rememberedAgent, type FolderView, type Launch } from "./agent-folder-model";

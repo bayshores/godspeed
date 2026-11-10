@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE CLASS TREE, the sidebar's first pane: Home, then the classes. The
  * active class is open and lists its pages (overview, graph, files, cheat
@@ -10,8 +8,7 @@
  */
 
 import { memo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router";
 import type { ClassSummary } from "@/shared/core";
 import { ClassDialog } from "@/frontend/components/class-dialog";
 import { useClasses } from "@/frontend/components/class-context";
@@ -68,7 +65,7 @@ export const ClassTree = memo(function ClassTree({
 	unseenFiles: boolean;
 }) {
 	const { classes, active, setActive } = useClasses();
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { open: openSettings } = useSettingsDialog();
 	const [showArchived, setShowArchived] = useState(false);
 	const [creating, setCreating] = useState(false);
@@ -79,7 +76,7 @@ export const ClassTree = memo(function ClassTree({
 
 	const pick = (id: string | null) => {
 		if (id !== active) setActive(id);
-		router.push("/class");
+		navigate("/class");
 	};
 	const classRow = (c: ClassSummary, inFold = false) => {
 		const open = c.id === active;
@@ -108,7 +105,7 @@ export const ClassTree = memo(function ClassTree({
 			<ul ref={hover.ref} onPointerOver={hover.onPointerOver} onPointerLeave={hover.onPointerLeave} className="relative flex flex-col">
 				{hover.bar}
 				<li>
-					<Link href="/" data-testid="nav-home" aria-current={pathname === "/" ? "page" : undefined} data-row="" className={cn(ROW, rowState(pathname === "/"))}>
+					<Link to="/" data-testid="nav-home" aria-current={pathname === "/" ? "page" : undefined} data-row="" className={cn(ROW, rowState(pathname === "/"))}>
 						<Mark>~</Mark>
 						<span className="min-w-0 flex-1 truncate">home</span>
 					</Link>
@@ -165,7 +162,7 @@ function ClassPages({ page, hasClass, fileCount, unseenFiles }: { page: string |
 				const selected = p.href === page;
 				return (
 					<li key={p.href} className="pl-[calc(2ch+8px)] text-base">
-						<Link href={p.href} data-testid={p.testid} aria-current={selected ? "page" : undefined} data-row="" className={cn(ROW, rowState(selected))}>
+						<Link to={p.href} data-testid={p.testid} aria-current={selected ? "page" : undefined} data-row="" className={cn(ROW, rowState(selected))}>
 							<span aria-hidden className={cn("absolute top-0 left-[-1.5ch] w-px bg-edge/70", i === pages.length - 1 ? "h-1/2" : "bottom-0")} />
 							<span aria-hidden className="absolute top-1/2 left-[-1.5ch] h-px w-[1.5ch] bg-edge/70" />
 							<span className="min-w-0 flex-1 truncate">{p.label}</span>

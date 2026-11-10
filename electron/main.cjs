@@ -47,7 +47,8 @@ const DATA_DIR = () => path.join(app.getPath("userData"), "data");
 
 /** The packaged standalone server (extraResources → Resources/server).
  *  In dev LH_DEV_URL short-circuits everything: no spawn, no packaging —
- *  the window points at the running `next dev` server (full HMR). */
+ *  the window points at the Vite dev server (full HMR), which passes /api
+ *  on to `next dev`. */
 function serverEntry() {
 	// extraResources ships the whole .next payload under server/standalone/
 	// (copied from .next with an explicit filter — see electron/electron-builder.yml).
@@ -134,7 +135,7 @@ if (process.argv.includes("--browser-service")) {
 		app.quit();
 	} else {
 		app.on("second-instance", () => {
-			// A window still hidden while the server boots shows itself once loaded.
+			// A window still hidden while the app starts shows itself once drawn.
 			const win = BrowserWindow.getAllWindows()[0];
 			if (win?.isVisible()) {
 				if (win.isMinimized()) win.restore();
@@ -330,6 +331,18 @@ function waitUntilUp(url, child, tries = 600) {
 	});
 }
 
+/** Dev: Vite answers before `next dev` does, and its proxy answers 502 until
+ *  then, so the window waits for the API behind it. */
+async function devServerUp(devUrl) {
+	const probe = new URL("/api/ready", devUrl);
+	for (;;) {
+		try {
+			if ((await fetch(probe, { method: "HEAD" })).status < 500) return;
+		} catch { /* Vite is not listening yet */ }
+		await new Promise((resolve) => setTimeout(resolve, 500));
+	}
+}
+
 /** Starts the crashed server again on the same port and reloads the windows
  *  once it answers. Gives up with a dialog after too many restarts. */
 async function restartServer(port) {
@@ -391,6 +404,9 @@ function killServer() {
 	}, 3000);
 }
 
+/** How long after its first paint a page that never asks to be shown waits for its window. */
+const SHOW_WINDOW_FALLBACK_MS = 5000;
+
 /** Security posture (all defaults asserted explicitly; the guards are the
  *  checklist's own recommendations for localhost-app shells):
  *  - deny-by-default permission handler allowing only our loopback origin
@@ -407,7 +423,7 @@ function createWindow(url, serverUp = null) {
 		// top bar IS the title bar. macOS 26 centers each traffic light
 		// about 8px below y, so y 14 centers them on the bar (y 22), with
 		// the same gap above them as to their left.
-		// Dragging comes from the renderer's .lh-drag bands (src/app/globals.css).
+		// Dragging comes from the renderer's .lh-drag bands (src/frontend/globals.css).
 		...(process.platform === "darwin"
 			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 14 } }
 			: {
@@ -433,9 +449,9 @@ function createWindow(url, serverUp = null) {
 		// the native window surface changes size before Chromium's compositor
 		// has a frame at the new size, and the gap shows the window's NATIVE
 		// background — Electron's default is white, glaring on a dark app.
-		// The app background (#141414) fills the lag instead. `show: false` +
-		// ready-to-show is the same treatment for first paint: the window
-		// appears only once the page has actually rendered.
+		// The app background (#141414) fills the lag instead. `show: false`
+		// is the same treatment for first paint: the window appears once the
+		// app has drawn its first screen ("lh:show-window", below).
 		backgroundColor: "#141414",
 		show: false,
 		// Narrow-window behavior: 640px is the floor —
@@ -477,9 +493,9 @@ function createWindow(url, serverUp = null) {
 		return { action: "deny" };
 	});
 
-	// serverUp (packaged launch while the server still boots): the window
-	// stays hidden (show: false) until the app loads, so the welcome screen
-	// is the first thing on screen.
+	// serverUp (packaged launch while the server still boots): the page
+	// loads once the server answers, and the window stays hidden until that
+	// page draws its first screen, so the welcome screen is the first thing on screen.
 	if (serverUp) {
 		serverUp.then(
 			() => { if (!win.isDestroyed()) void win.loadURL(url); },
@@ -505,7 +521,13 @@ function createWindow(url, serverUp = null) {
 		event.preventDefault();
 	});
 
-	win.once("ready-to-show", () => win.show());
+	// The renderer asks to be shown after its first real screen (it waits for
+	// /api/boot); if it never asks, a broken page still gets a window.
+	win.once("ready-to-show", () => {
+		setTimeout(() => {
+			if (!win.isDestroyed() && !win.isVisible()) win.show();
+		}, SHOW_WINDOW_FALLBACK_MS);
+	});
 	return win;
 }
 
@@ -532,7 +554,7 @@ const ZOOM_LADDER = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
  *
  * Hard rules:
  *  - DEV NEVER UPDATES: !app.isPackaged skips the updater entirely — the
- *    dev world runs `next dev` and has no signed bundle.
+ *    dev world runs Vite and `next dev` and has no signed bundle.
  *  - THE UPDATER CAN NEVER TAKE THE APP DOWN: every event and check is
  *    caught and logged (feed down, disk full, bad signature — all just
  *    log lines; the app keeps working, update or no update).
@@ -766,7 +788,7 @@ async function main() {
 
 	await app.whenReady();
 
-	// Dev mode: point at a running `next dev` server (LH_DEV_URL) — no
+	// Dev mode: point at the running Vite dev server (LH_DEV_URL) — no
 	// spawn, no packaging, full HMR. The rest of this shell still applies
 	// (guards, menu, single instance).
 	const devUrl = process.env.LH_DEV_URL;
@@ -794,6 +816,7 @@ async function main() {
 		);
 	} else {
 		log(`dev mode: ${devUrl}`);
+		await devServerUp(devUrl);
 		serverReady = true;
 	}
 
@@ -881,6 +904,12 @@ async function main() {
 		const { x, y, width, height } = win.getBounds();
 		const target = SIDEBAR_AUTOCLOSE;
 		if (width < target) win.setBounds({ x, y, width: target, height });
+	});
+	// The page drew its first screen: show its window (see createWindow).
+	ipcMain.on("lh:show-window", (event) => {
+		if (!fromAppWindow(event)) return;
+		const win = BrowserWindow.fromWebContents(event.sender);
+		if (!win.isVisible()) win.show();
 	});
 	reopenWindow = () => createWindow(url, serverReady ? null : serverUp);
 	app.on("activate", () => {

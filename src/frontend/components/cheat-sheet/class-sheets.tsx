@@ -1,7 +1,5 @@
-"use client";
-
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { FileTextIcon } from "lucide-react";
 import { pageSizeLabel, whenLabel, type SheetCard } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
@@ -119,7 +117,7 @@ export function SheetCardView({
 	const width = first ? Math.round(Math.min(THUMB_W, (THUMB_H * first.widthPt) / first.heightPt)) : 0;
 	return (
 		<article data-testid="cheat-sheet-card" data-status={card.status} className="flex flex-col bg-panel outline outline-1 -outline-offset-1 outline-tone-2">
-			<Link href={studioPath(card.deadlineId)} className="lh-press group flex flex-col hover:bg-tone">
+			<Link to={studioPath(card.deadlineId)} className="lh-press group flex flex-col hover:bg-tone">
 				<div className="flex items-center justify-center bg-tone py-4 group-hover:bg-tone-2" style={{ height: THUMB_H + 32 }}>
 					{card.version && first ? (
 						<PdfThumb url={sheetPdfPath(classId, card.deadlineId, card.version.n)} page={first} width={width} />
@@ -180,7 +178,7 @@ function Status({ card, agentName, onRemake }: { card: SheetCard; agentName: str
 			return (
 				<>
 					<span className="text-ink-2">No cheat sheet yet</span>
-					<Link href={studioPath(card.deadlineId)} data-testid="cheat-sheet-make" className={ACTION}>
+					<Link to={studioPath(card.deadlineId)} data-testid="cheat-sheet-make" className={ACTION}>
 						Make one
 					</Link>
 				</>

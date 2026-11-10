@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef } from "react";
 import type { SheetPage } from "@/shared/core";
 import { PX_PER_PT } from "./canvas-model";

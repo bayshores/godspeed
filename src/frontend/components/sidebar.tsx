@@ -1,8 +1,6 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { SidebarContext, useSidebar } from "@/frontend/components/sidebar/sidebar-context";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router";
 import { useUnseenFiles } from "@/frontend/components/sidebar/files-seen";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction } from "@/shared/core";
@@ -20,8 +18,8 @@ export { SessionRow, RenameRow } from "@/frontend/components/sidebar/session-row
 /**
  * Toggleable sidebar — NOT a modal drawer: no backdrop, no focus theft. It
  * sits inline next to the content and can stay open while working in a
- * session. Open state persists across pages (provider lives in the root
- * layout) and across reloads (localStorage).
+ * session. Open state persists across pages (provider lives in
+ * src/frontend/routes/root.tsx) and across reloads (localStorage).
  */
 
 const STORAGE_KEY = "lh:sidebar-open";
@@ -46,7 +44,7 @@ const STORAGE_KEY = "lh:sidebar-open";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
 const SIDEBAR_AUTOCLOSE = 1000;
 
-// Module scope, guarded for SSR (the server has no navigator).
+// Read once at module load; false where there is no navigator.
 const IS_ELECTRON = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
 
 declare global {
@@ -66,6 +64,8 @@ declare global {
 			/** A dropped file's or folder's absolute path (onboarding drop zone). */
 			pathForFile?: (file: File) => string;
 			expandWindow: () => void;
+			/** The first screen is drawn: show the window (hidden until then). */
+			showWindow?: () => void;
 			/** The zoom truth: subscribes to "lh:zoom" pushes; returns unsubscribe. */
 			onZoom?: (cb: (factor: number) => void) => () => void;
 			getZoom?: () => Promise<number>;
@@ -95,8 +95,7 @@ export function useFoldSidebar(): void {
 }
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-	// Start closed so server and client first-render agree (no hydration
-	// mismatch); the stored value is applied after mount.
+	// Starts closed; the stored choice is read after mount (below).
 	const [open, setOpen] = useState(false);
 	const [narrow, setNarrow] = useState(false);
 	const [mounted, setMounted] = useState(false);
@@ -104,10 +103,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		// Electron shell detection: keys the .lh-electron CSS
-		// (src/app/globals.css) that turns the header bands into the
-		// window's drag surface. Post-mount only — server HTML
-		// and first client render must agree (no hydration mismatch),
-		// and in the plain browser the class never appears.
+		// (src/frontend/globals.css) that turns the header bands into the
+		// window's drag surface. Set after mount, like the stored state
+		// below; in the plain browser the class never appears.
 		if (IS_ELECTRON) {
 			document.documentElement.classList.add("lh-electron");
 			document.documentElement.dataset.lhPlatform = window.lh?.platform ?? "";
@@ -191,7 +189,7 @@ const SIDEBAR_WIDTH = { initial: 300, min: 240, max: 400 };
  */
 export function SessionsSidebar() {
 	const { open, toggle } = useSidebar();
-	const pathname = usePathname();
+	const { pathname } = useLocation();
 	const { active: activeClassId, activeClass } = useClasses();
 	const unseenFiles = useUnseenFiles(activeClassId, activeClass?.lastFoundAt, pathname === "/class/files");
 	const [width, setWidth] = usePaneWidth("sidebar", SIDEBAR_WIDTH);

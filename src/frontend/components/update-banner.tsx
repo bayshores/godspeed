@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The update pop-up. The shell pushes "lh:update-status": the pop-up shows
  * as soon as an update starts downloading (with its progress), then offers

@@ -1,5 +1,3 @@
-"use client";
-
 import { useLayoutEffect, useState } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { decodeFrame } from "./decode-model";

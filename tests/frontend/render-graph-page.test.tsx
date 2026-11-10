@@ -20,14 +20,14 @@ import { LevelColumns } from "../../src/frontend/components/graph/level-columns.
 import { GraphTopBar } from "../../src/frontend/components/graph/graph-top-bar.tsx";
 import { GraphScreen } from "../../src/frontend/components/graph/graph-screen.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
-import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime.js";
+import { MemoryRouter } from "react-router";
 import { fixture } from "../graph-fixture.ts";
 
 const noop = () => {};
+const inRouter = (tree: React.ReactNode) => <MemoryRouter initialEntries={["/graph"]}>{tree}</MemoryRouter>;
 const count = (html: string, needle: string) => html.split(needle).length - 1;
-const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) => (
-	<GraphBody data={fixture()} query="" sources={null} studying={false} studyError={null} onStudy={noop} onStudyDeadline={noop} onPractice={noop} {...over} />
-);
+const body = (over: Partial<React.ComponentProps<typeof GraphBody>> = {}) =>
+	inRouter(<GraphBody data={fixture()} query="" sources={null} studying={false} studyError={null} onStudy={noop} onStudyDeadline={noop} onPractice={noop} {...over} />);
 
 describe("the level columns", () => {
 	const data = fixture();
@@ -52,7 +52,7 @@ describe("the level columns", () => {
 
 	it("a picked topic: its row pressed, what it needs marked ←, what it leads to →, the rest dim", () => {
 		const picked = renderToStaticMarkup(
-			<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inClass focus={null} selectedId="t-mini" onSelect={noop} />,
+			inRouter(<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inClass focus={null} selectedId="t-mini" onSelect={noop} />),
 		);
 		assert.match(picked, /aria-pressed="true"[^>]*aria-label="Minibatch noise/);
 		assert.match(picked, /aria-label="Variance, [^"]*, needed first"/);
@@ -171,7 +171,7 @@ describe("the picked fact", () => {
 		sessions: { "chat-1": "Study: Minibatch noise" },
 	};
 	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) =>
-		renderToStaticMarkup(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onOpenFact={noop} onPractice={noop} studying={false} studyError={null} {...over} />);
+		renderToStaticMarkup(inRouter(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onOpenFact={noop} onPractice={noop} studying={false} studyError={null} {...over} />));
 
 	it("what it says, its answers, where it came from, what it builds on and leads to, and Practice", () => {
 		const html = pane();
@@ -200,10 +200,10 @@ describe("the picked fact", () => {
 
 describe("the top bar", () => {
 	it("Add files opens the Files page in a class; No class picks files right there", () => {
-		const inClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={null} />);
+		const inClass = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={null} />));
 		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add files<\/a>/);
 		assert.ok(!inClass.includes("import-notes"));
-		const noClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />);
+		const noClass = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />));
 		assert.ok(noClass.includes('data-testid="import-notes"'));
 		assert.ok(!noClass.includes("add-notes"));
 	});
@@ -219,8 +219,6 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	SVGElement: dom.window.SVGElement,
 	CustomEvent: dom.window.CustomEvent,
-	// next/link schedules its prefetch with self.requestIdleCallback.
-	self: globalThis,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	// The menu shell measures and places on a frame.
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
@@ -296,7 +294,6 @@ describe("the graph screen", () => {
 			urls.push(url);
 			return Response.json({ error: "boom" }, { status: 500 });
 		}) as typeof fetch;
-		const router = { push: noop } as unknown as React.ContextType<typeof AppRouterContext>;
 		const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 		try {
 			host = document.createElement("div");
@@ -304,11 +301,11 @@ describe("the graph screen", () => {
 			root = createRoot(host);
 			await act(async () =>
 				root!.render(
-					<AppRouterContext.Provider value={router}>
+					<MemoryRouter initialEntries={["/graph"]}>
 						<ServerEventsProvider connect={quietEvents as never}>
 							<GraphScreen />
 						</ServerEventsProvider>
-					</AppRouterContext.Provider>,
+					</MemoryRouter>,
 				),
 			);
 			assert.match(host.querySelector('[data-testid="load-failed"]')!.textContent!, /Couldn't load your graph\./);

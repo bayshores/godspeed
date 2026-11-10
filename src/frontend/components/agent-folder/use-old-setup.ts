@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import type { OldSetup } from "@/shared/core";
 import type { FolderView } from "./agent-folder-model";

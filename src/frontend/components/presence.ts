@@ -1,7 +1,7 @@
 /**
  * usePresence: keeps an element mounted
  * long enough to play its exit animation. Pair the returned `state` with
- * the motion classes in src/app/globals.css (.lh-pop / .lh-dialog / .lh-fade
+ * the motion classes in src/frontend/globals.css (.lh-pop / .lh-dialog / .lh-fade
  * read data-state="open" | "closed").
  *
  *   const menu = usePresence(open);
@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from "react";
 
-/** Matches --lh-dur-fast in src/app/globals.css. */
+/** Matches --lh-dur-fast in src/frontend/globals.css. */
 const EXIT_MS = 110;
 
 // One live query for the app's lifetime: .matches follows the OS setting,

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Once, for people who set up godspeed the old way (the Claude Code plugin
  * or the Codex config): godspeed has its own folder now. "Set up my

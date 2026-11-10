@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE TEACHER PANE, at the foot of the sidebar: the mascot, what the
  * agent is doing ("reading" over "06_Counting.pdf  3 of 12"), and two

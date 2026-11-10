@@ -1,4 +1,6 @@
-@import "tailwindcss";
+/* Scan from the repo root, not Vite's root (src/frontend): a few classes
+   (-top-3, grow, isolate) are only named outside it, and the CSS keeps them. */
+@import "tailwindcss" source("../..");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -170,7 +172,7 @@
 @theme inline {
 	/* Fonts: the interface is Martian Mono, reading text Atkinson
 	   Hyperlegible Mono (the Appearance reading font overrides
-	   --font-prose at runtime). Both attach in src/app/layout.tsx.
+	   --font-prose at runtime). Both come from fonts/fonts.css.
 	   font-mono and font-sans point at the interface font too, so
 	   streamdown's chrome never falls to a system font. The ladder below
 	   is sized for mono, which reads wider than a sans at the same px;

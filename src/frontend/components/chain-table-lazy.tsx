@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from "react";
-import dynamic from "next/dynamic";
 import type { ChainTableOverlay as Overlay } from "@/frontend/components/chain-table.tsx";
+import { lazyComponent } from "@/frontend/lib/lazy-component";
 
 /**
  * The fact-chain overlay, loaded on its first open. The overlay pulls in
@@ -8,7 +8,7 @@ import type { ChainTableOverlay as Overlay } from "@/frontend/components/chain-t
  * opens it. After the first open it stays mounted, so its search and sort
  * survive closing and reopening.
  */
-const ChainTableOverlay = dynamic(() => import("@/frontend/components/chain-table.tsx").then((m) => m.ChainTableOverlay), { ssr: false });
+const ChainTableOverlay = lazyComponent(() => import("@/frontend/components/chain-table.tsx").then((m) => m.ChainTableOverlay));
 
 export function LazyChainTableOverlay(props: ComponentProps<typeof Overlay>) {
 	const [wanted, setWanted] = useState(props.open);

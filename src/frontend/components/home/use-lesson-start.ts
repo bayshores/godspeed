@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import type { ChatAttachment, DeadlineProgress, GraphContextPick } from "@/shared/core";
 import { useClasses } from "@/frontend/components/class-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
@@ -25,7 +25,7 @@ type StartBody =
  * to show.
  */
 export function useLessonStart() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { active } = useClasses();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -44,13 +44,13 @@ export function useLessonStart() {
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const { id, title } = (await res.json()) as { id: string; title: string };
 				holdStartFiles(id, files);
-				router.push(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
+				navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 			} catch {
 				setBusy(false);
 				setError(LESSON_START_FAILED);
 			}
 		},
-		[busy, active, router],
+		[busy, active, navigate],
 	);
 
 	/** Study a typed topic, with any facts picked for it and any files added,
@@ -77,20 +77,20 @@ export function useLessonStart() {
 	 *  deadline's class when it isn't the active one (Home). */
 	const studyDeadline = useCallback(
 		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">, classId?: string) => {
-			if (deadline.continueStudy) router.push(`/chat/${deadline.continueStudy.chatId}`);
+			if (deadline.continueStudy) navigate(`/chat/${deadline.continueStudy.chatId}`);
 			else return post({ deadlineId: deadline.id }, [], classId ?? active);
 		},
-		[post, router, active],
+		[post, navigate, active],
 	);
 
 	/** Work on a homework or project: reopens its latest homework session,
 	 *  else starts one on its next problem not done. */
 	const workOnHomework = useCallback(
 		(deadline: Pick<DeadlineProgress, "id" | "continueHomework">, classId?: string) => {
-			if (deadline.continueHomework) router.push(`/chat/${deadline.continueHomework}`);
+			if (deadline.continueHomework) navigate(`/chat/${deadline.continueHomework}`);
 			else return post({ deadlineId: deadline.id, homework: true }, [], classId ?? active);
 		},
-		[post, router, active],
+		[post, navigate, active],
 	);
 
 	return {

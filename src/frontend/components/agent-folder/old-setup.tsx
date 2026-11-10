@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The old plugin or Codex block still on the computer, which loads
  * godspeed in chats outside the godspeed folder: a corner notice on app

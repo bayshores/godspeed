@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The corner notice when an outside agent saves a rule from the terminal:
  * "Claude Code saved a rule", the rule, where it applies, Undo and Edit.

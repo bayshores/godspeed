@@ -1,6 +1,6 @@
 /**
  * THE SERVER-SIDE SURFACE — the only src module (besides the core barrel)
- * that src/app/ may import. Route handlers and server components come through
+ * that src/app/ may import. Route handlers come through
  * here; nothing under src/app/ touches src/backend/store or src/backend/agent directly.
  */
 

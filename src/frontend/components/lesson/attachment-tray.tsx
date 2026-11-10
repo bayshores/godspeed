@@ -177,7 +177,6 @@ function DraftPreview({ file, onRemove }: { file: ChatAttachment; onRemove: () =
 	}
 	return (
 		<div data-testid="draft-image" className="relative size-14 shrink-0 border border-tone-2 bg-background">
-			{/* eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing to optimize */}
 			<img src={`data:${file.mimeType};base64,${file.data}`} alt={file.name} className="size-full object-cover" />
 			{remove}
 		</div>

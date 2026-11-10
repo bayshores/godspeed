@@ -167,7 +167,6 @@ const TextPages = memo(function TextPages({ text, from, to }: { text: string; fr
 function PdfPages({ path, doc, page }: { path: string; doc: Extract<ReadingDoc, { kind: "pdf" }>; page: number | null }) {
 	return Array.from({ length: Math.min(doc.pageCount, MAX_PDF_PAGES) }, (_, i) => i + 1).map((n) => (
 		<div key={n} data-reading-here={n === page ? "" : undefined} className={cn(PAPER, "relative")} style={{ aspectRatio: doc.aspect }}>
-			{/* eslint-disable-next-line @next/next/no-img-element -- a page rendered by our own API, not a static asset */}
 			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="size-full object-contain" />
 			{n === page && <span className="absolute top-0 bottom-0 left-0 w-0.5 bg-[#1A1A1A]" />}
 		</div>

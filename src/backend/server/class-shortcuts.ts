@@ -175,7 +175,7 @@ export function syncShortcutsSafely(folder: string, opts?: { clear?: boolean }):
 	}
 }
 
-// On globalThis: the root layout and the folder route are separate module
+// On globalThis: /api/boot and the folder route are separate module
 // instances under Next, and two watchers would sync every change twice.
 const G = globalThis as typeof globalThis & { __lhShortcutWatch?: boolean };
 

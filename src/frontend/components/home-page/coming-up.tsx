@@ -1,5 +1,5 @@
 import { memo } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { rampColor, type DeadlineProgress } from "@/shared/core";
 import { Countdown } from "@/frontend/components/countdown";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -70,7 +70,7 @@ function Row({
 }) {
 	return (
 		<li data-testid={`coming-up-row-${d.id}`} data-halley-target={`deadline:${d.id}`} className={cn("transition-opacity duration-[var(--lh-dur)]", leaving && "pointer-events-none opacity-0")}>
-			<Link href={deadlineHref(d.id)} prefetch={false} data-row="" className="relative flex h-[34px] items-center gap-4 px-2 text-base">
+			<Link to={deadlineHref(d.id)} data-row="" className="relative flex h-[34px] items-center gap-4 px-2 text-base">
 				{problems ? (
 					<span className="flex w-[88px] shrink-0 items-center gap-1.5">
 						<DoneBar done={problems.done} total={problems.total} className="gap-px" blockClassName="h-2.5 w-1" />

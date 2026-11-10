@@ -1,0 +1,14 @@
+/**
+ * GET /api/deadlines/[id] — one deadline with its class id (deadline ids
+ * are unique across classes), for the deadline page and the cheat sheet
+ * studio. 404 once it is gone.
+ */
+import { deadlineWithClass } from "@/backend/server";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, { params }: Ctx) {
+	const owner = deadlineWithClass((await params).id);
+	if (!owner) return Response.json({ error: "No such deadline" }, { status: 404 });
+	return Response.json(owner);
+}

@@ -43,7 +43,7 @@ the keys.
   what Esc can stop.
 - **The focus ring shows after Tab and hides on the next mouse press**
   (`showFocusRingAfterTab` in `src/frontend/components/focus-hygiene.ts`, drawn in
-  `src/app/globals.css`). A hidden color picker rings its tile instead.
+  `src/frontend/globals.css`). A hidden color picker rings its tile instead.
 
 ## Key map
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useSidebar } from "@/frontend/components/sidebar/sidebar-context";
 import { cn } from "@/frontend/lib/utils";

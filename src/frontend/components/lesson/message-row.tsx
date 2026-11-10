@@ -1,5 +1,4 @@
 import { Fragment, memo } from "react";
-import dynamic from "next/dynamic";
 import { ArrowRightIcon } from "lucide-react";
 import { Message, MessageContent, MessageResponse } from "@/frontend/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
@@ -13,6 +12,7 @@ import { ClassContextCard, GraphContextCard, type ClassContextData, type GraphCo
 import { CompactionCutDivider, CompactionMomentDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
 import { Separator } from "@/frontend/components/ui/separator";
 import { cn } from "@/frontend/lib/utils";
+import { lazyComponent } from "@/frontend/lib/lazy-component";
 import {
 	firstSourceTextParts,
 	isAttachmentPart,
@@ -33,9 +33,9 @@ import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
-// A plan diagram (and dagre, its layout engine) loads only for lessons
-// that have one; server rendering keeps it in the first paint.
-const PlanBlock = dynamic(() => import("@/frontend/components/plan-block").then((m) => m.PlanBlock));
+// A plan diagram (and dagre, its layout engine) is its own chunk; the
+// lesson loader reads it with the record, so it is in the first paint.
+const PlanBlock = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanBlock));
 
 /** The quiet system line: centered, muted, small — the transcript's voice
  *  for events that are not speech. */

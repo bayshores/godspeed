@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE TOP BAR, one for the whole window: the sidebar toggle, the page's
  * path ("cse 29 / review for my exam"), the page's own buttons, the
@@ -15,7 +13,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { Link } from "react-router";
 import { PanelLeftIcon } from "lucide-react";
 import { useClasses } from "@/frontend/components/class-context";
 import { useMinute } from "@/frontend/components/countdown";
@@ -188,8 +186,7 @@ function Path({ path, tail, retype }: { path: readonly Crumb[]; tail?: ReactNode
 					{i > 0 && <span aria-hidden className="px-2 text-ink-3">/</span>}
 					{c.href && (i < last || tail) ? (
 						<Link
-							href={c.href}
-							prefetch={false}
+							to={c.href}
 							onClick={() => {
 								if (c.classId && c.classId !== active) setActive(c.classId);
 							}}

@@ -1,23 +1,22 @@
-"use client";
-
 /**
- * FIRST-LAUNCH ONBOARDING. Rendered by src/app/layout.tsx INSTEAD of the
- * app shell while src/backend/server/onboarding.ts says it is needed:
+ * FIRST-LAUNCH ONBOARDING. Rendered by src/frontend/routes/root.tsx INSTEAD of
+ * the app frame while src/backend/server/onboarding.ts says it is needed:
  *
  *   intro → 1 Start your agent → 2 Add your first class → You're all set
  *
  * The agent step opens the agent in the godspeed folder and follows it
  * live (src/frontend/components/agent-folder); "I'll do this later" skips it. The class step is optional. Without an agent, the done step's
  * "Start your agent" goes back to step 1, whose Continue then returns to
- * the done step. Finishing writes general.onboarded and re-renders the
- * layout, which then shows Home; if that save fails, the done step stays
+ * the done step. Finishing writes general.onboarded and re-reads
+ * /api/boot, which then shows Home; if that save fails, the done step stays
  * with Try again.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { CheckIcon, FolderDownIcon } from "lucide-react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useBoot } from "@/frontend/components/boot";
 import { useSound } from "@/frontend/components/sounds";
 import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 import { AgentLauncher } from "@/frontend/components/agent-folder/agent-launcher";
@@ -57,7 +56,8 @@ const PRIMARY =
 const QUIET = "lh-press text-[14px] font-bold text-ink-2 hover:text-ink";
 
 export function Onboarding() {
-	const router = useRouter();
+	const navigate = useNavigate();
+	const { refresh } = useBoot();
 	const [step, setStep] = useState<Step>("intro");
 	// Return during the intro jumps its animation to the end (.ob-skip).
 	const [introSkipped, setIntroSkipped] = useState(false);
@@ -96,9 +96,9 @@ export function Onboarding() {
 		}
 		notifySettingsSaved("general");
 		await new Promise((r) => setTimeout(r, 600));
-		router.replace("/");
-		router.refresh();
-	}, [classId, router]);
+		navigate("/", { replace: true });
+		void refresh();
+	}, [classId, navigate, refresh]);
 
 	const sky: ConstellationMode = step === "intro" ? "intro" : leaving ? "gone" : step === "done" ? "bright" : "backdrop";
 

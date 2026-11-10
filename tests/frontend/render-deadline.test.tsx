@@ -11,6 +11,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import { parseHTML } from "linkedom";
 import type { DeadlineProgress } from "../../src/shared/core/index.ts";
 
@@ -60,25 +61,27 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 	const saved = { id: d.id, kind: d.kind, date: d.date, fileIds: d.files.map((f) => f.id), ...(leftOut.length ? { leftOutIds: leftOut } : {}) };
 	const material = deadlineMaterial(RECORD_FILES, saved, [saved], [{ fileId: "d1", facts: 12 }]);
 	return renderToStaticMarkup(
-		<DeadlineBody
-			deadline={d}
-			topics={[{ id: "t1", right: 2, answered: 5 }, { id: "t3", right: 3, answered: 5 }]}
-			material={material}
-			plan={planDays("2026-11-02", d.date, d.topics)}
-			nowMs={NOW}
-			busy={false}
-			startError={null}
-			onStart={() => {}}
-			onEditClass={() => {}}
-			source="Midterm practice exam.pdf"
-			teacherName="marco"
-			saving={false}
-			onAsk={() => {}}
-			onAdd={() => {}}
-			onLeaveOut={() => {}}
-			onCheatSheet={() => {}}
-			{...over}
-		/>,
+		<MemoryRouter initialEntries={["/class/deadline/d1"]}>
+			<DeadlineBody
+				deadline={d}
+				topics={[{ id: "t1", right: 2, answered: 5 }, { id: "t3", right: 3, answered: 5 }]}
+				material={material}
+				plan={planDays("2026-11-02", d.date, d.topics)}
+				nowMs={NOW}
+				busy={false}
+				startError={null}
+				onStart={() => {}}
+				onEditClass={() => {}}
+				source="Midterm practice exam.pdf"
+				teacherName="marco"
+				saving={false}
+				onAsk={() => {}}
+				onAdd={() => {}}
+				onLeaveOut={() => {}}
+				onCheatSheet={() => {}}
+				{...over}
+			/>
+		</MemoryRouter>,
 	);
 }
 

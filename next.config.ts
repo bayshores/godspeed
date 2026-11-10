@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
 
-const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string; homepage: string };
+const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string };
 
 const nextConfig: NextConfig = {
 	// Public build metadata only.
-	env: { LH_VERSION: pkg.version, LH_HOMEPAGE: pkg.homepage },
+	env: { LH_VERSION: pkg.version },
 	// Standalone output: a self-contained .next/standalone/server.js that the
-	// Electron shell runs on 127.0.0.1. scripts/build-server.mjs copies public/
-	// and .next/static into it.
+	// Electron shell runs on 127.0.0.1. It answers /api and /pdfjs; the screens
+	// are the Vite build, which scripts/build-server.mjs copies into it.
 	output: "standalone",
 	// Nothing uses next/image; this turns off its /_next/image resize endpoint.
 	images: { unoptimized: true },

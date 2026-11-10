@@ -5,7 +5,7 @@
  * right. With nothing due it says how deadlines get added; with no class
  * yet it offers to add one.
  */
-import Link from "next/link";
+import { Link } from "react-router";
 import { deadlineStudyLabel, type DeadlineProgress } from "@/shared/core";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/runway-model";
@@ -62,7 +62,7 @@ export function DueNext({
 					<div className="flex min-w-0 flex-col gap-3">
 						<h3 className="flex min-w-0 items-baseline gap-3 text-2xl font-bold">
 							<span className="shrink-0 text-ink-3">{d.className.toLowerCase()} /</span>
-							<Link href={deadlineHref(d.id)} prefetch={false} data-testid="due-next-open" title={d.name} className="truncate text-ink hover:underline">
+							<Link to={deadlineHref(d.id)} data-testid="due-next-open" title={d.name} className="truncate text-ink hover:underline">
 								<Decode text={d.name} />
 							</Link>
 						</h3>

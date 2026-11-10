@@ -31,11 +31,12 @@ const RUNTIME = ELECTRON_MODE ? createRequire(import.meta.url)("electron") : pro
 
 const POLL_MS = 500;
 const BOOT_TIMEOUT_MS = 30_000;
-/** GET-only probes with no side effects. */
-const PROBES = ["/api/graph", "/api/settings"];
+/** GET-only probes. /api/boot writes only to the throwaway data dir; the
+ *  page asks for it before its first paint. */
+const PROBES = ["/api/boot", "/api/graph", "/api/settings"];
 
 if (!fs.existsSync(SERVER)) {
-	console.error("[smoke-server] .next/standalone/server.js missing — run next build first.");
+	console.error("[smoke-server] .next/standalone/server.js missing — run npm run build first.");
 	process.exit(1);
 }
 

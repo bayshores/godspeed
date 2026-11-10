@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo, useState } from "react";
 import { useClasses } from "@/frontend/components/class-context";
 import { ClassDialog } from "@/frontend/components/class-dialog";

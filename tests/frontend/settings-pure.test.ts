@@ -80,7 +80,7 @@ describe("derivedPalette — every surface and text color follows the background
 	});
 
 	it("black's palette is the stylesheet's default", () => {
-		const css = fs.readFileSync("src/app/globals.css", "utf-8");
+		const css = fs.readFileSync("src/frontend/globals.css", "utf-8");
 		const root = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
 		const declared = new Map([...root.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()]));
 		// The shadcn aliases the stylesheet leaves out fall back on their own; every lh token is declared.

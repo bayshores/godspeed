@@ -22,7 +22,6 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 					const src = `data:${mimeType};base64,${base64}`;
 					return (
 						<button key={part.id} type="button" aria-label="Show picture full size" onClick={() => setOpen(src)} className="lh-press block">
-							{/* eslint-disable-next-line @next/next/no-img-element -- the learner's picture, stored in the lesson */}
 							<img data-testid="message-image" src={src} alt="" className="block max-h-[220px] w-auto max-w-full border border-tone-2" />
 						</button>
 					);
@@ -72,7 +71,6 @@ function PictureOverlay({ src, onClose }: { src: string; onClose: () => void }) 
 			onClick={onClose}
 			className="lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
 		>
-			{/* eslint-disable-next-line @next/next/no-img-element -- the learner's picture, stored in the lesson */}
 			<img src={src} alt="Your picture" className="max-h-full max-w-full object-contain" />
 		</div>,
 		document.body,

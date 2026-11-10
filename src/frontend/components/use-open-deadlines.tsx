@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The open deadlines of every non-archived class (GET /api/deadlines), for
  * Home, the teacher mascot and the welcome screen. One shared

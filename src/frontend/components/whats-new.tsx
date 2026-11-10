@@ -1,13 +1,11 @@
-"use client";
-
 /**
  * "WHAT'S NEW": after an update, the first launch
  * opens this dialog with the changelog entries the learner skipped over
- * (src/shared/changelog.json, newest first). The root layout passes `since` from
- * src/backend/server/whats-new.ts; Settings → General → Release notes reopens it
- * with the current version's notes (openWhatsNew). Styled as the app's
- * other dialogs (class-dialog.tsx): square panel, tone outline, one white
- * button.
+ * (src/shared/changelog.json, newest first). src/frontend/routes/root.tsx
+ * passes `since` (from /api/boot, read by src/backend/server/whats-new.ts);
+ * Settings → General → Release notes reopens it with the current version's
+ * notes (openWhatsNew). Styled as the app's other dialogs
+ * (class-dialog.tsx): square panel, tone outline, one white button.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -31,8 +29,8 @@ export function openWhatsNew(since?: string): void {
 }
 
 export function WhatsNew({ since }: { since: string | null }) {
-	// Opens after hydration: the server renders nothing (the dialog portals
-	// into document.body), so the first client render must match that.
+	// Opens after mount (the dialog portals into document.body), so the
+	// first render shows nothing.
 	const [entries, setEntries] = useState<ChangelogEntry[] | null>(null);
 	useEffect(() => {
 		if (!since) return;

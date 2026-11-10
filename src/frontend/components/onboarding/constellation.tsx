@@ -5,7 +5,7 @@
  * dots along its trail; they link up and light red → green, then dim to
  * a faint backdrop that stays behind every setup step. The welcome
  * screen draws the same sky without this comet (it flies its own, into
- * the logo). Pure SVG + CSS animation (src/app/globals.css,
+ * the logo). Pure SVG + CSS animation (src/frontend/globals.css,
  * "Onboarding"); with reduced motion every element simply shows its final
  * state.
  */

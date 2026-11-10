@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The teacher's panel: click the teacher in the teacher pane or the top bar.
  * Docked to the window's right edge, under the top bar. It pushes the page

@@ -156,7 +156,7 @@ describe("AppearanceSection (SSR)", () => {
 	});
 
 	it("Tab onto a hidden color picker rings its visible tile", () => {
-		const css = fs.readFileSync("src/app/globals.css", "utf-8");
+		const css = fs.readFileSync("src/frontend/globals.css", "utf-8");
 		assert.ok(css.includes(':root[data-tab-focus] :has(> input[type="color"]:focus-visible)'), "the ring rule for a picker's tile");
 		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
 		const pickers = [...parseHTML(`<div>${html}</div>`).document.querySelectorAll('input[type="color"]')];

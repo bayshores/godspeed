@@ -2,11 +2,10 @@
  * build-server.mjs — curate the Electron shell's server payload.
  *
  * `next build` (output: "standalone") produces .next/standalone/ with
- * server.js + the traced node_modules subset, but leaves two pieces
- * outside that the docs require us to copy: public/ and .next/static/.
- * This script finishes the job — plus models/, the class-search embedding
- * model (scripts/fetch-model.mjs), which the server loads by path — and
- * sanity-checks the result, including
+ * server.js + the traced node_modules subset. This script adds the built
+ * UI (`vite build` → dist-ui/, served from ui/ by src/app/[[...path]]) and
+ * models/, the class-search embedding model (scripts/fetch-model.mjs),
+ * which the server loads by path, and sanity-checks the result, including
  * the exclusion that keeps the repo's real data/ OUT of the bundle
  * (see next.config.ts outputFileTracingExcludes). It also removes build-only
  * files the tracer leaves behind: the development Electron runtime, Next's
@@ -30,17 +29,15 @@ if (!exists(path.join(STANDALONE, "server.js"))) {
 	process.exit(1);
 }
 
-// 1) Static assets: public/ → standalone/public, .next/static → standalone/.next/static
-const staticFrom = path.join(ROOT, ".next", "static");
-const staticTo = path.join(STANDALONE, ".next", "static");
-if (!exists(staticFrom)) {
-	console.error("[build-server] .next/static missing — the build looks incomplete.");
+// 1) The UI: dist-ui/ (public/ included) → standalone/ui. Next's own
+// .next/static and public/ stay out: no screen is a Next page.
+const ui = path.join(ROOT, "dist-ui");
+if (!exists(path.join(ui, "index.html"))) {
+	console.error("[build-server] dist-ui/index.html missing — run `vite build` first.");
 	process.exit(1);
 }
-copyTree(staticFrom, staticTo);
-if (exists(path.join(ROOT, "public"))) {
-	copyTree(path.join(ROOT, "public"), path.join(STANDALONE, "public"));
-}
+fs.rmSync(path.join(STANDALONE, "ui"), { recursive: true, force: true });
+copyTree(ui, path.join(STANDALONE, "ui"));
 const MODEL_WEIGHTS = path.join("models", "Snowflake", "snowflake-arctic-embed-xs", "onnx", "model_quantized.onnx");
 if (!exists(path.join(ROOT, MODEL_WEIGHTS))) {
 	console.error("[build-server] the search model is missing — run `node scripts/fetch-model.mjs` first.");
@@ -71,15 +68,16 @@ for (const secret of ["auth.json", ...subscriptionSecrets, ".env", ".env.local"]
 }
 
 // 2c) Payload curation: the trace sweep copies the development Electron
-// runtime (the demo helper's dev-only require). dist/ (previous installers)
-// and .claude/ (agent worktrees, each a whole checkout) are removed as a
+// runtime (the demo helper's dev-only require). dist/ (previous installers),
+// dist-ui/ (already copied to ui/) and .claude/ (agent worktrees, each a
+// whole checkout) are removed as a
 // guard in case a whole-project trace comes back. None belongs in the
 // server: packaged helpers use process.execPath, the app's own binary.
 // Remove ONLY these standalone-root paths AFTER tracing — excluding a
 // generic dist/** earlier broke pi-ai / pi-agent-core's runtime dist/.
 // Never touch ROOT/dist or ROOT/node_modules/electron (the running app
 // and the build runtime); native canvas/resvg packages stay untouched.
-for (const extra of ["dist", ".claude", path.join("node_modules", "electron")]) {
+for (const extra of ["dist", "dist-ui", ".claude", path.join("node_modules", "electron")]) {
 	const target = path.join(STANDALONE, extra);
 	if (exists(target)) {
 		fs.rmSync(target, { recursive: true, force: true });

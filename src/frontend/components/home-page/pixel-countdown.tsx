@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Home's big countdown to the next deadline. In its last 24h the clock is
  * drawn in square pixels ("04:08:33"); before that, and once overdue, it

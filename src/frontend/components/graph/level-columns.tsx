@@ -7,7 +7,7 @@
  * deadline dims what it doesn't cover. More levels than fit scroll sideways.
  */
 import { memo, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { factCells, UNSTUDIED_CELL } from "@/frontend/components/home-page/home-page-model";
@@ -51,7 +51,7 @@ export function LevelColumns({
 				{inClass ? (
 					<span>
 						Start a lesson or{" "}
-						<Link href="/class/files" data-testid="graph-empty-add-files" className="font-bold text-ink hover:text-ink-max">
+						<Link to="/class/files" data-testid="graph-empty-add-files" className="font-bold text-ink hover:text-ink-max">
 							add files
 						</Link>{" "}
 						to build your graph.

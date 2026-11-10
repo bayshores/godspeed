@@ -1,7 +1,7 @@
 /**
  * The MCP access token: one secret in data/mcp-token (mode 0600).
  * Outside-agent access is always on: the server makes
- * the token on the first page load (src/app/layout.tsx → server/onboarding.ts)
+ * the token on the first page load (GET /api/boot → server/onboarding.ts)
  * and again whenever the file is missing. Settings → Connection shows and rotates it.
  */
 import { randomBytes } from "node:crypto";

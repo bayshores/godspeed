@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { useClasses } from "@/frontend/components/class-context";

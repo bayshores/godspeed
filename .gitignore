@@ -10,6 +10,8 @@ SCOPE.md
 # raw real-data import sources (user directive 2026-09-13: never commit)
 real-data-extraction/
 dist/
+# the built UI (vite build, run by npm run build)
+dist-ui/
 
 # retired API-key store: old checkouts may still hold a repo-root auth.json — never commit it
 auth.json

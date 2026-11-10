@@ -18,7 +18,7 @@ const STREAM_FRAME_FALLBACK_MS = 100;
 
 interface UseChatSessionOptions {
 	chatId: string;
-	/** The native record seed (server-rendered page or a full sync). */
+	/** The native record seed (the lesson loader's read or a full sync). */
 	initialMessages: LhMessage[];
 	/** Transient settlement failure retained by the server, not the transcript. */
 	initialError?: string;

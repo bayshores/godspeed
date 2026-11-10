@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
 import { lessonHref, mostMissesTakeaway } from "./overview-model";
 import { CARD, CARD_TITLE, OUTCOME_BG } from "./styles";
@@ -28,7 +28,7 @@ const LessonRow = memo(function LessonRow({ lesson }: { lesson: LessonProgress }
 	return (
 		<li>
 			<Link
-				href={lessonHref(lesson.chatId)}
+				to={lessonHref(lesson.chatId)}
 				data-testid={`overview-lesson-${lesson.chatId}`}
 				className="lh-press -mx-2 flex items-center gap-3.5 px-2 py-[7px] hover:bg-tone focus-visible:bg-tone"
 			>

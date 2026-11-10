@@ -1,6 +1,6 @@
 /**
- * FIRST-LAUNCH ONBOARDING — who sees it. The root
- * layout asks on every page load; the answer lives in settings.json as
+ * FIRST-LAUNCH ONBOARDING — who sees it. GET /api/boot
+ * (server/boot.ts) asks on every page load; the answer lives in settings.json as
  * general.onboarded:
  *  - true  → done (finished, or an existing user who skipped it);
  *  - false → in progress: shown until the learner finishes it;

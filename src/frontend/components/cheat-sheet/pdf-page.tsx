@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { visiblePart, type Artboard, type Camera } from "./canvas-model";

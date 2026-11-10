@@ -1,5 +1,3 @@
-"use client";
-
 import { drawPage, openPdf } from "./pdf";
 
 /** Print resolution, in dots per inch. */

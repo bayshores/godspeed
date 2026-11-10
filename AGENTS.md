@@ -49,11 +49,11 @@ Keep godspeed small, tidy and easy to read. Every change follows these rules, an
 - No leftover feature flags, shims, or "old way" fallbacks once the new way works.
 
 **Where code goes**
-- `src/frontend`: what the browser runs (`components/`, `lib/`). `src/backend`: what the server runs (`server/`, `agent/`, `store/`, `config.ts`). `src/shared/core`: pure logic both sides use. `src/app` and `src/proxy.ts` stay where Next.js looks for them, and only translate HTTP.
+- `src/frontend`: what the browser runs, built by Vite (`index.html`, `main.tsx`, `routes/` for the router and its screens, `components/`, `lib/`, `globals.css`, `fonts/`). `src/backend`: what the server runs (`server/`, `agent/`, `store/`, `config.ts`). `src/shared/core`: pure logic both sides use. `src/app` (API routes only) and `src/proxy.ts` stay where Next.js looks for them, and only translate HTTP.
 - Tests sit in the matching folder: `tests/frontend`, `tests/backend` (also tests that cross into the server, like route tests), `tests/shared`, and `tests/desktop` for `electron/`, `scripts/` and `next.config.ts`. Shared helpers and `fixtures/` stay in `tests/` itself.
 
 **One job per file**
-- Pure logic lives in `src/shared/core` (or a `*-model.ts` next to its component) and has unit tests. Components render, hooks fetch, routes translate HTTP.
+- Pure logic lives in `src/shared/core` (or a `*-model.ts` next to its component) and has unit tests. Components render, hooks fetch. API routes (`src/app`) translate HTTP; `src/frontend/routes` holds the router, its loaders and screens.
 - No import cycles. Keep the import law (`eslint.config.mjs`).
 - Split a file that does two jobs when you touch it. Don't grow it further.
 

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The teacher mascot, drawn on a 10×13 pixel grid: a round white body with
  * plain dark eyes under a small mortarboard. One face per mood; the idle

@@ -13,17 +13,17 @@
 	"private": true,
 	"main": "electron/main.cjs",
 	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
+		"dev": "concurrently -k -n api,ui \"next dev --port $((${PORT:-3000}+1000))\" \"vite\"",
+		"build": "vite build && next build",
 		"test": "NODE_ENV=test tsx --test tests/*/*.test.ts tests/*/*.test.tsx",
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit",
 		"deadcode": "knip",
 		"check": "npm run typecheck && npm test && npm run lint && npm run deadcode",
-		"desktop:dev": "concurrently -k \"next dev\" \"LH_DEV_URL=http://localhost:3000 electron .\"",
+		"desktop:dev": "concurrently -k -n api,ui,app \"next dev --port $((${PORT:-3000}+1000))\" \"vite\" \"LH_DEV_URL=http://localhost:${PORT:-3000} electron .\"",
 		"dev:fresh": "bash scripts/dev-fresh.sh",
-		"desktop:local": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && next build && node scripts/build-server.mjs && electron-builder -c electron/electron-builder.yml --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
-		"desktop:dist": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && next build && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"
+		"desktop:local": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && npm run build && node scripts/build-server.mjs && electron-builder -c electron/electron-builder.yml --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
+		"desktop:dist": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && npm run build && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"
 	},
 	"dependencies": {
 		"@codemirror/autocomplete": "6.20.3",
@@ -68,6 +68,7 @@
 		"radix-ui": "^1.6.7",
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8",
+		"react-router": "^8.5.1",
 		"remark-breaks": "^4.0.0",
 		"sharp": "^0.35.5",
 		"streamdown": "^2.5.0",
@@ -81,13 +82,13 @@
 		"katex": "$katex"
 	},
 	"devDependencies": {
-		"@next/eslint-plugin-next": "^16.4.3",
-		"@tailwindcss/postcss": "^4.3.3",
+		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^24.0.0",
 		"@types/react": "^19.2.18",
 		"@types/react-dom": "^19.2.4",
 		"@types/turndown": "^5.0.6",
 		"@typescript-eslint/parser": "^8.68.0",
+		"@vitejs/plugin-react": "^6.1.2",
 		"app-builder-lib": "26.16.1",
 		"concurrently": "^10.0.5",
 		"electron": "^44.10.0",
@@ -97,9 +98,9 @@
 		"eslint-plugin-import": "^2.32.0",
 		"js-yaml": "^4.3.2",
 		"knip": "5.88.1",
-		"postcss": "^8.5.26",
 		"tailwindcss": "^4.3.3",
 		"tsx": "^4.19.0",
-		"typescript": "^5.6.0"
+		"typescript": "^5.6.0",
+		"vite": "^8.3.5"
 	}
 }

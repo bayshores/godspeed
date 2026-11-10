@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { ArrowUpRightIcon } from "lucide-react";
 import type { Calibration, CalibrationLevel, SureButWrong } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
@@ -76,7 +76,7 @@ const SureButWrongRow = memo(function SureButWrongRow({ q }: { q: SureButWrong }
 	return (
 		<li>
 			<Link
-				href={questionHref(q.chatId, q.messageId)}
+				to={questionHref(q.chatId, q.messageId)}
 				data-testid={`sure-but-wrong-${q.toolCallId}`}
 				className="lh-press flex w-full items-center gap-2.5 bg-tone px-3 py-[9px] hover:bg-tone-2 focus-visible:bg-tone-2"
 			>

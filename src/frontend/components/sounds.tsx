@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The app's sound effects (public/sounds), behind the Settings → General
  * "Sounds" switch.

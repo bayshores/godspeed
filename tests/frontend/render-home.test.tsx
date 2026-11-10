@@ -5,7 +5,7 @@
  * deadline (Continue studying while its session is unfinished) and what
  * every Study start sends.
  */
-import React, { act } from "react";
+import React, { act, useEffect } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
@@ -25,8 +25,6 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
-	requestIdleCallback: (cb: () => void) => setTimeout(cb, 0),
-	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
 const { TopicBox, isStartKey } = await import("../../src/frontend/components/home/topic-box.tsx");
@@ -35,7 +33,7 @@ const { DeadlineStarts } = await import("../../src/frontend/components/home/dead
 const { useLessonStart } = await import("../../src/frontend/components/home/use-lesson-start.ts");
 const { takeStartFiles } = await import("../../src/frontend/components/lesson/start-files.ts");
 const NO_FILES = { files: [], error: null, add: () => {}, remove: () => {}, clear: () => {}, restore: () => {} };
-const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
+const { MemoryRouter, useLocation } = await import("react-router");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 
@@ -80,15 +78,17 @@ const SUGGESTIONS: Suggestion[] = [
 
 function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) {
 	return renderToStaticMarkup(
-		<SuggestionList
-			classLabel="CSE 21"
-			suggestions={SUGGESTIONS}
-			step={{ position: 1, total: 11 }}
-			busy={false}
-			onStudyFile={() => {}}
-			onStudyTopic={() => {}}
-			{...props}
-		/>,
+		<MemoryRouter initialEntries={["/new"]}>
+			<SuggestionList
+				classLabel="CSE 21"
+				suggestions={SUGGESTIONS}
+				step={{ position: 1, total: 11 }}
+				busy={false}
+				onStudyFile={() => {}}
+				onStudyTopic={() => {}}
+				{...props}
+			/>
+		</MemoryRouter>,
 	);
 }
 
@@ -222,14 +222,16 @@ describe("Home: actions", () => {
 		const learned: FileCoverage[] = [];
 		const practiced: TopicProgress[] = [];
 		const host = await mount(
-			<SuggestionList
-				classLabel="CSE 21"
-				suggestions={SUGGESTIONS}
-				step={null}
-				busy={false}
-				onStudyFile={(f) => learned.push(f)}
-				onStudyTopic={(t) => practiced.push(t)}
-			/>,
+			<MemoryRouter initialEntries={["/new"]}>
+				<SuggestionList
+					classLabel="CSE 21"
+					suggestions={SUGGESTIONS}
+					step={null}
+					busy={false}
+					onStudyFile={(f) => learned.push(f)}
+					onStudyTopic={(t) => practiced.push(t)}
+				/>
+			</MemoryRouter>,
 		);
 		await act(async () => (host.querySelector('[data-testid="home-study-file"]') as HTMLButtonElement).click());
 		const practice = host.querySelectorAll('[data-testid="home-study-topic"]');
@@ -266,10 +268,13 @@ describe("Home: actions", () => {
 	async function harness(ok: () => boolean) {
 		const pushed: string[] = [];
 		const sent: Record<string, unknown>[] = [];
-		const router = { push: (href: string) => pushed.push(href) } as unknown as React.ContextType<typeof AppRouterContext>;
 		const lesson: { current?: ReturnType<typeof useLessonStart> } = {};
 		function Harness() {
 			lesson.current = useLessonStart();
+			const { pathname, search } = useLocation();
+			useEffect(() => {
+				pushed.push(pathname + search);
+			}, [pathname, search]);
 			return null;
 		}
 		globalThis.fetch = (async (_url: string, init: RequestInit) => {
@@ -279,10 +284,11 @@ describe("Home: actions", () => {
 			return ok() ? Response.json({ id: "chat_1", title: body.title ?? "Study: Counting, Sets" }) : Response.json({ error: "boom" }, { status: 500 });
 		}) as typeof fetch;
 		await mount(
-			<AppRouterContext.Provider value={router}>
+			<MemoryRouter initialEntries={["/new"]}>
 				<Harness />
-			</AppRouterContext.Provider>,
+			</MemoryRouter>,
 		);
+		pushed.length = 0;
 		return { lesson: () => lesson.current!, pushed, sent };
 	}
 

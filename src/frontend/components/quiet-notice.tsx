@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The corner notice when a class's linked folder has brought no new file
  * for a few days (say, whatever fills a Google Drive folder stopped): "No
@@ -9,7 +7,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { CalendarClockIcon, XIcon } from "lucide-react";
 import { useClasses } from "@/frontend/components/class-context";
 import { useMinute } from "@/frontend/components/countdown";
@@ -31,7 +29,7 @@ function readSnoozed(): Record<string, number> {
 export function QuietNotice() {
 	const { classes, setActive } = useClasses();
 	const now = useMinute();
-	const router = useRouter();
+	const navigate = useNavigate();
 	const [snoozed, setSnoozed] = useState(() => (typeof window === "undefined" ? {} : readSnoozed()));
 	if (typeof document === "undefined" || now === null) return null;
 	const snooze = (classId: string) => {
@@ -53,7 +51,7 @@ export function QuietNotice() {
 			onShowFolder={openPath && ((entry) => void openPath(entry.folder))}
 			onSee={(entry) => {
 				setActive(entry.classId);
-				router.push("/class/files");
+				navigate("/class/files");
 			}}
 			onDismiss={(entry) => snooze(entry.classId)}
 		/>,

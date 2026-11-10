@@ -9,6 +9,7 @@ import React from "react";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import type { ClassSummary } from "../../src/shared/core/index.ts";
 import { ClassTree, activePageHref } from "../../src/frontend/components/sidebar/class-tree.tsx";
 import { ClassProvider } from "../../src/frontend/components/class-context.tsx";
@@ -16,22 +17,19 @@ import { ServerEventsProvider } from "../../src/frontend/components/server-event
 import { agentStatusLabel } from "../../src/frontend/components/agent-status.tsx";
 import { hasUnseenFiles } from "../../src/frontend/components/sidebar/files-seen.ts";
 
-const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
-
 const cls = (id: string, name: string, archived = false): ClassSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived, fileCount: 33 });
 const CLASSES = [cls("c29", "CSE 29"), cls("c21", "CSE 21"), cls("old", "MATH 18", true)];
 
 function tree(pathname: string, active: string | null = "c29", unseenFiles = false) {
-	const router = { push: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
 	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	return renderToStaticMarkup(
-		<AppRouterContext.Provider value={router}>
+		<MemoryRouter initialEntries={[pathname]}>
 			<ServerEventsProvider connect={quietEvents as never}>
 				<ClassProvider initialActive={active} initialClasses={CLASSES}>
 					<ClassTree pathname={pathname} fileCount={33} unseenFiles={unseenFiles} />
 				</ClassProvider>
 			</ServerEventsProvider>
-		</AppRouterContext.Provider>,
+		</MemoryRouter>,
 	);
 }
 

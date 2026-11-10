@@ -2,7 +2,7 @@
 
 For people working on godspeed itself, not using it.
 
-godspeed is a learning app: a Next.js web app inside an Electron desktop shell. The model is always an **outside agent** (Claude Code, Codex or any MCP app) connected over MCP; the server runs it through the pi-ai agent engine. A **teacher agent** runs probe→teach lessons with graded questions and a **plan tree** it writes once (`plan_init`); progress on the plan is derived from tagged quiz calls. Lessons are organized into **classes**, each with its own files, deadlines and **knowledge graph** of facts (propositions) and the reasoning chains between them. Home (`/`) shows what is coming up across classes; each class's graph is drawn as a Graph page at `/graph`.
+godspeed is a learning app: a React web app (built with Vite) and a Next.js server for its API, inside an Electron desktop shell. The model is always an **outside agent** (Claude Code, Codex or any MCP app) connected over MCP; the server runs it through the pi-ai agent engine. A **teacher agent** runs probe→teach lessons with graded questions and a **plan tree** it writes once (`plan_init`); progress on the plan is derived from tagged quiz calls. Lessons are organized into **classes**, each with its own files, deadlines and **knowledge graph** of facts (propositions) and the reasoning chains between them. Home (`/`) shows what is coming up across classes; each class's graph is drawn as a Graph page at `/graph`.
 
 The extraction pipeline turns teacher prose and class files into graph facts. The teacher reaches back into the graph through read-only tools when it wants to, so later lessons build on earlier ones.
 
@@ -19,9 +19,9 @@ Other docs:
 npm install          # once
 node scripts/fetch-model.mjs   # once: the class-search model into models/ (the desktop builds run it too)
 
-npm run dev          # http://localhost:3000
+npm run dev          # Vite serves the screens at http://localhost:3000; `next dev` serves /api on 4000
 npm run dev:fresh    # a fresh instance with empty data at http://localhost:3005 (tests onboarding)
-npm run build        # production build (standalone output)
+npm run build        # production build: `vite build` for the screens, then `next build` (standalone output)
 
 npm run check        # THE done gate: typecheck + tests + lint + deadcode. CI runs the same
 npm test             # the full suite (node:test via tsx; deterministic, no LLM, no network)
@@ -29,7 +29,7 @@ npm run lint         # eslint, including the import law (architecture §2)
 npm run typecheck    # tsc --noEmit (unused variables and parameters are errors)
 npm run deadcode     # knip: unused files, exports, types and npm packages
 
-npm run desktop:dev    # next dev + Electron shell pointed at it
+npm run desktop:dev    # Vite + `next dev` + Electron shell pointed at Vite
 npm run desktop:local  # unsigned local macOS arm64 app in dist/
 npm run desktop:dist   # local signed/notarized macOS arm64 build (LH_NOTARY keychain)
 ```
@@ -105,17 +105,26 @@ flowchart TB
 
 ```
 src/
-  app/                          Next.js App Router: pages (/ Home, /new, /chat/[id],
-                                /class Overview, /class/files, /graph) + thin API
-                                route handlers. Settings is a dialog, not a page
+  app/                          Next.js App Router: thin API route handlers, pdfjs/, and
+                                [[...path]] (serves the built UI). Settings is a dialog,
+                                not a page
   proxy.ts                      Next proxy: desktop-only /api gate
-  frontend/                     everything the browser runs
+  frontend/                     everything the browser runs (a Vite + React Router app)
+    index.html                    the page
+    main.tsx                      entry: reads /api/boot and the first screen, then renders
+    routes/                       router.tsx (every screen: / Home, /new, /chat/:id,
+                                  /class Overview, /class/files, /graph), root.tsx (app
+                                  frame), lesson.tsx, deadline.tsx, not-found.tsx, page-title.tsx
+    fonts/                        the woff2 files and fonts.css
+    globals.css                   Tailwind and the theme
+    components/boot.tsx           the boot info (/api/boot) for the whole app
     components/                   Home (home-page/), the lesson screen (lesson/), question
                                   dock, plan steps pane and plan blocks, Graph page (graph/),
                                   class Overview and Files, settings dialog (settings/),
                                   onboarding, the welcome screen (welcome/), artifact
                                   renderers (registry: artifacts/), activity dock, keyboard
     lib/utils.ts                  shadcn class-name helper (cn)
+    lib/lazy-component.tsx        lazy-loads a component on first use
   backend/                      everything the server runs (Node only)
     config.ts                     paths (data dir, prompts) + engine construction facts
     agent/
@@ -169,6 +178,8 @@ src/
     server/observability.ts       the activity feed (running jobs + extraction, abort)
     server/pi/                    ui-stream (pi agent events → SSE) · call-ids
     server/index.ts               the server barrel (the only server import src/app/ may use)
+    server/boot.ts                what GET /api/boot answers on every page load
+    server/ui-files.ts            finds the built UI file for a path (src/app/[[...path]])
     store/                        fs adapters: chats · classes · graph ledgers (+
                                   graph-format) · jobs · settings · prompt-overrides ·
                                   mcp-token · agent-notes · agent-seen · agent-rules ·

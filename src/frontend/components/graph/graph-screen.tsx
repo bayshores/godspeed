@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE GRAPH PAGE: the class's topics as level columns with a right side:
  * the next deadline on top, under it what to work on next, the picked
@@ -9,7 +7,6 @@
  * starts clean.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import type { GraphSnapshot } from "@/shared/core";
 import { classQuery, useClasses } from "@/frontend/components/class-context";
 import { useProgress } from "@/frontend/components/use-progress";
@@ -19,9 +16,10 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { NotesImportErrors, useNotesImport } from "@/frontend/components/notes-import";
 import { GraphTopBar } from "./graph-top-bar.tsx";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { lazyComponent } from "@/frontend/lib/lazy-component";
 
 // The columns and panes load in their own chunk once the progress data has arrived.
-const GraphBody = dynamic(() => import("./graph-body.tsx").then((m) => m.GraphBody), { ssr: false });
+const GraphBody = lazyComponent(() => import("./graph-body.tsx").then((m) => m.GraphBody));
 
 export function GraphScreen() {
 	const { active } = useClasses();

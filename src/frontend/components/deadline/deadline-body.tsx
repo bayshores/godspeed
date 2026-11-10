@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { CheckIcon } from "lucide-react";
 import { deadlineStudyLabel, rampColor, topicStatus, type DeadlineProgress, type PlanDay, type TopicProgress } from "@/shared/core";
 import { clockLabel, deadlineDateLabel, dueLabel, kindLabel } from "@/frontend/components/class-deadlines-model";
@@ -291,7 +291,7 @@ function CoversCard({
 						</div>
 					)}
 					<div className="flex flex-wrap gap-2">
-						<Link href="/class/files" data-testid="deadline-add-files" className={BUTTON}>
+						<Link to="/class/files" data-testid="deadline-add-files" className={BUTTON}>
 							Add files
 						</Link>
 						<button type="button" data-testid="deadline-ask" onClick={onAsk} className={BUTTON}>

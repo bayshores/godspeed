@@ -3,7 +3,7 @@
  * (server/onboarding.ts, decided once from data/mcp-token and stored as
  * general.onboarded), the settings field, the screens' pure helpers, the
  * constellation's markup, and the class picker following the server's
- * active class after onboarding finishes (router.refresh()).
+ * active class after onboarding finishes (a fresh /api/boot read).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;

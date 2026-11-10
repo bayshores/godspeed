@@ -74,9 +74,9 @@ afterEach(async () => {
 });
 
 describe("version and contextual copy", () => {
-	it("build metadata comes from package.json and exposes only public version/homepage values", () => {
+	it("build metadata comes from package.json and exposes only the public version", () => {
 		const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
-		assert.deepEqual(nextConfig.env, { LH_VERSION: pkg.version, LH_HOMEPAGE: pkg.homepage });
+		assert.deepEqual(nextConfig.env, { LH_VERSION: pkg.version });
 	});
 
 	it("never claims live/latest information and keeps updater errors generic", () => {

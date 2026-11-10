@@ -26,8 +26,8 @@ function withPayload(test: (fixture: {
 	try {
 		write(path.join("scripts", "build-server.mjs"), source);
 		write(path.join(STANDALONE, "server.js"));
-		write(path.join(".next", "static", "runtime.js"));
-		write(path.join("public", "asset.txt"));
+		write(path.join("dist-ui", "index.html"));
+		write(path.join("dist-ui", "assets", "index.js"));
 		write(MODEL);
 		write(path.join(STANDALONE, PROMPT));
 		write(path.join(STANDALONE, "src", "backend", "agent", "prompts", "teacher", "20-teaching.md"));
@@ -64,8 +64,8 @@ describe("desktop standalone payload", () => {
 			assert.ok(fs.existsSync(path.join(root, "dist", "old.app", "nested.dmg")));
 			assert.ok(fs.existsSync(path.join(root, "node_modules", "electron", "dist", "electron.exe")));
 			for (const file of runtime) assert.ok(fs.existsSync(path.join(root, STANDALONE, file)), file);
-			assert.ok(fs.existsSync(path.join(root, STANDALONE, ".next", "static", "runtime.js")));
-			assert.ok(fs.existsSync(path.join(root, STANDALONE, "public", "asset.txt")));
+			assert.ok(fs.existsSync(path.join(root, STANDALONE, "ui", "index.html")), "the built UI ships");
+			assert.ok(fs.existsSync(path.join(root, STANDALONE, "ui", "assets", "index.js")));
 			assert.ok(fs.existsSync(path.join(root, STANDALONE, MODEL)), "the search model ships");
 			assert.ok(fs.existsSync(path.join(root, STANDALONE, ORT_BIN, "libonnxruntime.1.dylib")));
 			assert.equal(fs.existsSync(path.join(root, STANDALONE, ORT_BIN, "libonnxruntime.1.30.0.dylib")), false, "the duplicate library is dropped");
@@ -78,6 +78,15 @@ describe("desktop standalone payload", () => {
 			const result = run();
 			assert.equal(result.status, 1);
 			assert.match(String(result.stderr), /search model is missing/);
+		});
+	});
+
+	it("refuses to build without the built UI", () => {
+		withPayload(({ root, run }) => {
+			fs.rmSync(path.join(root, "dist-ui"), { recursive: true });
+			const result = run();
+			assert.equal(result.status, 1);
+			assert.match(String(result.stderr), /dist-ui\/index.html missing/);
 		});
 	});
 

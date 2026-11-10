@@ -25,6 +25,7 @@ import React from "react";
 
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 import { describe, it } from "node:test";
 import { ChainTableBody, ChainTableOverlay } from "../../src/frontend/components/chain-table.tsx";
 import type { ChainSort } from "../../src/frontend/components/chain-table.tsx";
@@ -84,7 +85,9 @@ const BASE = {
 };
 
 function render(props: Partial<typeof BASE> = {}) {
-	return renderToStaticMarkup(React.createElement(ChainTableBody, { ...BASE, ...props }));
+	return renderToStaticMarkup(
+		React.createElement(MemoryRouter, null, React.createElement(ChainTableBody, { ...BASE, ...props })),
+	);
 }
 
 describe("ChainTableBody — clusters (the outermost layer)", () => {
@@ -332,15 +335,19 @@ describe("ChainTableBody — the fuzzy search (grouped + auto-expand)", () => {
 describe("ChainTableOverlay — the lifted practice pick", () => {
 	function overlay(extra: Record<string, unknown> = {}) {
 		return renderToStaticMarkup(
-			React.createElement(ChainTableOverlay, {
-				open: true,
-				nodes: NODES,
-				chains: CHAINS,
-				sessions: { chat1: "Ethics lesson", chat2: "Follow-up", notes1: "Notes" },
-				fileSources: {},
-				onClose: () => {},
-				...extra,
-			} as never),
+			React.createElement(
+				MemoryRouter,
+				null,
+				React.createElement(ChainTableOverlay, {
+					open: true,
+					nodes: NODES,
+					chains: CHAINS,
+					sessions: { chat1: "Ethics lesson", chat2: "Follow-up", notes1: "Notes" },
+					fileSources: {},
+					onClose: () => {},
+					...extra,
+				} as never),
+			),
 		);
 	}
 

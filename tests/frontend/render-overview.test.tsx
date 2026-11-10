@@ -24,12 +24,10 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	IS_REACT_ACT_ENVIRONMENT: true,
-	// next/link's prefetch-on-view reads these once mounted.
 	self: globalThis,
-	requestIdleCallback: (cb: () => void) => setTimeout(cb, 0),
-	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
+const { MemoryRouter } = await import("react-router");
 const { OverviewBody } = await import("../../src/frontend/components/overview/overview-body.tsx");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
@@ -89,18 +87,20 @@ const PAYLOAD = {
 
 function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) {
 	return renderToStaticMarkup(
-		<OverviewBody
-			name="ML Foundations"
-			description="Optimization and learning theory"
-			hasClass
-			classId="cls_ml"
-			data={PAYLOAD}
-			nowMs={NOW}
-			busy={false}
-			startError={null}
-			onStudy={() => {}}
-			{...props}
-		/>,
+		<MemoryRouter initialEntries={["/class"]}>
+			<OverviewBody
+				name="ML Foundations"
+				description="Optimization and learning theory"
+				hasClass
+				classId="cls_ml"
+				data={PAYLOAD}
+				nowMs={NOW}
+				busy={false}
+				startError={null}
+				onStudy={() => {}}
+				{...props}
+			/>
+		</MemoryRouter>,
 	);
 }
 
@@ -434,16 +434,18 @@ describe("runway clicks", () => {
 		root = createRoot(host);
 		await act(async () => {
 			root!.render(
-				<OverviewBody
-					name="ML Foundations"
-					description=""
-					hasClass
-					data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
-					nowMs={NOW}
-					busy={false}
-					startError={null}
-					onStudy={onStudy}
-				/>,
+				<MemoryRouter initialEntries={["/class"]}>
+					<OverviewBody
+						name="ML Foundations"
+						description=""
+						hasClass
+						data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
+						nowMs={NOW}
+						busy={false}
+						startError={null}
+						onStudy={onStudy}
+					/>
+				</MemoryRouter>,
 			);
 		});
 		return host;

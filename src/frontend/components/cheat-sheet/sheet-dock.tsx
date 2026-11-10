@@ -1,7 +1,5 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import { ArrowUpRightIcon, XIcon } from "lucide-react";
 import { currentVersion, type SheetAbout } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
@@ -31,7 +29,7 @@ function writeStorage(key: string, value: string): void {
 }
 
 /** Whether a session's sheet is open and which one, kept per session in
- *  this browser; read after mount (the page is server-rendered). */
+ *  this browser. It starts closed and reads storage after mount. */
 export function useSheetDock(chatId: string) {
 	const [state, setState] = useState<DockState>({ open: false });
 	const key = dockStateKey(chatId);
@@ -127,7 +125,7 @@ export function SheetDock({
 				)}
 				{shown && (
 					<Link
-						href={studioPath(shown)}
+						to={studioPath(shown)}
 						data-testid="sheet-dock-studio"
 						aria-label="Open the cheat sheet full size"
 						title="Open full size"

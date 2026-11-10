@@ -1,12 +1,11 @@
-"use client";
-
 /**
  * THE ACTIVE CLASS: the class the
  * whole window shows — the sidebar's lessons, home's graph, where new
  * lessons start and where the Graph's Add files imports. null = "No class".
  *
  * Persisted in settings.json (general.activeClass) so it survives restarts;
- * the server renders the first value (no flash of the wrong graph). The
+ * the first value comes from /api/boot, read before the first paint (no
+ * flash of the wrong graph). The
  * class list refreshes on the server's "classes-changed" event.
  */
 

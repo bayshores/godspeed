@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Home's progress for every class it shows (GET /api/progress per class):
  * the facts studied, the latest lesson and each deadline's covers and

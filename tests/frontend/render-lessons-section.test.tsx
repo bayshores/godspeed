@@ -23,8 +23,6 @@ Object.assign(globalThis, {
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
-	// next/link schedules its prefetch with self.requestIdleCallback.
-	self: globalThis,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),
@@ -41,7 +39,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 
 const { LessonsSection } = await import("../../src/frontend/components/sidebar/lessons-section.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
+const { MemoryRouter } = await import("react-router");
 
 const LESSON: ChatListItem = {
 	id: "c1",
@@ -69,18 +67,17 @@ afterEach(() => {
 /** Mounts the section; `respond` answers every request. */
 async function mount(respond: (url: string, init?: RequestInit) => Response) {
 	globalThis.fetch = (async (url: string, init?: RequestInit) => respond(url, init)) as typeof fetch;
-	const router = { push: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
 	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	const host = document.createElement("div");
 	document.body.appendChild(host);
 	root = createRoot(host);
 	await act(async () => {
 		root!.render(
-			<AppRouterContext.Provider value={router}>
+			<MemoryRouter initialEntries={["/"]}>
 				<ServerEventsProvider connect={quietEvents as never}>
 					<LessonsSection open toggle={() => {}} pathname="/" activeClassId={null} />
 				</ServerEventsProvider>
-			</AppRouterContext.Provider>,
+			</MemoryRouter>,
 		);
 	});
 }

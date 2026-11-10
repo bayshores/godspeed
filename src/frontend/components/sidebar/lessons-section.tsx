@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router";
 import { SearchIcon } from "lucide-react";
 import { DeleteSessionDialog } from "@/frontend/components/delete-session-dialog";
 import { MoveLessonDialog } from "@/frontend/components/class-dialog";
@@ -33,7 +32,7 @@ export function LessonsSection({
 	pathname: string;
 	activeClassId: string | null;
 }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { chats, setChats, freshIds, failed, refresh } = useLessonList(open, pathname);
 	const [query, setQuery] = useState("");
 	const [searchOpen, setSearchOpen] = useState(false);
@@ -139,18 +138,18 @@ export function LessonsSection({
 		(id: string, _mode: ChatDeleteMode, graphRevision: number) => {
 			setDeleting(null);
 			setChats((prev) => (prev ? prev.filter((c) => c.id !== id) : prev));
-			if (pathname === `/chat/${id}`) router.push("/");
+			if (pathname === `/chat/${id}`) navigate("/");
 			window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { revision: graphRevision } }));
 		},
-		[pathname, router, setChats],
+		[pathname, navigate, setChats],
 	);
 
 	const onOpen = useCallback(
 		(id: string) => {
 			setKbdIndex(null);
-			router.push(`/chat/${id}`);
+			navigate(`/chat/${id}`);
 		},
-		[router],
+		[navigate],
 	);
 
 	const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -173,7 +172,7 @@ export function LessonsSection({
 			const target = shown![kbdIndex !== null && kbdIndex < n ? kbdIndex : 0];
 			if (!target) return;
 			e.preventDefault();
-			router.push(`/chat/${target.id}`);
+			navigate(`/chat/${target.id}`);
 			setKbdIndex(null);
 			e.currentTarget.blur();
 		}
@@ -183,7 +182,7 @@ export function LessonsSection({
 		<Pane name="lessons" className="flex min-h-44 w-full flex-1 flex-col px-2 pt-4 pb-2">
 			<div className="flex w-full items-center justify-between gap-2 px-2">
 				{/* New lessons start on the start page ("/new"). */}
-				<Link href="/new" prefetch={false} data-testid="new-session" className="lh-btn">
+				<Link to="/new" data-testid="new-session" className="lh-btn">
 					+ study
 				</Link>
 				<Hint label="Search lessons" side="right">

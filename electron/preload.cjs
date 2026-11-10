@@ -41,6 +41,9 @@
  *
  *   window.lh.pathForFile(file) — a dropped File's path on disk.
  *
+ *   window.lh.showWindow() — the app drew its first screen; main shows the
+ *   window, which stays hidden until then.
+ *
  *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
  *   subscribes after a window is reopened. Browser builds have no bridge.
  *
@@ -65,6 +68,7 @@ contextBridge.exposeInMainWorld("lh", {
 	// dropped folder). Path only — no file access crosses the bridge.
 	pathForFile: (file) => webUtils.getPathForFile(file),
 	expandWindow: () => ipcRenderer.send("lh:expand-window"),
+	showWindow: () => ipcRenderer.send("lh:show-window"),
 	onZoom: (cb) => {
 		const listener = (_event, factor) => cb(factor);
 		ipcRenderer.on("lh:zoom", listener);

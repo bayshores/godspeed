@@ -10,8 +10,8 @@ import { clearTurnFailure } from "./turn-runs.ts";
 import { discardChatDeliveries } from "./jobs.ts";
 
 /**
- * Server-side chat entries for the transport layer (src/app/api/chats*,
- * src/app/chat/[id]). Most delegate straight to the ChatStore port.
+ * Server-side chat entries for the transport layer (src/app/api/chats*).
+ * Most delegate straight to the ChatStore port.
  *
  * deleteChatSession is the one real orchestration here (see its doc);
  * core/graph-deletion.ts holds the ledger semantics.

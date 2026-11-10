@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookmarkCheckIcon, CrosshairIcon, FileTextIcon, SquareIcon, XIcon } from "lucide-react";
 import type { CheatSheetView, SheetAbout, SheetMessage, SheetRegion } from "@/shared/core";
@@ -243,7 +241,6 @@ function YouBody({ message, classId, deadlineId, pages }: { message: Extract<She
 				<div className="flex flex-wrap items-start gap-2">
 					{files.map((f, i) =>
 						f.file && !/\.pdf$/i.test(f.file) ? (
-							// eslint-disable-next-line @next/next/no-img-element -- the learner's picture, kept beside the sheet
 							<img key={i} data-testid="sheet-picture" src={sheetFilePath(classId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full border border-tone-2" />
 						) : (
 							<span key={i} data-testid="sheet-file" className="flex h-9 max-w-56 items-center gap-2 border border-tone-2 bg-tone px-3 text-[13px] text-ink">
@@ -328,7 +325,6 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly string[]; 
 function PointedChip({ pointed, pages, onClear }: { pointed: Pointed; pages: number; onClear: () => void }) {
 	return (
 		<div data-testid="sheet-pointed-chip" className="flex items-center gap-2.5 pt-3">
-			{/* eslint-disable-next-line @next/next/no-img-element -- the part of the sheet, drawn in this window */}
 			<img src={`data:${pointed.picture.mimeType};base64,${pointed.picture.data}`} alt="" className="block h-10 w-auto max-w-24 border border-tone-2 bg-white object-contain" />
 			<span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">Pointing at {pointedLabel(pointed.region, pages)}</span>
 			<button type="button" aria-label="Don't send the part you pointed at" onClick={onClear} className="lh-press flex size-7 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink">

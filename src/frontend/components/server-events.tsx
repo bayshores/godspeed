@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * THE NOTIFICATION CHANNEL'S CLIENT HALF: ONE EventSource("/api/events")
  * per open window, held for the window's lifetime, so nothing polls.

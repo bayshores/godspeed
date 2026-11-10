@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState, type PointerEvent, type ReactNode, type RefObject } from "react";
 
 /**

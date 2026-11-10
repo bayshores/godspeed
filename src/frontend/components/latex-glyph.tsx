@@ -2,7 +2,7 @@ import katex from "katex";
 
 /**
  * THE LaTeX glyph seam: UI connectors that want math symbols render the
- * REAL LaTeX glyphs through KaTeX (src/app/layout.tsx carries the katex
+ * REAL LaTeX glyphs through KaTeX (src/frontend/main.tsx imports the katex
  * stylesheet), never hand-rolled SVGs or font-dependent unicode. Used for
  * the chain table's logical connectives: `A ∧ B ⟹ C`, not the misleading
  * `A → B → C`. Callers pass the class.

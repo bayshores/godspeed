@@ -1,7 +1,5 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { currentVersion, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
@@ -30,15 +28,15 @@ const PANEL_GAP = 16;
  */
 export function CheatSheetStudio({ classId, deadlineId }: { classId: string; deadlineId: string }) {
 	useFoldSidebar();
-	const router = useRouter();
+	const navigate = useNavigate();
 	const { active, setActive } = useClasses();
 	const [joined, setJoined] = useState(active === classId);
 	useEffect(() => {
 		if (!joined) {
 			if (active === classId) setJoined(true);
 			else setActive(classId);
-		} else if (active !== classId) router.replace("/class");
-	}, [active, classId, joined, setActive, router]);
+		} else if (active !== classId) navigate("/class", { replace: true });
+	}, [active, classId, joined, setActive, navigate]);
 
 	const { view, loadError, reload, act } = useCheatSheet(classId, deadlineId);
 	return (

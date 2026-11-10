@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The Settings dialog's always-mounted half: the open() context the
  * sidebar and the mod+, chord call. The dialog itself
