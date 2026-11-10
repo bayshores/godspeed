@@ -326,7 +326,7 @@ body {
 	height: 30px;
 	padding: 0 12px;
 	border-radius: 6px;
-	background: color-mix(in oklab, var(--foreground) 12%, var(--background));
+	background: color-mix(in oklab, var(--foreground) 18%, var(--background));
 	font-family: var(--font-ui);
 	font-size: 13px;
 	line-height: 1;
@@ -336,7 +336,7 @@ body {
 	transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 }
 .lh-btn:hover {
-	background: color-mix(in oklab, var(--foreground) 19%, var(--background));
+	background: color-mix(in oklab, var(--foreground) 26%, var(--background));
 }
 .lh-btn:disabled {
 	opacity: 0.5;

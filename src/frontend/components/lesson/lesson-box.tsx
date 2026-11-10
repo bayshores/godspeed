@@ -69,12 +69,16 @@ export function LessonBox({
 			{queuedSteers.length > 0 && <QueuedSteersBody steers={queuedSteers} />}
 			<AttachmentTray draft={attachments} note={steering ? "Send pictures after the teacher finishes" : undefined} />
 			<div className="flex items-end gap-1 border border-tone-2 bg-background p-0.5 has-[.cm-focused]:border-ink-2">
-				<AttachButton draft={attachments} />
+				{/* Both buttons sit centered on the box's one-line height (h-10), so
+				    the gaps above, below and beside them match. */}
+				<div className="flex h-10 items-center">
+					<AttachButton draft={attachments} />
+				</div>
 				<div className="flex min-w-0 flex-1 flex-col self-stretch">
 					{/* Enter sends, Shift+Enter is a newline, ⌘/Ctrl+Enter sends too. */}
 					<MathBox compact value={value} onChange={onChange} onEnter={act} placeholder="Message the teacher…" ariaLabel="Message the teacher" />
 				</div>
-				<div className="flex h-9 items-center pr-1">
+				<div className="flex h-10 items-center pr-[5px]">
 					{busy && showStop && !canSend ? (
 						<StopButton onStop={onStop} />
 					) : (
