@@ -1,5 +1,15 @@
 [
 	{
+		"version": "0.5.49",
+		"date": "2026-11-10",
+		"changes": [
+			"The teacher looks up how your class teaches something before explaining it, and uses your class's own words and method.",
+			"When an explanation isn't landing, the teacher stops explaining and asks one small question to find exactly what's confusing you.",
+			"Homework: when the assignment file isn't attached yet, the teacher finds it in your class files and attaches it.",
+			"Lessons use much less of your agent's memory. The class card no longer lists every file, and saving a rule or shortening a lesson no longer sends the whole lesson again."
+		]
+	},
+	{
 		"version": "0.5.48",
 		"date": "2026-11-10",
 		"changes": [
