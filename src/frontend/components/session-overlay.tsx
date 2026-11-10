@@ -13,8 +13,8 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
  * this mermaid focus) do NOT cover the app chrome. They mount ABSOLUTE
  * INSIDE THE SESSION AREA (the `relative` div below the top bar, right of
  * the sidebar), so the 60px drag bar stays draggable and the X can never
- * land in drag territory. Surface: 80% background + blur, so the
- * transcript ghosts through.
+ * land in drag territory. Surface: 95% background with no blur (a blur
+ * over the session area costs a lot of GPU memory while open).
  *
  * The chart source registers from wherever it lives in the transcript
  * (md-blocks' expand button) via the context below; the CHAT PAGE owns the
@@ -131,8 +131,8 @@ export function MermaidOverlay({
 			data-testid="mermaid-overlay"
 			// SESSION-SCOPED (not fixed): mounts absolute inside the chat
 			// page's session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through.
-			className="absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm lh-fade"
+			// sidebar. 95%, no blur: see the note at the top.
+			className="absolute inset-0 z-40 flex flex-col bg-background/95 p-4 lh-fade"
 			role="dialog"
 			aria-modal="true"
 			aria-label="Diagram focus"

@@ -998,32 +998,6 @@ body {
 	}
 }
 
-/* The teacher mascot (halley/teacher-sprite.tsx): the idle face blinks
-   for a moment every few seconds. */
-.lh-sprite-blink {
-	opacity: 0;
-	animation: lh-sprite-blink 4.2s steps(1) infinite;
-}
-.lh-sprite-open {
-	animation: lh-sprite-open 4.2s steps(1) infinite;
-}
-@keyframes lh-sprite-blink {
-	96% {
-		opacity: 1;
-	}
-}
-@keyframes lh-sprite-open {
-	96% {
-		opacity: 0;
-	}
-}
-@media (prefers-reduced-motion: reduce) {
-	.lh-sprite-blink,
-	.lh-sprite-open {
-		animation: none;
-	}
-}
-
 /* The lesson's agent-at-work view (components/lesson/agent-at-work.tsx):
    the page stack floats on two uneven loops so it never sits still, and
    each new step rises into the list. */

@@ -169,7 +169,7 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	const before = readState().folder;
 	writeState({ ...readState(), folder, noticeSeen: true });
 	// A moved folder takes its shortcuts along.
-	if (before && path.resolve(before) !== path.resolve(folder)) syncShortcutsSafely(before, { clear: true });
+	if (before && path.resolve(/* turbopackIgnore: true */ before) !== path.resolve(/* turbopackIgnore: true */ folder)) syncShortcutsSafely(before, { clear: true });
 	syncShortcutsSafely(folder);
 	watchClassShortcuts();
 	try {

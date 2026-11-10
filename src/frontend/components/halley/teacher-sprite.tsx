@@ -1,9 +1,12 @@
+"use client";
+
 /**
  * The teacher mascot, drawn on a 10×13 pixel grid: a round white body with
  * plain dark eyes under a small mortarboard. One face per mood; the idle
- * face blinks every few seconds (globals.css, .lh-sprite-blink). Crisp at
- * any size.
+ * face blinks every few seconds. Crisp at any size.
  */
+import { useSyncExternalStore } from "react";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import type { HalleyMood } from "./mood";
 
@@ -80,14 +83,48 @@ const PICTURE = (() => {
 	return runs(rows.map((r) => r.join("")));
 })();
 
-function Eyes({ face, className }: { face: Face; className?: string }) {
+function Eyes({ face }: { face: Face }) {
 	return (
-		<g className={className} fill={COLORS.K}>
+		<g fill={COLORS.K}>
 			{EYES[face].map(([y, x]) => (
 				<rect key={`${y}-${x}`} x={x} y={y + BODY_TOP} width={1} height={1} />
 			))}
 		</g>
 	);
+}
+
+// One blink timer for every idle mascot on screen, so the page wakes only
+// twice per blink.
+const OPEN_MS = 4032;
+const SHUT_MS = 168;
+const blinkSubs = new Set<() => void>();
+let shut = false;
+let blinkTimer: ReturnType<typeof setTimeout> | null = null;
+
+function blinkStep() {
+	shut = !shut;
+	for (const notify of blinkSubs) notify();
+	blinkTimer = setTimeout(blinkStep, shut ? SHUT_MS : OPEN_MS);
+}
+
+function subscribeBlink(notify: () => void): () => void {
+	blinkSubs.add(notify);
+	blinkTimer ??= setTimeout(blinkStep, OPEN_MS);
+	return () => {
+		blinkSubs.delete(notify);
+		if (blinkSubs.size > 0 || blinkTimer === null) return;
+		clearTimeout(blinkTimer);
+		blinkTimer = null;
+		shut = false;
+	};
+}
+
+// Read on every tick, so turning reduced motion on stops the blink at once.
+const blinkFace = (): Face => (shut && !prefersReducedMotion() ? "blink" : "idle");
+const openFace = (): Face => "idle";
+
+function BlinkingEyes() {
+	return <Eyes face={useSyncExternalStore(subscribeBlink, blinkFace, openFace)} />;
 }
 
 export function TeacherSprite({ mood, className }: { mood: HalleyMood; className?: string }) {
@@ -104,14 +141,7 @@ export function TeacherSprite({ mood, className }: { mood: HalleyMood; className
 			{PICTURE.map((r) => (
 				<rect key={`${r.x}-${r.y}`} x={r.x} y={r.y} width={r.w} height={1} fill={r.color} />
 			))}
-			{face === "idle" ? (
-				<>
-					<Eyes face="idle" className="lh-sprite-open" />
-					<Eyes face="blink" className="lh-sprite-blink" />
-				</>
-			) : (
-				<Eyes face={face} />
-			)}
+			{face === "idle" ? <BlinkingEyes /> : <Eyes face={face} />}
 		</svg>
 	);
 }

@@ -1,6 +1,6 @@
 /**
  * THE CHAIN TABLE: every reasoning chain of the graph in one full-bleed
- * surface (the blur + translucent background IS the surface, no inner
+ * surface (the near-opaque background IS the surface, no inner
  * card). It uses the shared TopBar; the overlay (z-40) covers home's
  * floating header while open, so the TopBar's own SidebarToggle is the
  * reopen path.
@@ -642,7 +642,7 @@ export function ChainTableOverlay({
 		<>
 			<div
 				data-testid="chain-table-overlay"
-				className="absolute inset-0 z-40 flex flex-col bg-background/80 backdrop-blur-sm"
+				className="absolute inset-0 z-40 flex flex-col bg-background/95"
 			>
 				<ChainTableBody
 					nodes={nodes}

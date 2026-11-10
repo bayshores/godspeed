@@ -1,7 +1,8 @@
 /**
- * The last hour's countdown shows hundredths, so it ticks every animation
- * frame (which the window pauses while hidden), and each tick re-renders
- * only the countdown, not what holds it (the sidebar).
+ * The last hour's countdown shows hundredths, so it ticks about 30 times a
+ * second, each tick on an animation frame (which the window pauses while
+ * hidden), and each tick re-renders only the countdown, not what holds it
+ * (the sidebar).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -26,8 +27,8 @@ Object.assign(globalThis, {
 });
 
 describe("Countdown in the last hour", () => {
-	it("ticks on animation frames and re-renders only the digits", async () => {
-		mock.timers.enable({ apis: ["Date"], now: new Date(2026, 10, 1, 12, 0, 0).getTime() });
+	it("ticks on an animation frame after a short wait and re-renders only the digits", async () => {
+		mock.timers.enable({ apis: ["Date", "setTimeout"], now: new Date(2026, 10, 1, 12, 0, 0).getTime() });
 		let holderRenders = 0;
 		function Holder() {
 			holderRenders++;
@@ -39,11 +40,15 @@ describe("Countdown in the last hour", () => {
 		try {
 			await act(async () => root.render(<Holder />));
 			assert.equal(host.textContent, "30:00.00");
-			assert.equal(frames.length, 1, "the next tick waits for an animation frame");
-			mock.timers.tick(1234);
+			assert.equal(frames.length, 0, "the next tick waits a moment first");
+			mock.timers.tick(25);
+			assert.equal(frames.length, 1, "then waits for an animation frame");
+			mock.timers.tick(1201);
 			await act(async () => frames.shift()!(0));
-			assert.equal(host.textContent, "29:58.76");
-			assert.equal(frames.length, 1, "and asks for the next one");
+			assert.equal(host.textContent, "29:58.77");
+			assert.equal(frames.length, 0, "and waits again before the next one");
+			mock.timers.tick(25);
+			assert.equal(frames.length, 1, "then asks for the next frame");
 			assert.equal(holderRenders, 1, "the holder does not re-render");
 		} finally {
 			await act(async () => root.unmount());

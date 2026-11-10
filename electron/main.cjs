@@ -237,6 +237,18 @@ function log(line) {
 	}
 }
 
+/** Node never deletes compile cache entries, and each release renames its
+ *  chunks, so the cache lives in one folder per app version and older
+ *  folders are removed in the background. */
+function compileCacheDir() {
+	const base = path.join(app.getPath("userData"), "compile-cache");
+	const version = app.getVersion();
+	fs.readdir(base, (err, names) => {
+		for (const name of err ? [] : names) if (name !== version) fs.rm(path.join(base, name), { recursive: true, force: true }, () => {});
+	});
+	return path.join(base, version);
+}
+
 /** `restarted`: the app is starting it again after a crash, so its first
  *  page shows a notice instead of the welcome screen (src/backend/server/welcome.ts). */
 function startServer(port, restarted = false) {
@@ -262,7 +274,7 @@ function startServer(port, restarted = false) {
 				LH_DESKTOP_API_SECRET: desktopAPISecret,
 				// Node's on-disk compile cache: later launches skip re-compiling
 				// the server's code (measured: first page 1366 → 1157 ms).
-				NODE_COMPILE_CACHE: path.join(app.getPath("userData"), "compile-cache"),
+				NODE_COMPILE_CACHE: compileCacheDir(),
 				...(restarted ? { LH_SERVER_RESTARTED: "1" } : {}),
 			},
 			// The IPC slot ties the server's lifetime to this process (see

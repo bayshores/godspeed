@@ -4,7 +4,7 @@
  * THE SHARED CLOCK: one clock for every
  * countdown on screen (Home, a deadline's page) and the top bar's clock.
  * It ticks only as fast as what is mounted needs:
- *  - every animation frame while a deadline in its last hour is shown
+ *  - about 30 times a second while a deadline in its last hour is shown
  *    (hundredths), once a second with reduced motion;
  *  - once a second while one is in its last 24h;
  *  - otherwise it sleeps until the next text change (a whole day passing,
@@ -27,6 +27,11 @@ const subs = new Set<Sub>();
 let now = Date.now();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let frame: number | null = null;
+
+/** The hundredths redraw about 30 times a second: they still read as a blur,
+ *  at a fraction of the cost of redrawing on every frame. A 25 ms wait plus
+ *  the next frame lands about 33 ms apart on both 60 and 120 Hz screens. */
+const FRAME_WAIT_MS = 25;
 
 function stop() {
 	if (timer !== null) clearTimeout(timer);
@@ -55,7 +60,11 @@ function schedule() {
 	const at = Date.now();
 	const rate = tickRate(dues(), at, prefersReducedMotion());
 	if (rate === "frame" && typeof requestAnimationFrame === "function") {
-		frame = requestAnimationFrame(tick);
+		// The frame after the wait, so a hidden window still pauses the clock.
+		timer = setTimeout(() => {
+			timer = null;
+			frame = requestAnimationFrame(tick);
+		}, FRAME_WAIT_MS);
 		return;
 	}
 	if (rate === "second" || rate === "frame") {

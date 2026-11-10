@@ -59,7 +59,7 @@ function getJob(id: string): JobRecord | null {
 	let version: string;
 	try {
 		file = jobFile(id);
-		const st = fs.statSync(file);
+		const st = fs.statSync(/* turbopackIgnore: true */ file);
 		version = `${st.mtimeMs}:${st.size}`;
 	} catch {
 		jobCache.delete(id);
@@ -69,7 +69,7 @@ function getJob(id: string): JobRecord | null {
 	if (hit?.version === version) return hit.job;
 	let parsed: unknown;
 	try {
-		parsed = JSON.parse(fs.readFileSync(file, "utf-8"));
+		parsed = JSON.parse(fs.readFileSync(/* turbopackIgnore: true */ file, "utf-8"));
 	} catch {
 		return null;
 	}

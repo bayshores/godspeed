@@ -91,8 +91,9 @@ export function countdownColor(leftMs: number): string {
 }
 
 /** How fast the clock must tick for a set of due moments on screen:
- *  "frame" while one is in its last hour (hundredths), "second" while one
- *  is in its last 24h, else "idle" (wait for the next change). */
+ *  "frame" (about 30 times a second) while one is in its last hour
+ *  (hundredths), "second" while one is in its last 24h, else "idle"
+ *  (wait for the next change). */
 export function tickRate(dues: Iterable<number>, nowMs: number, reducedMotion: boolean): "frame" | "second" | "idle" {
 	let rate: "frame" | "second" | "idle" = "idle";
 	for (const due of dues) {

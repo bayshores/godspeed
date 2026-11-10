@@ -76,7 +76,7 @@ export function AbortTurnBody({
 			data-testid="abort-turn-dialog"
 			data-state={state}
 			inert={state === "closed"}
-			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/95"
 			// A genuine click on the scrim cancels — the cautious default, like Esc.
 			{...backdropDismiss}
 		>

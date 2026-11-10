@@ -67,7 +67,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 			data-testid="folder-notice"
 			data-state={presence.state}
 			inert={presence.state === "closed"}
-			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/95"
 		>
 			<div data-state={presence.state} className="lh-dialog mx-4 w-full max-w-[500px] border border-tone-2 bg-panel p-7 shadow-lg">
 				<h2 className="font-bold text-[26px] leading-tight text-ink">godspeed has its own folder now</h2>

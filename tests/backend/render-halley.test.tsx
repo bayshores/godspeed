@@ -8,7 +8,7 @@ import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
@@ -82,9 +82,32 @@ describe("the mascot", () => {
 		const faces = Object.fromEntries(HALLEY_MOODS.map((m) => [m, /data-face="(\w+)"/.exec(renderToStaticMarkup(<TeacherSprite mood={m} />))?.[1]]));
 		assert.deepEqual(faces, { idle: "idle", talking: "reading", thinking: "thinking", happy: "happy", oops: "oops", shocked: "oops", dizzy: "oops", sleepy: "blink" });
 	});
-	it("only the idle face blinks", () => {
-		assert.match(renderToStaticMarkup(<TeacherSprite mood="idle" />), /lh-sprite-blink/);
-		assert.doesNotMatch(renderToStaticMarkup(<TeacherSprite mood="happy" />), /lh-sprite-blink/);
+	it("the idle face blinks for 168 ms every 4.2 s, on one timer that stops with the last mascot", () => {
+		const eyes = (view: HTMLElement) => [...view.querySelectorAll(`g[fill="#0B1026"] rect`)].map((r) => `${r.getAttribute("x")},${r.getAttribute("y")}`).join(" ");
+		const open = "3,7 3,8 6,7 6,8";
+		const shut = "3,8 4,8 6,8 7,8";
+		mock.timers.enable({ apis: ["setTimeout"] });
+		try {
+			const first = mount(<TeacherSprite mood="idle" />);
+			assert.equal(eyes(first), open);
+			act(() => mock.timers.tick(4032));
+			assert.equal(eyes(first), shut);
+			act(() => mock.timers.tick(168));
+			assert.equal(eyes(first), open);
+
+			act(() => root!.unmount());
+			act(() => mock.timers.tick(1000));
+			const second = mount(<TeacherSprite mood="idle" />);
+			// A timer left running would blink 4032 ms after the last opening, not after this mount.
+			act(() => mock.timers.tick(3032));
+			assert.equal(eyes(second), open);
+			act(() => mock.timers.tick(1000));
+			assert.equal(eyes(second), shut);
+		} finally {
+			act(() => root?.unmount());
+			root = null;
+			mock.timers.reset();
+		}
 	});
 });
 

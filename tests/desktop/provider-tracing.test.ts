@@ -36,16 +36,31 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 		assert.equal(ignore(`${root}/data/private.json`), true);
 		assert.equal(ignore(`${root}/node_modules/gcp-metadata/build/src/index.js`), false);
 	});
-	it("preserves all secret exclusions exactly", () => {
-		assert.deepEqual(patterns, ["**/data/**/*", "auth.json", "chatgpt-credentials.json*", "github-copilot-credentials.json*", "xai-credentials.json*", ".env*"]);
+	it("preserves all exclusions exactly", () => {
+		assert.deepEqual(patterns, [
+			"**/data/**/*",
+			"auth.json",
+			"chatgpt-credentials.json*",
+			"github-copilot-credentials.json*",
+			"xai-credentials.json*",
+			".env*",
+			// transformers' browser and minified builds; Node loads dist/transformers.node.mjs.
+			"node_modules/@huggingface/transformers/dist/transformers.js",
+			"node_modules/@huggingface/transformers/dist/transformers.min.js",
+			"node_modules/@huggingface/transformers/dist/transformers.web*.js",
+			"node_modules/@huggingface/transformers/dist/transformers.node.min.*",
+		]);
 	});
 	it("retains exactly the runtime includes (the native-provider closure was removed with the sign-ins)", () => {
 		assert.deepEqual(nextConfig.outputFileTracingIncludes!["*"], [
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
-			"node_modules/pdfjs-dist/legacy/**/*",
+			"node_modules/pdfjs-dist/legacy/build/pdf.mjs",
+			"node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
 			// Speed plan: the class-PDF text worker, loaded by path.
 			"src/backend/server/workers/**/*",
 			"src/backend/server/agent-folder-files/**/*",
+			"src/backend/agent/system-prompt.md",
+			"src/backend/agent/prompts/*/*.md",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			// pdf.js's browser worker and data for the cheat sheet studio, read by path.
 			"node_modules/pdfjs-dist/build/pdf.worker.min.mjs",

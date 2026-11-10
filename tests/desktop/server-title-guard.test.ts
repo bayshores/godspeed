@@ -95,7 +95,7 @@ async function serverLaunch(platform: string, call = "startServer(54321)") {
 	const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
 	const context = {
 		require: (id: string) => id === "electron" ? {
-			app: { setName() {}, requestSingleInstanceLock: () => false, quit() {}, getPath: () => "/fixture/user-data" },
+			app: { setName() {}, requestSingleInstanceLock: () => false, quit() {}, getPath: () => "/fixture/user-data", getVersion: () => "1.2.3" },
 		} : id === "node:child_process" ? {
 			spawn(binary: string, args: string[], options: typeof launch.options) {
 				launch = JSON.parse(JSON.stringify({ binary, args, options }));
@@ -125,6 +125,7 @@ describe("backend-only preload wiring and packaging", () => {
 			assert.equal(launch.options.env.ELECTRON_RUN_AS_NODE, "1");
 			assert.equal(launch.options.env.LH_DESKTOP_SERVER, "1");
 			assert.equal(launch.options.env.LH_DATA_DIR, path.join("/fixture/user-data", "data"));
+			assert.equal(launch.options.env.NODE_COMPILE_CACHE, path.join("/fixture/user-data", "compile-cache", "1.2.3"));
 			assert.equal(launch.options.env.LH_AUTH_FILE, undefined, "no API-key file reaches the child");
 			assert.equal(launch.options.env.PORT, "54321");
 			assert.equal(launch.options.env.HOSTNAME, "127.0.0.1");

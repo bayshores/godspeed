@@ -8,9 +8,10 @@
  * model (scripts/fetch-model.mjs), which the server loads by path — and
  * sanity-checks the result, including
  * the exclusion that keeps the repo's real data/ OUT of the bundle
- * (see next.config.ts outputFileTracingExcludes). It also removes three
- * exact build-only paths the tracer sweeps in: old installers, agent
- * worktrees and the development Electron runtime. Broad trace exclusions break externals.
+ * (see next.config.ts outputFileTracingExcludes). It also removes build-only
+ * files the tracer leaves behind: the development Electron runtime, Next's
+ * .nft.json trace lists and, as a guard, any old installers or agent
+ * worktrees. Broad trace exclusions break externals.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -69,10 +70,10 @@ for (const secret of ["auth.json", ...subscriptionSecrets, ".env", ".env.local"]
 	}
 }
 
-// 2c) Payload curation: the trace sweep can copy repo-root
-// dist/ (previous installers, recursively), .claude/ (agent worktrees,
-// each a whole checkout with its own builds) and the development Electron
-// runtime (the demo helper's dev-only require). None belongs in the
+// 2c) Payload curation: the trace sweep copies the development Electron
+// runtime (the demo helper's dev-only require). dist/ (previous installers)
+// and .claude/ (agent worktrees, each a whole checkout) are removed as a
+// guard in case a whole-project trace comes back. None belongs in the
 // server: packaged helpers use process.execPath, the app's own binary.
 // Remove ONLY these standalone-root paths AFTER tracing — excluding a
 // generic dist/** earlier broke pi-ai / pi-agent-core's runtime dist/.
@@ -84,6 +85,11 @@ for (const extra of ["dist", ".claude", path.join("node_modules", "electron")]) 
 		fs.rmSync(target, { recursive: true, force: true });
 		console.log(`[build-server] removed build-only payload: ${extra}`);
 	}
+}
+// Next writes a trace list beside each server page for the build's own file copying; the server never reads them.
+const serverDir = path.join(STANDALONE, ".next", "server");
+for (const file of exists(serverDir) ? fs.readdirSync(serverDir, { recursive: true }) : []) {
+	if (file.endsWith(".nft.json")) fs.rmSync(path.join(serverDir, file));
 }
 // onnxruntime-node's macOS folder holds its library twice (44 MB each);
 // the binding links only libonnxruntime.1.dylib.

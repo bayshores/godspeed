@@ -317,7 +317,8 @@ const POPUP_PAD = GLOW_REACH;
  * Session-scoped: it mounts absolute inside the chat page's session-area
  * div (chat.tsx), below the 60px drag bar and right of the sidebar, so the
  * top bar stays draggable and the X can never land in drag territory.
- * Surface 80% + blur: the transcript ghosts through.
+ * Surface 95% with no blur: a blur over the session area costs a lot of
+ * GPU memory while open.
  */
 export function PlanPopup({
 	tree,
@@ -375,8 +376,8 @@ export function PlanPopup({
 			data-testid="plan-popup"
 			// SESSION-SCOPED (absolute, not fixed): the chat page mounts this
 			// INSIDE the session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through.
-			className="absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm lh-fade"
+			// sidebar. 95%, no blur: see the note above PlanPopup.
+			className="absolute inset-0 z-40 flex flex-col bg-background/95 p-4 lh-fade"
 			data-state={state}
 			role="dialog"
 			aria-modal="true"

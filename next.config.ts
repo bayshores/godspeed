@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
 	// package a standalone that still contains them, because Next copies a
 	// loaded .env after tracing.
 	//
+	// Server calls on runtime data paths carry /* turbopackIgnore: true */;
+	// without it the tracer copies the whole repo into the bundle.
+	//
 	// Don't add directory excludes like dist/**/*: they strip the dist/ folders
 	// of server-external packages (pi-ai, pi-agent-core) and the packaged
 	// server fails with ERR_MODULE_NOT_FOUND. **/data/**/* can also prune an
@@ -32,6 +35,11 @@ const nextConfig: NextConfig = {
 			"github-copilot-credentials.json*",
 			"xai-credentials.json*",
 			".env*",
+			// Node loads dist/transformers.node.mjs (package.json exports); the browser and minified builds are never loaded.
+			"node_modules/@huggingface/transformers/dist/transformers.js",
+			"node_modules/@huggingface/transformers/dist/transformers.min.js",
+			"node_modules/@huggingface/transformers/dist/transformers.web*.js",
+			"node_modules/@huggingface/transformers/dist/transformers.node.min.*",
 		],
 	},
 	// The tracer misses files loaded at runtime: JSON imported with
@@ -42,12 +50,17 @@ const nextConfig: NextConfig = {
 			// The trace omits this runtime-imported directory, so importing
 			// puppeteer-core would fail before browser startup.
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
-			"node_modules/pdfjs-dist/legacy/**/*",
+			"node_modules/pdfjs-dist/legacy/build/pdf.mjs",
+			// pdf.mjs imports its stand-in worker by a relative path the tracer can't see.
+			"node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
 			// The class-PDF text worker, loaded by path
 			// (src/backend/server/class-files.ts pdfTextWorkerPath); the tracer can't see it.
 			"src/backend/server/workers/**/*",
 			// The godspeed folder's files, copied there at runtime (src/backend/server/agent-folder.ts).
 			"src/backend/server/agent-folder-files/**/*",
+			// The agents' prompts, read by path (src/backend/agent/prompt-segments.ts).
+			"src/backend/agent/system-prompt.md",
+			"src/backend/agent/prompts/*/*.md",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
 			// pdf.js's browser worker and its data, served to the cheat sheet
 			// studio by path (src/backend/server/pdfjs-assets.ts).
@@ -87,7 +100,8 @@ const nextConfig: NextConfig = {
 	// code (undici streams, catalog data) that breaks when bundled into routes.
 	// The proxy (src/proxy.ts) buffers every API body, 10 MB by default; a
 	// lesson message may carry 5 PDFs of 30 MB each as base64 (src/shared/core/attachments.ts).
-	experimental: { proxyClientMaxBodySize: "210mb" },
+	// Load each route on its first request, not all at start: less idle server memory.
+	experimental: { proxyClientMaxBodySize: "210mb", preloadEntriesOnStart: false },
 	serverExternalPackages: [
 		"@earendil-works/pi-ai",
 		"@earendil-works/pi-agent-core",
