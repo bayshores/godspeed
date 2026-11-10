@@ -53,6 +53,13 @@ describe("math delimiter transform (pure unit)", () => {
 		);
 	});
 
+	it("a < before a letter in math stays math, not an HTML tag that hides the rest", () => {
+		assert.equal(transformMathDelimiters("Use $0<r<n$ here."), "Use $0< r< n$ here.");
+		const html = render("Use $0<r<n$ from the problem. Send it.");
+		assert.match(html, /katex/);
+		assert.match(html, /Send it\./);
+	});
+
 	it("leaves currency untouched", () => {
 		const md = "It costs $5 and $10 more. $$big$$ sums too.";
 		assert.equal(transformMathDelimiters(md), md);

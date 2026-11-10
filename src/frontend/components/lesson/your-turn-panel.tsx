@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { LightbulbIcon } from "lucide-react";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { PracticeDock } from "@/frontend/components/practice-dock";
+import { HomeworkProblemPane } from "./homework-problem-pane";
 import { QuestionDock, type QuestionDockProps } from "@/frontend/components/question-dock";
 import { ReadingThinkingField } from "@/frontend/components/reading-thinking";
 import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -33,7 +34,8 @@ export function fitPanelWidth(width: number, room: number | null): number {
  * - a teach-phase check waiting behind "Check your understanding" (the
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
- * - an active practice problem (PracticeDock);
+ * - an active practice problem (PracticeDock), or a homework problem
+ *   (HomeworkProblemPane: the whole problem, worked on in the message box);
  * - otherwise nothing to answer, with Next problem / Continue in the pause
  *   between problems.
  * Messages, side questions included, go through the one box under the
@@ -96,8 +98,9 @@ export function YourTurnPanel({
 	onNext: () => void;
 	compacting: boolean;
 	stats: React.ReactNode;
-	/** A homework lesson's open problem: its name and where it is in the assignment. */
-	homeworkProblem?: { label: string; source: string | null };
+	/** A homework lesson's open problem: its name, where it is in the
+	 *  assignment and the part the learner is on. */
+	homeworkProblem?: { label: string; source: string | null; part: string | null };
 }) {
 	const [saved, setWidth] = usePaneWidth("your-turn", PANEL_WIDTH);
 	const asideRef = useRef<HTMLElement>(null);
@@ -186,6 +189,19 @@ export function YourTurnPanel({
 				footer={footer}
 			/>
 		);
+	} else if (practice && homeworkProblem) {
+		body = (
+			<HomeworkProblemPane
+				statement={(practice.input as { statement: string }).statement}
+				source={homeworkProblem.source}
+				part={homeworkProblem.part}
+				busy={busy}
+				waitingForAgent={waitingForAgent}
+				onDiscard={onDiscardProblem}
+				onStop={onStop}
+				footer={footer}
+			/>
+		);
 	} else if (practice) {
 		body = (
 			<PracticeDock
@@ -201,7 +217,6 @@ export function YourTurnPanel({
 				waitingForAgent={waitingForAgent}
 				compactionRunning={compacting}
 				footer={footer}
-				{...(homeworkProblem ? { source: homeworkProblem.source, sendLabel: "check my work" } : {})}
 			/>
 		);
 	} else {
@@ -236,7 +251,7 @@ export function YourTurnPanel({
 				<ResizeHandle paneKey="your-turn" edge="left" width={width} bounds={PANEL_WIDTH} onWidth={setWidth} label="Resize the Your turn panel" />
 			</div>
 			{steps}
-			<Pane name={practice && homeworkProblem ? `your turn: ${homeworkProblem.label.toLowerCase()}` : "your turn"} active={mode !== "chat"} className="flex min-h-0 flex-1 flex-col">
+			<Pane name={practice && homeworkProblem ? `your turn: ${homeworkProblem.label.toLowerCase()}${homeworkProblem.part ? ` (${homeworkProblem.part})` : ""}` : "your turn"} active={mode !== "chat"} className="flex min-h-0 flex-1 flex-col">
 				<div key={mode} className={`flex min-h-0 flex-1 flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 					{body}
 				</div>

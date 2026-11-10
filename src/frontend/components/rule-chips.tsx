@@ -78,7 +78,7 @@ export function RuleChips({
 					<button
 						type="button"
 						data-testid={testid ? `${testid}-add` : undefined}
-						className="lh-press flex items-center gap-1.5 px-[9px] py-[5px] text-[13px] text-ink-2 hover:text-ink"
+						className="lh-press lh-btn"
 						onClick={() => setAdding(true)}
 					>
 						<PlusIcon className="size-[13px]" aria-hidden />

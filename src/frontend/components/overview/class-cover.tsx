@@ -137,7 +137,7 @@ export const ClassCover = memo(function ClassCover({
 					</h1>
 					{about && <p className="max-w-[640px] text-base text-ink-2">{about}</p>}
 					{!signature && onAddSignature && (
-						<button type="button" data-testid="class-cover-add-signature" onClick={onAddSignature} className="lh-press self-start text-sm text-ink-3 underline underline-offset-4 hover:text-ink">
+						<button type="button" data-testid="class-cover-add-signature" onClick={onAddSignature} className="lh-press lh-btn self-start">
 							Add a signature
 						</button>
 					)}

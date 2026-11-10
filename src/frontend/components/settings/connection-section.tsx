@@ -98,7 +98,7 @@ export function ConnectionSection() {
 					<div data-testid="agent-new-token-confirm" className="flex items-center justify-between gap-4 bg-tone px-3.5 py-2.5">
 						<span className="text-[13px] text-ink-2">Other MCP apps will need the new token. Continue?</span>
 						<span className="flex shrink-0 items-center gap-2">
-							<button type="button" className="lh-press px-2.5 py-[5px] text-[13px] font-bold text-ink-2 hover:text-ink" onClick={() => setRotate("idle")}>
+							<button type="button" className="lh-press lh-btn" onClick={() => setRotate("idle")}>
 								Cancel
 							</button>
 							<button

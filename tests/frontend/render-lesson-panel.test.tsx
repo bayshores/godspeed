@@ -193,11 +193,13 @@ describe("the Your-turn panel's states", () => {
 		assert.match(html, /Find E\[N\]\./);
 	});
 
-	it("a homework problem names itself in the pane, says where it is and asks to check the work", () => {
-		const html = panel({ practice: { toolCallId: "p1", input: { number: "3", statement: "Find α." } }, homeworkProblem: { label: "Q3", source: "from hw4.pdf, page 2" } });
-		assert.match(html, /your turn: q3/);
+	it("a homework problem shows whole in the pane with where it is and its part, and no writing box", () => {
+		const html = panel({ practice: { toolCallId: "p1", input: { number: "3", statement: "Find α." } }, homeworkProblem: { label: "Q3", source: "from hw4.pdf, page 2", part: "b" } });
+		assert.match(html, /data-testid="homework-problem"/);
+		assert.match(html, /your turn: q3 \(b\)/);
+		assert.match(html, /Find α\./);
 		assert.match(html, /from hw4\.pdf, page 2/);
-		assert.match(html, /check my work/);
+		assert.doesNotMatch(html, /practice-thinking-field|practice-send/);
 	});
 
 	it("a homework lesson's problems pane: done bar, ticks and the open problem", () => {

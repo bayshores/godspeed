@@ -40,7 +40,7 @@ export default function UpdateBanner() {
 						type="button"
 						data-testid="update-later"
 						onClick={() => setLater(true)}
-						className="lh-press px-3 py-1.5 text-sm font-bold text-ink hover:bg-tone"
+						className="lh-press lh-btn"
 					>
 						Later
 					</button>

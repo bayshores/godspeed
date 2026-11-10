@@ -425,7 +425,7 @@ describe("the teacher pane", () => {
 			{...over}
 		/>
 	);
-	it("the name cut into the border, the mascot, and what it's doing: the verb over the rest", () => {
+	it("the name cut into the border, the mascot, and what it says in its bubble: the verb over the rest", () => {
 		const el = mount(pane());
 		assert.equal(el.querySelector("[data-testid='teacher-pane'] h2")?.textContent, "marco");
 		assert.equal(el.querySelector("[data-testid='teacher-sprite']")?.getAttribute("data-face"), "reading");
@@ -459,9 +459,9 @@ describe("the teacher pane", () => {
 		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
 		assert.deepEqual(went, [offer]);
 	});
-	it("no agent yet: the agent line, no follow button", () => {
+	it("no agent yet: the agent line in the bubble, no follow button", () => {
 		const html = renderToStaticMarkup(pane({ doing: null, idleLine: "No agent connected" }));
-		assert.match(html, />no agent connected</);
+		assert.match(html, /data-testid="teacher-bubble"[^>]*><p[^>]*>No agent connected</);
 		assert.doesNotMatch(html, /follow-st/);
 	});
 });

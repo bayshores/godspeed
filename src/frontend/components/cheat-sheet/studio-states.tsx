@@ -29,7 +29,7 @@ export function StudioStatus({
 						<span className="font-bold text-ink">{current ? `${agentName} is on your message` : `${agentName} is making your sheet`}</span>
 					</>
 				)}
-				<button type="button" onClick={onStop} className="lh-press font-bold text-ink-2 hover:text-ink">
+				<button type="button" onClick={onStop} className="lh-press lh-btn">
 					Stop
 				</button>
 			</div>

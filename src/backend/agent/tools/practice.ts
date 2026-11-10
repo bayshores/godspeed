@@ -165,7 +165,7 @@ export function problemTool(
 				}
 			}
 			gate.problemActive = true;
-			return problemResult();
+			return problemResult("the learner's thinking traces and answer commits arrive as labeled messages.");
 		},
 	};
 }

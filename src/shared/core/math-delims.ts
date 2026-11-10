@@ -29,6 +29,12 @@ function replaceEscapedDollars(content: string): string {
 	return out;
 }
 
+/** "<" before a letter ($0<r<n$) reads as an HTML tag that swallows the
+ * rest of the message; a space keeps it math and changes nothing in TeX. */
+function spaceTags(body: string): string {
+	return body.replace(/<(?=[A-Za-z!/?])/g, "< ");
+}
+
 /** Read old \(...\)/\[...\] syntax without touching literal content or
  * reparsing native math as Markdown. Dollar authoring remains native. */
 export function transformMathDelimiters(markdown: string): string {
@@ -36,7 +42,8 @@ export function transformMathDelimiters(markdown: string): string {
 	return readContentSpans(markdown).map(span => {
 		const start = offset; offset += span.raw.length;
 		if (span.kind !== "math") return span.raw;
-		if (span.open === "$") return "$" + replaceEscapedDollars(span.body) + span.close;
+		if (span.open === "$") return "$" + replaceEscapedDollars(spaceTags(span.body)) + span.close;
+		if (span.open === "$$") return span.open + spaceTags(span.body) + span.close;
 		if (span.open !== "\\(" && span.open !== "\\[") return span.raw;
 		const body = span.body.trim();
 		if (!body) return span.raw;

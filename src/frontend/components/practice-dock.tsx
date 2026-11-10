@@ -46,10 +46,6 @@ interface PracticeDockProps {
 	onShowProblem?: () => void;
 	/** Stops the running turn (shown while it runs). */
 	onStop?: () => void;
-	/** A homework problem's place in the assignment, under the statement. */
-	source?: string | null;
-	/** The send button's label ("check my work" in homework). */
-	sendLabel?: string;
 }
 
 export function PracticeDock({
@@ -65,8 +61,6 @@ export function PracticeDock({
 	onDiscard,
 	onShowProblem,
 	onStop,
-	source,
-	sendLabel = "Send",
 }: PracticeDockProps) {
 	const [thinking, setThinking] = useState(initialDraft);
 	// The ref mirrors the field: the window-level Enter reads the current trace.
@@ -129,19 +123,10 @@ export function PracticeDock({
 				>
 					<ToolContentResponse>{input.statement}</ToolContentResponse>
 				</div>
-				{(source || (statementOverflows && onShowProblem)) && (
-					<div className="flex shrink-0 items-center gap-3 text-[13px]">
-						{source && (
-							<p data-testid="practice-source" className="min-w-0 truncate text-ink-3">
-								{source}
-							</p>
-						)}
-						{statementOverflows && onShowProblem && (
-							<button type="button" data-testid="show-problem" onClick={onShowProblem} className="lh-press ml-auto shrink-0 text-ink-2 underline underline-offset-4 hover:text-ink">
-								show the whole problem
-							</button>
-						)}
-					</div>
+				{statementOverflows && onShowProblem && (
+					<button type="button" data-testid="show-problem" onClick={onShowProblem} className="lh-press lh-btn ml-auto shrink-0">
+						show the whole problem
+					</button>
 				)}
 				<div data-testid="practice-thinking-field" className="mt-3 flex min-h-40 flex-1 flex-col">
 					<AttachmentTray draft={attachments} />
@@ -161,7 +146,7 @@ export function PracticeDock({
 								<SendButton
 									type="submit"
 									testId="practice-send"
-									label={compactionRunning ? "Summarizing the lesson…" : sendLabel}
+									label={compactionRunning ? "Summarizing the lesson…" : "Send"}
 									disabled={empty || compactionRunning || busy}
 								/>
 							</>

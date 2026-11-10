@@ -342,6 +342,10 @@ body {
 	opacity: 0.5;
 	pointer-events: none;
 }
+/* A button that deletes or removes: the soft fill with red text. */
+.lh-btn-danger {
+	color: var(--color-ans-wrong);
+}
 .lh-btn-main {
 	background: var(--lh-tint);
 	color: var(--background);

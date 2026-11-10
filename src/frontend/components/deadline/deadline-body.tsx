@@ -157,7 +157,6 @@ function TopicStrip({ deadline: d, tallies }: { deadline: DeadlineProgress; tall
 const tallyText = (t: TopicTally | undefined) => (t ? rightLabel(t) : "not tested");
 
 const BUTTON = "lh-btn";
-const TEXT_BUTTON = "lh-press text-[13px] font-bold text-ink hover:underline disabled:opacity-50";
 const WARN = "text-(--lh-ramp-2)";
 
 function CoversCard({
@@ -188,7 +187,7 @@ function CoversCard({
 		<section data-testid="deadline-material" className={CARD}>
 			<div className="flex w-full items-center justify-between gap-4">
 				<h2 className={CARD_TITLE}>What&apos;s on it</h2>
-				<button type="button" data-testid="deadline-edit-files" onClick={onEditClass} className={cn(TEXT_BUTTON, "text-ink-2 hover:text-ink")}>
+				<button type="button" data-testid="deadline-edit-files" onClick={onEditClass} className={BUTTON}>
 					Edit
 				</button>
 			</div>
@@ -248,7 +247,7 @@ function CoversCard({
 							<div className="flex items-center justify-between gap-4">
 								<p className={cn(LABEL_TEXT, WARN)}>Not on it, but {before}</p>
 								{m.notIncluded.length > 1 && (
-									<button type="button" disabled={saving} onClick={() => onLeaveOut(m.notIncluded.flatMap((x) => x.fileIds))} className={cn(TEXT_BUTTON, "font-normal text-ink-2")}>
+									<button type="button" disabled={saving} onClick={() => onLeaveOut(m.notIncluded.flatMap((x) => x.fileIds))} className={BUTTON}>
 										Leave all out
 									</button>
 								)}
@@ -256,10 +255,10 @@ function CoversCard({
 							<ul className="flex flex-col gap-1.5">
 								{m.notIncluded.map((day) => (
 									<DayRow key={day.key} day={day} open>
-										<button type="button" disabled={saving} onClick={() => onAdd(day.fileIds)} className={TEXT_BUTTON}>
+										<button type="button" disabled={saving} onClick={() => onAdd(day.fileIds)} className={BUTTON}>
 											Add
 										</button>
-										<button type="button" disabled={saving} onClick={() => onLeaveOut(day.fileIds)} className={cn(TEXT_BUTTON, "font-normal text-ink-2")}>
+										<button type="button" disabled={saving} onClick={() => onLeaveOut(day.fileIds)} className={BUTTON}>
 											Leave out
 										</button>
 									</DayRow>
@@ -274,14 +273,14 @@ function CoversCard({
 					)}
 					{m.leftOut.length > 0 && (
 						<div className="flex w-full flex-col gap-1.5">
-							<button type="button" data-testid="deadline-left-out-toggle" aria-expanded={showLeftOut} onClick={() => setShowLeftOut((v) => !v)} className={cn(TEXT_BUTTON, "self-start font-normal text-ink-2")}>
+							<button type="button" data-testid="deadline-left-out-toggle" aria-expanded={showLeftOut} onClick={() => setShowLeftOut((v) => !v)} className="lh-press self-start text-[13px] text-ink-2 hover:underline">
 								{m.leftOut.length} left out, {showLeftOut ? "Hide" : "Show"}
 							</button>
 							{showLeftOut && (
 								<ul data-testid="deadline-left-out" className="flex flex-col gap-1.5">
 									{m.leftOut.map((day) => (
 										<DayRow key={day.key} day={day} open>
-											<button type="button" disabled={saving} onClick={() => onAdd(day.fileIds)} className={TEXT_BUTTON}>
+											<button type="button" disabled={saving} onClick={() => onAdd(day.fileIds)} className={BUTTON}>
 												Add back
 											</button>
 										</DayRow>

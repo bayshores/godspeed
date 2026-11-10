@@ -58,7 +58,7 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 					type="button"
 					data-testid="files-recent-changes-more"
 					onClick={() => setAll(true)}
-					className="lh-press self-start px-2.5 py-2 text-[13.5px] font-bold text-ink-2 hover:bg-tone hover:text-ink"
+					className="lh-press lh-btn self-start"
 				>
 					Show {more} more
 				</button>

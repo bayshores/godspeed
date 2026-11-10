@@ -465,7 +465,7 @@ export function ChainTableBody({
 							type="button"
 							data-testid="chain-clear"
 							onClick={onClear}
-							className="lh-press px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+							className="lh-press lh-btn"
 						>
 							Clear
 						</button>

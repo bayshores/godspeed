@@ -132,7 +132,7 @@ export function ReadingPane({
 						)
 					)}
 					{error && (
-						<ArrivalRow live={arrivalsLive} as="div" className="border border-ans-wrong/50 bg-ans-wrong/10 px-3 py-2 text-sm">
+						<ArrivalRow live={arrivalsLive} as="div" className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-ans-wrong/50 bg-ans-wrong/10 px-3 py-2 text-sm">
 							<span data-testid="lesson-error" title={error.message}>
 								{lessonError(error.message).text}
 							</span>
@@ -140,7 +140,7 @@ export function ReadingPane({
 								type="button"
 								data-testid="lesson-error-retry"
 								onClick={onRetry}
-								className="lh-press ml-3 text-foreground underline-offset-2 hover:underline"
+								className="lh-press lh-btn"
 							>
 								Try again
 							</button>

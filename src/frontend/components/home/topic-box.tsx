@@ -79,7 +79,7 @@ export function TopicBox({
 						data-testid="facts-picks-chip"
 						disabled={!canPick && picks === 0}
 						onClick={onOpenPicker}
-						className="lh-press flex items-center gap-1.5 py-1 text-[13.5px] text-ink-2 hover:text-ink disabled:opacity-50 disabled:hover:text-ink-2"
+						className="lh-press lh-btn"
 					>
 						<PlusIcon aria-hidden className="size-[13px]" />
 						{picks > 0 ? (

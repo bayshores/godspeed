@@ -97,7 +97,7 @@ export function AbortTurnBody({
 						type="button"
 						data-testid="abort-turn-cancel"
 						onClick={onClose}
-						className="lh-press px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+						className="lh-press lh-btn"
 					>
 						Cancel
 					</button>

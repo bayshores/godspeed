@@ -45,7 +45,7 @@ export function DeadlinesEditor({
 					data-testid="class-add-deadline"
 					disabled={disabled}
 					onClick={onAdd}
-					className="lh-press flex items-center gap-[5px] text-[13.5px] font-bold text-ink hover:text-ink-max disabled:opacity-50"
+					className="lh-press lh-btn"
 				>
 					<PlusIcon className="size-[13px]" aria-hidden />
 					Add deadline
@@ -224,7 +224,7 @@ const DeadlineRow = memo(function DeadlineRow({
 				data-testid="class-deadline-remove"
 				disabled={disabled}
 				onClick={() => onRemove(draft.key)}
-				className="lh-press self-start text-[13px] font-bold text-ans-wrong hover:text-ans-wrong-hover disabled:opacity-50"
+				className="lh-press lh-btn lh-btn-danger self-start"
 			>
 				Remove deadline
 			</button>

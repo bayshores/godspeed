@@ -163,10 +163,21 @@ describe("the homework tools", () => {
 		assert.match(text(none), /no problem is open/);
 	});
 
+	it("marks a part only while a problem is open, without ending the turn", async () => {
+		const t = tools(memoryDeadline());
+		assert.match(text(await t.part!.execute("p0", { part: "a" })), /no problem is open/);
+		await t.post_problems!.execute("p1", { problems: PROBLEMS });
+		const opened = await t.problem!.execute("p2", { number: "1", statement: "…" });
+		assert.match(text(opened), /work and questions arrive as their messages/);
+		const marked = await t.part!.execute("p3", { part: "b" });
+		assert.equal(text(marked), "Marked.");
+		assert.notEqual((marked as { terminate?: boolean }).terminate, true);
+	});
+
 	it("carries no solution field and keeps practice's side tools", () => {
 		const t = tools(memoryDeadline());
 		assert.ok(!("modelSolution" in (t.problem!.parameters as { properties: object }).properties));
-		for (const name of ["post_problems", "problem", "conclude", "read", "ls", "find", "grep"]) assert.ok(t[name], name);
+		for (const name of ["post_problems", "problem", "part", "conclude", "read", "ls", "find", "grep"]) assert.ok(t[name], name);
 	});
 });
 

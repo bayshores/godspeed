@@ -35,7 +35,7 @@ export function DoneNotice({ notice, onUndo, onExpire }: { notice: DoneNoticeSta
 			{notice.text}
 			{notice.undo && (
 				<>
-					<button type="button" data-testid="done-notice-undo" onClick={onUndo} className="lh-press font-bold text-ink hover:text-ink-max">
+					<button type="button" data-testid="done-notice-undo" onClick={onUndo} className="lh-press lh-btn">
 						Undo
 					</button>
 				</>

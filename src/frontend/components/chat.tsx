@@ -352,8 +352,10 @@ export function Chat({
 	// only, so waiting files hold the send). A waiting question or problem
 	// owns the panel; compaction gates sends. Under a waiting question or
 	// problem the box asks a side question, never while the teacher replies.
-	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: activeProblem !== null, compacting });
-	const sideOpen = pending !== null ? "question" : activeProblem !== null ? "problem" : null;
+	// A homework problem is worked on in the box itself: plain messages.
+	const practiceProblem = activeProblem !== null && kind !== "homework";
+	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: practiceProblem, compacting });
+	const sideOpen = pending !== null ? "question" : practiceProblem ? "problem" : null;
 	const sideReply = busy && sideOpen !== null && isSideTurn(nativeMessages);
 	const canSend = sideOpen
 		? (text.trim().length > 0 || hasFiles) && !busy && !compacting
@@ -545,9 +547,9 @@ export function Chat({
 										attachments={attachments}
 										notice={
 											stuck ? (
-												<p data-testid="turn-stuck" className="text-sm leading-5 text-ink-2">
-													Your agent took this {stuckMinutes} minutes ago and hasn't answered.{" "}
-													<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press font-bold text-ink underline-offset-2 hover:underline">
+												<p data-testid="turn-stuck" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-5 text-ink-2">
+													Your agent took this {stuckMinutes} minutes ago and hasn't answered.
+													<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press lh-btn">
 														{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
 													</button>
 												</p>
@@ -565,7 +567,9 @@ export function Chat({
 												<StepsPane bar={stepBar} onJump={jumpToAnswer} onOpenPlan={openPlan} />
 											) : null
 										}
-										homeworkProblem={openProblem && { label: problemLabel(openProblem.number), source: problemSource(homework?.assignment ?? null, openProblem.page) }}
+										homeworkProblem={
+											openProblem && { label: problemLabel(openProblem.number), source: problemSource(homework?.assignment ?? null, openProblem.page), part: problems?.part ?? null }
+										}
 										pending={pending}
 										requiresReveal={requiresReveal}
 										initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}

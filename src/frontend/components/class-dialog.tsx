@@ -390,7 +390,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								type="button"
 								data-testid="class-discard-cancel"
 								onClick={() => setConfirmDiscard(false)}
-								className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink"
+								className="lh-press lh-btn"
 							>
 								Keep editing
 							</button>
@@ -416,7 +416,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 								type="button"
 								disabled={busy}
 								onClick={() => setConfirmDelete(false)}
-								className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink disabled:opacity-60"
+								className="lh-press lh-btn"
 							>
 								Cancel
 							</button>
@@ -456,7 +456,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 												}
 											})
 										}
-										className="lh-press text-[13.5px] font-bold text-ink-2 hover:text-ink disabled:opacity-60"
+										className="lh-press lh-btn"
 									>
 										{record.archived ? "Unarchive" : "Archive"}
 									</button>
@@ -465,7 +465,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 										data-testid="class-delete"
 										disabled={busy}
 										onClick={() => setConfirmDelete(true)}
-										className="lh-press text-[13.5px] font-bold text-ans-wrong hover:text-ans-wrong-hover disabled:opacity-60"
+										className="lh-press lh-btn lh-btn-danger"
 									>
 										Delete class
 									</button>
@@ -595,7 +595,7 @@ function MoveLessonInner({
 					</div>
 				)}
 				<div className="flex justify-end gap-2">
-					<button type="button" disabled={busy} onClick={onClose} className="lh-press px-3 py-1.5 hover:bg-accent disabled:opacity-50">
+					<button type="button" disabled={busy} onClick={onClose} className="lh-press lh-btn">
 						Cancel
 					</button>
 					<button

@@ -38,7 +38,7 @@ export function OldSetupNotice() {
 					</button>
 				) : (
 					<>
-						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-press text-sm font-bold text-ink-2 hover:text-ink">
+						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-press lh-btn">
 							Later
 						</button>
 						<button

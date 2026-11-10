@@ -8,7 +8,7 @@ import { logLines, rememberedAgent, type LaunchChoice, type LogLine } from "./ag
 import { OpenAgentButton } from "./open-agent-button";
 import { savedAgent, useAgentFolder } from "./use-agent-folder";
 
-const QUIET = "lh-press text-[13px] font-bold text-ink-3 underline underline-offset-2 hover:text-ink";
+const QUIET = "lh-press lh-btn";
 
 /**
  * Start your agent in the godspeed folder: the "Open Claude Code" split

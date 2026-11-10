@@ -211,7 +211,7 @@ export function DeleteSessionBody({
 				<div
 					role="alert"
 					data-testid="delete-failure"
-					className="mt-3 border border-border/60 px-3 py-2 text-xs"
+					className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-border/60 px-3 py-2 text-xs"
 				>
 					<span className="text-foreground">{failure.error}</span>
 					<button
@@ -219,7 +219,7 @@ export function DeleteSessionBody({
 						data-testid="delete-retry"
 						onClick={onRun}
 						disabled={busy}
-						className="lh-press ml-3 text-xs text-foreground underline-offset-2 hover:underline disabled:opacity-40"
+						className="lh-press lh-btn"
 					>
 						Try again
 					</button>
@@ -234,7 +234,7 @@ export function DeleteSessionBody({
 					data-testid="delete-cancel"
 					onClick={onClose}
 					disabled={busy}
-					className="lh-press px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+					className="lh-press lh-btn"
 				>
 					Cancel
 				</button>

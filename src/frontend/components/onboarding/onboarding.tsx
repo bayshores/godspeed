@@ -54,7 +54,7 @@ function useReturn(onReturn: (() => void) | null) {
 
 const PRIMARY =
 	"lh-btn lh-btn-main";
-const QUIET = "lh-press text-[14px] font-bold text-ink-2 hover:text-ink";
+const QUIET = "lh-press lh-btn";
 
 export function Onboarding() {
 	const router = useRouter();
@@ -208,7 +208,7 @@ function AgentStep({ connected, onNext }: { connected: boolean; onNext: () => vo
 					center
 					extra={
 						!connected && (
-							<button type="button" data-testid="onboarding-later" className="lh-press text-[13px] font-bold text-ink-3 hover:text-ink" onClick={onNext}>
+							<button type="button" data-testid="onboarding-later" className="lh-press lh-btn" onClick={onNext}>
 								I&apos;ll do this later
 							</button>
 						)

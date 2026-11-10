@@ -140,7 +140,7 @@ export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; on
 			data-testid="class-pick-folder"
 			disabled={disabled}
 			onClick={onClick}
-			className="lh-press flex items-center gap-1.5 px-2.5 py-1.5 text-[13.5px] font-bold text-ink-2 hover:bg-tone hover:text-ink disabled:opacity-60"
+			className="lh-press lh-btn"
 		>
 			<FolderSyncIcon className="size-[13px]" aria-hidden />
 			Link folder
@@ -188,7 +188,7 @@ export function LinkFolderField({
 				autoFocus
 				className="min-w-0 flex-1 border border-edge bg-background px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-3 focus:border-ink"
 			/>
-			<button type="button" onClick={onCancel} className="lh-press shrink-0 text-[13.5px] font-bold text-ink-2 hover:text-ink">
+			<button type="button" onClick={onCancel} className="lh-press lh-btn shrink-0">
 				Cancel
 			</button>
 			<button

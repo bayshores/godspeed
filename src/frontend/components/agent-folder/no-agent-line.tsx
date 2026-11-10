@@ -30,7 +30,7 @@ function Line({ className }: { className?: string }) {
 					data-testid="no-agent-open"
 					disabled={reopen.busy}
 					onClick={reopen.open}
-					className="lh-press font-bold text-ink underline decoration-ink-3 underline-offset-[3px] hover:decoration-ink disabled:opacity-60"
+					className="lh-press lh-btn"
 				>
 					{reopen.label}
 				</button>

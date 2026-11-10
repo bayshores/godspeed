@@ -214,16 +214,11 @@ export function questionResult(): AgentToolResult<null> {
 /** The practice pose's ack: unlike
  *  a question, this result is FINAL — it persists (persistTurn filters
  *  only QUESTION_TOOLS placeholders), because the learner's submissions
- *  arrive as MESSAGES, never as this call's result. terminate: true ends
+ *  arrive as MESSAGES, never as this call's result (`arrives` says how). terminate: true ends
  *  the turn at the pose; the commitment rides the call's arguments. */
-export function problemResult(): AgentToolResult<null> {
+export function problemResult(arrives: string): AgentToolResult<null> {
 	return {
-		content: [
-			{
-				type: "text",
-				text: "Problem posed — the turn ends here; the learner's thinking traces and answer commits arrive as labeled messages.",
-			},
-		],
+		content: [{ type: "text", text: `Problem posed — the turn ends here; ${arrives}` }],
 		details: null,
 		terminate: true,
 	};

@@ -81,7 +81,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 					</p>
 				)}
 				<div className="mt-6 flex items-center justify-end gap-5">
-					<button type="button" data-testid="folder-notice-later" className="lh-press text-[14px] font-bold text-ink-2 hover:text-ink" onClick={later}>
+					<button type="button" data-testid="folder-notice-later" className="lh-press lh-btn" onClick={later}>
 						Later
 					</button>
 					<button

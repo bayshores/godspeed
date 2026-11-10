@@ -156,9 +156,11 @@ export function SheetChat({
 									</p>
 								)}
 								{!busy && view.error?.messageId === m.id && (
-									<p data-testid="sheet-failed" className="text-[13px] text-ink-2">
-										<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}{" "}
-										<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-press font-bold text-ink underline underline-offset-2">
+									<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-ink-2">
+										<span>
+											<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
+										</span>
+										<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-press lh-btn">
 											Try again
 										</button>
 									</p>

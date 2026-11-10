@@ -128,7 +128,7 @@ export function TeachingSection({
 									data-testid={`area-${area.id}-instructions`}
 									disabled={segments === null}
 									onClick={() => setOpenArea(area)}
-									className="lh-press flex w-fit items-center gap-1.5 text-[12.5px] text-ink-2 hover:text-ink"
+									className="lh-press lh-btn w-fit"
 								>
 									Full instructions
 									<ArrowRightIcon className="size-3" aria-hidden />

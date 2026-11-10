@@ -47,7 +47,7 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 				<span className="text-ink-2">{shown.body}</span>
 				{shown.note && <span className="text-ink-2">{shown.note}</span>}
 				<div className="flex justify-end gap-2 pt-1">
-					<button type="button" data-testid="files-confirm-cancel" onClick={onClose} className="lh-press px-3 py-1.5 font-bold text-ink-2 hover:text-ink">
+					<button type="button" data-testid="files-confirm-cancel" onClick={onClose} className="lh-press lh-btn">
 						Cancel
 					</button>
 					<button

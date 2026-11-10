@@ -46,7 +46,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 ![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the next quiz's days left and what to work on next](docs/assets/graph.png)
 
-- **Homework.** Attach the assignment file to a homework or project and hit work on. The teacher lists its problems and opens them one at a time. You do the work, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
+- **Homework.** Attach the assignment file to a homework or project and hit work on. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the message box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
 - **Overview.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
 ![A class Overview: readiness for each deadline, how lessons went, and a confidence check](docs/assets/overview.png)

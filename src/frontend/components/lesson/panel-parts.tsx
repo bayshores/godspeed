@@ -30,7 +30,7 @@ export function PanelHeader({ status, right }: { status?: React.ReactNode; right
 	);
 }
 
-/** A quiet text button in a panel's header (Stop, Discard problem). */
+/** A button in a panel's header (Stop, Discard problem). */
 function ToneButton({ children, onClick, testId, disabled }: { children: React.ReactNode; onClick: () => void; testId: string; disabled?: boolean }) {
 	return (
 		<button
@@ -38,7 +38,7 @@ function ToneButton({ children, onClick, testId, disabled }: { children: React.R
 			data-testid={testId}
 			onClick={onClick}
 			disabled={disabled}
-			className="lh-press lh-fade flex shrink-0 items-center gap-1.5 px-2 py-1 text-[15px] text-ink-2 hover:bg-tone hover:text-ink disabled:cursor-default disabled:text-ink-3 disabled:hover:bg-transparent"
+			className="lh-press lh-btn shrink-0"
 		>
 			{children}
 		</button>

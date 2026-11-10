@@ -39,10 +39,10 @@ function Line({ saved }: { saved: SaveRuleResult }) {
 						</span>
 					) : (
 						<>
-							<button type="button" data-testid="rule-saved-undo" disabled={api.busy} onClick={api.undo} className="lh-press font-bold hover:text-ink disabled:opacity-50">
+							<button type="button" data-testid="rule-saved-undo" disabled={api.busy} onClick={api.undo} className="lh-press lh-btn">
 								Undo
 							</button>
-							<button type="button" data-testid="rule-saved-edit" disabled={api.busy} onClick={api.edit} className="lh-press font-bold hover:text-ink disabled:opacity-50">
+							<button type="button" data-testid="rule-saved-edit" disabled={api.busy} onClick={api.edit} className="lh-press lh-btn">
 								Edit
 							</button>
 						</>

@@ -25,7 +25,7 @@ export function PickedRow({
 				<span className="min-w-0 flex-1 truncate text-[15px] text-ink">{label}</span>
 			</button>
 			{sure}
-			<button type="button" data-testid="picked-change" onClick={onOpen} className="lh-press shrink-0 text-[13px] text-ink-2 hover:text-ink">
+			<button type="button" data-testid="picked-change" onClick={onOpen} className="lh-press lh-btn shrink-0">
 				Change
 			</button>
 		</div>

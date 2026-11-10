@@ -40,6 +40,16 @@ describe("homework problems", () => {
 		assert.equal(open, "2");
 	});
 
+	it("keeps the part marked in the open problem until it closes", () => {
+		const part = (type: string, input: unknown, state = "output-available") => ({ parts: [{ type, input, state }] });
+		const opened = [part("tool-problem", { number: "1", statement: "…" }), part("tool-part", { part: "a" }), part("tool-part", { part: " b " })];
+		assert.equal(homeworkProblems([], opened).part, "b");
+		assert.equal(homeworkProblems([], [...opened, part("tool-part", { part: "c" }, "output-error")]).part, "b");
+		assert.equal(homeworkProblems([], [...opened, part("tool-conclude", { outcome: "movedOn", verdict: "x" })]).part, null);
+		assert.equal(homeworkProblems([], [...opened, part("tool-problem", { number: "2", statement: "…" })]).part, null);
+		assert.equal(homeworkProblems([], [part("tool-part", { part: "a" })]).part, null);
+	});
+
 	it("reopens the latest homework session on a deadline", () => {
 		const sessions = [
 			{ chatId: "a", deadlineId: "d", createdAt: "2026-11-01" },

@@ -159,7 +159,7 @@ function RowState({
 						data-testid={`class-file-retry-${fileId}`}
 						disabled={disabled}
 						onClick={() => onRetry(fileId)}
-						className="lh-press ml-1 text-[13px] font-bold text-ink hover:text-ink-max disabled:opacity-50"
+						className="lh-press lh-btn ml-1"
 					>
 						Retry
 					</button>
@@ -188,7 +188,7 @@ function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 				<CopyButton
 					text={command}
 					data-testid={`class-file-install-copy-${fileId}`}
-					className="lh-press text-[12.5px] font-bold text-ink hover:text-ink-max"
+					className="lh-press lh-btn"
 				/>
 			</span>
 		</span>

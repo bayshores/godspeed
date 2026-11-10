@@ -113,7 +113,7 @@ export function KeyboardSection() {
 												<button
 													type="button"
 													onClick={() => setRebinding(null)}
-													className="lh-press text-xs text-ink-3 underline-offset-2 hover:text-foreground hover:underline"
+													className="lh-press lh-btn"
 												>
 													Cancel
 												</button>
@@ -123,7 +123,7 @@ export function KeyboardSection() {
 														type="button"
 														onClick={() => setRebinding(def.id)}
 														data-testid={`kbd-rebind-${def.id}`}
-														className="lh-press text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+														className="lh-press lh-btn"
 													>
 														Rebind
 													</button>
@@ -132,7 +132,7 @@ export function KeyboardSection() {
 															type="button"
 															onClick={() => resetOne(def.id)}
 															data-testid={`kbd-reset-${def.id}`}
-															className="lh-press text-xs text-ink-3 underline-offset-2 hover:text-foreground hover:underline"
+															className="lh-press lh-btn"
 														>
 															Reset
 														</button>
@@ -157,7 +157,7 @@ export function KeyboardSection() {
 					type="button"
 					onClick={resetAll}
 					data-testid="kbd-reset-all"
-					className="lh-press text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+					className="lh-press lh-btn"
 				>
 					Reset all to defaults
 				</button>

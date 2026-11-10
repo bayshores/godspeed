@@ -2,8 +2,9 @@
  * THE HOMEWORK TOOLS: post_problems saves the assignment's problems on its
  * deadline; problem opens one in the learner's Your turn panel (it ends
  * the turn, like practice's pose, but carries no solution: homework is
- * hints only); conclude closes it and, when the learner's own work was
- * right, marks it done. The side tools are practice's.
+ * hints only); part marks the part the learner is on there; conclude
+ * closes it and, when the learner's own work was right, marks it done.
+ * The side tools are practice's.
  */
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
@@ -50,6 +51,10 @@ const problemInput = Type.Object({
 	statement: Type.String({ description: "REQUIRED — the problem as the learner sees it while working (markdown + LaTeX): the assignment's wording. Never any part of its answer." }),
 });
 
+const partInput = Type.Object({
+	part: Type.String({ description: 'REQUIRED — the part as the problem labels it, e.g. "a", "b", "2".' }),
+});
+
 const concludeInput = Type.Object({
 	outcome: Type.Union([Type.Literal("solved"), Type.Literal("solvedWithHints"), Type.Literal("movedOn"), Type.Literal("dismissed")], {
 		description: "REQUIRED — solved or solvedWithHints once the learner's own work is right (marks the problem done), movedOn when the learner leaves it for now. Bare words, no quotes (dismissed is synthesized, never yours).",
@@ -81,7 +86,7 @@ export function homeworkTools(ctx: HomeworkToolContext, enabled?: EnabledTools):
 		name: "problem",
 		label: "problem",
 		description:
-			"Open one problem in the learner's work area. Ends the turn: the learner's work arrives as *Your thinking* messages (text and photos). Only one problem is open at a time; conclude it before opening the next.",
+			"Open one problem in the learner's Your turn panel, where it stays in view. Ends the turn: the learner's work and questions arrive as their messages (text and photos). Only one problem is open at a time; conclude it before opening the next.",
 		parameters: problemInput,
 		executionMode: "sequential",
 		prepareArguments: (args: unknown) => healEncodedArguments(args, problemInput) as never,
@@ -91,7 +96,20 @@ export function homeworkTools(ctx: HomeworkToolContext, enabled?: EnabledTools):
 			if (numbers.length === 0) return invalidInputResult("problem", ["no problems are posted yet — post them with post_problems first"]);
 			if (!numbers.includes(input.number)) return invalidInputResult("problem", [`no problem numbered ${JSON.stringify(input.number)}; the numbers are ${numbers.join(", ")}`]);
 			gate.open = input.number;
-			return problemResult();
+			return problemResult("the learner's work and questions arrive as their messages.");
+		},
+	};
+
+	const part: AgentTool<typeof partInput> = {
+		name: "part",
+		label: "part",
+		description: "For a problem with parts: mark the part the learner works on now, when they start it. Their panel marks it and scrolls the problem to it. Doesn't end the turn.",
+		parameters: partInput,
+		executionMode: "sequential",
+		prepareArguments: (args: unknown) => healEncodedArguments(args, partInput) as never,
+		execute: async () => {
+			if (gate.open === null) return invalidInputResult("part", ["no problem is open"]);
+			return { content: [{ type: "text", text: "Marked." }], details: null };
 		},
 	};
 
@@ -111,5 +129,5 @@ export function homeworkTools(ctx: HomeworkToolContext, enabled?: EnabledTools):
 		},
 	};
 
-	return healToolRecord({ post_problems: postProblems, problem, conclude, ...practiceSideTools(ctx, enabled) });
+	return healToolRecord({ post_problems: postProblems, problem, part, conclude, ...practiceSideTools(ctx, enabled) });
 }

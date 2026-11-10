@@ -71,9 +71,9 @@ export function TalkView({
 
 	if (failed)
 		return (
-			<p data-testid="talk-error" className="px-6 py-5 text-[13.5px] text-ink-2">
-				Couldn&apos;t open the chat.{" "}
-				<button type="button" className="lh-press font-bold text-ink underline underline-offset-2" onClick={() => setEpoch((e) => e + 1)}>
+			<p data-testid="talk-error" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-6 py-5 text-[13.5px] text-ink-2">
+				Couldn&apos;t open the chat.
+				<button type="button" className="lh-press lh-btn" onClick={() => setEpoch((e) => e + 1)}>
 					Try again
 				</button>
 			</p>
@@ -309,9 +309,9 @@ function TalkThread({
 					</p>
 				)}
 				{session.error && !busy && (
-					<p data-testid="talk-failed" className="mt-4 pl-[76px] text-[13px] text-ink-2">
-						{session.error.message}{" "}
-						<button type="button" data-testid="talk-retry" className="lh-press font-bold text-ink underline underline-offset-2" onClick={retry}>
+					<p data-testid="talk-failed" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[76px] text-[13px] text-ink-2">
+						{session.error.message}
+						<button type="button" data-testid="talk-retry" className="lh-press lh-btn" onClick={retry}>
 							Try again
 						</button>
 					</p>
@@ -347,7 +347,7 @@ function TalkThread({
 								data-testid="talk-clear"
 								disabled={busy}
 								onClick={clear}
-								className="lh-press px-2 py-1 text-[15px] text-ink-2 hover:bg-tone hover:text-ink disabled:opacity-50"
+								className="lh-press lh-btn"
 							>
 								Clear chat
 							</button>

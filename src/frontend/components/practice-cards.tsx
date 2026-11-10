@@ -239,7 +239,7 @@ function MetadataPopover({
 					});
 				}}
 				aria-expanded={open}
-				className="lh-press flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+				className="lh-press lh-btn"
 			>
 				Metadata
 			</button>

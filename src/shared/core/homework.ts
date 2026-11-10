@@ -72,29 +72,37 @@ type ViewMessage = { parts: ReadonlyArray<{ type: string; state?: string; input?
 
 /** The problems as a homework lesson sees them: the deadline's list when
  *  the page loaded, then every post_problems and done mark in the messages
- *  since, and the number of the problem open now. */
-export function homeworkProblems(initial: readonly HomeworkProblem[], messages: readonly ViewMessage[]): { problems: HomeworkProblem[]; open: string | null } {
+ *  since, the number of the problem open now and the part marked in it. */
+export function homeworkProblems(
+	initial: readonly HomeworkProblem[],
+	messages: readonly ViewMessage[],
+): { problems: HomeworkProblem[]; open: string | null; part: string | null } {
 	let problems = [...initial];
 	let open: string | null = null;
+	let part: string | null = null;
 	for (const m of messages) {
-		for (const part of m.parts) {
+		for (const call of m.parts) {
 			// A refused or still-streaming call changes nothing.
-			if (part.state === "output-error" || part.state === "input-streaming") continue;
-			const input = (part.input ?? {}) as { problems?: unknown; number?: unknown; outcome?: unknown };
-			if (part.type === "tool-post_problems" && Array.isArray(input.problems)) {
+			if (call.state === "output-error" || call.state === "input-streaming") continue;
+			const input = (call.input ?? {}) as { problems?: unknown; number?: unknown; outcome?: unknown; part?: unknown };
+			if (call.type === "tool-post_problems" && Array.isArray(input.problems)) {
 				problems = mergeProblems(problems, input.problems as PostedProblem[]);
-			} else if (part.type === "tool-problem") {
+			} else if (call.type === "tool-problem") {
 				open = typeof input.number === "string" ? input.number : null;
-			} else if (part.type === "tool-conclude") {
+				part = null;
+			} else if (call.type === "tool-part") {
+				if (open !== null && typeof input.part === "string" && input.part.trim()) part = input.part.trim();
+			} else if (call.type === "tool-conclude") {
 				if (open !== null && concludeMarksDone(input.outcome)) {
 					const number = open;
 					problems = problems.map((p) => (p.number === number ? { ...p, done: true } : p));
 				}
 				open = null;
+				part = null;
 			}
 		}
 	}
-	return { problems, open };
+	return { problems, open, part };
 }
 
 /** What the teacher knows when a homework session starts (a hidden
