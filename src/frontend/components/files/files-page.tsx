@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FolderOpenIcon, SearchIcon, XIcon } from "lucide-react";
-import { fileGroups, type FileCoverage } from "@/shared/core";
+import { fileGroups, type FileCoverage, type FolderStatus } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { PageBar } from "@/frontend/components/page-bar";
 import { Hint } from "@/frontend/components/ui/hint";
+import { Pane } from "@/frontend/components/ui/pane";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
 import { AddFilesButton } from "./add-files";
 import {
@@ -25,19 +25,19 @@ import {
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileGroupSection, FinderDropTargets } from "./files-sections";
-import { confirmCopy, fileBrowserName, filesSummary, filterGroups, type FileConfirm } from "./files-model";
+import { confirmCopy, fileBrowserName, filesSummary, filterGroups, listRules, type FileConfirm } from "./files-model";
 import { newSince } from "./folder-status-model";
-import { LinkedFolderChip, LinkFolderButton, LinkFolderField } from "./linked-folder";
+import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
 import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
 import { recentChanges, removedLately } from "./recent-changes-model";
 import { PickClass } from "@/frontend/components/pick-class";
-import { Decode } from "@/frontend/components/ui/decode";
 
 /**
- * THE FILES PAGE: the active class's files in groups found from their
- * names (a lecture's notes and transcript together, with the date when a
- * name has one), a search box, Add files (pick the kind first) and the
- * linked folder. Dragging files from Finder over the page shows two
+ * THE FILES PAGE (a class tab): Add files (pick the kind first), a search
+ * field, the linked folder, the summary and the folder's live line, then
+ * Recent changes and the class's files in groups found from their names
+ * (a lecture's notes and transcript together, with the date when a name
+ * has one). Dragging files from Finder over the page shows two
  * places to drop them: Study material or Course info. Unlink, Remove and
  * Move to Course info ask first, saying how many facts go.
  *
@@ -50,6 +50,8 @@ export function FilesPage() {
 	// Keyed by class, so a class switch starts clean.
 	return <FilesPageBody key={active ?? "none"} />;
 }
+
+const NO_FOLDER_STATUS: FolderStatus = { problem: null, checkedAt: null, settling: 0 };
 
 const collapsedKey = (classId: string) => `lh:files-collapsed:${classId}`;
 
@@ -103,6 +105,7 @@ function FilesPageBody() {
 	const [finderDrag, setFinderDrag] = useState<number | null>(null);
 	const { collapsed, toggle } = useCollapsed(active);
 	const classId = record?.id ?? null;
+	const folderStatus = folder ?? NO_FOLDER_STATUS;
 
 	const coverage = useMemo(() => {
 		const map = new Map<string, FileCoverage>();
@@ -189,9 +192,20 @@ function FilesPageBody() {
 		else void run(() => setClassFileKind(classId, confirm.file.id, "info"));
 	};
 
+	const showRecent = !searching && changes.length > 0;
+	const rules = listRules([...(showRecent ? [true] : []), ...shown.map((g) => searching || !collapsed.has(g.key))]);
+	const groupRules = showRecent ? rules.slice(1) : rules;
+	const showInFinder = shortcuts && openPath && (
+		<Hint label="Shortcuts to these files in your godspeed folder, for you and your agent." side="bottom">
+			<button type="button" data-testid="files-show-shortcuts" onClick={() => void openPath(shortcuts)} className={ROW_BUTTON}>
+				Show in {fileBrowserName(window.lh?.platform)}
+			</button>
+		</Hint>
+	);
+
 	return (
 		<div
-			className="flex h-full flex-col"
+			className="h-full overflow-y-auto"
 			data-testid="files-page"
 			onDragOver={(e) => {
 				if (!Array.from(e.dataTransfer.types).includes("Files")) return;
@@ -209,94 +223,79 @@ function FilesPageBody() {
 				setFinderDrag(null);
 			}}
 		>
-			<PageBar>
-				{record && (
-					<>
-						{record.linkedFolder ? (
-							<LinkedFolderChip
-								path={record.linkedFolder}
-								status={folder ?? { problem: null, checkedAt: null, settling: 0 }}
-								now={minute}
-								disabled={disabled}
-								open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
-								onPickAgain={onLinkFolder}
-								onUnlink={() => setConfirm({ kind: "unlink" })}
-							/>
-						) : (
-							!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
-						)}
-						{shortcuts && openPath && (
-							<Hint label="Shortcuts to these files in your godspeed folder, for you and your agent." side="bottom">
-								<button
-									type="button"
-									data-testid="files-show-shortcuts"
-									onClick={() => void openPath(shortcuts)}
-									className="lh-press flex items-center gap-1.5 px-2.5 py-1.5 text-[13.5px] font-bold text-ink-2 hover:bg-tone hover:text-ink"
-								>
-									<FolderOpenIcon className="size-[13px]" aria-hidden />
-									Show in {fileBrowserName(window.lh?.platform)}
-								</button>
-							</Hint>
-						)}
-						<AddFilesButton disabled={disabled} onAdd={add} />
-					</>
-				)}
-			</PageBar>
-			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-				{!active && (
-					<div className="m-auto px-[52px]">
-						<PickClass line="Pick a class to see its files." />
-					</div>
-				)}
-				{active && !record && !failed && <p className="m-auto text-sm text-ink-2">Loading…</p>}
-				{active && !record && failed && <LoadFailed message="Couldn't load this class's files." onRetry={() => void reload()} className="m-auto" />}
+			<h1 className="sr-only">Files</h1>
+			<div className="mx-auto flex w-full max-w-[908px] flex-col gap-[18px] px-6 pt-[18px] pb-10">
+				{!active && <PickClass line="Pick a class to see its files." />}
+				{active && !record && !failed && <p className="text-[15px] text-ink-2">Loading…</p>}
+				{active && !record && failed && <LoadFailed message="Couldn't load this class's files." onRetry={() => void reload()} />}
 				{record && actions && (
-					<div className="flex w-full flex-col gap-4 px-[52px] pb-8">
-						<header className="flex flex-wrap items-end gap-x-6 gap-y-3 py-6">
-							<div className="flex min-w-0 flex-1 flex-col gap-2">
-								<h1 className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
-									<Decode text="Files" />
-								</h1>
-								<p data-testid="files-summary" className="text-base leading-6 text-ink-2">
-									{filesSummary(record.files)}
-									{arrived && `, ${arrived}`}
-									{removed && `, ${removed}`}
-								</p>
-							</div>
+					<>
+						<AddFilesButton disabled={disabled} onAdd={add} />
+						<div className="flex flex-wrap items-center gap-2.5">
 							{record.files.length > 0 && <SearchBox value={query} onChange={setQuery} />}
-						</header>
+							{record.linkedFolder ? (
+								<LinkedFolderButton
+									path={record.linkedFolder}
+									status={folderStatus}
+									disabled={disabled}
+									open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
+									onPickAgain={onLinkFolder}
+									onUnlink={() => setConfirm({ kind: "unlink" })}
+								/>
+							) : (
+								!linking && <LinkFolderButton disabled={disabled} onClick={onLinkFolder} />
+							)}
+							{showInFinder}
+						</div>
 						{linking && <LinkFolderField initial={record.linkedFolder ?? ""} disabled={disabled} onLink={link} onCancel={() => setLinking(false)} />}
-						{error && (
-							<div role="alert" data-testid="class-files-error" className="whitespace-pre-wrap border border-ans-wrong/50 px-3 py-2 text-[13px] text-ans-wrong">
-								{error}
+						{(record.files.length > 0 || record.linkedFolder) && (
+							<div className="flex flex-col gap-[3px]">
+								{record.files.length > 0 && (
+									<p data-testid="files-summary" className="text-[15px] text-ink-2">
+										{filesSummary(record.files)}
+										{arrived && `, ${arrived}`}
+										{removed && `, ${removed}`}
+									</p>
+								)}
+								{record.linkedFolder && <FolderStatusLine path={record.linkedFolder} status={folderStatus} now={minute} />}
 							</div>
+						)}
+						{error && (
+							<p role="alert" data-testid="class-files-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">
+								{error}
+							</p>
 						)}
 						{finderDrag !== null && <FinderDropTargets count={finderDrag} onDrop={add} />}
 						{record.files.length === 0 && finderDrag === null && (
-							<div data-testid="files-empty" className="flex h-[200px] flex-col items-center justify-center gap-2 bg-panel p-4 text-center">
-								<span className="text-[14.5px] text-ink-2">Add lecture notes, readings, recordings or the syllabus, or drop them here.</span>
-								<span className="text-[12.5px] text-ink-3">PDF, Markdown, text, VTT/SRT, audio, video</span>
-							</div>
+							<Pane data-testid="files-empty" className="flex flex-col gap-1.5 p-7">
+								<span className="text-[17px] text-ink">Add lecture notes, readings, recordings or the syllabus, or drop them here.</span>
+								<span className="text-[15px] text-ink-2">PDF, Markdown, text, VTT/SRT, audio, video</span>
+							</Pane>
 						)}
-						{!searching && changes.length > 0 && <RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />}
 						{searching && shown.length === 0 && (
-							<p data-testid="files-no-match" className="py-6 text-sm text-ink-2">
+							<p data-testid="files-no-match" className="text-[15px] text-ink-2">
 								No file names have “{query.trim()}”.
 							</p>
 						)}
-						{shown.map((group) => (
-							<FileGroupSection
-								key={group.key}
-								group={group}
-								collapsed={!searching && collapsed.has(group.key)}
-								onToggle={toggle}
-								coverage={coverage}
-								disabled={disabled}
-								agentTeaching={agentTeaching}
-								actions={actions}
-							/>
-						))}
-					</div>
+						{rules.length > 0 && (
+							<div data-testid="files-list" className="flex flex-col border-y-[1.5px] border-ink">
+								{showRecent && <RecentChanges changes={changes} collapsed={collapsed.has(RECENT_CHANGES_KEY)} onToggle={toggle} />}
+								{shown.map((group, i) => (
+									<FileGroupSection
+										key={group.key}
+										group={group}
+										rule={groupRules[i] ?? null}
+										collapsed={!searching && collapsed.has(group.key)}
+										onToggle={toggle}
+										coverage={coverage}
+										disabled={disabled}
+										agentTeaching={agentTeaching}
+										actions={actions}
+									/>
+								))}
+							</div>
+						)}
+					</>
 				)}
 			</div>
 			<ConfirmDialog copy={confirmText} onConfirm={onConfirm} onClose={closeConfirm} />
@@ -306,8 +305,7 @@ function FilesPageBody() {
 
 function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
 	return (
-		<label className="flex h-9 w-[260px] items-center gap-2 bg-panel px-3 text-ink-3 focus-within:outline focus-within:outline-1 focus-within:outline-tone-2">
-			<SearchIcon className="size-3.5 shrink-0" aria-hidden />
+		<label className="flex h-10 min-w-[200px] flex-1 items-center gap-2 rounded border-[1.5px] border-ink bg-background px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
 			<input
 				type="search"
 				data-testid="files-search"
@@ -315,11 +313,11 @@ function SearchBox({ value, onChange }: { value: string; onChange: (value: strin
 				placeholder="Find a file"
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
-				className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
+				className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
 			/>
 			{value && (
 				<button type="button" aria-label="Clear" data-testid="files-search-clear" onClick={() => onChange("")} className="lh-press shrink-0 hover:text-ink">
-					<XIcon className="size-3.5" aria-hidden />
+					<PixelIcon name="close" className="h-2.5" />
 				</button>
 			)}
 		</label>

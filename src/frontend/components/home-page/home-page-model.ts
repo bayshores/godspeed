@@ -3,7 +3,7 @@ import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPa
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/class-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
-import { percent } from "@/frontend/components/overview/runway-model";
+import { progressWords } from "@/frontend/components/overview/overview-model";
 
 export interface ClassesProgress {
 	/** The latest payload each class has had. */
@@ -36,6 +36,11 @@ export function classesSettled(classIds: readonly string[], state: ClassesProgre
 /** A deadline at most this many days away is under Today; the rest are Later. */
 const TODAY_DAYS = 7;
 
+/** Due within the week, or overdue. */
+export function dueThisWeek(d: { date: string; time?: string }, nowMs: number): boolean {
+	return calendarDays(nowMs, dueAtMs(d)) <= TODAY_DAYS;
+}
+
 interface TodayLists {
 	/** Open, due within the week or overdue. */
 	today: OpenDeadline[];
@@ -48,7 +53,7 @@ interface TodayLists {
 /** Today's three lists, each in the order given (soonest first). A done
  *  row leaves when the day turns, without a new read. */
 export function todayLists(open: readonly OpenDeadline[], doneToday: readonly OpenDeadline[], nowMs: number): TodayLists {
-	const soon = (d: OpenDeadline) => calendarDays(nowMs, dueAtMs(d)) <= TODAY_DAYS;
+	const soon = (d: OpenDeadline) => dueThisWeek(d, nowMs);
 	const day = localDay(nowMs);
 	return {
 		today: open.filter(soon),
@@ -82,9 +87,9 @@ export function longDay(day: string): string {
 
 /** ". 2 of 7 problems done", or ". 19% ready" for one with no problems;
  *  "" with nothing to count. */
-function progressNote(p: DeadlineProgress | undefined): string {
-	if (p?.problems) return `. ${p.problems.done} of ${p.problems.total} problems done`;
-	return p && p.ready !== null ? `. ${percent(p.ready)}% ready` : "";
+export function progressNote(p: DeadlineProgress | undefined): string {
+	const words = p && progressWords(p);
+	return words ? `. ${words}` : "";
 }
 
 /** When an open deadline is due, after its class: "due Friday", "the test

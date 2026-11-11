@@ -40,6 +40,10 @@ describe("the folder line", () => {
 			"Google Docs need saving as PDF or Word to be read.",
 		]);
 		assert.deepEqual(skippedLines({ count: 1, examples: ["notes.key"], google: 0 }), ["1 file here can't be read: notes.key."]);
+		assert.deepEqual(skippedLines({ count: 2, examples: ["Quiz 3 key.gdoc", "Notes.gdoc"], google: 2 }), [
+			"2 files here can't be read: Quiz 3 key.gdoc and Notes.gdoc.",
+			"Google Docs need saving as PDF or Word to be read.",
+		]);
 		assert.deepEqual(skippedLines(undefined), []);
 	});
 

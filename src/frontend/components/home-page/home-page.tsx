@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { hasProblems, localDay, type ClassSummary, type DeadlineProgress } from "@/shared/core";
 import { classColorVar } from "@/frontend/components/class-color";
 import { useClasses } from "@/frontend/components/class-context";
-import { ClassDialog, type ClassDialogMode } from "@/frontend/components/class-dialog";
+import { ClassDialog } from "@/frontend/components/class-dialog";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useMinute } from "@/frontend/components/countdown";
 import { MenuShell } from "@/frontend/components/menu-shell";
@@ -21,8 +22,8 @@ import { useClassesProgress } from "./use-classes-progress";
  * TODAY ("/"): the deadlines of every class as one list. Under "Today",
  * the ones due within a week or overdue, each with its one main button,
  * then the ones ticked done today; under "Later", the rest. "Add a
- * deadline" opens a class's Edit class with a new deadline row (a menu
- * picks the class when there are several).
+ * deadline" opens a class's Deadlines tab (a menu picks the class when
+ * there are several).
  */
 export function HomePage() {
 	const { classes, loaded, setActive } = useClasses();
@@ -35,7 +36,17 @@ export function HomePage() {
 	const [progressReady, setProgressReady] = useState(false);
 	if (!progressReady && shown.length > 0 && classesSettled(shownIds, classesProgress)) setProgressReady(true);
 	const nowMs = useMinute();
-	const [dialog, setDialog] = useState<ClassDialogMode | null>(null);
+	const router = useRouter();
+	const [addingClass, setAddingClass] = useState(false);
+	// The dialog compares its mode by identity: one object per open.
+	const createMode = useMemo(() => (addingClass ? { kind: "create" as const } : null), [addingClass]);
+	const addDeadline = useCallback(
+		(classId: string) => {
+			setActive(classId);
+			router.push("/class/deadlines");
+		},
+		[setActive, router],
+	);
 	const lesson = useLessonStart();
 
 	// Each deadline's topics, problems and unfinished session, from its class's progress.
@@ -87,7 +98,7 @@ export function HomePage() {
 								<p data-testid="today-empty" className="text-[17px] text-ink-2">
 									No classes yet. Add one, then add its deadlines.
 								</p>
-								<button type="button" data-testid="today-add-class" onClick={() => setDialog({ kind: "create" })} className="lh-btn lh-btn-main">
+								<button type="button" data-testid="today-add-class" onClick={() => setAddingClass(true)} className="lh-btn lh-btn-main">
 									Add a class
 								</button>
 							</div>
@@ -118,7 +129,7 @@ export function HomePage() {
 							<section className="flex flex-col gap-4">
 								<div className="flex min-h-9 items-center justify-between gap-4">
 									<h2 className="text-[24px] leading-snug text-ink">{lists.later.length > 0 && "Later"}</h2>
-									<AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />
+									<AddDeadline classes={shown} onPick={addDeadline} />
 								</div>
 								{lists.later.length > 0 && (
 									<ul data-testid="later-list" className="flex flex-col gap-3">
@@ -132,13 +143,13 @@ export function HomePage() {
 					</>
 				)}
 			</div>
-			<ClassDialog mode={dialog} onClose={() => setDialog(null)} />
+			<ClassDialog mode={createMode} onClose={() => setAddingClass(false)} />
 		</div>
 	);
 }
 
-/** "Add a deadline": one class opens its Edit class at once; several open a
- *  menu of classes first. */
+/** "Add a deadline": one class opens its Deadlines tab at once; several open
+ *  a menu of classes first. */
 function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; onPick: (classId: string) => void }) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);

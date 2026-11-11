@@ -1,43 +1,41 @@
-import { currentVersion, pageSizeLabel, type CheatSheetView, type SheetVersion } from "@/shared/core";
-import { BrailleSpinner } from "@/frontend/components/braille-spinner";
+import { currentVersion, pageSizeLabel, type CheatSheetView, type ClassColor, type SheetVersion } from "@/shared/core";
+import { classColorVar } from "@/frontend/components/class-color";
+import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
 
-const NO_AGENT = "No agent connected";
-
-/** The top bar's middle: what the agent is doing (or that none is
- *  connected to do it), else the paper. */
-export function StudioStatus({
-	view,
-	agentName,
-	agentGone,
-	onStop,
-}: {
-	view: CheatSheetView;
-	agentName: string;
-	/** No agent connected: a request waits for one instead of running. */
-	agentGone: boolean;
-	onStop: () => void;
-}) {
+/** The studio bar's status: the newest version's paper, or that there is none yet. */
+export function sheetPaper(view: CheatSheetView): string {
 	const current = currentVersion(view.sheet);
-	if (view.running)
-		return (
-			<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
-				{agentGone ? (
-					<span className="font-bold text-ink">{NO_AGENT}</span>
-				) : (
-					<>
-						<BrailleSpinner className="h-3.5 text-ink" />
-						<span className="font-bold text-ink">{current ? `${agentName} is on your message` : `${agentName} is making your sheet`}</span>
-					</>
-				)}
-				<button type="button" onClick={onStop} className="lh-press lh-btn">
-					Stop
-				</button>
-			</div>
-		);
+	return current ? pageSizeLabel(current.pages) : "Not made yet";
+}
+
+/** The line under the teacher's name while a request runs (or waits for
+ *  an agent to run it); null when nothing runs. */
+export function teacherDoing(view: CheatSheetView, agentGone: boolean): string | null {
+	if (!view.running) return null;
+	if (agentGone) return "No agent connected";
+	return currentVersion(view.sheet) ? "is on your message" : "is making your sheet";
+}
+
+/** The top of the teacher side: the mascot on the class's pale color, the
+ *  teacher's name and what it is doing. */
+export function TeacherHead({ name, color, doing }: { name: string; color: ClassColor | undefined; doing: string | null }) {
 	return (
-		<span data-testid="cheat-sheet-status" className="shrink-0 text-sm text-ink-2">
-			{current ? pageSizeLabel(current.pages) : "Not made yet"}
-		</span>
+		<div
+			data-testid="sheet-teacher"
+			className="flex shrink-0 items-center gap-3 border-b-2 border-line bg-tone py-3 pr-3.5 pl-5"
+			// The pale class color CountBlock uses.
+			style={color ? { background: `color-mix(in srgb, ${classColorVar(color)} 57%, var(--lh-class-wash))` } : undefined}
+		>
+			<TeacherSprite mood="idle" className="w-[26px] shrink-0" />
+			<div className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate text-[18px] leading-snug font-medium text-ink">{name}</span>
+				{doing && (
+					<span data-testid="sheet-teacher-doing" className="truncate text-base text-ink-2">
+						{doing}
+					</span>
+				)}
+			</div>
+		</div>
 	);
 }
 
@@ -45,9 +43,9 @@ export function StudioStatus({
  *  without the agent: one click asks for it again. */
 export function OlderSheet({ onRemake }: { onRemake: () => void }) {
 	return (
-		<div data-testid="cheat-sheet-older" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 text-sm text-ink-2 outline outline-1 -outline-offset-1 outline-tone-2">
+		<div data-testid="cheat-sheet-older" className="flex max-w-[520px] flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded border border-border bg-background px-3.5 py-3 text-[15px] text-ink">
 			<span>Your sheet was made by an older godspeed and can&apos;t be shown anymore.</span>
-			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-btn">
+			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-btn text-[15px]">
 				Make it again
 			</button>
 		</div>

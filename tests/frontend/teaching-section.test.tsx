@@ -76,9 +76,8 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 		await act(async () => toggle.click());
 		assert.deepEqual(written, { tools: { research: false }, rules: { voice: ["No jokes"] } });
 
-		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="rules-facts-add"]')!.click());
 		const input = document.querySelector<HTMLInputElement>('[data-testid="rules-facts-input"]')!;
-		assert.ok(input, "Add a rule opens an input");
+		assert.ok(input, "the Add a rule field is always there");
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Cite the textbook" });
 			input.dispatchEvent(new win.Event("input", { bubbles: true }));

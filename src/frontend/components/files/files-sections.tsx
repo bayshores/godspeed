@@ -1,18 +1,55 @@
 import { memo, useState, type DragEvent } from "react";
-import { ArrowDownToLineIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import type { FileCoverage, FileGroup } from "@/shared/core";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { FileRow, type FileRowActions } from "./file-row";
-import { dropTitle, shortDate } from "./files-model";
+import { dropTitle, kindNote, shortDate } from "./files-model";
+
+/** The line above a section of the file list (from listRules). */
+type ListRule = "solid" | "dotted" | null;
+
+const RULE_ABOVE: Record<"solid" | "dotted", string> = {
+	solid: "border-t-[1.5px] border-ink",
+	dotted: "border-t-2 border-dotted border-edge",
+};
+
+/** A section's header: the chevron (right when folded), its name and a
+ *  note after it ("28 files"). Clicking it folds the section. */
+export function SectionToggle({
+	label,
+	note,
+	collapsed,
+	testid,
+	noteTestid,
+	onClick,
+}: {
+	label: string;
+	note: string;
+	collapsed: boolean;
+	testid: string;
+	noteTestid?: string;
+	onClick: () => void;
+}) {
+	return (
+		<button type="button" aria-expanded={!collapsed} data-testid={testid} onClick={onClick} className="lh-press flex w-full items-center gap-2.5 px-1 py-[9px] text-left">
+			<PixelIcon name="chevron" className={cn("h-[10.5px] text-ink", !collapsed && "rotate-90")} />
+			<h2 className="text-[17px] font-medium text-ink">{label}</h2>
+			<span data-testid={noteTestid} className="font-count text-[15px] text-ink-2 tabular-nums">
+				{note}
+			</span>
+		</button>
+	);
+}
 
 /**
  * ONE GROUP (Files page): a series found in the file names ("Lecture",
- * "Week · Discussion") or Other. Its header folds it; each entry shows
- * its number and date on the left and its files (a lecture's notes and
- * its transcript together) as rows on the right.
+ * "Week, Discussion") or Other. Its header folds it; each entry shows its
+ * number and date on the left and its files (a lecture's notes and its
+ * transcript together) as rows on the right.
  */
 export const FileGroupSection = memo(function FileGroupSection({
 	group,
+	rule,
 	collapsed,
 	onToggle,
 	coverage,
@@ -21,6 +58,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 	actions,
 }: {
 	group: FileGroup;
+	rule: ListRule;
 	collapsed: boolean;
 	onToggle: (key: string) => void;
 	coverage: ReadonlyMap<string, FileCoverage>;
@@ -28,42 +66,31 @@ export const FileGroupSection = memo(function FileGroupSection({
 	agentTeaching: boolean;
 	actions: FileRowActions;
 }) {
-	const Chevron = collapsed ? ChevronRightIcon : ChevronDownIcon;
 	const row = (file: FileGroup["items"][number]["files"][number]) => (
-		<FileRow
-			key={file.id}
-			file={file}
-			coverage={coverage.get(file.id)}
-			disabled={disabled}
-			agentTeaching={agentTeaching}
-			actions={actions}
-		/>
+		<FileRow key={file.id} file={file} coverage={coverage.get(file.id)} disabled={disabled} agentTeaching={agentTeaching} actions={actions} />
 	);
 	return (
-		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className="@container flex w-full flex-col bg-panel px-1.5 pt-1.5 pb-1.5">
-			<button
-				type="button"
-				aria-expanded={!collapsed}
-				data-testid={`files-group-toggle-${group.key}`}
+		<section data-testid={`files-group-${group.key}`} aria-label={group.label} className={cn("flex w-full flex-col", rule && RULE_ABOVE[rule])}>
+			<SectionToggle
+				label={group.label}
+				note={`${group.count} ${group.count === 1 ? "file" : "files"}`}
+				collapsed={collapsed}
+				testid={`files-group-toggle-${group.key}`}
+				noteTestid={`files-count-${group.key}`}
 				onClick={() => onToggle(group.key)}
-				className="lh-press flex items-center gap-2 px-2.5 py-2.5 text-left hover:bg-tone"
-			>
-				<Chevron className="size-3.5 shrink-0 text-ink-3" aria-hidden />
-				<h2 className="text-[15px] font-bold text-ink">{group.label}</h2>
-				<span data-testid={`files-count-${group.key}`} className="font-mono text-[12.5px] tabular-nums text-ink-3">
-					{group.count}
-				</span>
-			</button>
+			/>
 			{!collapsed && (
-				<ul className="flex flex-col">
-					{group.items.map((item) =>
+				<ul className={cn("flex flex-col", RULE_ABOVE.solid)}>
+					{group.items.map((item, i) =>
 						item.label === null ? (
 							row(item.files[0]!)
 						) : (
-							<li key={item.key} data-testid={`files-item-${item.key}`} className="flex items-start border-t border-tone first:border-t-0">
-								<div className="flex w-[96px] shrink-0 flex-col gap-0.5 py-2 pl-2.5 @3xl:w-[124px]">
-									<span title={item.label} className="truncate text-[13.5px] font-bold text-ink">{item.label}</span>
-									{item.date && <span className="text-[12.5px] text-ink-3">{shortDate(item.date)}</span>}
+							<li key={item.key} data-testid={`files-item-${item.key}`} className={cn("flex items-start gap-3 px-1 py-[5px]", i > 0 && RULE_ABOVE.dotted)}>
+								<div className="flex w-[110px] shrink-0 flex-col pt-1.5">
+									<span title={item.label} className="truncate text-[15px] font-medium text-ink">
+										{item.label}
+									</span>
+									{item.date && <span className="font-count text-sm text-ink-2">{shortDate(item.date)}</span>}
 								</div>
 								<ul className="flex min-w-0 flex-1 flex-col">{item.files.map(row)}</ul>
 							</li>
@@ -95,7 +122,7 @@ export function FinderDropTargets({ count, onDrop }: { count: number; onDrop: (k
 		},
 	});
 	return (
-		<div data-testid="files-drop-targets" className="flex gap-3">
+		<div data-testid="files-drop-targets" className="flex gap-3.5">
 			{(["study", "info"] as const).map((kind) => (
 				<div
 					key={kind}
@@ -103,12 +130,14 @@ export function FinderDropTargets({ count, onDrop }: { count: number; onDrop: (k
 					data-over={over === kind || undefined}
 					{...target(kind)}
 					className={cn(
-						"flex h-24 flex-1 items-center justify-center gap-2.5 outline outline-1 -outline-offset-1 transition-colors duration-(--lh-dur)",
-						over === kind ? "bg-tone-2 text-ink outline-ink-2" : "bg-panel text-ink-2 outline-tone-2",
+						"flex h-[110px] flex-1 flex-col items-center justify-center gap-0.5 rounded border-[1.5px] border-ink px-4 text-center transition-colors duration-(--lh-dur)",
+						over === kind ? "bg-highlight" : "bg-panel",
 					)}
 				>
-					<ArrowDownToLineIcon className="size-4 shrink-0" aria-hidden />
-					<span className="text-sm font-bold">{dropTitle(kind, count)}</span>
+					<span data-testid={`files-drop-${kind}-title`} className="text-[17px] font-medium text-ink">
+						{dropTitle(kind, count)}
+					</span>
+					<span className="text-base text-ink-2">{kindNote(kind)}</span>
 				</div>
 			))}
 		</div>

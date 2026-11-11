@@ -122,7 +122,7 @@ export function bounds(rects: readonly Rect[]): Rect | null {
 }
 
 /** The camera that shows `box` whole and centered in the part of the view
- *  the panel leaves free, never past 100%. */
+ *  the toolbar leaves free, never past 100%. */
 export function fitCamera(box: Rect, view: Rect, pad = 64): Camera {
 	const zoom = clampZoom(Math.min(1, (view.w - 2 * pad) / box.w, (view.h - 2 * pad) / box.h));
 	return {

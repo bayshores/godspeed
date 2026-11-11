@@ -426,10 +426,6 @@ export function isSupportedClassFile(name: string): boolean {
 	return SUPPORTED_CLASS_FILE_EXTENSIONS.includes(extensionOf(name));
 }
 
-export function isCodeFile(name: string): boolean {
-	return (CODE_EXTENSIONS as readonly string[]).includes(extensionOf(name));
-}
-
 export function isRecordingFile(name: string): boolean {
 	return (RECORDING_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }

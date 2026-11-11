@@ -88,6 +88,7 @@ async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as 
 		requests.push(`${init?.method ?? "GET"} ${url}${typeof init?.body === "string" ? ` ${init.body}` : ""}`);
 		if (url === "/api/classes") return Response.json({ classes: CLASSES });
 		if (url === "/api/chats") return Response.json({ chats: LESSONS });
+		if (url === "/api/classes/c29/cheat-sheets") return Response.json({ cards: [{ status: "made" }, { status: "making" }, { status: "none" }] });
 		return Response.json({});
 	}) as typeof fetch;
 	const router = { push: (href: string) => pushed.push(href), prefetch: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
@@ -208,21 +209,22 @@ describe("Search lessons", () => {
 });
 
 describe("a class page's head", () => {
-	it("the class's name and description, Edit class, then its tabs with the Files count", async () => {
+	it("the class's name and description, Edit class, then its tabs with their counts", async () => {
 		await mount(<ClassHead />, { pathname: "/class/files" });
 		assert.equal(q("class-head-name")!.textContent, "CSE 29");
 		assert.match(q("class-head")!.textContent!, /Systems programming/);
 		assert.equal(q("class-edit")!.textContent, "Edit class");
-		assert.deepEqual(texts("[data-testid='class-head'] nav a"), ["Progress", "Lessons", "Files33", "Graph", "Cheat sheets"]);
+		assert.deepEqual(texts("[data-testid='class-head'] nav a"), ["Progress", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
+		assert.equal(q("nav-cheat-sheets-count")!.textContent, "2", "sheets made or being made");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");
 		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/class/files is Files, not Progress");
 	});
-	it("with no class it names the lessons that belong to none: no Edit class, files or cheat sheets", async () => {
+	it("with no class it names the lessons that belong to none: no Edit class, files, cheat sheets or deadlines", async () => {
 		await mount(<ClassHead />, { pathname: "/class/lessons", active: null });
 		assert.equal(q("class-head-name")!.textContent, "Lessons with no class");
 		assert.equal(q("class-edit"), null);
-		assert.deepEqual(texts("[data-testid='class-head'] nav a"), ["Progress", "Lessons", "Graph"]);
+		assert.deepEqual(texts("[data-testid='class-head'] nav a"), ["Progress", "Lessons1", "Graph"]);
 		assert.equal(q("nav-lessons")!.getAttribute("aria-current"), "page");
 	});
 	it("Files is marked new while a scan found files not seen yet", () => {

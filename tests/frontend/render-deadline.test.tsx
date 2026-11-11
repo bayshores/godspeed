@@ -1,9 +1,10 @@
 /**
- * A deadline's page body: the name, when and countdown with the ready ring,
+ * A deadline's page body: the time left, when, the name and how far it is,
  * the topic strip and its counts, What's on it (class days by week, the
  * days before it that it doesn't cover with Add and Leave out, the source,
- * Add files and Ask) and the path with Start, plus the done, past,
- * due-today, nothing-linked and nothing-to-plan states.
+ * Add files and Ask) and the path with Study, plus the done, past,
+ * due-today, nothing-linked and nothing-to-plan states; and a homework's
+ * Problems sheet.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -62,6 +63,7 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 	return renderToStaticMarkup(
 		<DeadlineBody
 			deadline={d}
+			color="var(--lh-class-1)"
 			topics={[{ id: "t1", right: 2, answered: 5 }, { id: "t3", right: 3, answered: 5 }]}
 			material={material}
 			plan={planDays("2026-11-02", d.date, d.topics)}
@@ -69,7 +71,7 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 			busy={false}
 			startError={null}
 			onStart={() => {}}
-			onEditClass={() => {}}
+			onEdit={() => {}}
 			source="Midterm practice exam.pdf"
 			teacherName="marco"
 			saving={false}
@@ -85,23 +87,32 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 describe("the deadline page", () => {
-	it("head: name, kind and when, the countdown, and the ready ring", () => {
+	it("head: the days left on the class's color, kind and when, the name, how ready, and its two buttons", () => {
 		const html = render();
+		assert.match(html, /background:var\(--lh-class-1\)[^>]*><span[^>]*>4<\/span><span[^>]*>days</);
+		assert.match(html, /data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</);
 		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm</);
-		assert.match(html, /Exam<\/span>.*Fri Nov 6, 7:00 PM/);
-		assert.match(html, /data-testid="deadline-ring".*>38%</);
-		assert.match(html, /data-testid="deadline-cheat-sheet"[^>]*>.*Cheat sheet<\/button>/);
+		assert.match(html, /data-testid="deadline-progress".*width:38%.*>38% ready</);
+		assert.match(html, /data-testid="deadline-cheat-sheet"[^>]*>Cheat sheet<\/button>/);
+		assert.match(html, /data-testid="deadline-edit"[^>]*>Edit deadline<\/button>/);
+	});
+	it("a homework's head counts its problems", () => {
+		const html = render(deadline({ kind: "homework", problems: { done: 2, total: 8 } }));
+		assert.match(html, /data-testid="deadline-when"[^>]*>Homework, Friday Nov 6, 7:00 PM</);
+		assert.match(html, /data-testid="deadline-progress".*width:25%.*>2 of 8 problems done</);
 	});
 	it("one strip segment per topic and counts for the statuses it has", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-topic"'), 4);
-		assert.match(html, /deadline-count-untested.*>1<\/span> not tested/);
+		assert.match(html, /deadline-count-untested.*<\/span>1 not tested</);
 	});
 	it("what's on it: class days by week, the source, the day before it that's missing with Add and Leave out", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-week"'), 1);
 		assert.deepEqual([...html.matchAll(/data-testid="deadline-day-row" data-state="(\w+)"/g)].map((m) => m[1]), ["ready", "reading", "info", "open"]);
 		assert.match(html, /2 class days, 3 files, 1 still being read\. From <span[^>]*>Midterm practice exam\.pdf</);
+		assert.match(html, /data-testid="deadline-edit-files"[^>]*>Pick files</);
+		assert.match(html, /syllabus\.txt<\/span><span[^>]*>course info, no facts</);
 		assert.match(html, /Not on it, but before the exam/);
 		assert.match(html, /Pigeonhole/);
 		assert.match(html, />Add<\/button>.*>Leave out<\/button>/);
@@ -120,8 +131,11 @@ describe("the deadline page", () => {
 		assert.equal(count(html, 'data-testid="deadline-day"'), 3);
 		assert.match(html, />Today<.*Inclusion–exclusion.*2 of 5 right/);
 		assert.match(html, /data-testid="deadline-day-due".*Midterm, 7:00 PM/);
-		assert.match(html, /data-testid="deadline-start".*>Study</);
-		assert.ok(!html.includes("Permutations</span><span"), "strong topics stay off the path");
+		assert.match(html, /data-testid="deadline-start"[^>]*lh-btn-main.*>Study</);
+		assert.ok(!html.includes('title="Permutations"'), "strong topics stay off the path");
+	});
+	it("a homework's Study is not the main button: Work on is", () => {
+		assert.doesNotMatch(render(deadline({ kind: "homework" })), /data-testid="deadline-start"[^>]*lh-btn-main/);
 	});
 	it("an unfinished session from this deadline: Continue studying with its topics done", () => {
 		const html = render(deadline({ continueStudy: { chatId: "chat_1", done: 1, total: 4 } }));
@@ -138,18 +152,18 @@ describe("the deadline page", () => {
 			assert.ok(!html.includes('data-testid="deadline-start"'));
 			assert.ok(!html.includes('data-testid="deadline-day"'));
 		}
-		assert.match(render(deadline({ done: true })), />Done</);
-		assert.match(render(deadline({ date: "2026-11-01", daysUntil: -1 })), /Was due/);
-		assert.ok(!render(deadline({ done: true })).includes("deadline-path-note"), "the header already says it");
+		assert.match(render(deadline({ done: true })), /<header[^>]*><span[^>]*><span[^>]*>Done</);
+		assert.match(render(deadline({ date: "2026-11-01", daysUntil: -1 })), /<header[^>]*><span[^>]*>was due</);
+		assert.ok(!render(deadline({ done: true })).includes("deadline-path-note"), "the head already says it");
 	});
 	it("nothing linked: no file dump, Ask the teacher or pick files, and no plan", () => {
 		const html = render(deadline({ files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } }));
 		assert.match(html, /data-testid="deadline-no-files"/);
 		assert.match(html, /Nothing is linked yet\. marco can work it out from your files/);
-		assert.match(html, />Ask marco<\/button>/);
+		assert.match(html, /data-testid="deadline-ask"[^>]*lh-btn-main[^>]*>Ask marco<\/button>.*>Pick files</);
 		assert.ok(!html.includes('data-testid="deadline-day-row"'), "no list of every file");
 		assert.match(html, /A plan shows up once it knows what&#x27;s on it\./);
-		assert.match(html, /data-testid="deadline-ring".*>–<.*Not measured yet/);
+		assert.match(html, /data-testid="deadline-progress"[^>]*><span[^>]*>Not measured yet</);
 		assert.ok(!html.includes('data-testid="deadline-topics"'));
 	});
 	it("every topic strong: study them all", () => {
@@ -192,23 +206,24 @@ function homework(problems = HW_PROBLEMS, over: Partial<React.ComponentProps<typ
 	);
 }
 
-describe("the homework card", () => {
-	it("counts problems done, marks the next one and offers work on and mark done", () => {
+describe("a homework's Problems sheet", () => {
+	it("lists the problems, marks the done ones and the next one, and offers Work on and Mark done", () => {
 		const html = homework();
-		assert.match(html, /1 of 3 problems done/);
-		assert.match(html, /aria-label="1 of 3 problems done"/);
-		assert.match(html, /work on hw 4/);
-		assert.match(html, /mark done/);
-		assert.equal(html.split('data-testid="homework-problem"').length - 1, 3);
-		assert.match(html, /▸<\/span><span[^>]*>2<\/span><span[^>]*font-bold/);
-		assert.match(html, /<option value="a" selected="">hw4.pdf<\/option>/);
+		assert.match(html, />Problems</);
+		assert.match(html, /data-testid="homework-work"[^>]*lh-btn-main.*>Work on HW 4</);
+		assert.match(html, /data-testid="homework-mark-done"[^>]*>Mark done</);
+		assert.deepEqual([...html.matchAll(/data-testid="homework-problem"( data-done="true")?( data-next="true")?/g)].map((m) => (m[1] ? "done" : m[2] ? "next" : "")), ["done", "next", ""]);
+		assert.match(html, />Gradient of a quadratic<\/span><span[^>]*>right</);
+		assert.match(html, /Assignment file.*<option value="a" selected="">hw4.pdf<\/option>/);
+		assert.ok(!html.includes("homework-assignment-open"), "a browser can't open the file");
+		assert.match(homework(HW_PROBLEMS, { onOpenAssignment: () => {} }), /data-testid="homework-assignment-open"[^>]*>Open</);
 	});
 
-	it("with no problems says how they get listed; a done deadline offers mark not done", () => {
+	it("with no problems says how they get listed; a done deadline offers Mark not done", () => {
 		assert.match(homework([], { assignmentId: undefined }), /Pick its assignment file/);
 		const done = homework(HW_PROBLEMS, { deadline: deadline({ id: "hw4", kind: "homework", name: "HW 4", done: true }) });
-		assert.match(done, /mark not done/);
-		assert.ok(!done.includes('data-testid="homework-work"'));
+		assert.match(done, />Mark not done</);
+		assert.ok(!done.includes('data-testid="homework-work"') && !done.includes("data-next"));
 	});
 
 	it("shows in the page's homework slot", () => {

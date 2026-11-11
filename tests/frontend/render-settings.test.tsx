@@ -73,7 +73,7 @@ describe("TeachingSection (SSR)", () => {
 		const ids = [...html.matchAll(/data-testid="area-(\w+)"/g)].map((m) => m[1]);
 		assert.deepEqual(ids, TEACHING_AREAS.map((a) => a.id));
 		for (const area of TEACHING_AREAS) {
-			assert.ok(html.includes(`data-testid="rules-${area.id}-add"`), `${area.id} rules`);
+			assert.ok(html.includes(`data-testid="rules-${area.id}-input"`), `${area.id} rules`);
 			// Segments load in an effect, so the button waits disabled under SSR.
 			assert.ok(tagOf(html, `area-${area.id}-instructions`).includes("disabled"), `${area.id} instructions`);
 		}

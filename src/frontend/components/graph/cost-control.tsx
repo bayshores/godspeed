@@ -1,70 +1,28 @@
 /**
- * The graph-pipeline cost control: "graph costs"; click toggles the
- * breakdown panel (the plan that paid, or "–"). Used by the Study page.
+ * "Graph costs" in the Graph page's bar: a click toggles the popup with
+ * the plan that paid, each stage's tokens and the latest runs; an outside
+ * click or Escape closes it. The popup is viewport-capped and scrolls.
  */
 import { useRef, useState } from "react";
 import type { GraphCostSummary } from "@/shared/core";
-import { planCostLabel } from "@/frontend/components/usage-format";
+import { useMinute } from "@/frontend/components/countdown";
 import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
 import { usePresence } from "@/frontend/components/presence";
+import { displayUnpricedRuns, fmtTokens, planLine, runName, timeAgo } from "./cost-model.ts";
 
-/** Compact token display: 45231 → "45.2k"; absent → "–". */
-function fmtTokens(n: number | undefined): string {
-	if (n === undefined) return "–";
-	if (n < 1000) return String(Math.round(n));
-	if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
-	return `${(n / 1_000_000).toFixed(2)}M`;
-}
-
-/** Relative time for run rows: "now", "12m", "3h", "2d". */
-function timeAgo(startedAt: number): string {
-	const mins = Math.round((Date.now() - startedAt) / 60_000);
-	if (mins < 1) return "now";
-	if (mins < 60) return `${mins}m`;
-	const hours = Math.round(mins / 60);
-	if (hours < 24) return `${hours}h`;
-	return `${Math.round(hours / 24)}d`;
-}
-
-/** Plan labels for a stage; records written before provider names were
- *  stored were all ChatGPT runs (the only plan at the time). */
-function graphProviders(value: { subscriptionRuns?: number; subscriptionProviders?: string[] }): string[] {
-	return value.subscriptionProviders ?? ((value.subscriptionRuns ?? 0) > 0 ? ["ChatGPT"] : []);
-}
-function graphUsageLabel(costs: Pick<GraphCostSummary, "stages">): string {
-	return planCostLabel([costs.stages.extraction, costs.stages.audit].flatMap(graphProviders));
-}
-
-/** The unpriced runs over the stages the UI shows. */
-export function displayUnpricedRuns(costs: Pick<GraphCostSummary, "stages">): number {
-	return costs.stages.extraction.unpricedRuns + costs.stages.audit.unpricedRuns;
-}
-
-/**
- * The "graph costs" button; click toggles the breakdown
- * panel, and an outside click or Escape closes it. The panel is
- * viewport-capped and scrolls.
- */
 export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	const [open, setOpen] = useState(false);
-	// Click anywhere outside (or Escape) closes the panel — the root
-	// wraps button + panel, so the toggle itself keeps working.
+	// The root wraps button and popup, so the toggle itself keeps working.
 	const rootRef = useRef<HTMLDivElement>(null);
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
-	// The panel pops in and out.
 	const panel = usePresence(open);
 	return (
-		<div ref={rootRef} className="relative">
-			<button
-				type="button"
-				aria-expanded={open}
-				onClick={() => setOpen((o) => !o)}
-				className="lh-press lh-btn"
-			>
-				graph costs
+		<div ref={rootRef} className="relative shrink-0">
+			<button type="button" data-testid="graph-costs" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn text-[15px]">
+				Graph costs
 			</button>
 			{panel.mounted && (
-				<div data-state={panel.state} className="lh-pop absolute right-0 top-full mt-2 max-h-[60vh] overflow-y-auto">
+				<div data-state={panel.state} className="lh-pop absolute right-0 top-full z-20 mt-2 max-h-[60vh] overflow-y-auto">
 					<GraphCostPanel costs={costs} />
 				</div>
 			)}
@@ -72,64 +30,46 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	);
 }
 
-/**
- * The cost control's expanded panel: stage totals (extraction / audit —
- * plan label, tokens secondary) + the recent-runs list.
- * Presentational: the fold happens server-side (core/cost-summary.ts).
- */
 function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
-	const stageRows: [string, GraphCostSummary["stages"]["extraction"]][] = [
-		["Extraction", costs.stages.extraction],
-		["Audit", costs.stages.audit],
+	const nowMs = useMinute();
+	const stages: [string, GraphCostSummary["stages"]["extraction"]][] = [
+		["Building facts", costs.stages.extraction],
+		["Checking facts", costs.stages.audit],
 	];
-	const unpricedRuns = displayUnpricedRuns(costs);
+	const unpriced = displayUnpricedRuns(costs);
 	return (
-		<div className="lh-popup w-80 max-w-[calc(100vw-1.5rem)] p-3 text-xs">
-			<div className="mb-2 flex items-baseline justify-between">
-				<span className="text-xs font-semibold text-muted-foreground">
-					Graph pipeline costs
-				</span>
-				<span className="text-foreground font-mono tabular-nums">
-					{graphUsageLabel(costs)}
-					{unpricedRuns > 0 && (
-						<span className="text-muted-foreground">, {unpricedRuns} unpriced</span>
-					)}
-				</span>
-			</div>
-			<div className="flex flex-col gap-1">
-				{stageRows.map(([label, stage]) => (
-					<div key={label} className="flex items-baseline justify-between gap-2 text-xs">
-						<span className="shrink-0 text-muted-foreground">{label}</span>
-						<span className="min-w-0 text-right font-mono tabular-nums">
-							{planCostLabel(graphProviders(stage))}
-							{stage.unpricedRuns > 0 && (stage.subscriptionRuns ?? 0) > 0 && (
-								<span className="text-muted-foreground"> +{stage.unpricedRuns} unpriced</span>
-							)}
-							<span className="text-muted-foreground">
-								, {fmtTokens(stage.tokens.inputTokens)} in / {fmtTokens(stage.tokens.outputTokens)} out
-							</span>
-						</span>
-					</div>
-				))}
-			</div>
-			<div className="mt-2 flex flex-col gap-0.5 border-t pt-2">
-				{costs.runs.map((run) => (
-						<div key={run.startedAt} className="flex items-baseline justify-between gap-2 text-xs">
-							<span className="min-w-0 flex-1 truncate text-muted-foreground">
-								<span className="text-foreground/70">{timeAgo(run.startedAt)}</span>{" "}
-								{run.title}
-								{run.merged && (
-									<span className="text-muted-foreground">
-										{" "}
-										+{run.merged.nodes}n
-									</span>
-								)}
-							</span>
-							<span className="shrink-0 font-mono tabular-nums">{planCostLabel(graphProviders(run))}{run.subscriptionRuns && run.unpricedRuns ? ` +${run.unpricedRuns} unpriced` : ""}</span>
-						</div>
-					))}
-			</div>
+		<div data-testid="graph-costs-panel" className="flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 rounded border-2 border-line bg-panel px-[18px] py-4">
+			<h2 className="text-lg text-ink">Graph costs</h2>
+			<p className="text-base text-ink-2">
+				{planLine(costs)}
+				{unpriced > 0 && ` ${unpriced} ${unpriced === 1 ? "run" : "runs"} unpriced.`}
+			</p>
+			<span aria-hidden className="h-[1.5px] w-full bg-ink" />
+			{stages.map(([label, stage]) => (
+				<p key={label} className="flex items-baseline gap-2 py-1">
+					<span className="flex-1 text-[15px] text-ink">{label}</span>
+					<span className="font-count text-base text-ink-2 tabular-nums">
+						{fmtTokens(stage.tokens.inputTokens)} in, {fmtTokens(stage.tokens.outputTokens)} out
+					</span>
+				</p>
+			))}
+			{costs.runs.length > 0 && (
+				<>
+					<span aria-hidden className="border-t-2 border-dotted border-edge" />
+					<h3 className="text-[15px] text-ink-2">Latest runs</h3>
+					<ul className="flex flex-col">
+						{costs.runs.map((run) => (
+							<li key={run.startedAt} className="flex items-baseline gap-3 py-1 text-base">
+								<span className="w-[34px] shrink-0 font-count text-ink-2">{nowMs !== null ? timeAgo(run.startedAt, nowMs) : ""}</span>
+								<span title={run.title} className="min-w-0 flex-1 truncate text-ink">
+									{runName(run.title)}
+								</span>
+								{run.merged && <span className="shrink-0 text-ink-2">{run.merged.nodes} merged</span>}
+							</li>
+						))}
+					</ul>
+				</>
+			)}
 		</div>
 	);
 }
-

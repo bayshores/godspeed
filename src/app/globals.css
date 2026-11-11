@@ -357,10 +357,15 @@ body {
 		opacity: 0.5;
 		pointer-events: none;
 	}
-	/* A button that deletes or removes: red text and outline. */
+	/* The button that deletes or removes: filled red. */
 	.lh-btn-danger {
 		border-color: var(--color-ans-wrong);
-		color: var(--color-ans-wrong);
+		background: var(--color-ans-wrong);
+		color: var(--background);
+	}
+	.lh-btn-danger:hover {
+		border-color: var(--color-ans-wrong-hover);
+		background: var(--color-ans-wrong-hover);
 	}
 	.lh-btn-main {
 		border-color: var(--lh-tint);
@@ -650,6 +655,13 @@ body {
 }
 .lh-electron .lh-wco-gutter {
 	padding-right: calc(0.75rem + var(--lh-wco-right, 0px));
+}
+
+/* A page with a bar of its own (a cheat sheet's page) shows that bar in
+   place of the app's top bar. Keyed on the bar being drawn, so the
+   page's not-found and error screens keep the top bar. */
+body:has(.lh-own-bar) .lh-app-bar {
+	display: none;
 }
 
 /* Source-message arrival: a brief, static theme-colored spotlight. */

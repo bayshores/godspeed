@@ -18,17 +18,11 @@ export function NoAgentLine({ className }: { className?: string }) {
 function Line({ className }: { className?: string }) {
 	const reopen = useReopenAgent();
 	return (
-		<div data-testid="no-agent" className={cn("lh-rise flex flex-col gap-1 text-[13px]", className)}>
-			<p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ink-2">
-				<span aria-hidden className="size-[7px] shrink-0 rounded-full bg-ink-3" />
+		<div data-testid="no-agent" className={cn("lh-rise flex flex-col gap-1 text-[15px]", className)}>
+			<p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ink">
+				<span aria-hidden className="size-2.5 shrink-0 bg-ink-3" />
 				No agent connected
-				<button
-					type="button"
-					data-testid="no-agent-open"
-					disabled={reopen.busy}
-					onClick={reopen.open}
-					className="lh-press lh-btn"
-				>
+				<button type="button" data-testid="no-agent-open" disabled={reopen.busy} onClick={reopen.open} className="lh-btn h-[30px] px-2.5 text-[15px]">
 					{reopen.label}
 				</button>
 			</p>
@@ -37,7 +31,7 @@ function Line({ className }: { className?: string }) {
 					{reopen.error}
 				</p>
 			)}
-			{reopen.manual && <p className="text-ink-3">Run the command from Settings, Connection in your terminal.</p>}
+			{reopen.manual && <p className="text-ink-2">Run the command from Settings, Connection in your terminal.</p>}
 		</div>
 	);
 }

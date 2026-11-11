@@ -4,7 +4,7 @@ import { ClassIcon } from "@/frontend/components/class-icon";
 import { cn } from "@/frontend/lib/utils";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
-/** Edit class's Icon field: the subject icons in a grid, the picked one outlined. */
+/** Edit class's Icon field: the subject icons in rows, the picked one marked. */
 
 const NAMES = Object.keys(CLASS_ICONS) as ClassIconName[];
 
@@ -18,9 +18,9 @@ export const ClassIconField = memo(function ClassIconField({
 	onChange: (icon: ClassIconName) => void;
 }) {
 	return (
-		<div className="mt-2.5 flex flex-col gap-1.5">
+		<div className="flex flex-col gap-1.5">
 			<span className={LABEL_TEXT}>Icon</span>
-			<div role="radiogroup" aria-label="Icon" data-testid="class-icon" className="grid grid-cols-8 gap-2">
+			<div role="radiogroup" aria-label="Icon" data-testid="class-icon" className="flex flex-wrap gap-2">
 				{NAMES.map((name) => {
 					const picked = name === icon;
 					return (
@@ -34,8 +34,8 @@ export const ClassIconField = memo(function ClassIconField({
 							disabled={disabled}
 							onClick={() => onChange(name)}
 							className={cn(
-								"lh-press flex h-11 items-center justify-center border disabled:opacity-60",
-								picked ? "border-ink bg-tone-2 text-ink" : "border-transparent bg-tone text-ink-2 hover:text-ink",
+								"lh-press flex size-11 items-center justify-center rounded-sm border-[1.5px] text-ink-2 disabled:opacity-60",
+								picked ? "border-ink bg-highlight text-ink" : "border-border bg-background hover:text-ink",
 							)}
 						>
 							<ClassIcon icon={name} className="size-5" />
@@ -43,7 +43,7 @@ export const ClassIconField = memo(function ClassIconField({
 					);
 				})}
 			</div>
-			<span className="text-xs text-ink-2">Your agent picks one when it sets up the class. Pick another here any time.</span>
+			<span className="text-base text-ink-2">Your agent picks one when it sets up the class. Pick another here any time.</span>
 		</div>
 	);
 });

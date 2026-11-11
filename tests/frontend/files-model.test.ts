@@ -17,6 +17,8 @@ import {
 	filesSummary,
 	fileState,
 	filterGroups,
+	kindNote,
+	listRules,
 	shortDate,
 	fileBrowserName,
 	studiedFill,
@@ -112,6 +114,17 @@ describe("files-model", () => {
 		assert.equal(studiedFill({ facts: 22, inLessons: 0 }), 0);
 		assert.equal(studiedFill({ facts: 10, inLessons: 4 }), 0.4);
 		assert.equal(studiedFill({ facts: 0, inLessons: 0 }), 0, "no facts: an empty bar");
+	});
+
+	it("kindNote says what each kind does", () => {
+		assert.equal(kindNote("study"), "Turned into facts");
+		assert.equal(kindNote("info"), "Read by the teacher only");
+	});
+
+	it("listRules: solid beside an open section, dotted between folded ones, none above the first", () => {
+		assert.deepEqual(listRules([]), []);
+		assert.deepEqual(listRules([true, true, false, false, false]), [null, "solid", "solid", "dotted", "dotted"]);
+		assert.deepEqual(listRules([false, false, true]), [null, "dotted", "solid"]);
 	});
 
 	it("dropTitle says what a drop will do", () => {

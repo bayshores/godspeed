@@ -31,7 +31,7 @@ export function skippedLines(skipped: SkippedFiles | undefined): string[] {
 	if (!skipped || skipped.count === 0) return [];
 	const { count, examples, google } = skipped;
 	const more = count - examples.length;
-	const names = more > 0 ? `${examples.join(", ")} and ${more} more` : examples.join(", ");
+	const names = more > 0 ? `${examples.join(", ")} and ${more} more` : examples.length > 1 ? `${examples.slice(0, -1).join(", ")} and ${examples.at(-1)}` : examples.join("");
 	const lines = [`${count} ${count === 1 ? "file here can't" : "files here can't"} be read: ${names}.`];
 	if (google > 0) lines.push("Google Docs need saving as PDF or Word to be read.");
 	return lines;

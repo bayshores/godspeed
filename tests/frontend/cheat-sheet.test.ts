@@ -347,7 +347,7 @@ describe("cheat sheet: the canvas", () => {
 		assert.equal(bounds([]), null);
 	});
 
-	it("fits a box into the part of the view the panel leaves, centered, never past 100%", () => {
+	it("fits a box into the part of the view the toolbar leaves, centered, never past 100%", () => {
 		const cam = fitCamera({ x: 0, y: 0, w: 1000, h: 500 }, { x: 0, y: 0, w: 628, h: 600 }, 64);
 		assert.equal(cam.zoom, 0.5);
 		assert.deepEqual([cam.x, cam.y], [64, 175]);

@@ -4,7 +4,9 @@
  * the class days before it that it neither covers nor leaves out, and the
  * ones left out on purpose. Pure and unit-tested.
  */
-import { dateInName, extensionOf, type ClassDeadline, type ClassFile, type FileCoverage } from "@/shared/core";
+import { dateInName, extensionOf, type ClassDeadline, type ClassFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
+import { clockLabel, kindLabel } from "@/frontend/components/class-deadlines-model";
+import { longDay } from "@/frontend/components/home-page/home-page-model";
 
 export type DayState = "ready" | "reading" | "failed" | "info";
 
@@ -207,7 +209,15 @@ export function coverageMessage(className: string, deadline: { name: string; whe
 	return `Work out what ${deadline.name} (${deadline.when}) in ${className} covers from my files, like a practice exam, a review sheet or the syllabus. Link those files to it, leave out the earlier ones it doesn't cover, and tell me which file you went by.`;
 }
 
+/** A topic's answers so far. */
+export type TopicTally = Pick<TopicProgress, "id" | "right" | "answered">;
+
 /** "2 of 5 right", or "not tested". */
-export function rightLabel(t: { right: number; answered: number }): string {
-	return t.answered === 0 ? "not tested" : `${t.right} of ${t.answered} right`;
+export function rightLabel(t: { right: number; answered: number } | undefined): string {
+	return t && t.answered > 0 ? `${t.right} of ${t.answered} right` : "not tested";
+}
+
+/** Over the deadline's name: "Exam, Tuesday Dec 8, 11:59 PM". */
+export function whenLine(d: { kind: DeadlineKind; date: string; time?: string }): string {
+	return [kindLabel(d.kind), longDay(d.date), d.time ? clockLabel(d.time) : ""].filter(Boolean).join(", ");
 }

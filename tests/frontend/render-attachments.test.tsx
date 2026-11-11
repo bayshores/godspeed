@@ -50,19 +50,19 @@ function composer(over: Partial<React.ComponentProps<typeof LessonBox>> = {}) {
 }
 
 describe("the composer's waiting files", () => {
-	it("previews each file above the box with an ✕, beside a picture button", () => {
+	it("shows each file above the box with Remove, beside Add pictures or PDFs", () => {
 		const html = composer();
 		assert.match(html, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*src="data:image\/png;base64,iVBORw0KGgo="/);
 		assert.match(html, /data-testid="draft-pdf"[\s\S]*?title="Week 3 notes\.pdf"[^>]*>Week 3 notes\.pdf/, "a long name shows in full on hover");
 		assert.match(html, /aria-label="Remove graph\.png"/);
 		assert.match(html, /aria-label="Remove Week 3 notes\.pdf"/);
 		assert.ok(html.indexOf("attachment-tray") < html.indexOf('data-testid="math-box"'), "the tray sits above the box");
-		assert.match(html, /data-testid="attach-button"[^>]*aria-label="Add pictures or PDFs"|aria-label="Add pictures or PDFs"[^>]*data-testid="attach-button"/);
+		assert.match(html, /data-testid="attach-button"[^>]*><svg.*?<\/svg>Add pictures or PDFs</);
 		assert.match(html, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.ok(!html.includes("attachment-note"), "no hold while idle");
 	});
 
-	it("no files: no tray, but the picture button stays", () => {
+	it("no files: no tray, but Add pictures or PDFs stays", () => {
 		const html = composer({ attachments: draft({ files: [] }) });
 		assert.ok(!html.includes("attachment-tray"));
 		assert.match(html, /data-testid="attach-button"/);

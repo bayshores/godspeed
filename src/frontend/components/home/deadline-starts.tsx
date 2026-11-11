@@ -1,6 +1,7 @@
 import { deadlineStudyLabel, type DeadlineProgress } from "@/shared/core";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
-/** The start page's one-click Study for each upcoming deadline ("Continue
+/** The Study page's one-click Study for each upcoming deadline ("Continue
  *  studying for" while its latest session is unfinished). */
 export function DeadlineStarts({
 	deadlines,
@@ -12,16 +13,10 @@ export function DeadlineStarts({
 	onStudy: (deadline: DeadlineProgress) => void;
 }) {
 	return (
-		<div data-testid="home-deadlines" className="mt-5 flex flex-wrap gap-0.5">
+		<div data-testid="home-deadlines" className="flex flex-wrap gap-2.5">
 			{deadlines.map((d) => (
-				<button
-					key={d.id}
-					type="button"
-					data-testid="home-study-deadline"
-					disabled={busy}
-					onClick={() => onStudy(d)}
-					className="lh-btn"
-				>
+				<button key={d.id} type="button" data-testid="home-study-deadline" disabled={busy} onClick={() => onStudy(d)} className="lh-btn text-[15px]">
+					<PixelIcon name="play" />
 					{deadlineStudyLabel(d.continueStudy, d.name)}
 				</button>
 			))}

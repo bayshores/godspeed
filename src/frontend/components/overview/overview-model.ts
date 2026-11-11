@@ -1,10 +1,11 @@
 /**
- * The Class Overview's small derived values.
- * Pure — every number comes from the ProgressPayload (src/shared/core/progress.ts);
+ * The Progress tab's small derived values.
+ * Pure: every number comes from the ProgressPayload (src/shared/core/progress.ts);
  * this file only shapes it for the page and is unit-tested on its own.
  */
-import type { CalibrationLevel, LessonProgress } from "@/shared/core";
-import { messageAnchorId } from "@/shared/core";
+import type { CalibrationLevel, DeadlineProgress, FactProgress, LessonProgress } from "@/shared/core";
+import { hasProblems, messageAnchorId } from "@/shared/core";
+import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
 /** A file's name without its extension ("Lecture 3 — Expectation.pdf" →
  *  "Lecture 3 — Expectation"). The Files page shows the full name. */
@@ -67,4 +68,117 @@ export function calibrationTakeaway(levels: readonly CalibrationLevel[]): string
 /** Calibration has something to show once any level has an answer. */
 export function hasCalibration(levels: readonly CalibrationLevel[]): boolean {
 	return levels.some((l) => l.answered > 0);
+}
+
+/** Share of the class's facts studied, 0 to 1 (0 with no facts). A fact
+ *  counts once it came up in a lesson, as in the fact grid. */
+export function studiedShare(facts: readonly Pick<FactProgress, "inLessons" | "answers">[]): number {
+	if (facts.length === 0) return 0;
+	return facts.filter((f) => f.inLessons || f.answers.length > 0).length / facts.length;
+}
+
+/** How much to shrink a signature so it fits its room (1 = as is). */
+export function fitScale(natural: { width: number; height: number }, room: { width: number; height: number }): number {
+	if (natural.width <= 0 || natural.height <= 0) return 1;
+	return Math.min(1, room.width / natural.width, room.height / natural.height);
+}
+
+const DAY_MS = 86_400_000;
+
+/** When the teacher's note was written, as "after … lesson": today's,
+ *  yesterday's, a weekday's within the week, then the date. */
+export function noteWhen(at: string, nowMs: number): string {
+	const written = new Date(at);
+	if (Number.isNaN(written.getTime())) return "";
+	const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+	const days = Math.round((startOf(new Date(nowMs)) - startOf(written)) / DAY_MS);
+	if (days <= 0) return "after today's lesson";
+	if (days === 1) return "after yesterday's lesson";
+	if (days < 7) return `after ${written.toLocaleDateString("en-US", { weekday: "long" })}'s lesson`;
+	return `after the ${written.toLocaleDateString("en-US", { month: "short", day: "numeric" })} lesson`;
+}
+
+/** The deadline's own page. */
+export function deadlineHref(id: string): string {
+	return `/class/deadline/${encodeURIComponent(id)}`;
+}
+
+/** 0.38 → 38. */
+export function percent(rate: number): number {
+	return Math.round(rate * 100);
+}
+
+type Due = Pick<DeadlineProgress, "id" | "kind" | "name" | "date" | "time" | "done">;
+
+/** The deadlines still ahead (open, not past due), soonest first. */
+export function upcomingDeadlines<T extends Due>(deadlines: readonly T[], nowMs: number): T[] {
+	return byDue(deadlines.filter((d) => !d.done && !isOverdue(d, nowMs)));
+}
+
+/** How far a deadline is, in words: "2 of 7 problems done", or "19% ready"
+ *  for one with no problems; null with nothing to count. */
+export function progressWords(d: Pick<DeadlineProgress, "problems" | "ready">): string | null {
+	if (d.problems) return `${d.problems.done} of ${d.problems.total} problems done`;
+	return d.ready !== null ? `${percent(d.ready)}% ready` : null;
+}
+
+/** The same as a share, 0 to 1; null with nothing to count. */
+export function progressShare(d: Pick<DeadlineProgress, "problems" | "ready">): number | null {
+	if (d.problems) return d.problems.total > 0 ? d.problems.done / d.problems.total : 0;
+	return d.ready;
+}
+
+/** The next deadline's button: homework and projects are worked on, tests
+ *  are studied for. */
+export function nextDeadlineButton(d: Pick<DeadlineProgress, "kind" | "name">): string {
+	return `${hasProblems(d.kind) ? "Work on" : "Study for"} ${d.name}`;
+}
+
+/** "a", "a and b", "a, b and c". */
+export function joinAnd(names: readonly string[]): string {
+	if (names.length <= 1) return names[0] ?? "";
+	return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+export interface MostNeeded {
+	topicId: string;
+	name: string;
+	/** The deadlines that cover it, soonest first. */
+	deadlines: string[];
+}
+
+/** The open-deadline topic with the lowest right rate (untested counts as
+ *  0); ties go to the topic more deadlines cover, then by name. */
+export function mostNeeded(upcoming: readonly Pick<DeadlineProgress, "name" | "topics">[]): MostNeeded | null {
+	const byTopic = new Map<string, { name: string; rate: number; deadlines: string[] }>();
+	for (const d of upcoming) {
+		for (const t of d.topics) {
+			const entry = byTopic.get(t.id);
+			if (entry) {
+				if (!entry.deadlines.includes(d.name)) entry.deadlines.push(d.name);
+			} else byTopic.set(t.id, { name: t.name, rate: t.rate ?? 0, deadlines: [d.name] });
+		}
+	}
+	let best: (MostNeeded & { rate: number }) | null = null;
+	for (const [topicId, e] of byTopic) {
+		const better =
+			!best ||
+			e.rate < best.rate ||
+			(e.rate === best.rate && (e.deadlines.length > best.deadlines.length || (e.deadlines.length === best.deadlines.length && e.name.localeCompare(best.name) < 0)));
+		if (better) best = { topicId, name: e.name, rate: e.rate, deadlines: e.deadlines };
+	}
+	return best ? { topicId: best.topicId, name: best.name, deadlines: best.deadlines } : null;
+}
+
+/** "Pick up where you left off" lists this many lessons. */
+const RECENT_LESSONS = 3;
+
+/** The lessons worked on last, newest first. */
+export function recentLessons(lessons: readonly LessonProgress[]): LessonProgress[] {
+	return [...lessons].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, RECENT_LESSONS);
+}
+
+/** Under a lesson's title: "4 of 6 right"; "No answers yet" before the first. */
+export function scoreLine(l: Pick<LessonProgress, "right" | "answered">): string {
+	return l.answered > 0 ? `${l.right} of ${l.answered} right` : "No answers yet";
 }

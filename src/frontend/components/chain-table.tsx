@@ -1,81 +1,34 @@
-/**
- * THE CHAIN TABLE: every reasoning chain of the graph in one full-bleed
- * surface (the blur + translucent background IS the surface, no inner
- * card). It uses the shared TopBar; the overlay (z-40) covers home's
- * floating header while open, so the TopBar's own SidebarToggle is the
- * reopen path.
- *
- * HIERARCHY (three levels, one click each): CLUSTER (the birth session: a
- * chat or a notes file; a chain lives where its CONCLUSION was born) →
- * REASONING CHAIN → PROPOSITION STATEMENTS. Names live in the chain line,
- * never twice. Everything starts collapsed. Indentation carries the
- * structure; the only lines are the separators between cluster groups.
- *
- * THE CHAIN LINE: every proposition name is a faint-outlined chip with the
- * logic as the connectives: `A ∧ B ⟹ C`, never the misleading
- * `A → B → C`. The glyphs are real KaTeX renders (latex-glyph.tsx). A
- * lonely chip (no premises) carries no glyph; "(no premises)" survives
- * only as the row's aria-label.
- *
- * SORTING: Name (A→Z), Facts (largest-first), Created (newest-first);
- * click toggles asc/desc. Sort orders cluster rows AND chains within.
- *
- * SELECTION never shifts layout: a floating bottom bar appears only when
- * something is selected, showing the picked fact count + Clear. A file or
- * chain check also picks the facts its chains build on (a line above the
- * table says so). DELETE sits fenced at the bar's right end
- * and opens the same confirm dialog the canvas uses. The fuzzy search
- * (names, aliases, statements) filters chains grouped and auto-expanded
- * under their clusters.
- */
-
-import { useEffect, useMemo, useState } from "react";
-import {
-	ChevronDownIcon,
-	ChevronRightIcon,
-	ChevronUpIcon,
-	DumbbellIcon,
-	FolderIcon,
-	FolderOpenIcon,
-	Trash2Icon,
-	SearchIcon,
-	XIcon,
-} from "lucide-react";
-import { chainsForSelection, formatChainLine, fuzzyScore } from "@/shared/core";
-import { usePresence } from "@/frontend/components/presence";
+import { useMemo } from "react";
+import { chainsForSelection, formatChainLine } from "@/shared/core";
 import type { GraphChain, GraphNode } from "@/shared/core";
-import { PageBar } from "@/frontend/components/page-bar";
-import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
+import { usePresence } from "@/frontend/components/presence";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
+import { FIELD } from "@/frontend/components/ui/field";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { cn } from "@/frontend/lib/utils";
+import { countLine, factCount, groupChains, groupName, matchingChains, tickState, type ChainSort, type ReasoningChain } from "./chain-table-model";
 
-/** The sortable columns. */
-type ChainSortCol = "name" | "props" | "created";
-export interface ChainSort {
-	col: ChainSortCol;
-	/** 1 = ascending (A→Z, oldest-first, smallest-first), -1 = descending. */
-	dir: 1 | -1;
-}
+const SORTS = [
+	{ col: "name", label: "Name" },
+	{ col: "props", label: "Facts" },
+	{ col: "created", label: "Created" },
+] as const;
 
-/** A cluster's chains share the conclusion's birth. This
- *  record is assembled per render from the visible chains. */
-interface ClusterGroup {
-	key: string;
-	birth: string | null;
-	label: string | null;
-	kind: "chat" | "notes" | null;
-	chains: ReturnType<typeof chainsForSelection>;
-	nodeIds: string[];
-	newestCreatedAt: string;
-}
+/** The right end of a group or chain row: how many facts and the newest. */
+const TALLY = "shrink-0 font-count text-[15px] text-ink-2";
 
-/** The table's pure body — exported for SSR pins (the render-suite
- *  discipline). All state (query, sort, selection, expansion) arrives
- *  via props; the overlay wrapper below owns it. */
+/**
+ * "All facts": every fact of the class in three levels, the lesson or
+ * file it came from, its chains written as `A ∧ B ⟹ C`, and each fact's
+ * statement. Search, sort and the picked facts come in as props (the
+ * overlay owns them), so the render tests draw this directly.
+ */
 export function ChainTableBody({
 	nodes,
 	chains: storedChains,
 	sessions,
 	fileSources,
+	classLabel,
 	query,
 	onQuery,
 	sort,
@@ -96,25 +49,23 @@ export function ChainTableBody({
 	chains: GraphChain[];
 	sessions: Record<string, string>;
 	fileSources: Record<string, string>;
+	/** The class's name for the count line. */
+	classLabel: string | null;
 	query: string;
 	onQuery: (v: string) => void;
 	sort: ChainSort;
-	onSort: (col: ChainSortCol) => void;
+	onSort: (col: ChainSort["col"]) => void;
 	selection: ReadonlySet<string>;
 	expandedClusters: ReadonlySet<string>;
 	expandedChains: ReadonlySet<string>;
 	onToggleCluster: (key: string) => void;
 	onToggleChain: (id: string) => void;
-	/** Selection is ALWAYS a flat node-id set — cluster, chain, and single
-	 *  proposition checks all reduce to this. */
+	/** Every box (group, chain or fact) picks or unpicks fact ids. */
 	onToggleNodes: (ids: string[], next: boolean) => void;
 	onClear: () => void;
-	/** Opens the full-death confirm dialog. */
 	onDelete: () => void;
 	onClose: () => void;
-	/** PRACTICE SELECT: the floating bar's confirm becomes
-	 *  "Practice these" — no delete fence; the caller owns what the
-	 *  selection becomes. */
+	/** Picking facts to start from: the bar's "Done" replaces "Delete". */
 	selectMode?: boolean;
 	onSelect?: () => void;
 }) {
@@ -122,351 +73,128 @@ export function ChainTableBody({
 	const names = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, { name: n.name }])), [nodes]);
 	const chains = useMemo(() => chainsForSelection(nodes, storedChains), [nodes, storedChains]);
 	const searching = query.trim() !== "";
-	// The selection bar fades out before unmounting.
+	const groups = useMemo(
+		() => groupChains(matchingChains(chains, byId, query), byId, sessions, fileSources, sort),
+		[chains, byId, query, sessions, fileSources, sort],
+	);
+	// The bar fades out before it unmounts.
 	const bar = usePresence(selection.size > 0);
-
-	// The fuzzy filter: a chain is visible when ANY member matches on
-	// name, aliases, or statement; chains rank by best member score.
-	const visibleChains = useMemo(() => {
-		if (!searching) return chains;
-		const scored = chains
-			.map((chain) => {
-				let best: number | null = null;
-				for (const id of [...chain.premises, chain.conclusion]) {
-					const node = byId.get(id);
-					if (!node) continue;
-					const s = fuzzyScore(query, node.name, node.statement, ...node.aliases);
-					if (s === null) continue;
-					if (best === null || s > best) best = s;
-				}
-				return best === null ? null : { chain, best };
-			})
-			.filter((r): r is { chain: (typeof chains)[number]; best: number } => r !== null);
-		return scored
-			.sort((a, b) => b.best - a.best || (a.chain.id < b.chain.id ? -1 : 1))
-			.map(({ chain }) => chain);
-	}, [chains, byId, query, searching]);
-
-	// Group the visible chains by their CONCLUSION's birth.
-	// Unlabeled births (provenance gone / never named) form one honest
-	// muted group, sorted last under name-sort.
-	const groups = useMemo(() => {
-		const map = new Map<string, ClusterGroup>();
-		for (const chain of visibleChains) {
-			const conclusion = byId.get(chain.conclusion);
-			const birth = conclusion?.provenance[0]?.chatId ?? null;
-			const key = birth ?? "\0unlabeled";
-			let group = map.get(key);
-			if (!group) {
-				const label = birth === null ? null : (sessions[birth] ?? fileSources[birth] ?? null);
-				const kind =
-					birth === null ? null : sessions[birth] !== undefined ? "chat" : fileSources[birth] !== undefined ? "notes" : null;
-				group = { key, birth, label, kind, chains: [], nodeIds: [], newestCreatedAt: "" };
-				map.set(key, group);
-			}
-			group.chains.push(chain);
-			for (const id of [...chain.premises, chain.conclusion]) {
-				if (!group.nodeIds.includes(id)) group.nodeIds.push(id);
-				const createdAt = byId.get(id)?.createdAt ?? "";
-				if (createdAt > group.newestCreatedAt) group.newestCreatedAt = createdAt;
-			}
-		}
-		const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
-		const list = [...map.values()];
-		// The active column orders BOTH cluster rows and chains within; name
-		// is the tiebreak (A→Z). Clusters with no label always sort last.
-		const cmpName = (a: ClusterGroup, b: ClusterGroup) =>
-			Number(a.label === null) - Number(b.label === null) ||
-			collator.compare(a.label ?? "", b.label ?? "") * (sort.col === "name" ? sort.dir : 1);
-		const cmpProps = (a: ClusterGroup, b: ClusterGroup) =>
-			sort.dir === -1 ? b.nodeIds.length - a.nodeIds.length : a.nodeIds.length - b.nodeIds.length;
-		const cmpCreated = (a: ClusterGroup, b: ClusterGroup) =>
-			sort.dir === -1 ? b.newestCreatedAt.localeCompare(a.newestCreatedAt) : a.newestCreatedAt.localeCompare(b.newestCreatedAt);
-		list.sort((a, b) =>
-			sort.col === "created" ? cmpCreated(a, b) || cmpName(a, b) : sort.col === "props" ? cmpProps(a, b) || cmpName(a, b) : cmpName(a, b),
-		);
-		for (const group of list) {
-			const chainName = (chain: (typeof chains)[number]) => byId.get(chain.conclusion)?.name ?? chain.conclusion;
-			const chainSize = (chain: (typeof chains)[number]) => chain.premises.length + 1;
-			const chainDate = (chain: (typeof chains)[number]) => byId.get(chain.conclusion)?.createdAt ?? "";
-			const cName = (a: (typeof chains)[number], b: (typeof chains)[number]) => collator.compare(chainName(a), chainName(b)) * (sort.col === "name" ? sort.dir : 1);
-			const cProps = (a: (typeof chains)[number], b: (typeof chains)[number]) =>
-				sort.dir === -1 ? chainSize(b) - chainSize(a) : chainSize(a) - chainSize(b);
-			const cDate = (a: (typeof chains)[number], b: (typeof chains)[number]) =>
-				sort.dir === -1 ? chainDate(b).localeCompare(chainDate(a)) : chainDate(a).localeCompare(chainDate(b));
-			group.chains.sort((a, b) =>
-				sort.col === "created" ? cDate(a, b) || cName(a, b) : sort.col === "props" ? cProps(a, b) || cName(a, b) : cName(a, b),
-			);
-		}
-		return list;
-	}, [visibleChains, byId, sessions, fileSources, sort]);
-
 	const nameOf = (id: string) => byId.get(id)?.name ?? id;
 	const dateOf = (id: string) => byId.get(id)?.createdAt.slice(0, 10) ?? "";
-	const dirIcon = (col: ChainSortCol) =>
-		sort.col !== col ? null : sort.dir === 1 ? <ChevronUpIcon className="size-3" /> : <ChevronDownIcon className="size-3" />;
 
 	return (
 		<div data-testid="chain-table" className="relative flex h-full min-h-0 flex-col">
-			{/* No title: the serif title register always names a session, and
-			    the chain table names nothing, so its bar carries counts +
-			    search + close only. Search + close carve out with lh-no-drag
-			    (later in the DOM). */}
-			<PageBar back={{ label: "Graph", href: "/graph" }} title="All facts">
-				<span className="shrink-0 text-xs text-muted-foreground">
-					{nodes.length} {nodes.length === 1 ? "fact" : "facts"}
-				</span>
-				<div className="relative shrink-0">
-					<SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-					<input
-						value={query}
-						data-testid="chain-table-search"
-						onChange={(e) => onQuery(e.target.value)}
-						placeholder="Search facts…"
-						aria-label="Search facts"
-						spellCheck={false}
-						className="lh-no-drag h-8 w-56 border bg-background pl-8 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
-					/>
-				</div>
-			<button
-					type="button"
-					data-testid="chain-table-close"
-					onClick={onClose}
-					aria-label="Close"
-					className="lh-press lh-no-drag flex size-8 shrink-0 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground hover:bg-accent hover:text-foreground"
-				>
-					<XIcon className="size-4" />
-				</button>
-			</PageBar>
-
-			{/* The list: no per-row lines; the only horizontal separators sit
-			    between cluster groups. The indentation staircase carries the
-			    hierarchy: chains pl-12 aligned with the folder icon,
-			    statements pl-21 where a chain icon would sit. */}
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				{/* The TOP rule: the table is framed (a line under the header, a
-			    line under the last group, lines between groups). */}
-				<div className="px-3 pb-2 pt-3">
-					{selectMode && <h2 className="text-sm font-semibold text-foreground">Pick the facts to start from</h2>}
-					<p data-testid="chain-table-hint" className="text-xs text-ink-3">
-						Picking a file or a fact also picks the facts it builds on.
-					</p>
-				</div>
-				<div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border/60 bg-background/80 px-3 py-1.5 text-xs font-semibold text-ink-3 backdrop-blur">
-					<button
-						type="button"
-						data-testid="sort-name"
-						onClick={() => onSort("name")}
-						aria-sort={sort.col === "name" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-						className="lh-press flex flex-1 items-center gap-1 text-left hover:text-foreground"
-					>
-						Name {dirIcon("name")}
-					</button>
-					<button
-						type="button"
-						data-testid="sort-props"
-						onClick={() => onSort("props")}
-						aria-sort={sort.col === "props" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-						className="lh-press flex w-14 shrink-0 items-center justify-end gap-1 text-right hover:text-foreground"
-					>
-						Facts {dirIcon("props")}
-					</button>
-					<button
-						type="button"
-						data-testid="sort-created"
-						onClick={() => onSort("created")}
-						aria-sort={sort.col === "created" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-						className="lh-press flex w-20 shrink-0 items-center justify-end gap-1 text-right hover:text-foreground"
-					>
-						Created {dirIcon("created")}
-					</button>
-				</div>
-
-				{groups.length === 0 && (
-					<div data-testid="chain-table-nomatch" className="px-4 pt-3 text-xs text-muted-foreground">
-						No matching facts.
-					</div>
-				)}
-
-				{groups.map((group) => {
-					const open = searching || expandedClusters.has(group.key);
-					const selectedCount = group.nodeIds.filter((id) => selection.has(id)).length;
-					return (
-						<div
-							key={group.key}
-							data-testid={`cluster-group-${group.key}`}
-							// The horizontal rules: between cluster groups AND under the
-							// last one, so the table is framed
-							// top (header) and bottom. Never on individual rows.
-							className="relative border-b border-border/60"
-						>
-							{/* The TREE THREAD: a vertical guide at the
-							    expander arrow's column (center 37px: pl-3 + checkbox 14 +
-							    gap 4 + half the 14px expander), BRACKETED by checkbox
-							    bottom edges — it starts at the cluster row's own checkbox
-							    bottom (top-[23px], leaving the arrow's stroke a visible
-							    gap, live-measured) and terminates exactly at the LAST
-							    checkbox bottom (bottom-[8px] = 9px from the border box minus the 1px group rule, measured). */}
-							{open && group.chains.length > 0 && (
-								<div
-									data-testid={`cluster-thread-${group.key}`}
-									className="pointer-events-none absolute bottom-[8px] left-[37px] top-[23px] w-px bg-border/50"
-								/>
-							)}
-							{/* The cluster row: birth-session group header. */}
-							<div className="flex items-center gap-1 px-3 py-1.5">
-								<RowCheckbox
-									checked={selectedCount === group.nodeIds.length && group.nodeIds.length > 0}
-									indeterminate={selectedCount > 0 && selectedCount < group.nodeIds.length}
-									onToggle={(next) => onToggleNodes(group.nodeIds, next)}
-									testid={`cluster-checkbox-${group.key}`}
-									label={`Select all facts from ${group.label ?? "unlabeled"}`}
-								/>
-								<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand ${group.label ?? "unlabeled"}`} />
-								<span className="flex shrink-0 items-center justify-center text-muted-foreground">
-									{open ? <FolderOpenIcon className="size-3.5" /> : <FolderIcon className="size-3.5" />}
-								</span>
-								<span className="min-w-0 flex-1 truncate text-sm font-medium">
-									{group.label ?? <span className="text-ink-3">unlabeled</span>}
-									{group.kind === "chat" && <span className="ml-2 text-xs font-semibold text-ink-3">Lesson</span>}
-								</span>
-								<span className="w-14 shrink-0 text-right text-xs font-mono tabular-nums text-muted-foreground">
-									{group.nodeIds.length}
-								</span>
-								<span className="w-20 shrink-0 text-right text-xs font-mono tabular-nums text-muted-foreground">
-									{group.newestCreatedAt.slice(0, 10)}
-								</span>
-							</div>
-
-							{/* The chain rows, indented under the folder;
-							    visible only when the cluster is open
-							    (searching auto-expands). */}
-							{open &&
-								group.chains.map((chain) => {
-									const memberIds = [...chain.premises, chain.conclusion];
-									const chainOpen = expandedChains.has(chain.id);
-									const selectedInChain = memberIds.filter((id) => selection.has(id)).length;
-									return (
-										<div key={chain.id} data-testid={`chain-block-${chain.id}`} className="lh-rise relative">
-												{/* The chain's own thread: the same
-												    bracket law one level down — at the chain arrow's column
-												    (center 73px), from the chain row's checkbox bottom
-												    (top-[22px]) to the LAST statement row's checkbox bottom
-												    (bottom-[8px]) — live-measured anchors. */}
-												{chainOpen && memberIds.length > 0 && (
-													<div
-														data-testid={`chain-thread-${chain.id}`}
-														className="pointer-events-none absolute bottom-[8px] left-[73px] top-[22px] w-px bg-border/50"
-													/>
-												)}
-											<div
-												data-testid={`chain-row-${chain.id}`}
-												aria-label={formatChainLine(chain, names)}
-												className="flex items-center gap-1 py-1 pl-12 pr-3"
-											>
-												<RowCheckbox
-													checked={selectedInChain === memberIds.length && memberIds.length > 0}
-													indeterminate={selectedInChain > 0 && selectedInChain < memberIds.length}
-													onToggle={(next) => onToggleNodes(memberIds, next)}
-													testid={`chain-checkbox-${chain.id}`}
-													label={`Select ${nameOf(chain.conclusion)} and the facts it builds on`}
-												/>
-												<Expander open={chainOpen} onClick={() => onToggleChain(chain.id)} testid={`chain-toggle-${chain.id}`} label={`Expand ${nameOf(chain.conclusion)}`} />
-												{/* The chain line: proposition names as faint-outlined
-												    chips joined by the logic, `A ∧ B ⟹ C`, rendered
-												    through KaTeX. A lonely chip has no glyphs; the
-												    row's aria-label keeps the plain-text form. */}
-												<span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-0.5 gap-y-1 text-[13px] leading-tight">
-													{memberIds.map((id, i) => {
-														const isConclusion = i === memberIds.length - 1;
-														return (
-															<span key={id} className="flex items-center">
-																{i > 0 && (isConclusion ? (
-																	<LatexGlyph
-																		cmd="\implies"
-																		testid={`chain-implies-${chain.id}`}
-																		className="px-1.5 text-foreground"
-																	/>
-																) : (
-																	<LatexGlyph
-																		cmd="\land"
-																		testid={`chain-and-${chain.id}-${i}`}
-																		className="px-1.5 text-foreground"
-																	/>
-																))}
-																<span
-																	data-testid={`prop-chip-${id}`}
-																	className=" border border-border/70 bg-muted/30 px-1.5 py-0.5"
-																>
-																	{nameOf(id)}
-																</span>
-															</span>
-														);
-													})}
-												</span>
-												<span className="w-14 shrink-0 text-right text-xs font-mono tabular-nums text-muted-foreground">
-													{memberIds.length}
-												</span>
-												<span className="w-20 shrink-0 text-right text-xs font-mono tabular-nums text-muted-foreground">
-													{dateOf(chain.conclusion)}
-												</span>
-											</div>
-
-											{/* The propositions: their STATEMENT text directly (names
-											    live in the line; a singleton reveals its one statement
-											    in one click). PLAIN rows: the derivation
-											    is already encoded in the chain line — no conclusion
-											    marker down here. Deepest indent. */}
-											{chainOpen &&
-												memberIds.map((id) => {
-													const node = byId.get(id);
-													if (!node) return null;
-													return (
-														<div
-															key={id}
-															data-testid={`prop-row-${id}`}
-															className="lh-rise flex items-start gap-2 py-1 pl-21 pr-3"
-														>
-															<RowCheckbox
-																checked={selection.has(id)}
-																onToggle={(next) => onToggleNodes([id], next)}
-																testid={`prop-checkbox-${id}`}
-																label={`Select ${node.name}`}
-															/>
-															<span className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
-																{node.statement}
-															</span>
-															<span className="w-14 shrink-0" />
-															<span className="w-20 shrink-0" />
-														</div>
-													);
-												})}
-										</div>
-									);
-								})}
+				<div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-6 pt-8 pb-28">
+					<div className="flex flex-wrap items-center gap-3.5">
+						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+							<h1 className="text-[30px] leading-tight text-ink">All facts</h1>
+							<p data-testid="chain-table-count" className="text-[15px] text-ink-2">
+								{countLine(nodes.length, classLabel)}
+							</p>
 						</div>
-					);
-				})}
+						<input
+							value={query}
+							data-testid="chain-table-search"
+							onChange={(e) => onQuery(e.target.value)}
+							placeholder="Search facts…"
+							aria-label="Search facts"
+							spellCheck={false}
+							className={cn(FIELD, "w-[260px] max-w-full")}
+						/>
+						<button type="button" data-testid="chain-table-close" onClick={onClose} className="lh-btn bg-panel text-[15px]">
+							<PixelIcon name="close" />
+							Close
+						</button>
+					</div>
+
+					<div className="flex flex-col gap-1">
+						{selectMode && <h2 className="text-lg text-ink">Pick the facts to start from</h2>}
+						<p data-testid="chain-table-hint" className="text-[15px] text-ink-2">
+							Picking a file or a fact also picks the facts it builds on.
+						</p>
+					</div>
+
+					<div className="flex flex-wrap items-center gap-1.5">
+						<span className="mr-1 text-[15px] text-ink-2">Sort by</span>
+						{SORTS.map(({ col, label }) => {
+							const on = sort.col === col;
+							return (
+								<button
+									key={col}
+									type="button"
+									data-testid={`sort-${col}`}
+									onClick={() => onSort(col)}
+									aria-sort={on ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
+									className={cn("lh-btn text-[15px]", on ? "h-auto bg-panel px-2.5 py-[5px]" : "lh-btn-quiet")}
+								>
+									{label}
+									{on && <PixelIcon name="chevron" className={cn("h-2", sort.dir === 1 ? "-rotate-90" : "rotate-90")} />}
+								</button>
+							);
+						})}
+					</div>
+
+					<div className="rounded border-2 border-line bg-panel px-6 py-2.5">
+						{groups.length === 0 && (
+							<p data-testid="chain-table-nomatch" className="py-2.5 text-[15px] text-ink-2">
+								No matching facts.
+							</p>
+						)}
+						{groups.map((group) => {
+							const open = searching || expandedClusters.has(group.key);
+							const label = groupName(group);
+							return (
+								<div key={group.key} data-testid={`cluster-group-${group.key}`} className="border-b-2 border-dotted border-edge last:border-b-0">
+									<div className="flex items-center gap-3 py-2.5">
+										<TickBox
+											{...tickState(group.nodeIds, selection)}
+											onToggle={(next) => onToggleNodes(group.nodeIds, next)}
+											testid={`cluster-checkbox-${group.key}`}
+											label={`Select all facts from ${group.label ?? "unlabeled"}`}
+										/>
+										<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand ${group.label ?? "unlabeled"}`} />
+										<span title={group.label ?? undefined} className={cn("min-w-0 truncate text-lg font-medium", label ? "text-ink" : "text-ink-3")}>
+											{label ?? "unlabeled"}
+										</span>
+										{group.kind === "chat" && <span className="shrink-0 rounded-sm bg-tone-2 px-[7px] py-px text-xs font-medium text-ink">Lesson</span>}
+										<span className="flex-1" />
+										<span className={TALLY}>{factCount(group.nodeIds.length)}</span>
+										<span className={cn(TALLY, "text-ink-3")}>{group.newestCreatedAt.slice(0, 10)}</span>
+									</div>
+									{open &&
+										group.chains.map((chain) => (
+											<ChainBlock
+												key={chain.id}
+												chain={chain}
+												open={expandedChains.has(chain.id)}
+												line={formatChainLine(chain, names)}
+												byId={byId}
+												nameOf={nameOf}
+												date={dateOf(chain.conclusion)}
+												selection={selection}
+												onToggle={() => onToggleChain(chain.id)}
+												onToggleNodes={onToggleNodes}
+											/>
+										))}
+								</div>
+							);
+						})}
+					</div>
+				</div>
 			</div>
 
-			{/* The floating selection bar never shifts layout. Appears only when something is
-			    selected; floats over the table's bottom edge. */}
 			{bar.mounted && (
-				<div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-4">
+				<div className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex justify-center px-4">
 					<div
 						data-testid="chain-selection-bar"
 						data-state={bar.state}
-						className="lh-pop pointer-events-auto lh-popup flex items-center gap-3 px-4 py-2"
+						className="lh-pop pointer-events-auto flex h-14 w-[560px] max-w-full items-center gap-2.5 rounded-sm bg-ink pr-2.5 pl-5 text-background"
 					>
-						<span data-testid="chain-selected-summary" className="text-xs font-medium">
-							{selection.size} {selection.size === 1 ? "fact" : "facts"} picked
+						<span data-testid="chain-selected-summary" className="min-w-0 flex-1 truncate text-lg font-medium">
+							{factCount(selection.size)} picked
 						</span>
-						<button
-							type="button"
-							data-testid="chain-clear"
-							onClick={onClear}
-							className="lh-press lh-btn"
-						>
+						<button type="button" data-testid="chain-clear" onClick={onClear} className={ON_INK}>
 							Clear
 						</button>
 						{selectMode ? (
@@ -474,30 +202,15 @@ export function ChainTableBody({
 								type="button"
 								data-testid="chain-practice-done"
 								onClick={onSelect}
-								aria-label={`Done picking: ${selection.size} ${selection.size === 1 ? "fact" : "facts"} selected`}
-								className="lh-press flex items-center gap-1.5 bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+								aria-label={`Done picking: ${factCount(selection.size)} selected`}
+								className={cn(ON_INK, "bg-background text-ink hover:bg-background/90")}
 							>
-								<DumbbellIcon aria-hidden="true" className="size-3.5" />
 								Done
 							</button>
 						) : (
-							<>
-							{/* The danger fence: a divider quarantines
-								    the destructive action at the bar's right end — the
-								    safe actions and the kill switch never blend. The
-								    full-death confirm dialog catches the misclick. */}
-							<span data-testid="chain-danger-divider" aria-hidden="true" className="h-4 w-px bg-border/70" />
-							<button
-								type="button"
-								data-testid="chain-delete"
-								onClick={onDelete}
-								aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "fact" : "facts"}`}
-								className="lh-press flex items-center gap-1.5 border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
-							>
-								<Trash2Icon aria-hidden="true" className="size-3.5" />
+							<button type="button" data-testid="chain-delete" onClick={onDelete} aria-label={`Delete ${selection.size} selected ${selection.size === 1 ? "fact" : "facts"}`} className={ON_INK}>
 								Delete
 							</button>
-							</>
 						)}
 					</div>
 				</div>
@@ -506,7 +219,78 @@ export function ChainTableBody({
 	);
 }
 
-/** The rotating chevron: collapsed points right, expanded rotates down. */
+/** A button on the dark picked bar: outlined in the paper color. */
+const ON_INK = "lh-btn shrink-0 border-background text-[15px] text-background hover:bg-background/15";
+
+/** A chain's row (its facts as chips joined by ∧ and ⟹) and, opened,
+ *  each fact's statement. */
+function ChainBlock({
+	chain,
+	open,
+	line,
+	byId,
+	nameOf,
+	date,
+	selection,
+	onToggle,
+	onToggleNodes,
+}: {
+	chain: ReasoningChain;
+	open: boolean;
+	/** The plain-text chain for screen readers. */
+	line: string;
+	byId: ReadonlyMap<string, GraphNode>;
+	nameOf: (id: string) => string;
+	date: string;
+	selection: ReadonlySet<string>;
+	onToggle: () => void;
+	onToggleNodes: (ids: string[], next: boolean) => void;
+}) {
+	const ids = [...chain.premises, chain.conclusion];
+	return (
+		<div data-testid={`chain-block-${chain.id}`} className="lh-rise">
+			<div data-testid={`chain-row-${chain.id}`} aria-label={line} className="flex items-center gap-3 py-[9px] pl-[34px]">
+				<TickBox
+					{...tickState(ids, selection)}
+					onToggle={(next) => onToggleNodes(ids, next)}
+					testid={`chain-checkbox-${chain.id}`}
+					label={`Select ${nameOf(chain.conclusion)} and the facts it builds on`}
+				/>
+				<Expander open={open} onClick={onToggle} testid={`chain-toggle-${chain.id}`} label={`Expand ${nameOf(chain.conclusion)}`} />
+				<span className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1 text-[15px] leading-tight text-ink">
+					{ids.map((id, i) => (
+						<span key={id} className="flex items-center">
+							{i > 0 &&
+								(i === ids.length - 1 ? (
+									<LatexGlyph cmd="\implies" testid={`chain-implies-${chain.id}`} className="px-1.5 text-ink" />
+								) : (
+									<LatexGlyph cmd="\land" testid={`chain-and-${chain.id}-${i}`} className="px-1.5 text-ink" />
+								))}
+							<span data-testid={`prop-chip-${id}`} className="rounded-sm border border-edge bg-background px-1.5 py-0.5">
+								{nameOf(id)}
+							</span>
+						</span>
+					))}
+				</span>
+				<span className={TALLY}>{factCount(ids.length)}</span>
+				<span className={cn(TALLY, "text-ink-3")}>{date}</span>
+			</div>
+			{open &&
+				ids.map((id) => {
+					const node = byId.get(id);
+					if (!node) return null;
+					return (
+						<div key={id} data-testid={`prop-row-${id}`} className="lh-rise flex items-start gap-3 py-[9px] pl-[68px]">
+							<TickBox checked={selection.has(id)} onToggle={(next) => onToggleNodes([id], next)} testid={`prop-checkbox-${id}`} label={`Select ${node.name}`} />
+							<span className="min-w-0 flex-1 pt-px text-[15px] text-ink">{node.statement}</span>
+						</div>
+					);
+				})}
+		</div>
+	);
+}
+
+/** Opens and closes a group or chain: the chevron turns down when open. */
 function Expander({ open, onClick, testid, label }: { open: boolean; onClick: () => void; testid: string; label: string }) {
 	return (
 		<button
@@ -515,178 +299,50 @@ function Expander({ open, onClick, testid, label }: { open: boolean; onClick: ()
 			onClick={onClick}
 			aria-label={label}
 			aria-expanded={open}
-			className="lh-press flex h-5 w-3.5 shrink-0 items-center justify-center text-ink-3 hover:bg-accent hover:text-foreground"
+			className="flex size-5 shrink-0 items-center justify-center rounded-sm text-ink hover:bg-tone"
 		>
-			<ChevronRightIcon className={`size-3.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) ${open ? "rotate-90" : ""}`} />
+			<PixelIcon name="chevron" className={cn("h-2.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 		</button>
 	);
 }
 
-/** The checkbox — checked/indeterminate (partial chains/clusters); DOM
- *  property set via ref (React does not expose `indeterminate`). */
-function RowCheckbox({
+/** The pick box: ticked, half ticked (some of a group's facts) or empty.
+ *  The real checkbox stays for screen readers and carries `indeterminate`. */
+function TickBox({
 	checked,
-	indeterminate = false,
+	mixed = false,
 	onToggle,
 	testid,
 	label,
 }: {
 	checked: boolean;
-	indeterminate?: boolean;
+	mixed?: boolean;
 	onToggle: (next: boolean) => void;
 	testid: string;
 	label: string;
 }) {
 	return (
-		<input
-			type="checkbox"
-			checked={checked}
-			ref={(el) => {
-				if (el) el.indeterminate = indeterminate;
-			}}
-			data-testid={testid}
-			aria-label={label}
-			onChange={(e) => onToggle(e.target.checked)}
-			className="size-3.5 shrink-0 accent-primary"
-		/>
-	);
-}
-
-/** The graph view's overlay wrapper: owns query + sort + selection +
- *  expansion; mounts ABSOLUTE INSIDE the
- *  graph area, full-bleed. Esc + the top-bar X dismiss (there is no
- *  backdrop margin to click). */
-export function ChainTableOverlay({
-	open,
-	nodes,
-	chains: storedChains,
-	sessions,
-	fileSources,
-	onClose,
-	/** PRACTICE SELECT: the selection is
-	 *  PERSISTENT and caller-owned — when these props are present the
-	 *  table is CONTROLLED (every check/clear/delete-prune reports up
-	 *  immediately; the composer-side chip reflects it live). selectMode
-	 *  only changes the floating bar: Done instead of the delete fence
-	 *  (deleting while picking is a footgun). */
-	selectMode,
-	controlledSelection,
-	onSelectionChange,
-}: {
-	open: boolean;
-	nodes: GraphNode[];
-	chains: GraphChain[];
-	sessions: Record<string, string>;
-	fileSources: Record<string, string>;
-	onClose: () => void;
-	selectMode?: boolean;
-	controlledSelection?: ReadonlySet<string>;
-	onSelectionChange?: (next: ReadonlySet<string>) => void;
-}) {
-	const [query, setQuery] = useState("");
-	const [sort, setSort] = useState<ChainSort>({ col: "name", dir: 1 });
-	const [internalSelection, setInternalSelection] = useState<ReadonlySet<string>>(() => new Set());
-	const [expandedClusters, setExpandedClusters] = useState<ReadonlySet<string>>(() => new Set());
-	const [expandedChains, setExpandedChains] = useState<ReadonlySet<string>>(() => new Set());
-	const [deleteOpen, setDeleteOpen] = useState(false);
-
-	// Controlled when the caller lifts the selection (the practice pick
-	// set); internal (uncontrolled) otherwise — the delete flow's own.
-	const selection = controlledSelection ?? internalSelection;
-	const applySelection = (next: ReadonlySet<string>) => {
-		if (onSelectionChange) onSelectionChange(next);
-		else setInternalSelection(next);
-	};
-
-	const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-	// Only nodes that still exist: one deleted elsewhere drops out of the count.
-	const liveSelection = useMemo<ReadonlySet<string>>(() => new Set([...selection].filter((id) => byId.has(id))), [selection, byId]);
-
-	// Esc dismisses (unless a dialog has focus — each dialog's own Esc
-	// owns its layer; all listen on window, so the guards are explicit).
-	useEffect(() => {
-		if (!open || deleteOpen) return;
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				// Claim at the document level: the window chain (abort) must
-				// not also act. One Esc, one action.
-				e.preventDefault();
-				e.stopPropagation();
-				onClose();
-			}
-		};
-		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [open, deleteOpen, onClose]);
-
-	if (!open) return null;
-
-	const selectedNodes = [...liveSelection].map((id) => byId.get(id)).filter((n): n is GraphNode => n !== undefined);
-
-	const toggleNodes = (ids: string[], next: boolean) => {
-		const s = new Set(liveSelection);
-		for (const id of ids) {
-			if (next) s.add(id);
-			else s.delete(id);
-		}
-		applySelection(s);
-	};
-	const toggleIn = (set: ReadonlySet<string>, id: string) => {
-		const s = new Set(set);
-		if (s.has(id)) s.delete(id);
-		else s.add(id);
-		return s;
-	};
-
-	return (
-		<>
-			<div
-				data-testid="chain-table-overlay"
-				className="absolute inset-0 z-40 flex flex-col bg-background/80 backdrop-blur-sm"
-			>
-				<ChainTableBody
-					nodes={nodes}
-					chains={storedChains}
-					sessions={sessions}
-					fileSources={fileSources}
-					query={query}
-					onQuery={setQuery}
-					sort={sort}
-					onSort={(col) =>
-						setSort((prev) =>
-							prev.col === col
-								? { col, dir: prev.dir === 1 ? -1 : 1 }
-								: { col, dir: col === "name" ? 1 : -1 },
-						)
-					}
-					selection={liveSelection}
-					expandedClusters={expandedClusters}
-					expandedChains={expandedChains}
-					onToggleCluster={(key) => setExpandedClusters((prev) => toggleIn(prev, key))}
-					onToggleChain={(id) => setExpandedChains((prev) => toggleIn(prev, id))}
-					onToggleNodes={toggleNodes}
-					onClear={() => applySelection(new Set())}
-					onDelete={() => setDeleteOpen(true)}
-					onClose={onClose}
-					selectMode={selectMode}
-					onSelect={onClose}
-				/>
-			</div>
-			{/* Always mounted (null = closed) so the dialog can fade out. */}
-			<DeleteNodeDialog
-				nodes={deleteOpen ? selectedNodes.map((n) => ({ id: n.id, name: n.name })) : null}
-				onClose={() => setDeleteOpen(false)}
-				onDeleted={(deadIds, graphRevision) => {
-					// Close the dialog; prune the dead ids from the
-					// selection (the rest of a big selection survives);
-					// announce the revision so the graph screen refetches the
-					// snapshot — fresh nodes/edges flow back in as props.
-					setDeleteOpen(false);
-					const dead = new Set(deadIds);
-					applySelection(new Set([...liveSelection].filter((id) => !dead.has(id))));
-					window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { graphRevision } }));
+		<label className="relative flex size-5 shrink-0 cursor-pointer">
+			<input
+				type="checkbox"
+				checked={checked}
+				ref={(el) => {
+					if (el) el.indeterminate = mixed;
 				}}
+				data-testid={testid}
+				aria-label={label}
+				onChange={(e) => onToggle(e.target.checked)}
+				className="peer sr-only"
 			/>
-		</>
+			<span
+				aria-hidden
+				className={cn(
+					"flex size-5 items-center justify-center rounded-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink",
+					checked || mixed ? "bg-tint text-background" : "border-2 border-ink bg-background",
+				)}
+			>
+				{checked ? <PixelIcon name="check" className="h-[9px]" /> : mixed && <PixelIcon name="minus" className="h-[9px]" />}
+			</span>
+		</label>
 	);
 }

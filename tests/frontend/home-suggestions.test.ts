@@ -12,6 +12,7 @@ import {
 	homeSuggestions,
 	lessonStep,
 	suggestionKey,
+	suggestionLine,
 	upcomingDeadline,
 	workOnNextList,
 	WORK_ON_NEXT_ROWS,
@@ -184,5 +185,19 @@ describe("lessonStep (the Continue row's step N / M)", () => {
 			{ id: "a1", role: "assistant", content: [{ type: "toolCall", id: "p1", name: "problem", arguments: { nodeId: "n2" } }], timestamp: 0 },
 		] as unknown as Parameters<typeof lessonStep>[0]["messages"];
 		assert.deepEqual(lessonStep({ kind: "study", tree, messages }), { position: 2, total: 3 });
+	});
+});
+
+describe("suggestionLine", () => {
+	it("says the kind and its one number", () => {
+		const l = lesson("x", "2026-10-27T12:00:00Z");
+		assert.equal(suggestionLine({ kind: "continue", lesson: l }, { position: 2, total: 4 }), "Continue, step 2 of 4");
+		assert.equal(suggestionLine({ kind: "continue", lesson: l }, null), "Continue");
+		const file = { fileId: "f", name: "a.pdf", facts: 12, inLessons: 0, share: 0 };
+		assert.equal(suggestionLine({ kind: "next-up", file }, null), "Next up, 12 facts");
+		assert.equal(suggestionLine({ kind: "next-up", file: { ...file, facts: 1 } }, null), "Next up, 1 fact");
+		const item = { topicId: "a", name: "Topic a", status: "weak" as const, reason: "" };
+		assert.equal(suggestionLine({ kind: "work-on-next", item, topic: { ...topic("a", "weak"), right: 0, answered: 1 } }, null), "Work on next, 0 of 1 right");
+		assert.equal(suggestionLine({ kind: "work-on-next", item, topic: topic("a", "untested") }, null), "Work on next, not tested");
 	});
 });

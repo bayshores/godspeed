@@ -1,7 +1,7 @@
 /**
  * The Files page, mounted over linkedom with a fake fetch: groups from the
  * file names with counts, the linked folder, each row's kind and state
- * (coverage bar, Building facts…, Failed + Retry), Move and Unlink writing
+ * (coverage bar, Building facts, Failed + Retry), Move and Unlink writing
  * through the class routes, Add files and the Finder drop targets, search
  * and folded groups.
  */
@@ -25,7 +25,7 @@ Object.assign(globalThis, {
 	// next/link schedules its prefetch with self.requestIdleCallback.
 	self: globalThis,
 	IS_REACT_ACT_ENVIRONMENT: true,
-	// The ⋯ menu and the folder box place themselves on the next frame.
+	// The More menu and the folder box place themselves on the next frame.
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),
 });
@@ -148,7 +148,7 @@ describe("FilesPage", () => {
 	it("shows the linked folder, the summary, groups from the names with counts, and each row's kind and state", async () => {
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-pick-folder"), null, "a linked class shows its folder, not Link folder");
+		assert.equal(q("class-pick-folder"), null, "a linked class shows its folder, not Link a folder");
 		assert.ok(q("class-add-files"));
 		assert.equal(q("class-folder-status")!.textContent, "Watching CSE 21");
 		const today = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
@@ -157,7 +157,7 @@ describe("FilesPage", () => {
 		assert.equal(q("class-file-new-f1"), null);
 		assert.deepEqual(
 			[...document.querySelectorAll('[data-testid^="files-group-toggle-"]')].map((b) => b.textContent),
-			["Lecture3", "Rosen, Probability2", "Other2"],
+			["Lecture3 files", "Rosen, Probability2 files", "Other2 files"],
 		);
 		assert.deepEqual(
 			[...q("files-group-lecture")!.querySelectorAll('[data-testid^="files-item-"]')].map((i) => i.textContent!.slice(0, 9)),
@@ -166,12 +166,12 @@ describe("FilesPage", () => {
 		);
 		assert.equal(q("class-file-kind-f5")!.textContent, "Info");
 		assert.equal(q("class-file-kind-f1")!.textContent, "Study");
-		// "studied/facts" with the bar: a fill only when some came up.
-		assert.match(q("class-file-status-f1")!.textContent!, /31\/31\s*facts studied/);
-		assert.ok(q("class-file-f1")!.querySelector('[data-testid="file-coverage-fill"]'));
-		assert.match(q("class-file-status-f2")!.textContent!, /0\/22\s*facts studied/);
-		assert.equal(q("class-file-f2")!.querySelector('[data-testid="file-coverage-fill"]'), null, "unstudied file: an empty bar");
-		assert.match(q("class-file-status-f3")!.textContent!, /Building facts…/);
+		// "studied of facts" with the bar, filled by the share that came up.
+		assert.equal(q("class-file-status-f1")!.textContent, "31 of 31 facts studied");
+		assert.match(q("class-file-status-f1")!.innerHTML, /width:\s*100%/);
+		assert.equal(q("class-file-status-f2")!.textContent, "0 of 22 facts studied");
+		assert.match(q("class-file-status-f2")!.innerHTML, /width:\s*0%/, "unstudied file: an empty bar");
+		assert.equal(q("class-file-status-f3")!.textContent, "Building facts");
 		assert.equal(q("class-file-status-f4")!.textContent, "Failed");
 		assert.ok(q("class-file-retry-f4"));
 		assert.equal(q("class-file-status-f5"), null, "course info shows no state");
@@ -332,8 +332,9 @@ describe("FilesPage", () => {
 		const pdf = new File(["x"], "Syllabus v2.pdf");
 		assert.equal(q("files-drop-targets"), null, "nothing to drop on until files are dragged in");
 		await fire(q("files-page")!, "dragover", transfer(["Files"], [pdf]));
-		assert.equal(q("files-drop-study")!.textContent, "Add 1 file as study material");
-		assert.equal(q("files-drop-info")!.textContent, "Add 1 file as course info");
+		assert.equal(q("files-drop-study-title")!.textContent, "Add 1 file as study material");
+		assert.equal(q("files-drop-info-title")!.textContent, "Add 1 file as course info");
+		assert.match(q("files-drop-study")!.textContent!, /Turned into facts/);
 		await fire(q("files-drop-info")!, "dragover", transfer(["Files"], [pdf]));
 		assert.equal(q("files-drop-info")!.getAttribute("data-over"), "true");
 		await fire(q("files-drop-info")!, "drop", transfer(["Files"], [pdf]));
@@ -396,11 +397,12 @@ describe("FilesPage", () => {
 		await mount();
 		RECORD.files = files;
 		assert.match(q("files-empty")!.textContent!, /Add lecture notes, readings, recordings or the syllabus/);
-		assert.equal(q("files-summary")!.textContent, "0 files");
+		assert.equal(q("files-summary"), null, "no summary without files");
+		assert.ok(q("class-folder"), "the linked folder still shows");
 		assert.equal(q("files-search"), null, "nothing to search");
 	});
 
-	it("Link folder without the desktop picker opens a path field that links the folder", async () => {
+	it("Link a folder without the desktop picker opens a path field that links the folder", async () => {
 		fakeFetch();
 		const linked = RECORD.linkedFolder;
 		delete RECORD.linkedFolder;

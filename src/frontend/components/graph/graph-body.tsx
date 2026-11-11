@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DeadlineProgress, FactProgress, ProgressPayload } from "@/shared/core";
-import { cn } from "@/frontend/lib/utils";
 import { defaultDeadlineId, pickableDeadlines, searchMatches } from "./derive.ts";
 import { FactPane, type FactSources } from "./fact-pane.tsx";
 import { LevelColumns } from "./level-columns.tsx";
-import { DeadlinePane, SIDE_WIDTH, WorkOnNextPane } from "./side-panes.tsx";
+import { DeadlinePane, WorkOnNextPane } from "./side-panes.tsx";
 import { TopicPane } from "./topic-pane.tsx";
 
 /** The level columns and the right side over one progress payload
- *  (loaded lazily by graph-screen.tsx). The right side keeps the next
- *  deadline on top; under it the picked fact, else the picked topic, else
- *  what to work on next. */
+ *  (loaded lazily by graph-screen.tsx), side by side. The right side
+ *  keeps the picked deadline on top; under it the picked fact, else the
+ *  picked topic, else what to work on next. */
 export function GraphBody({
 	data,
 	query,
@@ -76,9 +75,9 @@ export function GraphBody({
 	);
 	if (data.topics.length === 0) return columns;
 	return (
-		<>
+		<div className="flex items-start gap-5">
 			{columns}
-			<aside data-testid="graph-side" aria-label="Where you're at" className={cn("flex h-full shrink-0 flex-col gap-4 p-5", SIDE_WIDTH)}>
+			<aside data-testid="graph-side" aria-label="Where you're at" className="flex w-[320px] shrink-0 flex-col gap-5">
 				{deadline && (
 					<DeadlinePane
 						deadlines={pickable}
@@ -98,6 +97,10 @@ export function GraphBody({
 						facts={data.facts}
 						sources={sources}
 						onBack={() => setFactId(null)}
+						onClose={() => {
+							setFactId(null);
+							setSelectedId(null);
+						}}
 						onOpenFact={openFact}
 						onPractice={onPractice}
 						studying={studying}
@@ -121,6 +124,6 @@ export function GraphBody({
 					<WorkOnNextPane scope={deadline ?? data.overall} topics={data.topics} onSelectTopic={select} onStudy={onStudy} studying={studying} studyError={studyError} />
 				)}
 			</aside>
-		</>
+		</div>
 	);
 }

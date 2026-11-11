@@ -1,21 +1,7 @@
 /**
- * THE CHAIN TABLE — SSR render pins (the render-suite discipline: pure
- * bodies, renderToStaticMarkup, testids). The layout: full-bleed table (blur + translucency IS the
- * surface), cluster → chain → statement hierarchy (a chain lives in its
- * CONCLUSION's birth cluster; expanding a chain reveals statements
- * directly — names live in the line, never twice), proposition CHIPS +
- * ∧/⟹ LaTeX connectives (premises join by land, the conclusion
- * separates by implication — REAL KaTeX renders, prominent white; a
- * lonely chip = a standalone proposition; the "(no
- * premises)" annotation is dead), rotating chevrons, folder/waypoints
- * icons, a floating bottom selection bar that never shifts layout, and
- * a fuzzy search that auto-expands matching clusters.
- *
- * The page row names the page; PROMINENT indentation carries the hierarchy — the ONLY
- * lines left are the separators between cluster groups (vertical column
- * hairlines and per-row lines are gone); statement rows are PLAIN (no
- * conclusion marker); ALL THREE columns sort (Props too — consistency)
- * with a SMALL chevron on the active header.
+ * "All facts": its head, sort row, the three levels (group, chain,
+ * statement), the picked bar and the search, drawn with
+ * renderToStaticMarkup.
  */
 
 import React from "react";
@@ -24,8 +10,9 @@ import React from "react";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
-import { ChainTableBody, ChainTableOverlay } from "../../src/frontend/components/chain-table.tsx";
-import type { ChainSort } from "../../src/frontend/components/chain-table.tsx";
+import { ChainTableBody } from "../../src/frontend/components/chain-table.tsx";
+import { ChainTableOverlay } from "../../src/frontend/components/chain-table-overlay.tsx";
+import type { ChainSort } from "../../src/frontend/components/chain-table-model.ts";
 import type { GraphChain, GraphNode } from "../../src/shared/core/contracts.ts";
 
 /** The fixture graph — two follows-chains + one standalone:
@@ -65,6 +52,7 @@ const BASE = {
 	chains: CHAINS,
 	sessions: { chat1: "Ethics lesson", chat2: "Second chat" },
 	fileSources: { notes1: "notes/raw/ethics.md" },
+	classLabel: "CSE 21" as string | null,
 	query: "",
 	onQuery: () => {},
 	sort: { col: "name", dir: 1 } as ChainSort,
@@ -76,7 +64,6 @@ const BASE = {
 	onToggleChain: () => {},
 	onToggleNodes: () => {},
 	onClear: () => {},
-	onGenerate: () => {},
 	onDelete: () => {},
 	onClose: () => {},
 };
@@ -86,15 +73,15 @@ function render(props: Partial<typeof BASE> = {}) {
 }
 
 describe("ChainTableBody — clusters (the outermost layer)", () => {
-	it("collapsed by default: cluster rows render, chain rows do not", () => {
+	it("collapsed by default: group rows render, chain rows do not", () => {
 		const html = render();
-		assert.ok(html.includes('data-testid="cluster-group-chat1"'), "the chat cluster");
-		assert.ok(html.includes('data-testid="cluster-group-notes1"'), "the notes cluster");
-		assert.ok(html.includes("Ethics lesson"), "chat label");
-		assert.ok(html.includes("notes/raw/ethics.md"), "notes label");
-		assert.ok(html.includes("lucide-folder"), "the closed folder icon");
+		assert.ok(html.includes('data-testid="cluster-group-chat1"'), "the lesson group");
+		assert.ok(html.includes('data-testid="cluster-group-notes1"'), "the file group");
+		assert.ok(html.includes("Ethics lesson"), "lesson name");
+		assert.match(html, /title="notes\/raw\/ethics.md"[^>]*>ethics.md</, "a file shows its own name, the path on hover");
 		assert.ok(!html.includes('data-testid="chain-row-c1"'), "no chain row when collapsed");
 		assert.ok(!html.includes("Premise one"), "no chips when collapsed");
+		assert.ok(!html.includes("lucide"), "no lucide icons");
 	});
 
 	it("a premise-only birth never becomes a group — chains live in their CONCLUSION's cluster", () => {
@@ -111,76 +98,67 @@ describe("ChainTableBody — clusters (the outermost layer)", () => {
 		assert.ok(html.includes('data-testid="chain-row-orphan"') === false, "collapsed, like every group");
 	});
 
-	it("cluster rows carry checkbox + counts + newest date; lessons marked, files not", () => {
+	it("group rows carry a box, the fact count and newest date; lessons are marked, files not", () => {
 		const html = render();
 		assert.ok(html.includes('data-testid="cluster-checkbox-chat1"'));
-		// chat1: chains c1 (a, b, c1) + solo (solo) → 4 member ids
-		assert.ok(html.includes(">4</span>"), "chat1's proposition count");
-		assert.ok(html.includes("2026-09-20"), "the newest-member date");
-		assert.ok(html.includes(">Lesson</span>"), "the lesson kind tag");
+		// chat1: chains c1 (a, b, c1) + solo → 4 facts
+		assert.ok(html.includes(">4 facts</span>"), "chat1's fact count");
+		assert.ok(html.includes("2026-09-20"), "the newest fact's date");
+		assert.ok(html.includes(">Lesson</span>"), "the lesson tag");
 		assert.ok(!html.includes(">Notes</span>"), "no tag on files");
 	});
 });
 
-describe("ChainTableBody — the page row + the lines law", () => {
-	it("the page row: back to Graph, All facts, then the counts, search and close X", () => {
+describe("ChainTableBody — the head", () => {
+	it("All facts, the count line with the class, the search field, Close, the hint and Sort by", () => {
 		const html = render();
-		assert.match(html, /data-testid="page-back"[^>]*href="\/graph"[\s\S]*>Graph<[\s\S]*<h1[^>]*>All facts</);
-		assert.ok(!html.includes(">Chains<"), "no title of its own");
-		assert.ok(html.includes("chain"), "the counts remain");
-		assert.ok(html.includes('data-testid="chain-table-close"'), "the close X");
-		assert.ok(html.includes('data-testid="chain-table-search"'), "the search input");
+		assert.match(html, /<h1[^>]*>All facts</);
+		assert.match(html, /data-testid="chain-table-count"[^>]*>7 facts in CSE 21</);
+		assert.match(html, /data-testid="chain-table-search"[^>]*placeholder="Search facts…"/);
+		assert.match(html, /data-testid="chain-table-close"[\s\S]*?Close</);
+		assert.ok(html.includes("Picking a file or a fact also picks the facts it builds on."));
+		assert.ok(html.includes(">Sort by<"));
+		assert.ok(!html.includes('data-testid="page-back"'), "no way back of its own: Close leaves");
+		assert.ok(!html.includes("Pick the facts to start from"), "only while picking");
 	});
 
-	it("the table is FRAMED: header rule + rules between groups + rule under the last group; rows stay lineless", () => {
-		const html = render({ expandedClusters: new Set(["chat1"]) });
-		// every group wrapper carries the rule now — between groups AND under
-		// the last one; the header carries the TOP rule
-		const sep = html.split("border-b border-border/60").length - 1;
-		assert.ok(sep >= 4, "header + 3 group rules");
-		// chain rows themselves carry NO border — their entire class list is
-		// the staircase law (pl-12 = aligned with the cluster's FOLDER icon);
-		// the chip outlines' border-border/70 is an outline, not a row line
-		assert.ok(html.includes('class="flex items-center gap-1 py-1 pl-12 pr-3"'), "the chain row: staircase indent, no border");
+	it("without a class the count line is just the count", () => {
+		assert.match(render({ classLabel: null }), /data-testid="chain-table-count"[^>]*>7 facts</);
 	});
 
-	it("TREE THREADS: open folders/chains drop a vertical guide from their expander arrow down the children's edge", () => {
-		const collapsed = render();
-		assert.ok(!collapsed.includes("cluster-thread-"), "no thread while collapsed");
-		const open = render({ expandedClusters: new Set(["chat1"]), expandedChains: new Set(["c1"]) });
-		assert.ok(open.includes('data-testid="cluster-thread-chat1"'), "the cluster thread");
-		assert.ok(open.includes('data-testid="chain-thread-c1"'), "the chain thread");
-		// the columns: the cluster arrow sits at 37px, the chain arrow at 73px
-		assert.ok(open.includes("left-[37px]"), "thread at the cluster arrow's column");
-		assert.ok(open.includes("left-[73px]"), "thread at the chain arrow's column");
-		// the BRACKET LAW: each thread runs from its parent
-		// row's checkbox bottom edge (a visible gap below the arrow's stroke)
-		// to the LAST child row's checkbox bottom edge — live-measured anchors
-		assert.ok(open.includes("bottom-[8px] left-[37px] top-[23px]"), "cluster thread bracketed by checkbox bottoms");
-		assert.ok(open.includes("top-[22px]") && open.includes("bottom-[8px]"), "chain thread bracketed by checkbox bottoms");
+	it("picking asks for the facts to start from", () => {
+		assert.ok(renderToStaticMarkup(React.createElement(ChainTableBody, { ...BASE, selectMode: true })).includes("Pick the facts to start from"));
+	});
+
+	it("open groups and chains turn their chevron down and say so", () => {
+		const html = render({ expandedClusters: new Set(["chat1"]), expandedChains: new Set(["c1"]) });
+		assert.match(html, /data-testid="cluster-toggle-chat1"[^>]*aria-expanded="true"/);
+		assert.match(html, /data-testid="chain-toggle-c1"[^>]*aria-expanded="true"/);
+		assert.match(html, /data-testid="chain-toggle-solo"[^>]*aria-expanded="false"/);
+	});
+
+	it("a group with some facts picked is half ticked", () => {
+		const html = render({ selection: new Set(["a"]) });
+		const at = html.indexOf('data-testid="cluster-checkbox-chat1"');
+		const box = html.slice(at, html.indexOf("</label>", at));
+		assert.ok(box.includes("bg-tint"), "filled like a ticked box");
+		assert.ok(!(html.match(/<input[^>]*data-testid="cluster-checkbox-chat1"[^>]*>/)?.[0] ?? "").includes("checked"), "but not checked");
 	});
 });
 
 describe("ChainTableBody — chain rows (chips + connectors)", () => {
-	it("names render as outlined chips; premises join by ∧, the conclusion by ⟹ — REAL KaTeX glyphs in the foreground", () => {
+	it("names render as chips; premises join by ∧, the conclusion by ⟹, as real KaTeX glyphs", () => {
 		const html = render({ expandedClusters: new Set(["chat1"]) });
 		assert.ok(html.includes('data-testid="chain-row-c1"'));
 		assert.ok(html.includes('data-testid="prop-chip-a"'), "premise chip");
 		assert.ok(html.includes('data-testid="prop-chip-c1"'), "conclusion chip");
 		assert.ok(html.includes("Premise one"), "chip text");
-		// the connectives: premises ∧, conclusion
-		// ⟹ — KaTeX renders (class katex present), PROMINENT foreground
 		assert.ok(html.includes('data-testid="chain-and-c1-1"'), "the land between premises");
 		assert.ok(html.includes('data-testid="chain-implies-c1"'), "the implication before the conclusion");
-		const and = html.match(/data-testid="chain-and-c1-1"[^>]*>/)?.[0] ?? "";
-		assert.match(and, /text-foreground/, "prominent — the theme's white, not dim gray");
-		assert.ok(html.includes("katex"), "a REAL KaTeX render, not a unicode arrow");
-		// the old arrow is dead as a VISIBLE connector — it survives only in
-		// the row's aria-label (formatChainLine, the plain-text form)
-		assert.doesNotMatch(html, />\s*→\s*</, "no textual arrow connector remains");
-		// the chain waypoints icons are GONE — the
-		// chips + connectors already read as chains; only folders keep icons
-		assert.ok(!html.includes("lucide-waypoints"), "no chain icon");
+		assert.match(html.match(/data-testid="chain-and-c1-1"[^>]*>/)?.[0] ?? "", /text-ink/);
+		assert.ok(html.includes("katex"), "a real KaTeX render, not a unicode arrow");
+		assert.doesNotMatch(html, />\s*→\s*</, "no textual arrow");
+		assert.ok(html.includes(">3 facts</span>"), "the chain's fact count");
 	});
 
 	it("a singleton renders ONE lonely chip, no connector; the annotation survives only for screen readers", () => {
@@ -199,46 +177,32 @@ describe("ChainTableBody — chain rows (chips + connectors)", () => {
 		assert.ok(html.includes('aria-label="Premise one, Premise two → Conclusion"'));
 	});
 
-	it("expanding a chain reveals member STATEMENTS directly — PLAIN rows, no conclusion marker", () => {
+	it("expanding a chain shows each fact's statement with its own box", () => {
 		const html = render({
 			expandedClusters: new Set(["chat1"]),
 			expandedChains: new Set(["c1"]),
 		});
 		assert.ok(html.includes('data-testid="prop-row-a"'), "premise statement row");
-		assert.ok(html.includes("Statement A."), "the statement text, one click deep");
+		assert.ok(html.includes('data-testid="prop-checkbox-a"'));
+		assert.ok(html.includes("Statement A."), "the statement text");
 		assert.ok(html.includes("Statement C."), "the conclusion statement");
-		// the derivation is already encoded in the chain line —
-		// no conclusion marker down here
-		assert.ok(!html.includes("prop-conclusion"), "no conclusion marker anywhere");
-		// THE ALIGNMENT STAIRCASE: each level's checkbox sits under its parent's ICON
-		// slot, TWO columns (36px) past its own. Every column is 18px:
-		// clusters pl-3 (12) → chains pl-12 (48 = the folder icon) →
-		// statements pl-21 (84 = where a chain icon WOULD sit)
-		assert.ok(html.includes("pl-21"), "statements at the would-be chain-icon column");
-		assert.ok(html.includes("pl-12"), "chains aligned with the folder icon");
-		assert.ok(html.includes("h-5 w-3.5"), "the expander shares the checkbox's 14px width");
+		assert.ok(!html.includes("prop-conclusion"), "no conclusion marker");
 	});
 });
 
 describe("ChainTableBody — the sortable table headers", () => {
-	it("ALL THREE columns are sort controls with aria-sort", () => {
+	it("all three sorts are buttons with aria-sort, words Name, Facts, Created", () => {
 		const html = render();
-		assert.ok(html.includes('data-testid="sort-name"'));
-		assert.ok(html.includes('data-testid="sort-props"'));
-		assert.ok(html.includes('data-testid="sort-created"'));
-		assert.ok(html.includes('aria-sort="ascending"'), "default name A→Z");
-		// the small chevron (size-3 lucide) marks the ACTIVE header only —
-		// no giant text triangles
-		assert.ok(html.includes('lucide-chevron-up size-3'), "small up chevron on active name");
-		assert.ok(html.includes('lucide-chevron-down') === false, "no down chevron while ascending");
+		assert.match(html, /data-testid="sort-name"[^>]*aria-sort="ascending"[^>]*>Name<svg/, "the picked sort has its arrow");
+		assert.match(html, /data-testid="sort-props"[^>]*aria-sort="none"[^>]*>Facts</);
+		assert.match(html, /data-testid="sort-created"[^>]*aria-sort="none"[^>]*>Created</);
+		assert.match(html, /data-testid="sort-name"[^>]*>Name<svg[^>]*-rotate-90/, "up while ascending");
 	});
 
-	it("descending state shows on the active header only", () => {
+	it("descending shows on the picked sort only", () => {
 		const html = render({ sort: { col: "created", dir: -1 } });
-		assert.ok(html.includes('data-testid="sort-created"'));
-		assert.ok(html.includes('aria-sort="descending"'));
-		assert.ok(html.includes('aria-sort="none"'), "the inactive column");
-		assert.ok(html.includes('lucide-chevron-down size-3'), "small down chevron");
+		assert.match(html, /data-testid="sort-created"[^>]*aria-sort="descending"[^>]*>Created<svg[^>]*rotate-90/);
+		assert.match(html, /data-testid="sort-name"[^>]*aria-sort="none"[^>]*>Name</);
 	});
 
 	it("Props sort orders cluster rows AND chains within (largest-first by default)", () => {
@@ -272,28 +236,18 @@ describe("ChainTableBody — the floating selection bar (never shifts layout)", 
 		assert.ok(!html.includes('data-testid="chain-selection-bar"'));
 	});
 
-	it("appears with the picked fact count + Clear + the FENCED Delete", () => {
+	it("appears with the picked count, Clear and Delete", () => {
 		const html = render({ selection: new Set(["a", "b", "c1"]) });
 		assert.ok(html.includes('data-testid="chain-selection-bar"'));
-		assert.ok(html.includes('data-testid="chain-selected-summary"'));
-		assert.ok(html.includes("3 facts picked"));
-		assert.ok(html.includes('data-testid="chain-clear"'));
-		// The danger fence: a divider quarantines
-		// the destructive action at the bar's right end, red + trash icon,
-		// riding the same confirm dialog as the canvas delete.
-		assert.ok(html.includes('data-testid="chain-danger-divider"'));
-		const del = html.match(/<button[^>]*data-testid="chain-delete"[^>]*>/)?.[0] ?? "";
-		assert.match(del, /border-destructive\/50/); // the destructive pair
-		assert.match(del, /aria-label="Delete 3 selected facts"/);
-		assert.ok(html.includes("lucide-trash-2"), "the trash icon");
-		// the fence is before Delete in the DOM (right end of the bar)
-		assert.ok(html.indexOf('chain-danger-divider"') < html.indexOf('chain-delete"'));
+		assert.match(html, /data-testid="chain-selected-summary"[^>]*>3 facts picked</);
+		assert.match(html, /data-testid="chain-clear"[^>]*>Clear</);
+		assert.match(html, /data-testid="chain-delete"[^>]*aria-label="Delete 3 selected facts"[^>]*>Delete</);
+		assert.ok(html.indexOf('chain-clear"') < html.indexOf('chain-delete"'), "Delete at the right end");
 	});
 
-	it("the Delete rides ONLY with a selection — no bar, no kill switch", () => {
+	it("Delete shows only with picked facts", () => {
 		const html = render({ expandedClusters: new Set(["chat1"]) });
 		assert.ok(!html.includes('data-testid="chain-delete"'));
-		assert.ok(!html.includes('data-testid="chain-danger-divider"'));
 	});
 
 	it("counts picked facts, not chains", () => {
@@ -303,7 +257,7 @@ describe("ChainTableBody — the floating selection bar (never shifts layout)", 
 });
 
 describe("ChainTableBody — the fuzzy search (grouped + auto-expand)", () => {
-	it("matching clusters auto-expand to reveal their chains; others hide; the bar is unaffected", () => {
+	it("matching groups open to show their chains to reveal their chains; others hide; the bar is unaffected", () => {
 		const aliased = NODES.map((n) => (n.id === "b" ? { ...n, aliases: ["zebra alias"] } : n));
 		const html = render({
 			nodes: aliased,
@@ -347,7 +301,7 @@ describe("ChainTableOverlay — the lifted practice pick", () => {
 		assert.ok(html.includes("3 facts picked"), "the bar reflects the lifted set, not internal state");
 	});
 
-	it("select mode: Done replaces the delete fence — no way to delete while picking", () => {
+	it("select mode: Done replaces Delete, so picking never deletes", () => {
 		const html = overlay({
 			selectMode: true,
 			controlledSelection: new Set(["a", "b"]),
@@ -355,10 +309,13 @@ describe("ChainTableOverlay — the lifted practice pick", () => {
 		assert.ok(html.includes('data-testid="chain-practice-done"'));
 		assert.ok(html.includes("Done"));
 		assert.ok(!html.includes('data-testid="chain-delete"'), "no delete while picking");
-		assert.ok(!html.includes('data-testid="chain-danger-divider"'));
 	});
 
-	it("browse mode unchanged: the fenced Delete remains", () => {
+	it("covers the page under the app's top bar, not the top bar", () => {
+		assert.match(overlay(), /data-testid="chain-table-overlay"[^>]*class="[^"]*fixed top-12 /);
+	});
+
+	it("browse mode: Delete stays", () => {
 		const html = overlay({ controlledSelection: new Set(["a"]) });
 		assert.ok(html.includes('data-testid="chain-delete"'));
 		assert.ok(!html.includes('data-testid="chain-practice-done"'));

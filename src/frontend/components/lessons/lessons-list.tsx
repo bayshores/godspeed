@@ -3,8 +3,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DeleteSessionDialog } from "@/frontend/components/delete-session-dialog";
-import { MoveLessonDialog } from "@/frontend/components/class-dialog";
 import { useClasses } from "@/frontend/components/class-context";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -12,9 +10,11 @@ import { useRiseOnChange } from "@/frontend/components/motion";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { DEFAULT_TEACHER_NAME, type ChatDeleteMode, type ChatListItem } from "@/shared/core";
+import { DeleteLessonDialog } from "./delete-lesson-dialog";
 import { LessonMenu } from "./lesson-menu";
 import { LessonRow, RenameRow } from "./lesson-row";
 import { matchLessons } from "./lessons-model";
+import { MoveLessonDialog } from "./move-lesson-dialog";
 import { useLessonList } from "./use-lesson-list";
 
 /**
@@ -208,7 +208,7 @@ export function LessonsList() {
 				/>
 			)}
 
-			<DeleteSessionDialog chat={deleting} onClose={() => setDeleting(null)} onDeleted={onDeleted} />
+			<DeleteLessonDialog chat={deleting} onClose={() => setDeleting(null)} onDeleted={onDeleted} />
 			<MoveLessonDialog
 				lesson={moving}
 				onClose={() => setMoving(null)}

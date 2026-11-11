@@ -1,16 +1,18 @@
 /**
- * One fact, opened from its topic: what it says, its answers, where it
- * came from (a class file opens on the desktop, a lesson opens in the
- * app), the facts it builds on and leads to (each opens), and Practice.
+ * One fact, opened from its topic: back to the topic and Close, what it
+ * says, its answers, where it came from (a class file opens on the
+ * desktop, a lesson opens in the app), the facts it builds on and leads
+ * to (each opens), and Practice.
  */
 import { useMemo } from "react";
 import Link from "next/link";
-import { dayLabel, factMark, localDay, type FactProgress, type GraphChain } from "@/shared/core";
+import { dayLabel, localDay, type FactProgress, type GraphChain } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { factLinks, PANEL_ANSWER_COLOR } from "./derive.ts";
-import { FactMark } from "./fact-list.tsx";
-import { StudyButton } from "./side-panes.tsx";
+import { CloseButton, StudyButton } from "./side-panes.tsx";
+import { CHIP, GROUP_LABEL } from "./styles.ts";
 
 /** What the page knows about where facts came from (the graph snapshot's maps). */
 export interface FactSources {
@@ -27,6 +29,7 @@ export function FactPane({
 	facts,
 	sources,
 	onBack,
+	onClose,
 	onOpenFact,
 	onPractice,
 	studying,
@@ -38,6 +41,8 @@ export function FactPane({
 	/** null while the snapshot loads. */
 	sources: FactSources | null;
 	onBack: () => void;
+	/** Closes the fact and its topic. */
+	onClose: () => void;
 	onOpenFact: (id: string) => void;
 	onPractice: (fact: FactProgress) => void;
 	studying: boolean;
@@ -48,47 +53,47 @@ export function FactPane({
 	const right = fact.answers.filter((a) => a.outcome === "right").length;
 	const last = fact.answers.at(-1)?.answeredAt;
 	return (
-		<Pane name="fact" active data-testid="fact-pane" aria-label="Fact" className="flex min-h-0 flex-1 flex-col">
-			<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-4">
-				<button type="button" data-testid="fact-pane-back" onClick={onBack} title={topicName} className="lh-btn max-w-full self-start">
-					<span aria-hidden>←</span>
+		<Pane active data-testid="fact-pane" aria-label="Fact" className="flex flex-col gap-3.5 p-5">
+			<div className="flex items-center gap-2">
+				<button type="button" data-testid="fact-pane-back" onClick={onBack} title={topicName} className={`${CHIP} min-w-0`}>
+					<PixelIcon name="chevron" className="-scale-x-100" />
 					<span className="truncate">{topicName}</span>
 				</button>
-				<p data-testid="fact-statement" className="lh-prose">
-					<InlineMath text={fact.statement || fact.name} />
-				</p>
-				<div className="flex items-center gap-3 text-[13px] text-ink-3" data-testid="fact-answers">
-					{fact.answers.length > 0 ? (
-						<>
-							<span aria-hidden className="flex gap-[3px]">
-								{fact.answers.slice(-12).map((a) => (
-									<span key={`${a.chatId}:${a.toolCallId}`} className="size-3" style={{ background: PANEL_ANSWER_COLOR[a.outcome] }} />
-								))}
-							</span>
-							<span>
-								{right} of {fact.answers.length} right{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
-							</span>
-						</>
-					) : (
-						<span>Not asked yet.</span>
-					)}
-				</div>
-				<Source born={fact.born} sources={sources} />
-				{links && (
+				<span className="flex-1" />
+				<CloseButton testid="fact-pane-close" onClick={onClose} />
+			</div>
+			<p data-testid="fact-statement" className="text-[17px] leading-snug text-ink">
+				<InlineMath text={fact.statement || fact.name} />
+			</p>
+			<div className="flex items-center gap-2.5 text-base text-ink-2" data-testid="fact-answers">
+				{fact.answers.length > 0 ? (
 					<>
-						<FactLinks label="Builds on" ids={links.buildsOn} byId={byId} onOpen={onOpenFact} testid="builds-on" />
-						<FactLinks label="Leads to" ids={links.leadsTo} byId={byId} onOpen={onOpenFact} testid="fact-leads-to" />
+						<span aria-hidden className="flex flex-wrap gap-[3px]">
+							{fact.answers.slice(-12).map((a) => (
+								<span key={`${a.chatId}:${a.toolCallId}`} className="size-[11px]" style={{ background: PANEL_ANSWER_COLOR[a.outcome] }} />
+							))}
+						</span>
+						<span>
+							{right} of {fact.answers.length} right{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
+						</span>
 					</>
+				) : (
+					<span>Not asked yet.</span>
 				)}
 			</div>
-			<div className="shrink-0 px-5 pb-5">
-				<StudyButton testid="practice-fact" label="practice this fact" busy={studying} error={studyError} onClick={() => onPractice(fact)} />
-			</div>
+			<Source born={fact.born} sources={sources} />
+			{links && (
+				<>
+					<FactLinks label="Builds on" ids={links.buildsOn} byId={byId} onOpen={onOpenFact} testid="builds-on" />
+					<FactLinks label="Leads to" ids={links.leadsTo} byId={byId} onOpen={onOpenFact} testid="fact-leads-to" />
+				</>
+			)}
+			<StudyButton testid="practice-fact" label="Practice this fact" busy={studying} error={studyError} onClick={() => onPractice(fact)} />
 		</Pane>
 	);
 }
 
-/** Where the fact came from: a class file (open it on the desktop) or a lesson. */
+/** Where the fact came from: a class file (open it or show it on the desktop) or a lesson. */
 function Source({ born, sources }: { born: string | null; sources: FactSources | null }) {
 	if (!born || !sources) return null;
 	const file = sources.fileSources[born];
@@ -98,22 +103,30 @@ function Source({ born, sources }: { born: string | null; sources: FactSources |
 	const desktop = typeof window !== "undefined" ? window.lh : undefined;
 	const pdf = !!file && /\.pdf$/i.test(file);
 	return (
-		<div data-testid="fact-source" className="flex items-center justify-between gap-3 text-[13px]">
-			<span className="min-w-0 truncate text-ink-2" title={name}>
-				from {file ? name : `the lesson ${name}`}
+		<div data-testid="fact-source" className="flex flex-col gap-1.5 border-t-2 border-dotted border-edge pt-3.5">
+			<span className="truncate text-base text-ink-2" title={name}>
+				From {file ? name : `the lesson ${name}`}
 			</span>
-			{file ? (
-				desktop &&
-				(pdf ? desktop.openPath : desktop.showInFolder) && (
-					<button type="button" data-testid="fact-source-open" onClick={() => void (pdf ? desktop.openPath : desktop.showInFolder)?.(file)} className="lh-btn shrink-0">
-						{pdf ? "open" : "show in finder"}
-					</button>
-				)
-			) : (
-				<Link href={`/chat/${born}`} prefetch={false} data-testid="fact-source-open" className="lh-btn shrink-0">
-					open
-				</Link>
-			)}
+			<span className="flex flex-wrap gap-2 empty:hidden">
+				{file ? (
+					<>
+						{pdf && desktop?.openPath && (
+							<button type="button" data-testid="fact-source-open" onClick={() => void desktop.openPath?.(file)} className={CHIP}>
+								Open
+							</button>
+						)}
+						{desktop?.showInFolder && (
+							<button type="button" data-testid="fact-source-show" onClick={() => void desktop.showInFolder?.(file)} className={CHIP}>
+								Show in Finder
+							</button>
+						)}
+					</>
+				) : (
+					<Link href={`/chat/${born}`} prefetch={false} data-testid="fact-source-open" className={CHIP}>
+						Open
+					</Link>
+				)}
+			</span>
 		</div>
 	);
 }
@@ -134,20 +147,17 @@ function FactLinks({
 	const shown = ids.map((id) => byId.get(id)).filter((f): f is FactProgress => !!f);
 	if (shown.length === 0) return null;
 	return (
-		<div className="flex flex-col gap-1" data-testid={testid}>
-			<span className="text-[13px] text-ink-3">{label}</span>
-			<ul className="flex flex-col">
+		<div className="flex flex-col gap-[9px]" data-testid={testid}>
+			<span className={GROUP_LABEL}>{label}</span>
+			<span className="flex flex-wrap gap-2">
 				{shown.map((f) => (
-					<li key={f.id}>
-						<button type="button" data-testid="fact-link" onClick={() => onOpen(f.id)} className="lh-press flex w-full items-center gap-2.5 py-1.5 text-left text-sm text-ink hover:text-ink-max">
-							<FactMark mark={factMark(f)} />
-							<span className="min-w-0 flex-1 truncate">
-								<InlineMath text={f.name} />
-							</span>
-						</button>
-					</li>
+					<button key={f.id} type="button" data-testid="fact-link" onClick={() => onOpen(f.id)} title={f.name} className={CHIP}>
+						<span className="truncate">
+							<InlineMath text={f.name} />
+						</span>
+					</button>
 				))}
-			</ul>
+			</span>
 		</div>
 	);
 }

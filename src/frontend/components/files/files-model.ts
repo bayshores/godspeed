@@ -24,7 +24,7 @@ export type FileState =
 
 /**
  * A row's state from its pipeline status and coverage:
- * - extracting → "Building facts…"
+ * - extracting → "Building facts"
  * - pending study file → "Waiting", or "Waiting for your agent" when no
  *   agent is teaching (a course-info file has nothing to do)
  * - failed → red label + Retry
@@ -53,7 +53,7 @@ export function fileState(file: ClassFile, coverage: FileCoverage | undefined, a
 	}
 }
 
-/** The ⋯ menu offers Retry while a file is stuck waiting; a failed row
+/** The More menu offers Retry while a file is stuck waiting; a failed row
  *  already shows its own Retry. */
 export function canRetry(file: ClassFile): boolean {
 	return file.status === "pending";
@@ -74,6 +74,11 @@ export function studiedFill(state: { facts: number; inLessons: number }): number
 /** A section's name. */
 export function kindTitle(kind: "study" | "info"): string {
 	return kind === "study" ? "Study material" : "Course info";
+}
+
+/** What each kind does, under its name (Add files and the drop targets). */
+export function kindNote(kind: "study" | "info"): string {
+	return kind === "study" ? "Turned into facts" : "Read by the teacher only";
 }
 
 /** "1 fact", "31 facts". */
@@ -170,6 +175,13 @@ export function shortDate(iso: string): string {
 	const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
 	const day = new Date(Date.UTC(y, m - 1, d));
 	return `${DAYS[day.getUTCDay()]} ${MONTHS[m - 1]} ${d}`;
+}
+
+/** The line above each section of the file list, given whether each is
+ *  open (Recent changes counts as open): solid beside an open section,
+ *  dotted between two folded ones, none above the first. */
+export function listRules(open: readonly boolean[]): ("solid" | "dotted" | null)[] {
+	return open.map((o, i) => (i === 0 ? null : o || open[i - 1] ? "solid" : "dotted"));
 }
 
 /** "46 files, 27 study material, 19 course info". */

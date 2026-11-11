@@ -21,6 +21,7 @@ import type {
 	WorkOnNextItem,
 } from "@/shared/core";
 import { planStepBar, projectView } from "@/shared/core";
+import { rightLabel } from "@/frontend/components/deadline/deadline-model";
 
 /** How many "Work on next" rows Home shows. */
 export const WORK_ON_NEXT_ROWS = 2;
@@ -63,11 +64,20 @@ export function suggestionKey(s: Suggestion): string {
 	return `work:${s.item.topicId}`;
 }
 
-/** Where the lesson's plan is: "step 3 / 11" (the same position the
+/** Where the lesson's plan is: "step 3 of 11" (the same position the
  *  lesson's step bar shows). */
 export interface LessonStep {
 	position: number;
 	total: number;
+}
+
+/** Under a row's name: what kind of suggestion it is and its one number
+ *  ("Continue, step 2 of 4", "Next up, 12 facts", "Work on next, 0 of 1
+ *  right"). `step` is the Continue lesson's, once read. */
+export function suggestionLine(s: Suggestion, step: LessonStep | null): string {
+	if (s.kind === "continue") return step ? `Continue, step ${step.position} of ${step.total}` : "Continue";
+	if (s.kind === "next-up") return `Next up, ${s.file.facts} ${s.file.facts === 1 ? "fact" : "facts"}`;
+	return `Work on next, ${rightLabel(s.topic)}`;
 }
 
 /** The slice of GET /api/chats/:id the step needs. */

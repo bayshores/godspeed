@@ -1,6 +1,6 @@
 /**
  * The Files page's Recent changes section: the first 8 changes, then
- * "Show N more" for the rest; removed files crossed out. Mounted over linkedom.
+ * "Show N more" for the rest; removed files greyed. Mounted over linkedom.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;

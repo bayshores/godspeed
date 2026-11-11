@@ -1,9 +1,9 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CrosshairIcon, MinusIcon, PlusIcon, ScanIcon } from "lucide-react";
 import { pageCaption, type SheetVersion } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import {
 	artboards,
 	bounds,
@@ -28,21 +28,22 @@ import { PdfPage } from "./pdf-page";
 
 /** How long the view must stay still before pages are drawn again sharp. */
 const SETTLE_MS = 150;
-/** Dot grid spacing at 100%, and the closest the dots get on screen. */
-const DOT = 24;
+/** Dot grid spacing at 100% (the page's own), and the closest the dots get on screen. */
+const DOT = 16;
 const DOT_MIN = 12;
+/** Room the toolbar takes at the foot of a wide canvas, kept clear when fitting. */
+const TOOLS_ROOM = 58;
 /** Room above the first page in a narrow view. */
 const NARROW_TOP = 16;
 
 /**
  * THE CANVAS: every kept version of the sheet laid out as artboards on a
- * dark dotted plane, newest on the left, each labeled. Drag to pan, scroll
+ * dotted plane, newest on the left, each labeled, its pages captioned. Drag to pan, scroll
  * or swipe to pan, pinch or Ctrl/⌘ + scroll to zoom toward the pointer,
  * and the toolbar's −, percent (back to 100%), +, Zoom to fit and Point at
  * the sheet: drag a box on a page and that part, drawn as a picture, goes
  * with the next message. It starts on the newest version and moves to each
- * new one, and to a version the chat asks for. `inset` is the room the
- * floating panel takes on the right; `narrow` (the sheet beside a session)
+ * new one, and to a version the chat asks for. `narrow` (the sheet beside a session)
  * puts pages one under another, fits their width, leaves out the labels
  * (it shows one version) and keeps the toolbar in a row under the pages.
  */
@@ -50,7 +51,6 @@ export function SheetCanvas({
 	versions,
 	pdfUrl,
 	labelFor,
-	inset = 0,
 	narrow = false,
 	focus,
 	onPoint,
@@ -60,7 +60,6 @@ export function SheetCanvas({
 	pdfUrl: (n: number) => string;
 	/** The line above a version's pages. */
 	labelFor: (v: SheetVersion, newest: boolean) => string;
-	inset?: number;
 	narrow?: boolean;
 	/** A version to show; a new `seq` shows it again. */
 	focus?: { n: number; seq: number } | null;
@@ -91,8 +90,8 @@ export function SheetCanvas({
 
 	const sized = view.w > 0;
 	const free: Rect = useMemo(
-		() => (narrow ? { x: 0, y: NARROW_TOP, w: Math.max(1, view.w), h: Math.max(1, view.h - NARROW_TOP) } : { x: 0, y: 0, w: Math.max(1, view.w - inset), h: view.h }),
-		[view.w, view.h, inset, narrow],
+		() => (narrow ? { x: 0, y: NARROW_TOP, w: Math.max(1, view.w), h: Math.max(1, view.h - NARROW_TOP) } : { x: 0, y: 0, w: Math.max(1, view.w), h: Math.max(1, view.h - TOOLS_ROOM) }),
+		[view.w, view.h, narrow],
 	);
 	const fitTo = useCallback((r: Rect | null) => r && setCam(narrow ? fitWidthCamera(r, free) : fitCamera(r, free)), [free, narrow]);
 
@@ -170,19 +169,18 @@ export function SheetCanvas({
 
 	const tools = (
 		<>
-			<div data-testid="cheat-sheet-zoom" className="flex items-stretch bg-panel text-sm text-ink outline outline-1 -outline-offset-1 outline-tone-2">
-				<ToolButton label="Zoom out" onClick={() => zoomTo(zoomStep(cam.zoom, -1))}>
-					<MinusIcon className="size-4" aria-hidden />
+			<div data-testid="cheat-sheet-zoom" className="flex items-center gap-2">
+				<ToolButton label="Zoom out" onClick={() => zoomTo(zoomStep(cam.zoom, -1))} className="px-2.5">
+					<PixelIcon name="minus" />
 				</ToolButton>
-				<ToolButton label="Zoom to 100%" onClick={() => zoomTo(1)} className="w-[60px] justify-center tabular-nums">
+				<ToolButton label="Zoom to 100%" onClick={() => zoomTo(1)} className="w-[66px] justify-center tabular-nums">
 					{zoomLabel(cam.zoom)}
 				</ToolButton>
-				<ToolButton label="Zoom in" onClick={() => zoomTo(zoomStep(cam.zoom, 1))}>
-					<PlusIcon className="size-4" aria-hidden />
+				<ToolButton label="Zoom in" onClick={() => zoomTo(zoomStep(cam.zoom, 1))} className="px-2.5">
+					<PixelIcon name="plus" />
 				</ToolButton>
-				<ToolButton label="Zoom to fit" onClick={() => fitTo(narrow ? (newest?.box ?? null) : bounds(groups.map((g) => g.box)))} className="gap-2 border-l border-tone-2 px-3">
-					<ScanIcon className="size-4" aria-hidden />
-					{!narrow && "Zoom to fit"}
+				<ToolButton label="Zoom to fit" onClick={() => fitTo(narrow ? (newest?.box ?? null) : bounds(groups.map((g) => g.box)))}>
+					Zoom to fit
 				</ToolButton>
 			</div>
 			{onPoint && (
@@ -194,12 +192,8 @@ export function SheetCanvas({
 						setPointError(null);
 						setPointing((p) => !p);
 					}}
-					className={cn(
-						"lh-press flex h-9 items-center gap-2 px-3 text-sm outline outline-1 -outline-offset-1",
-						pointing ? "bg-ink text-background outline-ink" : "bg-panel text-ink outline-tone-2 hover:bg-tone",
-					)}
+					className={cn("lh-btn text-[15px]", pointing ? "lh-btn-main" : "bg-panel hover:bg-tone")}
 				>
-					<CrosshairIcon className="size-4" aria-hidden />
 					Point at the sheet
 				</button>
 			)}
@@ -210,9 +204,9 @@ export function SheetCanvas({
 		<div
 			ref={box}
 			data-testid="cheat-sheet-canvas"
-			className={cn("relative min-h-0 flex-1 touch-none overflow-hidden bg-panel select-none", pointing ? "cursor-crosshair" : dragging ? "cursor-grabbing" : "cursor-grab")}
+			className={cn("relative min-h-0 flex-1 touch-none overflow-hidden bg-background select-none", pointing ? "cursor-crosshair" : dragging ? "cursor-grabbing" : "cursor-grab")}
 			style={{
-				backgroundImage: "radial-gradient(circle, var(--border) 1px, transparent 1.2px)",
+				backgroundImage: "radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px)",
 				backgroundSize: `${dot}px ${dot}px`,
 				backgroundPosition: `${cam.x}px ${cam.y}px`,
 			}}
@@ -266,15 +260,15 @@ export function SheetCanvas({
 					<Fragment key={g.n}>
 						<p
 							data-testid="cheat-sheet-version"
-							className={cn("pointer-events-none absolute truncate text-[12.5px]", i === 0 ? "font-bold text-ink" : "text-ink-2")}
-							style={{ left: at.x, top: at.y - 46, width: Math.max(at.w, 160) }}
+							className={cn("pointer-events-none absolute truncate text-base leading-5", i === 0 ? "font-medium text-ink" : "text-ink-2")}
+							style={{ left: at.x, top: at.y - 30, width: Math.max(at.w, 160) }}
 						>
 							{labelFor(v, i === 0)}
 						</p>
 						{g.pages.map((board) => {
 							const p = onScreen(cam, board);
 							return (
-								<p key={board.page} className="pointer-events-none absolute truncate text-[11.5px] text-ink-3" style={{ left: p.x, top: p.y - 22, width: Math.max(p.w, 40) }}>
+								<p key={board.page} className="pointer-events-none absolute truncate text-base leading-5 text-ink-2" style={{ left: p.x, top: p.y + p.h + 6, width: Math.max(p.w, 40) }}>
 									{board.label}
 								</p>
 							);
@@ -282,21 +276,21 @@ export function SheetCanvas({
 					</Fragment>
 				);
 			})}
-			{drawnBox && <div data-testid="cheat-sheet-pointing-box" className="pointer-events-none absolute bg-ink/10 outline-2 outline-ink" style={{ left: drawnBox.x, top: drawnBox.y, width: drawnBox.w, height: drawnBox.h }} />}
+			{drawnBox && <div data-testid="cheat-sheet-pointing-box" className="pointer-events-none absolute bg-highlight/55 outline-2 outline-ink" style={{ left: drawnBox.x, top: drawnBox.y, width: drawnBox.w, height: drawnBox.h }} />}
 			{pointing && (
 				<div
 					data-testid="cheat-sheet-pointing"
-					className="absolute top-3 left-1/2 flex max-w-[calc(100%-24px)] -translate-x-1/2 items-center gap-3 bg-ink px-3.5 py-2 text-[13px] text-background"
+					className="absolute top-3.5 left-1/2 flex max-w-[calc(100%-24px)] -translate-x-1/2 items-center gap-4 rounded bg-ink py-2 pr-2.5 pl-[18px] text-[15px] text-background"
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<span className="min-w-0 truncate">{pointError ?? "Drag a box around the part you mean"}</span>
-					<button type="button" onClick={() => setPointing(false)} className="lh-press lh-btn shrink-0">
+					<button type="button" onClick={() => setPointing(false)} className="lh-btn h-7 shrink-0 border-background px-3 text-[15px] text-background hover:bg-background/15">
 						Cancel
 					</button>
 				</div>
 			)}
 			{!narrow && (
-				<div className="absolute bottom-4 left-4 flex max-w-[calc(100%-32px)] flex-wrap items-end gap-2" onPointerDown={(e) => e.stopPropagation()}>
+				<div className="absolute bottom-6 left-6 flex max-w-[calc(100%-48px)] flex-wrap items-center gap-2" onPointerDown={(e) => e.stopPropagation()}>
 					{tools}
 				</div>
 			)}
@@ -306,14 +300,14 @@ export function SheetCanvas({
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			{canvas}
-			<div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-tone-2 px-3 py-2">{tools}</div>
+			<div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border px-3 py-2">{tools}</div>
 		</div>
 	);
 }
 
 function ToolButton({ label, onClick, className, children }: { label: string; onClick: () => void; className?: string; children: React.ReactNode }) {
 	return (
-		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-press flex h-9 items-center px-2.5 hover:bg-tone", className)}>
+		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn bg-panel text-[15px] hover:bg-tone", className)}>
 			{children}
 		</button>
 	);

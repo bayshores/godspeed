@@ -1,15 +1,12 @@
-import { useCallback, useRef, useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { Fragment, useCallback, useRef, useState } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { CLASS_FILE_ACCEPT, kindTitle } from "./files-model";
+import { CLASS_FILE_ACCEPT, kindNote, kindTitle } from "./files-model";
 
-const ITEM = "lh-press flex flex-col gap-0.5 px-2.5 py-[7px] text-left hover:bg-tone";
+const ITEM = "lh-press -mx-2 flex flex-col gap-px px-2 py-1 text-left hover:bg-tone";
 
-/** What each kind does, under its name in the menu. */
-const KIND_NOTE = { study: "Turned into facts", info: "Read by the teacher only" } as const;
-
-/** "Add files": pick the kind, then the files. */
+/** "Add files" (the page's main button): pick the kind, then the files. */
 export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd: (kind: "study" | "info", files: File[]) => void }) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
@@ -45,17 +42,20 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				aria-expanded={open}
 				disabled={disabled}
 				onClick={() => setOpen((o) => !o)}
-				className="lh-btn lh-btn-main shrink-0"
+				className="lh-btn lh-btn-main h-auto w-full justify-center gap-2.5 py-3.5 text-[17px]"
 			>
-				<PlusIcon className="size-3.5" aria-hidden />
+				<PixelIcon name="plus" className="h-3.5" />
 				Add files
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="class-add-files-menu" preferredSide="down" align="right" menuClass="lh-popup flex w-[220px] flex-col gap-0.5 p-1.5">
-				{(["study", "info"] as const).map((kind) => (
-					<button role="menuitem" key={kind} type="button" data-testid={`class-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
-						<span className="text-[13.5px] text-ink">{kindTitle(kind)}</span>
-						<span className="text-[12.5px] text-ink-3">{KIND_NOTE[kind]}</span>
-					</button>
+			<MenuShell open={open} anchorRef={anchorRef} testid="class-add-files-menu" preferredSide="down" menuClass="lh-popup flex w-[420px] flex-col gap-2.5 px-[18px] py-3.5">
+				{(["study", "info"] as const).map((kind, i) => (
+					<Fragment key={kind}>
+						{i > 0 && <span aria-hidden className="border-t-2 border-dotted border-edge" />}
+						<button role="menuitem" type="button" data-testid={`class-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
+							<span className="text-lg text-ink">{kindTitle(kind)}</span>
+							<span className="text-base text-ink-2">{kindNote(kind)}</span>
+						</button>
+					</Fragment>
 				))}
 			</MenuShell>
 		</>

@@ -1,140 +1,66 @@
 /**
- * The Edit class dialog's deadline drafts: Save turns the drafts into the deadline routes' writes; drafts
- * that can't be saved are caught first; the row's date, time and
- * file-count labels.
+ * A deadline in the Add / Edit deadline dialog: Save sends a new deadline
+ * whole and an edited one as only the fields that changed; a draft that
+ * can't be saved is caught first; the date, time and file-day labels.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClassDeadline } from "../../src/shared/core/index.ts";
 import {
+	addBody,
 	changedFields,
 	clockLabel,
 	deadlineDateLabel,
-	deadlineWrites,
+	draftChanged,
+	draftFrom,
 	draftProblem,
-	draftsFrom,
-	dropRemoved,
 	dueLabel,
-	filesLabel,
+	fileDayLabel,
 	filterFiles,
-	hasUnsavedChanges,
 	kindLabel,
+	NEW_DEADLINE,
 	toggleFile,
-	withoutBlankDrafts,
+	updateBody,
 	type DeadlineDraft,
 } from "../../src/frontend/components/class-deadlines-model.ts";
 
-const SAVED: ClassDeadline[] = [
-	{ id: "exm_1", kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false },
-	{ id: "ddl_2", kind: "homework", name: "HW 3", date: "2026-11-02", fileIds: ["f1"], done: true, doneAt: "2026-10-28T10:00:00.000Z" },
-];
+const MIDTERM: ClassDeadline = { id: "exm_1", kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false };
+const HW: ClassDeadline = { id: "ddl_2", kind: "homework", name: "HW 3", date: "2026-11-02", fileIds: ["f1"], done: true, doneAt: "2026-10-28T10:00:00.000Z" };
 
-const draft = (over: Partial<DeadlineDraft>): DeadlineDraft => ({
-	key: "new-1",
-	kind: "quiz",
-	name: "Quiz",
-	date: "2026-11-02",
-	time: "",
-	fileIds: [],
-	done: false,
-	...over,
-});
+const draft = (over: Partial<DeadlineDraft>): DeadlineDraft => ({ kind: "quiz", name: "Quiz", date: "2026-11-02", time: "", fileIds: [], done: false, ...over });
 
 describe("class-deadlines-model", () => {
-	it("drafts carry kind, time ('' for none) and done", () => {
-		assert.deepEqual(draftsFrom(SAVED).map((d) => [d.key, d.kind, d.time, d.done]), [
-			["exm_1", "exam", "19:00", false],
-			["ddl_2", "homework", "", true],
-		]);
+	it("a draft carries kind, time ('' for none) and done", () => {
+		assert.deepEqual(draftFrom(MIDTERM), { kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false });
+		assert.equal(draftFrom(HW).time, "");
+		assert.equal(draftFrom(HW).done, true);
 	});
 
-	it("unchanged drafts write nothing", () => {
-		assert.deepEqual(deadlineWrites(SAVED, draftsFrom(SAVED)), []);
-		assert.deepEqual(deadlineWrites(undefined, []), []);
+	it("an unchanged draft sends nothing and is not a change", () => {
+		assert.deepEqual(updateBody(MIDTERM, draftFrom(MIDTERM)), {});
+		assert.equal(draftChanged(MIDTERM, draftFrom(MIDTERM)), false);
+		assert.equal(draftChanged(null, NEW_DEADLINE), false);
 	});
 
-	it("removals first, then adds and only the changed fields", () => {
-		const drafts = draftsFrom(SAVED).filter((d) => d.id !== "ddl_2");
-		drafts[0] = { ...drafts[0]!, name: " Midterm A ", kind: "quiz", fileIds: ["f2", "f1", "f3"] };
-		drafts.push(draft({ fileIds: ["f3"], time: "09:30" }));
-		assert.deepEqual(deadlineWrites(SAVED, drafts), [
-			{ op: "remove", id: "ddl_2" },
-			{ op: "update", key: "exm_1", id: "exm_1", body: { kind: "quiz", name: "Midterm A", fileIds: ["f2", "f1", "f3"] } },
-			{ op: "add", key: "new-1", body: { kind: "quiz", name: "Quiz", date: "2026-11-02", time: "09:30", fileIds: ["f3"] }, done: false },
-		]);
+	it("an edited deadline sends only the changed fields, with the name trimmed", () => {
+		const d = { ...draftFrom(MIDTERM), name: " Midterm A ", kind: "quiz" as const, fileIds: ["f2", "f1", "f3"] };
+		assert.deepEqual(updateBody(MIDTERM, d), { kind: "quiz", name: "Midterm A", fileIds: ["f2", "f1", "f3"] });
+		assert.equal(draftChanged(MIDTERM, d), true);
 	});
 
-	it("a cleared time writes null; done and undone write done", () => {
-		const drafts = draftsFrom(SAVED);
-		drafts[0] = { ...drafts[0]!, time: "", done: true };
-		drafts[1] = { ...drafts[1]!, done: false, time: "17:00" };
-		assert.deepEqual(deadlineWrites(SAVED, drafts), [
-			{ op: "update", key: "exm_1", id: "exm_1", body: { time: null, done: true } },
-			{ op: "update", key: "ddl_2", id: "ddl_2", body: { time: "17:00", done: false } },
-		]);
-	});
-
-	it("a new deadline with no time sends none; a ticked one says so", () => {
-		assert.deepEqual(deadlineWrites([], [draft({ done: true })]), [
-			{ op: "add", key: "new-1", body: { kind: "quiz", name: "Quiz", date: "2026-11-02", fileIds: [] }, done: true },
-		]);
+	it("a cleared time sends null; done and undone send done", () => {
+		assert.deepEqual(updateBody(MIDTERM, { ...draftFrom(MIDTERM), time: "", done: true }), { time: null, done: true });
+		assert.deepEqual(updateBody(HW, { ...draftFrom(HW), time: "17:00", done: false }), { time: "17:00", done: false });
 	});
 
 	it("a reordered file list is not a change", () => {
-		const drafts = draftsFrom(SAVED);
-		drafts[0] = { ...drafts[0]!, fileIds: ["f2", "f1"] };
-		assert.deepEqual(deadlineWrites(SAVED, drafts), []);
+		assert.deepEqual(updateBody(MIDTERM, { ...draftFrom(MIDTERM), fileIds: ["f2", "f1"] }), {});
 	});
 
-	it("a created draft (id set after its POST) is never added twice", () => {
-		const after: ClassDeadline[] = [{ id: "ddl_9", kind: "quiz", name: "Quiz", date: "2026-11-02", fileIds: [], done: false }];
-		assert.deepEqual(deadlineWrites(after, [draft({ id: "ddl_9" })]), []);
-	});
-
-	it("diffs against the seeded copy, so an agent's change while the dialog is open survives", () => {
-		// The agent added ddl_new and edited exm_1 after the drafts were seeded
-		// from SAVED; the learner only ticked HW 3 undone.
-		const drafts = draftsFrom(SAVED);
-		drafts[1] = { ...drafts[1]!, done: false };
-		assert.deepEqual(deadlineWrites(SAVED, drafts), [{ op: "update", key: "ddl_2", id: "ddl_2", body: { done: false } }]);
-	});
-
-	it("a draft whose deadline is gone from the saved copy is never added back as new", () => {
-		const drafts = draftsFrom(SAVED);
-		drafts[0] = { ...drafts[0]!, name: "Midterm A" };
-		assert.deepEqual(deadlineWrites([SAVED[1]!], drafts), []);
-	});
-
-	it("dropRemoved: a removed deadline the learner didn't edit leaves the drafts and the copy; an edited one stays", () => {
-		const drafts = draftsFrom(SAVED);
-		assert.equal(dropRemoved(SAVED, drafts, new Set()), null, "nothing removed");
-		assert.deepEqual(dropRemoved(SAVED, drafts, new Set(["ddl_2"])), { seeded: [SAVED[0]!], drafts: [drafts[0]!] });
-		const edited = [drafts[0]!, { ...drafts[1]!, done: false }];
-		assert.equal(dropRemoved(SAVED, edited, new Set(["ddl_2"])), null, "the learner's edit waits for Save");
-		const reordered = [{ ...drafts[0]!, fileIds: ["f2", "f1"] }, drafts[1]!];
-		assert.deepEqual(dropRemoved(SAVED, reordered, new Set(["exm_1"]))?.drafts, [drafts[1]!], "a reordered file list is not an edit");
-		assert.deepEqual(dropRemoved(SAVED, [drafts[0]!], new Set(["ddl_2"])), { seeded: [SAVED[0]!], drafts: [drafts[0]!] }, "already removed in the dialog");
-	});
-
-	it("hasUnsavedChanges: a field or a deadline differs; an untouched blank new row doesn't count", () => {
-		const seeded = { fields: { name: "CSE 21", rules: [] as string[] }, deadlines: SAVED };
-		const blank = draft({ name: "", date: "", kind: "homework" });
-		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, draftsFrom(SAVED)), false);
-		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, [...draftsFrom(SAVED), blank]), false);
-		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, [...draftsFrom(SAVED), { ...blank, name: "HW" }]), true);
-		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: ["Use LaTeX"] }, draftsFrom(SAVED)), true);
-		assert.equal(hasUnsavedChanges(seeded, { name: "CSE 21", rules: [] }, draftsFrom(SAVED).slice(1)), true, "a removed deadline");
-	});
-
-	it("withoutBlankDrafts drops only untouched blank new rows", () => {
-		const blank = draft({ name: "", date: "", kind: "homework" });
-		const saved = draftsFrom(SAVED);
-		assert.deepEqual(withoutBlankDrafts([...saved, blank]), saved);
-		const named = { ...blank, key: "new-2", name: "HW" };
-		const ticked = { ...blank, key: "new-3", done: true };
-		assert.deepEqual(withoutBlankDrafts([blank, named, ticked]), [named, ticked], "a touched new row stays, so Save can say what it needs");
-		const cleared = { ...saved[0]!, name: "", date: "", time: "", fileIds: [], done: false };
-		assert.deepEqual(withoutBlankDrafts([cleared]), [cleared], "a saved deadline emptied out is not a blank new row");
+	it("a new deadline sends its fields; no time sends none", () => {
+		assert.deepEqual(addBody(draft({ name: " Quiz 2 ", fileIds: ["f3"], time: "09:30" })), { kind: "quiz", name: "Quiz 2", date: "2026-11-02", time: "09:30", fileIds: ["f3"] });
+		assert.deepEqual(addBody(draft({})), { kind: "quiz", name: "Quiz", date: "2026-11-02", fileIds: [] });
+		assert.equal(draftChanged(null, { ...NEW_DEADLINE, name: "HW" }), true);
 	});
 
 	it("changedFields: only fields that differ by value", () => {
@@ -144,12 +70,12 @@ describe("class-deadlines-model", () => {
 		assert.deepEqual(changedFields({ ...seeded, signature: { kind: "math", value: "x" } }, seeded), { signature: null });
 	});
 
-	it("draftProblem: every deadline needs a name, a real date, and a real time or none", () => {
-		assert.equal(draftProblem(draftsFrom(SAVED)), null);
-		assert.equal(draftProblem([draft({ name: " " })]), "Each deadline needs a name.");
-		assert.equal(draftProblem([draft({ date: "" })]), "Quiz needs a date.");
-		assert.equal(draftProblem([draft({ date: "2026-02-30" })]), "Quiz needs a date.");
-		assert.equal(draftProblem([draft({ time: "25:00" })]), "Quiz needs a time like 23:59, or no time.");
+	it("draftProblem: a deadline needs a name, a real date, and a real time or none", () => {
+		assert.equal(draftProblem(draftFrom(MIDTERM)), null);
+		assert.equal(draftProblem(draft({ name: " " })), "A deadline needs a name.");
+		assert.equal(draftProblem(draft({ date: "" })), "A deadline needs a date.");
+		assert.equal(draftProblem(draft({ date: "2026-02-30" })), "A deadline needs a date.");
+		assert.equal(draftProblem(draft({ time: "25:00" })), "The time needs to look like 23:59, or be left empty.");
 	});
 
 	it("labels: calendar date with no time-zone shift, 12-hour clock, kind", () => {
@@ -163,8 +89,8 @@ describe("class-deadlines-model", () => {
 		assert.equal(dueLabel("2026-10-30", "23:59"), "Fri Oct 30, 11:59 PM");
 		assert.equal(dueLabel("2026-10-30", undefined), "Fri Oct 30");
 		assert.equal(kindLabel("homework"), "Homework");
-		assert.equal(filesLabel(1), "1 file");
-		assert.equal(filesLabel(3), "3 files");
+		assert.equal(fileDayLabel("Lecture 11 2026-10-27.pdf"), "Oct 27");
+		assert.equal(fileDayLabel("Syllabus.pdf"), "");
 	});
 
 	it("filterFiles keeps names with every word of the filter, any case", () => {

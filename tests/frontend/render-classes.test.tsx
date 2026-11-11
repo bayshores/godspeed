@@ -24,7 +24,7 @@ describe("class surfaces", () => {
 		assert.ok(!html.includes("class-context-body"), "collapsed by default");
 	});
 
-	it("a file row says Study or Info, shows Failed + Retry and its studied facts, and always has the ⋯ menu", () => {
+	it("a file row says Study or Info, shows Failed + Retry and its studied facts, and always has the More menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
 		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} agentTeaching actions={actions} />);
@@ -36,8 +36,8 @@ describe("class surfaces", () => {
 			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", facts: 31, inLessons: 12, share: 12 / 31 }} agentTeaching actions={actions} />,
 		);
 		assert.ok(!linked.includes("Failed"));
-		assert.match(linked, /12\/31.*facts studied/);
-		assert.ok(linked.includes('data-testid="class-file-menu-f_1"'), "Move to Course info is always in the ⋯ menu");
+		assert.match(linked, /12 of 31 facts studied/);
+		assert.ok(linked.includes('data-testid="class-file-menu-f_1"'), "Move to Course info is always in the More menu");
 	});
 
 	it("class query and name helpers", () => {

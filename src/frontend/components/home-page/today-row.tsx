@@ -4,7 +4,7 @@ import type { ClassColor, DeadlineProgress } from "@/shared/core";
 import { classColorVar } from "@/frontend/components/class-color";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
-import { deadlineHref } from "@/frontend/components/overview/runway-model";
+import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";

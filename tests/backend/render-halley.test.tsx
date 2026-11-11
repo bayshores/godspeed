@@ -200,7 +200,7 @@ describe("the panel", () => {
 		assert.ok(rows[1]!.querySelector("[data-testid='message-image']"));
 		const box = el.querySelector("[data-testid='talk-box']")!;
 		const button = box.querySelector("[data-testid='attach-button']");
-		assert.equal(button?.getAttribute("aria-label"), "Add pictures or PDFs");
+		assert.equal(button?.textContent, "Add pictures or PDFs");
 		assert.equal(box.querySelector("[data-testid='attachment-input']")?.getAttribute("accept"), "image/png,image/jpeg,image/gif,image/webp,application/pdf");
 		assert.ok(box.innerHTML.indexOf('data-testid="attach-button"') < box.innerHTML.indexOf('data-testid="talk-send"'), "beside Send, before it");
 		talkChat = null;

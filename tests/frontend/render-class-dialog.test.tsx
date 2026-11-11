@@ -1,11 +1,7 @@
 /**
- * The Edit class dialog with Deadlines,
- * mounted over linkedom with a fake fetch: rows read "Midterm 1 · Exam ·
- * Thu Oct 29, 7:00 PM · 2 files" (done ones show a tick); one opens to its
- * kind, name, date, time, a checkbox per study file and Done; Add deadline
- * and Remove deadline are drafts until Save, which writes the class, then
- * removals, changes and new deadlines through the deadline routes. The
- * dialog has no file list.
+ * The Edit class dialog, mounted over linkedom with a fake fetch: Save
+ * writes only the fields the learner changed. The dialog has no file list
+ * and no deadlines (those have their own tabs).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -29,11 +25,12 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
-// An opened deadline row scrolls into view.
+// A new error scrolls into view.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { createRoot } = await import("react-dom/client");
-const { ClassDialog, MoveLessonDialog } = await import("../../src/frontend/components/class-dialog.tsx");
+const { ClassDialog } = await import("../../src/frontend/components/class-dialog.tsx");
+const { MoveLessonDialog } = await import("../../src/frontend/components/lessons/move-lesson-dialog.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
 
@@ -71,8 +68,6 @@ function fakeFetch() {
 		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
 		if (url === "/api/classes/cls_a" && method === "GET") return Response.json({ class: served });
 		if (url === "/api/classes/cls_a" && method === "DELETE") return Response.json({ ok: true, lessonIds: ["l1", "l2"] });
-		if (url === "/api/classes/cls_a/deadlines" && method === "POST")
-			return Response.json({ deadline: { id: "ddl_new", done: false, ...body } }, { status: 201 });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
 }
@@ -80,7 +75,7 @@ function fakeFetch() {
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
-async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string; deadline?: string }) {
+async function mount(mode: { kind: "create" } | { kind: "edit"; classId: string }) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -110,13 +105,6 @@ async function typeInto(el: HTMLElement | null, value: string) {
 		el.dispatchEvent(new window.Event("input", { bubbles: true }));
 	});
 }
-async function choose(el: HTMLElement | null, value: string) {
-	assert.ok(el, "missing select");
-	await act(async () => {
-		Object.defineProperty(el, "value", { configurable: true, writable: true, value });
-		el.dispatchEvent(new window.Event("change", { bubbles: true }));
-	});
-}
 /** Esc on the document; returns whether something claimed it. */
 async function pressEscape() {
 	const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
@@ -126,16 +114,6 @@ async function pressEscape() {
 	});
 	return esc.defaultPrevented;
 }
-/** linkedom's click doesn't flip a checkbox: flip it, then click. */
-async function check(el: HTMLElement | null) {
-	assert.ok(el, "missing checkbox");
-	const box = el as HTMLInputElement;
-	await act(async () => {
-		Object.defineProperty(box, "checked", { configurable: true, writable: true, value: !box.checked });
-		box.dispatchEvent(new window.Event("click", { bubbles: true }));
-	});
-}
-
 afterEach(async () => {
 	await act(async () => root?.unmount());
 	host?.remove();
@@ -149,106 +127,15 @@ afterEach(async () => {
 	globalThis.fetch = originalFetch;
 });
 
-describe("Edit class dialog — deadlines", () => {
-	it("shows name, description and the deadlines, and no file list", async () => {
+describe("Edit class dialog", () => {
+	it("shows name and description, and no deadlines or file list", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
 		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "Edit class");
 		assert.equal((q("class-name") as HTMLInputElement).value, "CSE 21");
-		assert.match(q("class-deadlines")!.textContent!, /Deadlines/);
-		assert.match(q("class-add-deadline")!.textContent!, /Add deadline/);
-		const midterm = q("class-deadline-exm_1")!.textContent!;
-		assert.match(midterm, /Midterm 1/);
-		assert.match(midterm, /Exam/);
-		assert.match(midterm, /Thu Oct 29, 7:00 PM/);
-		assert.match(midterm, /2 files/);
-		assert.equal(q("class-deadline-exm_1")!.querySelector('[data-testid="class-deadline-done-tick"]'), null);
-		const hw = q("class-deadline-ddl_3")!;
-		assert.match(hw.textContent!, /HW 1/);
-		assert.match(hw.textContent!, /Homework/);
-		assert.match(hw.textContent!, /Sun Nov 1/);
-		assert.doesNotMatch(hw.textContent!, /PM|AM/, "no time, no clock");
-		assert.ok(hw.querySelector('[data-testid="class-deadline-done-tick"]'), "a done one shows a tick");
-		assert.equal(hw.getAttribute("data-done"), "true");
+		assert.equal(q("class-deadlines"), null, "deadlines moved to the Deadlines tab");
 		assert.equal(q("class-files"), null, "the file list moved to the Files page");
 		assert.ok(q("class-archive") && q("class-delete") && q("class-save"));
-	});
-
-	it("an open deadline has kind, name, date, time, the study files and Done", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a" });
-		await click(q("class-deadline-exm_1"));
-		assert.equal((q("class-deadline-kind") as HTMLSelectElement).value, "exam");
-		assert.deepEqual(
-			[...q("class-deadline-kind")!.querySelectorAll("option")].map((o) => o.textContent),
-			["Exam", "Homework", "Quiz", "Project"],
-		);
-		assert.ok(q("class-deadline-name"), "the name is a field");
-		assert.ok(q("class-deadline-date"), "the date is a field");
-		assert.equal((q("class-deadline-time") as HTMLInputElement).value, "19:00");
-		assert.ok(q("class-deadline-time-clear"), "a set time can be cleared");
-		assert.equal((q("class-deadline-file-f1") as HTMLInputElement).checked, true);
-		assert.equal((q("class-deadline-file-f3") as HTMLInputElement).checked, false);
-		assert.equal(q("class-deadline-file-f4"), null, "course info is not offered");
-		assert.equal((q("class-deadline-done") as HTMLInputElement).checked, false);
-		assert.match(q("class-deadline-remove")!.textContent!, /Remove deadline/);
-		// One open at a time.
-		await click(q("class-deadline-exm_2"));
-		assert.equal(q("class-deadline-exm_1")!.getAttribute("aria-expanded"), "false");
-	});
-
-	it("Save writes the class, then removals, changes and new deadlines", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a" });
-		// Midterm 1 gains Rosen 6.2, loses its time, and is done.
-		await click(q("class-deadline-exm_1"));
-		await check(q("class-deadline-file-f3"));
-		await click(q("class-deadline-time-clear"));
-		await check(q("class-deadline-done"));
-		assert.match(q("class-deadline-exm_1")!.textContent!, /3 files/);
-		// HW 1 is not done after all, and becomes a quiz.
-		await click(q("class-deadline-ddl_3"));
-		await check(q("class-deadline-done"));
-		await choose(q("class-deadline-kind"), "quiz");
-		// The Final goes.
-		await click(q("class-deadline-exm_2"));
-		await click(q("class-deadline-remove"));
-		assert.equal(q("class-deadline-exm_2"), null);
-		// A new homework, due at 5 PM, already done.
-		await click(q("class-add-deadline"));
-		await choose(q("class-deadline-kind"), "homework");
-		await typeInto(q("class-deadline-name"), "HW 2");
-		await typeInto(q("class-deadline-date"), "2026-11-02");
-		await typeInto(q("class-deadline-time"), "17:00");
-		await check(q("class-deadline-file-f2"));
-		await check(q("class-deadline-done"));
-		await click(q("class-save"));
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.deepEqual(calls, [
-			{ method: "DELETE", url: "/api/classes/cls_a/deadlines/exm_2", body: undefined },
-			{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { time: null, fileIds: ["f1", "f2", "f3"], done: true } },
-			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_3", body: { kind: "quiz", done: false } },
-			{
-				method: "POST",
-				url: "/api/classes/cls_a/deadlines",
-				body: { kind: "homework", name: "HW 2", date: "2026-11-02", time: "17:00", fileIds: ["f2"] },
-			},
-			{ method: "PUT", url: "/api/classes/cls_a/deadlines/ddl_new", body: { done: true } },
-		]);
-		assert.equal(closed, 1);
-	});
-
-	it("a deadline without a date stops Save before anything is written", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a" });
-		await click(q("class-add-deadline"));
-		await typeInto(q("class-deadline-name"), "Quiz");
-		await click(q("class-save"));
-		assert.equal(q("class-dialog-error")!.textContent, "Quiz needs a date.");
-		assert.deepEqual(calls, []);
-		assert.equal(closed, 0);
 	});
 
 	it("the signature: pick a kind, type one line, see it in the cover's type, save it", async () => {
@@ -256,7 +143,7 @@ describe("Edit class dialog — deadlines", () => {
 		await mount({ kind: "edit", classId: "cls_a" });
 		assert.equal((q("class-signature") as HTMLInputElement).value, "");
 		assert.equal(q("class-signature-preview"), null, "nothing typed, no preview");
-		await choose(q("class-signature-kind"), "code");
+		await click(q("class-signature-kind-code"));
 		await typeInto(q("class-signature"), "int *p = &x;");
 		assert.match(q("class-signature-preview")!.innerHTML, /font-mono/);
 		await click(q("class-save"));
@@ -295,59 +182,6 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal(closed, 1);
 	});
 
-	it("a deadline an agent removes while the dialog is open leaves it, and Save never adds it back", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a" });
-		const [midterm, hw] = RECORD.deadlines!;
-		served = { ...RECORD, deadlines: [midterm!, hw!] };
-		await act(async () => {
-			events.get("classes-changed")!("{}");
-			await new Promise((r) => setTimeout(r, 20));
-		});
-		assert.equal(q("class-deadline-exm_2"), null, "the Final the learner didn't touch is gone from the list");
-		await click(q("class-save"));
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.deepEqual(calls, [], "nothing to write: no POST of the Final, no DELETE");
-		assert.equal(closed, 1);
-	});
-
-	it("an edited deadline an agent removed: Save says so and drops it; a second Save adds nothing", async () => {
-		fakeFetch();
-		const fallback = globalThis.fetch;
-		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-			if (String(input) === "/api/classes/cls_a/deadlines/exm_1" && init?.method === "PUT") {
-				calls.push({ method: "PUT", url: String(input), body: JSON.parse(String(init.body)) });
-				return Response.json({ code: "deadline_not_found", error: "No such deadline" }, { status: 404 });
-			}
-			return fallback(input, init);
-		}) as typeof fetch;
-		await mount({ kind: "edit", classId: "cls_a" });
-		await click(q("class-deadline-exm_1"));
-		await typeInto(q("class-deadline-name"), "Midterm A");
-		const [, hw, final] = RECORD.deadlines!;
-		served = { ...RECORD, deadlines: [hw!, final!] };
-		await act(async () => {
-			events.get("classes-changed")!("{}");
-			await new Promise((r) => setTimeout(r, 20));
-		});
-		assert.ok(q("class-deadline-exm_1"), "an edited draft stays until Save");
-		await click(q("class-save"));
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.equal(q("class-dialog-error")!.textContent, "Midterm A was removed while you were editing it, so your changes to it weren't saved.");
-		assert.equal(q("class-deadline-exm_1"), null);
-		assert.equal(closed, 0);
-		await click(q("class-save"));
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.deepEqual(calls, [{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { name: "Midterm A" } }], "no POST brings it back");
-		assert.equal(closed, 1);
-	});
-
 	it("the icon: pick a subject icon and save it", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", classId: "cls_a" });
@@ -374,15 +208,15 @@ describe("Edit class dialog — deadlines", () => {
 		assert.deepEqual((calls[0] as { body: unknown }).body, { color: 5 });
 	});
 
-	it("New class: name and description only", async () => {
+	it("Add a class: name and description only", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });
-		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "New class");
+		assert.equal(q("class-dialog")!.getAttribute("aria-label"), "Add a class");
 		assert.equal(q("class-deadlines"), null);
 		assert.equal(q("class-signature"), null);
 		assert.equal(q("class-icon"), null);
 		assert.equal(q("class-color"), null);
-		assert.equal(q("class-save")!.textContent, "Create class");
+		assert.equal(q("class-save")!.textContent, "Add class");
 	});
 });
 
@@ -394,6 +228,8 @@ describe("Delete class", () => {
 			fakeFetch();
 			await mount({ kind: "edit", classId: "cls_a" });
 			await click(q("class-delete"));
+			assert.equal(q("class-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
+			assert.match(q("class-delete-confirm")!.textContent!, /This cannot be undone\./);
 			await click(q("class-delete-confirm-button"));
 			await act(async () => {
 				await new Promise((r) => setTimeout(r, 10));
@@ -421,46 +257,19 @@ describe("Esc on the class dialogs", () => {
 		await typeInto(q("class-name"), "CSE 21A");
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);
-		assert.match(q("class-discard-confirm")!.textContent!, /Discard your changes\?/);
+		assert.match(q("class-discard")!.textContent!, /Discard your changes\?What you changed here hasn't been saved\./);
 		assert.equal(q("class-save"), null, "the question takes the footer's place");
 		assert.equal(await pressEscape(), true, "Esc on the question keeps editing");
-		assert.equal(q("class-discard-confirm"), null);
+		assert.equal(q("class-discard"), null);
 		assert.equal(closed, 0);
 		await click(q("class-dialog-close"));
-		await click(q("class-discard-cancel"));
-		assert.equal(q("class-discard-confirm"), null);
+		await click(q("class-discard-keep"));
+		assert.equal(q("class-discard"), null);
 		assert.equal((q("class-name") as HTMLInputElement).value, "CSE 21A", "Keep editing keeps the edit");
 		await click(q("class-dialog-close"));
-		await click(q("class-discard-confirm-button"));
+		await click(q("class-discard-go"));
 		assert.equal(closed, 1);
 		assert.deepEqual(calls, [], "nothing saved");
-	});
-
-	it("a deadline edit counts as a change; an untouched new deadline row doesn't", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a", deadline: "new" });
-		assert.ok(q("class-deadline-name"), "Home's Add deadline opens a blank row");
-		await pressEscape();
-		assert.equal(closed, 1, "nothing typed: closes at once");
-		await act(async () => root?.unmount());
-		host?.remove();
-		closed = 0;
-		await mount({ kind: "edit", classId: "cls_a" });
-		await click(q("class-deadline-exm_1"));
-		await check(q("class-deadline-done"));
-		await pressEscape();
-		assert.equal(closed, 0);
-		assert.ok(q("class-discard-confirm"));
-	});
-
-	it("opens with the asked-for deadline open, its files under Files this covers and Done set apart", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a", deadline: "exm_2" });
-		assert.equal((q("class-deadline-name") as HTMLInputElement).value, "Final");
-		const row = q("class-deadline-exm_2")!;
-		assert.match(row.textContent ?? "", /Files this covers/);
-		assert.equal(q("class-deadline-file-filter"), null, "a short list has no filter");
-		assert.match(q("class-deadline-done")!.closest("div")!.getAttribute("class")!, /border-t/);
 	});
 
 	it("Edit class shows Loading, not empty fields, until the class arrives", async () => {
@@ -474,20 +283,6 @@ describe("Esc on the class dialogs", () => {
 		assert.ok(q("class-dialog-loading"));
 		assert.equal(q("class-name"), null);
 		assert.equal((q("class-save") as HTMLButtonElement).disabled, true);
-		assert.match(q("class-dialog")!.getAttribute("class")!, /h-\[85vh\]/, "one height from the first frame");
-	});
-
-	it("Save drops an untouched blank new deadline row instead of asking for its name", async () => {
-		fakeFetch();
-		await mount({ kind: "edit", classId: "cls_a", deadline: "new" });
-		await typeInto(q("class-name"), "CSE 21A");
-		await click(q("class-save"));
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.equal(q("class-dialog-error"), null);
-		assert.deepEqual(calls, [{ method: "PUT", url: "/api/classes/cls_a", body: { name: "CSE 21A" } }], "no deadline POST");
-		assert.equal(closed, 1);
 	});
 
 	it("Edit class that can't load shows Try again in place of the fields, and Save is off", async () => {
@@ -512,13 +307,13 @@ describe("Esc on the class dialogs", () => {
 		assert.equal((q("class-save") as HTMLButtonElement).disabled, false);
 	});
 
-	it("New class asks before throwing away a typed name", async () => {
+	it("Add a class asks before throwing away a typed name", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });
 		await typeInto(q("class-name"), "MATH 20C");
 		await click(q("class-dialog-close"));
 		assert.equal(closed, 0);
-		assert.ok(q("class-discard-confirm"));
+		assert.match(q("class-discard")!.textContent!, /What you typed here hasn't been saved\./);
 	});
 
 	it("while Save runs, Esc is claimed but the dialog stays open and the close button is off", async () => {
@@ -531,11 +326,7 @@ describe("Esc on the class dialogs", () => {
 		}) as typeof fetch;
 		await mount({ kind: "edit", classId: "cls_a" });
 		await typeInto(q("class-name"), "CSE 21A");
-		await click(q("class-deadline-exm_1"));
 		await click(q("class-save"));
-		for (const id of ["class-deadline-name", "class-deadline-date", "class-deadline-time", "class-deadline-time-clear"]) {
-			assert.equal((q(id) as HTMLInputElement).disabled, true, `${id} waits like the rest of the row`);
-		}
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);
 		assert.equal((q("class-dialog-close") as HTMLButtonElement).disabled, true);

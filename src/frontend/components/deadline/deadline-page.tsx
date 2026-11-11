@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
+import { classColorVar } from "@/frontend/components/class-color";
 import { useClasses } from "@/frontend/components/class-context";
-import { ClassDialog } from "@/frontend/components/class-dialog";
+import { DeadlineDialog } from "@/frontend/components/class-page/deadline-dialog";
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { dueLabel } from "@/frontend/components/class-deadlines-model";
 import { useMinute } from "@/frontend/components/countdown";
@@ -14,18 +15,18 @@ import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { askTeacher } from "@/frontend/components/halley/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { PageBar } from "@/frontend/components/page-bar";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
 import { DeadlineBody } from "./deadline-body";
 import { HomeworkCard } from "./homework-card";
 import { coverageMessage, deadlineMaterial } from "./deadline-model";
 
 /**
- * A deadline's page, opened from its ring on the Overview or its row in
- * Coming up. The page makes the deadline's class the active one (Coming up
- * lists every class); switching class afterwards goes to that class's
- * Overview. Study works on today's topics (all its topics once every one
- * is strong).
+ * A deadline's page, opened from its row on Today, the class's Deadlines
+ * tab or its Progress tab. The page makes the deadline's class the active
+ * one (Today lists every class); switching class afterwards goes to that
+ * class. Study works on today's topics (all its topics once every one is
+ * strong).
  */
 export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlineId: string }) {
 	const router = useRouter();
@@ -45,8 +46,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const nowMs = useMinute();
 	const lesson = useLessonStart();
-	// "class": Edit class as it opens anywhere; "deadline": with this deadline's row open.
-	const [editing, setEditing] = useState<"class" | "deadline" | null>(null);
+	const [editing, setEditing] = useState(false);
 
 	const current = data && data.classId === classId ? data : null;
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
@@ -108,34 +108,25 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		if (deadline) askTeacher(coverageMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
 	}, [deadline, activeClass?.name]);
 
-	const editMode = useMemo(
-		() => (editing ? { kind: "edit" as const, classId, deadline: editing === "deadline" ? deadlineId : undefined } : null),
-		[editing, classId, deadlineId],
-	);
+	// The dialog compares its mode by identity: one object per open.
+	const files = record?.files;
+	const editMode = useMemo(() => (editing && saved && files ? { classId, deadline: saved, files } : null), [editing, classId, saved, files]);
 
 	return (
-		<div className="flex h-full flex-col">
-			<PageBar back={{ label: activeClass?.name ?? "Class", href: "/class" }}>
-				<button
-					type="button"
-					data-testid="deadline-edit-class"
-					onClick={() => setEditing("class")}
-					className="lh-btn"
-				>
-					Edit class
-				</button>
-			</PageBar>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+		<div className="h-full overflow-y-auto">
+			<div className="mx-auto flex w-full max-w-[1128px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
+				<Link href="/class/deadlines" prefetch={false} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
+					<PixelIcon name="chevron" className="-scale-x-100" />
+					Deadlines
+				</Link>
 				{current && !deadline ? (
-					<div data-testid="deadline-removed" className="flex flex-col items-start gap-3 px-[52px] py-6">
-						<p className="text-base text-ink-2">This deadline was removed.</p>
-						<Link href="/class" className="lh-btn">
-							Go to the class
-						</Link>
-					</div>
+					<p data-testid="deadline-removed" className="text-lg text-ink-2">
+						This deadline was removed.
+					</p>
 				) : current && deadline && nowMs !== null ? (
 					<DeadlineBody
 						deadline={deadline}
+						color={activeClass ? classColorVar(activeClass.color) : "var(--border)"}
 						topics={current.topics}
 						material={material}
 						plan={plan}
@@ -143,7 +134,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						busy={lesson.busy}
 						startError={lesson.error ?? saveError}
 						onStart={onStart}
-						onEditClass={() => setEditing("deadline")}
+						onEdit={() => setEditing(true)}
 						source={saved?.source}
 						teacherName={teacherName}
 						saving={saving}
@@ -169,16 +160,16 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						}
 					/>
 				) : error ? (
-					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} className="px-[52px] py-6" />
+					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} />
 				) : (
 					// Plain boxes until the class's progress arrives, so nothing jumps.
-					<div className="flex flex-col gap-4 px-[52px] py-6" aria-hidden>
-						<div className="h-[96px] w-full bg-panel" />
+					<div className="flex flex-col gap-[22px]" aria-hidden>
+						<div className="h-[120px] w-full bg-panel" />
 						<div className="h-[320px] w-full bg-panel" />
 					</div>
 				)}
 			</div>
-			<ClassDialog mode={editMode} onClose={() => setEditing(null)} />
+			<DeadlineDialog mode={editMode} onClose={() => setEditing(false)} onRemoved={() => router.push("/class/deadlines")} />
 		</div>
 	);
 }

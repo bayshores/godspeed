@@ -16,5 +16,5 @@ export default async function CheatSheetPage({ params }: { params: Promise<{ id:
 	const { id } = await params;
 	const owner = deadlineWithClass(id);
 	if (!owner) notFound();
-	return <CheatSheetStudio key={id} classId={owner.classId} deadlineId={id} />;
+	return <CheatSheetStudio key={id} classId={owner.classId} deadlineId={id} deadlineName={owner.deadline.name} />;
 }

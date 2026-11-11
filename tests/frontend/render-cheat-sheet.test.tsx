@@ -1,6 +1,6 @@
 /**
- * The cheat sheet's screens: the studio's status (working, waiting for an
- * agent, the paper), the older-sheet notice, the sheet's chat (its rules,
+ * The cheat sheet's screens: the studio's status (the paper) and the
+ * teacher's line (working, waiting for an agent), the older-sheet notice, the sheet's chat (its rules,
  * the learner's messages with what they pointed at and the problem they
  * were on, the agent's answers with "Made version N" and saved rules, the
  * working and failed lines; Send with the part pointed at and the problem,
@@ -42,7 +42,7 @@ Object.assign(globalThis, {
 // The chat scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { OlderSheet, StudioStatus, emptyChatLine, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
+const { OlderSheet, TeacherHead, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
 const { SheetCardView } = await import("../../src/frontend/components/cheat-sheet/class-sheets.tsx");
@@ -86,20 +86,20 @@ const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 	...over,
 });
 
-const status = (v: CheatSheetView, agentGone = false) => renderToStaticMarkup(<StudioStatus view={v} agentName="Claude Code" agentGone={agentGone} onStop={() => {}} />);
-
 describe("the studio's status", () => {
-	it("says what the agent is doing, or that none is connected, with Stop", () => {
-		assert.match(status(view({ running: { messageId: "m1" } })), /Claude Code is making your sheet.*Stop/);
-		assert.match(status(view({ running: { messageId: "m1" }, sheet: { ...newCheatSheet("ddl_1", "t"), versions } })), /Claude Code is on your message/);
-		const waiting = status(view({ running: { messageId: "m1" } }), true);
-		assert.match(waiting, /No agent connected.*Stop/);
-		assert.doesNotMatch(waiting, /making/);
+	it("says what the teacher is doing under its name, or that no agent is connected", () => {
+		assert.equal(teacherDoing(view(), false), null);
+		assert.equal(teacherDoing(view({ running: { messageId: "m1" } }), false), "is making your sheet");
+		assert.equal(teacherDoing(view({ running: { messageId: "m1" }, sheet: { ...newCheatSheet("ddl_1", "t"), versions } }), false), "is on your message");
+		assert.equal(teacherDoing(view({ running: { messageId: "m1" } }), true), "No agent connected");
+		const head = renderToStaticMarkup(<TeacherHead name="marco" color={1} doing="is on your message" />);
+		assert.match(head, /var\(--lh-class-1\).*marco.*data-testid="sheet-teacher-doing"[^>]*>is on your message/);
+		assert.doesNotMatch(renderToStaticMarkup(<TeacherHead name="marco" color={undefined} doing={null} />), /sheet-teacher-doing/);
 	});
 
 	it("names the newest version's paper", () => {
-		assert.match(status(view()), /Not made yet/);
-		assert.match(status(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })), /A4, front and back/);
+		assert.equal(sheetPaper(view()), "Not made yet");
+		assert.equal(sheetPaper(view({ sheet: { ...newCheatSheet("ddl_1", "t"), versions } })), "A4, front and back");
 	});
 
 	it("says an older sheet can't be shown, with one button to make it again", () => {
@@ -135,7 +135,7 @@ describe("the sheet's chat", () => {
 
 	it("shows the sheet's rules, the learner's messages with what they pointed at, their files and the problem they were on, and the agent's answers", () => {
 		const html = render(chatView, { onShowVersion: () => {} });
-		assert.match(html, /This sheet&#x27;s rules \(1\).*Claude Code keeps to these.*American spelling.*aria-label="Remove rule: American spelling"/);
+		assert.match(html, /This sheet&#x27;s rules \(1\).*American spelling.*Saved by Claude Code.*aria-label="Remove rule: American spelling"/);
 		assert.match(html, /data-testid="sheet-you"[^>]*>this card is confusing/);
 		assert.match(html, /data-testid="sheet-pointed"[^>]*>.*Pointed at the back of version 2/);
 		assert.match(html, /data-testid="sheet-picture" src="\/api\/classes\/cls_1\/deadlines\/ddl_1\/cheat-sheet\/files\/abc-Version%202%2C%20Back\.png"/);
@@ -146,6 +146,7 @@ describe("the sheet's chat", () => {
 		assert.match(html, /About the problem in Counting practice/);
 		assert.match(html, /data-testid="sheet-send"/);
 		assert.match(render(view()), /data-testid="sheet-chat-empty"[^>]*>Say what you want on it\./);
+		assert.doesNotMatch(render(view(), { empty: undefined }), /sheet-chat-empty/, "the studio says it on the canvas instead");
 	});
 
 	it("says the agent is on a message or waiting for one, why one failed with Try again, and shows Stop while it works", () => {
@@ -215,7 +216,7 @@ describe("the sheet's chat", () => {
 });
 
 describe("the canvas", () => {
-	const html = renderToStaticMarkup(<SheetCanvas versions={versions} pdfUrl={(n) => `/pdf/${n}`} labelFor={(v, newest) => `${newest ? "Current" : "Earlier"}, ${v.prompt}`} inset={372} onPoint={() => {}} />);
+	const html = renderToStaticMarkup(<SheetCanvas versions={versions} pdfUrl={(n) => `/pdf/${n}`} labelFor={(v, newest) => `${newest ? "Current" : "Earlier"}, ${v.prompt}`} onPoint={() => {}} />);
 
 	it("puts every version's pages on the canvas at their size, newest first, each labeled", () => {
 		const pages = html.match(/data-testid="cheat-sheet-page"[^>]*style="[^"]*"/g)!;
@@ -250,8 +251,8 @@ describe("a class's cheat sheet cards", () => {
 	it("a made sheet: its first page's preview from the real PDF, its paper and when it was made, opening the studio", () => {
 		const html = render(card({ status: "made", version: versions[1]! }));
 		assert.match(html, /href="\/class\/deadline\/ddl_1\/cheat-sheet"/);
-		assert.match(html, /data-testid="cheat-sheet-thumb"[^>]*style="width:134px;height:190px"/);
-		assert.match(html, /Midterm<\/h3>.*Exam, Wed Nov 4 9:00 AM/);
+		assert.match(html, /data-testid="cheat-sheet-thumb"[^>]*style="width:44px;height:62px"/);
+		assert.match(html, /Midterm<\/a><\/h3>.*Exam, Wed Nov 4 9:00 AM/);
 		assert.match(html, /A4, front and back, made Nov 3/);
 		assert.doesNotMatch(html, /cheat-sheet-show-file/, "no file browser in a plain browser");
 		assert.match(render(card({ status: "made", version: versions[1]! }), { label: "Show in Finder", run: () => {} }), /data-testid="cheat-sheet-show-file"[^>]*>Show in Finder/);

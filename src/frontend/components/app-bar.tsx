@@ -3,7 +3,8 @@
 /**
  * THE TOP BAR, one for the whole window: the wordmark, Today, a tab per
  * class, then Follow, the teacher (a click opens its panel), Menu and the
- * clock. In Electron the bar is the window's drag band, with the traffic
+ * clock. A page that draws a bar of its own (.lh-own-bar) hides this one
+ * (globals.css). In Electron the bar is the window's drag band, with the traffic
  * lights in its left gutter; clickable elements carve out of the drag
  * region on their own (globals.css).
  */
@@ -29,7 +30,7 @@ export function AppBar() {
 	const tabIds = classes.filter((c) => !c.archived).map((c) => c.id);
 	const selected = selectedTab(pathname, active, tabIds);
 	return (
-		<header data-testid="app-bar" className="lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-stretch bg-bar text-bar-ink">
+		<header data-testid="app-bar" className="lh-app-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-stretch bg-bar text-bar-ink">
 			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium">godspeed</span>
 			<ClassTabs selected={selected} />
 			<FollowButton />
