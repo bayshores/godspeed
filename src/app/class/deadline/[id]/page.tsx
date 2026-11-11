@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
 	const { id } = await params;
-	return { title: (deadlineWithClass(id)?.deadline.name || "deadline").toLowerCase() };
+	return { title: deadlineWithClass(id)?.deadline.name || "Deadline" };
 }
 
 /** One deadline's page, from its ring on the Overview or its row in Coming up. */

@@ -16,7 +16,7 @@
 
 /* One focus ring, for keyboard focus only. The browser's own outline never
    shows: a keypress lights :focus-visible on a clicked control too (a
-   clicked sidebar lesson lit up at the quiz's arrow keys), so the ring
+   clicked lesson row lit up at the quiz's arrow keys), so the ring
    waits for Tab or an arrow that moves focus (data-tab-focus,
    focus-hygiene.ts) and goes at the next click. Text fields keep their
    own focus edge, and a dialog box that takes focus on open
@@ -578,7 +578,7 @@ body {
    hidden (macOS hiddenInset; Windows/Linux hidden + native controls
    overlay in electron/main.cjs); the app's 60px bands are the drag surface.
    Everything here is inert in the plain browser — it keys off <html class="lh-electron">, which
-   SidebarProvider sets after mount when it detects the Electron shell.
+   ElectronEnv sets after mount when it detects the Electron shell.
 
    - .lh-drag        window-drag region — on a dedicated mask div in
                        home.tsx placed FIRST in the page DOM (the mask
@@ -588,7 +588,7 @@ body {
                        (native interactive elements carve out AUTOMATICALLY —
                        see the auto carve-out rule below; manual use is for
                        clickable non-natives only)
-   - .lh-lights-gutter  the sidebar LH band's traffic-light gutter: lights
+   - .lh-lights-gutter  the top bar's traffic-light gutter: lights
                        end at x≈68, the wordmark starts at 80px (5rem)
    ───────────────────────────────────────────────────────────────────────── */
 .lh-electron .lh-drag {
@@ -1134,9 +1134,6 @@ body {
 :root[data-lh-resizing] {
 	cursor: col-resize;
 	user-select: none;
-}
-:root[data-lh-resizing] .sidebar-motion {
-	transition: none;
 }
 
 /* Printing a cheat sheet prints only its pages: the studio adds them to

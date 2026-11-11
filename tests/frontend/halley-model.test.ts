@@ -132,7 +132,8 @@ describe("follow", () => {
 	});
 	it("names the page on the button", () => {
 		assert.equal(pageName("/chat/c1"), "lesson");
-		assert.equal(pageName("/"), "Home");
+		assert.equal(pageName("/"), "Today");
+		assert.equal(pageName("/class"), "Progress");
 		assert.equal(pageName("/class/files"), "Files");
 	});
 });

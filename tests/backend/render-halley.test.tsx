@@ -1,8 +1,7 @@
 /**
  * The teacher's screens: the face (one svg, every
  * mood, plain black eyes), the panel (head, the Talk and Activity tabs:
- * Now, Recent, Background jobs), the Follow chip, the teacher name setting, and the
- * sidebar footer opening the panel instead of the old popup.
+ * Now, Recent, Background jobs) and the teacher name setting.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -26,7 +25,7 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
-	// The Follow chip measures its content; linkedom has no layout.
+	// The panel measures its content; linkedom has no layout.
 	ResizeObserver: class {
 		observe() {}
 		disconnect() {}
@@ -41,7 +40,6 @@ const { HalleyPanel, agentLine } = await import("../../src/frontend/components/h
 const { dockPush, dockWidth } = await import("../../src/frontend/components/halley/dock-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/halley/ask-teacher.ts");
-const { TeacherPaneView } = await import("../../src/frontend/components/halley/teacher-pane.tsx");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivitySection } = await import("../../src/frontend/components/activity-dock.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
@@ -152,7 +150,7 @@ describe("the panel", () => {
 	});
 	it("docks on the right edge as a solid panel with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-11 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
+		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
 		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
 	});
 	it("Talk reads like a script: the speaker's name once per turn, no bubbles, a white Send bar", async () => {
@@ -328,6 +326,7 @@ describe("the panel", () => {
 		assert.equal(agentLine(null), null);
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true, backupAnswering: true }), "Catching up on my notes. My backup is answering for a minute.");
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
 	it("a Talk message no agent has taken says it waits once, in the head", async () => {
@@ -404,71 +403,6 @@ describe("the panel", () => {
 		askTeacher("Check my files");
 		askTeacher("   ");
 		assert.deepEqual(heard, ["Check my files"]);
-	});
-});
-
-describe("the teacher pane", () => {
-	const reading = { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true };
-	const pane = (over: Partial<React.ComponentProps<typeof TeacherPaneView>> = {}) => (
-		<TeacherPaneView
-			name="Marco"
-			mood="talking"
-			doing={reading}
-			idleLine="Claude Code"
-			disconnected={false}
-			backupAnswering={false}
-			following
-			onFollow={() => {}}
-			offer={null}
-			onGo={() => {}}
-			talkOpen={false}
-			onTalk={() => {}}
-			{...over}
-		/>
-	);
-	it("the name cut into the border, the mascot, and what it says in its bubble: the verb over the rest", () => {
-		const el = mount(pane());
-		assert.equal(el.querySelector("[data-testid='teacher-pane'] h2")?.textContent, "marco");
-		assert.equal(el.querySelector("[data-testid='teacher-sprite']")?.getAttribute("data-face"), "reading");
-		assert.match(el.querySelector("[data-testid='teacher-doing']")?.textContent ?? "", /^reading06_Counting\.pdf3 of 12$/);
-	});
-	it("idle: one quiet line", () => {
-		const html = renderToStaticMarkup(pane({ doing: { text: "Idle", working: false } }));
-		assert.match(html, /data-testid="teacher-doing"[^>]*>idle</);
-	});
-	it("follow turns on and off; talk opens the panel", () => {
-		const follows: boolean[] = [];
-		let talked = 0;
-		const el = mount(pane({ onFollow: (on) => follows.push(on), onTalk: () => talked++ }));
-		assert.equal(el.querySelector("[data-testid='follow-stop']")?.textContent, "following");
-		act(() => (el.querySelector("[data-testid='follow-stop']") as HTMLElement).click());
-		act(() => (el.querySelector("[data-testid='teacher-talk']") as HTMLElement).click());
-		assert.deepEqual(follows, [false]);
-		assert.equal(talked, 1);
-		const off = mount(pane({ following: false, onFollow: (on) => follows.push(on) }));
-		act(() => (off.querySelector("[data-testid='follow-start']") as HTMLElement).click());
-		assert.deepEqual(follows, [false, true]);
-	});
-	it("screen readers hear the line in a polite live region", () => {
-		assert.match(renderToStaticMarkup(pane()), /aria-live="polite"[^>]*>Marco: Reading 06_Counting\.pdf</);
-	});
-	it("with Follow off, a change on another page offers to go there", () => {
-		const offer: AgentAction = { id: "act_1", at: new Date().toISOString(), agent: "Claude Code", label: "Starting CSE 29 review", classId: null, target: null, page: "/chat/c1" };
-		const went: AgentAction[] = [];
-		const el = mount(pane({ following: false, offer, onGo: (a) => went.push(a) }));
-		assert.match(el.querySelector("[data-testid='follow-offer']")?.textContent ?? "", /^starting cse 29 reviewgo to lesson$/);
-		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
-		assert.deepEqual(went, [offer]);
-	});
-	it("while the agent compacts, the bubble says the backup is answering", () => {
-		const html = renderToStaticMarkup(pane({ backupAnswering: true }));
-		assert.match(html, /data-testid="teacher-backup"[^>]*>Catching up on my notes\. My backup is answering for a minute\.</);
-		assert.doesNotMatch(html, /teacher-doing/);
-	});
-	it("no agent yet: the agent line in the bubble, no follow button", () => {
-		const html = renderToStaticMarkup(pane({ doing: null, idleLine: "No agent connected" }));
-		assert.match(html, /data-testid="teacher-bubble"[^>]*><p[^>]*>No agent connected</);
-		assert.doesNotMatch(html, /follow-st/);
 	});
 });
 

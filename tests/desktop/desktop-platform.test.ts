@@ -42,7 +42,7 @@ describe("desktop window chrome", () => {
 	it("macOS keeps the proven traffic lights and does not enable WCO", () => {
 		const options = windowOptions("darwin");
 		assert.equal(options.titleBarStyle, "hiddenInset");
-		assert.deepEqual(options.trafficLightPosition, { x: 16, y: 14 });
+		assert.deepEqual(options.trafficLightPosition, { x: 16, y: 16 });
 		assert.equal(options.titleBarOverlay, undefined);
 		assert.equal(options.autoHideMenuBar, undefined);
 	});
@@ -88,7 +88,7 @@ describe("desktop window chrome", () => {
 		runInNewContext(readFileSync(new URL("../../electron/preload.cjs", import.meta.url), "utf8"), context);
 		assert.equal(bridge.platform, "win32");
 		assert.deepEqual(Object.keys(bridge).sort(), [
-			"checkForUpdates", "expandWindow", "getUpdateState", "getZoom", "installUpdate", "listFonts", "onOpenSettings", "onUpdateStatus", "onZoom", "openAgent", "openPath", "pathForFile", "pickFolder", "platform", "reportBug", "showInFolder",
+			"checkForUpdates", "getUpdateState", "getZoom", "installUpdate", "listFonts", "onOpenSettings", "onUpdateStatus", "onZoom", "openAgent", "openPath", "pathForFile", "pickFolder", "platform", "reportBug", "showInFolder",
 		]);
 	});
 });

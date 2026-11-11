@@ -279,7 +279,7 @@ describe("the cheat sheet beside a session", () => {
 	it("opens from a visible Cheat sheet button in the lesson's top bar, for a session in a class", () => {
 		const bar = (sheet?: { open: boolean; onToggle: () => void }) =>
 			renderToStaticMarkup(<LessonTopBar kind="study" rename={rename} practice={null} sheet={sheet} />);
-		assert.match(bar({ open: false, onToggle() {} }), /data-testid="lesson-cheat-sheet" aria-pressed="false"[^>]*>cheat sheet/);
+		assert.match(bar({ open: false, onToggle() {} }), /data-testid="lesson-cheat-sheet" aria-pressed="false"[^>]*>Cheat sheet/);
 		assert.match(bar({ open: true, onToggle() {} }), /aria-pressed="true"/);
 		assert.doesNotMatch(bar(), /lesson-cheat-sheet/);
 	});

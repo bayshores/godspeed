@@ -10,7 +10,7 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { useMinute } from "@/frontend/components/countdown";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { TopBar } from "@/frontend/components/app-bar";
+import { PageBar } from "@/frontend/components/page-bar";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
@@ -74,10 +74,10 @@ export function HomePage() {
 
 	return (
 		<div data-testid="home-page" className="flex h-full min-h-0 flex-col">
-			<h1 className="sr-only">Home</h1>
-			<TopBar inClass={false} path={[{ label: "home", href: null }]}>
+			<h1 className="sr-only">Today</h1>
+			<PageBar>
 				{shown.length > 0 && <AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />}
-			</TopBar>
+			</PageBar>
 			<div className="@container min-h-0 flex-1 overflow-y-auto">
 				{!ready ? (
 					<div className="px-5 py-6">

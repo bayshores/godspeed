@@ -33,10 +33,6 @@ const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
 
-// Mirrors SIDEBAR_AUTOCLOSE in src/frontend/components/sidebar.tsx — keep in sync (the
-// renderer owns the number; this is the IPC widen target).
-const SIDEBAR_AUTOCLOSE = 1000;
-
 const PRODUCT_NAME = "godspeed";
 
 // The Application Support dir is exactly "godspeed" in dev AND packaged:
@@ -392,13 +388,13 @@ function createWindow(url, serverUp = null) {
 		width: 1440,
 		height: 900,
 		title: PRODUCT_NAME,
-		// Merged chrome: the system title bar is gone; the app's own 44px
+		// Merged chrome: the system title bar is gone; the app's own 48px
 		// top bar IS the title bar. macOS 26 centers each traffic light
-		// about 8px below y, so y 14 centers them on the bar (y 22), with
+		// about 8px below y, so y 16 centers them on the bar (y 24), with
 		// the same gap above them as to their left.
 		// Dragging comes from the renderer's .lh-drag bands (src/app/globals.css).
 		...(process.platform === "darwin"
-			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 14 } }
+			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 16 } }
 			: {
 				titleBarStyle: "hidden",
 				// Native min/max/close on the right, at the OS's compact default
@@ -427,12 +423,7 @@ function createWindow(url, serverUp = null) {
 		// appears only once the page has actually rendered.
 		backgroundColor: colors.background,
 		show: false,
-		// Narrow-window behavior: 640px is the floor —
-		// below it even a wrapped chrome row gets cramped and the chat header
-		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
-		// auto-closes below SIDEBAR_AUTOCLOSE (a fixed 1000) in the renderer
-		// (src/frontend/components/sidebar.tsx); its "lh:expand-window"
-		// IPC widens the window back to that threshold.
+		// 640px is the floor: below it the top bar runs out of room.
 		minWidth: 640,
 		minHeight: 600,
 	});
@@ -875,16 +866,6 @@ async function main() {
 	ipcMain.handle("lh:zoom:get", (event) => {
 		if (!fromAppWindow(event)) throw untrusted();
 		return BrowserWindow.fromWebContents(event.sender).webContents.getZoomFactor();
-	});
-	// The renderer auto-closes the sidebar below SIDEBAR_AUTOCLOSE; opening
-	// it again at that width widens the window instead, so the layout never
-	// holds a narrow window and an open sidebar. Top-left stays fixed.
-	ipcMain.on("lh:expand-window", (event) => {
-		if (!fromAppWindow(event)) return;
-		const win = BrowserWindow.fromWebContents(event.sender);
-		const { x, y, width, height } = win.getBounds();
-		const target = SIDEBAR_AUTOCLOSE;
-		if (width < target) win.setBounds({ x, y, width: target, height });
 	});
 	reopenWindow = () => createWindow(url, serverReady ? null : serverUp);
 	app.on("activate", () => {

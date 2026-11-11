@@ -7,7 +7,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
 import { PlusIcon, SearchIcon } from "lucide-react";
-import { TopBar } from "@/frontend/components/app-bar";
+import { PageBar } from "@/frontend/components/page-bar";
 
 const CHROME_BUTTON = "lh-btn shrink-0";
 
@@ -35,7 +35,7 @@ export function GraphTopBar({
 	return (
 		<>
 			<h1 className="sr-only">Graph</h1>
-			<TopBar path={[{ label: "graph", href: null }]}>
+			<PageBar>
 			{hasFacts && <SearchBox inputRef={searchRef} query={query} onQuery={onQuery} />}
 			{hasFacts && (
 				<button type="button" data-testid="open-chain-table" onClick={onOpenChains} className={CHROME_BUTTON}>
@@ -49,7 +49,7 @@ export function GraphTopBar({
 					+ Add files
 				</Link>
 			)}
-			</TopBar>
+			</PageBar>
 		</>
 	);
 }

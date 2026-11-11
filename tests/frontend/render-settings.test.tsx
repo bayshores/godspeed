@@ -1,8 +1,7 @@
 /**
- * Settings-surface render tests: SSR of the dialog frame and each section.
- * Fetches don't run under renderToStaticMarkup (effects never fire), so the
- * SSR state is the loading state. Same tsx classic-JSX shim as
- * render-sidebar.test.tsx.
+ * Settings render tests: SSR of the page frame and each section. Fetches
+ * don't run under renderToStaticMarkup (effects never fire), so the SSR
+ * state is the loading state.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -16,8 +15,7 @@ import { TeachingSection } from "../../src/frontend/components/settings/teaching
 import { AppearanceSection } from "../../src/frontend/components/settings/appearance-section.tsx";
 import { GeneralSection } from "../../src/frontend/components/settings/general-section.tsx";
 import { KeyboardSection } from "../../src/frontend/components/settings/keyboard-section.tsx";
-import { SettingsDialogBody } from "../../src/frontend/components/settings/settings-dialog.tsx";
-import { SettingsDialogProvider } from "../../src/frontend/components/settings/settings-dialog-provider.tsx";
+import { sectionFor, SettingsPage } from "../../src/frontend/components/settings/settings-page.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -32,36 +30,33 @@ function tagOf(html: string, testid: string): string {
 	return html.slice(html.lastIndexOf("<", i), html.indexOf(">", i) + 1);
 }
 
-describe("SettingsDialog (the designed surface, SSR)", () => {
-	it("provider CLOSED: children only — no dialog, no portal content", () => {
-		const html = renderToStaticMarkup(
-			<SettingsDialogProvider>
-				<p>the app</p>
-			</SettingsDialogProvider>,
-		);
-		assert.ok(html.includes("the app"));
-		assert.ok(!html.includes("settings-backdrop"));
-		assert.ok(!html.includes("settings-dialog"));
-	});
-
-	it("the dialog frame: role=dialog + the ✕ + the five-section nav, Connection first and General last", () => {
-		const html = renderToStaticMarkup(
+describe("the Settings page (SSR)", () => {
+	const page = (section?: string) =>
+		renderToStaticMarkup(
 			<ServerEventsProvider connect={quietEvents as never}>
-				<SettingsDialogBody onClose={() => {}} />
+				<SettingsPage section={section} />
 			</ServerEventsProvider>,
 		);
-		assert.ok(html.includes('role="dialog"'));
-		assert.ok(html.includes('aria-modal="true"'));
-		assert.ok(html.includes('aria-label="Close settings"'));
+
+	it("a page, not a dialog: \"Settings\", then one tab per section, Connection first and General last", () => {
+		const html = page();
+		assert.ok(html.includes(">Settings</h1>"));
+		assert.ok(!html.includes('role="dialog"'));
+		assert.ok(!html.includes("settings-close"), "nothing to close");
 		const ids = [...html.matchAll(/data-testid="settings-nav-(\w+)"/g)].map((m) => m[1]);
 		assert.deepEqual(ids, ["connection", "teaching", "appearance", "keyboard", "general"]);
 		assert.ok(tagOf(html, "settings-nav-connection").includes('aria-current="true"'));
-		assert.ok(html.includes('data-testid="settings-section-title"') && html.includes(">Connection</h3>"));
 		assert.ok(tagOf(html, "settings-nav-keyboard").includes('aria-current="false"'));
-		// Fetches don't run under SSR — the loading state IS the SSR state.
+		// Fetches don't run under SSR: the loading state is the SSR state.
 		assert.ok(html.includes("Loading settings…"));
-		// Modal-only: no link back to /settings anywhere in it.
-		assert.ok(!html.includes('href="/settings"'));
+	});
+
+	it("opens on the section the address asks for; an unknown one lands on Connection", () => {
+		assert.ok(tagOf(page("keyboard"), "settings-nav-keyboard").includes('aria-current="true"'));
+		assert.match(page("keyboard"), /data-testid="settings-hint"[^>]*>Stored on this device</);
+		assert.equal(sectionFor("teaching"), "teaching");
+		assert.equal(sectionFor("nope"), "connection");
+		assert.equal(sectionFor(undefined), "connection");
 	});
 });
 

@@ -427,7 +427,7 @@ describe("the reading pane's waiting and error states", () => {
 		const html = pane({ waitingForAgent: true });
 		assert.ok(!html.includes("Thinking…"), "no shimmer while nothing works");
 		assert.match(html, /data-testid="lesson-waiting"[^>]*>Waiting for your agent</);
-		assert.match(html, /Open your agent from the sidebar\./);
+		assert.match(html, /Open your agent from the teacher panel\./);
 		assert.match(html, /data-testid="lesson-waiting-settings"[^>]*>Open Connection settings</);
 	});
 

@@ -64,7 +64,7 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 	return lines;
 }
 
-/** The agent the sidebar's button opens: the last one opened here, else Claude Code. */
+/** The agent "Open Claude Code" opens: the last one opened here, else Claude Code. */
 export function rememberedAgent(saved: string | null): FolderAgent {
 	return saved === "codex" ? "codex" : "claude";
 }

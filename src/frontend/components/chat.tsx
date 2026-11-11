@@ -58,7 +58,6 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useHalley, useHalleyLesson } from "@/frontend/components/halley/halley-provider";
-import { useFoldSidebar } from "@/frontend/components/sidebar";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 import { sessionAbout } from "@/frontend/components/cheat-sheet/dock-model";
 
@@ -337,8 +336,6 @@ export function Chat({
 	// Halley rests in the reading pane: Talking while the teacher writes,
 	// Thinking while the turn runs.
 	useHalleyLesson(status === "streaming", busy, draftHeld);
-	// A lesson takes the whole width; the top bar's toggle still opens the sidebar.
-	useFoldSidebar();
 	const attachments = useAttachmentDraft(chatId);
 	const hasFiles = attachments.files.length > 0;
 

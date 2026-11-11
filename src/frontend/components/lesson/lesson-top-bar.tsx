@@ -1,6 +1,5 @@
 import { SearchIcon } from "lucide-react";
-import { TopBar } from "@/frontend/components/app-bar";
-import { pathLabel } from "@/frontend/components/app-bar-model";
+import { PageBar } from "@/frontend/components/page-bar";
 import { Hint } from "@/frontend/components/ui/hint";
 import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction, type LessonKind } from "@/shared/core";
@@ -8,8 +7,8 @@ import type { PracticeProgress } from "./practice-progress";
 import type { useTitleRename } from "./use-title-rename";
 
 /**
- * THE LESSON'S PART OF THE TOP BAR: the path ends in the lesson's name,
- * which renames in place on a click (or F2). Its buttons: in practice,
+ * THE LESSON'S OWN ROW: the lesson's name, which renames in place on a
+ * click (or F2). Its buttons: in practice,
  * one block per problem; in homework, the assignment file; the cheat
  * sheet beside the session; and Find.
  */
@@ -34,7 +33,7 @@ export function LessonTopBar({
 	return (
 		<>
 			<h1 className="sr-only">{rename.title}</h1>
-			<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
+			<PageBar title={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
 			{kind === "practice" && practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />}
 			{file && openFile && (
 				<button type="button" data-testid="lesson-assignment" title={file.name} onClick={() => void openFile(file.path!)} className="lh-btn max-w-[24ch]">
@@ -43,7 +42,7 @@ export function LessonTopBar({
 			)}
 			{sheet && (
 				<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn("lh-btn", sheet.open && "border-tint text-tint")}>
-					cheat sheet
+					Cheat sheet
 				</button>
 			)}
 			<Hint label="Find" side="bottom">
@@ -57,7 +56,7 @@ export function LessonTopBar({
 					<SearchIcon className="size-4" />
 				</button>
 			</Hint>
-			</TopBar>
+			</PageBar>
 		</>
 	);
 }
@@ -71,7 +70,7 @@ function TitleButton({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 				onClick={rename.start}
 				className="lh-no-drag min-w-0 shrink cursor-text truncate text-left font-bold text-ink"
 			>
-				{pathLabel(rename.title)}
+				{rename.title}
 			</button>
 		</Hint>
 	);

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FileCoverage, GraphContextPick, GraphCostSummary, TopicProgress } from "@/shared/core";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { classQuery, useClasses } from "@/frontend/components/class-context";
-import { useRiseOnChange } from "@/frontend/components/sidebar";
-import { TopBar } from "@/frontend/components/app-bar";
+import { useRiseOnChange } from "@/frontend/components/motion";
+import { PageBar } from "@/frontend/components/page-bar";
 import { useProgress } from "@/frontend/components/use-progress";
 import { GraphCostControl } from "@/frontend/components/graph/cost-control.tsx";
 import { displayName } from "@/frontend/components/overview/overview-model";
@@ -65,9 +65,11 @@ export function NewLesson() {
 
 	return (
 		<div className="flex h-full min-h-0 flex-col" data-testid="home">
-			<TopBar path={[{ label: "study", href: null }]}>
-				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
-			</TopBar>
+			{costs && costs.runs.length > 0 && (
+				<PageBar>
+					<GraphCostControl costs={costs} />
+				</PageBar>
+			)}
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div

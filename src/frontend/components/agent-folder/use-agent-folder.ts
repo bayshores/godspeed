@@ -96,7 +96,7 @@ export function useAgentFolder() {
 }
 
 /** "Open Claude Code" for the agent last opened here (Claude Code when
- *  none): the sidebar's button and the "No agent connected" lines. */
+ *  none): the button on the "No agent connected" lines. */
 export function useReopenAgent() {
 	const { launch, open } = useAgentFolder();
 	const [agent, setAgent] = useState<FolderAgent>("claude");

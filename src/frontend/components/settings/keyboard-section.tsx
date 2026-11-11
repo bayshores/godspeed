@@ -92,7 +92,6 @@ export function KeyboardSection() {
 		<>
 			{KEY_SCOPES.map(({ scope, label }) => {
 				const actions = KEYBOARD_ACTIONS.filter((a) => a.scope === scope);
-				if (!actions.length) return null;
 				return (
 					<div key={scope} data-testid={`kbd-scope-${scope}`} className="mt-[22px] first:mt-0">
 						<p className={cn("pb-2", LABEL_TEXT)}>{label}</p>

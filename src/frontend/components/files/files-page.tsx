@@ -7,7 +7,7 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { TopBar } from "@/frontend/components/app-bar";
+import { PageBar } from "@/frontend/components/page-bar";
 import { Hint } from "@/frontend/components/ui/hint";
 import { useProgress } from "@/frontend/components/use-progress";
 import { AddFilesButton } from "./add-files";
@@ -209,7 +209,7 @@ function FilesPageBody() {
 				setFinderDrag(null);
 			}}
 		>
-			<TopBar path={[{ label: "files", href: null }]}>
+			<PageBar>
 				{record && (
 					<>
 						{record.linkedFolder ? (
@@ -241,7 +241,7 @@ function FilesPageBody() {
 						<AddFilesButton disabled={disabled} onAdd={add} />
 					</>
 				)}
-			</TopBar>
+			</PageBar>
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{!active && (
 					<div className="m-auto px-[52px]">

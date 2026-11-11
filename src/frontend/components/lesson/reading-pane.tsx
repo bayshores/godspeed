@@ -1,4 +1,5 @@
 import { useContext, useMemo, type RefObject } from "react";
+import Link from "next/link";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import {
 	Conversation,
@@ -11,7 +12,6 @@ import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { teachStep, useAgentStatus } from "@/frontend/components/agent-status";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
-import { useSettingsDialog } from "@/frontend/components/settings/settings-dialog-provider";
 import type { LhViewMessage, Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
@@ -62,7 +62,6 @@ export function ReadingPane({
 	const jobs = useContext(JobsContext);
 	const agentStatusName = useAgentStatus()?.name?.trim();
 	const agentName = agentStatusName || "Your agent";
-	const { open: openSettings } = useSettingsDialog();
 	// The reply being worked on: its plan, steps and file, until its text lands.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
 	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);
@@ -103,14 +102,9 @@ export function ReadingPane({
 								Waiting for your agent
 							</span>
 							<span className="text-ink-3">{teachStep(agentStatusName)}</span>
-							<button
-								type="button"
-								data-testid="lesson-waiting-settings"
-								onClick={() => openSettings("connection")}
-								className="lh-btn mt-1"
-							>
+							<Link href="/settings?section=connection" data-testid="lesson-waiting-settings" className="lh-btn mt-1">
 								Open Connection settings
-							</button>
+							</Link>
 						</ArrivalRow>
 					) : (
 						!showWork &&

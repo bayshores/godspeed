@@ -11,9 +11,7 @@
  * icons, a floating bottom selection bar that never shifts layout, and
  * a fuzzy search that auto-expands matching clusters.
  *
- * The top bar is THE
- * shared TopBar (h-15, lh-drag + select-none, sidebar reopen, standard
- * title size); PROMINENT indentation carries the hierarchy — the ONLY
+ * The page row names the page; PROMINENT indentation carries the hierarchy — the ONLY
  * lines left are the separators between cluster groups (vertical column
  * hairlines and per-row lines are gone); statement rows are PLAIN (no
  * conclusion marker); ALL THREE columns sort (Props too — consistency)
@@ -124,10 +122,10 @@ describe("ChainTableBody — clusters (the outermost layer)", () => {
 	});
 });
 
-describe("ChainTableBody — THE shared TopBar + the lines law", () => {
-	it("the body fills the shared top bar: the path ends at all facts, then the counts, search and close X", () => {
+describe("ChainTableBody — the page row + the lines law", () => {
+	it("the page row: back to Graph, All facts, then the counts, search and close X", () => {
 		const html = render();
-		assert.match(html, /data-testid="bar-path"[\s\S]*>graph<[\s\S]*>all facts</);
+		assert.match(html, /data-testid="page-back"[^>]*href="\/graph"[\s\S]*>Graph<[\s\S]*<h1[^>]*>All facts</);
 		assert.ok(!html.includes(">Chains<"), "no title of its own");
 		assert.ok(html.includes("chain"), "the counts remain");
 		assert.ok(html.includes('data-testid="chain-table-close"'), "the close X");

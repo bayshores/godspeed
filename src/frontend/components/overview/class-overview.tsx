@@ -6,15 +6,13 @@ import { ClassDialog } from "@/frontend/components/class-dialog";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
-import { TopBar } from "@/frontend/components/app-bar";
 import { useProgress } from "@/frontend/components/use-progress";
 import { PickClass } from "@/frontend/components/pick-class";
 import { OverviewBody } from "./overview-body";
 
 /**
- * THE CLASS OVERVIEW — opened from the sidebar's
- * Overview row. The top bar holds "Edit class" (the existing class
- * dialog); the body reads the active class's progress (useProgress).
+ * THE CLASS'S PROGRESS PAGE: the body reads the active class's progress
+ * (useProgress).
  *
  * The runway's rings open each deadline's page; "Most needed" → Study
  * starts a study session on that topic (useLessonStart, in the active class).
@@ -22,7 +20,7 @@ import { OverviewBody } from "./overview-body";
 export function ClassOverview() {
 	const { active, activeClass } = useClasses();
 	const { data, error, refresh } = useProgress();
-	// "deadline" opens Edit class with a new deadline row.
+	// Edit class, opened at the signature or with a new deadline row.
 	const [editing, setEditing] = useState<false | "class" | "deadline">(false);
 	const lesson = useLessonStart();
 	const nowMs = useMinute();
@@ -42,18 +40,6 @@ export function ClassOverview() {
 
 	return (
 		<div className="flex h-full flex-col">
-			<TopBar path={[{ label: "overview", href: null }]}>
-				{activeClass && (
-					<button
-						type="button"
-						data-testid="overview-edit-class"
-						onClick={() => setEditing("class")}
-						className="lh-btn"
-					>
-						Edit class
-					</button>
-				)}
-			</TopBar>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<OverviewBody
 					key={active ?? "none"}

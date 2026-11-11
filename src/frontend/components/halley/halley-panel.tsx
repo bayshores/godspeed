@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The teacher's panel: click the teacher in the teacher pane or the top bar.
+ * The teacher's panel: click the teacher in the top bar.
  * Docked to the window's right edge, under the top bar. It pushes the page
  * left to make room (in a lesson it covers the Your turn panel until
  * closed, and pushes only by what's left over). The head (name, the
@@ -30,10 +30,12 @@ const RECENT_ROWS = 8;
 const TABS = ["talk", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
-/** The agent line under the name: the waiting notice while work waits, the
- *  agent's state while one is connected. Nothing otherwise: the teacher
- *  pane and the Talk box already say no agent is connected. */
+/** The agent line under the name: the backup notice while the agent
+ *  compacts, the waiting notice while work waits, the agent's state while
+ *  one is connected. Nothing otherwise: the Talk box already says no agent
+ *  is connected. */
 export function agentLine(agent: AgentStatus | null): string | null {
+	if (agent?.backupAnswering) return "Catching up on my notes. My backup is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent?.name);
 	return agent?.connected || agent?.teaching ? agentStatusLabel(agent, 0) : null;
 }
@@ -114,7 +116,7 @@ export function HalleyPanel({
 			data-testid="halley-panel"
 			aria-label={name}
 			style={{ width }}
-			className="lh-slide-in fixed top-11 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
+			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-start gap-3 px-6 pt-5 pb-4">
 				<TeacherSprite mood="idle" className="mt-1 w-[22px] shrink-0" />
@@ -123,7 +125,7 @@ export function HalleyPanel({
 						{name}
 					</span>
 					{agentLine(agent) && (
-						<span data-testid="halley-panel-agent" className="truncate text-[12.5px] text-ink-2">
+						<span data-testid="halley-panel-agent" className="text-[12.5px] text-ink-2">
 							{agentLine(agent)}
 						</span>
 					)}

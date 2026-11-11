@@ -14,8 +14,7 @@ import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { askTeacher } from "@/frontend/components/halley/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { TopBar } from "@/frontend/components/app-bar";
-import { pathLabel } from "@/frontend/components/app-bar-model";
+import { PageBar } from "@/frontend/components/page-bar";
 import { useProgress } from "@/frontend/components/use-progress";
 import { DeadlineBody } from "./deadline-body";
 import { HomeworkCard } from "./homework-card";
@@ -116,7 +115,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 
 	return (
 		<div className="flex h-full flex-col">
-			<TopBar path={[{ label: deadline ? pathLabel(deadline.name) : "deadline", href: null }]}>
+			<PageBar back={{ label: activeClass?.name ?? "Class", href: "/class" }}>
 				<button
 					type="button"
 					data-testid="deadline-edit-class"
@@ -125,7 +124,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				>
 					Edit class
 				</button>
-			</TopBar>
+			</PageBar>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{current && !deadline ? (
 					<div data-testid="deadline-removed" className="flex flex-col items-start gap-3 px-[52px] py-6">

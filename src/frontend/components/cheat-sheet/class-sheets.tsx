@@ -12,7 +12,6 @@ import { useMinute } from "@/frontend/components/countdown";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { PickClass } from "@/frontend/components/pick-class";
-import { TopBar } from "@/frontend/components/app-bar";
 import { PdfThumb } from "./pdf-thumb";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { remakeSheet, sheetPdfPath, showSheetPdf, studioPath, useClassSheets } from "./use-cheat-sheet";
@@ -66,7 +65,6 @@ export function ClassSheetsPage() {
 
 	return (
 		<div className="flex h-full flex-col" data-testid="cheat-sheets-page">
-			<TopBar path={[{ label: "cheat sheets", href: null }]} />
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				{!active && (
 					<div className="m-auto px-[52px]">

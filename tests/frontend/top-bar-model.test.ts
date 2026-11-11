@@ -1,0 +1,72 @@
+/**
+ * The top bar's words: the clock, the lit tab, the teacher chip and the
+ * Follow buttons.
+ */
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { chipText, clockText, followButtons, selectedTab } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import type { AgentAction } from "../../src/shared/core/events.ts";
+
+describe("the clock", () => {
+	it("is 24-hour", () => {
+		assert.equal(clockText(new Date(2026, 10, 7, 9, 5)), "09:05");
+		assert.equal(clockText(new Date(2026, 10, 7, 17, 51)), "17:51");
+	});
+});
+
+describe("the lit tab", () => {
+	const tabs = ["c21", "c29"];
+	it("Today on the first page", () => {
+		assert.equal(selectedTab("/", "c21", tabs), "today");
+	});
+	it("the window's class on every class page and in a lesson", () => {
+		assert.equal(selectedTab("/class", "c21", tabs), "c21");
+		assert.equal(selectedTab("/graph", "c29", tabs), "c29");
+		assert.equal(selectedTab("/chat/abc", "c29", tabs), "c29");
+	});
+	it("Menu for the pages only Menu reaches", () => {
+		assert.equal(selectedTab("/settings", "c21", tabs), "menu");
+		assert.equal(selectedTab("/archived", "c21", tabs), "menu");
+		assert.equal(selectedTab("/class/lessons", null, tabs), "menu", "lessons with no class");
+		assert.equal(selectedTab("/class", "old", tabs), "menu", "an archived class has no tab");
+	});
+});
+
+describe("the teacher chip", () => {
+	const off = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
+	const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
+	const reading = { text: "Reading Lecture 14 notes", working: true };
+	it("the teacher's name with what it is doing", () => {
+		assert.equal(chipText({ name: "marco", doing: reading, agent: teaching, jobs: 0 }), "marco, reading Lecture 14 notes");
+	});
+	it("just the name while it teaches and nothing runs, with the jobs when some do", () => {
+		const idle = { text: "Idle", working: false };
+		assert.equal(chipText({ name: "marco", doing: idle, agent: teaching, jobs: 0 }), "marco");
+		assert.equal(chipText({ name: "marco", doing: idle, agent: teaching, jobs: 1 }), "marco, 1 job");
+		assert.equal(chipText({ name: "marco", doing: idle, agent: teaching, jobs: 3 }), "marco, 3 jobs");
+	});
+	it("the agent's state when none is teaching", () => {
+		assert.equal(chipText({ name: "marco", doing: null, agent: off, jobs: 0 }), "No agent connected");
+		assert.equal(chipText({ name: "marco", doing: null, agent: { ...off, connected: true, name: "Codex" }, jobs: 0 }), "Codex connected, not teaching");
+		assert.equal(chipText({ name: "marco", doing: null, agent: { ...off, pendingWork: 1 }, jobs: 0 }), "Waiting for your agent");
+	});
+	it("says so while the backup answers", () => {
+		assert.equal(chipText({ name: "marco", doing: reading, agent: { ...teaching, backupAnswering: true }, jobs: 0 }), "marco, catching up on notes");
+	});
+	it("just the name before the agent's state is read", () => {
+		assert.equal(chipText({ name: "marco", doing: null, agent: null, jobs: 2 }), "marco");
+	});
+});
+
+describe("the Follow buttons", () => {
+	const offer: AgentAction = { id: "a1", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Reading 06_Counting.pdf", classId: "c21", target: null, page: "/class/files" };
+	it("Follow shows only while the teacher works", () => {
+		assert.deepEqual(followButtons({ following: false, working: false, offer: null }), { go: null, follow: null });
+		assert.deepEqual(followButtons({ following: false, working: true, offer: null }), { go: null, follow: "Follow" });
+		assert.deepEqual(followButtons({ following: true, working: true, offer: null }), { go: null, follow: "Following" });
+	});
+	it("with Follow off, a change on another page offers to go there", () => {
+		assert.equal(followButtons({ following: false, working: true, offer }).go, "Go to Files");
+		assert.equal(followButtons({ following: true, working: true, offer }).go, null);
+	});
+});

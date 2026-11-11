@@ -43,7 +43,7 @@ export function followReady(s: FollowState, busyNow: boolean, now: number): bool
 }
 
 /** Pages that show one class (the window's class must match first). A
- *  lesson belongs to its class too, so the sidebar lists it. */
+ *  lesson belongs to its class too. */
 function classScopedPage(page: string): boolean {
 	return page === "/class" || page.startsWith("/class/") || page === "/graph" || page.startsWith("/chat/");
 }
@@ -74,7 +74,7 @@ export function goOffer<A extends { page: string; at: string }>(newest: A | unde
 /** The page's name on the "Go to" button. */
 export function pageName(page: string): string {
 	if (page.startsWith("/chat/")) return "lesson";
-	return ({ "/": "Home", "/class": "Overview", "/class/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
+	return ({ "/": "Today", "/class": "Progress", "/class/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
 }
 
 /** The stored Follow choice ("0" = off). On by default. */

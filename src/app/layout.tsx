@@ -3,7 +3,7 @@ import type { AppearanceSettings, ClassSummary } from "@/shared/core";
 import { DotGothic16, Literata, Zen_Kaku_Gothic_New } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
-import { SidebarProvider } from "@/frontend/components/sidebar";
+import { ElectronEnv } from "@/frontend/components/electron-env";
 import { AppShell } from "@/frontend/components/app-shell";
 import { ActivityProvider } from "@/frontend/components/activity-dock";
 import { ServerEventsProvider } from "@/frontend/components/server-events";
@@ -34,7 +34,7 @@ const count = DotGothic16({ subsets: ["latin"], weight: "400", variable: "--font
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-	// Each page names itself like the top bar ("godspeed / graph"); Home keeps the plain name.
+	// Each page names itself ("godspeed / Graph"); Today keeps the plain name.
 	title: { template: "godspeed / %s", default: "godspeed" },
 	description: "A teacher agent with a memory: lessons, quizzes, and a knowledge graph of what you know.",
 };
@@ -102,13 +102,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			style={appearanceVars(look) as React.CSSProperties}
 		>
 			<body className="min-h-dvh antialiased">
-			{/* The notification channel rides OUTSIDE everything: sidebar, dock,
-				 and pages all subscribe. */}
+			<ElectronEnv />
+			{/* The notification channel rides OUTSIDE everything: the top bar,
+				 dock and pages all subscribe. */}
 			<ServerEventsProvider>
 				<AgentStatusProvider>
 				<ClassProvider initialActive={initialActive} initialClasses={initialClasses}>
 				<AppearanceProvider initial={appearance}>
-					<SidebarProvider>
+					<div className="flex h-dvh flex-col">
 						<ActivityProvider>
 						<SoundProvider initialOn={soundsOn}>
 							{onboarding ? (
@@ -120,7 +121,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 							)}
 						</SoundProvider>
 						</ActivityProvider>
-					</SidebarProvider>
+					</div>
 				</AppearanceProvider>
 				</ClassProvider>
 				</AgentStatusProvider>

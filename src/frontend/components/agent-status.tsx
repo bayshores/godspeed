@@ -28,10 +28,10 @@ export interface AgentStatus {
 	claimedLessons: { lessonId: string; claimedAt: string }[];
 }
 
-/** How to get the agent teaching: open one from the sidebar, or ask the
- *  connected one to start. */
+/** How to get the agent teaching: open one from the teacher panel, or ask
+ *  the connected one to start. */
 export function teachStep(name?: string): string {
-	return name ? `Tell ${name} to start teaching.` : "Open your agent from the sidebar.";
+	return name ? `Tell ${name} to start teaching.` : "Open your agent from the teacher panel.";
 }
 
 /** The notice shown while work waits and no agent is teaching. */

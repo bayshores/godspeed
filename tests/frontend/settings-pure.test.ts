@@ -254,12 +254,12 @@ describe("Teaching compose helpers — the replace-whole PUT body", () => {
 
 describe("nextOverrides — the rebind persistence map", () => {
 	it("a rebind sets the action's override, keeping the others", () => {
-		const next = nextOverrides({ "toggle-sidebar": "mod+b" }, "open-settings", "mod+shift+s");
-		assert.deepEqual(next, { "toggle-sidebar": "mod+b", "open-settings": "mod+shift+s" });
+		const next = nextOverrides({ "jump-graph": "mod+g" }, "open-settings", "mod+shift+s");
+		assert.deepEqual(next, { "jump-graph": "mod+g", "open-settings": "mod+shift+s" });
 	});
 
 	it("null = reset that action to its default (key removed)", () => {
-		const next = nextOverrides({ "toggle-sidebar": "mod+b", find: "mod+f" }, "toggle-sidebar", null);
+		const next = nextOverrides({ "jump-graph": "mod+g", find: "mod+f" }, "jump-graph", null);
 		assert.deepEqual(next, { find: "mod+f" });
 	});
 });
