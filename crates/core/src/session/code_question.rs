@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/code-question.ts: the write_code question. The learner writes code
+//! The write_code question. The learner writes code
 //! in an editor and the teacher grades it by reading; the app never grades or runs code.
 
 use gs_base::text;

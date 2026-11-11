@@ -9,9 +9,16 @@ publish.workspace = true
 [dependencies]
 gs-json.workspace = true
 gs-base.workspace = true
+gs-media.workspace = true
 pdfium-render.workspace = true
 image.workspace = true
 tokio.workspace = true
+
+[features]
+test-support = []
+
+[dev-dependencies]
+gs-pdf = { workspace = true, features = ["test-support"] }
 
 [lints]
 workspace = true

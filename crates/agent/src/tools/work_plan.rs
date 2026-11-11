@@ -4,7 +4,7 @@
 use gs_json::json;
 
 use super::fn_tool::FnTool;
-use super::schema::object;
+use gs_core::session::schema::object;
 
 pub fn work_plan_tool() -> FnTool {
 	let parameters = object(

@@ -1,8 +1,3 @@
-//! Ported from src/shared/core/topics.ts.
-//!
-//! `resolve_topics` and `UNGROUPED_TOPIC_ID` were written with the foundations because other
-//! packages call them.
-
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 

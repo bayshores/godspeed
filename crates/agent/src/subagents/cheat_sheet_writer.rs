@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/cheat-sheet-writer.ts: one message of a cheat sheet's
+//! One message of a cheat sheet's
 //! chat as one short request on the single-submit seam, so the connected agent gets it as one
 //! labelled work item. The agent may look things up in the class's files, makes or changes the
 //! PDF with its own tools in the sheet's working folder, and answers with one sheet_reply call:

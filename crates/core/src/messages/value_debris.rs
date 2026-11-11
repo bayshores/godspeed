@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/value-debris.ts.
-
 use std::sync::LazyLock;
 
 use gs_base::re::Re;

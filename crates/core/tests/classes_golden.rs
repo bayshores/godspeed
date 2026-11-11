@@ -15,7 +15,7 @@ use gs_core::classes::file_groups::{file_groups, pair_series};
 use gs_core::classes::file_series::{date_in_name, group_file_series};
 use gs_core::classes::lecture_transcript::{recordings_to_recheck, transcript_for};
 use gs_core::classes::linked_folder::{folder_name, folder_source, is_google_drive_folder};
-use gs_core::classes::new_files::{is_new_folder_file, is_recent, is_recent_change, kinds_for_new_files};
+use gs_core::classes::new_files::{is_recent, is_recent_change, kinds_for_new_files};
 use gs_core::classes::old_setup::{without_json_entry, without_old_codex_server};
 use gs_core::classes::today_note::{clock_label, day_label, deadline_part_of, local_day, time_zone_label, today_note_text, today_note_to_append, wall_clock, when_label};
 use gs_json::{Json, json, parse, stringify};
@@ -130,9 +130,6 @@ fn recent_times_match_node() {
 		assert_eq!(is_recent(Some(at), now), flag("recent"), "{at:?}");
 		assert_eq!(is_recent_change(at, now), flag("change"), "{at:?}");
 		assert_eq!(is_recent(None, now), flag("noAt"));
-		assert_eq!(is_new_folder_file(&json!({ "foundByScan": true, "addedAt": at }), now), flag("scanned"), "{at:?}");
-		assert_eq!(is_new_folder_file(&json!({ "foundByScan": false, "addedAt": at }), now), flag("notScanned"), "{at:?}");
-		assert_eq!(is_new_folder_file(&json!({ "addedAt": at }), now), flag("unset"), "{at:?}");
 	}
 }
 

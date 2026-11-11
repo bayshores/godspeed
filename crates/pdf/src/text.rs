@@ -1,5 +1,3 @@
-//! Ported from src/backend/server/workers/pdf-text-worker.mjs, pdfExtract in src/backend/agent/subagents/pdf-ops.ts.
-
 use std::path::Path;
 
 use gs_json::lone::{pair_up, standin};

@@ -10,7 +10,6 @@ use gs_json::Json;
 use super::render::{fingerprint, instructions_and_tools};
 use super::view::{WorkView, remember_seen};
 use super::{Bridge, State, WorkItem, is_background};
-use crate::turn::abort::Abort;
 use crate::turn::messages::faux_assistant_message;
 
 /// A claimed item with no reply after this long goes back in the queue (the agent crashed or
@@ -32,8 +31,6 @@ pub struct WaitOptions {
 	/// With a conversation, also take background jobs, so an agent staying on one lesson
 	/// still does the file reading and graph work nobody else would.
 	pub and_background: bool,
-	/// The caller went away: stop without claiming.
-	pub abort: Option<Abort>,
 }
 
 /// One tool call in an agent's reply.
@@ -125,7 +122,7 @@ impl Bridge {
 	}
 
 	/// Waits up to `timeout_ms` for a request, claims it and presents it. None when nothing
-	/// came, the caller's abort fired, its background run ended, or the server is stopping.
+	/// came, its background run ended, or the server is stopping.
 	pub async fn wait_for_work(&self, timeout_ms: i64, opts: WaitOptions) -> Option<WorkView> {
 		// An empty lesson_id is no conversation in the TS (a falsy string).
 		let opts = WaitOptions { conversation: opts.conversation.filter(|c| !c.is_empty()), ..opts };
@@ -133,11 +130,12 @@ impl Bridge {
 		// Held from a wake until this waiter's claim is done, so woken waiters claim in line.
 		let mut ticket = None;
 		loop {
-			if opts.abort.as_ref().is_some_and(Abort::is_aborted) || shutdown::is_stopping() {
+			if shutdown::is_stopping() {
 				return None;
 			}
 			let now = clock::now_ms();
 			self.record_check_in(None, true, now);
+			let seen = self.0.waiters.wakes();
 			let claimed = self.claim(now, &opts);
 			drop(ticket.take());
 			match claimed {
@@ -149,19 +147,7 @@ impl Bridge {
 			if remaining <= 0 {
 				return None;
 			}
-			let aborted = async {
-				match &opts.abort {
-					Some(abort) => abort.aborted().await,
-					None => std::future::pending().await,
-				}
-			};
-			let stop = async {
-				tokio::select! {
-					() = aborted => {}
-					() = shutdown::wait() => {}
-				}
-			};
-			ticket = Some(self.0.waiters.wait(clock::sleep(remaining.min(WAIT_SLICE_MS)), stop).await);
+			ticket = Some(self.0.waiters.wait(seen, clock::sleep(remaining.min(WAIT_SLICE_MS)), shutdown::wait()).await);
 		}
 	}
 

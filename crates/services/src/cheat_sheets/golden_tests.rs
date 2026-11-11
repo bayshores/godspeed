@@ -14,21 +14,12 @@ use gs_base::hash::sha256_hex;
 use gs_base::time::parse_date;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_json::{Json, Obj, json, parse, stringify};
+use gs_pdf::test_support::pdfium_dir;
 
 use gs_base::base64::decode;
 use super::cheat_sheet_pdf::take_sheet_pdf;
 use super::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, class_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
 use crate::App;
-
-/// Where the pdfium library is: `GODSPEED_PDFIUM_DIR`, else the lab's copy beside the worktree.
-fn pdfium_dir() -> Option<PathBuf> {
-	let dir = std::env::var_os("GODSPEED_PDFIUM_DIR").map(PathBuf::from).unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../rewrite-lab/pdfium"));
-	let found = ["libpdfium.dylib", "libpdfium.so", "pdfium.dll"].iter().any(|name| dir.join(name).exists());
-	if !found {
-		eprintln!("skipped: no pdfium library in {} (set GODSPEED_PDFIUM_DIR to the folder holding it)", dir.display());
-	}
-	found.then_some(dir)
-}
 
 fn is_iso(s: &str) -> bool {
 	let b = s.as_bytes();

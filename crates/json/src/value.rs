@@ -56,6 +56,11 @@ impl Json {
 		}
 	}
 
+	/// The string, or "" for any other value.
+	pub fn str_or_empty(&self) -> &str {
+		self.as_str().unwrap_or("")
+	}
+
 	pub fn as_arr(&self) -> Option<&Vec<Json>> {
 		match self {
 			Json::Arr(a) => Some(a),
@@ -101,16 +106,6 @@ impl Json {
 			Json::Num(n) => *n != 0.0 && !n.is_nan(),
 			Json::Str(s) => !s.is_empty(),
 			Json::Arr(_) | Json::Obj(_) => true,
-		}
-	}
-
-	/// JavaScript's `typeof`, with "object" for null and arrays.
-	pub fn type_of(&self) -> &'static str {
-		match self {
-			Json::Null | Json::Arr(_) | Json::Obj(_) => "object",
-			Json::Bool(_) => "boolean",
-			Json::Num(_) => "number",
-			Json::Str(_) => "string",
 		}
 	}
 }
@@ -211,7 +206,6 @@ mod tests {
 		assert!(v["n"].is_null());
 		assert_eq!(v["a"]["b"][2].as_str(), Some("x"));
 		assert_eq!(v["a"]["b"][9], Json::Null);
-		assert_eq!(v["n"].type_of(), "object");
 		assert!(!Json::Num(f64::NAN).truthy());
 		assert!(Json::Arr(vec![]).truthy());
 		assert!(!Json::from("").truthy());

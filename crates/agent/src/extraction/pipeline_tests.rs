@@ -38,7 +38,7 @@ impl ExtractionHost for Host {
 	fn chats(&self) -> &ChatStore {
 		&self.stores.chats
 	}
-	fn graphs(&self) -> &GraphStores {
+	fn graphs(&self) -> &Arc<GraphStores> {
 		&self.stores.graphs
 	}
 	fn events(&self) -> &Events {
@@ -202,5 +202,26 @@ async fn an_abort_while_waiting_for_the_graph_lock_ends_the_import() {
 	let err = run.await.unwrap().unwrap_err();
 	assert_eq!((err.outcome, err.message.as_str()), (ImportOutcome::Aborted, "extraction aborted while waiting for the graph lock"));
 	drop(held);
+	assert!(host.state.runs.statuses().is_empty());
+}
+
+#[tokio::test]
+async fn a_lesson_run_that_ends_early_lets_go_of_its_claim() {
+	let host = host();
+	write_lesson(&host, "chat_dropped", 1);
+	let extraction = Extraction::new(host.clone());
+	let held = host.state.graph_lock_for_tests().await;
+	let run = tokio::spawn({
+		let extraction = extraction.clone();
+		async move { extraction.run_extraction("chat_dropped").await }
+	});
+	while host.state.runs.get("chat_dropped").is_none_or(|r| r.phase != ExtractionPhase::Waiting) {
+		tokio::task::yield_now().await;
+	}
+	// Its task goes away mid-run, as it would on a panic.
+	run.abort();
+	assert!(run.await.unwrap_err().is_cancelled());
+	drop(held);
+	assert!(!host.state.runs.in_flight("chat_dropped"));
 	assert!(host.state.runs.statuses().is_empty());
 }

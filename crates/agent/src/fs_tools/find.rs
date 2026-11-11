@@ -7,10 +7,10 @@ use gs_engine::turn::abort::Abort;
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::fs_shared::{MAX_OUTPUT_BYTES, cap_output, format_size, resolve_source_path};
+use super::fs_shared::{MAX_OUTPUT_BYTES, cap_output, format_size, resolve_source_path, off_thread};
 use super::glob::GlobMatcher;
-use crate::tools::schema::{self, integer, string, string_min};
-use super::server_tool::{off_thread, server_tool};
+use crate::tools::fn_tool::FnTool;
+use gs_core::session::schema::{self, integer, string, string_min};
 use super::walk::walk_files;
 
 const DEFAULT_LIMIT: usize = 1000;
@@ -24,7 +24,7 @@ pub fn find_tool() -> Arc<dyn Tool> {
 			("limit", integer(1, "Maximum number of results (default: 1000)")),
 		],
 	);
-	server_tool(
+	FnTool::server(
 		"find",
 		format!(
 			"Search for files by glob pattern. Returns matching file paths relative to the search directory. Ignores node_modules, .git, and Library directories. Output is truncated to {DEFAULT_LIMIT} results or {} (whichever is hit first).",
@@ -40,7 +40,7 @@ pub fn find_tool() -> Arc<dyn Tool> {
 			let limit = args["limit"].as_i64().map_or(DEFAULT_LIMIT, |l| l.max(0) as usize);
 			off_thread(move || find(&dir, &pattern, limit, &ctx.abort)).await
 		},
-	)
+	).into_arc()
 }
 
 fn find(dir: &Path, pattern: &str, limit: usize, abort: &Abort) -> Result<Json, String> {

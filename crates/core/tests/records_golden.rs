@@ -2,16 +2,15 @@
 //! from records.golden.ts in America/Los_Angeles and en-US). Outputs are compared as JSON text,
 //! so key order and number text have to match too.
 
+use gs_core::records::agent_notes::{clean_note_text, parse_agent_notes};
+use gs_core::records::agent_rules::{parse_saved_rules, parse_where, rule_for, same_where, where_label};
+use gs_core::records::agent_seen::{SeenMark, parse_agent_seen, seen_mark, with_seen};
+use gs_core::records::changelog::{changelog, compare_versions, entries_since, entry_for, is_version};
+use gs_core::records::prompt_segments::is_valid_segment_path;
+use gs_core::records::settings::{is_hex_color, sanitize_teacher_name, sanitize_user_settings};
+use gs_core::records::settings_resolution::{graph_tools_enabled, resolve_settings};
+use gs_core::records::teaching_areas::{learner_rules_section, one_line, sanitize_area_rules, sanitize_rules};
 use gs_json::{Json, json, parse, stringify};
-
-use super::agent_notes::{clean_note_text, parse_agent_notes};
-use super::agent_rules::{parse_saved_rules, parse_where, rule_for, same_where, where_label};
-use super::agent_seen::{SeenMark, parse_agent_seen, seen_mark, with_seen};
-use super::changelog::{changelog, compare_versions, entries_since, entry_for, is_version};
-use super::prompt_segments::is_valid_segment_path;
-use super::settings::{is_hex_color, sanitize_teacher_name, sanitize_user_settings};
-use super::settings_resolution::{graph_tools_enabled, resolve_settings};
-use super::teaching_areas::{learner_rules_section, one_line, sanitize_area_rules, sanitize_rules};
 
 fn case(name: &str) -> Json {
 	let file = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/records.json");

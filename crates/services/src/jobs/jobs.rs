@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 use gs_agent::subagents::aborts::{fire_job_abort, is_job_live};
 use gs_base::clock;
+use gs_core::messages::input_events::messages_of;
 use gs_core::messages::native_messages::{dangling_question_of, ends_in_dismissal};
 use gs_core::session::jobs::{build_abort_steer, build_subagent_steer, is_subagent_failure, steer_delivered};
 use gs_engine::turn::agent::Agent;
@@ -310,11 +311,16 @@ pub fn abort_job(app: &Arc<App>, job_id: &str) -> Result<Result<(), AbortRefusal
 		normalize_legacy_result(app, (*job).clone())?;
 		return Ok(Err(AbortRefusal::NotRunning));
 	}
-	fire_job_abort(&app.jobs.aborts, job_id);
-	app.stores.jobs.update_job(
+	// The job may have finished since the check above: then its result stands and nothing is aborted.
+	let aborted = app.stores.jobs.update_job_if(
 		job_id,
 		&json!({ "status": "error", "error": "Aborted by learner", "activity": "aborted", "delivery": { "kind": "abort", "status": "pending" } }),
+		|now| now["status"].as_str() == Some("running") && !now["result"].truthy(),
 	)?;
+	if aborted.is_none() {
+		return Ok(Err(AbortRefusal::NotRunning));
+	}
+	fire_job_abort(&app.jobs.aborts, job_id);
 	deliver_job_result(app, build_abort_steer(&job));
 	Ok(Ok(()))
 }
@@ -325,10 +331,6 @@ fn chat_id_of(app: &App, steer: &Json) -> String {
 		return steer["details"]["chatId"].as_str().unwrap_or_default().to_owned();
 	}
 	job_id_of(steer).and_then(|id| app.stores.jobs.get_job(id)).and_then(|job| job["chatId"].as_str().map(str::to_owned)).unwrap_or_default()
-}
-
-fn messages_of(record: &Json) -> &[Json] {
-	record["messages"].as_arr().map_or(&[], Vec::as_slice)
 }
 
 /// Starts the chat's pump unless one runs. The pump clears dead weight, then hands every

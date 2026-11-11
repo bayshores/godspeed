@@ -1,10 +1,10 @@
-//! Ported from src/shared/core/contracts/jobs.ts: sub-agent job usage and the steer messages
+//! Sub-agent job usage and the steer messages
 //! that hand a finished (or aborted) job's result back to the teacher.
 
 use gs_base::{clock, re::Re};
 use gs_json::{Json, Obj, json};
 
-use super::js_text::{field_text, js_string};
+use gs_json::js_text::{field_text, js_string};
 
 fn number(v: &Json, key: &str) -> Option<f64> {
 	v.get(key).and_then(Json::as_f64)
@@ -111,12 +111,17 @@ pub fn is_subagent_failure(kind: &str, result: &Json) -> bool {
 	}
 }
 
-/// `notes ?? fallback` printed.
-fn notes_or(result: &Json, fallback: &str) -> String {
+/// `notes ?? fallback`.
+pub fn notes_or(result: &Json, fallback: &str) -> Json {
 	match result.get("notes") {
-		None | Some(Json::Null) => fallback.to_owned(),
-		notes => js_string(notes),
+		None | Some(Json::Null) => Json::from(fallback),
+		Some(notes) => notes.clone(),
 	}
+}
+
+/// `notes ?? fallback` printed.
+fn notes_text(result: &Json, fallback: &str) -> String {
+	js_string(Some(&notes_or(result, fallback)))
 }
 
 /// The model-facing text of a steer: what the result is and what to do with it.
@@ -125,16 +130,16 @@ fn steer_text(kind: &str, result: &Json) -> String {
 	if is_subagent_failure(kind, result) {
 		return match kind {
 			"research" => format!("{brief}\n\nContinue with what you can establish and flag the uncertainty to the learner."),
-			"demo" => format!("The demo \"{}\" could not be built: {}. Fall back to explaining in prose; if the brief was the problem, re-call demo with a tighter one.", field_text(result, "title"), notes_or(result, "unknown reason")),
+			"demo" => format!("The demo \"{}\" could not be built: {}. Fall back to explaining in prose; if the brief was the problem, re-call demo with a tighter one.", field_text(result, "title"), notes_text(result, "unknown reason")),
 			"pdf" => format!("{brief}\n\nContinue with what you can establish from the session and flag the gap to the learner."),
-			_ => format!("The figure could not be made: {}. Fall back to prose or mermaid, or re-call visual with a tighter brief.", notes_or(result, "unknown reason")),
+			_ => format!("The figure could not be made: {}. Fall back to prose or mermaid, or re-call visual with a tighter brief.", notes_text(result, "unknown reason")),
 		};
 	}
 	match kind {
 		"research" => format!("Research complete \u{2014} the researcher's full brief follows. Weave it into the lesson and cite its sources when you use its findings:\n\n{brief}"),
 		"pdf" => format!("PDF reading complete \u{2014} the reader's brief on \"{}\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\n{brief}", field_text(result, "path")),
-		"demo" => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_or(result, "(none)")),
-		_ => format!("The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: {}.\nReference its elements as you teach.", notes_or(result, "(none)")),
+		"demo" => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_text(result, "(none)")),
+		_ => format!("The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: {}.\nReference its elements as you teach.", notes_text(result, "(none)")),
 	}
 }
 

@@ -32,7 +32,7 @@ use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_ze
 use super::dismissal_park::apply_parked_dismissal;
 use super::job_host::run_job;
 use super::lesson_agent::{TurnAgent, build_lesson_agent};
-use super::turn_liveness::{begin_turn, end_turn, is_turn_running};
+use super::turn_liveness::{begin_turn, end_turn, is_turn_running, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
 use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
 use crate::App;
@@ -108,10 +108,12 @@ pub fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
 }
 
 /// The turn composition: one input event, its record appends, one agent turn in the background.
-/// Also the wake pipeline's entry (`TurnInput::Steers`).
+/// Also the wake pipeline's entry (`TurnInput::Steers`). Runs on its own task once polled: a
+/// request whose client went away is dropped at its next await (the compaction gate can wait
+/// minutes), and the learner's input must still be saved and its turn run.
 pub fn handle_chat_input(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ReplyFuture {
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
-	Box::pin(async move { run(&app, &chat_id, input).await })
+	Box::pin(async move { tokio::spawn(async move { run(&app, &chat_id, input).await }).await.unwrap_or_else(ChatReply::thrown) })
 }
 
 fn input_files(input: &TurnInput) -> Option<&[ChatAttachment]> {
@@ -151,18 +153,36 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 		Ok(accepted) => accepted,
 		Err(reply) => return reply,
 	};
+	let unstarted = Unstarted { app, chat_id };
 	match start_turn(app, chat_id, &input, &effective, accepted) {
-		Ok(()) => ChatReply::ok_json(),
+		Ok(()) => {
+			std::mem::forget(unstarted);
+			ChatReply::ok_json()
+		}
 		Err(err) => {
-			// The turn never started, so nothing settles it: release the chat.
-			if let Err(park) = apply_parked_dismissal(app, chat_id) {
-				eprintln!("[chat {chat_id}] parked dismissal failed: {park}");
-			}
-			end_turn(app, chat_id);
-			unregister_live_agent(app, chat_id);
+			drop(unstarted);
 			eprintln!("[chat {chat_id}] turn failed to start: {err}");
 			ChatReply::error(500, "Failed to start the turn")
 		}
+	}
+}
+
+/// A turn that began but never started, however `start_turn` ends (a panic included): nothing
+/// settles it, so this releases the chat. Left marked, it would refuse every later turn, delete
+/// and move, and a view attaching to it would wait for good.
+struct Unstarted<'a> {
+	app: &'a Arc<App>,
+	chat_id: &'a str,
+}
+
+impl Drop for Unstarted<'_> {
+	fn drop(&mut self) {
+		let (app, chat_id) = (self.app, self.chat_id);
+		if let Err(park) = apply_parked_dismissal(app, chat_id) {
+			eprintln!("[chat {chat_id}] parked dismissal failed: {park}");
+		}
+		end_turn(app, chat_id);
+		unregister_live_agent(app, chat_id);
 	}
 }
 
@@ -217,9 +237,12 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	}
 	if let Err(err) = app.stores.chats.save_messages(chat_id, &merged) {
 		eprintln!("[chat {chat_id}] write-ahead persist failed: {err}");
+		// The begun turn is announced and settled, as Node's begin and end did.
+		turn_started(app, chat_id);
 		end_turn(app, chat_id);
 		return Err(ChatReply { status: 500, body: ReplyBody::Text(NOT_SAVED.to_owned()) });
 	}
+	turn_started(app, chat_id);
 	if let TurnInput::Chat(ChatInput::Answer { answer, .. }) = input {
 		record_answer(app, &record, answer);
 	}
@@ -439,4 +462,109 @@ pub(crate) fn wire(app: &Arc<App>) {
 			})
 		}),
 	);
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_base::clock;
+	use tokio::sync::watch;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::turns::turn_runs::attach_turn;
+
+	fn lesson(app: &App) -> String {
+		app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned()
+	}
+
+	fn text(text: &str) -> TurnInput {
+		TurnInput::Chat(ChatInput::Text { text: text.to_owned(), attachments: None })
+	}
+
+	fn saved(app: &App, chat_id: &str, text: &str) -> bool {
+		app.stores.chats.get_chat(chat_id).is_some_and(|record| stringify(&record["messages"]).contains(text))
+	}
+
+	#[tokio::test(flavor = "multi_thread")]
+	async fn a_message_whose_request_goes_away_during_a_compaction_is_still_saved() {
+		let root = scratch_dir("chat-gone");
+		let app = test_app(&root);
+		let chat_id = lesson(&app);
+		let (done, running) = watch::channel(false);
+		app.turns.compactions.lock().insert(chat_id.clone(), running);
+		// The window closes while the request waits out the compaction.
+		let request = handle_chat_input(&app, &chat_id, text("What is a set?"));
+		tokio::select! {
+			_ = request => panic!("the request ended before the compaction"),
+			() = clock::sleep(100) => {}
+		}
+		app.turns.compactions.lock().remove(&chat_id);
+		done.send(true).unwrap();
+		for _ in 0..200 {
+			if saved(&app, &chat_id, "What is a set?") {
+				break;
+			}
+			clock::sleep(10).await;
+		}
+		assert!(saved(&app, &chat_id, "What is a set?"));
+	}
+
+	#[tokio::test(flavor = "multi_thread")]
+	async fn a_turn_whose_start_panics_releases_its_chat() {
+		let root = scratch_dir("chat-unstarted");
+		let app = test_app(&root);
+		let chat_id = lesson(&app);
+		assert!(begin_turn(&app, &chat_id));
+		let starting = tokio::spawn({
+			let (app, chat_id) = (app.clone(), chat_id.clone());
+			async move {
+				let _unstarted = Unstarted { app: &app, chat_id: &chat_id };
+				panic!("the agent could not be built");
+			}
+		});
+		assert!(starting.await.unwrap_err().is_panic());
+		assert!(!is_turn_running(&app, &chat_id));
+		assert!(attach_turn(&app, &chat_id).await.is_none());
+	}
+
+	#[test]
+	fn a_write_ahead_that_cannot_save_still_announces_its_turn() {
+		use std::os::unix::fs::PermissionsExt;
+		let root = scratch_dir("chat-not-saved");
+		let app = test_app(&root);
+		let chat_id = lesson(&app);
+		let mut events = app.events.subscribe();
+		// The record stays readable, but nothing new can be written beside it.
+		let set_mode = |mode| std::fs::set_permissions(&app.paths.chats, std::fs::Permissions::from_mode(mode)).unwrap();
+		set_mode(0o555);
+		let written = write_ahead(&app, &chat_id, &text("What is a set?"), &[]).err().map(|reply| reply.status);
+		set_mode(0o755);
+		assert_eq!(written, Some(500));
+		let turn_events: Vec<EventKind> = std::iter::from_fn(|| events.try_recv().ok()).map(|e| e.kind).filter(|kind| matches!(kind, EventKind::TurnStarted | EventKind::TurnSettled)).collect();
+		assert_eq!(turn_events, [EventKind::TurnStarted, EventKind::TurnSettled]);
+		assert!(!is_turn_running(&app, &chat_id));
+	}
+
+	#[tokio::test(flavor = "multi_thread")]
+	async fn a_view_that_attaches_on_turn_started_gets_the_live_turn() {
+		let root = scratch_dir("chat-started");
+		let app = test_app(&root);
+		let chat_id = lesson(&app);
+		let mut events = app.events.subscribe();
+		// The turn is held up after its input is saved, before its handle is registered.
+		let held = app.jobs.wake.lock();
+		let request = tokio::spawn(handle_chat_input(&app, &chat_id, text("What is a set?")));
+		std::thread::sleep(std::time::Duration::from_millis(200));
+		assert!(std::iter::from_fn(|| events.try_recv().ok()).any(|e| e.kind == EventKind::TurnStarted));
+		assert!(saved(&app, &chat_id, "What is a set?"));
+		let attach = tokio::spawn({
+			let (app, chat_id) = (app.clone(), chat_id.clone());
+			async move { attach_turn(&app, &chat_id).await.is_some() }
+		});
+		std::thread::sleep(std::time::Duration::from_millis(100));
+		assert!(!attach.is_finished());
+		drop(held);
+		assert!(request.await.unwrap().ok());
+		assert!(attach.await.unwrap());
+	}
 }

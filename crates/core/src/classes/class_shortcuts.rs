@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/class-shortcuts.ts.
-//!
 //! The godspeed folder's classes/: where each class file's shortcut goes, grouped like the Files
 //! page (classes/<class>/<group>/<file>, archived classes under classes/Archived/). Names are
 //! made safe on every OS, and two of one name get " (2)".

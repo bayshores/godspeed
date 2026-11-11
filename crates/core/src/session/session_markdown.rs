@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/session-markdown.ts: a teaching session as readable markdown
+//! A teaching session as readable markdown
 //! (speaker headers, quiz and check-in blocks, tool notes) for the markdown export and the MCP
 //! read_lesson tool. Every message that produces view lines produces a block, in the same order.
 //! A failed tool call renders nothing (retry context, not learning evidence), and custom markers
@@ -12,7 +12,7 @@ use gs_base::re::Re;
 use gs_json::Json;
 
 use super::code_question::fenced_code;
-use super::js_text::{field_text, js_string, or_empty};
+use gs_json::js_text::{field_text, js_string, or_empty};
 use crate::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, failed_output_call_ids, problem_input_for_conclude, user_facing_text_of};
 
 /// What the practice blocks join: practice tool results are acks, and the statement, outcome and

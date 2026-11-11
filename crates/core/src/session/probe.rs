@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/contracts/probe.ts: the probe_done tool, which ends the probe phase
+//! The probe_done tool, which ends the probe phase
 //! with the prober's read of the learner. The first probe_done in the transcript is the seam
 //! where the teacher takes over.
 

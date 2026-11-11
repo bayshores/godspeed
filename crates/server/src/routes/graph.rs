@@ -21,7 +21,7 @@ use gs_services::graph::progress::progress_for;
 
 use crate::http::form;
 use crate::http::paths::{param, search_params};
-use crate::http::reply::{self, Unhandled, body_text, json, json_body, read_body};
+use crate::http::reply::{self, Unhandled, body_text, error, json, json_body, read_body};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
@@ -32,10 +32,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/graph/import", ApiRoute::new().post(post_import).into_route())
 		.route("/api/graph/nodes/{id}", ApiRoute::new().delete(delete_node).into_route())
 		.route("/api/progress", ApiRoute::new().get(get_progress).into_route())
-}
-
-fn error(status: u16, message: &str) -> Response {
-	json(status, &json!({ "error": message }))
 }
 
 /// `?class=<id|none>` (absent is No class); None for a malformed or unknown class.

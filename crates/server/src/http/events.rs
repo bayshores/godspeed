@@ -8,28 +8,43 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{HeaderValue, header};
+use axum::http::{HeaderValue, Method, header};
 use axum::response::Response;
 use bytes::Bytes;
+use futures_util::StreamExt;
+use gs_base::events::Event;
 use gs_base::{clock, shutdown};
 use gs_services::App;
+use tokio::sync::mpsc::UnboundedReceiver;
 
 const PING_MS: i64 = 25_000;
 
-pub async fn stream(State(app): State<Arc<App>>) -> Response {
+pub async fn stream(State(app): State<Arc<App>>, method: Method) -> Response {
 	// Subscribed before answering, so no event can fall in between.
-	let rx = app.events.subscribe();
-	let frames = futures_util::stream::unfold((rx, clock::now_ms() + PING_MS), |(mut rx, due)| async move {
-		tokio::select! {
-			event = rx.recv() => event.map(|e| (Ok::<_, Infallible>(Bytes::from(e.sse_frame())), (rx, due))),
-			() = clock::sleep_until(due) => Some((Ok(Bytes::from_static(b": ping\n\n")), (rx, due + PING_MS))),
-			() = shutdown::wait() => None,
-		}
-	});
+	let mut rx = app.events.subscribe();
+	let mut due = clock::now_ms() + PING_MS;
+	// Next sends the response head with the first frame, so the page's EventSource opens (and runs
+	// its resync) only then; answering earlier would make every window refetch at load. A HEAD has
+	// no body, and Next answers it at once.
+	let first = if method == Method::HEAD { None } else { next_frame(&mut rx, &mut due).await };
+	let rest = futures_util::stream::unfold((rx, due), |(mut rx, mut due)| async move { next_frame(&mut rx, &mut due).await.map(|frame| (frame, (rx, due))) });
+	let frames = futures_util::stream::iter(first).chain(rest).map(Ok::<_, Infallible>);
 	let mut res = Response::new(Body::from_stream(frames));
 	let headers = res.headers_mut();
 	headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/event-stream"));
 	headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache, no-transform"));
 	headers.insert("x-accel-buffering", HeaderValue::from_static("no"));
 	res
+}
+
+/// The next event or ping; None once the server stops.
+async fn next_frame(rx: &mut UnboundedReceiver<Event>, due: &mut i64) -> Option<Bytes> {
+	tokio::select! {
+		event = rx.recv() => event.map(|e| Bytes::from(e.sse_frame())),
+		() = clock::sleep_until(*due) => {
+			*due += PING_MS;
+			Some(Bytes::from_static(b": ping\n\n"))
+		}
+		() = shutdown::wait() => None,
+	}
 }

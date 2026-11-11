@@ -25,6 +25,9 @@ pub struct Paths {
 	/// The learner's prompt overrides, mirroring the source layout.
 	pub prompts_dir: PathBuf,
 	pub home: PathBuf,
+	/// The godspeed folder until the learner picks another: `~/godspeed`, or inside the data in a
+	/// development build.
+	pub default_agent_folder: PathBuf,
 	pub tmp: PathBuf,
 	/// The folder with `ui/`, `models/` and `pdfjs-dist/` (the working directory).
 	pub resources: PathBuf,
@@ -83,7 +86,13 @@ impl Paths {
 		let data = env_path("LH_DATA_DIR").map_or_else(|| resources.join("data"), |p| resolve(&p));
 		let home = env_path("HOME").unwrap_or_else(|| PathBuf::from("/"));
 		let tmp = env_path("TMPDIR").map_or_else(|| PathBuf::from("/tmp"), |p| PathBuf::from(p.to_string_lossy().trim_end_matches('/')));
-		Paths::new(data, home, tmp, resources)
+		let mut paths = Paths::new(data, home, tmp, resources);
+		// A development build keeps its folder inside its own data, so its class list never syncs
+		// over the installed app's ~/godspeed.
+		if cfg!(debug_assertions) {
+			paths.default_agent_folder = paths.data.join("godspeed-folder");
+		}
+		paths
 	}
 
 	pub fn new(data: PathBuf, home: PathBuf, tmp: PathBuf, resources: PathBuf) -> Paths {
@@ -93,6 +102,7 @@ impl Paths {
 			classes: data.join("classes"),
 			settings_file: data.join("settings.json"),
 			prompts_dir: data.join("prompts"),
+			default_agent_folder: home.join("godspeed"),
 			data,
 			home,
 			tmp,
@@ -119,5 +129,13 @@ mod tests {
 		assert_eq!(GraphFiles::new(&p.graph).topics, Path::new("/d/graph/topics.jsonl"));
 		assert_eq!(resolve(Path::new("/a/./b/../c")), Path::new("/a/c"));
 		assert!(!VERSION.is_empty());
+		assert_eq!(p.default_agent_folder, Path::new("/h/godspeed"));
+	}
+
+	#[test]
+	#[cfg(debug_assertions)]
+	fn a_development_server_keeps_its_godspeed_folder_in_its_data() {
+		let p = Paths::from_env();
+		assert_eq!(p.default_agent_folder, p.data.join("godspeed-folder"));
 	}
 }

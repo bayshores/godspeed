@@ -1,5 +1,4 @@
-//! Ported from src/backend/store/graph.ts and graph-format.ts, and the per-scope stores from
-//! src/backend/server/stores.ts: the append-only graph ledgers and the imported-notes records.
+//! The append-only graph ledgers and the imported-notes records.
 //!
 //! One graph family per scope: None is "No class" (data/graph), a class id is that class's own
 //! graph (data/classes/<id>/graph). Each family holds
@@ -14,7 +13,7 @@
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use gs_base::config::{GraphFiles, Paths};
@@ -24,6 +23,7 @@ use gs_core::contracts::class::is_class_id;
 use gs_core::contracts::graph::CURRENT_GRAPH_FORMAT_VERSION;
 use gs_core::records::entries;
 use gs_json::{Json, Obj, js_number, json, parse, stringify, stringify_pretty};
+use parking_lot::Mutex;
 
 /// The ledgers of a graph family.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -88,10 +88,6 @@ impl GraphStores {
 		Ok(GraphFiles::new(&dir))
 	}
 
-	fn cache(&self) -> MutexGuard<'_, HashMap<PathBuf, Cached>> {
-		self.cache.lock().unwrap_or_else(PoisonError::into_inner)
-	}
-
 	/// Appends one record to a ledger. The family's format stamp is written first.
 	pub fn append(&self, scope: Option<&str>, ledger: Ledger, record: &Json) -> Result<(), String> {
 		let _guard = self.locks.lock(LockKey::Graph(scope));
@@ -101,7 +97,7 @@ impl GraphStores {
 			std::fs::create_dir_all(dir).map_err(|err| fsx::node_error_message(&err, "mkdir", dir))?;
 		}
 		ensure_graph_format(&files.format)?;
-		self.cache().remove(file);
+		self.cache.lock().remove(file);
 		let line = format!("{}\n", stringify(record));
 		let appended = std::fs::OpenOptions::new().create(true).append(true).open(file).and_then(|mut f| f.write_all(&text::utf8_bytes(&line)));
 		appended.map_err(|err| fsx::node_error_message(&err, "open", file))
@@ -114,15 +110,15 @@ impl GraphStores {
 		assert_graph_format(&files.format)?;
 		let file = ledger.file(&files);
 		let Ok(meta) = std::fs::metadata(file) else {
-			self.cache().remove(file);
+			self.cache.lock().remove(file);
 			return Ok(Arc::default());
 		};
 		let version = (meta.modified().ok(), meta.len());
-		if let Some(hit) = self.cache().get(file).filter(|hit| hit.version == version) {
+		if let Some(hit) = self.cache.lock().get(file).filter(|hit| hit.version == version) {
 			return Ok(hit.lines.clone());
 		}
 		let lines = Arc::new(parse_ledger(file, ledger));
-		self.cache().insert(file.to_path_buf(), Cached { version, lines: lines.clone() });
+		self.cache.lock().insert(file.to_path_buf(), Cached { version, lines: lines.clone() });
 		Ok(lines)
 	}
 
@@ -138,7 +134,7 @@ impl GraphStores {
 		let files = self.files(scope)?;
 		for (ledger, records) in ledgers {
 			let file = ledger.file(&files);
-			self.cache().remove(file);
+			self.cache.lock().remove(file);
 			let lines: Vec<String> = records.iter().map(stringify).collect();
 			// One record per line with a trailing newline, exactly what append would have written.
 			let content = if lines.is_empty() { String::new() } else { format!("{}\n", lines.join("\n")) };
@@ -201,7 +197,7 @@ impl GraphStores {
 	/// Drops a deleted class's parsed ledgers: nothing reads them again.
 	pub fn forget_graph_store(&self, class_id: &str) {
 		let Ok(files) = self.files(Some(class_id)) else { return };
-		let mut cache = self.cache();
+		let mut cache = self.cache.lock();
 		for file in [&files.nodes, &files.chains, &files.sessions, &files.coverage, &files.sources, &files.format, &files.topics] {
 			cache.remove(file);
 		}

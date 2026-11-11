@@ -50,10 +50,6 @@ fn items(v: &Json) -> &[Json] {
 	v.as_arr().map_or(&[], Vec::as_slice)
 }
 
-fn str_of(v: &Json) -> &str {
-	v.as_str().unwrap_or("")
-}
-
 /// The lessons of one class (`classId` equal to `class_id`).
 fn class_lessons(app: &App, class_id: &str) -> Vec<Json> {
 	app.stores.chats.list_chats().into_iter().filter(|c| c["classId"].as_str() == Some(class_id)).collect()
@@ -63,7 +59,7 @@ fn class_lessons(app: &App, class_id: &str) -> Vec<Json> {
 pub fn hinted_problems(app: &App, class_id: &str) -> Vec<Json> {
 	class_lessons(app, class_id)
 		.iter()
-		.filter_map(|c| lesson_readout(app, str_of(&c["id"])))
+		.filter_map(|c| lesson_readout(app, c["id"].str_or_empty()))
 		.flat_map(|readout| readout.outcomes.clone())
 		.filter(|o| o["outcome"].as_str() == Some("solvedWithHints"))
 		.map(|o| json!({ "statement": o["statement"], "at": o["at"] }))
@@ -74,19 +70,19 @@ pub fn hinted_problems(app: &App, class_id: &str) -> Vec<Json> {
 /// topics its facts are in (the cheat sheet's Watch out block).
 pub fn class_mistakes(app: &App, class_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
 	let index = facts_by_message(&get_graph(graph_store_for(app, Some(class_id)).as_ref())?.nodes);
-	let topic_of: HashMap<&str, &Json> = items(&progress["facts"]).iter().map(|f| (str_of(&f["id"]), &f["topicId"])).collect();
+	let topic_of: HashMap<&str, &Json> = items(&progress["facts"]).iter().map(|f| (f["id"].str_or_empty(), &f["topicId"])).collect();
 	let topics_of = |fact_ids: &[String]| -> Vec<Json> {
 		let mut seen = HashSet::new();
 		fact_ids.iter().filter_map(|id| topic_of.get(id.as_str()).and_then(|t| t.as_str())).filter(|t| !t.is_empty() && seen.insert(*t)).map(Json::from).collect()
 	};
 	let mut out = Vec::new();
 	for c in class_lessons(app, class_id) {
-		let Some(readout) = lesson_readout(app, str_of(&c["id"])) else { continue };
+		let Some(readout) = lesson_readout(app, c["id"].str_or_empty()) else { continue };
 		for a in readout.answers.iter().filter(|a| a["outcome"].as_str() == Some("wrong")) {
 			out.push(json!({ "text": a["question"], "kind": "wrong", "at": a["answeredAt"], "topicIds": topics_of(&facts_for_answer(a, &index)) }));
 		}
 		for o in readout.outcomes.iter().filter(|o| o["outcome"].as_str() == Some("solvedWithHints")) {
-			let targets: Vec<String> = items(&o["targets"]).iter().map(|t| str_of(t).to_owned()).collect();
+			let targets: Vec<String> = items(&o["targets"]).iter().map(|t| t.str_or_empty().to_owned()).collect();
 			out.push(json!({ "text": o["statement"], "kind": "hint", "at": o["at"], "topicIds": topics_of(&targets) }));
 		}
 	}
@@ -96,11 +92,11 @@ pub fn class_mistakes(app: &App, class_id: &str, progress: &Json) -> Result<Vec<
 /// The class's files with the source id their facts are born under.
 fn progress_files(record: Option<&Json>) -> Vec<Json> {
 	let Some(record) = record else { return Vec::new() };
-	let class_id = str_of(&record["id"]);
+	let class_id = record["id"].str_or_empty();
 	items(&record["files"])
 		.iter()
 		.map(|f| {
-			let source_id = f["sourceId"].as_str().map_or_else(|| source_id_for(class_id, str_of(&f["id"])), str::to_owned);
+			let source_id = f["sourceId"].as_str().map_or_else(|| source_id_for(class_id, f["id"].str_or_empty()), str::to_owned);
 			json!({ "id": f["id"], "name": f["name"], "kind": f["kind"], "sourceId": source_id })
 		})
 		.collect()
@@ -133,7 +129,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 	}
 	let graph = get_graph(graph_store_for(app, scope).as_ref())?;
 	let chats = app.stores.chats.list_chats();
-	let known: HashSet<&str> = chats.iter().map(|c| str_of(&c["id"])).collect();
+	let known: HashSet<&str> = chats.iter().map(|c| c["id"].str_or_empty()).collect();
 	app.graph.readouts.0.lock().retain(|id, _| known.contains(id.as_str()));
 	let (mut lessons, mut deadline_sessions, mut homework_sessions) = (Vec::new(), Vec::new(), Vec::new());
 	for c in &chats {
@@ -143,7 +139,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		if c["kind"].as_str() == Some("homework") && c["deadlineId"].truthy() {
 			homework_sessions.push(json!({ "chatId": c["id"], "deadlineId": c["deadlineId"], "createdAt": c["createdAt"] }));
 		}
-		let Some(readout) = lesson_readout(app, str_of(&c["id"])) else { continue };
+		let Some(readout) = lesson_readout(app, c["id"].str_or_empty()) else { continue };
 		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt"]);
 		lesson.insert("answers", readout.answers.clone());
 		lessons.push(Json::Obj(lesson));
@@ -197,11 +193,11 @@ fn topic_study_in(app: &App, scope: Option<&str>, progress: &Json, topic_ids: &[
 	let facts = items(&progress["facts"]);
 	let class_order = fact_class_order(facts, &progress_files(record.as_ref()));
 	let topics = topic_study(topic_ids, items(&progress["topics"]), facts, &class_order, studied_today);
-	let fact_by_id: HashMap<&str, &Json> = facts.iter().map(|f| (str_of(&f["id"]), f)).collect();
+	let fact_by_id: HashMap<&str, &Json> = facts.iter().map(|f| (f["id"].str_or_empty(), f)).collect();
 	let picks = topics
 		.iter()
 		.flat_map(|t| items(&t["factIds"]).iter())
-		.filter_map(|id| fact_by_id.get(str_of(id)).map(|f| json!({ "id": id, "name": f["name"], "statement": f["statement"] })))
+		.filter_map(|id| fact_by_id.get(id.str_or_empty()).map(|f| json!({ "id": id, "name": f["name"], "statement": f["statement"] })))
 		.collect();
 	TopicStudy { topics, picks }
 }
@@ -225,24 +221,24 @@ pub struct DeadlineStudy {
 pub fn deadline_study_for(app: &App, class_id: &str, deadline_id: &str) -> Result<Option<DeadlineStudy>, String> {
 	let Some(progress) = progress_for(app, class_id, None)? else { return Ok(None) };
 	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
-	let today = str_of(&progress["today"]);
+	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, class_id, today);
-	let topic_ids = deadline_study_topic_ids(today, str_of(&deadline["date"]), items(&deadline["topics"]));
+	let topic_ids = deadline_study_topic_ids(today, deadline["date"].str_or_empty(), items(&deadline["topics"]));
 	let study = topic_study_in(app, Some(class_id), &progress, &topic_ids, Some(&studied));
-	Ok(Some(DeadlineStudy { name: str_of(&deadline["name"]).to_owned(), topics: study.topics, picks: study.picks }))
+	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
 }
 
 /// The plan nodes of the class's study sessions created on `day` (the learner's local day).
 fn studied_on(app: &App, class_id: &str, day: &str) -> HashSet<String> {
 	let mut ids = HashSet::new();
 	for c in app.stores.chats.list_chats() {
-		let created_day = time::parse_date(str_of(&c["createdAt"])).map(local_day);
+		let created_day = time::parse_date(c["createdAt"].str_or_empty()).map(local_day);
 		if c["kind"].as_str() != Some("study") || c["classId"].as_str() != Some(class_id) || created_day.as_deref() != Some(day) {
 			continue;
 		}
-		let record = app.stores.chats.get_chat(str_of(&c["id"]));
+		let record = app.stores.chats.get_chat(c["id"].str_or_empty());
 		for node in record.iter().flat_map(|r| items(&r["tree"]["nodes"])) {
-			ids.insert(str_of(&node["id"]).to_owned());
+			ids.insert(node["id"].str_or_empty().to_owned());
 		}
 	}
 	ids

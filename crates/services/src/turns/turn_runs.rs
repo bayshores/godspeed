@@ -5,6 +5,7 @@
 use gs_engine::turn::ui_stream::TurnHandle;
 use gs_json::{json, stringify};
 
+use super::turn_liveness::is_turn_running;
 use crate::App;
 
 pub fn remember_turn_failure(app: &App, chat_id: &str, error_text: &str) {
@@ -21,6 +22,7 @@ pub fn clear_turn_failure(app: &App, chat_id: &str) {
 
 pub fn register_turn(app: &App, chat_id: &str, handle: TurnHandle) {
 	app.turns.runs.lock().insert(chat_id.to_owned(), handle);
+	app.turns.attachable.notify_waiters();
 }
 
 pub fn unregister_turn(app: &App, chat_id: &str) {
@@ -29,6 +31,24 @@ pub fn unregister_turn(app: &App, chat_id: &str) {
 
 pub fn running_turn(app: &App, chat_id: &str) -> Option<TurnHandle> {
 	app.turns.runs.lock().get(chat_id).cloned()
+}
+
+/// The turn a view attaches to. A turn that began but whose handle is still being built (its
+/// agent, its job deliveries) is waited for, so a view that reacts to "turn-started" gets the live
+/// turn, not the settled terminal.
+pub async fn attach_turn(app: &App, chat_id: &str) -> Option<TurnHandle> {
+	loop {
+		let changed = app.turns.attachable.notified();
+		tokio::pin!(changed);
+		changed.as_mut().enable();
+		if let Some(handle) = running_turn(app, chat_id) {
+			return Some(handle);
+		}
+		if !is_turn_running(app, chat_id) {
+			return None;
+		}
+		changed.await;
+	}
 }
 
 /// The remote kill. False ("not_running") when no turn runs: nothing to abort.

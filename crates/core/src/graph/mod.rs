@@ -6,8 +6,8 @@ pub mod coverage;
 pub mod graph;
 pub mod graph_deletion;
 mod ledger_lines;
-#[cfg(test)]
-mod memory;
+#[cfg(feature = "test-support")]
+pub mod memory;
 mod merge;
 mod ordered;
 pub mod ports;

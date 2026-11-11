@@ -105,10 +105,6 @@ fn run_single_flight(app: &Arc<App>, class_id: &str) {
 	});
 }
 
-fn str_of(v: &Json) -> &str {
-	v.as_str().unwrap_or("")
-}
-
 async fn group_once(app: &Arc<App>, class_id: &str) -> Result<(), String> {
 	let Some(record) = app.stores.classes.get_class(class_id) else { return Ok(()) };
 	let Some(class_name) = record["name"].as_str() else { return Ok(()) };
@@ -124,7 +120,7 @@ async fn group_once(app: &Arc<App>, class_id: &str) -> Result<(), String> {
 	if graph.nodes.len() < MIN_FACTS_FOR_TOPICS {
 		return Ok(());
 	}
-	let fact_ids: Vec<String> = graph.nodes.iter().map(|f| str_of(&f["id"]).to_owned()).collect();
+	let fact_ids: Vec<String> = graph.nodes.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	let last = app.stores.graphs.read_topics(scope)?;
 	if same_fact_set(last.as_ref(), &fact_ids) {
 		return Ok(());

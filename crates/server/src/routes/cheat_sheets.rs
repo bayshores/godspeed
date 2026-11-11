@@ -1,4 +1,4 @@
-//! /api/classes/{id}/cheat-sheets and /api/classes/{id}/deadlines/{deadline_id}/cheat-sheet and everything under it (package cheat-sheets).
+//! /api/classes/{id}/cheat-sheets and /api/classes/{id}/deadlines/{deadline_id}/cheat-sheet and everything under it.
 
 use std::sync::{Arc, LazyLock};
 
@@ -15,7 +15,7 @@ use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::cheat_sheets::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, class_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
 
-use crate::http::reply::{Unhandled, json, json_body};
+use crate::http::reply::{Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
 
 const SHEET: &str = "/api/classes/{id}/deadlines/{deadline_id}/cheat-sheet";
@@ -26,10 +26,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route(SHEET, ApiRoute::new().get(get_sheet).post(post_sheet).into_route())
 		.route(&format!("{SHEET}/pdf/{{n}}"), ApiRoute::new().get(get_pdf).into_route())
 		.route(&format!("{SHEET}/files/{{file}}"), ApiRoute::new().get(get_file).into_route())
-}
-
-fn error(status: u16, message: &str) -> Response {
-	json(status, &json!({ "error": message }))
 }
 
 fn not_a_class() -> Response {

@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/tool-switches.ts: the sub-agent tools a learner may switch off.
+//! The sub-agent tools a learner may switch off.
 //! Not toggleable on purpose: quiz and ask_user_question (teaching is built on graded checks),
 //! the learner-filesystem set, the plan tools and probe_done (a prober that can never conclude
 //! is a lockout). Names are the model-facing tool names.

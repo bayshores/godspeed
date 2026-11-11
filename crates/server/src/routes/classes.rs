@@ -15,7 +15,7 @@ use gs_services::App;
 use gs_services::app::agent_actions::record_deadline_change;
 use gs_services::app::agent_folder::{class_shortcut_dir, shortcut_path_problem};
 use gs_services::classes::{
-	ClassFailure, add_class_deadline, add_copied_file, create_class, deadline_with_class, delete_class, folder_status_of, get_class, link_folder, list_class_deadlines, list_classes, list_open_deadlines,
+	ClassFailure, add_class_deadline, add_copied_file, deadline_with_class, delete_class, folder_status_of, link_folder, list_class_deadlines, list_open_deadlines,
 	remove_class_deadline, remove_file, retry_file, scan_linked_folder, set_file_kind, start_class_scanner, unlink_folder, update_class, update_class_deadline,
 };
 use gs_services::classes::class_card::class_file_path;
@@ -24,7 +24,7 @@ use gs_services::turns::homework::homework_view;
 
 use crate::http::form;
 use crate::http::paths::{param, search_params};
-use crate::http::reply::{self, Unhandled, json_body, read_body};
+use crate::http::reply::{self, Unhandled, error, fields, read_body};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
@@ -41,10 +41,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/deadlines/{id}", ApiRoute::new().get(deadline).into_route())
 }
 
-fn error(status: u16, message: &str) -> Response {
-	reply::json(status, &json!({ "error": message }))
-}
-
 fn no_such_class() -> Response {
 	error(404, "No such class")
 }
@@ -57,16 +53,6 @@ fn refused(failure: ClassFailure) -> Result<Response, Unhandled> {
 	Ok(reply::json(failure.status, &json!({ "error": failure.error, "code": failure.code })))
 }
 
-/// `(await req.json().catch(() => ({})))` read for its fields: `{}` when the body is not JSON, and
-/// a throw (500) for `null`, whose fields cannot be read.
-async fn fields(body: Body) -> Result<Json, Unhandled> {
-	match json_body(body).await {
-		None => Ok(json!({})),
-		Some(Json::Null) => Err(Unhandled::from("body is null")),
-		Some(body) => Ok(body),
-	}
-}
-
 /// `body.key`, None where it is `undefined` (missing, or a body that is not an object).
 fn field<'a>(body: &'a Json, key: &str) -> Option<&'a Json> {
 	body.as_obj().and_then(|o| o.get(key))
@@ -76,7 +62,7 @@ fn field<'a>(body: &'a Json, key: &str) -> Option<&'a Json> {
 /// scanner.
 async fn list(State(app): State<Arc<App>>) -> Response {
 	start_class_scanner(&app);
-	reply::json(200, &json!({ "classes": list_classes(&app) }))
+	reply::json(200, &json!({ "classes": app.stores.classes.list_classes() }))
 }
 
 /// POST /api/classes { name, description? }.
@@ -90,7 +76,7 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 	if let Some(description) = field(&body, "description").filter(|d| d.as_str().is_some()) {
 		init.insert("description", description.clone());
 	}
-	let class = create_class(&app, &Json::Obj(init))?;
+	let class = app.stores.classes.create_class(&Json::Obj(init))?;
 	Ok(reply::json(201, &json!({ "class": class })))
 }
 
@@ -103,7 +89,7 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> 
 	if param(&search_params(uri.query().unwrap_or_default()), "scan") == Some("1") {
 		scan_linked_folder(&app, &id, false);
 	}
-	let Some(record) = get_class(&app, &id) else { return no_such_class() };
+	let Some(record) = app.stores.classes.get_class(&id) else { return no_such_class() };
 	let shortcuts = class_shortcut_dir(&app, &id).map_or(Json::Null, Json::from);
 	reply::json(200, &json!({ "class": record, "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
 }
@@ -205,7 +191,7 @@ async fn add_files(State(app): State<Arc<App>>, Path(id): Path<String>, headers:
 
 /// GET /api/classes/{id}/files/{file_id}: `{ path }`, the file's full path (Show in Finder).
 async fn file_path(State(app): State<Arc<App>>, Path((id, file_id)): Path<(String, String)>) -> Response {
-	let record = if is_class_id(&id) { get_class(&app, &id) } else { None };
+	let record = if is_class_id(&id) { app.stores.classes.get_class(&id) } else { None };
 	let found = record.as_ref().and_then(|r| {
 		let file = r["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id.as_str()))?;
 		class_file_path(&app, r, file)

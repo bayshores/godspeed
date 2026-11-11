@@ -1,4 +1,4 @@
-//! Parity with the TypeScript for the turns package (tests/golden/turns.json, made by
+//! Parity with the TypeScript for turns (tests/golden/turns.json, made by
 //! turns.golden.ts from synthetic lessons): the settled stream terminal, the compaction trigger's
 //! context estimate, the canonical turn save and PDF attachments.
 

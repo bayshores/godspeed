@@ -1,5 +1,3 @@
-//! Ported from src/backend/store/classes.ts.
-//!
 //! ```text
 //! <data>/classes/<id>/class.json   the class record
 //! <data>/classes/<id>/files/       copied class files (the app's own copies)

@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/contracts/plan.ts: where a lesson stands on its plan tree.
+//! Where a lesson stands on its plan tree.
 //!
 //! Position comes from the tagged question CALLS in the transcript, never from their results: the
 //! latest tagged call's node is current, nodes of earlier tagged calls are visited.

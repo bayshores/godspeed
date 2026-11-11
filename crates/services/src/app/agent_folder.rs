@@ -81,7 +81,7 @@ fn write_state(app: &App, state: &FolderState) -> Result<(), String> {
 }
 
 fn agent_folder(app: &App) -> String {
-	read_state(app).folder.unwrap_or_else(|| app.paths.home.join("godspeed").to_string_lossy().into_owned())
+	read_state(app).folder.unwrap_or_else(|| app.paths.default_agent_folder.to_string_lossy().into_owned())
 }
 
 /// Set up: its connector is there.

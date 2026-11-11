@@ -15,7 +15,7 @@ use gs_base::locks::Locks;
 use gs_store::Stores;
 
 /// The whole server's state: every route and the MCP endpoint get an `Arc<App>`. Each service
-/// package owns its own field's type; this list is fixed.
+/// area owns its own field's type.
 pub struct App {
 	pub paths: Paths,
 	pub events: Events,

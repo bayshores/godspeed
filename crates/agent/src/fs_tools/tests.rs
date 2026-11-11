@@ -13,6 +13,7 @@ use gs_engine::turn::abort::Abort;
 use gs_engine::turn::tool::{Tool, ToolContext};
 use gs_json::{Json, json};
 use gs_pdf::Pdf;
+use gs_pdf::test_support::shared_pdf;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
@@ -377,16 +378,6 @@ fn minimal_pdf(text: &str) -> Vec<u8> {
 	out
 }
 
-/// A `Pdf` on the lab's pdfium library, or None (with a note) when there is none.
-fn lab_pdf() -> Option<Pdf> {
-	let dir = std::env::var_os("GODSPEED_PDFIUM_DIR").map(PathBuf::from).unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../rewrite-lab/pdfium"));
-	if !["libpdfium.dylib", "libpdfium.so", "pdfium.dll"].iter().any(|lib| dir.join(lib).exists()) {
-		eprintln!("skipped: no pdfium library in {} (set GODSPEED_PDFIUM_DIR to the folder holding it)", dir.display());
-		return None;
-	}
-	Some(Pdf::new(&dir))
-}
-
 fn pdf_tools(pdf: &Pdf, dir: &Path) -> impl Fn(&str) -> Arc<dyn Tool> {
 	let tools = create_pdf_read_tools(pdf, dir);
 	move |name| tools.iter().find(|t| t.name() == name).unwrap().clone()
@@ -407,7 +398,7 @@ async fn pdf_tools_keep_to_their_folder() {
 
 #[tokio::test]
 async fn pdf_tools_read_a_pdf() {
-	let Some(pdf) = lab_pdf() else { return };
+	let Some(pdf) = shared_pdf() else { return };
 	let dir = TempDir::new("pdf-read");
 	dir.put("paper.pdf", minimal_pdf("Hello needle world"));
 	let tool = pdf_tools(&pdf, dir.path());
@@ -423,7 +414,7 @@ async fn pdf_tools_read_a_pdf() {
 
 #[tokio::test]
 async fn web_fetch_pdf_downloads_and_triages() {
-	let pdf = lab_pdf();
+	let pdf = shared_pdf();
 	let body = minimal_pdf("Downloaded text");
 	let origin = serve(move |path| match path {
 		"/paper.pdf" => Some(("200 OK", "application/pdf", body.clone())),

@@ -5,11 +5,11 @@ use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
 use gs_agent::extraction::extraction_runs::RunKind;
-use gs_agent::extraction::ledgers::{ChatList, ScopedGraph};
+use gs_agent::extraction::ledgers::ScopedGraph;
 use gs_base::config::GraphFiles;
 use gs_base::locks::LockKey;
 use gs_core::graph::graph::graph_snapshot;
-use gs_core::graph::graph_deletion::delete_node_traces;
+use gs_core::graph::graph_deletion::{ChatDeleteMode, ChatDeletionStats, delete_chat_traces, delete_node_traces};
 use gs_core::graph::ports::{GraphDeps, GraphStore};
 use gs_core::session::cost_summary::graph_cost_summary;
 use gs_json::{Json, json};
@@ -22,9 +22,16 @@ pub fn graph_store_for<'a>(app: &'a App, scope: Option<&'a str>) -> Box<dyn Grap
 	Box::new(ScopedGraph::new(&app.stores.graphs, scope))
 }
 
+/// A lesson's facts and bookkeeping leave the scope's graph. The rewrite replaces whole ledgers
+/// from what it read, so it holds the graph's lock: a merge appending meanwhile would be erased.
+pub fn delete_chat_from_graph(app: &App, scope: Option<&str>, chat_id: &str, mode: ChatDeleteMode) -> Result<ChatDeletionStats, String> {
+	let _held = app.locks.lock(LockKey::Graph(scope));
+	delete_chat_traces(graph_store_for(app, scope).as_ref(), chat_id, mode)
+}
+
 /// Everything the graph view shows for one scope. A pure read: only extraction writes graphs.
 pub fn graph_view(app: &App, scope: Option<&str>) -> Result<Json, String> {
-	graph_snapshot(&GraphDeps { chat_store: &ChatList(&app.stores.chats), graph_store: graph_store_for(app, scope).as_ref() })
+	graph_snapshot(&GraphDeps { chat_store: app.stores.chats.as_ref(), graph_store: graph_store_for(app, scope).as_ref() })
 }
 
 /// The cost pill: what the graph pipeline spent, from the scope's lessons and imported notes.

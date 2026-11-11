@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use gs_agent::tools::homework::HomeworkDeadline;
+use gs_base::locks::LockKey;
 use gs_core::messages::native_messages::{new_class_context_message, new_study_context_message};
 use gs_core::study::homework::{has_problems, homework_context_text, merge_problems};
 use gs_json::{Json, json};
@@ -26,6 +27,8 @@ fn file_of<'a>(cls: &'a Json, deadline: &Json) -> Option<&'a Json> {
 /// Starts a homework session on one homework or project deadline. Its title is the learner's
 /// first message.
 pub fn create_homework(app: &Arc<App>, class_id: &str, deadline_id: &str) -> Result<Result<Created, NotFound>, String> {
+	// Held from the class check to the finished lesson, as in `create_lesson`.
+	let _class = app.locks.lock(LockKey::Class(class_id));
 	let Some(cls) = app.stores.classes.get_class(class_id) else {
 		return Ok(Err(NotFound { code: "class_not_found", error: "No such class" }));
 	};

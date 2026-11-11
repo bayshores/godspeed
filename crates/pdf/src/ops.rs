@@ -1,6 +1,3 @@
-//! Ported from pdfProbe, pdfShape, parsePageSpec, pdfSearch in src/backend/agent/subagents/pdf-ops.ts
-//! (pdfInfo is in info.rs).
-
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -37,7 +34,7 @@ impl PdfSearchHit {
 }
 
 /// `parseInt(text, 10)`: the leading whole number, NaN when there is none.
-fn parse_int(text: &str) -> f64 {
+pub fn parse_int(text: &str) -> f64 {
 	let text = trim_start(text);
 	let (sign, digits) = match text.as_bytes().first() {
 		Some(b'-') => (-1.0, &text[1..]),

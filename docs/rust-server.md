@@ -31,7 +31,7 @@ A module is named after its TS file in snake_case (`file-series.ts` is `classes:
 
 **Records are `Json`, not structs.** Data files and API bodies are `gs_json::Json` (`Null | Bool | Num(f64) | Str | Arr | Obj`). `Obj` keeps JS key order (array-index keys first, ascending, then insertion order) and unknown fields survive a round trip. Index with `v["key"]` (missing reads as `Null`), test with `truthy()`, build with `json!({...})`. `stringify`, `stringify_pretty(v, "\t")` and `parse` match `JSON.stringify` / `JSON.parse` exactly, number text included (`js_number`). Use a typed struct only inside one function, through `to_json` / `from_json`.
 
-**Text is JS text.** Rust `String`s may hold lone UTF-16 halves as stand-ins (`gs_json::lone`); JSON output writes them as `\udxxx` like Node, UTF-8 output writes U+FFFD. Where TS measures or slices strings, use `gs_base::text` (`len16`, `slice16`, `substring16`, `index_of16`, `char_code_at`, `trim` with JS whitespace, `pad_start`). Never `s.len()` for a JS `.length`.
+**Text is JS text.** Rust `String`s may hold lone UTF-16 halves as stand-ins (`gs_json::lone`); JSON output writes them as `\udxxx` like Node, UTF-8 output writes U+FFFD. Where TS measures or slices strings, use `gs_base::text` (`len16`, `slice16`, `index_of16`, `cmp16`, `trim` with JS whitespace, `pad_start`). Never `s.len()` for a JS `.length`.
 
 **Regexes are JS regexes.** Use `gs_base::re::Re::new(pattern, flags)` with the TS pattern copied verbatim (it runs on UTF-16 units, so `.` and `\w` behave like V8). Never the `regex` crate.
 
@@ -77,29 +77,31 @@ A module is named after its TS file in snake_case (`file-series.ts` is `classes:
 Node ran each read-modify-write of a file without an `await` inside, so nothing interleaved. Rust runs requests in parallel, so every such section takes a lock from `app.locks` (`gs_base::locks`):
 
 - Keys: `LockKey::Class(id)` (a class record, its files and cheat sheets), `Chat(id)` (a lesson or Talk record and its folder), `Graph(scope)` (one graph family, `None` is "No class"), `AppFile(name)` (one file under data/, like `"settings.json"` or `"agent-notes.json"`).
-- Take at most one, or several in this order: class, then chat, then graph, then app file. Locks are re-entrant on one thread, so a store may take the lock its caller already holds.
+- Take at most one, or several in this order: class, then chat, then graph, then app file. Several of one kind go in id order (a class delete holds each of its lessons). Of two app files, `settings.json` comes first: reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` before. Locks are re-entrant on one thread, so a store may take the lock its caller already holds.
+- A turn begins under its lesson's lock (the write-ahead), and an extraction reads its lesson under it, so a check that no turn or extraction runs, made under that lock, holds until the lock is let go. Deleting or moving a lesson checks again under it after waiting out its work (`rewrite_blocker`). A lesson enters a class (created in it or moved to it) under the class's lock, which a class delete holds, so the delete sees every lesson in the class.
 - The guard is not `Send`: hold it only in synchronous code. Read, change and write inside the guard; do slow work (PDF, model, network, agent) outside and re-check after taking the lock again, as the TS does after an `await`.
 - A store method that does its own read-modify-write takes the lock itself. A service that reads a record, decides, then writes takes the lock around all of it.
 
 ## The server process
 
 - Started with its working directory beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`). pdfium's library also goes there (package pdf decides the file name).
+- A debug build (`cargo build`) keeps the godspeed folder in `<data>/godspeed-folder` until the learner picks one, as `next dev` does, so a dev run never rewrites the real `~/godspeed`. A release build uses `~/godspeed`.
 - Env: `PORT` (bind is always 127.0.0.1), `LH_DATA_DIR` (unset: `data/` in the working directory), `HOME`, `TMPDIR`, `TZ`, `LH_DESKTOP_SERVER=1` + `LH_DESKTOP_API_SECRET` in the app, `GODSPEED_CONTRACT_NOW` / `GODSPEED_CONTRACT_CLOCK_FILE` in tests. `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are read where the TS reads them.
-- Writes nothing at start-up (the Electron shell writes `mcp-endpoint.json`). An advisory lock on the data folder itself keeps a second server off the same data (no lock file).
+- Writes nothing at start-up (the Electron shell writes `mcp-endpoint.json`). An advisory lock on the data folder itself keeps a second server off the same data (no lock file); a new server waits up to 3 s for one that is still stopping.
 - Stops on SIGTERM or SIGINT, and when stdin is a pipe that closes. `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`); after 2 s the process exits with 143.
 - The app version is package.json's, baked in at build time (`config::VERSION`).
 
 ## Checking against the recordings
 
-Build, then run any scenario on the Rust server from the lab (ports 48060-48069 are this rewrite's range; never 47613):
+Build a release server, then run any scenario on it from the lab (ports 48060-48069 are this rewrite's range; never 47613):
 
 ```sh
-cd /Users/seane/Code/learnharness/.claude/worktrees/rust-rewrite && cargo build -p gs-server
+cd /Users/seane/Code/learnharness/.claude/worktrees/rust-rewrite && cargo build --release -p gs-server
 cd /Users/seane/Code/learnharness/.claude/rewrite-lab/contract
 CONTRACT_SERVER_CMD="/bin/sh $PWD/lib/rust-server.sh" CONTRACT_PORTS=48060-48069 node run.mjs check <scenario>
 ```
 
-`lib/rust-server.sh` makes `rewrite-lab/rust-stage/` with links to the phase 1 build's `ui/`, `models/` and pdf.js, and starts `target/debug/godspeed-server` there (`RUST_SERVER_BIN` picks another build). Each scenario gets its own copy of the seed data, its own home, tmp, Claude and Codex folders, and the env above; the launcher stops the server afterwards. On a failure the full result is in `out/<scenario>.actual.json`. `--keep` keeps the run folder. Never point a server at the real data, `~/godspeed`, `~/.claude`, `~/.codex` or Google Drive.
+The recordings come from a production Node build, so they hold only for a release server: a debug build keeps its own godspeed folder (see above) and answers the classes-folder checks differently, and it is too slow for the timing in some scenarios. `lib/rust-server.sh` makes `rewrite-lab/rust-stage/` with links to the phase 1 build's `ui/`, `models/` and pdf.js, and starts `target/release/godspeed-server` there (`RUST_SERVER_BIN` picks another build). Each scenario gets its own copy of the seed data, its own home, tmp, Claude and Codex folders, and the env above; the launcher stops the server afterwards. On a failure the full result is in `out/<scenario>.actual.json`. `--keep` keeps the run folder. Never point a server at the real data, `~/godspeed`, `~/.claude`, `~/.codex` or Google Drive.
 
 ## Work packages
 

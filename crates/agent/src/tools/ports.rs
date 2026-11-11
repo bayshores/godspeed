@@ -9,9 +9,8 @@ use gs_store::chats::ChatStore;
 use gs_store::jobs::{CreateJobInit, JobStore};
 
 /// The chat records the tools read (the open question, the plan tree) and the one thing they write.
-pub trait ChatPort: Send + Sync {
+pub trait ChatPort: ChatListing {
 	fn get_chat(&self, id: &str) -> Option<Json>;
-	fn list_chats(&self) -> Vec<Json>;
 	fn save_tree(&self, id: &str, tree: &Json) -> Result<(), String>;
 }
 
@@ -20,21 +19,8 @@ impl ChatPort for ChatStore {
 		ChatStore::get_chat(self, id)
 	}
 
-	fn list_chats(&self) -> Vec<Json> {
-		ChatStore::list_chats(self)
-	}
-
 	fn save_tree(&self, id: &str, tree: &Json) -> Result<(), String> {
 		ChatStore::save_tree(self, id, tree)
-	}
-}
-
-/// The graph reads want core's `ChatListing`, which the store does not implement.
-pub struct Listing<'a>(pub &'a dyn ChatPort);
-
-impl ChatListing for Listing<'_> {
-	fn list_chats(&self) -> Vec<Json> {
-		self.0.list_chats()
 	}
 }
 

@@ -11,7 +11,6 @@ mod ops_deletion;
 mod ops_merge;
 mod ops_reads;
 mod ops_topics;
-mod store;
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 

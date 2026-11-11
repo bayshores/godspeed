@@ -3,7 +3,8 @@
 //! section holds the lock of what it changes. Locks are re-entrant on one thread (a service may
 //! call a store that takes the same lock), and a guard is not `Send`, so holding one across an
 //! `.await` in a spawned task does not compile. Take at most one, or in this order: class, chat,
-//! graph, app file.
+//! graph, app file; several of one kind in id order, and settings.json before another app file
+//! (docs/rust-server.md, "Locks").
 
 use std::collections::HashMap;
 use std::sync::Arc;

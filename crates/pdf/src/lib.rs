@@ -2,14 +2,15 @@
 //!
 //! Every call is a method on [`Pdf`] (`app.pdf`), named after the TypeScript function it replaces:
 //! `text`, `pdf_extract`, `pdf_probe`, `pdf_shape`, `pdf_info`, `pdf_search`, `render_pdf_pages`.
-//! `ops::parse_page_spec` is the one free function.
+//! `ops::parse_page_spec` and `ops::parse_int` are the free functions.
 
 mod info;
 mod open;
-mod png;
 
 pub mod ops;
 pub mod render;
+#[cfg(feature = "test-support")]
+pub mod test_support;
 pub mod text;
 pub mod worker;
 

@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/changelog.ts. The entries are src/shared/changelog.json, newest first.
+//! The changelog entries (src/shared/changelog.json), newest first.
 
 use std::cmp::Ordering;
 use std::sync::LazyLock;

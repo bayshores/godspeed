@@ -1,13 +1,10 @@
-//! Ported from src/shared/core/session-clusters.ts.
-//!
-//! `birth_session_of` was written with the foundations because other packages call it.
-
 use std::collections::{HashMap, HashSet};
 
+use gs_base::text::cmp16;
 use gs_json::Json;
 
 use super::ledger_lines::strs;
-use super::ordered::{OrderedMap, cmp16};
+use super::ordered::OrderedMap;
 
 /// The lesson a fact was first said in (its first provenance point's chat), if any.
 pub fn birth_session_of(node: &Json) -> Option<&str> {

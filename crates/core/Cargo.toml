@@ -10,5 +10,11 @@ publish.workspace = true
 gs-json.workspace = true
 gs-base.workspace = true
 
+[features]
+test-support = []
+
+[dev-dependencies]
+gs-core = { workspace = true, features = ["test-support"] }
+
 [lints]
 workspace = true

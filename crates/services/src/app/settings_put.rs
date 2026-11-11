@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use gs_base::locks::LockKey;
 use gs_json::{Json, json};
 
 use super::settings_body::{SETTINGS_SECTIONS, parse_section};
@@ -37,11 +38,16 @@ pub fn put_settings_section(app: &Arc<App>, section: &str, body: &Json) -> Resul
 		Some(Ok(parsed)) => parsed,
 	};
 	let graph_was_on = graph_is_on(app)?;
-	let mut next = record_or_new(app.stores.settings.read_settings()?);
-	if let Some(fields) = next.as_obj_mut() {
-		fields.insert(section, parsed);
-	}
-	app.stores.settings.write_settings(&next)?;
+	let next = {
+		// Every other section is written back as read, so no other save may land in between.
+		let _held = app.locks.lock(LockKey::AppFile("settings.json"));
+		let mut next = record_or_new(app.stores.settings.read_settings()?);
+		if let Some(fields) = next.as_obj_mut() {
+			fields.insert(section, parsed);
+		}
+		app.stores.settings.write_settings(&next)?;
+		next
+	};
 	// Class files saved while the graph was off wait for it to come back on.
 	if section == "graph" && !graph_was_on && graph_is_on(app)? {
 		queue_waiting_files(app);
@@ -71,6 +77,27 @@ mod tests {
 		assert!(answer["settings"]["compaction"].as_obj().is_some());
 		let (_, answer) = put_settings_section(&app, "general", &json!({})).unwrap();
 		assert_eq!(stringify(&answer["settings"]["general"]), "{}");
+	}
+
+	#[test]
+	fn two_sections_saved_at_once_both_stay() {
+		let root = scratch_dir("put-together");
+		let app = test_app(&root);
+		for round in 0..30 {
+			let _ = std::fs::remove_file(&app.paths.settings_file);
+			let start = Arc::new(std::sync::Barrier::new(2));
+			let put = |section: &'static str, body: Json| {
+				let (app, start) = (app.clone(), start.clone());
+				std::thread::spawn(move || {
+					start.wait();
+					put_settings_section(&app, section, &body).unwrap();
+				})
+			};
+			let threads = [put("general", json!({ "teacherName": "Zed" })), put("compaction", json!({}))];
+			threads.into_iter().for_each(|t| t.join().unwrap());
+			let saved = app.stores.settings.read_settings().unwrap().unwrap();
+			assert!(saved["general"].truthy() && saved["compaction"].truthy(), "round {round}: {}", stringify(&saved));
+		}
 	}
 
 	#[test]

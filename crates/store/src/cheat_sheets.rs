@@ -1,5 +1,3 @@
-//! Ported from src/backend/store/cheat-sheets.ts.
-//!
 //! `data/classes/<id>/cheat-sheets/<deadline id>.json` is one deadline's cheat sheet, and beside
 //! it `<deadline id>-files/` holds the pictures and PDFs sent in its chat and
 //! `<deadline id>-versions/v<n>.pdf` the sheets the agent made. A class's delete takes the whole
@@ -16,8 +14,6 @@ use gs_base::re::Re;
 use gs_core::contracts::class::is_class_id;
 use gs_core::study::cheat_sheet::{CHEAT_SHEET_FORMAT, ParsedSheet, parse_cheat_sheet};
 use gs_json::{Json, Obj, stringify_pretty};
-
-use crate::agent_notes::read_json_or_set_aside;
 
 /// Built once by `Stores::new`; keep this constructor's signature.
 pub struct CheatSheetStore {
@@ -71,7 +67,7 @@ impl CheatSheetStore {
 	pub fn read_cheat_sheet(&self, class_id: &str, deadline_id: &str) -> Result<Option<ParsedSheet>, String> {
 		let file = self.sheet_file(class_id, deadline_id)?;
 		let _guard = self.locks.lock(LockKey::Class(class_id));
-		Ok(read_json_or_set_aside(&file).and_then(|raw| parse_cheat_sheet(&raw)))
+		Ok(fsx::read_json_or_set_aside(&file).and_then(|raw| parse_cheat_sheet(&raw)))
 	}
 
 	/// Saves the sheet, stamped with the record format.

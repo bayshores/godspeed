@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/visual-maker.ts: the visual job's agent. It writes ONE
+//! The visual job's agent. It writes ONE
 //! precise SVG from a brief, renders it to a PNG, looks at the render and iterates until it is
 //! right.
 //!

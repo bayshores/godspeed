@@ -1,13 +1,11 @@
-//! Ported from renderPdfPages in src/backend/agent/subagents/headless.ts, readingPdfPage in src/backend/server/reading-pages.ts.
-
 use std::io::Cursor;
 use std::path::Path;
 
+use gs_media::png::provider_safe_png;
 use image::ImageEncoder;
 use pdfium_render::prelude::PdfRenderConfig;
 
 use crate::open::{open_resolved, page, page_count, page_size};
-use crate::png::provider_safe_png;
 use crate::worker::Pdf;
 
 /// 72 is 100% zoom; the pdf-reader skill suggests 100, 150 or 200.
@@ -65,5 +63,5 @@ fn encode(rgba: &image::RgbaImage) -> Result<Vec<u8>, String> {
 	image::codecs::png::PngEncoder::new(Cursor::new(&mut png))
 		.write_image(rgba.as_raw(), rgba.width(), rgba.height(), image::ExtendedColorType::Rgba8)
 		.map_err(|e| format!("A page image could not be written: {e}"))?;
-	Ok(provider_safe_png(png))
+	Ok(provider_safe_png(&png))
 }

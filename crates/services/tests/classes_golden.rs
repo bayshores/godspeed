@@ -1,4 +1,4 @@
-//! Parity with the TypeScript for the classes package (tests/golden/classes.json, made by
+//! Parity with the TypeScript for classes (tests/golden/classes.json, made by
 //! classes.golden.ts from three synthetic classes): source ids, folder names, the class card, the
 //! list_classes and read_class tools, and the shortcuts a sync makes, keeps and clears.
 

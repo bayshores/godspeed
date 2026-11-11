@@ -29,7 +29,7 @@ use gs_base::config::Paths;
 use gs_base::fsx;
 use gs_core::classes::class_tools::{ClassChange, ToolOutcome};
 use gs_core::contracts::class::CLASS_ICONS;
-use gs_core::graph::ports::{GraphStore, LedgerRewrite};
+use gs_core::graph::ports::{ChatListing, GraphStore, LedgerRewrite};
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::{Engine, Scripted, faux_model};
@@ -98,13 +98,15 @@ struct Chats {
 	saved: Mutex<Vec<Json>>,
 }
 
+impl ChatListing for Chats {
+	fn list_chats(&self) -> Vec<Json> {
+		vec![json!({ "id": "lesson", "title": "Limits", "createdAt": "2026-02-01T00:00:00.000Z", "updatedAt": "2026-02-02T00:00:00.000Z" })]
+	}
+}
+
 impl ChatPort for Chats {
 	fn get_chat(&self, id: &str) -> Option<Json> {
 		self.records.lock().iter().find(|(chat, _)| chat == id).map(|(_, record)| record.clone())
-	}
-
-	fn list_chats(&self) -> Vec<Json> {
-		vec![json!({ "id": "lesson", "title": "Limits", "createdAt": "2026-02-01T00:00:00.000Z", "updatedAt": "2026-02-02T00:00:00.000Z" })]
 	}
 
 	fn save_tree(&self, id: &str, tree: &Json) -> Result<(), String> {

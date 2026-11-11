@@ -1,11 +1,11 @@
-//! Ported from src/backend/store/jobs.ts: one file per background sub-agent job in data/jobs,
+//! One file per background sub-agent job in data/jobs,
 //! named by job id. A job is a JSON record the services read and patch whole.
 //!
 //! Every write announces `jobs-changed` after it lands, so the window can skip polling.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use gs_base::config::Paths;
@@ -14,6 +14,7 @@ use gs_base::locks::{LockKey, Locks};
 use gs_base::re::Re;
 use gs_base::{fsx, ids, locale, time};
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use parking_lot::Mutex;
 
 /// A job's identity never changes after it is made.
 const IDENTITY_KEYS: [&str; 5] = ["id", "kind", "chatId", "toolCallId", "createdAt"];
@@ -54,10 +55,6 @@ impl JobStore {
 		SHAPE.test(id).then(|| self.dir.join(format!("{id}.json")))
 	}
 
-	fn cache(&self) -> std::sync::MutexGuard<'_, HashMap<String, Cached>> {
-		self.cache.lock().unwrap_or_else(PoisonError::into_inner)
-	}
-
 	/// A new running job, saved and announced.
 	pub fn create_job(&self, init: &CreateJobInit) -> Result<Json, String> {
 		let now = time::iso_now();
@@ -84,32 +81,39 @@ impl JobStore {
 	/// before changing one.
 	pub fn get_job(&self, id: &str) -> Option<Arc<Json>> {
 		let Some(file) = self.job_file(id) else {
-			self.cache().remove(id);
+			self.cache.lock().remove(id);
 			return None;
 		};
 		let Ok(meta) = std::fs::metadata(&file) else {
-			self.cache().remove(id);
+			self.cache.lock().remove(id);
 			return None;
 		};
 		let version = (meta.modified().ok(), meta.len());
-		if let Some(hit) = self.cache().get(id).filter(|hit| hit.version == version) {
+		if let Some(hit) = self.cache.lock().get(id).filter(|hit| hit.version == version) {
 			return hit.job.clone();
 		}
 		let parsed = parse(&fsx::read_text(&file).ok()?).ok()?;
 		let valid = ["id", "chatId", "updatedAt", "status"].iter().all(|key| parsed[*key].as_str().is_some());
 		let job = valid.then(|| Arc::new(parsed));
-		self.cache().insert(id.to_owned(), Cached { version, job: job.clone() });
+		self.cache.lock().insert(id.to_owned(), Cached { version, job: job.clone() });
 		job
 	}
 
 	/// Merges a patch into the job (its identity fields are skipped) and bumps `updatedAt`, unless
 	/// the patch sets one. None when the id is unknown.
 	pub fn update_job(&self, id: &str, patch: &Json) -> Result<Option<Json>, String> {
+		self.update_job_if(id, patch, |_| true)
+	}
+
+	/// `update_job` only while `when` holds for the job as it is, checked under the job's lock, so
+	/// of two writers that each expect a running job (an abort and a finish) only one writes.
+	/// None when the id is unknown or `when` is false.
+	pub fn update_job_if(&self, id: &str, patch: &Json, when: impl FnOnce(&Json) -> bool) -> Result<Option<Json>, String> {
 		if self.job_file(id).is_none() {
 			return Ok(None);
 		}
 		let _guard = self.locks.lock(LockKey::AppFile(&format!("jobs/{id}.json")));
-		let Some(record) = self.get_job(id) else { return Ok(None) };
+		let Some(record) = self.get_job(id).filter(|job| when(job)) else { return Ok(None) };
 		let mut next = record.as_obj().cloned().unwrap_or_default();
 		for (key, value) in patch.as_obj().map(Obj::iter).into_iter().flatten().filter(|(k, _)| !IDENTITY_KEYS.contains(&k.as_str())) {
 			next.insert(key.clone(), value.clone());
@@ -119,7 +123,7 @@ impl JobStore {
 		let next = Json::Obj(next);
 		self.write_job(id, &next)?;
 		// A same-size write within the clock's tick keeps the file's version.
-		self.cache().remove(id);
+		self.cache.lock().remove(id);
 		// Every write, not just status changes: progress lines must reach the dispatch cards.
 		self.events.emit(EventKind::JobsChanged, json!({ "chatId": next["chatId"].clone() }));
 		Ok(Some(next))
@@ -134,7 +138,7 @@ impl JobStore {
 		let mut names: Vec<String> = entries.flatten().filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".json").map(str::to_owned)).collect();
 		names.sort();
 		let present: HashSet<&String> = names.iter().collect();
-		self.cache().retain(|cached, _| present.contains(cached));
+		self.cache.lock().retain(|cached, _| present.contains(cached));
 		let mut jobs: Vec<Arc<Json>> = names.iter().filter_map(|id| self.get_job(id)).collect();
 		jobs.sort_by(|a, b| locale::compare(b["updatedAt"].as_str().unwrap_or(""), a["updatedAt"].as_str().unwrap_or("")));
 		jobs
@@ -158,7 +162,7 @@ impl JobStore {
 			// An update running at the same time must not write the file back.
 			let _guard = self.locks.lock(LockKey::AppFile(&format!("jobs/{id}.json")));
 			if self.job_file(id).is_some_and(|file| std::fs::remove_file(file).is_ok()) {
-				self.cache().remove(id);
+				self.cache.lock().remove(id);
 				removed += 1;
 			}
 		}

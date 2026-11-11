@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/chats.ts: one `<id>.json` per lesson in data/chats, with an
+//! One `<id>.json` per lesson in data/chats, with an
 //! `<id>/` folder beside it for the files the learner sent.
 //!
 //! Only create, rename, delete and the class change announce `chats-changed`: those change the
@@ -7,16 +7,17 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{fsx, ids, locale, text, time};
 use gs_core::contracts::chat::{CURRENT_CHAT_VERSION, TALK_CHAT_ID};
+use gs_core::graph::ports::ChatListing;
 use gs_core::messages::native_messages::{active_problem_of, dangling_question_of, summary_folds_throw};
 use gs_core::messages::phases::{first_phase, phase_at3_lh};
 use gs_json::{Json, Obj, js_number, json, parse, stringify_pretty};
+use parking_lot::Mutex;
 
 const UNTITLED: &str = "Untitled session";
 
@@ -34,10 +35,6 @@ pub struct ChatStore {
 impl ChatStore {
 	pub fn new(paths: &Paths, events: &Events, locks: &Locks) -> ChatStore {
 		ChatStore { dir: paths.chats.clone(), events: events.clone(), locks: locks.clone(), summaries: Mutex::new(HashMap::new()) }
-	}
-
-	fn summaries(&self) -> MutexGuard<'_, HashMap<String, CachedSummary>> {
-		self.summaries.lock().unwrap_or_else(PoisonError::into_inner)
 	}
 
 	/// The lesson's folder for files the learner sent. The id becomes a file name, so it may hold
@@ -83,7 +80,7 @@ impl ChatStore {
 	/// files only get stamped on their next write.
 	fn write_chat(&self, record: &Json) -> Result<(), String> {
 		let id = record["id"].as_str().unwrap_or_default();
-		self.summaries().remove(id);
+		self.summaries.lock().remove(id);
 		let file = self.chat_file(id)?;
 		let mut stamped = record.clone();
 		set_field(&mut stamped, "version", CURRENT_CHAT_VERSION);
@@ -129,7 +126,7 @@ impl ChatStore {
 		let mut names: Vec<String> = entries.flatten().filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".json").map(str::to_owned)).collect();
 		names.sort();
 		let present: HashSet<&String> = names.iter().collect();
-		self.summaries().retain(|cached, _| present.contains(cached));
+		self.summaries.lock().retain(|cached, _| present.contains(cached));
 		let mut summaries: Vec<Json> = names.iter().filter_map(|id| self.summary_of(id)).collect();
 		summaries.sort_by(|a, b| locale::compare(b["updatedAt"].as_str().unwrap_or_default(), a["updatedAt"].as_str().unwrap_or_default()));
 		summaries
@@ -138,13 +135,13 @@ impl ChatStore {
 	/// One lesson's summary through the cache; None for an unreadable record, an invalid id or Talk.
 	fn summary_of(&self, id: &str) -> Option<Json> {
 		let version = self.chat_version(id)?;
-		if let Some((cached, summary)) = self.summaries().get(id)
+		if let Some((cached, summary)) = self.summaries.lock().get(id)
 			&& *cached == version
 		{
 			return summary.clone();
 		}
 		let summary = self.get_chat(id).as_ref().and_then(|record| summarize(id, record));
-		self.summaries().insert(id.to_owned(), (version, summary.clone()));
+		self.summaries.lock().insert(id.to_owned(), (version, summary.clone()));
 		summary
 	}
 
@@ -197,7 +194,7 @@ impl ChatStore {
 	/// and jobs are the route's job.
 	pub fn delete_chat(&self, id: &str) -> bool {
 		let _guard = self.locks.lock(LockKey::Chat(id));
-		self.summaries().remove(id);
+		self.summaries.lock().remove(id);
 		let (Ok(file), Ok(dir)) = (self.chat_file(id), self.chat_dir(id)) else { return false };
 		if std::fs::remove_file(&file).is_err() {
 			return false;
@@ -296,6 +293,12 @@ fn modified_ms(meta: &std::fs::Metadata) -> f64 {
 	{
 		let since_epoch = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).unwrap_or_default();
 		since_epoch.as_secs_f64() * 1000.0
+	}
+}
+
+impl ChatListing for ChatStore {
+	fn list_chats(&self) -> Vec<Json> {
+		ChatStore::list_chats(self)
 	}
 }
 

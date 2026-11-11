@@ -17,6 +17,7 @@ use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{ids, text, time};
 use gs_core::messages::compaction_marks::active_compaction_of;
+use gs_core::messages::input_events::messages_of;
 use gs_core::messages::native_messages::to_llm_messages;
 use gs_core::session::compaction::{KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, estimate_context_tokens, estimate_tokens, new_compaction_marker, plan_tree_to_text, serialize_for_summary};
 use gs_engine::turn::faux::Engine;
@@ -66,12 +67,8 @@ pub fn projected_context_tokens(messages: &[Json], system_prompt_tokens: f64) ->
 	estimate_tokens(&to_llm_messages(messages)) + system_prompt_tokens
 }
 
-fn messages_of(record: &Json) -> Vec<Json> {
-	record["messages"].as_arr().cloned().unwrap_or_default()
-}
-
 fn over_threshold(app: &App, deps: &CompactionDeps, chat_id: &str) -> bool {
-	app.stores.chats.get_chat(chat_id).is_some_and(|record| projected_context_tokens(&messages_of(&record), deps.system_prompt_tokens) > deps.threshold_tokens)
+	app.stores.chats.get_chat(chat_id).is_some_and(|record| projected_context_tokens(messages_of(&record), deps.system_prompt_tokens) > deps.threshold_tokens)
 }
 
 /// The gate: waits out a running compaction, then compacts now if the record is still over
@@ -81,57 +78,68 @@ pub async fn ensure_compacted(app: &Arc<App>, deps: &CompactionDeps, chat_id: &s
 	if !can_start() || !over_threshold(app, deps, chat_id) {
 		return;
 	}
-	let running = app.turns.compactions.lock().get(chat_id).cloned();
-	if let Some(mut done) = running {
-		let _ = done.wait_for(|finished| *finished).await;
-		return;
+	match claim(app, chat_id) {
+		Ok(_running) => compact(app, deps, chat_id).await,
+		Err(mut done) => {
+			let _ = done.wait_for(|finished| *finished).await;
+		}
 	}
-	let done = register(app, chat_id);
-	compact(app, deps, chat_id).await;
-	finish(app, chat_id, done);
 }
 
 /// The settle kick (fire and forget): starts the summary now when the record is over threshold.
 pub fn kick_compaction(app: &Arc<App>, deps: Option<CompactionDeps>, chat_id: &str, can_start: bool) {
-	if compaction_in_flight(app, chat_id) {
-		return;
-	}
 	let Some(deps) = deps.filter(|_| can_start) else { return };
-	if !over_threshold(app, &deps, chat_id) {
+	if compaction_in_flight(app, chat_id) || !over_threshold(app, &deps, chat_id) {
 		return;
 	}
-	let done = register(app, chat_id);
+	let Ok(running) = claim(app, chat_id) else { return };
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
 	tokio::spawn(async move {
 		compact(&app, &deps, &chat_id).await;
-		finish(&app, &chat_id, done);
+		drop(running);
 	});
 }
 
-fn register(app: &App, chat_id: &str) -> watch::Sender<bool> {
-	let (tx, rx) = watch::channel(false);
-	app.turns.compactions.lock().insert(chat_id.to_owned(), rx);
-	tx
+/// The chat's compaction while it runs: listed in `app.turns.compactions` until dropped, even
+/// when the future running it is dropped, so a chat never stays "compacting".
+struct Running {
+	app: Arc<App>,
+	chat_id: String,
+	done: watch::Sender<bool>,
 }
 
-fn finish(app: &App, chat_id: &str, done: watch::Sender<bool>) {
-	app.turns.compactions.lock().remove(chat_id);
-	let _ = done.send(true);
+impl Drop for Running {
+	fn drop(&mut self) {
+		self.app.turns.compactions.lock().remove(&self.chat_id);
+		let _ = self.done.send(true);
+	}
+}
+
+/// Lists the chat's compaction as running, in one step with the check that none runs, so only
+/// one caller compacts. Err: the one already running, to wait out.
+fn claim(app: &Arc<App>, chat_id: &str) -> Result<Running, watch::Receiver<bool>> {
+	let mut running = app.turns.compactions.lock();
+	if let Some(done) = running.get(chat_id) {
+		return Err(done.clone());
+	}
+	let (done, finished) = watch::channel(false);
+	running.insert(chat_id.to_owned(), finished);
+	Ok(Running { app: app.clone(), chat_id: chat_id.to_owned(), done })
 }
 
 /// One compaction: reads the record fresh, cuts, summarizes, appends the marker, records usage.
 async fn compact(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return };
 	let messages = messages_of(&record);
-	let tokens_before = projected_context_tokens(&messages, deps.system_prompt_tokens);
+	let tokens_before = projected_context_tokens(messages, deps.system_prompt_tokens);
 	if tokens_before <= deps.threshold_tokens {
 		return;
 	}
-	let cut = compaction_cut_index(&messages, KEEP_RECENT_TOKENS);
+	let cut = compaction_cut_index(messages, KEEP_RECENT_TOKENS);
 	if cut == 0 || cut >= messages.len() {
 		return;
 	}
-	let previous = active_compaction_of(&messages);
+	let previous = active_compaction_of(messages);
 	let prev_kept = previous.and_then(|p| {
 		let id = p["details"]["firstKeptMessageId"].as_str()?;
 		messages.iter().position(|m| m["id"].as_str() == Some(id))
@@ -152,7 +160,7 @@ async fn compact(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
 		None => span_text,
 	};
 	let tree = record.get("tree").filter(|t| !t.is_null());
-	let prompt = build_compaction_prompt(&full_span, plan_tree_to_text(tree, &messages).as_deref(), deps.kind);
+	let prompt = build_compaction_prompt(&full_span, plan_tree_to_text(tree, messages).as_deref(), deps.kind);
 
 	app.events.emit(EventKind::CompactionChanged, json!({ "chatId": chat_id, "running": true }));
 	if let Err(err) = summarize_and_mark(app, deps, chat_id, &prompt, &messages[cut], tokens_before).await {
@@ -173,7 +181,7 @@ async fn summarize_and_mark(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));
 		// Other writers may have saved meanwhile, and the cut is keyed by id.
 		let Some(fresh) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
-		let mut messages = messages_of(&fresh);
+		let mut messages = messages_of(&fresh).to_vec();
 		if !messages.iter().any(|m| m["id"] == first_kept["id"]) {
 			return Ok(());
 		}
@@ -213,4 +221,23 @@ async fn summarize(app: &Arc<App>, prompt: &str, engine: &Engine) -> Result<(Str
 	let result = run_subagent(&app.bridge, Vec::new(), options).await.map_err(|err| err.to_string())?;
 	let usage = usage.lock().clone();
 	Ok((result.text, usage))
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[tokio::test]
+	async fn one_compaction_per_chat_listed_until_its_future_goes_away() {
+		let root = scratch_dir("compaction-claim");
+		let app = test_app(&root);
+		let first = claim(&app, "chat_a").unwrap();
+		let Err(mut running) = claim(&app, "chat_a") else { panic!("a second compaction of the chat started") };
+		assert!(compaction_in_flight(&app, "chat_a"));
+		// The request running it was dropped mid-summary.
+		drop(first);
+		assert!(!compaction_in_flight(&app, "chat_a"));
+		assert!(running.wait_for(|finished| *finished).await.is_ok());
+	}
 }

@@ -1,9 +1,10 @@
-//! Ported from src/shared/core/graph.ts: the merger (`merge`, `simplify`) and the reads below.
+//! The merger (`merge`, `simplify`) and the reads below.
 //! The ledgers are the stored truth; everything here derives from them on every read.
 
 use std::collections::{HashMap, HashSet};
 
 use gs_base::locale;
+use gs_base::text::cmp16;
 use gs_json::{Json, Obj, json};
 
 pub use super::merge::{MergeSource, merge_findings};
@@ -12,7 +13,7 @@ pub use super::simplify::simplify_chains;
 use super::chains::format_chain_line;
 use super::clusters::MIN_CLUSTER_SIZE;
 use super::ledger_lines::{chain_key_of, strs, union_points};
-use super::ordered::{OrderedMap, cmp16};
+use super::ordered::OrderedMap;
 use super::ports::{GraphDeps, GraphStore};
 use super::session_clusters::{BirthSessionCluster, attach_imp_to_communities, birth_session_of, birth_session_partition};
 

@@ -4,15 +4,15 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use gs_base::posix::resolve;
 use gs_engine::turn::tool::Tool;
 use gs_json::{Json, json};
 use gs_pdf::Pdf;
 use gs_web::download::{download_pdf, unreadable_download};
 use gs_web::fetch::is_http_url;
 
-use super::node_path::resolve;
-use crate::tools::schema::{self, string};
-use super::server_tool::server_tool;
+use crate::tools::fn_tool::FnTool;
+use gs_core::session::schema::{self, string};
 use super::web::{ABORTED, until_aborted};
 
 fn size_class(page_count: u32) -> &'static str {
@@ -90,7 +90,7 @@ where
 	F: Fn(Pdf, PathBuf, Json) -> Fut + Send + Sync + Clone + 'static,
 	Fut: std::future::Future<Output = Result<Json, String>> + Send + 'static,
 {
-	server_tool(name, description, parameters, move |args, _ctx| {
+	FnTool::server(name, description, parameters, move |args, _ctx| {
 		let (pdf, dir, run) = (pdf.clone(), dir.clone(), run.clone());
 		async move {
 			let Some(file) = scoped_path(&dir, args["path"].as_str().unwrap_or_default()) else {
@@ -98,11 +98,11 @@ where
 			};
 			Ok(run(pdf, file, args).await.unwrap_or_else(|message| Json::Str(format!("{name} failed: {message}"))))
 		}
-	})
+	}).into_arc()
 }
 
 fn fetch_tool(pdf: Pdf, dir: PathBuf) -> Arc<dyn Tool> {
-	server_tool(
+	FnTool::server(
 		"web_fetch_pdf",
 		"Download a PDF from the web and triage it: returns its local path, page count, size class (short \u{2264}10 pages, medium \u{2264}40, long), and flagged (math/image-heavy) pages. Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.".to_owned(),
 		schema::object(&["url"], vec![("url", string("The PDF URL to download"))]),
@@ -135,7 +135,7 @@ fn fetch_tool(pdf: Pdf, dir: PathBuf) -> Arc<dyn Tool> {
 				Ok(summary.await.unwrap_or_else(|message: String| Json::Str(format!("web_fetch_pdf failed for {url}: {message}"))))
 			}
 		},
-	)
+	).into_arc()
 }
 
 #[cfg(test)]

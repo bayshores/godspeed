@@ -11,6 +11,7 @@ pub mod ids;
 pub mod locale;
 pub mod locks;
 pub mod num;
+pub mod posix;
 pub mod re;
 pub mod regexp;
 pub mod shutdown;

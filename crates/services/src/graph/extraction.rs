@@ -25,7 +25,7 @@ impl ExtractionHost for AppHost {
 	fn chats(&self) -> &ChatStore {
 		&self.0.stores.chats
 	}
-	fn graphs(&self) -> &GraphStores {
+	fn graphs(&self) -> &Arc<GraphStores> {
 		&self.0.stores.graphs
 	}
 	fn events(&self) -> &Events {

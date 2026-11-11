@@ -53,23 +53,19 @@ pub fn chunk_notes(source: &str, budget: f64) -> Vec<String> {
 	out
 }
 
-fn str_of(v: &Json) -> &str {
-	v.as_str().unwrap_or("")
-}
-
 fn is_ours(line: &Json, source_id: &str) -> bool {
 	line["provenance"].as_arr().into_iter().flatten().any(|pt| pt["chatId"].as_str() == Some(source_id))
 }
 
 fn node_line(n: &Json) -> String {
-	format!("  {} | {} | {}", str_of(&n["id"]), str_of(&n["name"]), SPACES.replace(str_of(&n["statement"]), " "))
+	format!("  {} | {} | {}", n["id"].str_or_empty(), n["name"].str_or_empty(), SPACES.replace(n["statement"].str_or_empty(), " "))
 }
 
 /// THE GRAPH SO FAR (this source's ideas and chains) and RELATED IDEAS (other sources' ideas the
 /// search picked), ids verbatim. Empty when there is nothing to show.
 pub fn graph_context(graph: &DerivedGraph, source_id: &str, related_ids: &[String]) -> String {
-	let name_of: HashMap<&str, &str> = graph.nodes.iter().map(|n| (str_of(&n["id"]), str_of(&n["name"]))).collect();
-	let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (str_of(&n["id"]), n)).collect();
+	let name_of: HashMap<&str, &str> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n["name"].str_or_empty())).collect();
+	let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n)).collect();
 	let ours: Vec<&Json> = graph.nodes.iter().filter(|n| is_ours(n, source_id)).collect();
 	let our_chains: Vec<&Json> = graph.chains.iter().filter(|c| is_ours(c, source_id)).collect();
 	let related: Vec<&Json> = related_ids.iter().filter_map(|id| by_id.get(id.as_str()).copied()).filter(|n| !is_ours(n, source_id)).collect();
@@ -81,8 +77,8 @@ pub fn graph_context(graph: &DerivedGraph, source_id: &str, related_ids: &[Strin
 		if !our_chains.is_empty() {
 			lines.push("DERIVATIONS ALREADY RECORDED (build on these; do not re-derive them):".to_owned());
 			for c in our_chains {
-				let premises: Vec<&str> = c["premises"].as_arr().into_iter().flatten().map(str_of).collect();
-				let conclusion = str_of(&c["conclusion"]);
+				let premises: Vec<&str> = c["premises"].as_arr().into_iter().flatten().map(Json::str_or_empty).collect();
+				let conclusion = c["conclusion"].str_or_empty();
 				let names: Vec<String> = premises.iter().map(|p| name(p)).collect();
 				lines.push(format!("  [{} \u{21d2} {conclusion}]  {} \u{21d2} {}", premises.join(" + "), names.join(" \u{2227} "), name(conclusion)));
 			}

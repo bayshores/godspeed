@@ -9,14 +9,14 @@ use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 use gs_web::fetch::{fetch_and_extract, is_http_url};
 
-use crate::tools::schema::{self, string};
-use super::server_tool::server_tool;
+use crate::tools::fn_tool::FnTool;
+use gs_core::session::schema::{self, string};
 
 /// What a stopped fetch says (the guard's abort or its timeout).
 pub(super) const ABORTED: &str = "This operation was aborted";
 
 pub fn web_tools() -> Vec<Arc<dyn Tool>> {
-	vec![server_tool(
+	vec![FnTool::server(
 		"web_fetch",
 		"Fetch a web page and extract its readable content as markdown (Readability). Handles HTML pages and plain text; JS-rendered pages fall back to a reader service.".to_owned(),
 		schema::object(&["url"], vec![("url", string("The URL to fetch"))]),
@@ -30,7 +30,7 @@ pub fn web_tools() -> Vec<Arc<dyn Tool>> {
 				Err(message) => format!("web_fetch failed for {url}: {message}"),
 			}))
 		},
-	)]
+	).into_arc()]
 }
 
 /// `work`, unless the abort fires first.

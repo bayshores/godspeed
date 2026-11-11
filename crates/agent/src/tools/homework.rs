@@ -18,7 +18,7 @@ use super::heal::heal_tool_record;
 use super::jobs::JobToolContext;
 use super::ports::ChatPort;
 use super::practice::practice_side_tools;
-use super::schema::{literals, object, string};
+use gs_core::session::schema::{object, one_of_literals, string};
 use super::side::LessonSide;
 
 /// The session's deadline, read and written through the class store.
@@ -109,7 +109,7 @@ fn conclude_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<St
 		vec![
 			(
 				"outcome",
-				literals(
+				one_of_literals(
 					&["solved", "solvedWithHints", "movedOn", "dismissed"],
 					"REQUIRED \u{2014} solved or solvedWithHints once the learner's own work is right (marks the problem done), movedOn when the learner leaves it for now. Bare words, no quotes (dismissed is synthesized, never yours).",
 				),

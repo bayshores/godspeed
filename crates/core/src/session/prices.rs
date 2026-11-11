@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/prices.ts: plan labels and token folds. Every call runs on a plan,
+//! Plan labels and token folds. Every call runs on a plan,
 //! so nothing has a dollar price: a turn is either a plan turn or unpriced.
 
 use gs_json::{Json, Obj};

@@ -10,7 +10,7 @@ use gs_json::{Json, json};
 use gs_search::index::PassageRef;
 
 use super::fn_tool::FnTool;
-use super::schema::{no_arguments, object, string, string_min};
+use gs_core::session::schema::{no_arguments, object, string, string_min};
 
 /// Saves the class note and gives the tool's reply.
 pub type SetNote = Arc<dyn Fn(&str) -> String + Send + Sync>;

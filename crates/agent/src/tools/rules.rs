@@ -7,7 +7,7 @@ use gs_core::records::teaching_areas::{RULE_MAX_CHARS, TEACHING_AREAS};
 use gs_json::{Json, json};
 
 use super::fn_tool::FnTool;
-use super::schema::{literals, object};
+use gs_core::session::schema::{object, one_of_literals};
 
 /// Saves the rule (text, `every_lesson` or `this_class`, area) and gives back the saved rule
 /// or the refusal as text.
@@ -27,10 +27,10 @@ pub fn save_rule_tool(save_rule: SaveRule) -> FnTool {
 					"description": "One line, an instruction to yourself in plain words, e.g. \"Use Python for code examples.\"",
 				}),
 			),
-			("for", literals(&["every_lesson", "this_class"], "\"every_lesson\", or \"this_class\" when it only matters in this lesson's class.")),
+			("for", one_of_literals(&["every_lesson", "this_class"], "\"every_lesson\", or \"this_class\" when it only matters in this lesson's class.")),
 			(
 				"area",
-				literals(
+				one_of_literals(
 					&area_ids,
 					"With every_lesson, the part of teaching it is about: \"voice\" (how you talk), \"teaching\" (planning and steps, the default), \"questions\" (checks and quizzes), \"facts\" (accuracy and research), \"demos\" (demos and figures), \"files\" (the learner's files, formatting and code).",
 				),

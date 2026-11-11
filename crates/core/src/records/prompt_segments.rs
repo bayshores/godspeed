@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/prompt-segments.ts: the prompt segment path grammar.
+//! The prompt segment path grammar.
 //!
 //! "system-prompt.md" (the shared base), or "<folder>/<fragment>" where the folder is one of
 //! the agents or "shared" and the fragment is a numeric-prefixed .md file (20-teaching.md).

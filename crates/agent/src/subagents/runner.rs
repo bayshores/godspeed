@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/runner.ts: the background job runner.
+//! The background job runner.
 //!
 //! `run_job` runs the job kind's helper agent in the background (a lesson's job tool starts it
 //! and does not wait), updating the job's activity line as it goes. When the agent ends, the
@@ -16,7 +16,7 @@ use futures_util::future::BoxFuture;
 use gs_base::ids;
 use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
-use gs_core::session::jobs::{accumulate_job_usage, build_subagent_steer, is_subagent_failure, pi_usage_to_step};
+use gs_core::session::jobs::{accumulate_job_usage, build_subagent_steer, is_subagent_failure, notes_or, pi_usage_to_step};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::faux::Engine;
@@ -200,15 +200,18 @@ impl JobRunner {
 		}
 		let failed = is_subagent_failure(job["kind"].as_str().unwrap_or_default(), &result);
 		let steer = build_subagent_steer(&job, &result);
-		self.update(
-			job_id,
-			json!({
-				"result": result,
-				"status": if failed { "error" } else { "done" },
-				"activity": if failed { "failed" } else { "finished" },
-				"delivery": { "kind": "result", "status": "pending" },
-			}),
-		);
+		let patch = json!({
+			"result": result,
+			"status": if failed { "error" } else { "done" },
+			"activity": if failed { "failed" } else { "finished" },
+			"delivery": { "kind": "result", "status": "pending" },
+		});
+		// An abort that lands after the check above owns the record and its steer.
+		match self.jobs().update_job_if(job_id, &patch, |now| now["status"] == Json::from("running")) {
+			Ok(Some(_)) => {}
+			Ok(None) => return,
+			Err(e) => eprintln!("[job {job_id}] update failed: {e}"),
+		}
 		let delivery = self.host.deliver(steer);
 		let id = job_id.to_owned();
 		tokio::spawn(async move {
@@ -365,14 +368,6 @@ impl JobRunner {
 			self.update(job_id, json!({ "error": FAILED.replace(brief, "") }));
 		}
 		self.finish_job(job_id, result);
-	}
-}
-
-/// `result.notes ?? fallback`.
-fn notes_or(result: &Json, fallback: &str) -> Json {
-	match result.get("notes") {
-		None | Some(Json::Null) => Json::from(fallback),
-		Some(notes) => notes.clone(),
 	}
 }
 

@@ -1,10 +1,9 @@
 //! Session logic: compaction, plans, questions, practice, work pages, markdown export and costs.
-//! Owner: package `session` (this folder, mod.rs included).
 
-mod js_text;
-mod schema;
+pub mod schema;
 
 pub mod compaction;
+pub mod download_slug;
 pub mod plan;
 pub mod jobs;
 pub mod probe;

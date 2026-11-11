@@ -1,8 +1,3 @@
-//! Ported from src/shared/core/agent-seen.ts.
-//!
-//! `SeenMark`, `SeenStore`, `seen_mark` and `continues_from` were written with the foundations
-//! because the bridge uses them; keep their signatures.
-
 use gs_base::{hash::Hasher, locale};
 use gs_json::{Json, Obj, json};
 

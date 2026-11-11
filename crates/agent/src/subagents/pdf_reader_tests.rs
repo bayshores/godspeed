@@ -3,21 +3,11 @@ use std::sync::Arc;
 
 use gs_engine::turn::faux::Scripted;
 use gs_json::{Json, json};
+use gs_pdf::test_support::shared_pdf;
 use parking_lot::Mutex;
 
 use super::*;
 use crate::subagents::test_support::{FakeHeadless, calls, helper_options, reply_seeing, result_texts, says};
-
-/// The lab's pdfium, or None (the test then only checks what needs no library).
-fn lab_pdf() -> Option<Pdf> {
-	let dir = std::env::var_os("GODSPEED_PDFIUM_DIR").map(PathBuf::from).unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../rewrite-lab/pdfium"));
-	if dir.join("libpdfium.dylib").exists() || dir.join("libpdfium.so").exists() {
-		Some(Pdf::new(&dir))
-	} else {
-		eprintln!("skipped the pdfium part: no library in {}", dir.display());
-		None
-	}
-}
 
 /// pdf/tests/fixtures/lines.pdf: synthetic pages of numbered lines.
 fn lines_pdf() -> String {
@@ -63,14 +53,14 @@ async fn unreadable_sources_fail_before_any_model_call() {
 	let missing = scratch.path("missing.pdf");
 	assert_eq!(run_pdf_reader_agent(&missing, "", &pdf, &opts).await["brief"], Json::from(format!("PDF failed: ENOENT: no such file or directory, stat '{missing}'")));
 
-	let Some(pdf) = lab_pdf() else { return };
+	let Some(pdf) = shared_pdf() else { return };
 	gs_base::fsx::write_text_atomic(Path::new(&scratch.path("garbage.pdf")), "This is not a PDF at all.\n").unwrap();
 	assert_eq!(run_pdf_reader_agent(&scratch.path("garbage.pdf"), "", &pdf, &opts).await["brief"], Json::from("PDF failed: Invalid PDF structure."));
 }
 
 #[tokio::test]
 async fn the_gate_sends_an_unread_finish_back_once() {
-	let Some(pdf) = lab_pdf() else { return };
+	let Some(pdf) = shared_pdf() else { return };
 	let script = Scripted::new();
 	let seen = Arc::new(Mutex::new(Vec::new()));
 	script.reply(calls(&[("pdf_info", json!({}))]));
@@ -98,7 +88,7 @@ async fn the_gate_sends_an_unread_finish_back_once() {
 
 #[tokio::test]
 async fn searches_consult_without_reading() {
-	let Some(pdf) = lab_pdf() else { return };
+	let Some(pdf) = shared_pdf() else { return };
 	let script = Scripted::new();
 	let seen = Arc::new(Mutex::new(Vec::new()));
 	script.reply(calls(&[("pdf_search", json!({ "query": "zzzzz" })), ("pdf_search", json!({ "query": "(" })), ("pdf_nope", json!({})), ("pdf_search", json!({ "query": 1, "literal": "yes", "context_lines": 0 }))]));
@@ -119,7 +109,7 @@ async fn searches_consult_without_reading() {
 
 #[tokio::test]
 async fn the_iteration_limit_and_crashes_fail() {
-	let Some(pdf) = lab_pdf() else { return };
+	let Some(pdf) = shared_pdf() else { return };
 	let script = Scripted::new();
 	for _ in 0..MAX_ITERATIONS {
 		script.reply(calls(&[("pdf_info", json!({}))]));

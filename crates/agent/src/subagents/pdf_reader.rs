@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/pdf-reader.ts: the pdf job's agent. It reads a PDF on
+//! The pdf job's agent. It reads a PDF on
 //! the teacher's behalf. The loop is hand-rolled like the visual maker's, because rendered pages
 //! are shown to this agent's eyes, never delivered onward.
 //!
@@ -13,10 +13,11 @@ use gs_base::fsx::node_error_message;
 use gs_base::ids;
 use gs_base::num::to_fixed;
 use gs_base::re::Re;
-use gs_base::text::{len16, slice16, trim, trim_start};
+use gs_base::text::{len16, slice16, trim};
 use gs_engine::turn::messages::tool_calls;
+use gs_json::js_text::js_string;
 use gs_json::{Json, js_number, json};
-use gs_pdf::Pdf;
+use gs_pdf::{Pdf, ops};
 
 use super::pi_run::{HelperOptions, RunError};
 use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
@@ -297,17 +298,10 @@ fn render_batch(spec: &str) -> Vec<i64> {
 	out.into_iter().collect()
 }
 
-/// `parseInt(text, 10)`: the leading whole number, None for NaN.
+/// `parseInt(text, 10)` as a whole number: None for NaN and for numbers too big to count pages.
 fn parse_int(text: &str) -> Option<i64> {
-	let text = trim_start(text);
-	let (negative, digits) = match text.as_bytes().first() {
-		Some(b'-') => (true, &text[1..]),
-		Some(b'+') => (false, &text[1..]),
-		_ => (false, text),
-	};
-	let end = digits.bytes().position(|b| !b.is_ascii_digit()).unwrap_or(digits.len());
-	let n = digits[..end].parse::<i64>().ok()?;
-	Some(if negative { -n } else { n })
+	let n = ops::parse_int(text);
+	(n.abs() < i64::MAX as f64).then_some(n as i64)
 }
 
 /// `typeof v === "number" && Number.isFinite(v) ? v : fallback`.
@@ -319,20 +313,7 @@ fn num_or(v: &Json, fallback: f64) -> f64 {
 fn arg_text(v: &Json, fallback: &str) -> String {
 	match v {
 		Json::Null => fallback.to_owned(),
-		v => js_string(v),
-	}
-}
-
-/// `String(v)` for a JSON value.
-fn js_string(v: &Json) -> String {
-	match v {
-		Json::Null => "null".to_owned(),
-		Json::Bool(b) => b.to_string(),
-		Json::Num(n) => js_number(*n),
-		Json::Str(s) => s.clone(),
-		// Array.prototype.toString joins with commas and prints null as nothing.
-		Json::Arr(items) => items.iter().map(|i| if i.is_null() { String::new() } else { js_string(i) }).collect::<Vec<_>>().join(","),
-		Json::Obj(_) => "[object Object]".to_owned(),
+		v => js_string(Some(v)),
 	}
 }
 

@@ -1,8 +1,4 @@
-//! Ported from src/shared/core/teaching-areas.ts.
-//!
-//! `one_line`, `sanitize_rules` and the limits were written with the foundations because other
-//! packages call them; keep their signatures. The area descriptions and part names the window
-//! shows stay in the TypeScript.
+//! The area descriptions and part names the window shows stay in the TypeScript.
 
 use std::sync::LazyLock;
 

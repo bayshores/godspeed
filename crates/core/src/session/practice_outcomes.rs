@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/practice-outcomes.ts: each practice problem that was concluded,
+//! Each practice problem that was concluded,
 //! paired with how it ended. A problem counts once its `problem` call went through, and ends at
 //! the next `conclude` that went through.
 
@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use gs_base::time;
 use gs_json::{Json, Obj};
 
-use super::js_text::js_string;
+use gs_json::js_text::js_string;
 
 const OUTCOMES: [&str; 5] = ["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed"];
 

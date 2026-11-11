@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/class-setup.ts.
-//!
 //! What every class should have, so a class made before an app update catches up: the agent's
 //! briefing lists what each class is missing.
 

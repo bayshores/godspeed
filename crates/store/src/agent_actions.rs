@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/agent-actions.ts: data/agent-actions.json, the activity log,
+//! data/agent-actions.json, the activity log,
 //! oldest first. Rewritten whole on each change; small by design.
 
 use std::path::PathBuf;
@@ -7,8 +7,6 @@ use gs_base::config::Paths;
 use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
 use gs_json::{Json, Obj, json, stringify_pretty};
-
-use crate::agent_notes::read_json_or_set_aside;
 
 const FILE_NAME: &str = "agent-actions.json";
 const VERSION: i64 = 1;
@@ -26,7 +24,7 @@ impl AgentActionsStore {
 
 	/// Oldest first. A missing file reads as no actions; a broken one is set aside.
 	pub fn read_agent_actions(&self) -> Vec<Json> {
-		let Some(raw) = read_json_or_set_aside(&self.file) else { return Vec::new() };
+		let Some(raw) = fsx::read_json_or_set_aside(&self.file) else { return Vec::new() };
 		raw["actions"].as_arr().map_or_else(Vec::new, |list| list.iter().filter_map(parse_action).collect())
 	}
 

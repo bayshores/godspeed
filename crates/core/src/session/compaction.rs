@@ -1,5 +1,4 @@
-//! Ported from src/shared/core/compaction.ts: the context-fitting mechanic, a bounded local port
-//! of the Pi coding-agent 1.4.0 cutoff selection.
+//! The context-fitting mechanic, using the cutoff selection of the Pi coding-agent 1.4.0.
 //!
 //! Full history stays in the record. A compaction marker carries a summary plus the cut
 //! (`firstKeptMessageId`); the model-facing projection is the summary followed by every message
@@ -11,7 +10,7 @@
 use gs_base::{clock, text};
 use gs_json::{Json, Obj, stringify};
 
-use super::js_text::{field_text, js_string, or_empty};
+use gs_json::js_text::{field_text, js_string, or_empty};
 use super::plan::{PlanStatuses, derive_plan_statuses_lh, derived_node_status};
 use crate::contracts::chat::COMPACTED_HISTORY_HEADER;
 use crate::messages::attachments::content_text;
@@ -163,7 +162,7 @@ fn has_context(message: &Json) -> bool {
 	!(message["role"].as_str() == Some("custom") && matches!(message["customType"].as_str(), Some("compaction" | "plan-block" | "problem-dismissed")))
 }
 
-/// Port of Pi's findCutPoint. Walk backwards to the budget, then take the nearest valid cut at or
+/// The cut rule of Pi's findCutPoint: walk backwards to the budget, then take the nearest valid cut at or
 /// after that message. Returns the first kept record index; a zero-progress cut drops nothing.
 pub fn compaction_cut_index(messages: &[Json], keep_recent_tokens: f64) -> usize {
 	let start = active_compaction_of(messages).and_then(|previous| kept_index_for(messages, previous)).unwrap_or(0);

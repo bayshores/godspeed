@@ -38,7 +38,6 @@ jiff = "0.2.42"
 ort = "=2.0.0-rc.13"
 parking_lot = "0.12.5"
 pdfium-render = { version = "0.9.5", default-features = false, features = ["image_latest", "thread_safe", "pdfium_latest"] }
-quick-xml = "0.42"
 regress = { version = "0.12", features = ["utf16"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "stream"] }
 resvg = "0.47"
@@ -49,7 +48,6 @@ sha2 = "0.10.9"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 tower = { version = "0.5.3", default-features = false }
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }
-zip = { version = "9.4", default-features = false, features = ["deflate"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

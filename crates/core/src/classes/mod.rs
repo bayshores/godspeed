@@ -1,7 +1,5 @@
 //! Class files and folders, the agent folder, briefings and today's note.
-//! Owner: package `classes-core` (this folder, mod.rs included).
 
-pub mod utf16_order;
 pub mod file_groups;
 pub mod file_series;
 pub mod lecture_transcript;

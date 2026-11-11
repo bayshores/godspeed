@@ -45,7 +45,7 @@ const RELATED_FACTS: usize = 25;
 /// What the pipeline runs on: the server's stores, registry and search.
 pub trait ExtractionHost: Send + Sync {
 	fn chats(&self) -> &ChatStore;
-	fn graphs(&self) -> &GraphStores;
+	fn graphs(&self) -> &Arc<GraphStores>;
 	fn events(&self) -> &Events;
 	fn locks(&self) -> &Locks;
 	fn bridge(&self) -> &Bridge;
@@ -77,7 +77,7 @@ impl ExtractionState {
 
 /// Why a job ended without merging.
 #[derive(Clone, Debug, PartialEq)]
-pub enum JobError {
+enum JobError {
 	/// The run's abort (the dock's button, a lesson or class being deleted).
 	Aborted(String),
 	Failed(String),
@@ -230,6 +230,21 @@ struct Finish<'a> {
 impl Drop for Finish<'_> {
 	fn drop(&mut self) {
 		self.host.state().runs.finish(self.host.events(), self.key);
+	}
+}
+
+/// Lets go of a lesson's claim however its run ends, a panic or a dropped future included: a claim
+/// left behind would refuse the lesson's delete and move until a restart.
+struct Claimed<'a> {
+	host: &'a dyn ExtractionHost,
+	chat_id: &'a str,
+}
+
+impl Drop for Claimed<'_> {
+	fn drop(&mut self) {
+		let runs = &self.host.state().runs;
+		runs.release(self.chat_id);
+		runs.finish(self.host.events(), self.chat_id);
 	}
 }
 
@@ -388,18 +403,24 @@ impl Extraction {
 		if !self.runs().claim(chat_id) {
 			return Ok(Stats::default().to_json());
 		}
+		let claimed = Claimed { host: self.0.as_ref(), chat_id };
 		let result = self.extract_chat(chat_id).await;
 		if let Err(err) = &result {
 			eprintln!("[extraction {chat_id}] pipeline failed: {err}");
 		}
-		self.runs().release(chat_id);
-		self.runs().finish(self.0.events(), chat_id);
+		drop(claimed);
 		self.0.on_graph_written(self.scope_of_chat(chat_id).as_deref());
 		result
 	}
 
 	async fn extract_chat(&self, chat_id: &str) -> Result<Json, String> {
-		let record = self.0.chats().get_chat(chat_id).ok_or_else(|| format!("Chat not found: {chat_id}"))?;
+		// Read under the lesson's lock: a move or delete holds it from its last check that no run
+		// claimed the lesson through the change, so this run reads the class it ends up in.
+		let record = {
+			let _held = self.0.locks().lock(LockKey::Chat(chat_id));
+			self.0.chats().get_chat(chat_id)
+		};
+		let record = record.ok_or_else(|| format!("Chat not found: {chat_id}"))?;
 		// The lesson's graph, fixed for the whole run (a class move is refused while it runs).
 		let scope = record["classId"].as_str().map(str::to_owned);
 		let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);

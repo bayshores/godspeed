@@ -4,6 +4,7 @@
 use std::collections::HashSet;
 
 use gs_base::text;
+use gs_core::session::schema::{self, string, strings};
 use gs_json::{Json, Obj, json};
 
 /// The session-only anchor instruction. Approved word for word: keep the wording.
@@ -67,28 +68,10 @@ pub fn notes_extractor_instructions(may_be_course_info: bool) -> String {
 
 // ── the schemas, key for key as TypeBox emits them ──
 
-fn string(description: &str) -> Json {
-	json!({ "type": "string", "description": description })
-}
-
-fn strings(description: &str) -> Json {
-	json!({ "type": "array", "items": { "type": "string" }, "description": description })
-}
-
 /// `Type.Object`: `required` lists the properties not marked optional, in order.
 fn object(properties: Vec<(&str, Json, bool)>) -> Json {
-	let required: Vec<Json> = properties.iter().filter(|(_, _, optional)| !optional).map(|(key, _, _)| Json::from(*key)).collect();
-	let mut props = Obj::new();
-	for (key, schema, _) in properties {
-		props.insert(key, schema);
-	}
-	let mut out = Obj::new();
-	out.insert("type", "object");
-	if !required.is_empty() {
-		out.insert("required", required);
-	}
-	out.insert("properties", props);
-	Json::Obj(out)
+	let required: Vec<&str> = properties.iter().filter(|(_, _, optional)| !optional).map(|(key, _, _)| *key).collect();
+	schema::object(&required, properties.into_iter().map(|(key, schema, _)| (key, schema)).collect())
 }
 
 fn array(items: Json, description: &str) -> Json {
@@ -174,10 +157,6 @@ fn items(v: &Json) -> &[Json] {
 	v.as_arr().map_or(&[], Vec::as_slice)
 }
 
-fn str_of(v: &Json) -> &str {
-	v.as_str().unwrap_or("")
-}
-
 /// The notes door's boundary: a stray messageId (extra properties pass the schema) is dropped, so
 /// notes provenance stays file-level.
 pub fn fill_notes_findings(raw: Json) -> Json {
@@ -194,13 +173,13 @@ pub fn fill_notes_findings(raw: Json) -> Json {
 /// conclusion is never its own premise, and reteaches name existing ideas only. A problem goes
 /// back to the model as an error result; identical chains are not errors (the merge dedupes them).
 pub fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Option<String> {
-	if let Some(unknown) = items(&value["reteaches"]).iter().map(str_of).find(|id| !existing.contains(*id)) {
+	if let Some(unknown) = items(&value["reteaches"]).iter().map(Json::str_or_empty).find(|id| !existing.contains(*id)) {
 		return Some(format!("reteaches: \"{unknown}\" is not an existing idea id from THE GRAPH SO FAR or RELATED IDEAS \u{2014} list only ids shown there."));
 	}
-	let ids: HashSet<&str> = items(&value["propositions"]).iter().map(|p| str_of(&p["id"])).collect();
+	let ids: HashSet<&str> = items(&value["propositions"]).iter().map(|p| p["id"].str_or_empty()).collect();
 	for chain in items(&value["chains"]) {
-		let premises: Vec<&str> = items(&chain["premises"]).iter().map(str_of).collect();
-		let conclusion = str_of(&chain["conclusion"]);
+		let premises: Vec<&str> = items(&chain["premises"]).iter().map(Json::str_or_empty).collect();
+		let conclusion = chain["conclusion"].str_or_empty();
 		if premises.is_empty() {
 			return Some("chains: premises must name at least one proposition \u{2014} a proposition with no argument stays in the propositions list alone.".to_owned());
 		}
@@ -217,18 +196,18 @@ pub fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Opt
 /// The session anchor law: every proposition, and every question test, names a passage of the
 /// batch being read (`batch_ids`), never one of another batch, chat or kind of message.
 pub fn validate_session_anchors(value: &Json, batch_ids: &HashSet<String>, existing: &HashSet<String>) -> Option<String> {
-	let local: HashSet<&str> = items(&value["propositions"]).iter().map(|p| str_of(&p["id"])).collect();
+	let local: HashSet<&str> = items(&value["propositions"]).iter().map(|p| p["id"].str_or_empty()).collect();
 	for test in items(&value["tests"]) {
-		let message_id = str_of(&test["messageId"]);
+		let message_id = test["messageId"].str_or_empty();
 		if !batch_ids.contains(message_id) {
 			return Some(format!("tests: messageId \"{message_id}\" is not a passage of THIS stretch \u{2014} copy the id from the brackets of one of this stretch's own QUESTION [id] passages."));
 		}
-		if let Some(unknown) = items(&test["ids"]).iter().map(str_of).find(|id| !local.contains(id) && !existing.contains(*id)) {
+		if let Some(unknown) = items(&test["ids"]).iter().map(Json::str_or_empty).find(|id| !local.contains(id) && !existing.contains(*id)) {
 			return Some(format!("tests: \"{unknown}\" is neither a submitted proposition id nor an existing idea id from THE GRAPH SO FAR or RELATED IDEAS."));
 		}
 	}
 	for p in items(&value["propositions"]) {
-		let (id, message_id) = (str_of(&p["id"]), str_of(&p["messageId"]));
+		let (id, message_id) = (p["id"].str_or_empty(), p["messageId"].str_or_empty());
 		if text::trim(message_id).is_empty() {
 			return Some(format!("propositions: \"{id}\" is missing its messageId \u{2014} copy the message id from the brackets of the passage (TEACHER [id]) that most directly states or explains it."));
 		}

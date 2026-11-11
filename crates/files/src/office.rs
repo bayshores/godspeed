@@ -5,12 +5,12 @@
 use std::path::Path;
 use std::sync::LazyLock;
 
+use gs_base::posix;
 use gs_base::re::Re;
 use gs_base::text::trim;
 use gs_json::lone;
 
 use crate::ioerr::read_file;
-use crate::posix;
 use crate::zipfile::{NOT_OFFICE, Zip};
 
 static ENTITY: LazyLock<Re> = LazyLock::new(|| Re::new(r"&(#x[0-9a-f]+|#\d+|\w+);", "gi"));

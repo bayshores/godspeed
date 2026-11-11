@@ -6,9 +6,8 @@ use std::fs::FileType;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
-use gs_base::{fsx, num, text};
-
-use super::node_path;
+use gs_base::{fsx, num, posix, text};
+use gs_json::Json;
 
 /// The output ceiling for every fs tool.
 pub const MAX_OUTPUT_BYTES: usize = 50 * 1024;
@@ -21,9 +20,14 @@ pub fn resolve_source_path(p: Option<&str>) -> PathBuf {
 	let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_owned());
 	let Some(p) = p.filter(|p| !p.is_empty()) else { return PathBuf::from(home) };
 	if p == "~" || p.starts_with("~/") || p.starts_with("~\\") {
-		return PathBuf::from(node_path::join(&home, &p[1..]));
+		return PathBuf::from(posix::join(&[&home, &p[1..]]));
 	}
-	if p.starts_with('/') { PathBuf::from(p) } else { PathBuf::from(node_path::join(&home, p)) }
+	if p.starts_with('/') { PathBuf::from(p) } else { PathBuf::from(posix::join(&[&home, p])) }
+}
+
+/// Runs blocking file work on its own thread, so a long walk never holds the server's workers.
+pub async fn off_thread(work: impl FnOnce() -> Result<Json, String> + Send + 'static) -> Result<Json, String> {
+	tokio::task::spawn_blocking(work).await.map_err(|e| e.to_string())?
 }
 
 /// 50 KB prints as "50.0KB".
@@ -77,13 +81,13 @@ pub fn truncate_grep_line(line: &str) -> (String, bool) {
 }
 
 /// One entry of a folder.
-pub struct DirItem {
+pub(super) struct DirItem {
 	pub name: String,
 	pub file_type: Option<FileType>,
 }
 
 /// A folder's entries in byte order of their names, the order libuv's scandir gives.
-pub fn read_dir_items(dir: &Path) -> io::Result<Vec<DirItem>> {
+pub(super) fn read_dir_items(dir: &Path) -> io::Result<Vec<DirItem>> {
 	let mut items = Vec::new();
 	for entry in std::fs::read_dir(dir)? {
 		let entry = entry?;

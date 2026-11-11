@@ -5,6 +5,8 @@
 use std::io;
 use std::path::Path;
 
+use gs_json::{Json, parse};
+
 use crate::{clock, ids, text};
 
 /// `fs.readFileSync(file, "utf8")`: bad bytes become U+FFFD, a BOM stays.
@@ -50,6 +52,19 @@ pub fn set_aside_corrupt(file: &Path) {
 	let aside = format!("{}.corrupt-{}", file.display(), clock::now_ms());
 	if std::fs::rename(file, aside).is_ok() {
 		eprintln!("[store] {} was not valid JSON; kept it aside", file.display());
+	}
+}
+
+/// A data file's parsed JSON. A missing or unreadable file reads as None; one that is not valid
+/// JSON is kept aside (so the next save cannot overwrite it) and reads as None.
+pub fn read_json_or_set_aside(file: &Path) -> Option<Json> {
+	let raw = read_text(file).ok()?;
+	match parse(&raw) {
+		Ok(parsed) => Some(parsed),
+		Err(_) => {
+			set_aside_corrupt(file);
+			None
+		}
 	}
 }
 
@@ -112,6 +127,20 @@ mod tests {
 		assert!(!f.exists());
 		let aside = std::fs::read_dir(d.join("sub")).unwrap().next().unwrap().unwrap().file_name();
 		assert!(aside.to_string_lossy().starts_with("a.json.corrupt-"));
+		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn json_reads_back_and_a_broken_file_is_set_aside() {
+		let d = dir("json");
+		let f = d.join("a.json");
+		assert_eq!(read_json_or_set_aside(&f), None);
+		write_text_atomic(&f, r#"{"a":1}"#).unwrap();
+		assert_eq!(read_json_or_set_aside(&f).unwrap()["a"].as_i64(), Some(1));
+		write_text_atomic(&f, "{").unwrap();
+		assert_eq!(read_json_or_set_aside(&f), None);
+		assert!(!f.exists());
+		assert_eq!(std::fs::read_dir(&d).unwrap().count(), 1);
 		std::fs::remove_dir_all(d).unwrap();
 	}
 

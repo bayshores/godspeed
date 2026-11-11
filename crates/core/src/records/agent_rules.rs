@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/agent-rules.ts: which teaching rules an agent saved, and where
+//! Which teaching rules an agent saved, and where
 //! each lives (`{ area }` for a teaching area's list, `{ classId }` for one class's list).
 //! The rules themselves stay in those lists; this record only marks which ones an agent wrote.
 

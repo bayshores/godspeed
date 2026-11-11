@@ -1,4 +1,4 @@
-//! /api/chat, /api/chats, /api/chats/{id} and everything under it, /api/talk (package turns).
+//! /api/chat, /api/chats, /api/chats/{id} and everything under it, /api/talk.
 
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -16,6 +16,7 @@ use gs_core::contracts::class::parse_class_scope;
 use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_core::messages::input_events::{TurnInput, dismiss_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::new_user_steer;
+use gs_core::session::download_slug::slugify;
 use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;
 use gs_core::session::session_markdown::session_markdown;
@@ -32,10 +33,10 @@ use gs_services::turns::homework::create_homework;
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::talk::{clear_talk, open_talk};
 use gs_services::turns::turn_liveness::is_turn_running;
-use gs_services::turns::turn_runs::{running_turn, settled_turn_frames, turn_failure};
+use gs_services::turns::turn_runs::{attach_turn, settled_turn_frames, turn_failure};
 
 use crate::http::paths::{param, search_params};
-use crate::http::reply::{self, Unhandled, json_body};
+use crate::http::reply::{self, Unhandled, error, fields, json_body};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
@@ -52,22 +53,8 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/talk", ApiRoute::new().post(talk_open).delete(talk_clear).into_route())
 }
 
-fn error(status: u16, message: &str) -> Response {
-	reply::json(status, &json!({ "error": message }))
-}
-
 fn coded(status: u16, message: &str, code: &str) -> Response {
 	reply::json(status, &json!({ "error": message, "code": code }))
-}
-
-/// A body the TS reads with `.catch(() => fallback)`: a parse failure is the fallback, but a
-/// `null` body throws at the first property read (an empty 500).
-async fn object_body(body: Body, fallback: Json) -> Result<Json, Unhandled> {
-	match json_body(body).await {
-		None => Ok(fallback),
-		Some(Json::Null) => Err(Unhandled),
-		Some(value) => Ok(value),
-	}
 }
 
 fn chat_reply(r: ChatReply) -> Response {
@@ -125,7 +112,7 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 /// POST /api/chats: a study session (typed, picked facts, topics or a deadline), or with
 /// `homework: true` a homework session on the deadline.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
-	let body = object_body(body, json!({})).await?;
+	let body = fields(body).await?;
 	let title = body["title"].as_str().unwrap_or_default();
 	let Some(class_id) = parse_class_scope(body["classId"].as_str()) else { return Ok(error(400, "bad classId")) };
 	let deadline_id = body["deadlineId"].as_str();
@@ -215,7 +202,7 @@ async fn artifact_ui(State(app): State<Arc<App>>, Path(id): Path<String>, body: 
 
 /// PUT /api/chats/{id}/class: moves a lesson to another class (`"none"`: no class).
 async fn move_class(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
-	let body = object_body(body, json!({})).await?;
+	let body = fields(body).await?;
 	let target = parse_class_scope(body["classId"].as_str());
 	let (Some(target), Some(_)) = (target, body.get("classId")) else { return Ok(error(400, "classId must be a class id or \"none\"")) };
 	Ok(match move_chat_to_class(&app, &id, target.as_deref()).await {
@@ -287,7 +274,7 @@ async fn stream(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response
 	if app.stores.chats.get_chat(&id).is_none() {
 		return error(404, "Unknown chat");
 	}
-	let body = match running_turn(&app, &id) {
+	let body = match attach_turn(&app, &id).await {
 		None => Body::from(settled_turn_frames(&app, &id)),
 		Some(handle) => {
 			let frames = futures_util::stream::unfold(handle.subscribe(), |mut rx| async move { rx.recv().await.map(|frame| (Ok::<_, Infallible>(Bytes::from(frame)), rx)) });
@@ -314,62 +301,4 @@ async fn talk_clear(State(app): State<Arc<App>>) -> Result<Response, Unhandled> 
 		Ok(()) => reply::json(200, &json!({ "ok": true })),
 		Err(refusal) => error(refusal.status, refusal.error),
 	})
-}
-
-/// The download's file name from the title: lower case, NFKD, every run of other characters one
-/// dash, no dash at the ends; "session" when nothing is left.
-fn slugify(title: &str) -> String {
-	let mut decomposed = String::new();
-	for c in title.to_lowercase().chars() {
-		match nfkd_alnum(c) {
-			Some(parts) => decomposed.push_str(parts),
-			None => decomposed.push(c),
-		}
-	}
-	let mut slug = String::new();
-	for c in decomposed.chars() {
-		if c.is_ascii_lowercase() || c.is_ascii_digit() {
-			slug.push(c);
-		} else if !slug.ends_with('-') {
-			slug.push('-');
-		}
-	}
-	let slug = slug.trim_matches('-');
-	if slug.is_empty() { "session".to_owned() } else { slug.to_owned() }
-}
-
-/// The letters and digits a character's NFKD form holds, with `-` for the rest (a combining
-/// accent), for the Latin, super- and subscript, ligature and fullwidth blocks; None for any
-/// other character, which counts as a separator either way. Generated from Unicode 15.1.
-fn nfkd_alnum(c: char) -> Option<&'static str> {
-	const LATIN: &str = "          a        2 3      1 o  1-4 1-2 3-4                                  a- a- a- a- a- a-  c- e- e- e- e- i- i- i- i-  n- o- o- o- o- o-   u- u- u- u- y-  y-  a-  a-  a-  c-  c-  c-  c-  d-    e-  e-  e-  e-  e-  g-  g-  g-  g-  h-    i-  i-  i-  i-    ij  j-  k-   l-  l-  l-  l-    n-  n-  n- -n    o-  o-  o-    r-  r-  r-  s-  s-  s-  s-  t-  t-    u-  u-  u-  u-  u-  u-  w-  y-   z-  z-  z- s                                  o-               u-                     -z- dz-  -j lj  -j nj  a-  i-  o-  u-  u-  u-  u-  u-   a-  a-      g-  k-  o-  o-   j-  -z dz  g-    n-  a-      a-  a-  e-  e-  i-  i-  o-  o-  r-  r-  u-  u-  s-  t-    h-        a-  e-  o-  o-  o-  o-  y-                            ";
-	const LATIN_MORE: &str = " a-  b-  b-  b-  c-  d-  d-  d-  d-  d-  e-  e-  e-  e-  e-  f-  g-  h-  h-  h-  h-  h-  i-  i-  k-  k-  k-  l-  l-  l-  l-  m-  m-  m-  n-  n-  n-  n-  o-  o-  o-  o-  p-  p-  r-  r-  r-  r-  s-  s-  s-  s-  s-  t-  t-  t-  t-  u-  u-  u-  u-  u-  v-  v-  w-  w-  w-  w-  w-  x-  x-  y-  z-  z-  z- h- t- w- y- a- s-      a-  a-  a-  a-  a-  a-  a-  a-  a-  a-  a-  a-  e-  e-  e-  e-  e-  e-  e-  e-  i-  i-  o-  o-  o-  o-  o-  o-  o-  o-  o-  o-  o-  o-  u-  u-  u-  u-  u-  u-  u-  y-  y-  y-  y-      ";
-	const SCRIPTS: &str = "0 i   4 5 6 7 8 9      n 0 1 2 3 4 5 6 7 8 9       a e o x  h k l m n p s t   ";
-	const LIGATURES: &str = "ff fi fl ffi ffl st st";
-	const FULLWIDTH: &str = "0123456789abcdefghijklmnopqrstuvwxyz";
-	let cp = c as u32;
-	let from = |table: &'static str, first: u32| table.split(' ').nth((cp - first) as usize).filter(|t| !t.is_empty());
-	match cp {
-		0xA0..=0x24F => from(LATIN, 0xA0),
-		0x1E00..=0x1EFF => from(LATIN_MORE, 0x1E00),
-		0x2070..=0x209F => from(SCRIPTS, 0x2070),
-		0xFB00..=0xFB06 => from(LIGATURES, 0xFB00),
-		0xFF10..=0xFF19 => Some(&FULLWIDTH[(cp - 0xFF10) as usize..][..1]),
-		0xFF41..=0xFF5A => Some(&FULLWIDTH[(cp - 0xFF41 + 10) as usize..][..1]),
-		_ => None,
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn file_names_follow_the_typescript_slug() {
-		assert_eq!(slugify("Café -- Naïve  Bayes: 100% (really)!"), "cafe-nai-ve-bayes-100-really");
-		assert_eq!(slugify("日本語 🎓"), "session");
-		assert_eq!(slugify("Work on HW5"), "work-on-hw5");
-		assert_eq!(slugify("ﬁx Ａ½ x²"), "fix-a1-2-x2");
-		assert_eq!(slugify("Tiếng Việt"), "tie-ng-vie-t");
-	}
 }

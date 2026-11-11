@@ -989,6 +989,7 @@ name = "gs-core"
 version = "0.0.0"
 dependencies = [
  "gs-base",
+ "gs-core",
  "gs-json",
 ]
 
@@ -1043,6 +1044,8 @@ version = "0.0.0"
 dependencies = [
  "gs-base",
  "gs-json",
+ "gs-media",
+ "gs-pdf",
  "image",
  "pdfium-render",
  "tokio",
@@ -1106,6 +1109,7 @@ dependencies = [
  "gs-base",
  "gs-core",
  "gs-json",
+ "parking_lot",
 ]
 
 [[package]]

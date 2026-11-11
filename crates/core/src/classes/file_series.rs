@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/file-series.ts.
-//!
 //! Files are `Json` records read by their `name`; a series refers to them by position in the
 //! slice that was grouped.
 

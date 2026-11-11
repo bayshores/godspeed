@@ -1,11 +1,9 @@
-//! Ported from src/shared/core/chains.ts.
-
 use std::collections::{HashMap, HashSet};
 
+use gs_base::text::cmp16;
 use gs_json::{Json, json};
 
 use super::ledger_lines::strs;
-use super::ordered::cmp16;
 use crate::messages::value_debris::strip_model_value_debris;
 
 /// The stored chains filtered to a selection: a chain rides along iff its conclusion and every

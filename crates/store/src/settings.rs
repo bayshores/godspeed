@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/settings.ts: data/settings.json, the one user settings record.
+//! data/settings.json, the one user settings record.
 //!
 //! Every read sanitizes what is on disk and runs the lazy upgrades (the v1 to v2 threshold move
 //! and the retired prompt switches). Every write sanitizes again, so the file can never hold a
@@ -9,7 +9,7 @@ use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
 use gs_core::records::settings::sanitize_user_settings;
 use gs_core::records::settings_resolution::resolve_settings;
-use gs_json::{Json, parse, stringify_pretty};
+use gs_json::{Json, stringify_pretty};
 
 use crate::prompt_overrides::PromptOverrides;
 
@@ -34,11 +34,7 @@ impl SettingsStore {
 	pub fn read_settings(&self) -> Result<Option<Json>, String> {
 		let _guard = self.locks.lock(LockKey::AppFile(FILE_LOCK));
 		let file = &self.paths.settings_file;
-		let Ok(raw) = fsx::read_text(file) else { return Ok(None) };
-		let Ok(parsed) = parse(&raw) else {
-			fsx::set_aside_corrupt(file);
-			return Ok(None);
-		};
+		let Some(parsed) = fsx::read_json_or_set_aside(file) else { return Ok(None) };
 		let Some(mut record) = sanitize_user_settings(&parsed) else {
 			fsx::set_aside_corrupt(file);
 			return Ok(None);
@@ -99,6 +95,8 @@ fn upgrade_to_v2(record: &mut Json) -> bool {
 
 #[cfg(test)]
 mod tests {
+	use gs_json::parse;
+
 	use super::*;
 
 	#[test]

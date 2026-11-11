@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/classes.ts: how a class's deadlines are checked, built and
+//! How a class's deadlines are checked, built and
 //! changed. The store adds the class record, the lock and the write.
 
 use std::collections::HashSet;

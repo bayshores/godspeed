@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/plan-blocks.ts: the plan renders in flow once, at authoring, as a
+//! The plan renders in flow once, at authoring, as a
 //! frozen snapshot marker right after the turn that carried the successful plan_init call. Its
 //! statuses are true at that instant; position afterwards derives live from the transcript.
 

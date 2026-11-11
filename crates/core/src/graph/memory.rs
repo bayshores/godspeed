@@ -1,8 +1,8 @@
-//! An in-memory graph store for this folder's unit tests.
+//! An in-memory graph store and chat list for tests, behind the `test-support` feature.
 
 use std::sync::Mutex;
 
-use gs_json::{Json, json};
+use gs_json::{Json, Obj, json};
 
 use super::ports::{ChatListing, GraphStore, LedgerRewrite};
 
@@ -29,6 +29,22 @@ impl Memory {
 
 	pub fn chains(&self) -> Vec<Json> {
 		self.ledgers.lock().unwrap().chains.clone()
+	}
+
+	/// The ledgers a run left, whole.
+	pub fn marks(&self) -> Json {
+		let ledgers = self.ledgers.lock().unwrap();
+		let mut out = Obj::new();
+		out.insert("nodes", ledgers.nodes.clone());
+		out.insert("chains", ledgers.chains.clone());
+		out.insert("coverage", ledgers.coverage.clone());
+		out.insert("checkpoints", ledgers.checkpoints.clone());
+		out.insert("sources", ledgers.sources.clone());
+		Json::Obj(out)
+	}
+
+	pub fn rewrite_log(&self) -> Json {
+		self.rewrites.lock().unwrap().iter().map(|keys| keys.iter().map(|k| Json::from(*k)).collect::<Json>()).collect()
 	}
 }
 

@@ -43,6 +43,8 @@ pub struct ClassesState {
 	pub(super) triage_count: Mutex<u64>,
 	pub(super) scanner_started: AtomicBool,
 	pub(super) shortcut_watch: AtomicBool,
+	/// Held through a shortcut sync. Nothing under it takes a `LockKey`.
+	pub(super) shortcut_sync: Mutex<()>,
 	pub(super) text_checks: TextChecks,
 	pub(super) speech_model: ModelDownload,
 }

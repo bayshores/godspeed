@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/work-pages.ts.
-//!
 //! Outside agents cap each tool result: Codex keeps about 12k tokens and drops the middle, and
 //! Claude Code moves text over 50k characters into a file. A long work item therefore goes out
 //! in pages that each fit both. Pages are measured in UTF-8 bytes, because Codex counts tokens

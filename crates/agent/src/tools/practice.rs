@@ -17,7 +17,7 @@ use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
 use super::jobs::{JobToolContext, job_tools};
 use super::ports::ChatPort;
-use super::schema::{literals, literals_or_null, object, string};
+use gs_core::session::schema::{literals_or_null, object, one_of_literals, string};
 use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
 
 /// The whole graph's nodes (id and name), read fresh per pose.
@@ -54,7 +54,7 @@ fn problem_parameters() -> Json {
 				"statement",
 				string("REQUIRED \u{2014} the problem as the learner sees it (markdown + LaTeX). Must be self-contained and solvable from the session's material. NEVER announces the target proposition."),
 			),
-			("mode", literals(&["recall", "discrimination", "composition"], "REQUIRED \u{2014} the demand mode: recall, discrimination, or composition (bare words, no quotes).")),
+			("mode", one_of_literals(&["recall", "discrimination", "composition"], "REQUIRED \u{2014} the demand mode: recall, discrimination, or composition (bare words, no quotes).")),
 			(
 				"target",
 				json!({
@@ -152,7 +152,7 @@ fn conclude_parameters() -> Json {
 		vec![
 			(
 				"outcome",
-				literals(
+				one_of_literals(
 					&["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed"],
 					"REQUIRED \u{2014} the outcome: solved, solvedWithHints, movedOn, or surrendered \u{2014} bare words, no quotes (dismissed is synthesized, never yours).",
 				),

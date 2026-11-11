@@ -1,5 +1,3 @@
-//! Ported from the image half of src/backend/server/attachments.ts (sharp's rotate, resize and encode).
-
 use std::io::Cursor;
 
 use gs_core::messages::attachments::{MAX_IMAGE_SIDE, keeps_png};

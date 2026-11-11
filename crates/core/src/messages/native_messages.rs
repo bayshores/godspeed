@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/native-messages.ts: the lesson record's message shapes and what
+//! The lesson record's message shapes and what
 //! builds them. A message is the pi message plus our `id`; markers are `role: "custom"`. The
 //! scans, the side-question rules, the context cards and the model-facing projection live in the
 //! folder beside this file and are re-exported here under their TypeScript module's name.

@@ -2,11 +2,19 @@
 //! `indexOf` count UTF-16 units, so an emoji is 2 and a cut may split it (the halves become
 //! stand-ins, see gs_json::lone). `trim` uses JavaScript's whitespace set.
 
+use std::cmp::Ordering;
+
 use gs_json::lone;
 
 /// UTF-16 units of one char: 2 above U+FFFF, 1 for a stand-in (it is one lone unit).
 fn units(c: char) -> usize {
 	if lone::unit_of(c).is_some() { 1 } else { c.len_utf16() }
+}
+
+/// `a < b` and the default `sort()` order of JS strings. It differs from Rust's byte order for
+/// characters above U+FFFF, which sort between U+D7FF and U+E000 in UTF-16.
+pub fn cmp16(a: &str, b: &str) -> Ordering {
+	if a.is_ascii() && b.is_ascii() { a.cmp(b) } else { lone::to_utf16(a).cmp(&lone::to_utf16(b)) }
 }
 
 /// `s.length`.
@@ -27,15 +35,6 @@ pub fn slice16(s: &str, start: i64, end: Option<i64>) -> String {
 	if from >= to { String::new() } else { lone::from_utf16(&u[from..to]) }
 }
 
-/// `s.substring(start, end)`: negatives are 0 and the bounds swap when reversed.
-pub fn substring16(s: &str, start: i64, end: Option<i64>) -> String {
-	let u = lone::to_utf16(s);
-	let clamp = |i: i64| (i.max(0) as usize).min(u.len());
-	let (a, b) = (clamp(start), end.map_or(u.len(), clamp));
-	let (from, to) = if a <= b { (a, b) } else { (b, a) };
-	lone::from_utf16(&u[from..to])
-}
-
 /// `s.indexOf(needle, from)` in UTF-16 units; None for -1.
 pub fn index_of16(s: &str, needle: &str, from: usize) -> Option<usize> {
 	let (h, n) = (lone::to_utf16(s), lone::to_utf16(needle));
@@ -53,11 +52,6 @@ pub fn last_index_of16(s: &str, needle: &str) -> Option<usize> {
 		return None;
 	}
 	(0..=h.len() - n.len()).rev().find(|&i| h[i..].starts_with(&n))
-}
-
-/// `s.charCodeAt(i)`.
-pub fn char_code_at(s: &str, i: usize) -> Option<u16> {
-	lone::to_utf16(s).get(i).copied()
 }
 
 /// JavaScript's WhiteSpace and LineTerminator (what `trim` and `\s` strip). Unlike Rust's
@@ -111,6 +105,14 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn utf16_order_puts_astral_before_the_top_of_the_bmp() {
+		assert_eq!(cmp16("\u{1F600}", "\u{FF5E}"), Ordering::Less);
+		assert!("\u{1F600}" > "\u{FF5E}");
+		assert_eq!(cmp16("a", "b"), Ordering::Less);
+		assert_eq!(cmp16("B", "a"), Ordering::Less);
+	}
+
+	#[test]
 	fn lengths_and_cuts_count_utf16_units() {
 		let s = "a😀b";
 		assert_eq!(len16(s), 4);
@@ -119,13 +121,10 @@ mod tests {
 		assert_eq!(slice16(s, -1, None), "b");
 		assert_eq!(slice16(s, 1, Some(3)), "😀");
 		assert_eq!(slice16(s, 3, Some(1)), "");
-		assert_eq!(substring16(s, 3, Some(1)), "😀");
-		assert_eq!(substring16(s, -5, Some(1)), "a");
 		assert_eq!(index_of16(s, "b", 0), Some(3));
 		assert_eq!(index_of16(s, "x", 0), None);
 		assert_eq!(index_of16("ab", "", 5), Some(2));
 		assert_eq!(last_index_of16("abab", "ab"), Some(2));
-		assert_eq!(char_code_at(s, 1), Some(0xD83D));
 		// Rejoined halves are one char again once paired up.
 		let joined = slice16(s, 0, Some(2)) + &slice16(s, 2, None);
 		assert_eq!(lone::pair_up(&joined), s);

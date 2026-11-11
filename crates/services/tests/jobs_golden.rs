@@ -1,4 +1,4 @@
-//! Parity with the TypeScript for the jobs package (tests/golden/jobs.json, made by
+//! Parity with the TypeScript for jobs (tests/golden/jobs.json, made by
 //! jobs.golden.ts from synthetic lessons and job records): the recovery sweep's writes, the
 //! activity feed, and what aborting and acknowledging leave in job records.
 

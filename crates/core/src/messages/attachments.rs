@@ -1,5 +1,5 @@
-//! Ported from src/shared/core/attachments.ts (the rules the server applies; the composer's
-//! previews and picker live in the browser).
+//! The attachment rules the server applies; the composer's previews and picker live in the
+//! browser.
 
 use std::sync::LazyLock;
 

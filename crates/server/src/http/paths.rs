@@ -131,16 +131,6 @@ pub fn param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a str> {
 	params.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
 }
 
-/// Node's `path.extname`: "" for no dot or a name that only starts with one.
-pub fn extname(name: &str) -> &str {
-	let base = name.rsplit('/').next().unwrap_or(name);
-	match base.rfind('.') {
-		None | Some(0) => "",
-		Some(i) if base[..i].bytes().all(|b| b == b'.') => "",
-		Some(i) => &base[i..],
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -176,15 +166,5 @@ mod tests {
 		assert_eq!(param(&params, "a"), Some("1 2"));
 		assert_eq!(param(&params, "b"), Some("%ZZ"));
 		assert_eq!(param(&params, "c"), Some(""));
-	}
-
-	#[test]
-	fn extname_like_node() {
-		assert_eq!(extname("notes.bar"), ".bar");
-		assert_eq!(extname(".env"), "");
-		assert_eq!(extname("assets/x.min.js"), ".js");
-		assert_eq!(extname("x."), ".");
-		assert_eq!(extname("graph"), "");
-		assert_eq!(extname(".."), "");
 	}
 }

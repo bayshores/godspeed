@@ -1,5 +1,3 @@
-//! Ported from renderSvg and svgViewport in src/backend/agent/subagents/headless.ts.
-
 use std::sync::Arc;
 
 use gs_base::re::Re;

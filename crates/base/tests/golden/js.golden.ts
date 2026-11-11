@@ -23,7 +23,6 @@ const cases: Record<string, () => unknown> = {
 			s,
 			length: s.length,
 			slices: cuts.map(([a, b]) => s.slice(a, b)),
-			substrings: cuts.map(([a, b]) => s.substring(a, b)),
 			trim: [s.trim(), s.trimStart(), s.trimEnd()],
 			indexOf: [s.indexOf("😀"), s.indexOf("z"), s.lastIndexOf("😀")],
 			hex: Buffer.from(s).toString("hex"),

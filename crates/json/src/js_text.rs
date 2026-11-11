@@ -1,6 +1,6 @@
 //! What a JavaScript template literal prints for a value (`${x}`), for text the agent reads.
 
-use gs_json::{Json, js_number};
+use crate::{Json, js_number};
 
 /// `String(n)`: unlike JSON, NaN and the infinities have names.
 pub fn num_text(n: f64) -> String {
@@ -42,9 +42,8 @@ pub fn field_text(record: &Json, key: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-	use gs_json::json;
-
 	use super::*;
+	use crate::json;
 
 	#[test]
 	fn prints_like_a_template_literal() {

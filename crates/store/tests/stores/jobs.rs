@@ -1,5 +1,5 @@
 use gs_base::events::EventKind;
-use gs_json::{json, stringify_pretty};
+use gs_json::{Json, json, stringify_pretty};
 use gs_store::jobs::{CreateJobInit, JobStore};
 
 use crate::support::Lab;
@@ -57,6 +57,18 @@ fn an_update_merges_the_patch_keeps_the_identity_and_announces() {
 	let set = jobs.update_job(id, &json!({ "updatedAt": "2030-01-01T00:00:00.000Z" })).unwrap().unwrap();
 	assert_eq!(set["updatedAt"].as_str(), Some("2030-01-01T00:00:00.000Z"));
 	assert_eq!(jobs.update_job("job_missing", &json!({})), Ok(None));
+}
+
+#[test]
+fn a_checked_update_writes_only_while_its_check_holds() {
+	let lab = Lab::new("jobs-update-if");
+	let jobs = store(&lab);
+	let job = jobs.create_job(&init("chat_1", "call_1")).unwrap();
+	let id = job["id"].as_str().unwrap();
+	let running = |now: &Json| now["status"].as_str() == Some("running");
+	assert!(jobs.update_job_if(id, &json!({ "status": "done" }), running).unwrap().is_some());
+	assert_eq!(jobs.update_job_if(id, &json!({ "status": "error" }), running), Ok(None));
+	assert_eq!(jobs.get_job(id).unwrap()["status"].as_str(), Some("done"));
 }
 
 #[test]

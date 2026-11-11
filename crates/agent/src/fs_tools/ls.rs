@@ -7,9 +7,9 @@ use gs_base::{fsx, locale};
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::fs_shared::{MAX_OUTPUT_BYTES, cap_output, format_size, read_dir_items, resolve_source_path};
-use crate::tools::schema::{self, integer, string};
-use super::server_tool::{off_thread, server_tool};
+use super::fs_shared::{MAX_OUTPUT_BYTES, cap_output, format_size, read_dir_items, resolve_source_path, off_thread};
+use crate::tools::fn_tool::FnTool;
+use gs_core::session::schema::{self, integer, string};
 
 const DEFAULT_LIMIT: usize = 500;
 
@@ -21,7 +21,7 @@ pub fn ls_tool() -> Arc<dyn Tool> {
 			("limit", integer(1, "Maximum number of entries to return (default: 500)")),
 		],
 	);
-	server_tool(
+	FnTool::server(
 		"ls",
 		format!(
 			"List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to {DEFAULT_LIMIT} entries or {} (whichever is hit first).",
@@ -33,7 +33,7 @@ pub fn ls_tool() -> Arc<dyn Tool> {
 			let limit = args["limit"].as_i64().map_or(DEFAULT_LIMIT, |l| l.max(0) as usize);
 			off_thread(move || list(&dir, limit)).await
 		},
-	)
+	).into_arc()
 }
 
 fn list(dir: &Path, limit: usize) -> Result<Json, String> {

@@ -1,4 +1,4 @@
-//! Ported from src/backend/server/settings-body.ts: the PUT body parsers, one per settings
+//! The PUT body parsers, one per settings
 //! section. Replace-whole: the body is the complete section, unknown body keys are dropped and
 //! every known field is strict (a bad type is an error message for the 400, never a clamp).
 

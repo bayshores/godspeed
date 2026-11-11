@@ -1,5 +1,5 @@
 //! The app clock: `Date.now()` and every timer go through here, so tests can fix the start time
-//! and jump ahead the way the contract suite's clock does for the Node server.
+//! and jump ahead.
 //!
 //! - `GODSPEED_CONTRACT_NOW` (an ISO time) starts the clock there; it then ticks in real time.
 //! - `GODSPEED_CONTRACT_CLOCK_FILE` names a file holding the total ms advanced so far. When it

@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/demo-builder.ts: the demo job's agent. Given a brief it
+//! The demo job's agent. Given a brief it
 //! writes one self-contained HTML/JS demo, tests it headlessly (run_demo) and fixes and re-runs
 //! it until clean, before anything reaches the lesson.
 //!

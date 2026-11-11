@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/agent-notes.ts: notes an outside agent saves about the learner.
+//! Notes an outside agent saves about the learner.
 
 use std::sync::LazyLock;
 

@@ -15,8 +15,8 @@
 //!
 //! Names follow the TypeScript: `prompt`/`continue_run` (prompt/continue), `steer`/`follow_up`,
 //! `respond_to_work`, `read_work_page`, `claimed_lessons`. Times and timers use the app clock
-//! (gs_base::clock), so the contract suite's clock jumps reach the 30 s tool timeout and the
-//! 10 minute claim timeout.
+//! (gs_base::clock), so a clock that jumps ahead reaches the 30 s tool timeout and the 10 minute
+//! claim timeout.
 //!
 //! Left out because nothing in the app uses them: a tool's `label`, tool progress updates
 //! (`tool_execution_update`), the model identity line and pi's prompt cache. Partial replies

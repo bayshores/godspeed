@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/input-events.ts: the events POST /api/chat carries and the record
+//! The events POST /api/chat carries and the record
 //! appends each one makes. A send tells the server what happened, never what the client's list
 //! looks like, and a refused event appends nothing.
 
@@ -8,7 +8,7 @@ use gs_base::text;
 use gs_json::Json;
 
 use super::attachments::{ChatAttachment, MAX_ATTACHMENTS, TOO_MANY_REFUSAL, attachment_refusal, base64_bytes};
-use super::js_text::js_string;
+use gs_json::js_text::js_string;
 use super::native_messages::{
 	concluded_by_dismissal_pair, dangling_question_of, active_problem_of, new_answer_result, new_next_message, new_problem_dismissed_marker, new_side_question, new_thinking_message, new_user_message,
 	pending_problem_dismissal_of,
@@ -208,7 +208,8 @@ pub fn parse_attachments(raw: Option<&Json>) -> Result<Option<Vec<ChatAttachment
 	Ok(Some(out))
 }
 
-fn messages_of(record: &Json) -> &[Json] {
+/// A chat record's messages (none when it has no list).
+pub fn messages_of(record: &Json) -> &[Json] {
 	record["messages"].as_arr().map_or(&[], Vec::as_slice)
 }
 

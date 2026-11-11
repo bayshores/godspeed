@@ -6,7 +6,7 @@
 
 mod common;
 
-use common::{fixture, pdf, root};
+use common::{fixture, pdf};
 use gs_json::{Json, json, parse};
 use gs_pdf::ops::parse_page_spec;
 
@@ -16,7 +16,7 @@ fn golden() -> Vec<Json> {
 }
 
 fn cut_root(text: &str) -> String {
-	let root = std::fs::canonicalize(root()).unwrap();
+	let root = std::fs::canonicalize(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).unwrap();
 	text.replace(root.to_str().unwrap(), "<root>")
 }
 

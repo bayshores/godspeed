@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/aborts.ts: who can actually kill a running helper job.
+//! Who can actually kill a running helper job.
 //!
 //! The runner registers one abort per running job; the abort endpoint fires it. Abort is a real
 //! kill: it ends the job's model call at once, not at the next loop check. The endpoint keeps

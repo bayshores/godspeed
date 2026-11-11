@@ -15,7 +15,6 @@ pub mod practice;
 pub mod probe;
 pub mod questions;
 pub mod rules;
-pub(crate) mod schema;
 pub mod side;
 pub mod talk;
 pub mod work_plan;

@@ -1,5 +1,4 @@
-//! Ported from src/shared/core/phases.ts (the record-side fold; the transcript dividers fold view
-//! messages in the browser).
+//! The record-side phase fold; the transcript dividers fold view messages in the browser.
 
 use gs_json::Json;
 

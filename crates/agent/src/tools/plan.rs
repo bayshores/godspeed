@@ -10,7 +10,7 @@ use gs_json::{Json, json, stringify};
 use super::fn_tool::FnTool;
 use super::mermaid_plan::parse_mermaid_plan;
 use super::ports::ChatPort;
-use super::schema::{object, string_min};
+use gs_core::session::schema::{object, string_min};
 
 /// What the plan-reading tools close over: the lesson and its storage.
 #[derive(Clone)]

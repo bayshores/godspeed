@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/settings-resolution.ts: the settings record with every knob
+//! The settings record with every knob
 //! concrete (an explicit value wins, an absent one takes the factory default).
 //!
 //! Tool toggles and rules are passed through as stored; consumers read an absent tool as enabled.

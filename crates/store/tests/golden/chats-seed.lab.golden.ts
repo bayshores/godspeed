@@ -1,4 +1,4 @@
-// The lesson store on a copy of real app data kept outside the repo (.claude/rewrite-lab/seed-data).
+// The lesson store on a copy of real app data kept outside the repo (GODSPEED_SEED_CHATS).
 // Only hashes and counts are recorded, never text, and the result lands in chats-seed.lab.json,
 // which git ignores. Without the copy the case is null and the Rust test skips.
 import { createHash } from "node:crypto";

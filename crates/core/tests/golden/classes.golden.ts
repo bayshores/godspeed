@@ -14,7 +14,7 @@ import { fileGroups, pairSeries } from "../../../../src/shared/core/file-groups.
 import { dateInName, groupFileSeries } from "../../../../src/shared/core/file-series.ts";
 import { recordingsToRecheck, transcriptFor } from "../../../../src/shared/core/lecture-transcript.ts";
 import { folderName, folderSource, isGoogleDriveFolder } from "../../../../src/shared/core/linked-folder.ts";
-import { isNewFolderFile, isRecent, isRecentChange, kindsForNewFiles } from "../../../../src/shared/core/new-files.ts";
+import { isRecent, isRecentChange, kindsForNewFiles } from "../../../../src/shared/core/new-files.ts";
 import { clockLabel, dayLabel, deadlinePartOf, localDay, timeZoneLabel, todayNoteText, todayNoteToAppend, wallClock, whenLabel } from "../../../../src/shared/core/today-note.ts";
 
 const ZONE = "America/Los_Angeles";
@@ -200,9 +200,6 @@ export default {
 			recent: isRecent(at, now),
 			change: isRecentChange(at, now),
 			noAt: isRecent(undefined, now),
-			scanned: isNewFolderFile({ foundByScan: true, addedAt: at }, now),
-			notScanned: isNewFolderFile({ foundByScan: false, addedAt: at }, now),
-			unset: isNewFolderFile({ addedAt: at }, now),
 		}));
 	},
 	"kinds for new files": () => {

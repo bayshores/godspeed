@@ -5,7 +5,7 @@ use gs_base::text;
 use gs_json::{Json, json};
 
 use super::marker;
-use crate::messages::js_text::js_string;
+use gs_json::js_text::js_string;
 use crate::messages::message_id::new_message_id;
 
 /// The session's map context, a separate marker before the learner's first message: each

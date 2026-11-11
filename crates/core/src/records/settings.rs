@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/settings.ts: the settings record's defaults and its sanitizer.
+//! The settings record's defaults and its sanitizer.
 //!
 //! The record stores explicit choices only (absent keys resolve to the factory defaults), unknown
 //! keys ride along untouched, and nothing read from disk or the network is trusted raw.

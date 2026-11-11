@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/agent-briefing.ts.
-//!
 //! "Where you left off": part of godspeed's MCP instructions, built each time an agent connects,
 //! so an agent started in any folder knows the learner's classes, their unfinished setup, last
 //! lessons, next deadlines and saved notes. It is trimmed to fit a length budget, least
@@ -12,7 +10,7 @@ use gs_json::Json;
 
 use super::class_setup::SETUP_HOW;
 use super::today_note::{clock_label, day_label, today_note_text, wall_clock, wall_clock_of_iso, when_label};
-use super::utf16_order::cmp_utf16;
+use gs_base::text::cmp16;
 use crate::contracts::class::{compare_deadlines, deadline_due_at};
 
 const LAST_LESSONS: usize = 5;
@@ -106,7 +104,7 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 		.take(NEXT_DEADLINES)
 		.map(|(d, class_name)| {
 			let (date, time) = deadline_due_at(d);
-			let overdue = cmp_utf16(&format!("{date}T{time}:00"), &now_stamp).is_lt();
+			let overdue = cmp16(&format!("{date}T{time}:00"), &now_stamp).is_lt();
 			format!("- {class_name}: {} ({}), {} {}", d["name"].as_str().unwrap_or(""), d["kind"].as_str().unwrap_or(""), if overdue { "overdue, was due" } else { "due" }, when_label(d))
 		})
 		.collect();

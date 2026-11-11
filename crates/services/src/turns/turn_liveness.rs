@@ -9,22 +9,25 @@ use super::turn_runs::clear_turn_failure;
 use crate::App;
 
 /// Marks a turn as starting; false when one already runs for the chat (one turn per chat). The
-/// "turn-started" event goes out after the registry write, so a listener reads the truth.
+/// caller announces it with `turn_started` once its input is saved.
 pub fn begin_turn(app: &App, chat_id: &str) -> bool {
 	if is_turn_running(app, chat_id) {
 		return false;
 	}
 	clear_turn_failure(app, chat_id);
-	if !app.turns.in_flight.lock().insert(chat_id.to_owned()) {
-		return false;
-	}
+	app.turns.in_flight.lock().insert(chat_id.to_owned())
+}
+
+/// "turn-started", sent once the write-ahead is saved, so a view that reads the record on it sees
+/// the input. Its handle comes a moment later: `attach_turn` waits for it.
+pub fn turn_started(app: &App, chat_id: &str) {
 	app.events.emit(EventKind::TurnStarted, json!({ "chatId": chat_id }));
-	true
 }
 
 /// Marks the chat's turn as finished; "turn-settled" only when one was marked.
 pub fn end_turn(app: &App, chat_id: &str) {
 	if app.turns.in_flight.lock().remove(chat_id) {
+		app.turns.attachable.notify_waiters();
 		app.events.emit(EventKind::TurnSettled, json!({ "chatId": chat_id }));
 	}
 }
@@ -46,6 +49,7 @@ mod tests {
 		let mut events = app.events.subscribe();
 		remember_turn_failure(&app, "chat_a", "old");
 		assert!(begin_turn(&app, "chat_a"));
+		turn_started(&app, "chat_a");
 		assert_eq!(turn_failure(&app, "chat_a"), None, "an accepted begin clears the old notice");
 		assert!(!begin_turn(&app, "chat_a"));
 		assert!(is_turn_running(&app, "chat_a"));

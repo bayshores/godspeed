@@ -8,7 +8,7 @@ use gs_json::Json;
 
 use super::fn_tool::FnTool;
 use super::ports::{JobPort, Spawn};
-use super::schema::{object, string};
+use gs_core::session::schema::{object, string};
 
 /// What the job tools need at call time.
 #[derive(Clone)]

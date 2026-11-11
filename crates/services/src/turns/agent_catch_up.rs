@@ -14,6 +14,7 @@ use gs_core::contracts::chat::{TALK_CHAT_ID, extracts_facts};
 use gs_core::messages::input_events::TurnInput;
 
 use super::chat_handler::handle_chat_input;
+use super::talk::talk_chat;
 use super::turn_liveness::is_turn_running;
 use super::turn_service::{LEFTOVER_IDLE_MS, extract_when_idle, run_extraction, uncovered_tokens};
 use crate::App;
@@ -61,10 +62,11 @@ fn ask_about_deadlines(app: &Arc<App>, now: i64) -> Result<(), String> {
 	if deadlines.is_empty() {
 		return Ok(());
 	}
-	if talk.is_none() {
-		app.stores.chats.create_chat("Talk", Some("talk"), None, None)?;
+	talk_chat(app)?;
+	// One request at a time: two agents that start waiting together both get here.
+	if app.turns.asking_deadlines.swap(true, Ordering::SeqCst) {
+		return Ok(());
 	}
-	app.turns.asking_deadlines.store(true, Ordering::SeqCst);
 	let sent = handle_chat_input(app, TALK_CHAT_ID, TurnInput::Steers(vec![coverage_request(&deadlines)]));
 	let app = app.clone();
 	tokio::spawn(async move {

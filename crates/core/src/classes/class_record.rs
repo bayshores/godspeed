@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/classes.ts: what a `class.json` reads as (checked field by
+//! What a `class.json` reads as (checked field by
 //! field, anything odd left out) and the class list's summary lines.
 
 use std::collections::HashSet;
@@ -7,7 +7,7 @@ use gs_json::{Json, Obj};
 
 use super::class_deadlines::{id_list, squash, with_files};
 use super::new_files::is_recent_change;
-use super::utf16_order::cmp_utf16;
+use gs_base::text::cmp16;
 use crate::contracts::class::{CURRENT_CLASS_VERSION, clean_signature, compare_deadlines, is_class_icon, is_deadline_kind};
 use crate::records::teaching_areas::sanitize_rules;
 
@@ -205,7 +205,7 @@ pub fn newer_version(parsed: &Json) -> Option<f64> {
 fn newest(files: &[Json], pick: impl Fn(&Json) -> bool) -> Option<&str> {
 	files.iter().fold(None, |at: Option<&str>, f| {
 		let added = f["addedAt"].as_str().unwrap_or("");
-		if pick(f) && at.is_none_or(|a| a.is_empty() || cmp_utf16(added, a).is_gt()) { Some(added) } else { at }
+		if pick(f) && at.is_none_or(|a| a.is_empty() || cmp16(added, a).is_gt()) { Some(added) } else { at }
 	})
 }
 

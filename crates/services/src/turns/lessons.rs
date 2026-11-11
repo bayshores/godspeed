@@ -9,6 +9,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use gs_base::locks::LockKey;
 use gs_core::contracts::graph::title_from_prompt;
 use gs_core::graph::chains::{chains_for_selection, format_chain_line};
 use gs_core::graph::graph::get_graph;
@@ -58,6 +59,9 @@ struct Start {
 
 pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<Created, NotFound>, String> {
 	let scope = input.class_id.as_deref();
+	// Held from the class check to the finished lesson: a class delete takes this lock too, so it
+	// sees the new lesson, never a lesson born into a class it already removed.
+	let _class = scope.map(|id| app.locks.lock(LockKey::Class(id)));
 	let cls = match scope {
 		None => None,
 		Some(id) => match app.stores.classes.get_class(id) {
@@ -143,4 +147,29 @@ fn typed(app: &Arc<App>, scope: Option<&str>, title: &str, picks: Vec<Json>) -> 
 		"Untitled session".to_owned()
 	};
 	Ok(Start { title, picks, topics })
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[test]
+	fn a_lesson_started_as_its_class_goes_is_not_created() {
+		let root = scratch_dir("lesson-class-gone");
+		let app = test_app(&root);
+		let class_id = app.stores.classes.create_class(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].as_str().unwrap().to_owned();
+		// The delete holds the class while the lesson is started.
+		let deleting = app.locks.lock(LockKey::Class(&class_id));
+		let (starting, class) = (app.clone(), class_id.clone());
+		let started = std::thread::spawn(move || {
+			let input = CreateLessonInput { class_id: Some(class), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new() } };
+			create_lesson(&starting, input).unwrap().map(drop)
+		});
+		std::thread::sleep(std::time::Duration::from_millis(100));
+		app.stores.classes.delete_class(&class_id).unwrap();
+		drop(deleting);
+		assert_eq!(started.join().unwrap(), Err(NotFound { code: "class_not_found", error: "No such class" }));
+		assert!(app.stores.chats.list_chats().is_empty());
+	}
 }

@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/lecture-transcript.ts.
-//!
 //! A lecture recording whose transcript is already in the class: it isn't transcribed again and
 //! its facts come from the transcript. Purely from names.
 

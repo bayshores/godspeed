@@ -62,13 +62,9 @@ pub struct TopicGrouperInput {
 
 static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", "g"));
 
-fn str_of(v: &Json) -> &str {
-	v.as_str().unwrap_or("")
-}
-
 /// The facts one per line, then the current topics as JSON.
 pub fn topic_grouper_prompt(class_name: &str, facts: &[Json], current: &[Json]) -> String {
-	let lines: Vec<String> = facts.iter().map(|f| format!("{} | {} | {}", str_of(&f["id"]), str_of(&f["name"]), SPACES.replace(str_of(&f["statement"]), " "))).collect();
+	let lines: Vec<String> = facts.iter().map(|f| format!("{} | {} | {}", f["id"].str_or_empty(), f["name"].str_or_empty(), SPACES.replace(f["statement"].str_or_empty(), " "))).collect();
 	let current = if current.is_empty() {
 		"(none yet \u{2014} this is the first grouping)".to_owned()
 	} else {
@@ -81,7 +77,7 @@ pub fn topic_grouper_prompt(class_name: &str, facts: &[Json], current: &[Json]) 
 /// Names that are empty or longer than 4 words, and an empty grouping, go back to the model.
 fn grouping_problem(value: &Json) -> Option<String> {
 	let topics = value["topics"].as_arr().map_or(&[][..], Vec::as_slice);
-	let mut problems: Vec<String> = topics.iter().filter_map(|t| topic_name_problem(str_of(&t["name"]))).collect();
+	let mut problems: Vec<String> = topics.iter().filter_map(|t| topic_name_problem(t["name"].str_or_empty())).collect();
 	if topics.is_empty() {
 		problems.push("Submit at least one topic.".to_owned());
 	}
@@ -106,11 +102,11 @@ pub async fn group_topics(bridge: &Bridge, input: TopicGrouperInput) -> Result<V
 		.flatten()
 		.map(|t| TopicDraft {
 			id: t["id"].as_str().map(str::to_owned),
-			name: str_of(&t["name"]).to_owned(),
-			members: t["members"].as_arr().into_iter().flatten().map(|m| str_of(m).to_owned()).collect(),
+			name: t["name"].str_or_empty().to_owned(),
+			members: t["members"].as_arr().into_iter().flatten().map(|m| m.str_or_empty().to_owned()).collect(),
 		})
 		.collect();
-	let fact_ids: Vec<String> = input.facts.iter().map(|f| str_of(&f["id"]).to_owned()).collect();
+	let fact_ids: Vec<String> = input.facts.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	Ok(repair_topics(&drafts, &fact_ids, &input.chains, &input.current, || ids::uuid_hex("tpc", 10)))
 }
 

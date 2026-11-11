@@ -1,6 +1,5 @@
 //! The native lesson record: messages, markers, phases, pending questions and learner input.
 
-mod js_text;
 pub mod native_messages;
 pub mod pending;
 pub mod phases;

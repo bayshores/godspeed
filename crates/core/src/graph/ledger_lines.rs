@@ -1,8 +1,8 @@
 //! Helpers over ledger lines (`Json` nodes and chains) that several graph modules share.
 
+use gs_base::text::cmp16;
 use gs_json::Json;
 
-use super::ordered::cmp16;
 
 /// The string items of an array; anything else yields none.
 pub fn strs(v: &Json) -> Vec<&str> {

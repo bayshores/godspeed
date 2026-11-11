@@ -17,6 +17,7 @@ use gs_engine::turn::tool::Tool;
 use gs_json::{Json, json};
 use gs_store::prompt_overrides::PromptOverrides;
 
+use crate::subagents::pi_run::OnUsage;
 use crate::tools::fn_tool::FnTool;
 use crate::tools::homework::{HomeworkToolContext, homework_tools};
 use crate::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
@@ -47,15 +48,12 @@ pub fn compose_instructions(kind: AgentKind, prompts: &PromptOverrides) -> Strin
 	texts.join(SEPARATOR)
 }
 
-/// Called with each model call's token usage.
-pub type UsageSink = Arc<dyn Fn(&Json) + Send + Sync>;
-
 pub struct AgentBuildOptions<'a> {
 	pub engine: Engine,
 	pub prompts: &'a PromptOverrides,
 	/// The transcript so far, as pi messages (the record is the agent's state).
 	pub messages: Vec<Json>,
-	pub on_usage: Option<UsageSink>,
+	pub on_usage: Option<OnUsage>,
 	/// A bare registry for tests. It is never switch-filtered: the caller owns it.
 	pub tools: Option<Vec<Arc<dyn Tool>>>,
 	/// The resolved per-user tool switches: the registries drop any tool explicitly off, and the

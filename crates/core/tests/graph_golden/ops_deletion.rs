@@ -9,7 +9,7 @@ fn error(message: String) -> Json {
 	json!({ "error": message })
 }
 
-fn chat_step(store: &crate::store::MemStore, step: &Json) -> Json {
+fn chat_step(store: &gs_core::graph::memory::Memory, step: &Json) -> Json {
 	let id = step["id"].as_str().unwrap();
 	let result = if step["kind"].as_str() == Some("source") {
 		delete_source_traces(store, id)

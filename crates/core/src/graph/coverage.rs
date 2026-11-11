@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/coverage.ts.
-
 use std::collections::HashSet;
 
 use gs_base::{hash, text};

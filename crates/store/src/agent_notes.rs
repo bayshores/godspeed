@@ -1,13 +1,13 @@
-//! Ported from src/backend/store/agent-notes.ts: data/agent-notes.json, the notes outside agents
+//! data/agent-notes.json, the notes outside agents
 //! save about the learner. Read-modify-write; small by design.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use gs_base::config::Paths;
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{fsx, ids, time};
 use gs_core::records::agent_notes::{NOTE_MAX_CHARS, NOTES_MAX, clean_note_text, parse_agent_notes};
-use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use gs_json::{Json, Obj, json, stringify_pretty};
 
 const FILE_NAME: &str = "agent-notes.json";
 const VERSION: i64 = 1;
@@ -24,7 +24,7 @@ impl AgentNotesStore {
 
 	/// Oldest first. A missing file reads as no notes; a broken one is set aside.
 	pub fn list_agent_notes(&self) -> Vec<Json> {
-		read_json_or_set_aside(&self.file).map_or_else(Vec::new, |raw| parse_agent_notes(&raw))
+		fsx::read_json_or_set_aside(&self.file).map_or_else(Vec::new, |raw| parse_agent_notes(&raw))
 	}
 
 	/// The saved note, or the message to give the agent.
@@ -64,18 +64,5 @@ impl AgentNotesStore {
 	fn write_notes(&self, notes: &[Json]) -> Result<(), String> {
 		let record = json!({ "version": VERSION, "notes": notes.to_vec() });
 		fsx::write_text_atomic(&self.file, &stringify_pretty(&record, "\t")).map_err(|err| fsx::node_error_message(&err, "open", &self.file))
-	}
-}
-
-/// A data file's parsed JSON. A missing or unreadable file reads as None; one that is not valid
-/// JSON is kept aside (so the next save cannot overwrite it) and reads as None.
-pub(crate) fn read_json_or_set_aside(file: &Path) -> Option<Json> {
-	let raw = fsx::read_text(file).ok()?;
-	match parse(&raw) {
-		Ok(parsed) => Some(parsed),
-		Err(_) => {
-			fsx::set_aside_corrupt(file);
-			None
-		}
 	}
 }

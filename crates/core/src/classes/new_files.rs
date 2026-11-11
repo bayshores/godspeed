@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/new-files.ts.
-//!
 //! Files new to a class: the kind one gets when it arrives, and how long a file a folder scan
 //! found counts as new.
 
@@ -26,11 +24,6 @@ pub fn is_recent_change(at: &str, now: i64) -> bool {
 /// Whether the time is within the last NEW_FILE_DAYS.
 pub fn is_recent(at: Option<&str>, now: i64) -> bool {
 	at.and_then(gs_base::time::parse_date).is_some_and(|t| now - t <= NEW_FILE_DAYS * 86_400_000)
-}
-
-/// A file a later scan of its linked folder found, in the last few days.
-pub fn is_new_folder_file(file: &Json, now: i64) -> bool {
-	file["foundByScan"].as_bool() == Some(true) && is_recent(file["addedAt"].as_str(), now)
 }
 
 /// The kind a file new to a class gets: the kind of the series it joins (HW5 joins HW1 to 4,
@@ -78,7 +71,5 @@ mod tests {
 		assert!(is_recent(Some(&gs_base::time::iso(now - 86_400_000)), now));
 		assert!(!is_recent(Some(&gs_base::time::iso(now - 4 * 86_400_000)), now));
 		assert!(!is_recent(None, now) && !is_recent(Some("junk"), now));
-		assert!(is_new_folder_file(&json!({ "foundByScan": true, "addedAt": gs_base::time::iso(now) }), now));
-		assert!(!is_new_folder_file(&json!({ "addedAt": gs_base::time::iso(now) }), now));
 	}
 }

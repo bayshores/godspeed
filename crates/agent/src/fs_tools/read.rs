@@ -5,15 +5,15 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
+use gs_base::posix::{basename, extname};
 use gs_base::{fsx, text};
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_execute::{Image, ImageFileResult};
 use gs_json::Json;
 
-use super::fs_shared::{MAX_OUTPUT_BYTES, format_size, is_binary_file, read_error, resolve_source_path};
-use super::node_path::{basename, extname};
-use crate::tools::schema::{self, integer, string_min};
-use super::server_tool::{off_thread, server_tool};
+use super::fs_shared::{MAX_OUTPUT_BYTES, format_size, is_binary_file, read_error, resolve_source_path, off_thread};
+use crate::tools::fn_tool::FnTool;
+use gs_core::session::schema::{self, integer, string_min};
 
 const MAX_LINES: usize = 2000;
 
@@ -39,7 +39,7 @@ pub fn read_tool() -> Arc<dyn Tool> {
 			("limit", integer(1, "Maximum number of lines to read")),
 		],
 	);
-	server_tool(
+	FnTool::server(
 		"read",
 		"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50.0KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.".to_owned(),
 		parameters,
@@ -48,7 +48,7 @@ pub fn read_tool() -> Arc<dyn Tool> {
 			let (offset, limit) = (args["offset"].as_i64(), args["limit"].as_i64());
 			off_thread(move || read(&file, offset, limit)).await
 		},
-	)
+	).into_arc()
 }
 
 fn read(file: &Path, offset: Option<i64>, limit: Option<i64>) -> Result<Json, String> {

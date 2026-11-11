@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/argument-heal.ts: the weak-model argument heal.
+//! The weak-model argument heal.
 //!
 //! Weak models send JSON-string-encoded values (`"mode": "\"recall\""`), and the schema error for
 //! a literal never names the expected values, so they re-send the same payload in a loop. A

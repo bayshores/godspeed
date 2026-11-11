@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/pi-run.ts: the shared helper-agent runner. The
+//! The shared helper-agent runner. The
 //! researcher, the demo builder, the extractor and topic grouper (through `run_submit_agent`)
 //! and the compaction summarizer run on it: an agent built per call, without saved state,
 //! driven to completion.

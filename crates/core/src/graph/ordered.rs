@@ -1,15 +1,6 @@
-//! JavaScript ordering: strings compare by UTF-16 unit, and a `Map` iterates in insertion order.
+//! A JavaScript `Map`: it iterates in insertion order.
 
-use std::cmp::Ordering;
 use std::collections::HashMap;
-
-use gs_json::lone;
-
-/// `a < b` and the default `sort()` order of JS strings. It differs from Rust's byte order for
-/// characters above U+FFFF, which sort between U+D7FF and U+E000 in UTF-16.
-pub fn cmp16(a: &str, b: &str) -> Ordering {
-	if a.is_ascii() && b.is_ascii() { a.cmp(b) } else { lone::to_utf16(a).cmp(&lone::to_utf16(b)) }
-}
 
 /// A `Map<string, V>`: lookups by key, iteration in the order keys were first set.
 pub struct OrderedMap<V> {
@@ -65,14 +56,6 @@ impl<V> OrderedMap<V> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-
-	#[test]
-	fn utf16_order_puts_astral_before_the_top_of_the_bmp() {
-		assert_eq!(cmp16("\u{1F600}", "\u{FF5E}"), Ordering::Less);
-		assert!("\u{1F600}" > "\u{FF5E}");
-		assert_eq!(cmp16("a", "b"), Ordering::Less);
-		assert_eq!(cmp16("B", "a"), Ordering::Less);
-	}
 
 	#[test]
 	fn maps_iterate_in_first_insertion_order() {

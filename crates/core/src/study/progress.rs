@@ -1,8 +1,5 @@
-//! Ported from src/shared/core/progress.ts.
-//!
-//! `days_between`, `answer_outcome` and `is_answer_data` were written with the foundations
-//! because other packages call them; keep their signatures. The rest of the file lives in
-//! sibling modules and is re-exported here under its TypeScript names.
+//! The rest of the file lives in sibling modules and is re-exported here under its TypeScript
+//! names.
 
 use gs_base::{num, time};
 use gs_json::Json;

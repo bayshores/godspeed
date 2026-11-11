@@ -10,7 +10,7 @@ use gs_core::contracts::class::{CLASS_ICONS, SIGNATURE_MAX};
 use gs_json::{Json, json, stringify};
 
 use super::fn_tool::FnTool;
-use super::schema::{boolean, literals, no_arguments, object, string, string_min, string_or_null, strings};
+use gs_core::session::schema::{boolean, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
 
 /// Runs one class tool by name over its validated arguments (server/class-actions.ts).
 pub type ClassActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
@@ -41,15 +41,15 @@ fn signature(text: &ClassArgText) -> Json {
 
 fn icon(text: &ClassArgText) -> Json {
 	let names: Vec<&str> = CLASS_ICONS.iter().map(|(name, _)| *name).collect();
-	literals(&names, &text.icon)
+	one_of_literals(&names, &text.icon)
 }
 
 fn file_kind(text: &ClassArgText) -> Json {
-	literals(&FILE_KINDS, text.file_kind)
+	one_of_literals(&FILE_KINDS, text.file_kind)
 }
 
 fn deadline_kind(text: &ClassArgText) -> Json {
-	literals(&DEADLINE_KINDS, text.deadline_kind)
+	one_of_literals(&DEADLINE_KINDS, text.deadline_kind)
 }
 
 /// The input schema of one class tool.

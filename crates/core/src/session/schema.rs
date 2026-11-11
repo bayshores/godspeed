@@ -2,7 +2,7 @@
 //! what TypeBox emits (`type`, then the shape, then `description`), because the schemas are sent
 //! to the model as written.
 
-use gs_json::{Json, Obj};
+use gs_json::{Json, Obj, json};
 
 /// A string property.
 pub fn string(description: &str) -> Json {
@@ -20,7 +20,28 @@ pub fn boolean(description: &str) -> Json {
 	Json::Obj(out)
 }
 
-/// An object whose `required` keys lead and whose `properties` keep the given order.
+/// A string with a minimum length and a description.
+pub fn string_min(min_length: u32, description: &str) -> Json {
+	json!({ "type": "string", "minLength": min_length, "description": description })
+}
+
+/// A whole number of at least `minimum`.
+pub fn integer(minimum: i64, description: &str) -> Json {
+	json!({ "type": "integer", "minimum": minimum, "description": description })
+}
+
+/// A list of strings with a description.
+pub fn strings(description: &str) -> Json {
+	json!({ "type": "array", "items": { "type": "string" }, "description": description })
+}
+
+/// A string or null.
+pub fn string_or_null(description: &str) -> Json {
+	json!({ "anyOf": [{ "type": "string" }, { "type": "null" }], "description": description })
+}
+
+/// An object whose `required` keys lead (left out when empty) and whose `properties` keep the
+/// given order.
 pub fn object(required: &[&str], properties: Vec<(&str, Json)>) -> Json {
 	let mut props = Obj::new();
 	for (key, schema) in properties {
@@ -28,9 +49,16 @@ pub fn object(required: &[&str], properties: Vec<(&str, Json)>) -> Json {
 	}
 	let mut out = Obj::new();
 	out.insert("type", "object");
-	out.insert("required", required.iter().map(|k| Json::Str((*k).to_owned())).collect::<Json>());
+	if !required.is_empty() {
+		out.insert("required", required.iter().map(|k| Json::from(*k)).collect::<Vec<_>>());
+	}
 	out.insert("properties", props);
 	Json::Obj(out)
+}
+
+/// The tool that takes nothing.
+pub fn no_arguments() -> Json {
+	object(&[], Vec::new())
 }
 
 /// An array with a minimum length.
@@ -57,6 +85,13 @@ pub fn one_of_literals(values: &[&str], description: &str) -> Json {
 	out.insert("anyOf", values.iter().map(|v| literal(v)).collect::<Json>());
 	out.insert("description", description);
 	Json::Obj(out)
+}
+
+/// One of several literals, or null, with the description after the choices.
+pub fn literals_or_null(values: &[&str], description: &str) -> Json {
+	let mut any: Vec<Json> = values.iter().map(|v| literal(v)).collect();
+	any.push(json!({ "type": "null" }));
+	json!({ "anyOf": any, "description": description })
 }
 
 /// The object with a description added last.

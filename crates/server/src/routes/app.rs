@@ -1,4 +1,4 @@
-//! /api/boot, /api/settings, /api/settings/{section}, /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/rules, /api/reading (package app-misc).
+//! /api/boot, /api/settings, /api/settings/{section}, /api/settings/prompts, /api/settings/prompts/{*segment}, /api/agent-folder, /api/agent-notes, /api/agent-actions, /api/rules, /api/reading.
 
 use std::sync::Arc;
 
@@ -20,7 +20,7 @@ use gs_services::app::reading_pages::{ReadingError, parse_page, reading_document
 use gs_services::app::{agent_actions::recent_agent_actions, put_settings_section};
 
 use crate::http::paths::{param, search_params};
-use crate::http::reply::{self, Unhandled, json_body};
+use crate::http::reply::{self, Unhandled, error, fields, json_body};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
@@ -35,20 +35,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/agent-actions", ApiRoute::new().get(actions).into_route())
 		.route("/api/rules", ApiRoute::new().get(rules).post(change_rule).into_route())
 		.route("/api/reading", ApiRoute::new().get(reading).into_route())
-}
-
-fn error(status: u16, message: &str) -> Response {
-	reply::json(status, &json!({ "error": message }))
-}
-
-/// `(await req.json().catch(() => ({})))` read for its fields: `{}` when the body is not JSON, and
-/// a throw (500) for `null`, whose fields cannot be read.
-async fn fields(body: Body) -> Result<Json, Unhandled> {
-	match json_body(body).await {
-		None => Ok(json!({})),
-		Some(Json::Null) => Err(Unhandled::from("body is null")),
-		Some(body) => Ok(body),
-	}
 }
 
 async fn boot(State(app): State<Arc<App>>) -> Response {

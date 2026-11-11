@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/today-note.ts.
-//!
 //! The [Today] note: a hidden lesson message that tells the agent today's date, time and time
 //! zone, then the class's open deadlines, the files added in the last few days (course info
 //! apart, so the teacher knows it can read it), and the practice problems the learner needed
@@ -13,12 +11,13 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use gs_base::re::Re;
+use gs_base::text::cmp16;
 use gs_base::{locale, text, time};
-use gs_json::{Json, js_number};
+use gs_json::Json;
+use gs_json::js_text::num_text;
 
 use super::new_files::{NEW_FILE_DAYS, is_recent};
 use super::time_zone_names::generic_name;
-use super::utf16_order::cmp_utf16;
 use crate::contracts::class::{compare_deadlines, deadline_due_at};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
 use crate::messages::native_messages::new_today_context_message;
@@ -85,17 +84,6 @@ fn number(part: Option<&str>) -> f64 {
 	trimmed.parse().unwrap_or(f64::NAN)
 }
 
-/// `String(n)`, which also writes NaN and Infinity.
-fn number_text(n: f64) -> String {
-	if n.is_nan() {
-		"NaN".to_owned()
-	} else if n.is_infinite() {
-		if n > 0.0 { "Infinity" } else { "-Infinity" }.to_owned()
-	} else {
-		js_number(n)
-	}
-}
-
 /// The weekday of `Date.UTC(y, m, d)`, None where V8 gives an invalid date (a part not finite,
 /// a year or month beyond V8's range, or a time past 8.64e15 ms).
 fn utc_weekday(y: f64, m: f64, d: f64) -> Option<&'static str> {
@@ -120,7 +108,7 @@ pub fn day_label(day: &str) -> String {
 	let d = number(d_part);
 	let month = (m.fract() == 0.0 && (1.0..=12.0).contains(&m)).then(|| MONTHS[m as usize - 1]);
 	// A missing part is `undefined` in the template, not NaN.
-	let day_text = if d_part.is_none() { "undefined".to_owned() } else { number_text(d) };
+	let day_text = if d_part.is_none() { "undefined".to_owned() } else { num_text(d) };
 	format!("{} {} {}", utc_weekday(y, m - 1.0, d).unwrap_or("undefined"), month.unwrap_or("undefined"), day_text)
 }
 
@@ -136,8 +124,8 @@ pub fn clock_label(time: &str) -> String {
 	let mut parts = time.split(':');
 	let (h, m) = (number(parts.next()), parts.next().map(|p| number(Some(p))));
 	let hour12 = if h % 12.0 == 0.0 { 12.0 } else { h % 12.0 };
-	let minutes = text::pad_start(&m.map_or_else(|| "undefined".to_owned(), number_text), 2, '0');
-	format!("{}:{minutes} {}", number_text(hour12), if h < 12.0 { "AM" } else { "PM" })
+	let minutes = text::pad_start(&m.map_or_else(|| "undefined".to_owned(), num_text), 2, '0');
+	format!("{}:{minutes} {}", num_text(hour12), if h < 12.0 { "AM" } else { "PM" })
 }
 
 /// "Fri Oct 30 11:59 PM", or just "Fri Oct 30" when the deadline has no time.
@@ -191,7 +179,7 @@ pub fn today_note_text(now_ms: i64, cls: Option<&Json>) -> String {
 		let (date, time) = deadline_due_at(d);
 		format!("{date}T{time}:00")
 	};
-	let (overdue, upcoming): (Vec<&Json>, Vec<&Json>) = open.into_iter().partition(|d| cmp_utf16(&due_stamp(d), &now_stamp).is_lt());
+	let (overdue, upcoming): (Vec<&Json>, Vec<&Json>) = open.into_iter().partition(|d| cmp16(&due_stamp(d), &now_stamp).is_lt());
 	let names: HashMap<&str, &str> = list("files").iter().map(|f| (f["id"].as_str().unwrap_or(""), f["name"].as_str().unwrap_or(""))).collect();
 
 	let mut lines = vec![head, String::new(), "Coming up in this class (not marked done):".to_owned()];

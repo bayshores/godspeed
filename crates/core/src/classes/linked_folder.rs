@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/linked-folder.ts.
-//!
 //! Linked folders by where they live: Google Drive for desktop's folders sit under
 //! ~/Library/CloudStorage/GoogleDrive-<account>/.
 

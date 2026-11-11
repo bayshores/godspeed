@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/headless.ts: what the helper jobs check their work
+//! What the helper jobs check their work
 //! with. SVGs go to PNG through gs_media and PDF pages through gs_pdf, both in this process.
 //!
 //! Running a demo's JavaScript needs a browser. The Node server reached one through Electron's

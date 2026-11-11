@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/agent-seen.ts: data/agent-seen.json, what each outside agent has
+//! data/agent-seen.json, what each outside agent has
 //! seen of each lesson. Read-modify-write; small by design.
 //!
 //! A file that cannot be read or parsed reads as nothing seen and is left where it is.

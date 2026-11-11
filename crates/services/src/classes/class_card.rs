@@ -6,6 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use gs_base::config::resolve;
+use gs_base::locks::LockKey;
 use gs_core::contracts::class::is_recording_file;
 use gs_core::graph::graph::get_graph;
 use gs_core::graph::topics::resolve_topics;
@@ -82,8 +83,9 @@ pub fn class_topics(app: &App, class_id: &str) -> Result<Vec<Json>, String> {
 
 /// Puts (or replaces, or removes) a lesson's class card: the first class-context marker is
 /// swapped for the new class's card; with no class it is dropped; a lesson without one gets it as
-/// its first message.
+/// its first message. Under the lesson's lock, so a message saved meanwhile is not written over.
 pub fn apply_class_card(app: &App, chat_id: &str, record: Option<&Json>) -> Result<(), String> {
+	let _held = app.locks.lock(LockKey::Chat(chat_id));
 	let Some(chat) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
 	let mut messages = chat["messages"].as_arr().cloned().unwrap_or_default();
 	let at = messages.iter().position(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("class-context"));

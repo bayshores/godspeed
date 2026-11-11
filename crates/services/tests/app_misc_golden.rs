@@ -1,4 +1,4 @@
-//! Parity with the TypeScript for the app package (tests/golden/app-misc.json, made by
+//! Parity with the TypeScript for the app services (tests/golden/app-misc.json, made by
 //! app-misc.golden.ts over a synthetic class): the settings parsers, the prompt segment list, the
 //! activity log, the saved-rules code and the reading view.
 

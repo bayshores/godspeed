@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/plan-step-bar.ts: the step bar's count over the native record
+//! The step bar's count over the native record
 //! ("2 / 4"). The plan's steps are counted in learning order, each with its derived status.
 
 use std::collections::HashMap;

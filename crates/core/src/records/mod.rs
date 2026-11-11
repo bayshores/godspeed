@@ -9,9 +9,6 @@ pub mod agent_seen;
 pub mod prompt_segments;
 pub mod changelog;
 
-#[cfg(test)]
-mod golden;
-
 use gs_json::Json;
 
 /// `Object.entries(value)` for an object or an array (index keys); nothing for other values.

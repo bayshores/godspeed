@@ -161,10 +161,6 @@ pub fn is_supported_class_file(name: &str) -> bool {
 	supported_class_file_extensions().any(|e| e == ext)
 }
 
-pub fn is_code_file(name: &str) -> bool {
-	has_extension(name, &CODE_EXTENSIONS)
-}
-
 pub fn is_recording_file(name: &str) -> bool {
 	has_extension(name, &RECORDING_EXTENSIONS)
 }

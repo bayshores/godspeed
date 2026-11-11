@@ -1,5 +1,3 @@
-//! Ported from pdfInfo in src/backend/agent/subagents/pdf-ops.ts.
-
 use std::path::Path;
 
 use gs_base::num::math_round;

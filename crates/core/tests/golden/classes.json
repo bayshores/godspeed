@@ -20642,90 +20642,63 @@
 				"at": "2026-11-10T11:00:00.000Z",
 				"recent": true,
 				"change": true,
-				"noAt": false,
-				"scanned": true,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "2026-11-07T12:00:00.000Z",
 				"recent": true,
 				"change": true,
-				"noAt": false,
-				"scanned": true,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "2026-11-07T11:59:59.999Z",
 				"recent": false,
 				"change": true,
-				"noAt": false,
-				"scanned": false,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "2026-10-27T12:00:00.000Z",
 				"recent": false,
 				"change": true,
-				"noAt": false,
-				"scanned": false,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "2026-10-27T11:59:59.999Z",
 				"recent": false,
 				"change": false,
-				"noAt": false,
-				"scanned": false,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "2026-11-11T00:00:00.000Z",
 				"recent": true,
 				"change": true,
-				"noAt": false,
-				"scanned": true,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "nope",
 				"recent": false,
 				"change": false,
-				"noAt": false,
-				"scanned": false,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "",
 				"recent": false,
 				"change": false,
-				"noAt": false,
-				"scanned": false,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			},
 			{
 				"now": 1794312000000,
 				"at": "2026-11-09",
 				"recent": true,
 				"change": true,
-				"noAt": false,
-				"scanned": true,
-				"notScanned": false,
-				"unset": false
+				"noAt": false
 			}
 		]
 	},

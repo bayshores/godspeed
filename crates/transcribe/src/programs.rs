@@ -30,13 +30,9 @@ pub(crate) struct Tools {
 	pub ffmpeg: PathBuf,
 }
 
-/// The first executable named `name` on `path_env` or in the Homebrew prefixes.
-pub fn find_program(name: &str, path_env: Option<&str>) -> Option<PathBuf> {
-	find_in(name, path_env, &EXTRA_BIN_DIRS)
-}
-
-/// `find_program` with the fallback folders given, so tests can keep the real ones out.
-pub(crate) fn find_in(name: &str, path_env: Option<&str>, extra: &[&str]) -> Option<PathBuf> {
+/// The first executable named `name` on `path_env` or in the `extra` folders (the Homebrew
+/// prefixes in production; tests pass none).
+pub fn find_in(name: &str, path_env: Option<&str>, extra: &[&str]) -> Option<PathBuf> {
 	let delimiter = if cfg!(windows) { ';' } else { ':' };
 	let exe = format!("{name}.exe");
 	let names: &[&str] = if cfg!(windows) { &[&exe, name] } else { &[name] };

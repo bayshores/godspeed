@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/agent-folder.ts (the part that undoes the old setups).
-//!
 //! The old ways godspeed loaded outside the folder: the retired Claude Code plugin, and the
 //! block once pasted into Codex's config.
 

@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use gs_base::locks::LockKey;
 use gs_base::{clock, fsx};
 use gs_engine::turn::agent::{Agent, AgentOptions};
 use gs_engine::turn::models::agent_engine;
@@ -280,6 +281,27 @@ async fn aborting_a_running_job_queues_its_notice() {
 	drop(wake);
 	assert_eq!(abort_job(&app, "job_a").unwrap(), Err(AbortRefusal::NotRunning));
 	assert_eq!(abort_job(&app, "job_none").unwrap(), Err(AbortRefusal::NotFound));
+}
+
+#[tokio::test]
+async fn an_abort_that_lands_as_the_job_finishes_leaves_the_result_alone() {
+	let root = scratch_dir("jobs");
+	let app = test_app(&root);
+	write_chat(&app, CHAT, Vec::new());
+	write_job(&app, "job_a", json!({}));
+	// The abort has checked the job and waits for its lock while the finish writes.
+	let held = app.locks.lock(LockKey::AppFile("jobs/job_a.json"));
+	let (aborting, runtime) = (app.clone(), tokio::runtime::Handle::current());
+	let abort = std::thread::spawn(move || {
+		let _entered = runtime.enter();
+		abort_job(&aborting, "job_a").unwrap()
+	});
+	std::thread::sleep(std::time::Duration::from_millis(100));
+	app.stores.jobs.update_job("job_a", &json!({ "status": "done", "result": { "brief": "ok", "sources": [] } })).unwrap();
+	drop(held);
+	assert_eq!(abort.join().unwrap(), Err(AbortRefusal::NotRunning));
+	assert_eq!(app.stores.jobs.get_job("job_a").unwrap()["status"].as_str(), Some("done"));
+	assert!(queued(&app, None).is_empty());
 }
 
 #[tokio::test]

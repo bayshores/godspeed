@@ -1,12 +1,12 @@
-//! Ported from src/backend/store/mcp-token.ts: the MCP access token, one secret in
+//! The MCP access token, one secret in
 //! data/mcp-token (mode 0600). It is made on the first page load and again whenever the file is
 //! missing; Settings can rotate it.
 
 use std::path::PathBuf;
-use std::sync::{Mutex, PoisonError};
 
 use gs_base::config::Paths;
 use gs_base::{fsx, ids, text};
+use parking_lot::Mutex;
 
 /// A token is 64 hex characters; anything shorter is not one.
 const TOKEN_MIN_LEN: usize = 32;
@@ -30,13 +30,13 @@ impl McpTokenStore {
 
 	/// Writes a fresh token (first start, or rotating it).
 	pub fn write_new_mcp_token(&self) -> Result<String, String> {
-		let _writing = self.writing.lock().unwrap_or_else(PoisonError::into_inner);
+		let _writing = self.writing.lock();
 		self.write_new()
 	}
 
 	/// The token, made first if the file is missing.
 	pub fn ensure_mcp_token(&self) -> Result<String, String> {
-		let _writing = self.writing.lock().unwrap_or_else(PoisonError::into_inner);
+		let _writing = self.writing.lock();
 		match self.read_mcp_token() {
 			Some(token) => Ok(token),
 			None => self.write_new(),

@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/agent-folder.ts.
-//!
 //! The godspeed folder (default ~/godspeed): the one folder an outside agent is opened in. It
 //! holds the agent's instructions (CLAUDE.md, AGENTS.md), the connection to the app (.mcp.json
 //! for Claude Code, command-line flags for Codex) and, in .godspeed/, the scripts and the start

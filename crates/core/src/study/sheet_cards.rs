@@ -1,10 +1,10 @@
 //! Every deadline of a class with its cheat sheet (cheat-sheet.ts: sheetCards).
 
 use gs_base::locale;
+use gs_base::text::cmp16;
 use gs_json::{Json, Obj};
 
 use super::cheat_sheet::{ParsedSheet, current_version};
-use super::js_greater;
 
 /// Every deadline of the class with its sheet: upcoming soonest first, then past ones, latest
 /// first. A card is `{ deadlineId, name, kind, date[, time], past, status, version }`, with status
@@ -30,7 +30,7 @@ pub fn sheet_cards(deadlines: &[Json], sheet_of: impl Fn(&str) -> Option<ParsedS
 			} else {
 				"none"
 			};
-			let past = d["done"].truthy() || js_greater(today, d["date"].as_str().unwrap_or(""));
+			let past = d["done"].truthy() || cmp16(today, d["date"].as_str().unwrap_or("")).is_gt();
 			let mut o = Obj::new();
 			o.insert("deadlineId", d["id"].clone());
 			o.insert("name", d["name"].clone());

@@ -64,7 +64,7 @@ impl Lab {
 		self.names(".").into_iter().filter(|n| n.starts_with(prefix)).map(|n| self.get(&n)).collect()
 	}
 
-	/// Copies a file or folder of the seed data into the data folder. False when the lab is not on
+	/// Copies a file or folder of the seed data into the data folder. False when the copy is not on
 	/// this machine, so the test can skip.
 	pub fn copy_seed(&self, rel: &str) -> bool {
 		let Some(from) = seed(rel) else { return false };
@@ -73,7 +73,7 @@ impl Lab {
 	}
 }
 
-/// A path inside the read-only copy of real app data kept in the rewrite lab.
+/// A path inside the read-only copy of real app data kept outside the repo.
 pub fn seed(rel: &str) -> Option<PathBuf> {
 	let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../rewrite-lab/seed-data").join(rel);
 	if path.exists() {

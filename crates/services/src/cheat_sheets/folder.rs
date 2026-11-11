@@ -10,7 +10,7 @@ use gs_base::fsx::node_error_message;
 use gs_base::locks::LockKey;
 use gs_base::time::iso_now;
 use gs_core::classes::class_shortcuts::unique_name;
-use gs_core::classes::utf16_order::cmp_utf16;
+use gs_base::text::cmp16;
 use gs_core::study::cheat_sheet::{current_version, newer_folder_pdf, sheet_folder_name, with_version};
 use gs_json::{Json, js_number, json};
 
@@ -19,6 +19,7 @@ use super::context::{Context, Saved, sheet_now};
 use super::Outcome;
 use crate::App;
 use crate::app::agent_folder::cheat_sheets_dir;
+use crate::app::disk::make_dir;
 
 pub(super) struct Folder {
 	pub sheet: Json,
@@ -35,17 +36,16 @@ fn names(dir: &std::path::Path) -> std::io::Result<Vec<String>> {
 /// a new one named for the class and deadline.
 pub(super) fn working_folder(app: &App, ctx: &Context, sheet: &Json) -> Result<Folder, String> {
 	let root = cheat_sheets_dir(app);
-	let made = |dir: &std::path::Path| std::fs::create_dir_all(dir).map_err(|e| node_error_message(&e, "mkdir", dir));
-	made(&root)?;
+	make_dir(&root)?;
 	let mut taken: HashSet<String> = names(&root).map_err(|e| node_error_message(&e, "scandir", &root))?.iter().map(|n| n.to_lowercase()).collect();
 	let name = match sheet["folder"].as_str().filter(|f| !f.is_empty()) {
 		Some(folder) => folder.to_owned(),
 		None => unique_name(&sheet_folder_name(&ctx.class_name, &ctx.deadline.name), &mut taken),
 	};
 	let dir = root.join(&name);
-	made(&dir)?;
+	make_dir(&dir)?;
 	let mut files: Vec<String> = names(&dir).map_err(|e| node_error_message(&e, "scandir", &dir))?.into_iter().filter(|n| !n.starts_with('.')).collect();
-	files.sort_by(|a, b| cmp_utf16(a, b));
+	files.sort_by(|a, b| cmp16(a, b));
 	let mut sheet = sheet.clone();
 	if sheet["folder"].as_str().is_none_or(str::is_empty)
 		&& let Some(o) = sheet.as_obj_mut()
@@ -75,7 +75,7 @@ pub(super) async fn take_folder_pdf(app: &App, ctx: &Context) -> Outcome<bool> {
 			Some((name, ms))
 		})
 		.collect();
-	files.sort_by(|a, b| cmp_utf16(&a.0, &b.0));
+	files.sort_by(|a, b| cmp16(&a.0, &b.0));
 	let at = current_version(sheet).and_then(|v| v["at"].as_str());
 	let Some(pick) = newer_folder_pdf(&files, at) else { return Ok(false) };
 	let mtime = files.iter().find(|f| f.0 == pick).map_or(f64::NAN, |f| f.1);

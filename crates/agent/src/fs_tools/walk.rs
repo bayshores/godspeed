@@ -3,17 +3,17 @@
 use std::path::Path;
 
 use gs_base::clock;
+use gs_base::posix::normalize;
 use gs_engine::turn::abort::Abort;
 
 use super::fs_shared::{WALK_TIMEOUT_MS, read_dir_items};
-use super::node_path::normalize;
 
 /// Folders never entered: dependencies and repository data, and the home folder's caches, app
 /// support and trash. Only walks skip them; naming one as the path is allowed.
 const EXCLUDED_DIR_NAMES: [&str; 4] = ["node_modules", ".git", "Library", ".Trash"];
 
 /// Why a walk ended early.
-pub struct Walked {
+pub(super) struct Walked {
 	pub timed_out: bool,
 	pub aborted: bool,
 }

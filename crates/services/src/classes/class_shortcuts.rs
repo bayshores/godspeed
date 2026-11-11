@@ -194,8 +194,10 @@ fn ensure_dir(dir: &Path, made: &mut Vec<String>) -> Result<(), String> {
 	Ok(())
 }
 
-/// Syncs without ever failing: shortcuts are a convenience.
+/// Syncs without ever failing: shortcuts are a convenience. One sync at a time: each reads and
+/// rewrites the manifest, so two at once would lose the links the other made.
 pub fn sync_shortcuts_safely(app: &App, folder: &Path, clear: bool) {
+	let _one_at_a_time = app.classes.shortcut_sync.lock();
 	if let Err(err) = sync_shortcuts(app, folder, clear) {
 		eprintln!("[class-shortcuts] sync failed: {err}");
 	}
@@ -233,4 +235,25 @@ pub fn watch_shortcuts(app: &Arc<App>, folder: impl Fn(&App) -> Option<PathBuf> 
 			}
 		}
 	});
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[test]
+	fn a_sync_waits_for_the_one_running() {
+		let root = scratch_dir("shortcuts-one");
+		let app = test_app(&root);
+		let folder = root.join("godspeed");
+		let running = app.classes.shortcut_sync.lock();
+		let (syncing, at) = (app.clone(), folder.clone());
+		let sync = std::thread::spawn(move || sync_shortcuts_safely(&syncing, &at, false));
+		std::thread::sleep(std::time::Duration::from_millis(100));
+		assert!(!manifest_path(&folder).exists());
+		drop(running);
+		sync.join().unwrap();
+		assert!(manifest_path(&folder).exists());
+	}
 }

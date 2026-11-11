@@ -21,7 +21,7 @@ mod text_cache;
 pub use deadlines::{add_class_deadline, deadline_with_class, list_class_deadlines, list_open_deadlines, remove_class_deadline, update_class_deadline};
 pub use files::{AGENT_FILE_READING_REFUSAL, add_copied_file, add_file_from_path, remove_file, replace_copied_file, retry_file, set_file_kind, source_id_for};
 pub use folder::{folder_status_of, link_folder, scan_linked_folder, unlink_folder};
-pub use lifecycle::{create_class, delete_class, get_class, list_classes, move_chat_to_class, request_class_scope, update_class};
+pub use lifecycle::{delete_class, move_chat_to_class, request_class_scope, update_class};
 pub use pipeline::{enqueue_file, queue_waiting_files, start_class_scanner};
 pub use state::ClassesState;
 

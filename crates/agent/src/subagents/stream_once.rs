@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/stream-once.ts: one raw model call for the hand-rolled
+//! One raw model call for the hand-rolled
 //! loops (pdf reader, visual maker). They feed rendered images back between calls, which the
 //! agent loop's tool plumbing cannot express. A failed call still reports its usage (it may have
 //! cost tokens); an aborted one does not, the same as `run_subagent`.

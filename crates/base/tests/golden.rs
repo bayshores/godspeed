@@ -28,7 +28,6 @@ fn strings_match_node() {
 		assert_eq!(text::len16(input) as i64, i(&c["length"]), "{input:?}");
 		for (k, (a, b)) in cuts.iter().enumerate() {
 			assert_eq!(text::slice16(input, *a, *b), s(&c["slices"][k]), "{input:?} slice {a} {b:?}");
-			assert_eq!(text::substring16(input, *a, *b), s(&c["substrings"][k]), "{input:?} substring {a} {b:?}");
 		}
 		assert_eq!(text::trim(input), s(&c["trim"][0]));
 		assert_eq!(text::trim_start(input), s(&c["trim"][1]));

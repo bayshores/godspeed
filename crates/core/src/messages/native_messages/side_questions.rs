@@ -7,7 +7,7 @@ use gs_base::text;
 use gs_json::{Json, quote};
 
 use super::scans::{active_problem_of, dangling_question_of, is_bookkeeping, is_side_question, tool_calls};
-use crate::messages::js_text::js_string;
+use gs_json::js_text::js_string;
 use crate::messages::pending::is_question_tool;
 
 /// The model's result for a question the learner asked a side question around: providers need a

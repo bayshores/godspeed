@@ -7,10 +7,11 @@ use std::sync::{Arc, LazyLock};
 use axum::extract::State;
 use axum::http::{HeaderValue, Uri, header};
 use axum::response::Response;
+use gs_base::posix::extname;
 use gs_base::re::Re;
 use gs_services::App;
 
-use super::paths::{decoded_segments, extname};
+use super::paths::decoded_segments;
 use super::reply;
 
 /// Built files carry a content hash in their name, so they never change.

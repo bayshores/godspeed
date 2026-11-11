@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use gs_agent::extraction::ledgers;
 use gs_agent::teacher::teacher_agent::{AgentBuildOptions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_talk_agent, create_teacher_agent};
 use gs_agent::tools::class::ClassToolContext;
 use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
@@ -26,7 +27,6 @@ use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
 
-use super::agent_ports::{ChatRecords, JobRecords, ScopeGraph};
 use super::chat_handler::send_first_message;
 use super::homework::homework_deadline;
 use super::job_host::run_job;
@@ -57,7 +57,7 @@ fn lesson_class_rules(app: &App, class_id: Option<&str>) -> Option<(String, Vec<
 }
 
 fn graph_of(app: &Arc<App>, scope: Option<&str>) -> Arc<dyn GraphStore> {
-	Arc::new(ScopeGraph { app: app.clone(), scope: scope.map(str::to_owned) })
+	Arc::new(ledgers::ScopedGraph::new(&app.stores.graphs, scope))
 }
 
 /// Every class graph plus "No class", `own` marking the lesson's (reads may cross classes, writes
@@ -73,7 +73,7 @@ fn scoped_graphs(app: &Arc<App>, lesson_scope: Option<&str>) -> Arc<dyn Fn() -> 
 
 /// The map readers, when the settings open them to the agent.
 fn graph_tools(app: &Arc<App>, effective: &Json, lesson_scope: Option<&str>) -> Option<GraphToolContext> {
-	graph_tools_enabled(effective).then(|| GraphToolContext { chat_store: Arc::new(ChatRecords(app.clone())), graph_store: graph_of(app, lesson_scope), graphs: Some(scoped_graphs(app, lesson_scope)) })
+	graph_tools_enabled(effective).then(|| GraphToolContext { chat_store: app.stores.chats.clone(), graph_store: graph_of(app, lesson_scope), graphs: Some(scoped_graphs(app, lesson_scope)) })
 }
 
 /// The whole graph's nodes, read fresh per pose.
@@ -147,12 +147,12 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		..AgentBuildOptions::new(engine, &app.stores.prompt_overrides)
 	};
 
-	let chats: Arc<dyn ChatPort> = Arc::new(ChatRecords(app.clone()));
+	let chats: Arc<dyn ChatPort> = app.stores.chats.clone();
 	let spawn: Spawn = {
 		let app = app.clone();
 		Arc::new(move |job: &Json, input: &Json| run_job(&app, job["id"].as_str().unwrap_or_default(), Some(input.clone())))
 	};
-	let jobs = JobToolContext { chat_id: chat_id.clone(), job_store: Arc::new(JobRecords(app.clone())), spawn };
+	let jobs = JobToolContext { chat_id: chat_id.clone(), job_store: app.stores.jobs.clone(), spawn };
 	let class_actions = agent_class_actions(app);
 	let side = LessonSide { class: lesson_scope.map(|id| class_tools(app, id)), save_rule: Some(save_rule(app, lesson_scope)), class_actions: Some(class_actions.clone()) };
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };

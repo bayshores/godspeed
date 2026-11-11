@@ -1,5 +1,5 @@
-//! Ported from providerSafePng, chunk, crc32 in src/backend/agent/subagents/headless.ts; also
-//! adds the IEND chunk an attached PNG may lack, which libpng forgives.
+//! PNG fixes: merging split IDAT chunks, and adding the IEND chunk an attached PNG may lack,
+//! which libpng forgives.
 
 const SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a];
 /// Signature plus the smallest chunk (length, type, CRC).

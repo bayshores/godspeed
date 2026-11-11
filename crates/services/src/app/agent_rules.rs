@@ -3,6 +3,7 @@
 //! it as the agent's. The learner can undo or edit it from the chat, the notice or Settings.
 
 use gs_base::events::EventKind;
+use gs_base::locks::{Guard, LockKey};
 use gs_base::time;
 use gs_core::records::agent_rules::{rule_for, same_where, where_label};
 use gs_core::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, one_line};
@@ -51,6 +52,19 @@ fn strings(raw: &Json) -> Vec<String> {
 	raw.as_arr().map(|list| list.iter().filter_map(|rule| rule.as_str().map(str::to_owned)).collect()).unwrap_or_default()
 }
 
+const SETTINGS: LockKey<'static> = LockKey::AppFile("settings.json");
+/// The marks file, held from its read through its write; taken after the list's lock.
+const MARKS: LockKey<'static> = LockKey::AppFile("agent-rules.json");
+
+/// Holds the file the list at `place` lives in (its class record, or settings.json) from its read
+/// through its write, so two saves at once never write over each other's rule.
+fn lock_list(app: &App, place: &Json) -> Guard {
+	match place["classId"].as_str() {
+		Some(id) => app.locks.lock(LockKey::Class(id)),
+		None => app.locks.lock(SETTINGS),
+	}
+}
+
 /// The rule list at `place`, or None for a class that doesn't exist.
 fn read_list(app: &App, place: &Json) -> Result<Option<Vec<String>>, String> {
 	if let Some(id) = place["classId"].as_str() {
@@ -86,6 +100,7 @@ fn others(saved: Vec<Json>, place: &Json, text: &str) -> Vec<Json> {
 }
 
 fn unmark(app: &App, place: &Json, text: &str) -> Result<(), String> {
+	let _marks = app.locks.lock(MARKS);
 	let saved = app.stores.agent_rules.read_saved_rules();
 	let before = saved.len();
 	let kept = others(saved, place, text);
@@ -102,6 +117,7 @@ fn save(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json
 	if rule.is_empty() {
 		return Err(too_long());
 	}
+	let _list = lock_list(app, place);
 	let Some(list) = read_list(app, place)? else { return Err(RuleFailure::Refused("No such class.".to_owned())) };
 	let saved = outcome(app, place, &rule);
 	// The learner already has it: nothing to save or mark.
@@ -114,9 +130,12 @@ fn save(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json
 	}
 	write_list(app, place, &[list, vec![rule.clone()]].concat())?;
 	// A stale mark from a rule the learner removed in Settings is replaced, not doubled.
-	let mut marks = others(app.stores.agent_rules.read_saved_rules(), place, &rule);
-	marks.push(json!({ "where": place, "text": rule, "at": time::iso_now() }));
-	app.stores.agent_rules.write_saved_rules(&marks)?;
+	{
+		let _marks = app.locks.lock(MARKS);
+		let mut marks = others(app.stores.agent_rules.read_saved_rules(), place, &rule);
+		marks.push(json!({ "where": place, "text": rule, "at": time::iso_now() }));
+		app.stores.agent_rules.write_saved_rules(&marks)?;
+	}
 	let event = match agent.filter(|a| !a.is_empty()) {
 		Some(agent) => json!({ "saved": { "text": rule, "where": place, "label": label, "agent": agent } }),
 		None => json!({}),
@@ -134,6 +153,7 @@ pub fn save_rule_by_agent(app: &App, text: &str, place: &Json, agent: Option<&st
 
 /// Undo: take the rule out of its list. False when it isn't there.
 pub fn remove_rule(app: &App, place: &Json, text: &str) -> Result<bool, String> {
+	let _list = lock_list(app, place);
 	let Some(list) = read_list(app, place)?.filter(|list| list.iter().any(|rule| rule == text)) else { return Ok(false) };
 	write_list(app, place, &list.into_iter().filter(|rule| rule != text).collect::<Vec<_>>())?;
 	unmark(app, place, text)?;
@@ -147,6 +167,7 @@ pub fn edit_rule(app: &App, place: &Json, text: &str, new_text: &str) -> Result<
 	if rule.is_empty() {
 		return Err(too_long());
 	}
+	let _list = lock_list(app, place);
 	let list = read_list(app, place)?;
 	let Some((list, at)) = list.and_then(|list| list.iter().position(|r| r == text).map(|at| (list, at))) else { return Err(RuleFailure::NotFound) };
 	if rule != text && list.contains(&rule) {
@@ -162,6 +183,9 @@ pub fn edit_rule(app: &App, place: &Json, text: &str, new_text: &str) -> Result<
 /// The agent-saved rules that are still in their lists. Marks for rules the learner removed or
 /// rewrote in Settings are dropped here.
 pub fn agent_saved_rules(app: &App) -> Result<Vec<Json>, String> {
+	// settings.json first: reading an area's list takes it, and the lock order puts it first.
+	let _settings = app.locks.lock(SETTINGS);
+	let _marks = app.locks.lock(MARKS);
 	let saved = app.stores.agent_rules.read_saved_rules();
 	let mut kept = Vec::new();
 	for mark in &saved {
@@ -208,6 +232,30 @@ mod tests {
 		save_rule_by_agent(&app, "Keep it short", &area(), None).unwrap();
 		assert_eq!(app.stores.agent_rules.read_saved_rules().len(), 1);
 		assert!(events.try_recv().is_err());
+	}
+
+	#[test]
+	fn two_rules_saved_at_once_both_stay_marked() {
+		let root = scratch_dir("rules-together");
+		let app = test_app(&root);
+		let class = app.stores.classes.create_class(&json!({ "name": "Algebra" })).unwrap();
+		for (round, place) in [area(), json!({ "classId": class["id"] })].iter().cycle().take(40).enumerate() {
+			let start = std::sync::Arc::new(std::sync::Barrier::new(2));
+			let save = |rule: String| {
+				let (app, start, place) = (app.clone(), start.clone(), place.clone());
+				std::thread::spawn(move || {
+					start.wait();
+					save_rule_by_agent(&app, &rule, &place, None).unwrap();
+				})
+			};
+			let threads = [save(format!("A{round}")), save(format!("B{round}"))];
+			threads.into_iter().for_each(|t| t.join().unwrap());
+			let list = read_list(&app, place).unwrap().unwrap();
+			assert!(list.contains(&format!("A{round}")) && list.contains(&format!("B{round}")), "round {round}: {list:?}");
+			write_list(&app, place, &[]).unwrap();
+			let marked = app.stores.agent_rules.read_saved_rules();
+			assert!(marked.iter().any(|m| m["text"].as_str() == Some(&format!("A{round}"))) && marked.iter().any(|m| m["text"].as_str() == Some(&format!("B{round}"))), "round {round}");
+		}
 	}
 
 	#[test]

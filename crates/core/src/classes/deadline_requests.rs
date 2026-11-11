@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/deadline-requests.ts.
-//!
 //! Deadlines godspeed asks the agent about by itself, so the learner never has to: open ones with
 //! nothing linked, in a class with files it can read. Each deadline is asked about once (the
 //! Talk record remembers).
@@ -9,7 +7,7 @@ use std::collections::HashSet;
 use gs_base::time;
 use gs_json::{Json, json};
 
-use super::utf16_order::cmp_utf16;
+use gs_base::text::cmp16;
 use crate::messages::native_messages::new_app_request_message;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,7 +35,7 @@ pub fn unlinked_deadlines(classes: &[Json], today: &str, asked: &HashSet<String>
 		}
 		for d in c["deadlines"].as_arr().map_or(&[][..], Vec::as_slice) {
 			let open = !d["done"].truthy()
-				&& cmp_utf16(d["date"].as_str().unwrap_or(""), today).is_ge()
+				&& cmp16(d["date"].as_str().unwrap_or(""), today).is_ge()
 				&& d["fileIds"].as_arr().is_some_and(Vec::is_empty)
 				&& !asked.contains(d["id"].as_str().unwrap_or(""));
 			if open {

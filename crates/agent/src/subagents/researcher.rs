@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/researcher.ts: the research job's agent, separate from
+//! The research job's agent, separate from
 //! the teacher, with only web_fetch and the PDF tools, so fetch churn never reaches the
 //! teacher's context. There is no search engine: the researcher fetches sources by URL.
 

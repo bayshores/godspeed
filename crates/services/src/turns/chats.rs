@@ -1,21 +1,22 @@
 //! Lesson deletion and the per-lesson coverage read (chats.ts). Deleting refuses while a turn or a
 //! live job runs, true-cancels the lesson's extraction and waits it out, then purges the graph
-//! traces, the jobs and the record in one synchronous block.
+//! traces, the jobs and the record under the lesson's lock.
 
 use std::sync::Arc;
 
 use gs_agent::subagents::aborts::is_job_live;
 use gs_base::clock;
+use gs_base::locks::LockKey;
 use gs_core::graph::coverage::coverage_of;
-use gs_core::graph::graph_deletion::{ChatDeleteMode, delete_chat_traces};
+use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_json::{Json, json};
 use gs_store::graph::Ledger;
 
 use super::turn_liveness::is_turn_running;
 use super::turn_runs::clear_turn_failure;
 use crate::App;
-use crate::graph::extraction_runs::{abort_extraction, extraction_statuses};
-use crate::graph::graph::{graph_revision, graph_store_for};
+use crate::graph::extraction_runs::{abort_extraction, extraction_statuses, runs};
+use crate::graph::graph::{delete_chat_from_graph, graph_revision};
 use crate::jobs::discard_chat_deliveries;
 
 /// How long the wind-down may take before the caller gets a retryable 503.
@@ -75,39 +76,71 @@ fn job_live(app: &Arc<App>, job: &Json) -> bool {
 	job["id"].as_str().is_some_and(|id| is_job_live(&app.jobs.aborts, id))
 }
 
-/// Quiesces one lesson before a synchronous graph rewrite (a delete or a class move): refuses
-/// while a turn or job runs, aborts and waits out its extraction. None: run the rewrite now,
-/// with no await in between.
+/// An extraction of the lesson runs: from its claim, before it lists itself in the dock, to its
+/// last batch.
+fn extracting(app: &App, chat_id: &str) -> bool {
+	runs(app).in_flight(chat_id) || extraction_statuses(app).iter().any(|run| run["chatId"].as_str() == Some(chat_id))
+}
+
+fn winding_down() -> Refusal {
+	Refusal { status: 503, code: "extraction_winding_down", error: "This lesson is still finishing its graph work. Try again in a moment.", job_ids: None }
+}
+
+/// Quiesces one lesson before a graph rewrite (a delete or a class move): refuses while a turn or
+/// job runs, aborts and waits out its extraction. None: take the lesson's lock and check
+/// `rewrite_blocker` under it, since a turn or an extraction may start before the lock is taken.
 pub async fn quiesce_chat_for_rewrite(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
 	if let Some(blocker) = running_work_blocker(app, chat_id) {
 		return Some(blocker);
 	}
-	let extracting = |app: &Arc<App>| extraction_statuses(app).iter().any(|run| run["chatId"].as_str() == Some(chat_id));
-	if extracting(app) {
+	let deadline = clock::now_ms() + WIND_DOWN_TIMEOUT_MS;
+	while extracting(app, chat_id) {
+		// Aborted on every pass: each batch lists itself with a new abort when it starts.
 		abort_extraction(app, chat_id);
-		let deadline = clock::now_ms() + WIND_DOWN_TIMEOUT_MS;
-		while extracting(app) {
-			if clock::now_ms() > deadline {
-				return Some(Refusal { status: 503, code: "extraction_winding_down", error: "This lesson is still finishing its graph work. Try again in a moment.", job_ids: None });
-			}
-			clock::sleep(WIND_DOWN_POLL_MS).await;
+		if clock::now_ms() > deadline {
+			return Some(winding_down());
 		}
+		clock::sleep(WIND_DOWN_POLL_MS).await;
 	}
 	// A result wake or a worker may have started during the wind-down.
 	running_work_blocker(app, chat_id)
 }
 
+/// The last check before a rewrite, under the lesson's lock: a turn begins under it and an
+/// extraction reads the lesson under it, so neither can start until the rewrite is done.
+pub fn rewrite_blocker(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
+	running_work_blocker(app, chat_id).or_else(|| extracting(app, chat_id).then(winding_down))
+}
+
+fn no_lesson() -> Refusal {
+	Refusal { status: 404, code: "not_found", error: "No such lesson", job_ids: None }
+}
+
 /// Deletes a lesson: the gates, then ledgers, jobs and the record (last, so a crash leaves a
 /// deletable lesson, never live traces of a deleted one).
 pub async fn delete_chat_session(app: &Arc<App>, chat_id: &str, mode: ChatDeleteMode) -> Result<Result<Deleted, Refusal>, String> {
-	let Some(record) = app.stores.chats.get_chat(chat_id) else {
-		return Ok(Err(Refusal { status: 404, code: "not_found", error: "No such lesson", job_ids: None }));
-	};
+	// On its own task: a request whose client goes away is dropped at its next await, and once the
+	// wind-down has aborted the lesson's extraction the delete must still finish.
+	let (app, chat_id) = (app.clone(), chat_id.to_owned());
+	tokio::spawn(async move { run_delete(&app, &chat_id, mode).await }).await.unwrap_or_else(|err| Err(err.to_string()))
+}
+
+async fn run_delete(app: &Arc<App>, chat_id: &str, mode: ChatDeleteMode) -> Result<Result<Deleted, Refusal>, String> {
+	if app.stores.chats.get_chat(chat_id).is_none() {
+		return Ok(Err(no_lesson()));
+	}
 	if let Some(blocker) = quiesce_chat_for_rewrite(app, chat_id).await {
 		return Ok(Err(blocker));
 	}
+	// A turn begins under this lock, so none can start between the check and the removal. The
+	// record is read again: a move may have changed its class during the wind-down.
+	let _held = app.locks.lock(LockKey::Chat(chat_id));
+	if let Some(blocker) = rewrite_blocker(app, chat_id) {
+		return Ok(Err(blocker));
+	}
+	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(Err(no_lesson())) };
 	let scope = record["classId"].as_str();
-	let stats = delete_chat_traces(graph_store_for(app, scope).as_ref(), chat_id, mode)?;
+	let stats = delete_chat_from_graph(app, scope, chat_id, mode)?;
 	let jobs_removed = app.stores.jobs.delete_jobs_for_chat(chat_id);
 	if app.stores.chats.delete_chat(chat_id) {
 		discard_chat_deliveries(app, chat_id);
@@ -143,4 +176,94 @@ pub fn session_coverage(app: &Arc<App>, record: &Json) -> Result<Json, String> {
 		"running": running,
 		"lastFoldedAt": last_folded_at,
 	}))
+}
+
+#[cfg(test)]
+mod tests {
+	use std::time::Duration;
+
+	use gs_json::stringify;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::turns::turn_liveness::begin_turn;
+
+	fn fact(id: &str, chat_id: &str) -> Json {
+		json!({ "id": id, "name": id, "statement": id, "createdAt": "2030-01-01T00:00:00.000Z", "aliases": [], "provenance": [{ "chatId": chat_id, "messageId": "m1" }] })
+	}
+
+	/// Runs the delete on its own thread, as a request would.
+	fn delete_on_another_thread(app: &Arc<App>, chat_id: &str) -> std::thread::JoinHandle<Result<Deleted, Refusal>> {
+		let (app, chat_id) = (app.clone(), chat_id.to_owned());
+		std::thread::spawn(move || {
+			let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+			runtime.block_on(delete_chat_session(&app, &chat_id, ChatDeleteMode::DeleteNodes)).unwrap()
+		})
+	}
+
+	#[test]
+	fn a_fact_merged_while_a_lesson_is_deleted_stays() {
+		let root = scratch_dir("delete-merge");
+		let app = test_app(&root);
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		app.stores.graphs.append(None, Ledger::Nodes, &fact("n_gone", &chat_id)).unwrap();
+		// An extraction's merge holds the graph while the delete arrives.
+		let merging = app.locks.lock(LockKey::Graph(None));
+		let delete = delete_on_another_thread(&app, &chat_id);
+		std::thread::sleep(Duration::from_millis(100));
+		app.stores.graphs.append(None, Ledger::Nodes, &fact("n_new", "chat_other")).unwrap();
+		drop(merging);
+		assert!(delete.join().unwrap().is_ok());
+		let ids: Vec<String> = app.stores.graphs.read(None, Ledger::Nodes).unwrap().iter().map(|n| stringify(&n["id"])).collect();
+		assert_eq!(ids, [r#""n_new""#]);
+	}
+
+	#[test]
+	fn a_delete_waits_out_an_extraction_that_claimed_the_lesson_but_is_not_listed_yet() {
+		let root = scratch_dir("delete-claimed");
+		let app = test_app(&root);
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		assert!(runs(&app).claim(&chat_id));
+		let delete = delete_on_another_thread(&app, &chat_id);
+		std::thread::sleep(Duration::from_millis(200));
+		assert!(!delete.is_finished());
+		runs(&app).release(&chat_id);
+		assert!(delete.join().unwrap().is_ok());
+	}
+
+	#[tokio::test(flavor = "multi_thread")]
+	async fn a_delete_whose_request_goes_away_during_the_wind_down_still_finishes() {
+		let root = scratch_dir("delete-gone");
+		let app = test_app(&root);
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		assert!(runs(&app).claim(&chat_id));
+		// The window closes while the delete waits out the extraction.
+		tokio::select! {
+			_ = delete_chat_session(&app, &chat_id, ChatDeleteMode::DeleteNodes) => panic!("the delete ended before the extraction"),
+			() = clock::sleep(100) => {}
+		}
+		runs(&app).release(&chat_id);
+		for _ in 0..200 {
+			if app.stores.chats.get_chat(&chat_id).is_none() {
+				break;
+			}
+			clock::sleep(10).await;
+		}
+		assert!(app.stores.chats.get_chat(&chat_id).is_none());
+	}
+
+	#[test]
+	fn a_turn_that_starts_while_a_delete_waits_refuses_the_delete() {
+		let root = scratch_dir("delete-turn");
+		let app = test_app(&root);
+		let chat_id = app.stores.chats.create_chat("Sets", None, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		// The learner's message is being written ahead of its turn.
+		let writing = app.locks.lock(LockKey::Chat(&chat_id));
+		let delete = delete_on_another_thread(&app, &chat_id);
+		std::thread::sleep(Duration::from_millis(100));
+		assert!(begin_turn(&app, &chat_id));
+		drop(writing);
+		assert_eq!(delete.join().unwrap().err().map(|refusal| refusal.code), Some("turn_in_flight"));
+		assert!(app.stores.chats.get_chat(&chat_id).is_some());
+	}
 }

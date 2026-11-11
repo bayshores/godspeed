@@ -1,5 +1,5 @@
-//! boot, onboarding, welcome, whats-new, settings-body, agent-folder, old-setup, agent-memory, agent-rules, agent-actions, today-note, reading-pages.
-//! Owner: package `app-misc` (this folder, mod.rs included; add files here).
+//! App-level services: boot, onboarding, welcome, what's new, settings bodies, the agent folder,
+//! old setups, agent memory, agent rules, agent actions, today's note and reading pages.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -13,7 +13,7 @@ pub mod agent_folder;
 pub mod agent_memory;
 pub mod agent_rules;
 pub mod boot;
-mod disk;
+pub(crate) mod disk;
 mod folder_files;
 pub mod old_setup;
 mod onboarding;

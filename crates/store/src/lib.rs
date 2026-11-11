@@ -29,9 +29,10 @@ pub struct Stores {
 	pub agent_seen: Arc<agent_seen::AgentSeenStore>,
 	pub agent_actions: agent_actions::AgentActionsStore,
 	pub mcp_token: mcp_token::McpTokenStore,
-	pub jobs: jobs::JobStore,
-	pub graphs: graph::GraphStores,
-	pub chats: chats::ChatStore,
+	/// The lesson tools hold these for a whole turn, so they are shared.
+	pub jobs: Arc<jobs::JobStore>,
+	pub graphs: Arc<graph::GraphStores>,
+	pub chats: Arc<chats::ChatStore>,
 	pub classes: classes::ClassStore,
 	pub cheat_sheets: cheat_sheets::CheatSheetStore,
 }
@@ -46,9 +47,9 @@ impl Stores {
 			agent_seen: Arc::new(agent_seen::AgentSeenStore::new(paths, locks)),
 			agent_actions: agent_actions::AgentActionsStore::new(paths, locks),
 			mcp_token: mcp_token::McpTokenStore::new(paths),
-			jobs: jobs::JobStore::new(paths, events, locks),
-			graphs: graph::GraphStores::new(paths, locks),
-			chats: chats::ChatStore::new(paths, events, locks),
+			jobs: Arc::new(jobs::JobStore::new(paths, events, locks)),
+			graphs: Arc::new(graph::GraphStores::new(paths, locks)),
+			chats: Arc::new(chats::ChatStore::new(paths, events, locks)),
 			classes: classes::ClassStore::new(paths, events, locks),
 			cheat_sheets: cheat_sheets::CheatSheetStore::new(paths, locks),
 		}

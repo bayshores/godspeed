@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use gs_base::config::resolve;
 use gs_base::events::EventKind;
+use gs_base::locks::LockKey;
 use gs_base::{clock, fsx, time};
 use gs_core::classes::lecture_transcript::transcript_for;
 use gs_core::classes::linked_folder::folder_source;
@@ -122,21 +123,31 @@ fn set_folder_status(app: &App, class_id: &str, problem: Option<&str>, read: Opt
 	}
 }
 
+/// A scan asked for while new files are triaged runs after the triage. True when it waits.
+fn wait_for_triage(app: &Arc<App>, class_id: &str, linking: bool) -> bool {
+	let Some(triage) = app.classes.triaging.lock().get(class_id).copied() else { return false };
+	let (app, class_id) = (app.clone(), class_id.to_owned());
+	tokio::spawn(async move {
+		triage_done(&app, &class_id, triage).await;
+		scan_linked_folder(&app, &class_id, linking);
+	});
+	true
+}
+
+/// The linked folder of a class that is scanned (not archived).
+fn scanned_folder(record: &Json) -> Option<&str> {
+	record["linkedFolder"].as_str().filter(|f| !f.is_empty() && !record["archived"].truthy())
+}
+
 /// One scan of a class's linked folder. `linking` (the folder was just picked) takes the folder as
 /// it is at once and announces nothing. Synchronous except for the triage of new files and the
 /// queued processing; a scan asked for while new files are triaged runs after the triage.
 pub fn scan_linked_folder(app: &Arc<App>, class_id: &str, linking: bool) {
-	let running = app.classes.triaging.lock().get(class_id).copied();
-	if let Some(triage) = running {
-		let (app, class_id) = (app.clone(), class_id.to_owned());
-		tokio::spawn(async move {
-			triage_done(&app, &class_id, triage).await;
-			scan_linked_folder(&app, &class_id, linking);
-		});
+	if wait_for_triage(app, class_id, linking) {
 		return;
 	}
-	let Some(record) = app.stores.classes.get_class(class_id) else { return };
-	let Some(root) = record["linkedFolder"].as_str().filter(|f| !f.is_empty() && !record["archived"].truthy()) else { return };
+	let Some(root) = app.stores.classes.get_class(class_id).and_then(|record| scanned_folder(&record).map(str::to_owned)) else { return };
+	let root = root.as_str();
 	let walked = std::fs::metadata(root).and_then(|meta| {
 		if !meta.is_dir() {
 			return Err(io::Error::other("not a folder"));
@@ -152,6 +163,15 @@ pub fn scan_linked_folder(app: &Arc<App>, class_id: &str, linking: bool) {
 			return;
 		}
 	};
+	let sigs: Vec<(&String, io::Result<String>)> = walk.files.iter().map(|rel| (rel, stat_sig(&Path::new(root).join(rel)))).collect();
+	// The folder is read above without the lock (it can be slow); what it means is decided under
+	// it, from the record and the files seen as the last scan left them, so two scans at once never
+	// both add the same new file.
+	let _held = app.locks.lock(LockKey::Class(class_id));
+	if wait_for_triage(app, class_id, linking) {
+		return;
+	}
+	let Some(record) = app.stores.classes.get_class(class_id).filter(|record| scanned_folder(record) == Some(root)) else { return };
 	let linked: Vec<&Json> = files_of(&record).iter().filter(|f| str_of(f, "origin") == "linked").collect();
 	// A synced folder (Google Drive starting up, signed out) can look empty for a while: that is
 	// never taken as every file deleted.
@@ -203,8 +223,8 @@ pub fn scan_linked_folder(app: &Arc<App>, class_id: &str, linking: bool) {
 	let mut added: Vec<Json> = Vec::new();
 	let mut to_process: Vec<String> = Vec::new();
 	let mut settling = 0;
-	for rel in &walk.files {
-		let Ok(sig) = stat_sig(&Path::new(root).join(rel)) else { continue };
+	for (rel, sig) in sigs {
+		let Ok(sig) = sig else { continue };
 		if !settled(rel, Some(sig.clone())) {
 			if known_file(rel).is_none() {
 				settling += 1;
@@ -433,4 +453,38 @@ fn remove_copy_dir(app: &App, class_id: &str, file_id: &str) {
 		}
 	}
 	let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[tokio::test]
+	async fn two_scans_at_once_add_a_new_file_once() {
+		let root = scratch_dir("scan-together");
+		let app = test_app(&root);
+		let folder = root.join("notes");
+		std::fs::create_dir_all(&folder).unwrap();
+		fsx::write_text_atomic(&folder.join("week1.md"), "# Week 1\n\nSets and functions.\n").unwrap();
+		let class = app.stores.classes.create_class(&json!({ "name": "Algebra" })).unwrap();
+		let id = class["id"].as_str().unwrap().to_owned();
+		app.stores.classes.update_class(&id, &json!({ "linkedFolder": folder.to_string_lossy() })).unwrap();
+		// Both scans read the folder, then reach the class while it is held.
+		let held = app.locks.lock(LockKey::Class(&id));
+		let scans: Vec<_> = (0..2)
+			.map(|_| {
+				let (app, id, runtime) = (app.clone(), id.clone(), tokio::runtime::Handle::current());
+				std::thread::spawn(move || {
+					let _entered = runtime.enter();
+					scan_linked_folder(&app, &id, true);
+				})
+			})
+			.collect();
+		std::thread::sleep(std::time::Duration::from_millis(200));
+		drop(held);
+		scans.into_iter().for_each(|scan| scan.join().unwrap());
+		let record = app.stores.classes.get_class(&id).unwrap();
+		assert_eq!(files_of(&record).iter().filter(|f| str_of(f, "path") == "week1.md").count(), 1);
+	}
 }

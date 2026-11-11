@@ -1,4 +1,4 @@
-//! Ported from src/backend/store/prompt-overrides.ts: the learner's saved prompt segments,
+//! The learner's saved prompt segments,
 //! one .md file each under the prompts folder, mirroring the source layout.
 //!
 //! A path outside that layout is refused (nothing read, written or deleted).

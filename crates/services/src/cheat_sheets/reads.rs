@@ -13,6 +13,7 @@ use super::folder::take_folder_pdf;
 use super::{Outcome, refuse};
 use crate::App;
 use crate::app::agent_folder::cheat_sheets_dir;
+use crate::app::disk::make_dir;
 
 /// The view the studio and the sheet beside a session show, after taking a newer PDF from the
 /// working folder.
@@ -87,7 +88,7 @@ pub fn sheet_pdf_file(app: &App, class_id: &str, deadline_id: &str, n: f64) -> O
 	let dir = cheat_sheets_dir(app).join(folder);
 	let copy = dir.join(format!("cheat sheet v{}.pdf", js_number(n)));
 	if !same(&copy) {
-		std::fs::create_dir_all(&dir).map_err(|e| node_error_message(&e, "mkdir", &dir))?;
+		make_dir(&dir)?;
 		write_atomic(&copy, &bytes, None).map_err(|e| node_error_message(&e, "open", &copy))?;
 	}
 	Ok(copy.to_string_lossy().into_owned())

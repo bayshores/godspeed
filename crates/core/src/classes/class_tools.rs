@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/class-tools.ts.
-//!
 //! The class tools both the outside agent's MCP server and the Talk chat offer: their names,
 //! descriptions (`class_tool_text`), argument shapes and outcome.
 

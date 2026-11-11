@@ -1,7 +1,7 @@
 //! Parity with Node for the lesson store (tests/golden/chats.json, made by scripts/golden.ts from
 //! chats.golden.ts): the same files in, the same lists, records and bytes out.
 //!
-//! The seed case needs a copy of real app data under .claude/rewrite-lab/seed-data and its
+//! The seed case needs a copy of real app data kept outside the repo (`GODSPEED_SEED_CHATS`) and its
 //! expected output in tests/golden/chats-seed.lab.json (git ignores it); it copies the lessons to a
 //! temp folder and skips with a printed notice when either is absent.
 

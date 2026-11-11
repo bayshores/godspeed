@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/question-core.ts: the tool input contracts of the question tools
+//! The tool input contracts of the question tools
 //! (schemas plus the cross-field rules a schema cannot say) and the compact answer record.
 //!
 //! An invalid question never reaches the learner: the problems below go back to the teacher as
@@ -10,7 +10,7 @@ use std::sync::LazyLock;
 use gs_base::text;
 use gs_json::{Json, Obj, json, parse};
 
-use super::js_text::js_string;
+use gs_json::js_text::js_string;
 use super::schema::{array, boolean, object, one_of_literals, string};
 use crate::messages::value_debris::strip_model_value_debris;
 

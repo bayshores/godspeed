@@ -2,7 +2,6 @@
 //! beside `ui/`, `models/` and `pdfjs-dist/`. It listens on 127.0.0.1:$PORT and writes nothing
 //! until a request asks it to.
 
-use std::fs::File;
 use std::os::unix::fs::FileTypeExt;
 use std::process::ExitCode;
 
@@ -10,7 +9,7 @@ use axum::ServiceExt;
 use axum::extract::Request;
 use gs_base::config::Paths;
 use gs_base::{clock, shutdown};
-use gs_server::http;
+use gs_server::{data_lock, http};
 use gs_services::App;
 use tokio::signal::unix::{SignalKind, signal};
 use tower::Layer;
@@ -26,7 +25,7 @@ async fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	}
 	let paths = Paths::from_env();
-	let Ok(_data_lock) = lock_data_dir(&paths) else {
+	let Ok(_data_lock) = data_lock::lock(&paths).await else {
 		eprintln!("another godspeed server is using {}", paths.data.display());
 		return ExitCode::FAILURE;
 	};
@@ -49,13 +48,6 @@ async fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	}
 	ExitCode::SUCCESS
-}
-
-/// One server per data folder: an advisory lock on the folder itself, so no file is made. A
-/// folder that does not exist yet is not locked.
-fn lock_data_dir(paths: &Paths) -> Result<Option<File>, ()> {
-	let Ok(dir) = File::open(&paths.data) else { return Ok(None) };
-	dir.try_lock().map(|()| Some(dir)).map_err(|_| ())
 }
 
 /// SIGTERM or SIGINT stops the server, and so does the end of stdin when stdin is a pipe (the

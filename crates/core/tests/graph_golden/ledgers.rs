@@ -1,12 +1,10 @@
-//! The ledgers a case starts from: a fixture class by name, or the ledgers inline (the Rust
-//! twin of `fixture` and `load` in the TypeScript spec).
+//! The ledgers a case starts from: a fixture class by name, or the ledgers inline.
 
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use gs_core::graph::memory::{Chats, Ledgers as Stored, Memory};
 use gs_json::{Json, Obj, parse};
-
-use crate::store::{Chats, MemStore, Parts};
 
 const KEYS: [&str; 7] = ["nodes", "chains", "coverage", "checkpoints", "sources", "chats", "topics"];
 
@@ -56,9 +54,9 @@ impl Ledgers {
 		self.0.get(key).and_then(Json::as_arr).cloned().unwrap_or_default()
 	}
 
-	pub fn store(&self) -> MemStore {
-		let parts = Parts { nodes: self.part("nodes"), chains: self.part("chains"), coverage: self.part("coverage"), checkpoints: self.part("checkpoints"), sources: self.part("sources") };
-		MemStore { parts: Mutex::new(parts), ..MemStore::default() }
+	pub fn store(&self) -> Memory {
+		let stored = Stored { nodes: self.part("nodes"), chains: self.part("chains"), coverage: self.part("coverage"), checkpoints: self.part("checkpoints"), sources: self.part("sources") };
+		Memory { ledgers: Mutex::new(stored), ..Memory::default() }
 	}
 
 	pub fn chats(&self) -> Chats {

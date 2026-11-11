@@ -4,7 +4,6 @@
 //! the fields of `TurnsState`.
 
 pub mod agent_catch_up;
-mod agent_ports;
 pub mod attachments;
 pub mod chat_handler;
 pub mod chats;
@@ -25,7 +24,7 @@ use std::sync::atomic::AtomicBool;
 use gs_core::messages::input_events::DismissInput;
 use gs_engine::turn::ui_stream::TurnHandle;
 use parking_lot::Mutex;
-use tokio::sync::watch;
+use tokio::sync::{Notify, watch};
 
 pub use agent_catch_up::{ask_about_new_deadlines, catch_up_for_agent};
 pub use attachments::{AttachmentError, store_attachments};
@@ -42,6 +41,8 @@ pub struct TurnsState {
 	in_flight: Mutex<HashSet<String>>,
 	/// The running turn of each chat (turn-runs).
 	runs: Mutex<HashMap<String, TurnHandle>>,
+	/// A turn's handle was registered or its turn ended: `attach_turn` looks again.
+	attachable: Notify,
 	/// The kept notice of a turn whose settlement failed (turn-runs).
 	failures: Mutex<HashMap<String, String>>,
 	/// A dismissal that arrived mid-turn, applied at settle (dismissal-park).

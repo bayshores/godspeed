@@ -17,7 +17,7 @@ use gs_search::index::PassageRef;
 
 use super::class_card::{class_file_path, class_topics};
 use super::files::{file_in, files_of, str_of};
-use super::{add_class_deadline, add_file_from_path, create_class, link_folder, remove_class_deadline, set_file_kind, update_class, update_class_deadline};
+use super::{add_class_deadline, add_file_from_path, link_folder, remove_class_deadline, set_file_kind, update_class, update_class_deadline};
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
@@ -235,9 +235,9 @@ impl ClassActions {
 					"id": c["id"],
 					"name": c["name"],
 					"description": c["description"],
-					"icon": if c["icon"].is_null() { Json::Null } else { c["icon"].clone() },
+					"icon": c["icon"],
 					"archived": c["archived"],
-					"linkedFolder": if c["linkedFolder"].is_null() { Json::Null } else { c["linkedFolder"].clone() },
+					"linkedFolder": c["linkedFolder"],
 					"files": c["fileCount"],
 					"lessons": in_class,
 				})
@@ -290,7 +290,7 @@ impl ClassActions {
 		if let Some(sig) = sig {
 			init.insert("signature", sig);
 		}
-		let created = match create_class(&self.app, &Json::Obj(init)) {
+		let created = match self.app.stores.classes.create_class(&Json::Obj(init)) {
 			Ok(created) => created,
 			Err(err) => return ToolOutcome::Err(err),
 		};

@@ -1,4 +1,4 @@
-//! Ported from src/backend/agent/subagents/bg-llm-semaphore.ts: one pool of 3 permits for the
+//! One pool of 3 permits for the
 //! background model jobs that run beside extraction (topic grouping).
 //!
 //! First come, first served, and abort-aware: a queued caller that aborts marks its ticket dead,

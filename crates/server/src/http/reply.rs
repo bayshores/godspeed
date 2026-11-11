@@ -11,7 +11,7 @@ use http_body_util::BodyExt;
 
 /// Next buffers a request body for src/proxy.ts and cuts it here (`proxyClientMaxBodySize`), so a
 /// route then reads only this much.
-pub const BODY_LIMIT: usize = 210 * 1024 * 1024;
+const BODY_LIMIT: usize = 210 * 1024 * 1024;
 
 fn with_type(status: u16, body: impl Into<Body>, content_type: &'static str) -> Response {
 	let mut res = Response::new(body.into());
@@ -93,6 +93,21 @@ pub fn body_text(bytes: &[u8]) -> String {
 /// `await req.json()`, None where it would throw.
 pub async fn json_body(body: Body) -> Option<Json> {
 	gs_json::parse(&body_text(&read_body(body).await)).ok()
+}
+
+/// `(await req.json().catch(() => ({})))` read for its fields: `{}` when the body is not JSON, and
+/// a throw (500) for `null`, whose fields cannot be read.
+pub async fn fields(body: Body) -> Result<Json, Unhandled> {
+	match json_body(body).await {
+		None => Ok(gs_json::json!({})),
+		Some(Json::Null) => Err(Unhandled::from("body is null")),
+		Some(body) => Ok(body),
+	}
+}
+
+/// `{ error }` with `status`.
+pub fn error(status: u16, message: &str) -> Response {
+	json(status, &gs_json::json!({ "error": message }))
 }
 
 #[cfg(test)]

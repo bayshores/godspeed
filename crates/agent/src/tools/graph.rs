@@ -8,8 +8,8 @@ use gs_core::graph::ports::{GraphDeps, GraphStore};
 use gs_json::{Json, js_number};
 
 use super::fn_tool::FnTool;
-use super::ports::{ChatPort, Listing};
-use super::schema::{no_arguments, object, string_min};
+use super::ports::ChatPort;
+use gs_core::session::schema::{no_arguments, object, string_min};
 
 /// One class graph a lesson may read, named, with `own` marking the lesson's class.
 #[derive(Clone)]
@@ -40,11 +40,11 @@ fn session_facts(session: &Json) -> String {
 }
 
 fn sessions_of(chat_store: &Arc<dyn ChatPort>, graph_store: &Arc<dyn GraphStore>) -> Result<Vec<Json>, String> {
-	graph_session_index(&GraphDeps { chat_store: &Listing(chat_store.as_ref()), graph_store: graph_store.as_ref() })
+	graph_session_index(&GraphDeps { chat_store: chat_store.as_ref(), graph_store: graph_store.as_ref() })
 }
 
 fn propositions_of(chat_store: &Arc<dyn ChatPort>, graph_store: &Arc<dyn GraphStore>, session: &str) -> Result<Vec<Json>, String> {
-	graph_session_propositions(&GraphDeps { chat_store: &Listing(chat_store.as_ref()), graph_store: graph_store.as_ref() }, session)
+	graph_session_propositions(&GraphDeps { chat_store: chat_store.as_ref(), graph_store: graph_store.as_ref() }, session)
 }
 
 /// list_sessions across classes: the lesson's own class first, then the others, each line

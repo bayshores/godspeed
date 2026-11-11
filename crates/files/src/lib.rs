@@ -4,7 +4,6 @@ pub mod fingerprint;
 mod inflate;
 mod ioerr;
 pub mod office;
-mod posix;
 pub mod text;
 pub mod walk;
 mod zipfile;

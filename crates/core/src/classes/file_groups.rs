@@ -1,5 +1,3 @@
-//! Ported from src/shared/core/file-groups.ts.
-//!
 //! A class's files in groups, as the Files page and the godspeed folder's classes/ show them.
 
 use std::cmp::Ordering;

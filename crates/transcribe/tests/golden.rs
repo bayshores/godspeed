@@ -8,7 +8,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 use gs_json::{Json, parse};
-use gs_transcribe::programs::find_program;
+use gs_transcribe::programs::find_in;
 
 fn script(file: &Path, mode: u32) {
 	std::fs::create_dir_all(file.parent().unwrap()).unwrap();
@@ -34,7 +34,7 @@ fn lookup_tree(root: &Path) {
 }
 
 #[test]
-fn find_program_matches_node() {
+fn find_in_matches_node() {
 	let file = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/transcribe.json");
 	let golden = parse(&std::fs::read_to_string(file).unwrap()).unwrap();
 	let cases = golden.as_arr().unwrap().iter().find(|c| c["name"] == Json::from("findProgram")).unwrap()["output"].clone();
@@ -44,7 +44,7 @@ fn find_program_matches_node() {
 	for case in cases.as_arr().unwrap() {
 		let template = case["path"].as_str();
 		let path_env = template.map(|t| t.replace("$R", &root_text));
-		let found = find_program(case["name"].as_str().unwrap(), path_env.as_deref()).map(|p| p.to_string_lossy().replace(&root_text, "<root>"));
+		let found = find_in(case["name"].as_str().unwrap(), path_env.as_deref(), &[]).map(|p| p.to_string_lossy().replace(&root_text, "<root>"));
 		let note = case["note"].as_str().unwrap();
 		assert_eq!(Json::from(found), case["found"], "{note}");
 	}

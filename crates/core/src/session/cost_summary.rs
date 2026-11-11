@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/cost-summary.ts: the pure fold behind the graph view's cost pill.
+//! The pure fold behind the graph view's cost pill.
 //! A stage-run is a plan run (named by its plan's label) or counted unpriced; a stage that never
 //! reached the model cost nothing and is not counted. Tokens always sum.
 

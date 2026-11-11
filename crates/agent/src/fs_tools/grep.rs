@@ -5,17 +5,17 @@ use std::path::Path;
 use std::sync::Arc;
 
 use gs_base::re::{self, Re};
+use gs_base::posix::basename;
 use gs_base::regexp::new_regexp;
 use gs_base::{clock, text};
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::fs_shared::{GREP_MAX_LINE_LENGTH, MAX_OUTPUT_BYTES, WALK_TIMEOUT_MS, byte_len, format_size, is_binary_file, resolve_source_path, truncate_grep_line};
+use super::fs_shared::{GREP_MAX_LINE_LENGTH, MAX_OUTPUT_BYTES, WALK_TIMEOUT_MS, byte_len, format_size, is_binary_file, resolve_source_path, truncate_grep_line, off_thread};
 use super::glob::GlobMatcher;
-use super::node_path::basename;
-use crate::tools::schema::{self, boolean, integer, string, string_min};
-use super::server_tool::{off_thread, server_tool};
+use crate::tools::fn_tool::FnTool;
+use gs_core::session::schema::{self, boolean, integer, string, string_min};
 use super::walk::walk_files;
 
 const DEFAULT_LIMIT: usize = 100;
@@ -35,7 +35,7 @@ pub fn grep_tool() -> Arc<dyn Tool> {
 			("limit", integer(1, "Maximum number of matches to return (default: 100)")),
 		],
 	);
-	server_tool(
+	FnTool::server(
 		"grep",
 		format!(
 			"Search file contents for a pattern. Returns matching lines with file paths and line numbers. Ignores node_modules, .git, and Library directories. Output is truncated to {DEFAULT_LIMIT} matches or {} (whichever is hit first). Long lines are truncated to {GREP_MAX_LINE_LENGTH} chars.",
@@ -57,7 +57,7 @@ pub fn grep_tool() -> Arc<dyn Tool> {
 			};
 			off_thread(move || grep(&request, &ctx.abort)).await
 		},
-	)
+	).into_arc()
 }
 
 struct Request {

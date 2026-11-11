@@ -20,5 +20,8 @@ futures-util.workspace = true
 tokio.workspace = true
 parking_lot.workspace = true
 
+[dev-dependencies]
+gs-pdf = { workspace = true, features = ["test-support"] }
+
 [lints]
 workspace = true

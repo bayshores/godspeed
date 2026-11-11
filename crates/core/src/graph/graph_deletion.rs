@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/graph-deletion.ts: the destructive operations on the append-only
+//! The destructive operations on the append-only
 //! graph ledgers. Pure over the store port, deterministic and idempotent; the caller owns the
 //! cross-store choreography (chat record, jobs, extraction wind-down) and holds the graph's lock,
 //! since each deletion reads and then replaces whole ledgers.

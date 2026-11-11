@@ -113,6 +113,9 @@ pub(super) fn patch_file(app: &Arc<App>, class_id: &str, file_id: &str, patch: P
 
 /// Copies a file into the class (the "Add files…" button, MCP add_class_file).
 pub fn add_copied_file(app: &Arc<App>, class_id: &str, name: &str, bytes: &[u8], kind: &str) -> ClassOutcome<Json> {
+	// Held from the check to the list entry: a class deleted in between would leave the copy in a
+	// folder nothing lists.
+	let _held = app.locks.lock(LockKey::Class(class_id));
 	if app.stores.classes.get_class(class_id).is_none() {
 		return no_class();
 	}
@@ -154,6 +157,8 @@ pub fn add_copied_file(app: &Arc<App>, class_id: &str, name: &str, bytes: &[u8],
 /// Writes new contents over a copied file, keeping its id so deadlines that cover it still do;
 /// its facts are rebuilt.
 pub fn replace_copied_file(app: &Arc<App>, class_id: &str, file_id: &str, bytes: &[u8], kind: &str) -> ClassOutcome<Json> {
+	// Held from the check to the list entry, as in `add_copied_file`.
+	let _held = app.locks.lock(LockKey::Class(class_id));
 	let record = app.stores.classes.get_class(class_id);
 	let file = record.as_ref().and_then(|r| file_in(r, file_id)).cloned();
 	let (Some(record), Some(file)) = (record, file.filter(|f| str_of(f, "origin") == "copied")) else {
@@ -289,11 +294,48 @@ pub(super) fn drop_file(app: &Arc<App>, record: &Json, file: &Json, listed: bool
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
 
 	#[test]
 	fn source_ids_hash_class_and_file() {
 		assert_eq!(source_id_for("cls_a", "f_1"), format!("src_{}", &sha256_text("cls_a:f_1")[..12]));
 		assert_eq!(source_id_for("cls_a", "f_1").len(), 16);
+	}
+
+	#[test]
+	fn a_file_added_as_its_class_goes_leaves_no_copy() {
+		let root = scratch_dir("add-copy");
+		let app = test_app(&root);
+		let class = app.stores.classes.create_class(&json!({ "name": "Algebra" })).unwrap();
+		let id = class["id"].as_str().unwrap().to_owned();
+		// The delete holds the class while the add arrives.
+		let held = app.locks.lock(LockKey::Class(&id));
+		let (adding, class_id) = (app.clone(), id.clone());
+		let add = std::thread::spawn(move || add_copied_file(&adding, &class_id, "week1.md", b"# Week 1\n", "study").map_err(|failure| failure.status));
+		std::thread::sleep(std::time::Duration::from_millis(100));
+		app.stores.classes.delete_class(&id).unwrap();
+		drop(held);
+		assert_eq!(add.join().unwrap().map(drop), Err(404));
+		assert!(!app.paths.classes.join(&id).exists());
+	}
+
+	#[test]
+	fn a_file_replaced_as_its_class_goes_leaves_no_copy() {
+		let root = scratch_dir("replace-copy");
+		let app = test_app(&root);
+		let class = app.stores.classes.create_class(&json!({ "name": "Algebra" })).unwrap();
+		let id = class["id"].as_str().unwrap().to_owned();
+		let file = json!({ "id": "f_week1", "origin": "copied", "name": "week1.md", "path": "f_week1/week1.md", "kind": "study", "contentFp": "", "status": "ready", "addedAt": "2030-01-01T00:00:00.000Z" });
+		app.stores.classes.save_files(&id, vec![file], &[]).unwrap();
+		// The delete holds the class while the replace arrives.
+		let held = app.locks.lock(LockKey::Class(&id));
+		let (replacing, class_id) = (app.clone(), id.clone());
+		let replace = std::thread::spawn(move || replace_copied_file(&replacing, &class_id, "f_week1", b"# Week 1, again\n", "study").map_err(|failure| failure.status));
+		std::thread::sleep(std::time::Duration::from_millis(100));
+		app.stores.classes.delete_class(&id).unwrap();
+		drop(held);
+		assert_eq!(replace.join().unwrap().map(drop), Err(404));
+		assert!(!app.paths.classes.join(&id).exists());
 	}
 
 	#[test]

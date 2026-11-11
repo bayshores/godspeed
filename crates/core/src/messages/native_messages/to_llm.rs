@@ -7,7 +7,7 @@ use gs_json::{Json, Obj, json};
 use super::scans::tool_calls;
 use super::side_questions::{SIDE_PENDING_TEXT, problem_side_questions, side_answer_lead, side_held_questions, with_problem_lead};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
-use crate::messages::js_text::js_string;
+use gs_json::js_text::js_string;
 
 /// The wording for an aborted turn's unanswered calls. Kept verbatim so the model's view never
 /// drifts.

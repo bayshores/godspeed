@@ -18,7 +18,7 @@ use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::abort_turn;
 
 use crate::http::paths::{param, search_params};
-use crate::http::reply::{Unhandled, json, json_body};
+use crate::http::reply::{Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
@@ -26,10 +26,6 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/jobs", ApiRoute::new().get(get_jobs).into_route())
 		.route("/api/activity", ApiRoute::new().get(get_activity).into_route())
 		.route("/api/activity/abort", ApiRoute::new().post(post_abort).into_route())
-}
-
-fn error(status: u16, message: &str) -> Response {
-	json(status, &json!({ "error": message }))
 }
 
 async fn get_jobs(State(app): State<Arc<App>>, uri: Uri) -> Response {

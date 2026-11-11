@@ -1,4 +1,4 @@
-//! Ported from src/shared/core/plan-tree.ts: the validated plan tree.
+//! The validated plan tree.
 //!
 //! Every failure is a message written for the agent, flowing straight back as a tool-result
 //! error that says exactly what is wrong and which id or edge is at fault.
@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 use gs_base::text;
 use gs_json::{Json, Obj};
 
-use super::js_text::js_string;
+use gs_json::js_text::js_string;
 
 fn assert_valid_node(node: &Json) -> Result<(), String> {
 	let id = node["id"].as_str().filter(|id| !text::trim(id).is_empty());
