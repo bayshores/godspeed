@@ -1,46 +1,41 @@
 /**
- * smoke-server.mjs — boot the packaged standalone server and prove it serves.
+ * smoke-server.mjs — boot the release server from a staged folder and prove it serves.
  *
- * `next build` success and a completed electron-builder run say NOTHING
- * about whether the packaged server actually starts. This runs between
- * build-server.mjs and electron-builder so a broken payload fails in
- * seconds, not after a full packaging pass.
- *
- * It spawns .next/standalone/server.js the way electron/main.cjs does
- * (with --electron, through Electron's bundled Node) on a free 127.0.0.1
- * port with a THROWAWAY LH_DATA_DIR under os.tmpdir(), polls GET / until
- * 200, then probes GET-only API routes. Any non-200, an early exit, or a
- * 30s boot timeout fails and prints the server's log tail. The child is
- * ALWAYS killed: a leaked server holds its port against the next run.
+ * A finished `cargo build` says nothing about whether the server starts beside its UI and
+ * pdf.js files. This runs before the bundler so a broken payload fails in seconds. It starts
+ * target/<triple>/release/godspeed-server (what scripts/stage-app.mjs builds) in browser mode on
+ * a free 127.0.0.1 port, in a folder of links to the staged files, with a THROWAWAY home and
+ * data folder so it never touches a real godspeed folder. It polls GET / until 200, then probes
+ * the routes below. Any non-200, an early exit, or a 30 s boot timeout fails and prints the
+ * server's log tail. The child is ALWAYS stopped: a leaked server holds its port.
  */
-import { spawn } from "node:child_process";
-import { probeEnv, verifyDemoRuntime } from "./smoke-demo-runtime.mjs";
-import { createRequire } from "node:module";
+import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Worker } from "node:worker_threads";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const STANDALONE = path.join(ROOT, ".next", "standalone");
-const SERVER = path.join(STANDALONE, "server.js");
-const ELECTRON_MODE = process.argv.includes("--electron");
-const RUNTIME = ELECTRON_MODE ? createRequire(import.meta.url)("electron") : process.execPath;
-
+const WINDOWS = process.platform === "win32";
+const PDFIUM = { darwin: "libpdfium.dylib", win32: "pdfium.dll" }[process.platform] ?? "libpdfium.so";
 const POLL_MS = 500;
 const BOOT_TIMEOUT_MS = 30_000;
-/** GET-only probes. /api/boot writes only to the throwaway data dir; the
- *  page asks for it before its first paint. */
-const PROBES = ["/api/boot", "/api/graph", "/api/settings"];
+/** GET-only probes. /api/boot writes only to the throwaway data folder; the page asks for it
+ *  before its first paint. The last one is a file from pdfjs-dist/. */
+const PROBES = ["/api/boot", "/api/graph", "/api/settings", "/pdfjs/pdf.worker.min.mjs"];
 
-if (!fs.existsSync(SERVER)) {
-	console.error("[smoke-server] .next/standalone/server.js missing — run npm run build first.");
+const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
+const server = path.join(ROOT, "target", triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
+const staged = { ui: path.join(ROOT, "dist-ui"), models: path.join(ROOT, "models"), "pdfjs-dist": path.join(ROOT, ".stage", "pdfjs-dist") };
+const pdfium = path.join(ROOT, ".stage", PDFIUM);
+
+for (const missing of [server, pdfium, ...Object.values(staged)].filter((file) => !fs.existsSync(file))) {
+	console.error(`[smoke-server] ${path.relative(ROOT, missing)} is missing, run \`node scripts/stage-app.mjs\` first.`);
 	process.exit(1);
 }
 
-/** A free TCP port (listen(0) → the kernel assigns one) — mirrors main.cjs. */
+/** A free TCP port: listen(0) lets the kernel pick one. */
 function freePort() {
 	return new Promise((resolve, reject) => {
 		const srv = net.createServer();
@@ -52,7 +47,7 @@ function freePort() {
 	});
 }
 
-/** One GET; resolves the status code (0 = connection refused/failed). */
+/** One GET; resolves the status code (0 = connection refused or failed). */
 function get(url) {
 	return new Promise((resolve) => {
 		const req = http.get(url, (res) => {
@@ -67,63 +62,30 @@ function get(url) {
 	});
 }
 
-/** Class search's worker loads onnxruntime-node by a path the tracer can't
- *  see, and the model by path: embed one query through the payload's own
- *  worker file. */
-async function verifySearchModel() {
-	const worker = new Worker(path.join(STANDALONE, "src", "backend", "server", "workers", "embed-worker.mjs"), {
-		workerData: { modelsDir: path.join(STANDALONE, "models"), model: "Snowflake/snowflake-arctic-embed-xs" },
-	});
-	try {
-		const reply = await new Promise((resolve, reject) => {
-			worker.once("message", resolve);
-			worker.once("error", reject);
-			worker.postMessage({ id: 0, texts: ["stars and bars"] });
-		});
-		if (!reply.ok || reply.vectors.length !== 384) throw new Error(`search worker: ${reply.error ?? `${reply.vectors.length} numbers, expected 384`}`);
-	} finally {
-		await worker.terminate();
-	}
-	console.log("[smoke-server] search model: ok");
-}
-
 async function main() {
-	// HTTP boot alone never imports the dynamically loaded demo engine.
-	// Fail before packaging if its standalone dependency graph is incomplete.
-	verifyDemoRuntime(STANDALONE, RUNTIME);
-	await verifySearchModel();
 	const port = await freePort();
 	const url = `http://127.0.0.1:${port}`;
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh-smoke-"));
-	const dataDir = path.join(home, "data");
+	const resources = path.join(home, "resources");
+	fs.mkdirSync(resources);
+	// A junction needs no special rights on Windows; other systems ignore the type.
+	for (const [name, target] of Object.entries(staged)) fs.symlinkSync(target, path.join(resources, name), "junction");
 
-	const tail = []; // rolling log tail for failure diagnosis
-	let tailBytes = 0;
-	const keep = (buf) => {
-		for (const line of buf.toString().split("\n")) {
-			tail.push(line);
-			tailBytes += line.length + 1;
-		}
-		while (tailBytes > 16_000 && tail.length > 2) {
-			tailBytes -= tail[0].length + 1;
-			tail.shift();
-		}
-	};
-	const dumpTail = () => {
-		console.error("--- server log tail " + "-".repeat(20));
-		for (const line of tail.slice(-40)) if (line.trim()) console.error(`    ${line}`);
-	};
-
-	console.log(`[smoke-server] runtime: ${ELECTRON_MODE ? "Electron bundled Node" : "host Node"}`);
-	const child = spawn(RUNTIME, [SERVER], {
-		cwd: STANDALONE,
+	const tail = [];
+	const keep = (buf) => tail.push(...buf.toString().split("\n"));
+	const child = spawn(server, [], {
+		cwd: resources,
+		// Nothing from the real environment (keys, agent folders) reaches the server.
 		env: {
-			...probeEnv(process.env, home),
-			...(ELECTRON_MODE ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
-			NODE_ENV: "production",
+			PATH: process.env.PATH,
+			...(WINDOWS ? { SYSTEMROOT: process.env.SYSTEMROOT } : {}),
+			HOME: home,
+			USERPROFILE: home,
+			APPDATA: path.join(home, "config"),
+			LOCALAPPDATA: path.join(home, "local"),
 			PORT: String(port),
-			HOSTNAME: "127.0.0.1",
-			LH_DATA_DIR: dataDir,
+			LH_DATA_DIR: path.join(home, "data"),
+			LH_PDFIUM_PATH: pdfium,
 		},
 		stdio: ["ignore", "pipe", "pipe"],
 	});
@@ -134,20 +96,13 @@ async function main() {
 		exited = true;
 	});
 
-	const kill = () =>
+	const stop = () =>
 		new Promise((resolve) => {
 			if (exited) return resolve();
 			const timer = setTimeout(() => {
-				if (!exited) {
-					try {
-						child.kill("SIGKILL");
-					} catch {
-						/* already gone */
-					}
-				}
+				child.kill("SIGKILL");
 				resolve();
 			}, 3000);
-			// A pending timer would keep a passing run alive for the full 3 s.
 			child.once("exit", () => {
 				clearTimeout(timer);
 				resolve();
@@ -157,7 +112,6 @@ async function main() {
 
 	let failed = null;
 	try {
-		// 1) Boot: poll GET / until 200 (or timeout / early exit).
 		let boot = 0;
 		const deadline = Date.now() + BOOT_TIMEOUT_MS;
 		while (Date.now() < deadline) {
@@ -169,7 +123,6 @@ async function main() {
 		if (boot !== 200) throw new Error(`server never answered 200 on ${url} (last status: ${boot})`);
 		console.log(`[smoke-server] boot ok: GET / → 200 (${url})`);
 
-		// 2) API surface: every probe must be 200.
 		for (const route of PROBES) {
 			const status = await get(url + route);
 			if (status !== 200) throw new Error(`GET ${route} → ${status} (expected 200)`);
@@ -178,20 +131,17 @@ async function main() {
 	} catch (err) {
 		failed = err;
 	} finally {
-		await kill();
-		try {
-			fs.rmSync(home, { recursive: true, force: true });
-		} catch {
-			/* best effort — it's under os.tmpdir() */
-		}
+		await stop();
+		fs.rmSync(home, { recursive: true, force: true });
 	}
 
 	if (failed) {
 		console.error(`[smoke-server] FAIL: ${failed.message}`);
-		dumpTail();
+		console.error("--- server log tail " + "-".repeat(20));
+		for (const line of tail.slice(-40)) if (line.trim()) console.error(`    ${line}`);
 		process.exit(1);
 	}
-	console.log("[smoke-server] smoke passed — the packaged server boots and serves.");
+	console.log("[smoke-server] smoke passed: the server boots and serves.");
 }
 
 main().catch((err) => {

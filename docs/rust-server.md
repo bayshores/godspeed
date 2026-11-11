@@ -84,7 +84,7 @@ Node ran each read-modify-write of a file without an `await` inside, so nothing 
 
 ## The server process
 
-- Started with its working directory beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`). pdfium's library also goes there (package pdf decides the file name).
+- Started with its working directory beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`). pdfium's library also goes there (package pdf decides the file name), unless `LH_PDFIUM_PATH` names the library file: the Mac app keeps it in `Contents/Frameworks`, where the bundler signs it. `scripts/fetch-pdfium.mjs` downloads the pinned library into `.stage/`.
 - A debug build (`cargo build`) keeps the godspeed folder in `<data>/godspeed-folder` until the learner picks one, as `next dev` does, so a dev run never rewrites the real `~/godspeed`. A release build uses `~/godspeed`.
 - Env: `PORT` (bind is always 127.0.0.1), `LH_DATA_DIR` (unset: `data/` in the working directory), `HOME`, `TMPDIR`, `TZ`, `LH_DESKTOP_SERVER=1` + `LH_DESKTOP_API_SECRET` in the app, `LH_SHELL=1` when the desktop shell started it, `GODSPEED_CONTRACT_NOW` / `GODSPEED_CONTRACT_CLOCK_FILE` in tests. `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are read where the TS reads them.
 - Writes nothing at start-up (the shell writes `mcp-endpoint.json`). An advisory lock on the data folder itself keeps a second server off the same data (no lock file); a new server waits up to 3 s for one that is still stopping.

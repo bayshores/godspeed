@@ -49,3 +49,7 @@ crates/*/tests/golden/*.lab.json
 # what tauri-build writes on every build: permission schemas and one permission per app command
 crates/shell/gen/
 crates/shell/permissions/
+
+# what scripts/fetch-pdfium.mjs and scripts/stage-app.mjs put together for the app bundle, and the server binary they copy in
+.stage/
+crates/shell/binaries/

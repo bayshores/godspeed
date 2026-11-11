@@ -23,6 +23,11 @@
 		"rust:check": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo machete",
 		"golden": "TZ=America/Los_Angeles LANG=en_US.UTF-8 tsx scripts/golden.ts",
 		"desktop:dev": "concurrently -k -n api,ui,app \"next dev --port $((${PORT:-3000}+1000))\" \"vite\" \"LH_DEV_URL=http://localhost:${PORT:-3000} electron .\"",
+		"dev:tauri": "node scripts/dev-resources.mjs && concurrently -k -n api,ui \"cargo build -p gs-server && cd .dev-resources && PORT=$((${PORT:-3000}+1000)) LH_DATA_DIR=\\\"${LH_DATA_DIR:-$INIT_CWD/data}\\\" ../target/debug/godspeed-server\" \"vite\"",
+		"desktop:dev:tauri": "node scripts/dev-resources.mjs && cargo build -p gs-server && concurrently -k -n ui,app \"vite --host 127.0.0.1\" \"TAURI_APP_PATH=crates/shell tauri dev\"",
+		"build:tauri": "vite build",
+		"desktop:local:tauri": "node scripts/fetch-model.mjs && node scripts/fetch-pdfium.mjs && TAURI_APP_PATH=crates/shell tauri build -c crates/shell/tauri.bundle.conf.json --bundles app --no-sign",
+		"desktop:dist:tauri": "bash scripts/mac-dist.sh",
 		"dev:fresh": "bash scripts/dev-fresh.sh",
 		"desktop:local": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && npm run build && node scripts/build-server.mjs && electron-builder -c electron/electron-builder.yml --mac --arm64 --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
 		"desktop:dist": "rm -rf dist .next/standalone && node scripts/fetch-model.mjs && npm run build && node scripts/build-server.mjs && node scripts/smoke-server.mjs && DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} APPLE_KEYCHAIN_PROFILE=LH_NOTARY APPLE_TEAM_ID=TM8Y622C8X electron-builder -c electron/electron-builder.yml --mac --arm64"

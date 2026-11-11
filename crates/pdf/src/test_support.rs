@@ -4,13 +4,13 @@ use std::path::{Path, PathBuf};
 
 use crate::Pdf;
 
-/// A copy kept outside the repo, for machines that have not set `LH_PDFIUM_PATH`.
-const LOCAL_COPY: &str = "/Users/seane/Code/learnharness/.claude/rewrite-lab/pdfium/libpdfium.dylib";
+/// What `node scripts/fetch-pdfium.mjs` downloads, for machines that have not set `LH_PDFIUM_PATH`.
+const STAGED_COPY: &str = if cfg!(windows) { "pdfium.dll" } else if cfg!(target_os = "macos") { "libpdfium.dylib" } else { "libpdfium.so" };
 
-/// The folder holding the library at `LH_PDFIUM_PATH`, else the local copy. None, with a printed
-/// line, when there is no library, so the test skips.
+/// The folder holding the library at `LH_PDFIUM_PATH`, else the one in the repo's `.stage/`. None,
+/// with a printed line, when there is no library, so the test skips.
 pub fn pdfium_dir() -> Option<PathBuf> {
-	let library = std::env::var_os("LH_PDFIUM_PATH").map_or_else(|| Path::new(LOCAL_COPY).to_path_buf(), PathBuf::from);
+	let library = std::env::var_os("LH_PDFIUM_PATH").map_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.stage").join(STAGED_COPY), PathBuf::from);
 	if library.is_file() {
 		return library.parent().map(Path::to_path_buf);
 	}

@@ -42,7 +42,7 @@ impl App {
 		let app = Arc::new(App {
 			bridge: gs_engine::bridge::Bridge::new(&events, stores.agent_seen.clone()),
 			stores,
-			pdf: gs_pdf::worker::Pdf::new(&paths.resources),
+			pdf: gs_pdf::worker::Pdf::from_env(&paths.resources),
 			search: gs_search::index::Search::new(&paths),
 			turns: Default::default(),
 			jobs: Default::default(),

@@ -1,0 +1,3 @@
+{
+  "bundle": { "resources": { "../../.stage/pdfium.dll": "pdfium.dll" } }
+}
