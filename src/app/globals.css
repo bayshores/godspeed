@@ -94,10 +94,13 @@
 	--lh-class-7: #8e9467;
 	--lh-class-8: #a9836a;
 	--lh-on-class: #24231f;
-	/* Mixed into a class color for the pale block of a row that can wait. */
-	--lh-class-wash: #d7d5cb;
+	/* Mixed into a class color for the pale block of a row that can wait:
+	   white on Paper, black on a dark background. */
+	--lh-class-wash: #ffffff;
 	/* The Done stamp. */
-	--lh-stamp: #b3564b;
+	--lh-stamp: #b3665c;
+	/* A sheet's outline: ink on Paper, a grey on a dark background. */
+	--lh-line: #24231f;
 	/* The code editor's syntax colors (Shiki's github-light; .dark below
 	   swaps in github-dark, as the code blocks do). */
 	--lh-code-keyword: #b31d28;
@@ -241,6 +244,7 @@
 	--color-highlight: var(--lh-highlight);
 	--color-on-class: var(--lh-on-class);
 	--color-stamp: var(--lh-stamp);
+	--color-line: var(--lh-line);
 	/* Right / wrong / didn't know. The confidence and topic ramps are read
 	   as var(--lh-conf-N) and var(--lh-ramp-N). */
 	--color-ans-right: var(--lh-ans-right);

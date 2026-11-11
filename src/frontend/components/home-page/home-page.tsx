@@ -117,7 +117,7 @@ export function HomePage() {
 						{shown.length > 0 && (
 							<section className="flex flex-col gap-4">
 								<div className="flex min-h-9 items-center justify-between gap-4">
-									<h2 className="text-2xl text-ink">{lists.later.length > 0 && "Later"}</h2>
+									<h2 className="text-[24px] leading-snug text-ink">{lists.later.length > 0 && "Later"}</h2>
 									<AddDeadline classes={shown} onPick={(classId) => setDialog({ kind: "edit", classId, deadline: "new" })} />
 								</div>
 								{lists.later.length > 0 && (
@@ -155,7 +155,7 @@ function AddDeadline({ classes, onPick }: { classes: readonly ClassSummary[]; on
 				aria-haspopup={single ? undefined : "menu"}
 				aria-expanded={single ? undefined : open}
 				onClick={() => (single ? onPick(single.id) : setOpen((v) => !v))}
-				className="lh-btn lh-btn-quiet text-[17px]"
+				className="lh-btn lh-btn-quiet h-[38px] text-[15px]"
 			>
 				<PixelIcon name="plus" />
 				Add a deadline

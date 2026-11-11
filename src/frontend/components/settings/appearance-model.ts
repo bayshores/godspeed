@@ -70,12 +70,15 @@ function surfacesOf(background: string) {
 			quiet: "#535149",
 			max: "#000000",
 			tint: "#24231f",
+			line: "#24231f",
+			wash: "#ffffff",
 		};
 	}
 	const at = (n: number) => shiftHex(background, n);
 	const [card, accent, tipHover] = [at(8), at(22), at(39)];
 	const panels = [card, accent, tipHover];
 	const fg = inkFor(background, "text", panels);
+	const quiet = inkFor(background, "faint", [card, accent]);
 	return {
 		card,
 		tip: at(20),
@@ -89,9 +92,11 @@ function surfacesOf(background: string) {
 		fg,
 		body: inkFor(background, "body", panels),
 		muted: inkFor(background, "muted", panels),
-		quiet: inkFor(background, "faint", [card, accent]),
+		quiet,
 		max: "#ffffff",
 		tint: tintFor(background),
+		line: quiet,
+		wash: "#000000",
 	};
 }
 
@@ -128,6 +133,8 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--lh-ink-body": s.body,
 		"--lh-ink-max": s.max,
 		"--lh-tint": s.tint,
+		"--lh-line": s.line,
+		"--lh-class-wash": s.wash,
 		...Object.fromEntries(status),
 	};
 }

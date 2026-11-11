@@ -18,9 +18,9 @@ const blockColor = (color: ClassColor | undefined) => (color ? classColorVar(col
 /** A row's two lines of words. */
 function Words({ title, line, dim }: { title: ReactNode; line: string; dim?: boolean }) {
 	return (
-		<span className="flex min-w-0 flex-1 basis-[220px] flex-col gap-1.5">
-			<span className={cn("truncate text-2xl leading-tight", dim ? "text-ink-3" : "text-ink")}>{title}</span>
-			<span title={line} className="truncate text-lg text-ink-2">
+		<span className="flex min-w-0 flex-1 basis-[220px] flex-col gap-1">
+			<span className={cn("truncate text-[23px] leading-tight", dim ? "text-ink-3" : "text-ink")}>{title}</span>
+			<span title={line} className="truncate text-base text-ink-2">
 				{line}
 			</span>
 		</span>
@@ -64,8 +64,8 @@ export function TodayRow({
 						}
 						line={words.line}
 					/>
-					<span className="flex shrink-0 items-center gap-3">
-						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet text-[17px]">
+					<span className="flex shrink-0 items-center gap-2">
+						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet h-[38px] text-[15px]">
 							Mark done
 						</button>
 						<button
@@ -73,7 +73,7 @@ export function TodayRow({
 							data-testid="today-start"
 							disabled={busy}
 							onClick={() => onStart(d)}
-							className={cn("lh-btn", work ? "h-10 px-4 text-lg" : "lh-btn-main h-[52px] px-5 text-[17px]")}
+							className={cn("lh-btn", work ? "h-[38px] text-[15px]" : "lh-btn-main h-[53px] gap-2.5 px-[22px] text-[17px]")}
 						>
 							{!work && <PixelIcon name="play" />}
 							{words.button}
@@ -90,12 +90,12 @@ export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUnd
 	return (
 		<li data-testid={`today-done-row-${d.id}`}>
 			<Pane className="flex min-h-[104px] overflow-hidden">
-				<span className="flex w-[112px] shrink-0 items-center justify-center self-stretch bg-tone-2">
+				<span className="flex w-[116px] shrink-0 items-center justify-center self-stretch bg-[color-mix(in_srgb,var(--border)_50%,var(--card))]">
 					<Stamp>Done</Stamp>
 				</span>
 				<div className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
 					<Words title={d.name} line={d.className} dim />
-					<button type="button" data-testid="today-undo" onClick={() => onUndo(d)} className="lh-btn lh-btn-quiet shrink-0 text-[17px]">
+					<button type="button" data-testid="today-undo" onClick={() => onUndo(d)} className="lh-btn lh-btn-quiet h-[38px] shrink-0 text-[15px]">
 						Undo
 					</button>
 				</div>

@@ -253,7 +253,7 @@ describe("A row under Later", () => {
 	});
 
 	it("a pale count block, its name, the class, the day and how ready", () => {
-		assert.match(html, /color-mix\(in oklab, var\(--lh-class-2\) 45%/);
+		assert.match(html, /color-mix\(in srgb, var\(--lh-class-2\) 57%/);
 		assert.match(html, />34<\/span>.*>days</);
 		assert.ok(html.includes("CSE 21, Tuesday Dec 1. 19% ready"));
 	});
