@@ -17,7 +17,8 @@ pub struct Paths {
 	/// The Electron updater's cache, which the first run removes. A debug build names its own,
 	/// so it never removes the installed app's.
 	pub updater_cache: PathBuf,
-	/// The demo window's own browser profile.
+	/// The demo view's own folder: its browser profile on Windows and Linux, its compiled
+	/// loopback rules on the Mac.
 	pub demo_data: PathBuf,
 }
 

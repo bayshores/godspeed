@@ -7,7 +7,7 @@ pub use crate::mac::demo::{run, svg};
 #[cfg(not(target_os = "macos"))]
 pub use crate::demo_webview::{run, svg};
 
-#[expect(dead_code, reason = "the demo runners read it")]
+#[cfg_attr(not(target_os = "macos"), expect(dead_code, reason = "the demo runner reads it"))]
 pub struct DemoJob {
 	pub html: String,
 	/// A script whose value comes back as the probe result.
@@ -15,7 +15,7 @@ pub struct DemoJob {
 }
 
 /// Draw `svg` as a PNG of exactly `width` × `height` px.
-#[expect(dead_code, reason = "the demo runners read it")]
+#[cfg_attr(not(target_os = "macos"), expect(dead_code, reason = "the demo runner reads it"))]
 pub struct SvgJob {
 	pub svg: String,
 	pub width: u32,

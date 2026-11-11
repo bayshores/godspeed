@@ -26,8 +26,30 @@ tauri-plugin-dialog.workspace = true
 tauri-plugin-opener.workspace = true
 tauri-plugin-single-instance.workspace = true
 
+[target.'cfg(target_os = "macos")'.dependencies]
+block2.workspace = true
+objc2.workspace = true
+objc2-app-kit = { workspace = true, features = ["NSApplication", "NSBitmapImageRep", "NSFontManager", "NSGraphics", "NSGraphicsContext", "NSImage", "NSImageRep", "NSPasteboard", "NSPasteboardItem", "NSPrintInfo", "NSPrintOperation", "NSResponder", "NSScreen", "NSView", "NSWindow", "objc2-core-foundation"] }
+objc2-foundation = { workspace = true, features = ["NSArray", "NSDictionary", "NSError", "NSGeometry", "NSObjCRuntime", "NSRunLoop", "NSString", "NSTimer", "NSURL", "NSURLRequest", "NSURLResponse", "NSUserDefaults", "NSValue", "block2"] }
+objc2-pdf-kit = { workspace = true, features = ["PDFDocument", "PDFPage", "objc2-app-kit"] }
+objc2-web-kit = { workspace = true, features = ["WKContentRuleList", "WKContentRuleListStore", "WKContentWorld", "WKFrameInfo", "WKNavigation", "WKNavigationAction", "WKNavigationDelegate", "WKNavigationResponse", "WKPreferences", "WKSnapshotConfiguration", "WKUserContentController", "WKUserScript", "WKWebView", "WKWebViewConfiguration", "WKWebsiteDataStore", "block2", "objc2-app-kit"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+image.workspace = true
+objc2-app-kit = { workspace = true, features = ["NSMenu", "NSMenuItem", "NSPDFInfo", "NSPanel"] }
+objc2-foundation = { workspace = true, features = ["NSDate"] }
+
 [build-dependencies]
 tauri-build.workspace = true
+
+# WebKit and AppKit need the process's main thread, which only a test without the harness has.
+[[test]]
+name = "mac_demo"
+harness = false
+
+[[test]]
+name = "mac_print"
+harness = false
 
 [lints]
 workspace = true

@@ -1,6 +1,12 @@
-//! The installed font families: none listed yet.
+//! The installed font families, as the font picker lists them.
 
+use objc2::MainThreadMarker;
+use objc2_app_kit::NSFontManager;
+
+/// AppKit's family names (what `font-list` read on the Mac). AppKit's font manager lives on the
+/// main thread, where a command without `async` runs; elsewhere the list is empty.
 #[expect(dead_code, reason = "the font command calls it")]
 pub fn families() -> Vec<String> {
-	Vec::new()
+	let Some(mtm) = MainThreadMarker::new() else { return Vec::new() };
+	NSFontManager::sharedFontManager(mtm).availableFontFamilies().iter().map(|family| family.to_string()).collect()
 }
