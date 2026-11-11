@@ -5,13 +5,19 @@
 mod support;
 
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};
+#[cfg(unix)]
 use std::path::Path;
 
+#[cfg(unix)]
 use gs_base::fsx::node_error_message;
 use gs_files::fingerprint::fingerprint_file;
 use gs_files::office::office_text;
-use gs_files::text::{FileTextError, TextChecks, file_to_text, is_readable_class_file, looks_like_text, transcript_to_text};
+use gs_files::text::{FileTextError, file_to_text, is_readable_class_file, looks_like_text, transcript_to_text};
+#[cfg(unix)]
+use gs_files::text::TextChecks;
+#[cfg(unix)]
 use gs_files::walk::walk_linked_folder;
 use gs_json::{Json, parse};
 use gs_pdf::worker::Pdf;
@@ -95,6 +101,7 @@ async fn file_to_text_matches_node() {
 	}
 }
 
+#[cfg(unix)]
 fn build_tree(root: &Path, nodes: &[Json]) {
 	let mut locked = Vec::new();
 	for n in nodes {
@@ -122,10 +129,12 @@ fn build_tree(root: &Path, nodes: &[Json]) {
 	}
 }
 
+#[cfg(unix)]
 fn strings(v: &Json) -> Vec<String> {
 	v.as_arr().unwrap().iter().map(|e| s(e).to_owned()).collect()
 }
 
+#[cfg(unix)]
 #[test]
 fn folder_walks_match_node() {
 	let dir = TempDir::new();

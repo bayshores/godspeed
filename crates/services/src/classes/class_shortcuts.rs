@@ -2,12 +2,11 @@
 //! learner (and their agent) can find them next to CLAUDE.md. Where each one goes is
 //! gs_core::classes::class_shortcuts. A manifest in .godspeed/shortcuts.json lists what this made,
 //! and a sync only ever removes those, so anything else in classes/ is left alone. Copies in the
-//! app's data folder are made read-only (deleting them still works, since that depends on the
-//! folder, not the file).
+//! app's data folder are made read-only on macOS and Linux (deleting them still works, since that
+//! depends on the folder, not the file). Windows makes a hard link where a symlink is refused.
 
 use std::collections::HashMap;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
-use std::path::{Path, PathBuf};
+use std::path::{MAIN_SEPARATOR, Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
@@ -45,7 +44,7 @@ fn still_ours(made: &Json) -> bool {
 	if st.file_type().is_symlink() {
 		return true;
 	}
-	made["ino"].as_f64().is_some_and(|ino| st.is_file() && st.ino() as f64 == ino)
+	made["ino"].as_f64().is_some_and(|ino| st.is_file() && ino_of(Path::new(path_of(made))) == Some(ino))
 }
 
 /// A hard link whose target was replaced (an edited linked file) is stale.
@@ -57,16 +56,57 @@ fn up_to_date(made: &Json) -> Result<bool, String> {
 			let link = std::fs::read_link(at).map_err(|err| fsx::node_error_message(&err, "readlink", at))?;
 			Ok(link.to_string_lossy() == target)
 		}
-		Some(ino) => Ok(std::fs::metadata(target).is_ok_and(|st| st.ino() as f64 == ino)),
+		Some(ino) => Ok(ino_of(Path::new(target)) == Some(ino)),
 	}
 }
 
-fn read_only(file: &str) -> Result<(), String> {
-	let st = std::fs::metadata(file).map_err(|err| fsx::node_error_message(&err, "stat", Path::new(file)))?;
-	let mode = st.permissions().mode();
-	if mode & 0o222 != 0 {
-		std::fs::set_permissions(file, std::fs::Permissions::from_mode(mode & !0o222)).map_err(|err| fsx::node_error_message(&err, "chmod", Path::new(file)))?;
+/// `fs.statSync(file).ino`, the number a hard link shares with its target.
+#[cfg(unix)]
+fn ino_of(file: &Path) -> Option<f64> {
+	use std::os::unix::fs::MetadataExt;
+	std::fs::metadata(file).ok().map(|st| st.ino() as f64)
+}
+
+#[cfg(windows)]
+fn ino_of(file: &Path) -> Option<f64> {
+	match file_id::get_low_res_file_id(file) {
+		Ok(file_id::FileId::LowRes { file_index, .. }) => Some(file_index as f64),
+		_ => None,
 	}
+}
+
+/// Makes the shortcut: a symlink, which always works on macOS and Linux (an error fails the sync).
+#[cfg(unix)]
+fn link(target: &str, at: &str) -> Result<Option<Json>, String> {
+	std::os::unix::fs::symlink(target, at).map_err(|err| format!("{err}, symlink '{target}' -> '{at}'"))?;
+	Ok(Some(json!({ "path": at, "target": target })))
+}
+
+/// Makes the shortcut: a symlink, or a hard link where Windows refuses one (it needs a privilege
+/// or developer mode). None when neither can be made.
+#[cfg(windows)]
+fn link(target: &str, at: &str) -> Result<Option<Json>, String> {
+	if std::os::windows::fs::symlink_file(target, at).is_ok() {
+		return Ok(Some(json!({ "path": at, "target": target })));
+	}
+	if std::fs::hard_link(target, at).is_err() {
+		return Ok(None);
+	}
+	Ok(ino_of(Path::new(at)).map(|ino| json!({ "path": at, "target": target, "ino": ino })))
+}
+
+fn read_only(file: &str) -> Result<(), String> {
+	#[cfg(unix)]
+	{
+		use std::os::unix::fs::PermissionsExt;
+		let st = std::fs::metadata(file).map_err(|err| fsx::node_error_message(&err, "stat", Path::new(file)))?;
+		let mode = st.permissions().mode();
+		if mode & 0o222 != 0 {
+			std::fs::set_permissions(file, std::fs::Permissions::from_mode(mode & !0o222)).map_err(|err| fsx::node_error_message(&err, "chmod", Path::new(file)))?;
+		}
+	}
+	#[cfg(windows)]
+	let _ = file;
 	Ok(())
 }
 
@@ -97,10 +137,10 @@ fn current_classes(app: &App) -> (Vec<Json>, HashMap<String, Target>) {
 	(classes, targets)
 }
 
-/// Makes `<folder>/classes` match the classes now (a link that cannot be made fails the sync,
-/// as symlinks always work on macOS and Linux): adds missing shortcuts, replaces changed ones,
-/// and removes the ones this made that are gone, then any folder it made that is left empty.
-/// `clear` empties it (the folder moved away).
+/// Makes `<folder>/classes` match the classes now: adds missing shortcuts, replaces changed ones,
+/// and removes the ones this made that are gone, then any folder it made that is left empty. A
+/// link that cannot be made fails the sync on macOS and Linux, and on Windows is listed in the
+/// README. `clear` empties it (the folder moved away).
 fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 	let root = folder.join("classes");
 	let (old_links, old_dirs) = read_manifest(folder);
@@ -127,6 +167,7 @@ fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 	}
 	let kept: Vec<String> = links.iter().map(|l| path_of(l).to_owned()).collect();
 
+	let mut skipped: Vec<String> = Vec::new();
 	let mut dirs: Vec<String> = Vec::new();
 	for dir in old_dirs {
 		if Path::new(&dir).exists() && !dirs.contains(&dir) {
@@ -148,13 +189,15 @@ fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 		if let Some(parent) = at_path.parent() {
 			ensure_dir(parent, &mut dirs)?;
 		}
-		std::os::unix::fs::symlink(&target.path, at_path).map_err(|err| format!("{err}, symlink '{}' -> '{at}'", target.path))?;
-		links.push(json!({ "path": at, "target": target.path }));
+		match link(&target.path, at)? {
+			Some(made) => links.push(made),
+			None => skipped.push(at_path.strip_prefix(&root).unwrap_or(at_path).to_string_lossy().into_owned()),
+		}
 	}
 
 	let readme = root.join(README_NAME);
 	if !want.is_empty() {
-		fsx::write_text_atomic(&readme, &readme_text(&[])).map_err(|err| fsx::node_error_message(&err, "open", &readme))?;
+		fsx::write_text_atomic(&readme, &readme_text(&skipped)).map_err(|err| fsx::node_error_message(&err, "open", &readme))?;
 	} else if readme.exists() {
 		let _ = std::fs::remove_file(&readme);
 	}
@@ -162,7 +205,7 @@ fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 	let mut by_depth = dirs.clone();
 	by_depth.sort_by_key(|d| std::cmp::Reverse(text::len16(d)));
 	for dir in by_depth {
-		let prefix = format!("{dir}/");
+		let prefix = format!("{dir}{MAIN_SEPARATOR}");
 		if want.iter().any(|(p, _)| p.starts_with(&prefix)) {
 			continue;
 		}

@@ -6,7 +6,7 @@ mod cheat_sheet_pdf;
 mod context;
 mod files;
 mod folder;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod golden_tests;
 mod reads;
 mod run;

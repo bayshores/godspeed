@@ -14,6 +14,20 @@ pub fn read_text(file: &Path) -> io::Result<String> {
 	Ok(text::from_utf8_lossy(&std::fs::read(file)?))
 }
 
+/// `fs.statSync(file).mtimeMs`: seconds and nanoseconds as fractional milliseconds.
+pub fn modified_ms(meta: &std::fs::Metadata) -> f64 {
+	#[cfg(unix)]
+	{
+		use std::os::unix::fs::MetadataExt;
+		meta.mtime() as f64 * 1000.0 + meta.mtime_nsec() as f64 / 1e6
+	}
+	#[cfg(not(unix))]
+	{
+		let since_epoch = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).unwrap_or_default();
+		since_epoch.as_secs_f64() * 1000.0
+	}
+}
+
 /// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole.
 /// `mode` applies to a new file (Unix permissions, e.g. 0o600).
 pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
@@ -84,8 +98,9 @@ pub fn node_error_message(err: &io::Error, syscall: &str, path: &Path) -> String
 /// libuv's code and text for an error.
 fn describe(err: &io::Error) -> Option<(&'static str, &'static str)> {
 	use io::ErrorKind as K;
-	// EPERM (1) and EACCES (13) share a kind; the number is the same on macOS and Linux.
-	if err.raw_os_error() == Some(1) {
+	// EPERM (1) and EACCES (13) share a kind; the number is the same on macOS and Linux. On
+	// Windows 1 is another error.
+	if cfg!(unix) && err.raw_os_error() == Some(1) {
 		return Some(("EPERM", "operation not permitted"));
 	}
 	Some(match err.kind() {

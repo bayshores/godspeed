@@ -6,6 +6,7 @@ use std::fs::FileType;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
+use gs_base::config::{home_dir, is_absolute, resolve};
 use gs_base::{fsx, num, posix, text};
 use gs_json::Json;
 
@@ -17,12 +18,21 @@ pub const WALK_TIMEOUT_MS: i64 = 10_000;
 
 /// A path argument: absolute stays, a leading `~` means home, relative or absent means home.
 pub fn resolve_source_path(p: Option<&str>) -> PathBuf {
-	let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_owned());
-	let Some(p) = p.filter(|p| !p.is_empty()) else { return PathBuf::from(home) };
+	let home = home_dir();
+	let Some(p) = p.filter(|p| !p.is_empty()) else { return home };
 	if p == "~" || p.starts_with("~/") || p.starts_with("~\\") {
-		return PathBuf::from(posix::join(&[&home, &p[1..]]));
+		return home_join(&home, &p[1..]);
 	}
-	if p.starts_with('/') { PathBuf::from(p) } else { PathBuf::from(posix::join(&[&home, p])) }
+	if is_absolute(p) { PathBuf::from(p) } else { home_join(&home, p) }
+}
+
+/// `path.join(home, rest)`: `..` and `.` settled, with this OS's separators.
+fn home_join(home: &Path, rest: &str) -> PathBuf {
+	if cfg!(windows) {
+		resolve(&home.join(rest.trim_start_matches(['/', '\\'])))
+	} else {
+		PathBuf::from(posix::join(&[&home.to_string_lossy(), rest]))
+	}
 }
 
 /// Runs blocking file work on its own thread, so a long walk never holds the server's workers.
@@ -111,6 +121,7 @@ mod tests {
 	}
 
 	#[test]
+	#[cfg(unix)]
 	fn paths_resolve_against_home() {
 		let home = std::env::var("HOME").unwrap();
 		assert_eq!(resolve_source_path(None), PathBuf::from(&home));
@@ -120,6 +131,17 @@ mod tests {
 		assert_eq!(resolve_source_path(Some("~")), PathBuf::from(&home));
 		assert_eq!(resolve_source_path(Some("~/x/../y")), PathBuf::from(format!("{home}/y")));
 		assert_eq!(resolve_source_path(Some("~x")), PathBuf::from(format!("{home}/~x")));
+	}
+
+	#[test]
+	#[cfg(windows)]
+	fn windows_paths_use_their_own_separators() {
+		let home = home_dir();
+		assert_eq!(resolve_source_path(None), home);
+		assert_eq!(resolve_source_path(Some(r"~\x\..\y")), home.join("y"));
+		assert_eq!(resolve_source_path(Some("~/x/y")), home.join("x").join("y"));
+		assert_eq!(resolve_source_path(Some("x/./y")), home.join("x").join("y"));
+		assert_eq!(resolve_source_path(Some(r"C:\a\..\b")), PathBuf::from(r"C:\a\..\b"));
 	}
 
 	#[test]

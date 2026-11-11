@@ -1,8 +1,10 @@
 //! The tools over made-up folders, plus a local web server for the fetch tools. The recorded
 //! TypeScript answers are replayed by tests/fs_tools_golden.rs.
 
+#[cfg(unix)]
 use std::cell::RefCell;
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -27,6 +29,7 @@ use super::web::web_tools;
 /// A folder under the system temp folder, removed when dropped.
 pub(crate) struct TempDir {
 	root: PathBuf,
+	#[cfg(unix)]
 	locked: RefCell<Vec<PathBuf>>,
 }
 
@@ -36,7 +39,11 @@ impl TempDir {
 		let name = format!("gs-fs-tools-{label}-{}-{}", std::process::id(), COUNT.fetch_add(1, Ordering::Relaxed));
 		let root = fs::canonicalize(std::env::temp_dir()).unwrap().join(name);
 		fs::create_dir_all(&root).unwrap();
-		TempDir { root, locked: RefCell::new(Vec::new()) }
+		TempDir {
+			root,
+			#[cfg(unix)]
+			locked: RefCell::new(Vec::new()),
+		}
 	}
 
 	pub(crate) fn path(&self) -> &Path {
@@ -55,11 +62,13 @@ impl TempDir {
 	}
 
 	/// `name` becomes a link to `target` (both from this folder).
+	#[cfg(unix)]
 	pub(crate) fn link(&self, target: &str, name: &str) {
 		symlink(self.root.join(target), self.root.join(name)).unwrap();
 	}
 
 	/// Takes away all access to `rel` (until the folder is dropped).
+	#[cfg(unix)]
 	fn lock(&self, rel: &str) {
 		let path = self.root.join(rel);
 		fs::set_permissions(&path, fs::Permissions::from_mode(0o000)).unwrap();
@@ -69,6 +78,7 @@ impl TempDir {
 
 impl Drop for TempDir {
 	fn drop(&mut self) {
+		#[cfg(unix)]
 		for path in self.locked.borrow().iter() {
 			let _ = fs::set_permissions(path, fs::Permissions::from_mode(0o755));
 		}
@@ -77,6 +87,7 @@ impl Drop for TempDir {
 }
 
 /// True when this process can read a file with no permissions (root), so lock tests cannot run.
+#[cfg(unix)]
 fn can_ignore_permissions() -> bool {
 	let dir = TempDir::new("root-check");
 	dir.put("f", "x");
@@ -125,6 +136,7 @@ async fn read_shows_pictures_and_refuses_binaries() {
 	assert_eq!(ok(&tool, json!({ "path": dir.text("paper.pdf") })).await, "paper.pdf is a binary file (8B), not readable as text. For a PDF, dispatch a pdf job if you have that tool.");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn read_words_failures_like_node() {
 	let dir = TempDir::new("read-fail");
@@ -143,6 +155,7 @@ async fn read_words_failures_like_node() {
 
 // ls
 
+#[cfg(unix)]
 #[tokio::test]
 async fn ls_sorts_without_case_and_marks_folders() {
 	let dir = TempDir::new("ls");
@@ -157,6 +170,7 @@ async fn ls_sorts_without_case_and_marks_folders() {
 	assert_eq!(ok(&tool, json!({ "path": dir.text(""), "limit": 2 })).await, ".hidden\na.txt\n\n[Truncated: 2 entries limit]");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn ls_words_failures() {
 	let dir = TempDir::new("ls-fail");
@@ -184,6 +198,7 @@ async fn ls_cuts_at_fifty_kb() {
 
 // find
 
+#[cfg(unix)]
 #[tokio::test]
 async fn find_matches_globs_and_skips_noise() {
 	let dir = TempDir::new("find");

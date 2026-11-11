@@ -5,7 +5,6 @@ use std::path::Path;
 use std::sync::Arc;
 
 use gs_base::re::{self, Re};
-use gs_base::posix::basename;
 use gs_base::regexp::new_regexp;
 use gs_base::{clock, text};
 use gs_engine::turn::abort::Abort;
@@ -104,8 +103,8 @@ fn grep(req: &Request, abort: &Abort) -> Result<Json, String> {
 		if is_binary_file(&req.path).unwrap_or(true) {
 			return Ok(Json::Str("Binary file, not searched. For a PDF, dispatch a pdf job if you have that tool.".to_owned()));
 		}
-		let full = req.path.to_string_lossy().into_owned();
-		targets.push(Target { name: basename(&full).to_owned(), full });
+		let name = req.path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+		targets.push(Target { name, full: req.path.to_string_lossy().into_owned() });
 	}
 
 	let mut scan = Scan { req, regex: &regex, out: Vec::new(), out_bytes: 0, output_capped: false, match_count: 0, limit_reached: false, lines_truncated: false };

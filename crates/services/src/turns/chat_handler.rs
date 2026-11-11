@@ -527,6 +527,7 @@ mod tests {
 		assert!(attach_turn(&app, &chat_id).await.is_none());
 	}
 
+	#[cfg(unix)]
 	#[test]
 	fn a_write_ahead_that_cannot_save_still_announces_its_turn() {
 		use std::os::unix::fs::PermissionsExt;

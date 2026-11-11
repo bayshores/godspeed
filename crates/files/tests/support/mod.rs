@@ -1,7 +1,6 @@
 //! A scratch folder that is removed (and made writable again first) when the test ends.
 
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 pub struct TempDir(PathBuf);
@@ -24,7 +23,11 @@ pub fn write(file: impl AsRef<Path>, data: impl AsRef<[u8]>) {
 }
 
 fn unlock(dir: &Path) {
-	let _ = fs::set_permissions(dir, fs::Permissions::from_mode(0o755));
+	#[cfg(unix)]
+	{
+		use std::os::unix::fs::PermissionsExt;
+		let _ = fs::set_permissions(dir, fs::Permissions::from_mode(0o755));
+	}
 	for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
 		if entry.file_type().is_ok_and(|t| t.is_dir()) {
 			unlock(&entry.path());

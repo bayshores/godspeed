@@ -3,7 +3,6 @@
 //! until a request asks it to. With `LH_SHELL=1` its stdin and stdout carry the line protocol to
 //! the shell (gs-shell-rpc); log lines go to stderr either way.
 
-use std::os::unix::fs::FileTypeExt;
 use std::process::ExitCode;
 
 use axum::ServiceExt;
@@ -13,7 +12,6 @@ use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
 use gs_services::App;
 use gs_shell_rpc::{ShellLink, ToShell};
-use tokio::signal::unix::{SignalKind, signal};
 use tower::Layer;
 
 /// After SIGTERM open requests get this long to finish (an agent's long-poll would hold the
@@ -59,25 +57,18 @@ async fn main() -> ExitCode {
 	ExitCode::from(143)
 }
 
-/// SIGTERM or SIGINT stops the server, and so does the end of stdin: the shell's stdin pipe
-/// when it started us (its quit, crash or force-quit ends us too, on every OS), else stdin when
-/// it is a pipe. After the stop, open requests get FORCE_EXIT_MS, then the process exits with
-/// 143 like Node after SIGTERM.
+/// SIGTERM or SIGINT (Ctrl-C on Windows) stops the server, and so does the end of stdin: the
+/// shell's stdin pipe when it started us (its quit, crash or force-quit ends us too, on every
+/// OS), else stdin when it is a pipe. After the stop, open requests get FORCE_EXIT_MS, then the
+/// process exits with 143 like Node after SIGTERM.
 fn watch_for_stop(shell: Option<ShellLink>) {
-	tokio::spawn(async {
-		let (Ok(mut term), Ok(mut int)) = (signal(SignalKind::terminate()), signal(SignalKind::interrupt())) else { return };
-		tokio::select! {
-			_ = term.recv() => {}
-			_ = int.recv() => {}
-		}
-		shutdown::trigger();
-	});
+	tokio::spawn(stop_on_signal());
 	if let Some(shell) = shell {
 		std::thread::spawn(move || {
 			shell.listen(std::io::stdin().lock());
 			shutdown::trigger();
 		});
-	} else if std::fs::metadata("/dev/stdin").is_ok_and(|m| m.file_type().is_fifo()) {
+	} else if stdin_is_pipe() {
 		std::thread::spawn(|| {
 			let _ = std::io::copy(&mut std::io::stdin(), &mut std::io::sink());
 			shutdown::trigger();
@@ -90,4 +81,35 @@ fn watch_for_stop(shell: Option<ShellLink>) {
 			std::process::exit(143);
 		});
 	});
+}
+
+#[cfg(unix)]
+async fn stop_on_signal() {
+	use tokio::signal::unix::{SignalKind, signal};
+	let (Ok(mut term), Ok(mut int)) = (signal(SignalKind::terminate()), signal(SignalKind::interrupt())) else { return };
+	tokio::select! {
+		_ = term.recv() => {}
+		_ = int.recv() => {}
+	}
+	shutdown::trigger();
+}
+
+#[cfg(windows)]
+async fn stop_on_signal() {
+	if tokio::signal::ctrl_c().await.is_ok() {
+		shutdown::trigger();
+	}
+}
+
+/// Whether stdin is a pipe (a parent that ends us by closing it), not a terminal or a file.
+#[cfg(unix)]
+fn stdin_is_pipe() -> bool {
+	use std::os::unix::fs::FileTypeExt;
+	std::fs::metadata("/dev/stdin").is_ok_and(|m| m.file_type().is_fifo())
+}
+
+/// Windows has no `/dev/stdin`, and the shell is the only parent that closes stdin to stop us.
+#[cfg(windows)]
+fn stdin_is_pipe() -> bool {
+	false
 }

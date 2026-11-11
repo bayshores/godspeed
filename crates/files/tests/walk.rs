@@ -43,6 +43,7 @@ fn a_walk_does_not_follow_links_and_lists_in_folder_order() {
 	fs::create_dir(dir.path().join("b")).unwrap();
 	write(dir.path().join("b/two.txt"), "2");
 	write(dir.path().join("a.txt"), "1");
+	#[cfg(unix)]
 	std::os::unix::fs::symlink("b", dir.path().join("link")).unwrap();
 	let walk = walk_linked_folder(dir.path(), &TextChecks::default()).unwrap();
 	assert_eq!(walk.files, ["a.txt", "b/two.txt"]);

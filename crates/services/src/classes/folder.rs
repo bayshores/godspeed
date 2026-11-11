@@ -5,11 +5,10 @@
 
 use std::collections::{HashMap, HashSet};
 use std::io;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::Path;
 use std::sync::Arc;
 
-use gs_base::config::resolve;
+use gs_base::config::{is_absolute, resolve};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, fsx, time};
@@ -44,8 +43,7 @@ fn not_responding(err: &io::Error) -> bool {
 /// `${st.mtimeMs}:${st.size}`: a file's change signature.
 pub(super) fn stat_sig(file: &Path) -> io::Result<String> {
 	let meta = std::fs::metadata(file)?;
-	let mtime_ms = meta.mtime() as f64 * 1000.0 + meta.mtime_nsec() as f64 / 1e6;
-	Ok(format!("{}:{}", gs_json::js_number(mtime_ms), meta.len()))
+	Ok(format!("{}:{}", gs_json::js_number(fsx::modified_ms(&meta)), meta.len()))
 }
 
 pub fn link_folder(app: &Arc<App>, class_id: &str, folder: &str) -> ClassOutcome<Json> {
@@ -54,7 +52,7 @@ pub fn link_folder(app: &Arc<App>, class_id: &str, folder: &str) -> ClassOutcome
 	if record["archived"].truthy() {
 		return fail(409, "archived", "This class is archived. Unarchive it first, then link the folder.");
 	}
-	if !folder.starts_with('/') {
+	if !is_absolute(folder) {
 		return fail(400, "bad_path", "Give the folder's full (absolute) path");
 	}
 	match std::fs::metadata(folder) {
@@ -444,10 +442,12 @@ fn drop_gone(app: &Arc<App>, class_id: &str, gone: &[Json], announce: bool) {
 	}
 }
 
-/// Deletes a copied file's folder, read-only files included.
+/// Deletes a copied file's folder, read-only files included (Windows deletes those as they are).
 fn remove_copy_dir(app: &App, class_id: &str, file_id: &str) {
 	let Ok(dir) = app.stores.classes.files_dir(class_id).map(|d| d.join(file_id)) else { return };
+	#[cfg(unix)]
 	if let Ok(entries) = std::fs::read_dir(&dir) {
+		use std::os::unix::fs::PermissionsExt;
 		for entry in entries.flatten() {
 			let _ = std::fs::set_permissions(entry.path(), std::fs::Permissions::from_mode(0o644));
 		}

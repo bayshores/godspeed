@@ -23,6 +23,9 @@ futures-util.workspace = true
 tokio.workspace = true
 parking_lot.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+file-id.workspace = true
+
 [dev-dependencies]
 gs-pdf = { workspace = true, features = ["test-support"] }
 

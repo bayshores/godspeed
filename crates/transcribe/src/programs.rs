@@ -76,6 +76,7 @@ fn can_execute(_meta: &std::fs::Metadata) -> bool {
 }
 
 /// `path.join(dir, name)` on POSIX: slashes collapsed, `.` dropped, `..` resolved.
+#[cfg(unix)]
 fn join(dir: &str, name: &str) -> PathBuf {
 	let joined = format!("{dir}/{name}");
 	let absolute = joined.starts_with('/');
@@ -101,6 +102,12 @@ fn join(dir: &str, name: &str) -> PathBuf {
 	} else {
 		body
 	})
+}
+
+/// `path.join(dir, name)` on Windows.
+#[cfg(windows)]
+fn join(dir: &str, name: &str) -> PathBuf {
+	Path::new(dir).join(name)
 }
 
 #[cfg(all(test, unix))]

@@ -41,16 +41,6 @@ pub fn join(parts: &[&str]) -> String {
 	if joined.is_empty() { ".".to_owned() } else { normalize(&joined) }
 }
 
-/// `path.resolve(base, rest)` for an absolute `base`: `rest` wins when it is absolute, and the
-/// result never ends in a slash (except the root).
-pub fn resolve(base: &str, rest: &str) -> String {
-	let joined = if rest.starts_with('/') { normalize(rest) } else { join(&[base, rest]) };
-	match joined.trim_end_matches('/') {
-		"" => "/".to_owned(),
-		trimmed => trimmed.to_owned(),
-	}
-}
-
 /// `path.posix.dirname`.
 pub fn dirname(path: &str) -> String {
 	if path.is_empty() {
@@ -120,15 +110,6 @@ mod tests {
 		assert_eq!(join(&["ppt", "../x/./y.xml"]), "x/y.xml");
 		assert_eq!(join(&["ppt", "/ppt/slides/slide1.xml"]), "ppt/ppt/slides/slide1.xml");
 		assert_eq!(join(&[".", "_rels", "a.rels"]), "_rels/a.rels");
-	}
-
-	#[test]
-	fn resolve_like_node() {
-		assert_eq!(resolve("/a/b", "c.pdf"), "/a/b/c.pdf");
-		assert_eq!(resolve("/a/b", "../c"), "/a/c");
-		assert_eq!(resolve("/a/b", "/x/y/"), "/x/y");
-		assert_eq!(resolve("/a/b/", ""), "/a/b");
-		assert_eq!(resolve("/a/b", "../../.."), "/");
 	}
 
 	#[test]

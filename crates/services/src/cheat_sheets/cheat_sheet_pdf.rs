@@ -14,12 +14,25 @@ use crate::App;
 /// The real path of `pdf_path` (relative to `folder`), when it is inside the folder.
 fn inside(folder: &Path, pdf_path: &str) -> Result<PathBuf, String> {
 	let none = || format!("There is no file at {pdf_path}.");
-	let root = std::fs::canonicalize(folder).map_err(|_| none())?;
-	let file = std::fs::canonicalize(folder.join(pdf_path)).map_err(|_| none())?;
-	if !file.to_string_lossy().starts_with(&format!("{}/", root.to_string_lossy())) {
+	let root = real_path(folder).ok_or_else(none)?;
+	let file = real_path(&folder.join(pdf_path)).ok_or_else(none)?;
+	if file == root || !file.starts_with(&root) {
 		return Err(format!("Put the PDF inside the working folder, {}.", folder.to_string_lossy()));
 	}
 	Ok(file)
+}
+
+/// `fs.realpathSync`: links resolved. Windows' `\\?\` prefix is dropped, as Node does, so the path
+/// still opens in tools that do not know it.
+fn real_path(path: &Path) -> Option<PathBuf> {
+	let real = std::fs::canonicalize(path).ok()?;
+	let text = real.to_string_lossy();
+	let plain = match text.strip_prefix(r"\\?\") {
+		Some(rest) if rest.as_bytes().get(1) == Some(&b':') => rest.to_owned(),
+		Some(rest) => rest.strip_prefix("UNC\\").map_or_else(|| text.to_string(), |share| format!(r"\\{share}")),
+		None => return Some(real),
+	};
+	Some(PathBuf::from(plain))
 }
 
 pub async fn take_sheet_pdf(app: &App, folder: &Path, pdf_path: &str) -> Result<TakenPdf, String> {
@@ -56,12 +69,14 @@ mod tests {
 		std::fs::create_dir_all(&folder).unwrap();
 		gs_base::fsx::write_atomic(&folder.join("a.pdf"), b"%PDF-1.4", None).unwrap();
 		gs_base::fsx::write_atomic(&root.join("outside.pdf"), b"%PDF-1.4", None).unwrap();
+		#[cfg(unix)]
 		std::os::unix::fs::symlink(root.join("outside.pdf"), folder.join("link.pdf")).unwrap();
 
 		let inside_path = inside(&folder, "a.pdf").unwrap();
-		assert!(inside_path.ends_with("sheet/a.pdf"));
+		assert!(inside_path.ends_with(Path::new("sheet").join("a.pdf")));
 		let wanted = format!("Put the PDF inside the working folder, {}.", folder.to_string_lossy());
 		assert_eq!(inside(&folder, "../outside.pdf"), Err(wanted.clone()));
+		#[cfg(unix)]
 		assert_eq!(inside(&folder, "link.pdf"), Err(wanted.clone()));
 		assert_eq!(inside(&folder, ""), Err(wanted));
 		assert_eq!(inside(&folder, "missing.pdf"), Err("There is no file at missing.pdf.".to_owned()));

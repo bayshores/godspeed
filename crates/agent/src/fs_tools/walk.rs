@@ -1,9 +1,9 @@
 //! Depth-first walk under a folder for find and grep.
 
-use std::path::Path;
+use std::path::{MAIN_SEPARATOR, Path};
 
 use gs_base::clock;
-use gs_base::posix::normalize;
+use gs_base::config::resolve;
 use gs_engine::turn::abort::Abort;
 
 use super::fs_shared::{WALK_TIMEOUT_MS, read_dir_items};
@@ -26,7 +26,7 @@ struct Walk<'a, F> {
 }
 
 /// Visits every file under `root` (symlinks and other kinds are not followed) with its full
-/// path and its path from `root` (`/` separators). `visit` returns true to stop. The walk
+/// path (this OS's separators) and its path from `root` (`/` separators). `visit` returns true to stop. The walk
 /// stops by itself after `WALK_TIMEOUT_MS` or when the abort fires, keeping what it found.
 pub fn walk_files(root: &Path, abort: &Abort, visit: impl FnMut(&str, &str) -> bool) -> Walked {
 	let mut walk = Walk { abort, deadline: clock::now_ms() + WALK_TIMEOUT_MS, visit, out: Walked { timed_out: false, aborted: false } };
@@ -35,8 +35,8 @@ pub fn walk_files(root: &Path, abort: &Abort, visit: impl FnMut(&str, &str) -> b
 		return walk.out;
 	}
 	// Paths below the root are joined the way path.join does, which settles `..` in the root.
-	let base = normalize(&root.to_string_lossy());
-	walk.dir(root, base.trim_end_matches('/'), "");
+	let base = resolve(root).to_string_lossy().into_owned();
+	walk.dir(root, base.trim_end_matches(MAIN_SEPARATOR), "");
 	walk.out
 }
 
@@ -65,7 +65,7 @@ impl<F: FnMut(&str, &str) -> bool> Walk<'_, F> {
 			if self.stop() {
 				return true;
 			}
-			let full = format!("{dir}/{}", item.name);
+			let full = format!("{dir}{MAIN_SEPARATOR}{}", item.name);
 			let below = if relative.is_empty() { item.name.clone() } else { format!("{relative}/{}", item.name) };
 			let Some(kind) = item.file_type else { continue };
 			if kind.is_dir() {
@@ -97,6 +97,7 @@ mod tests {
 		(seen, out)
 	}
 
+	#[cfg(unix)]
 	#[test]
 	fn walks_in_name_order_and_skips_noise_and_links() {
 		let dir = TempDir::new("walk");
@@ -113,6 +114,7 @@ mod tests {
 		assert!(!out.timed_out && !out.aborted);
 	}
 
+	#[cfg(unix)]
 	#[test]
 	fn the_root_may_be_a_noise_folder_and_a_link() {
 		let dir = TempDir::new("walk-root");

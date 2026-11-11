@@ -35,8 +35,11 @@ fn other_files_and_links_are_not_listed() {
 	lab.put("prompts/teacher/10-planning.md", "plan\n");
 	lab.put("prompts/notes.txt", "not a segment\n");
 	lab.put("outside/10-voice.md", "elsewhere\n");
-	std::os::unix::fs::symlink(lab.file("outside"), lab.file("prompts/shared")).unwrap();
-	std::os::unix::fs::symlink(lab.file("outside/10-voice.md"), lab.file("prompts/teacher/20-teaching.md")).unwrap();
+	#[cfg(unix)]
+	{
+		std::os::unix::fs::symlink(lab.file("outside"), lab.file("prompts/shared")).unwrap();
+		std::os::unix::fs::symlink(lab.file("outside/10-voice.md"), lab.file("prompts/teacher/20-teaching.md")).unwrap();
+	}
 	let overrides = PromptOverrides::new(&lab.paths);
 	assert_eq!(overrides.list_overrides(), ["teacher/10-planning.md"]);
 }

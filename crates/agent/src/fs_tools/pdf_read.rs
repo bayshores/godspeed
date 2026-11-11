@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use gs_base::posix::resolve;
+use gs_base::config::resolve;
 use gs_engine::turn::tool::Tool;
 use gs_json::{Json, json};
 use gs_pdf::Pdf;
@@ -25,10 +25,9 @@ fn size_class(page_count: u32) -> &'static str {
 
 /// `path` resolved against the download folder, or None when it would leave it.
 fn scoped_path(dir: &Path, path: &str) -> Option<PathBuf> {
-	let root = resolve(&dir.to_string_lossy(), "");
-	let resolved = resolve(&root, path);
-	let inside = resolved.strip_prefix(&root).is_some_and(|rest| rest.starts_with('/'));
-	inside.then(|| PathBuf::from(resolved))
+	let root = resolve(dir);
+	let resolved = resolve(&root.join(path));
+	(resolved != root && resolved.starts_with(&root)).then_some(resolved)
 }
 
 /// The tools in the order the researcher lists them.
@@ -149,14 +148,16 @@ mod tests {
 
 	#[test]
 	fn paths_must_stay_inside_the_folder() {
-		let dir = Path::new("/jobs/a");
-		assert_eq!(scoped_path(dir, "/jobs/a/x.pdf"), Some(PathBuf::from("/jobs/a/x.pdf")));
-		assert_eq!(scoped_path(dir, "x.pdf"), Some(PathBuf::from("/jobs/a/x.pdf")));
-		assert_eq!(scoped_path(dir, "sub/../x.pdf"), Some(PathBuf::from("/jobs/a/x.pdf")));
-		assert_eq!(scoped_path(dir, "../b/x.pdf"), None);
-		assert_eq!(scoped_path(dir, "/jobs/ab/x.pdf"), None);
-		assert_eq!(scoped_path(dir, "/jobs/a"), None);
-		assert_eq!(scoped_path(dir, ""), None);
-		assert_eq!(scoped_path(Path::new("/jobs/a/"), "x.pdf"), Some(PathBuf::from("/jobs/a/x.pdf")));
+		let jobs = std::env::temp_dir().join("jobs");
+		let dir = jobs.join("a");
+		let inside = dir.join("x.pdf");
+		assert_eq!(scoped_path(&dir, &inside.to_string_lossy()), Some(inside.clone()));
+		assert_eq!(scoped_path(&dir, "x.pdf"), Some(inside.clone()));
+		assert_eq!(scoped_path(&dir, "sub/../x.pdf"), Some(inside.clone()));
+		assert_eq!(scoped_path(&dir, "../b/x.pdf"), None);
+		assert_eq!(scoped_path(&dir, &jobs.join("ab").join("x.pdf").to_string_lossy()), None);
+		assert_eq!(scoped_path(&dir, &dir.to_string_lossy()), None);
+		assert_eq!(scoped_path(&dir, ""), None);
+		assert_eq!(scoped_path(&dir.join(""), "x.pdf"), Some(inside));
 	}
 }

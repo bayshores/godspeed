@@ -1,7 +1,9 @@
 //! Parity with the TypeScript file, web and PDF tools (tests/golden/fs_tools.json, made by
 //! scripts/golden.ts from fs_tools.golden.ts): the same made-up folder is built from the
 //! `fixture` case, then every recorded call is replayed on the Rust tools and must answer the
-//! same, byte for byte.
+//! same, byte for byte. The recorded paths are POSIX ones, so it runs only there.
+
+#![cfg(unix)]
 
 use std::fs;
 use std::os::unix::fs::{PermissionsExt, symlink};

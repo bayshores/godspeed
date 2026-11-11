@@ -4,6 +4,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use gs_base::config::is_absolute;
 use gs_base::hash::sha256_text;
 use gs_base::locks::LockKey;
 use gs_base::{events::EventKind, fsx, ids, time};
@@ -179,7 +180,7 @@ pub fn replace_copied_file(app: &Arc<App>, class_id: &str, file_id: &str, bytes:
 
 /// Copies a file from an absolute path on this computer (MCP).
 pub fn add_file_from_path(app: &Arc<App>, class_id: &str, abs_path: &str, kind: &str) -> ClassOutcome<Json> {
-	if !abs_path.starts_with('/') {
+	if !is_absolute(abs_path) {
 		return fail(400, "bad_path", "Give the file's full (absolute) path");
 	}
 	let Ok(meta) = std::fs::metadata(abs_path) else {
@@ -192,9 +193,9 @@ pub fn add_file_from_path(app: &Arc<App>, class_id: &str, abs_path: &str, kind: 
 	add_copied_file(app, class_id, &node_basename(abs_path), &bytes, kind)
 }
 
-/// `path.basename`: the last part, trailing slashes ignored.
+/// `path.basename`: the last part, trailing separators ignored.
 fn node_basename(p: &str) -> String {
-	p.trim_end_matches('/').rsplit('/').next().unwrap_or("").to_owned()
+	Path::new(p).file_name().map_or_else(String::new, |name| name.to_string_lossy().into_owned())
 }
 
 /// Switches a file between study material and course info by hand: godspeed never sorts it by

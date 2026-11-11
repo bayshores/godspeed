@@ -1,5 +1,3 @@
-use std::os::unix::fs::PermissionsExt;
-
 use gs_core::records::agent_notes::{NOTE_MAX_CHARS, NOTES_MAX};
 use gs_core::records::agent_seen::{SeenMark, SeenStore};
 use gs_json::{Json, parse, stringify};
@@ -252,7 +250,9 @@ fn the_seed_seen_file_is_read() {
 	assert_eq!(lab.get("agent-seen.json"), before);
 }
 
+#[cfg(unix)]
 fn token_mode(lab: &Lab) -> u32 {
+	use std::os::unix::fs::PermissionsExt;
 	std::fs::metadata(lab.file("mcp-token")).unwrap().permissions().mode() & 0o777
 }
 
@@ -264,6 +264,7 @@ fn the_token_is_made_once_as_64_hex_characters_readable_only_by_the_owner() {
 	let token = store.ensure_mcp_token().unwrap();
 	assert_eq!(token.len(), 64);
 	assert!(token.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)));
+	#[cfg(unix)]
 	assert_eq!(token_mode(&lab), 0o600);
 	assert_eq!(lab.get("mcp-token"), token);
 	assert_eq!(store.ensure_mcp_token().unwrap(), token);
@@ -292,5 +293,6 @@ fn rotating_the_token_writes_a_different_one() {
 	let second = store.write_new_mcp_token().unwrap();
 	assert_ne!(first, second);
 	assert_eq!(store.read_mcp_token(), Some(second));
+	#[cfg(unix)]
 	assert_eq!(token_mode(&lab), 0o600);
 }

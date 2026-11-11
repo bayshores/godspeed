@@ -5,7 +5,6 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
-use gs_base::posix::{basename, extname};
 use gs_base::{fsx, text};
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_execute::{Image, ImageFileResult};
@@ -52,19 +51,19 @@ pub fn read_tool() -> Arc<dyn Tool> {
 }
 
 fn read(file: &Path, offset: Option<i64>, limit: Option<i64>) -> Result<Json, String> {
-	let name = file.to_string_lossy();
-	let ext = extname(&name).to_ascii_lowercase();
+	let name = file.file_name().unwrap_or_default().to_string_lossy();
+	let ext = file.extension().map_or_else(String::new, |ext| format!(".{}", ext.to_string_lossy().to_ascii_lowercase()));
 	let mime = image_mime(&ext);
 	// The 8 KB sniff keeps a video from ever being loaded; a PDF's head may have no NUL byte,
 	// hence the extension check.
 	if mime.is_none() && (ext == ".pdf" || is_binary_file(file)?) {
 		let size = std::fs::metadata(file).map_err(|e| fsx::node_error_message(&e, "stat", file))?.len();
 		let pdf_hint = if ext == ".pdf" { " For a PDF, dispatch a pdf job if you have that tool." } else { "" };
-		return Ok(Json::Str(format!("{} is a binary file ({}), not readable as text.{pdf_hint}", basename(&name), format_size(size))));
+		return Ok(Json::Str(format!("{name} is a binary file ({}), not readable as text.{pdf_hint}", format_size(size))));
 	}
 	let bytes = read_all(file)?;
 	if let Some(mime) = mime {
-		let text = format!("Read image file [{mime}] \u{2014} {} ({}), attached as an image.", basename(&name), format_size(bytes.len() as u64));
+		let text = format!("Read image file [{mime}] \u{2014} {name} ({}), attached as an image.", format_size(bytes.len() as u64));
 		return Ok(ImageFileResult { text, images: vec![Image { data: gs_base::base64::encode(&bytes), mime_type: mime.to_owned() }], details: None }.into());
 	}
 	read_text_slice(&text::from_utf8_lossy(&bytes), offset, limit).map(Json::Str)

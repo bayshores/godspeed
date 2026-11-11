@@ -1,4 +1,7 @@
-//! The data-folder lock waits out a server that is still stopping, then gives up.
+//! The data-folder lock waits out a server that is still stopping, then gives up. Windows has no
+//! lock.
+
+#![cfg(unix)]
 
 use std::fs::File;
 

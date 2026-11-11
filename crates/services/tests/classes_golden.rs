@@ -1,6 +1,9 @@
 //! Parity with the TypeScript for classes (tests/golden/classes.json, made by
 //! classes.golden.ts from three synthetic classes): source ids, folder names, the class card, the
-//! list_classes and read_class tools, and the shortcuts a sync makes, keeps and clears.
+//! list_classes and read_class tools, and the shortcuts a sync makes, keeps and clears. The recording
+//! is a POSIX one (symlinks, mode bits), so it runs only there.
+
+#![cfg(unix)]
 
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};

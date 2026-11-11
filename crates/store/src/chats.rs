@@ -114,7 +114,7 @@ impl ChatStore {
 	/// of something derived from a record keys on.
 	pub fn chat_version(&self, id: &str) -> Option<String> {
 		let meta = std::fs::metadata(self.chat_file(id).ok()?).ok()?;
-		Some(format!("{}:{}", js_number(modified_ms(&meta)), meta.len()))
+		Some(format!("{}:{}", js_number(fsx::modified_ms(&meta)), meta.len()))
 	}
 
 	/// Every lesson's summary, newest activity first. Talk is not a lesson and never shows.
@@ -280,20 +280,6 @@ fn append_once(record: &mut Json, log: &str, entry: &Json, by: &str) {
 		entries.push(entry.clone());
 	}
 	set_field(record, log, entries);
-}
-
-/// `fs.statSync(file).mtimeMs`: seconds and nanoseconds as fractional milliseconds.
-fn modified_ms(meta: &std::fs::Metadata) -> f64 {
-	#[cfg(unix)]
-	{
-		use std::os::unix::fs::MetadataExt;
-		meta.mtime() as f64 * 1000.0 + meta.mtime_nsec() as f64 / 1e6
-	}
-	#[cfg(not(unix))]
-	{
-		let since_epoch = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).unwrap_or_default();
-		since_epoch.as_secs_f64() * 1000.0
-	}
 }
 
 impl ChatListing for ChatStore {

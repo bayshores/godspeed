@@ -1,7 +1,8 @@
 //! Where things live, read from the environment once at start-up (src/backend/config.ts):
 //!
 //! - `LH_DATA_DIR`: every mutable record; unset, `data/` in the working directory.
-//! - `HOME`: `os.homedir()`; `TMPDIR`: `os.tmpdir()` (trailing slash dropped, `/tmp` when unset).
+//! - `HOME` (Windows: `USERPROFILE`): `os.homedir()`; `TMPDIR`: `os.tmpdir()` (trailing slash
+//!   dropped, `/tmp` when unset; Windows asks the OS).
 //! - The working directory holds what ships beside the server: `ui/`, `models/`, `pdfjs-dist/`.
 //!
 //! Stores and services take a `Paths` instead of reading globals, so tests give each one its own
@@ -75,8 +76,29 @@ pub fn resolve(p: &Path) -> PathBuf {
 	out
 }
 
+/// `path.isAbsolute`: rooted, so `\x` counts on Windows and a drive letter alone does not.
+pub fn is_absolute(path: &str) -> bool {
+	Path::new(path).has_root()
+}
+
 fn env_path(key: &str) -> Option<PathBuf> {
 	std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)
+}
+
+/// `os.homedir()`: `HOME`, or `USERPROFILE` on Windows.
+pub fn home_dir() -> PathBuf {
+	env_path(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).unwrap_or_else(|| PathBuf::from("/"))
+}
+
+/// `os.tmpdir()` without a trailing separator: `TMPDIR` or `/tmp`, and on Windows the folder
+/// `TEMP` or `TMP` names (as Windows itself resolves it).
+fn tmp_dir() -> PathBuf {
+	if cfg!(windows) {
+		let temp = std::env::temp_dir().to_string_lossy().into_owned();
+		let trimmed = temp.trim_end_matches('\\');
+		return PathBuf::from(if trimmed.ends_with(':') { temp.as_str() } else { trimmed });
+	}
+	env_path("TMPDIR").map_or_else(|| PathBuf::from("/tmp"), |p| PathBuf::from(p.to_string_lossy().trim_end_matches('/')))
 }
 
 impl Paths {
@@ -84,9 +106,7 @@ impl Paths {
 	pub fn from_env() -> Paths {
 		let resources = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 		let data = env_path("LH_DATA_DIR").map_or_else(|| resources.join("data"), |p| resolve(&p));
-		let home = env_path("HOME").unwrap_or_else(|| PathBuf::from("/"));
-		let tmp = env_path("TMPDIR").map_or_else(|| PathBuf::from("/tmp"), |p| PathBuf::from(p.to_string_lossy().trim_end_matches('/')));
-		let mut paths = Paths::new(data, home, tmp, resources);
+		let mut paths = Paths::new(data, home_dir(), tmp_dir(), resources);
 		// A development build keeps its folder inside its own data, so its class list never syncs
 		// over the installed app's ~/godspeed.
 		if cfg!(debug_assertions) {
