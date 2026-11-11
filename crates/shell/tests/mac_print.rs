@@ -58,21 +58,30 @@ mod checks {
 		let pages = media_boxes(&std::fs::read(&printed).expect("the printed file"));
 		assert_eq!(pages, ["0 0 360 504", "0 0 360 504"]);
 
+		// The sheet shows on screen, so it is checked only where CI is set (GitHub sets it).
+		if std::env::var_os("CI").is_some() {
+			sheet_opens_and_cancels(mtm, &folder, &pdf);
+		} else {
+			eprintln!("mac_print: print sheet check skipped (set CI=1 to run it; it shows a sheet on screen)");
+		}
+
+		let _ = std::fs::remove_dir_all(&folder);
+		eprintln!("mac_print: all checks passed");
+	}
+
+	fn sheet_opens_and_cancels(mtm: MainThreadMarker, folder: &Path, pdf: &Path) {
 		// Anything the sheet would print lands in this file, which a cancel never writes.
 		let sheet_file = folder.join("from-the-sheet.pdf");
 		NSPrintInfo::setSharedPrintInfo(&save_to(&sheet_file));
 		let window = NSPanel::new(mtm);
 		window.setFrame_display(NSRect::new(NSPoint::new(80.0, 80.0), NSSize::new(640.0, 480.0)), true);
 		window.orderFrontRegardless();
-		show_sheet(&window, &pdf).expect("the print sheet");
+		show_sheet(&window, pdf).expect("the print sheet");
 		let sheet = run_until(|| window.attachedSheet()).expect("no print sheet on the window");
 		window.endSheet_returnCode(&sheet, NSModalResponseCancel);
 		assert!(run_until(|| window.attachedSheet().is_none().then_some(())).is_some(), "the print sheet stayed open");
 		window.orderOut(None);
 		assert!(!sheet_file.exists(), "a cancelled sheet printed");
-
-		let _ = std::fs::remove_dir_all(&folder);
-		eprintln!("mac_print: all checks passed");
 	}
 
 	/// A print info that saves the job as a PDF at `path` instead of printing it.

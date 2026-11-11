@@ -35,10 +35,10 @@ use crate::paths::Paths;
 /// one that can never resolve.
 const ORIGIN: &str = "https://demo.invalid/";
 
-/// A demo's page size (what Electron's hidden window had).
+/// A demo's page size.
 const DEMO_SIZE: (u32, u32) = (800, 600);
 
-/// What the Node server gave a page to load before giving up, in its words.
+/// How long a page gets to load, and the page error when it runs out.
 const LOAD_LIMIT_SECONDS: f64 = 30.0;
 const LOAD_TIMED_OUT: &str = "Navigation timeout of 30000 ms exceeded";
 
@@ -48,8 +48,8 @@ const SETTLE_SECONDS: f64 = 2.0;
 /// A page stuck in a loop never answers; this keeps the queue moving.
 const ANSWER_LIMIT_SECONDS: f64 = 15.0;
 
-/// Records what the Node server's browser reported (console errors, uncaught errors, failed
-/// loads), from document start in the page's own world.
+/// Records what a demo gets wrong (console errors, uncaught errors, failed loads), from
+/// document start in the page's own world.
 const RECORDER: &str = r#"(() => {
   const rec = { consoleErrors: [], pageErrors: [], failedRequests: [] };
   const push = (k, m) => { if (rec[k].length < 50) rec[k].push(String(m).slice(0, 500)); };
@@ -72,8 +72,8 @@ const RECORDER: &str = r#"(() => {
   Object.defineProperty(window, "__gsDemoReport", { value: () => JSON.stringify(rec) });
 })();"#;
 
-/// Runs the probe (an expression or statements, as the Node server's browser took it, promises
-/// awaited) and reads the record. `probeSource` is only defined when there is a probe.
+/// Runs the probe (an expression or statements; a promise is awaited) and reads the record.
+/// `probeSource` is only defined when there is a probe.
 const READ: &str = r#"let probe;
 if (typeof probeSource === "string") {
   try { probe = { json: JSON.stringify(await (0, eval)(probeSource)) }; }
@@ -82,12 +82,15 @@ if (typeof probeSource === "string") {
 const read = window.__gsDemoReport;
 return JSON.stringify({ report: read ? JSON.parse(read()) : null, probe });"#;
 
-/// WebKit content blockers have no alternation, so one rule per host shape.
+/// WebKit content blockers have no alternation, so one rule per host shape. Each allows a user
+/// name before the host, which WebKit keeps in the URL; localhost covers its subdomains and a
+/// trailing dot, which resolve to this machine too; and `[::` is every IPv6 form of it
+/// (`[::1]`, `[::]`, IPv4 inside IPv6), since no public address starts with `::`.
 const BLOCK_LOOPBACK: &str = r#"[
- {"trigger":{"url-filter":"^[a-z]+://127\\."},"action":{"type":"block"}},
- {"trigger":{"url-filter":"^[a-z]+://localhost[:/]"},"action":{"type":"block"}},
- {"trigger":{"url-filter":"^[a-z]+://\\[::1\\]"},"action":{"type":"block"}},
- {"trigger":{"url-filter":"^[a-z]+://0\\.0\\.0\\.0"},"action":{"type":"block"}}
+ {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?127\\."},"action":{"type":"block"}},
+ {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?([^/]*\\.)?localhost\\.?[:/]"},"action":{"type":"block"}},
+ {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?\\[::"},"action":{"type":"block"}},
+ {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?0\\.0\\.0\\.0"},"action":{"type":"block"}}
 ]"#;
 
 pub type DemoDone = Box<dyn FnOnce(Result<DemoResult, String>) + Send>;
@@ -257,7 +260,7 @@ fn invisible_window(mtm: MainThreadMarker, frame: NSRect, view: &WKWebView) -> R
 	window
 }
 
-/// The SVG alone on a white page, as the Node server drew it.
+/// The SVG alone on a white page, so transparent areas come out white.
 fn svg_page(svg: &str) -> String {
 	format!(
 		r#"<!doctype html><html><head><meta charset="utf-8"><style>html,body{{margin:0;padding:0;background:#fff}}svg{{display:block}}</style></head><body>{svg}</body></html>"#

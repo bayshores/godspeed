@@ -91,29 +91,58 @@ mod checks {
 		eprintln!("mac_demo: all checks passed");
 	}
 
-	/// A loopback server that answers only a request carrying the app's cookie; it counts every
-	/// connection, and a demo must make none.
+	/// A loopback server, on IPv4 and IPv6, that answers only a request carrying the app's cookie;
+	/// it counts every connection, and a demo must make none.
 	fn cookie_server() -> (u16, Arc<AtomicUsize>) {
-		let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-		let port = listener.local_addr().unwrap().port();
+		let v4 = TcpListener::bind("127.0.0.1:0").unwrap();
+		let port = v4.local_addr().unwrap().port();
+		let v6 = TcpListener::bind(("::1", port)).unwrap();
 		let requests = Arc::new(AtomicUsize::new(0));
-		let counted = requests.clone();
-		std::thread::spawn(move || {
-			for stream in listener.incoming().flatten() {
-				counted.fetch_add(1, Ordering::SeqCst);
-				let mut stream = stream;
-				let mut head = [0; 2048];
-				let n = stream.read(&mut head).unwrap_or(0);
-				let body = if String::from_utf8_lossy(&head[..n]).contains("gs_desktop=secret") { "secret" } else { "no" };
-				let _ = std::io::Write::write_all(&mut stream, format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{body}", body.len()).as_bytes());
-			}
-		});
+		for listener in [v4, v6] {
+			let counted = requests.clone();
+			std::thread::spawn(move || {
+				for stream in listener.incoming().flatten() {
+					counted.fetch_add(1, Ordering::SeqCst);
+					let mut stream = stream;
+					let mut head = [0; 2048];
+					let n = stream.read(&mut head).unwrap_or(0);
+					let body = if String::from_utf8_lossy(&head[..n]).contains("gs_desktop=secret") { "secret" } else { "no" };
+					let _ = std::io::Write::write_all(&mut stream, format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{body}", body.len()).as_bytes());
+				}
+			});
+		}
 		(port, requests)
+	}
+
+	/// Every way a URL can name this machine: with a user name, a subdomain of localhost, a
+	/// trailing dot, IPv6 and IPv4 inside IPv6, each over http and https.
+	fn loopback_images(port: u16) -> String {
+		let hosts = [
+			"127.0.0.1",
+			"a@127.0.0.1",
+			"a:b@localhost",
+			"foo.localhost",
+			"a.b.localhost",
+			"localhost.",
+			"[::1]",
+			"a@[::1]",
+			"[::]",
+			"[::ffff:127.0.0.1]",
+			"0.0.0.0",
+			"a@0.0.0.0",
+		];
+		let mut tags = String::new();
+		for host in hosts {
+			for scheme in ["http", "https"] {
+				tags.push_str(&format!(r#"<img src="{scheme}://{host}:{port}/x">"#));
+			}
+		}
+		tags
 	}
 
 	fn planted_errors_come_back_and_nothing_local_is_reached(folder: &std::path::Path, port: u16, seen: &mut Seen) {
 		let html = format!(
-			r#"<!doctype html><html><body><p>demo</p>
+			r#"<!doctype html><html><body><p>demo</p>{images}
 <script src="https://does-not-exist.invalid/lib.js"></script>
 <script>
 console.error("planted", {{ a: 1 }});
@@ -124,7 +153,8 @@ const img = new Image(); img.src = "http://127.0.0.1:{port}/pixel.png"; document
 setTimeout(() => {{ throw new Error("planted uncaught"); }}, 10);
 setTimeout(() => {{ location.href = "http://127.0.0.1:{port}/away"; }}, 50);
 setTimeout(() => {{ location.href = "https://example.com/"; }}, 100);
-</script></body></html>"#
+</script></body></html>"#,
+			images = loopback_images(port),
 		);
 		let probe = "({ answer: window.answer, href: location.href })";
 		let result = check(folder, &html, Some(probe), |mtm| look_at_demo_window(mtm, seen));
