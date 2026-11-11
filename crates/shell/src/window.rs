@@ -109,7 +109,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 				PageLoadEvent::Finished => {}
 			}
 		});
-	#[cfg(feature = "screens")]
+	#[cfg(all(feature = "screens", target_os = "macos"))]
 	let builder = match crate::screens::init_script() {
 		Some(script) => builder.initialization_script(script),
 		None => builder,

@@ -29,6 +29,10 @@ pub fn snapshot(window: &WebviewWindow, path: PathBuf) -> Result<(), String> {
 				let _ = tx.send(Err("the web view is gone".to_owned()));
 				return;
 			};
+			let Some(scale) = view.window().map(|window| window.backingScaleFactor()) else {
+				let _ = tx.send(Err("the web view has no window".to_owned()));
+				return;
+			};
 			let size = view.frame().size;
 			let pixels = NSSize::new(size.width * 2.0, size.height * 2.0);
 			let tx = Cell::new(Some(tx));
@@ -42,12 +46,13 @@ pub fn snapshot(window: &WebviewWindow, path: PathBuf) -> Result<(), String> {
 					let _ = tx.send(png.and_then(|png| gs_base::fsx::write_atomic(&path, &png, None).map_err(|err| err.to_string())));
 				}
 			});
-			// SAFETY: a snapshot of the whole view at its own width in points, on the main thread;
-			// the block lives until WebKit calls it.
+			// SAFETY: a snapshot of the whole view on the main thread; the block lives until WebKit
+			// calls it. WebKit draws the width in points at the screen's scale, so a 1x screen
+			// asks for twice the width to get two pixels a point.
 			unsafe {
 				let config = WKSnapshotConfiguration::new(MainThreadMarker::from(&*view));
 				config.setRect(view.bounds());
-				config.setSnapshotWidth(Some(&NSNumber::new_f64(size.width)));
+				config.setSnapshotWidth(Some(&NSNumber::new_f64(size.width * 2.0 / scale)));
 				view.takeSnapshotWithConfiguration_completionHandler(Some(&config), &drawn);
 			}
 		})

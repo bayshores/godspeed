@@ -19,7 +19,7 @@ mod push;
 mod quit;
 mod restarts;
 mod rpc;
-#[cfg(feature = "screens")]
+#[cfg(all(feature = "screens", target_os = "macos"))]
 mod screens;
 mod server;
 mod update;
@@ -128,7 +128,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	update::start(&handle);
 	app.set_menu(menu::build(&handle)?)?;
 	window::create(&handle)?;
-	#[cfg(feature = "screens")]
+	#[cfg(all(feature = "screens", target_os = "macos"))]
 	screens::start(&handle);
 	Server::start(&handle);
 	Ok(())
